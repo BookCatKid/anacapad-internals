@@ -11,6 +11,9 @@ ZGT evented state doc: full <ZoneGroupState>+<ZoneGroups>+<MediaServers> XML pus
 :::
 
 - form: `direct <e:property><ZoneGroupState> XML`
+- **TODO:** Established: the variable's type (xml-doc), evented=True, and declared semantics are documented for ZoneGroupTopology.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `ZoneGroupTopology.A_ARG_TYPE_CachedOnly`
 
@@ -276,3 +279,6 @@ evented ZoneGroupState XML emitted by topology_base
 
 :::
 
+- **TODO:** Established: the emitted field set is partially decoded (the fields list is not exhaustive - it truncates with an ellipsis).
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.

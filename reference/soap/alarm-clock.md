@@ -1,8 +1,12 @@
 # `AlarmClock` `/AlarmClock/Control`
 
-**visibility** `advertised` · **status** `strong`
+**visibility** `advertised`
 
 This service handles everything related to alarms and household time on a Sonos speaker. When you set an alarm in the Sonos app, say wake up to a radio station at 7am on weekdays, the app uses the commands in this service to create it, and the speaker stores it and fires it on its own even if your phone is nowhere nearby. It also owns the household clock: every Sonos speaker in a home shares one coordinated sense of what time it is and what timezone it lives in, and the commands here are how apps read or adjust that shared clock. Some commands are everyday ones the app calls when you open the alarms screen. Others, like the timezone and time-format ones, are plumbing that keeps every device in the house agreeing on wall-clock time.
+
+**TODO:** Established: the service's action surface, dispatch records, and state variables are fully documented.
+**TODO:** Still unknown: the alarm engine's storage (timer.db sqlite path), scheduling, and snooze state machine are only partially traced; each action's impl function behind its virtual dispatch is unresolved.
+**TODO:** Next step: resolve the impl functions behind each action's handler and record them per action.
 
 ::: details Technical details
 
@@ -24,31 +28,35 @@ Alarm and clock service: alarm CRUD plus household time/timezone/settings getter
 
 ## Actions
 
-| Action | Visibility | Reachability | Confidence | Dispatch | Error codes |
-|---|---|---|---|---|---|
-| `CreateAlarm` | advertised | callable | `strong` | virtual | 402 |
-| `DestroyAlarm` | advertised | callable | `strong` | virtual | 402 |
-| `GetDailyIndexRefreshTime` | advertised | callable | `strong` | virtual | 402 |
-| `GetFormat` | advertised | callable | `strong` | virtual | 402 |
-| `GetHouseholdTimeAtStamp` | advertised | callable | `strong` | virtual | 401, 402 |
-| `GetTimeNow` | advertised | callable | `strong` | virtual | 402 |
-| `GetTimeServer` | advertised | callable | `strong` | virtual | 402 |
-| `GetTimeZone` | advertised | callable | `strong` | virtual | 402 |
-| `GetTimeZoneAndRule` | advertised | callable | `strong` | virtual | 402 |
-| `GetTimeZoneRule` | advertised | callable | `strong` | virtual | 402 |
-| `ListAlarms` | advertised | callable | `strong` | virtual | 402 |
-| `SetDailyIndexRefreshTime` | advertised | callable | `strong` | virtual | 402 |
-| `SetFormat` | advertised | callable | `strong` | virtual | 401, 402 |
-| `SetTimeNow` | advertised | callable | `strong` | virtual | 401, 402 |
-| `SetTimeServer` | advertised | callable | `strong` | virtual | 402 |
-| `SetTimeZone` | advertised | callable | `strong` | virtual | 402 |
-| `UpdateAlarm` | advertised | callable | `strong` | virtual | 402 |
+| Action | Visibility | Reachability | Dispatch | Error codes |
+|---|---|---|---|---|
+| `CreateAlarm` | advertised | callable | virtual | 402 |
+| `DestroyAlarm` | advertised | callable | virtual | 402 |
+| `GetDailyIndexRefreshTime` | advertised | callable | virtual | 402 |
+| `GetFormat` | advertised | callable | virtual | 402 |
+| `GetHouseholdTimeAtStamp` | advertised | callable | virtual | 401, 402 |
+| `GetTimeNow` | advertised | callable | virtual | 402 |
+| `GetTimeServer` | advertised | callable | virtual | 402 |
+| `GetTimeZone` | advertised | callable | virtual | 402 |
+| `GetTimeZoneAndRule` | advertised | callable | virtual | 402 |
+| `GetTimeZoneRule` | advertised | callable | virtual | 402 |
+| `ListAlarms` | advertised | callable | virtual | 402 |
+| `SetDailyIndexRefreshTime` | advertised | callable | virtual | 402 |
+| `SetFormat` | advertised | callable | virtual | 401, 402 |
+| `SetTimeNow` | advertised | callable | virtual | 401, 402 |
+| `SetTimeServer` | advertised | callable | virtual | 402 |
+| `SetTimeZone` | advertised | callable | virtual | 402 |
+| `UpdateAlarm` | advertised | callable | virtual | 402 |
 
 ### `CreateAlarm`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Adds a new alarm to this speaker. When you create an alarm in the Sonos app, this is the command that actually registers it. You send the start time, how long it should play, whether it repeats and on which days, which room it should sound in, what it should play (a playlist, a radio station, or a chime), how loud, and whether it should turn on grouped speakers too. The speaker replies with an ID number for the new alarm, which the app then uses to refer to it later, for example when you edit or delete it. Once created, the alarm lives inside the speaker itself and will go off without the app needing to be open.
+
+**TODO:** Established: virtual dispatch to handler 0x10734404; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10734404, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -73,33 +81,63 @@ Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI
 
 - **`StartLocalTime`**: Alarm start time (local HH:MM:SS)
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `StartLocalTime` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `StartLocalTime`'s use inside the action's impl worker.
   - buffer cap: `0x9`
 - **`Duration`**: Alarm duration (HH:MM:SS)
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Duration` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Duration`'s use inside the action's impl worker.
   - buffer cap: `0x9`
 - **`Recurrence`**: Alarm-record field Recurrence
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Recurrence` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Recurrence`'s use inside the action's impl worker.
   - buffer cap: `0xb`
 - **`Enabled`**: Alarm enable flag
   - validation: stored in the alarm record
+  - **TODO:** Established: the arg's parse path (0x10561444) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Enabled` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Enabled`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 - **`RoomUUID`**: Alarm-record field RoomUUID
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `RoomUUID` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `RoomUUID`'s use inside the action's impl worker.
   - buffer cap: `0x19`
 - **`ProgramURI`**: Alarm-record field ProgramURI
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `ProgramURI` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `ProgramURI`'s use inside the action's impl worker.
   - buffer cap: `0x401`
 - **`ProgramMetaData`**: Alarm-record field ProgramMetaData
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `ProgramMetaData` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `ProgramMetaData`'s use inside the action's impl worker.
   - buffer cap: `0x1001`
 - **`PlayMode`**: Alarm-record field PlayMode
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `PlayMode` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `PlayMode`'s use inside the action's impl worker.
   - buffer cap: `0x20`
 - **`Volume`**: Alarm playback volume
   - validation: stored in the alarm record
+  - **TODO:** Established: the arg's parse path (0x10561478) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Volume` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Volume`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 - **`IncludeLinkedZones`**: Extend the alarm across linked zones
   - validation: stored in the alarm record
+  - **TODO:** Established: the arg's parse path (0x10561444) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `IncludeLinkedZones` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `IncludeLinkedZones`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 
 #### Outputs
@@ -110,10 +148,13 @@ Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI
 
 - **`AssignedID`**: Newly allocated alarm id
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `AssignedID`'s emitted value is not traced.
+  - **TODO:** Next step: trace `AssignedID`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -123,9 +164,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×10, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+?\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×10, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x10734404; req-vfunc call map: {'0x1c': 10, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
@@ -133,9 +177,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×10, out
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+?\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x10734404; member vfunc calls: \['*(r30+4) v\[+?\]'\]
@@ -146,10 +193,16 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+?\]
 #### Side effects
 
 - state-mutation delegate: *(r30+4) v\[+?\] (call-derived member-method semantics)
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v\[+?\] (call-derived member-method semantics).
+  - **TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+  - **TODO:** Next step: resolve that target and re-derive this section's semantics.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+?\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x10734404; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+?\]'\]
@@ -157,9 +210,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734404; bl call scan: notify-family sites = \[\]
@@ -167,9 +223,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734404; commit/fault slot usage: {'0x1c': 10, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}
@@ -179,8 +238,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret(*(r3-in+0x4),+0x34)`** `strong`
+**`vret(*(r3-in+0x4),+0x34)`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x34); sites: 0x10734634).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x1027a980 (slot +0x34) domain: literal 402 gate (0x1027aa30) plus insert-result derived path (r31 = call result / arg-seeded)
 
 - the impl vfunc produced a nonzero code
@@ -189,14 +251,17 @@ alarm-store vfunc 0x1027a980 (slot +0x34) domain: literal 402 gate (0x1027aa30) 
 **Bounded unknown (proven):** literal 402 exit + derived insert path
 **Bounded unknown (unresolved):** alarm-insert worker rc domain | commit chain: f_1027a8f8 -> f_1027f94c persist writer (rc = inner-call result, no literal faults observed)
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).
+Still unknown: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates.
+Next step: disassemble the upstream worker named in the code expression and map each return code to its trigger predicate.
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -221,9 +286,13 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 ### `DestroyAlarm`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Deletes one alarm permanently. You give it the ID number of the alarm you want gone (the same number the speaker handed out when the alarm was created) and it removes it from its internal list. This is what the app sends when you swipe-to-delete an alarm. If the alarm was already ringing, deleting it does not silence it; it only removes the scheduled entry, so it will not fire again tomorrow.
+
+**TODO:** Established: virtual dispatch to handler 0x10734954; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10734954, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -239,11 +308,14 @@ Deletes alarm ID via impl->v\[+0x3c\].
 
 - **`ID`**: Alarm id to destroy
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x105614e0) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `ID` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `ID`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -253,9 +325,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x3c\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x3c\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734954; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -263,9 +338,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x3c\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+0x3c\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734954; member vfunc calls: \['*(r30+4) v\[+0x3c\]'\]
@@ -276,10 +354,16 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x3c\]
 #### Side effects
 
 - state mutation delegated to *(impl+0x4)->v\[+0x3c\]; impl parses args then commits via req->v\[+0x0c\]
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v\[+0x3c\]; impl parses args then commits via req->v\[+0x0c\].
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x3c\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x3c\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734954; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x3c\]'\]
@@ -287,9 +371,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734954; bl call scan: notify-family sites = \[\]
@@ -297,9 +384,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734954; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -309,8 +399,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret(*(r3-in+0x4),+0x3c)`** `strong`
+**`vret(*(r3-in+0x4),+0x3c)`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x3c); sites: 0x107349ec).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x1027b134 (slot +0x3c) domain: accumulator r31 = remove-call result only (f_1027a8f8 / f_1027f94c) - no literal fault code observed
 
 - the impl vfunc produced a nonzero code
@@ -319,14 +412,17 @@ alarm-store vfunc 0x1027b134 (slot +0x3c) domain: accumulator r31 = remove-call 
 **Bounded unknown (proven):** rc is fully call-derived
 **Bounded unknown (unresolved):** remove/commit worker rc domain | commit chain: f_1027a8f8 -> f_1027f94c persist writer (rc = inner-call result, no literal faults observed)
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).
+Still unknown: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates.
+Next step: disassemble the upstream worker named in the code expression and map each return code to its trigger predicate.
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -351,9 +447,13 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 ### `GetDailyIndexRefreshTime`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Reports what time of day the speaker is set to rebuild its music library index. Sonos systems that play from a shared music folder on your network periodically rescan that folder to pick up new albums, and the system does this once a day at a fixed quiet hour. This command simply reads back the configured hour. The app calls it when you look at the music-library settings screen.
+
+**TODO:** Established: virtual dispatch to handler 0x10734d18; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10734d18, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -369,10 +469,13 @@ Returns CurrentDailyIndexRefreshTime via impl->v\[+0x8\].
 
 - **`CurrentDailyIndexRefreshTime`**: Configured daily index refresh time
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentDailyIndexRefreshTime`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentDailyIndexRefreshTime`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -382,9 +485,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x44\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x44\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734d18; req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
@@ -392,9 +498,12 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg w
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x44\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x44\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734d18; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x44\]'\]
@@ -405,10 +514,16 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### Side effects
 
 - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x44\] -> out-arg via req->v\[+0x24\]); result emitted via out-arg; no state mutation in impl path
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x44\] -> out-arg via req->v\[+0x24\]); result emitted via out-arg; no state mutation in impl path.
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x44\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x44\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734d18; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x44\]'\]
@@ -416,9 +531,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734d18; bl call scan: notify-family sites = \[\]
@@ -426,9 +544,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734d18; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
@@ -438,13 +559,16 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret`** `strong`
+**`vret`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734d18).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x102730fc (slot +0x44) is single-exit "li r3,0; blr" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)
 
 - the impl vfunc produced a nonzero code
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
@@ -472,9 +596,13 @@ Wrapper parse layer rejected an argument before the impl call.
 
 ### `GetFormat`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Reports how times and dates are displayed, for example whether the speaker uses a 24-hour or 12-hour clock and which date layout it believes its region uses. It is a small settings read that the app calls when it needs to present times the same way the player will.
+
+**TODO:** Established: virtual dispatch to handler 0x10734f28; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10734f28, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -491,12 +619,18 @@ Returns CurrentTimeFormat/CurrentDateFormat via impl->v\[+0x8\].
 
 - **`CurrentTimeFormat`**: Configured time format
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentTimeFormat`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentTimeFormat`'s use inside the action's impl worker.
 - **`CurrentDateFormat`**: Configured date format
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentDateFormat`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentDateFormat`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -506,9 +640,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (out-arg store×2, raise-fault×1, out-arg write×2, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0xc\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×2, raise-fault×1, out-arg write×2, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0xc\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734f28; req-vfunc call map: {'0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}
@@ -516,9 +653,12 @@ impl consumes in-args via req slots (out-arg store×2, raise-fault×1, out-arg w
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0xc\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0xc\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734f28; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0xc\]'\]
@@ -529,10 +669,16 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### Side effects
 
 - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x0c\] -> out-arg); result emitted via out-arg; no state mutation in impl path
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x0c\] -> out-arg); result emitted via out-arg; no state mutation in impl path.
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0xc\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0xc\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734f28; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0xc\]'\]
@@ -540,9 +686,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734f28; bl call scan: notify-family sites = \[\]
@@ -550,9 +699,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734f28; commit/fault slot usage: {'0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}
@@ -562,13 +714,16 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret`** `strong`
+**`vret`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734f28).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x10272f90 (slot +0xc) is single-exit "li r3,0; blr" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)
 
 - the impl vfunc produced a nonzero code
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
@@ -597,9 +752,13 @@ Wrapper parse layer rejected an argument before the impl call.
 
 ### `GetHouseholdTimeAtStamp`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Translates a moment in time into the household's shared clock. Sonos speakers in one home keep a single synchronized time that may differ slightly from ordinary internet time, because speakers need millisecond agreement to play in sync. This command answers the question 'in the household's own timekeeping, what time is this particular timestamp?' It exists for features that need every room to schedule something at the exact same instant.
+
+**TODO:** Established: virtual dispatch to handler 0x10733fb4; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10733fb4, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -615,6 +774,9 @@ Converts TimeStamp to household UTC time via impl->v\[+0x2c\].
 
 - **`TimeStamp`**: UTC timestamp to convert
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `TimeStamp` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `TimeStamp`'s use inside the action's impl worker.
   - buffer cap: `0x40`
 
 #### Outputs
@@ -625,10 +787,13 @@ Converts TimeStamp to household UTC time via impl->v\[+0x2c\].
 
 - **`HouseholdUTCTime`**: Household-local time at the stamp
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `HouseholdUTCTime`'s emitted value is not traced.
+  - **TODO:** Next step: trace `HouseholdUTCTime`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -638,9 +803,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x2c\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x2c\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733fb4; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
@@ -648,9 +816,12 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x2c\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+0x2c\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733fb4; member vfunc calls: \['*(r30+4) v\[+0x2c\]'\]
@@ -661,10 +832,16 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x2c\]
 #### Side effects
 
 - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x2c\] -> out-arg); result emitted via out-arg; no state mutation in impl path
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x2c\] -> out-arg); result emitted via out-arg; no state mutation in impl path.
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x2c\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x2c\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733fb4; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x2c\]'\]
@@ -672,9 +849,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733fb4; bl call scan: notify-family sites = \[\]
@@ -682,9 +862,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733fb4; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
@@ -694,13 +877,16 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`401`** `strong`
+**`401`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: li r3,0x191; sites: 0x10734058).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x10272f70 (slot +0x2c) is a 4-insn stub "li r3,0x191; blr" - validly parsed calls always fault 401; malformed requests may still fail earlier at wrapper parse
 
 - the impl vfunc produced a nonzero code
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
@@ -727,9 +913,13 @@ Wrapper parse layer rejected an argument before the impl call.
 
 ### `GetTimeNow`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Reports what time the speaker thinks it is right now, in four flavors at once: the household's synchronized clock, the local wall-clock time, the timezone it is configured with, and a generation counter that ticks up whenever the clock settings change. Apps use this when they need the player's own view of 'now' rather than trusting the phone's clock, because alarms and schedules depend on the speaker's clock and not yours.
+
+**TODO:** Established: virtual dispatch to handler 0x1073505c; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x1073505c, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -748,16 +938,28 @@ Returns CurrentUTCTime/CurrentLocalTime/CurrentTimeZone/CurrentTimeGeneration vi
 
 - **`CurrentUTCTime`**: Current UTC timestamp written to the response
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentUTCTime`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentUTCTime`'s use inside the action's impl worker.
 - **`CurrentLocalTime`**: Current local time written to the response
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentLocalTime`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentLocalTime`'s use inside the action's impl worker.
 - **`CurrentTimeZone`**: Time response field CurrentTimeZone
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentTimeZone`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentTimeZone`'s use inside the action's impl worker.
 - **`CurrentTimeGeneration`**: Time response field CurrentTimeGeneration
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentTimeGeneration`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentTimeGeneration`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -767,9 +969,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (out-arg store×3, raise-fault×1, out-arg write×4, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+?\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×3, raise-fault×1, out-arg write×4, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x1073505c; req-vfunc call map: {'0x14': 1, '0x24': 4, '0x10': 3, '0xc': 1}
@@ -777,9 +982,12 @@ impl consumes in-args via req slots (out-arg store×3, raise-fault×1, out-arg w
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+?\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x1073505c; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+?\]'\]
@@ -790,10 +998,16 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### Side effects
 
 - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[...\] -> out-arg); result emitted via out-arg; no state mutation in impl path
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[...\] -> out-arg); result emitted via out-arg; no state mutation in impl path.
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+?\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x1073505c; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+?\]'\]
@@ -801,9 +1015,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073505c; bl call scan: notify-family sites = \[\]
@@ -811,9 +1028,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073505c; commit/fault slot usage: {'0x14': 1, '0x24': 4, '0x10': 3, '0xc': 1}
@@ -823,8 +1043,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret`** `strong`
+**`vret`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x1073505c).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x10273340 (slot +0x30) has two literal exits: 800 on the household-time query failure path (li r3,0x320 at 0x102733f0) and 0 on success (0x1027352c); call-derived paths in between remain possible
 
 - the impl vfunc produced a nonzero code
@@ -833,7 +1056,7 @@ alarm-store vfunc 0x10273340 (slot +0x30) has two literal exits: 800 on the hous
 **Bounded unknown (proven):** literal exits {800, 0} identified in store vfunc
 **Bounded unknown (unresolved):** whether any call-derived exit can produce a third code
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
@@ -863,9 +1086,13 @@ Wrapper parse layer rejected an argument before the impl call.
 
 ### `GetTimeServer`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Reports which network time source the speaker is configured to synchronize against. Sonos players keep their shared clock disciplined by regularly checking a time server (either one on the internet or one inside the household). This command just reads back the configured server's address, as used by the settings screens.
+
+**TODO:** Established: virtual dispatch to handler 0x10734c1c; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10734c1c, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -881,10 +1108,13 @@ Returns CurrentTimeServer via impl->v\[+0x8\].
 
 - **`CurrentTimeServer`**: Configured NTP time server
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentTimeServer`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentTimeServer`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -894,9 +1124,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x24\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x24\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734c1c; req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
@@ -904,9 +1137,12 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg w
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x24\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x24\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734c1c; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x24\]'\]
@@ -917,10 +1153,16 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### Side effects
 
 - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x24\] -> out-arg); result emitted via out-arg; no state mutation in impl path
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x24\] -> out-arg); result emitted via out-arg; no state mutation in impl path.
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x24\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x24\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734c1c; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x24\]'\]
@@ -928,9 +1170,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734c1c; bl call scan: notify-family sites = \[\]
@@ -938,9 +1183,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734c1c; commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
@@ -950,13 +1198,16 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret`** `strong`
+**`vret`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734c1c).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x10273090 (slot +0x24) is single-exit "li r3,0; blr" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)
 
 - the impl vfunc produced a nonzero code
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
@@ -984,9 +1235,13 @@ Wrapper parse layer rejected an argument before the impl call.
 
 ### `GetTimeZone`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Reports which timezone the speaker is currently set to, and whether it is allowed to adjust itself for daylight-saving changes automatically. The answer comes back as a numeric timezone index rather than a name like 'Europe/London'. Sonos keeps its own internal table of timezones, and this command returns the speaker's slot in that table.
+
+**TODO:** Established: virtual dispatch to handler 0x10734e14; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10734e14, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -1003,12 +1258,18 @@ Returns Index/AutoAdjustDst via impl->v\[+0x8\].
 
 - **`Index`**: Timezone response field Index
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `Index`'s emitted value is not traced.
+  - **TODO:** Next step: trace `Index`'s use inside the action's impl worker.
 - **`AutoAdjustDst`**: Timezone response field AutoAdjustDst
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `AutoAdjustDst`'s emitted value is not traced.
+  - **TODO:** Next step: trace `AutoAdjustDst`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -1018,9 +1279,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, out-arg write×2, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x14\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, out-arg write×2, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x14\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734e14; req-vfunc call map: {'0x14': 1, '0x24': 2, '0xc': 1}
@@ -1028,9 +1292,12 @@ impl consumes in-args via req slots (raise-fault×1, out-arg write×2, commit×1
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x14\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x14\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734e14; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x14\]'\]
@@ -1041,10 +1308,16 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### Side effects
 
 - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x14\] -> out-arg); result emitted via out-arg; no state mutation in impl path
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x14\] -> out-arg); result emitted via out-arg; no state mutation in impl path.
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x14\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x14\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734e14; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x14\]'\]
@@ -1052,9 +1325,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734e14; bl call scan: notify-family sites = \[\]
@@ -1062,9 +1338,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734e14; commit/fault slot usage: {'0x14': 1, '0x24': 2, '0xc': 1}
@@ -1074,13 +1353,16 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret`** `strong`
+**`vret`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734e14).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x10273020 (slot +0x14) is single-exit "li r3,0; blr" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)
 
 - the impl vfunc produced a nonzero code
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
@@ -1107,9 +1389,13 @@ Wrapper parse layer rejected an argument before the impl call.
 
 ### `GetTimeZoneAndRule`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Same idea as GetTimeZone, but it also returns the actual daylight-saving rule attached to the timezone, meaning the dates and offsets that say when clocks spring forward and fall back. The app uses this when it needs to display not just which zone you are in but what will happen at the next clock change.
+
+**TODO:** Established: virtual dispatch to handler 0x10734a40; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10734a40, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -1127,14 +1413,23 @@ Returns Index/AutoAdjustDst/CurrentTimeZone via impl->v\[+0x8\].
 
 - **`Index`**: Timezone response field Index
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `Index`'s emitted value is not traced.
+  - **TODO:** Next step: trace `Index`'s use inside the action's impl worker.
 - **`AutoAdjustDst`**: Timezone response field AutoAdjustDst
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `AutoAdjustDst`'s emitted value is not traced.
+  - **TODO:** Next step: trace `AutoAdjustDst`'s use inside the action's impl worker.
 - **`CurrentTimeZone`**: Timezone response field CurrentTimeZone
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentTimeZone`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentTimeZone`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -1144,9 +1439,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×3, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x18\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×3, commit×1); member delegates: r4 v\[+0x8\], *(r30+4) v\[+0x18\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734a40; req-vfunc call map: {'0x14': 1, '0x24': 3, '0x10': 1, '0xc': 1}
@@ -1154,9 +1452,12 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg w
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x18\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x18\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734a40; member vfunc calls: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x18\]'\]
@@ -1167,10 +1468,16 @@ service-internal state reached through member delegate(s): r4 v\[+0x8\], *(r30+4
 #### Side effects
 
 - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x18\] -> out-arg); result emitted via out-arg; no state mutation in impl path
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x18\] -> out-arg); result emitted via out-arg; no state mutation in impl path.
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x18\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x8\], *(r30+4) v\[+0x18\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734a40; no transition-literal/store pattern; member delegates: \['r4 v\[+0x8\]', '*(r30+4) v\[+0x18\]'\]
@@ -1178,9 +1485,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734a40; bl call scan: notify-family sites = \[\]
@@ -1188,9 +1498,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734a40; commit/fault slot usage: {'0x14': 1, '0x24': 3, '0x10': 1, '0xc': 1}
@@ -1200,13 +1513,16 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret`** `strong`
+**`vret`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734a40).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x102731b4 (slot +0x18) is single-exit "li r3,0; blr" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)
 
 - the impl vfunc produced a nonzero code
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
@@ -1234,9 +1550,13 @@ Wrapper parse layer rejected an argument before the impl call.
 
 ### `GetTimeZoneRule`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Looks up the daylight-saving rule for one specific timezone entry in the speaker's internal timezone table. You hand it a timezone index and it returns the rule that zone follows. This is reference plumbing rather than a user-facing feature: it lets an app reason about future clock changes without having its own timezone database.
+
+**TODO:** Established: virtual dispatch to handler 0x107341cc; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x107341cc, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -1252,6 +1572,9 @@ Returns the TimeZone rule for Index via impl->v\[+0x1c\].
 
 - **`Index`**: Timezone-table index to query
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x10561514) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Index` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Index`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 
 #### Outputs
@@ -1262,10 +1585,13 @@ Returns the TimeZone rule for Index via impl->v\[+0x1c\].
 
 - **`TimeZone`**: Timezone rule string at the requested index
   - validation: emitted via response vfuncs
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `TimeZone`'s emitted value is not traced.
+  - **TODO:** Next step: trace `TimeZone`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -1275,9 +1601,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x1c\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x1c\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107341cc; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
@@ -1285,9 +1614,12 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x1c\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+0x1c\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107341cc; member vfunc calls: \['*(r30+4) v\[+0x1c\]'\]
@@ -1298,10 +1630,16 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x1c\]
 #### Side effects
 
 - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x1c\] -> out-arg); result emitted via out-arg; no state mutation in impl path
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v\[+0x1c\] -> out-arg); result emitted via out-arg; no state mutation in impl path.
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x1c\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x1c\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107341cc; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x1c\]'\]
@@ -1309,9 +1647,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107341cc; bl call scan: notify-family sites = \[\]
@@ -1319,9 +1660,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107341cc; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
@@ -1331,13 +1675,16 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret(*(r3-in+0x4),+0x1c)`** `strong`
+**`vret(*(r3-in+0x4),+0x1c)`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x1c); sites: 0x1073426c).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x10273280 (slot +0x1c) is single-exit "li r3,0; blr" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)
 
 - the impl vfunc produced a nonzero code
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
@@ -1364,9 +1711,13 @@ Wrapper parse layer rejected an argument before the impl call.
 
 ### `ListAlarms`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Returns every alarm the speaker currently has stored, which is the same list you see in the app's alarm screen including the disabled ones. Each entry comes with its ID, time, repeat pattern, target room, what it will play, volume, and whether grouped speakers join in. The app calls this whenever it needs to render or sync the alarm list, and the speaker is the source of truth.
+
+**TODO:** Established: virtual dispatch to handler 0x10734b8c; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10734b8c, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -1384,13 +1735,19 @@ Lists all alarms via impl->v\[+0x8\].
 - **`CurrentAlarmList`**: serialized XML list of all registered alarms, emitted via req->v\[+0x24\] inside the alarm-list serializer
   - validation: arg-name string 'out' loaded at 0x102735bc inside f_10273538
   - producer binding: handler calls *(req+0xc)->v\[+0x08\] twice; f_10273538 is one of the two binary producers of this arg name: exact variant not resolved
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentAlarmList`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentAlarmList`'s use inside the action's impl worker.
 - **`CurrentAlarmListVersion`**: version tag emitted right after CurrentAlarmList by the same serializer
   - validation: arg-name string 'out' loaded at 0x102735e0 inside f_10273538
   - emitted via req->v\[+0x24\] at 0x102735e8 inside f_10273538
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentAlarmListVersion`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentAlarmListVersion`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -1400,9 +1757,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (validate×1); member delegates: r4 v\[+0x3c\], *(r30+0xc) v\[+0x8\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (validate×1); member delegates: r4 v\[+0x3c\], *(r30+0xc) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734b8c; req-vfunc call map: {'0x8': 1}
@@ -1410,9 +1770,12 @@ impl consumes in-args via req slots (validate×1); member delegates: r4 v\[+0x3c
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r4 v\[+0x3c\], *(r30+0xc) v\[+0x8\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v\[+0x3c\], *(r30+0xc) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734b8c; member vfunc calls: \['r4 v\[+0x3c\]', '*(r30+0xc) v\[+0x8\]'\]
@@ -1423,10 +1786,16 @@ service-internal state reached through member delegate(s): r4 v\[+0x3c\], *(r30+
 #### Side effects
 
 - read-only query: read-only query delegate on alarm-store member (*(impl+0xc)->v\[+0x08\] (alarm-store member serialize)); result emitted via out-arg; no state mutation in impl path
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on alarm-store member (*(impl+0xc)->v\[+0x08\] (alarm-store member serialize)); result emitted via out-arg; no state mutation in impl path.
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x3c\], *(r30+0xc) v\[+0x8\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x3c\], *(r30+0xc) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734b8c; no transition-literal/store pattern; member delegates: \['r4 v\[+0x3c\]', '*(r30+0xc) v\[+0x8\]'\]
@@ -1434,9 +1803,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734b8c; bl call scan: notify-family sites = \[\]
@@ -1444,9 +1816,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10734b8c; commit/fault slot usage: {'0x8': 1}
@@ -1456,13 +1831,16 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret`** `strong`
+**`vret`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734b8c).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 nonzero impl rc forwarded verbatim as the fault code (CR-return convention); recovered impl-side constants {402 impl-internal fault sites observed}
 
 - the impl vfunc produced a nonzero code
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
@@ -1488,9 +1866,13 @@ Wrapper parse layer rejected an argument before the impl call.
 
 ### `SetDailyIndexRefreshTime`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Sets the time of day at which the speaker rebuilds its music library index. When you change 'update music library daily at 4am' in settings, this is the command that stores the new hour. It only schedules the rescan; the actual scanning work is done elsewhere.
+
+**TODO:** Established: virtual dispatch to handler 0x107340dc; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x107340dc, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -1506,11 +1888,14 @@ Sets the daily music-index refresh time via impl->v\[+0x40\].
 
 - **`DesiredDailyIndexRefreshTime`**: Daily index refresh time to set (HH:MM:SS)
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `DesiredDailyIndexRefreshTime` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `DesiredDailyIndexRefreshTime`'s use inside the action's impl worker.
   - buffer cap: `0x9`
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -1520,9 +1905,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x40\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x40\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107340dc; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -1530,9 +1918,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x40\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+0x40\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107340dc; member vfunc calls: \['*(r30+4) v\[+0x40\]'\]
@@ -1543,10 +1934,16 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x40\]
 #### Side effects
 
 - state mutation delegated to *(impl+0x4)->v\[+0x40\]; impl parses args then commits via req->v\[+0x0c\]
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v\[+0x40\]; impl parses args then commits via req->v\[+0x0c\].
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x40\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x40\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107340dc; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x40\]'\]
@@ -1554,9 +1951,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107340dc; bl call scan: notify-family sites = \[\]
@@ -1564,9 +1964,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107340dc; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -1576,8 +1979,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret(*(r3-in+0x4),+0x40)`** `strong`
+**`vret(*(r3-in+0x4),+0x40)`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x40); sites: 0x10734178).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x1027d0c4 (slot +0x40) domain: literal 402 gate (0x1027d1f0) plus derived accumulator r30
 
 - the impl vfunc produced a nonzero code
@@ -1586,14 +1992,17 @@ alarm-store vfunc 0x1027d0c4 (slot +0x40) domain: literal 402 gate (0x1027d1f0) 
 **Bounded unknown (proven):** literal 402 + derived
 **Bounded unknown (unresolved):** store worker rc domain
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).
+Still unknown: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates.
+Next step: disassemble the upstream worker named in the code expression and map each return code to its trigger predicate.
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -1618,9 +2027,13 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 ### `SetFormat`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Changes the speaker's preferred time and date display formats, for example switching between 12-hour and 24-hour clock. It stores the new preference and other commands like GetFormat read it back.
+
+**TODO:** Established: virtual dispatch to handler 0x10733c8c; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10733c8c, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -1637,14 +2050,20 @@ Sets DesiredTimeFormat/DesiredDateFormat via impl->v\[+0x8\].
 
 - **`DesiredTimeFormat`**: Time format to set
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `DesiredTimeFormat` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `DesiredTimeFormat`'s use inside the action's impl worker.
   - buffer cap: `0x4`
 - **`DesiredDateFormat`**: Date format to set
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `DesiredDateFormat` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `DesiredDateFormat`'s use inside the action's impl worker.
   - buffer cap: `0x4`
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -1654,9 +2073,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x8\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733c8c; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -1664,9 +2086,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x8\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733c8c; member vfunc calls: \['*(r30+4) v\[+0x8\]'\]
@@ -1677,10 +2102,16 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x8\]
 #### Side effects
 
 - state mutation delegated to *(impl+0x4)->v\[+0x08\]; impl parses args then commits via req->v\[+0x0c\]
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v\[+0x08\]; impl parses args then commits via req->v\[+0x0c\].
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x8\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733c8c; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x8\]'\]
@@ -1688,9 +2119,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733c8c; bl call scan: notify-family sites = \[\]
@@ -1698,9 +2132,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733c8c; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -1710,8 +2147,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret(*(r3-in+0x4),+0x8)`** `strong`
+**`vret(*(r3-in+0x4),+0x8)`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x8); sites: 0x10733d54).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x1027a410 (slot +0x8) domain: accumulator r31 in {0, call result} - DesiredFormat strings validated via five strcmp gates, then stored via strlcpy; no literal fault exit observed
 
 - the impl vfunc produced a nonzero code
@@ -1720,20 +2160,26 @@ alarm-store vfunc 0x1027a410 (slot +0x8) domain: accumulator r31 in {0, call res
 **Bounded unknown (proven):** strcmp validation gates present; r31 domain {0, call-derived}
 **Bounded unknown (unresolved):** which code (if any) the reject path produces - likely 402 via accumulator
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
-**`401`** `strong`
+**`401`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: code 401; sites: via propagated return codes (no direct fault site in this action)).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 format-string validation gate
 
 - format-string validation gate
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).
+Still unknown: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates.
+Next step: disassemble the upstream worker named in the code expression and map each return code to its trigger predicate.
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -1758,9 +2204,13 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 ### `SetTimeNow`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Sets the household clock directly. You provide the time you want the system to consider 'now' plus the timezone that time is expressed in, and the speaker adopts it as the shared household time. Because this changes the clock for the whole system, it is the kind of command normally issued by setup tools or the app during initial configuration rather than something a user calls day to day.
+
+**TODO:** Established: virtual dispatch to handler 0x10733e98; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10733e98, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -1777,14 +2227,20 @@ Sets the household clock: DesiredTime + TimeZoneForDesiredTime via impl->v\[+0x2
 
 - **`DesiredTime`**: UTC time to set
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `DesiredTime` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `DesiredTime`'s use inside the action's impl worker.
   - buffer cap: `0x14`
 - **`TimeZoneForDesiredTime`**: Timezone applying to DesiredTime
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `TimeZoneForDesiredTime` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `TimeZoneForDesiredTime`'s use inside the action's impl worker.
   - buffer cap: `0x1d`
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -1794,9 +2250,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x28\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x28\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733e98; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -1804,9 +2263,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x28\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+0x28\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733e98; member vfunc calls: \['*(r30+4) v\[+0x28\]'\]
@@ -1817,10 +2279,16 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x28\]
 #### Side effects
 
 - state-mutation delegate: *(r30+4) v\[+0x28\] (call-derived member-method semantics)
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v\[+0x28\] (call-derived member-method semantics).
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x28\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x28\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733e98; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x28\]'\]
@@ -1828,9 +2296,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733e98; bl call scan: notify-family sites = \[\]
@@ -1838,9 +2309,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733e98; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -1850,20 +2324,26 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`401`** `strong`
+**`401`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: li r3,0x191; sites: 0x10733f60).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x10272f60 (slot +0x28) is a 4-insn stub "li r3,0x191; blr" - validly parsed calls always fault 401; malformed requests may still fail earlier at wrapper parse
 
 - the impl vfunc produced a nonzero code
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).
+Still unknown: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates.
+Next step: disassemble the upstream worker named in the code expression and map each return code to its trigger predicate.
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -1888,9 +2368,13 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 ### `SetTimeServer`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Points the speaker at a different network time source. You provide an address and the speaker will synchronize its shared clock against that server from then on. This is useful for keeping a household on an internal time source, or for working around an unreachable default.
+
+**TODO:** Established: virtual dispatch to handler 0x10733da8; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x10733da8, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -1906,11 +2390,14 @@ Sets the NTP time server via impl->v\[+0x20\].
 
 - **`DesiredTimeServer`**: NTP server to set
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `DesiredTimeServer` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `DesiredTimeServer`'s use inside the action's impl worker.
   - buffer cap: `0x81`
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -1920,9 +2407,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x20\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0x20\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733da8; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -1930,9 +2420,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733da8; member vfunc calls: \['*(r30+4) v\[+0x20\]'\]
@@ -1943,10 +2436,16 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x20\]
 #### Side effects
 
 - state-mutation delegate: *(r30+4) v\[+0x20\] (call-derived member-method semantics)
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v\[+0x20\] (call-derived member-method semantics).
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x20\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x20\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733da8; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x20\]'\]
@@ -1954,9 +2453,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733da8; bl call scan: notify-family sites = \[\]
@@ -1964,9 +2466,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10733da8; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -1976,8 +2481,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret(*(r3-in+0x4),+0x20)`** `strong`
+**`vret(*(r3-in+0x4),+0x20)`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x20); sites: 0x10733e44).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x1027a64c (slot +0x20) domain: accumulator r29/r30 seeded from arg/call results - no literal fault exit observed
 
 - the impl vfunc produced a nonzero code
@@ -1986,14 +2494,17 @@ alarm-store vfunc 0x1027a64c (slot +0x20) domain: accumulator r29/r30 seeded fro
 **Bounded unknown (proven):** rc call-derived
 **Bounded unknown (unresolved):** lookup/store worker rc domain
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).
+Still unknown: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates.
+Next step: disassemble the upstream worker named in the code expression and map each return code to its trigger predicate.
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -2018,9 +2529,13 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 ### `SetTimeZone`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Changes which timezone the speaker belongs to and whether daylight-saving adjustment should happen automatically. This is what the app sends when you tell the system you have moved or when timezone data changes.
+
+**TODO:** Established: virtual dispatch to handler 0x107342f0; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x107342f0, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -2037,14 +2552,20 @@ Sets timezone Index/AutoAdjustDst via impl->v\[+0x10\].
 
 - **`Index`**: Timezone-table index to activate
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x10561514) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Index` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Index`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 - **`AutoAdjustDst`**: DST auto-adjust flag
   - validation: stored in the timezone record
+  - **TODO:** Established: the arg's parse path (0x10561444) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `AutoAdjustDst` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `AutoAdjustDst`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -2054,9 +2575,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x10\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v\[+0x10\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107342f0; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -2064,9 +2588,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0x10\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+0x10\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107342f0; member vfunc calls: \['*(r30+4) v\[+0x10\]'\]
@@ -2077,10 +2604,16 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0x10\]
 #### Side effects
 
 - state-mutation delegate: *(r30+4) v\[+0x10\] (call-derived member-method semantics)
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v\[+0x10\] (call-derived member-method semantics).
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x10\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0x10\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107342f0; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0x10\]'\]
@@ -2088,9 +2621,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107342f0; bl call scan: notify-family sites = \[\]
@@ -2098,9 +2634,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107342f0; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -2110,8 +2649,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret(*(r3-in+0x4),+0x10)`** `strong`
+**`vret(*(r3-in+0x4),+0x10)`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x10); sites: 0x107343b0).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x1027cf5c (slot +0x10) domain: literal 402 (li r3,0x192 at 0x1027cf88) plus call-derived accumulator paths (r29/r30 from call results)
 
 - the impl vfunc produced a nonzero code
@@ -2120,14 +2662,17 @@ alarm-store vfunc 0x1027cf5c (slot +0x10) domain: literal 402 (li r3,0x192 at 0x
 **Bounded unknown (proven):** literal 402 exit + derived paths
 **Bounded unknown (unresolved):** call-derived rc values from lookup/strlcpy chain
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).
+Still unknown: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates.
+Next step: disassemble the upstream worker named in the code expression and map each return code to its trigger predicate.
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -2152,9 +2697,13 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 ### `UpdateAlarm`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Edits an existing alarm in place. You send the alarm's ID plus a complete new set of fields (new time, new repeat pattern, new room, new thing to play, new volume) and the speaker replaces the stored entry. This is what happens behind the scenes when you edit an alarm in the app: rather than delete and recreate, it updates the existing record.
+
+**TODO:** Established: virtual dispatch to handler 0x107346ac; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x107346ac, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -2180,41 +2729,74 @@ Updates an existing alarm by ID with the same field set via impl->v\[+0x38\].
 
 - **`ID`**: Alarm id to update
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x105614e0) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `ID` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `ID`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 - **`StartLocalTime`**: Alarm-record field StartLocalTime
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `StartLocalTime` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `StartLocalTime`'s use inside the action's impl worker.
   - buffer cap: `0x9`
 - **`Duration`**: Alarm-record field Duration
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Duration` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Duration`'s use inside the action's impl worker.
   - buffer cap: `0x9`
 - **`Recurrence`**: Alarm-record field Recurrence
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Recurrence` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Recurrence`'s use inside the action's impl worker.
   - buffer cap: `0xb`
 - **`Enabled`**: Alarm enable flag
   - validation: stored in the alarm record
+  - **TODO:** Established: the arg's parse path (0x10561444) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Enabled` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Enabled`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 - **`RoomUUID`**: Alarm-record field RoomUUID
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `RoomUUID` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `RoomUUID`'s use inside the action's impl worker.
   - buffer cap: `0x19`
 - **`ProgramURI`**: Alarm-record field ProgramURI
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `ProgramURI` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `ProgramURI`'s use inside the action's impl worker.
   - buffer cap: `0x401`
 - **`ProgramMetaData`**: Alarm-record field ProgramMetaData
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `ProgramMetaData` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `ProgramMetaData`'s use inside the action's impl worker.
   - buffer cap: `0x1001`
 - **`PlayMode`**: Alarm-record field PlayMode
   - validation: consumed by impl vfunc on the service vtable
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `PlayMode` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `PlayMode`'s use inside the action's impl worker.
   - buffer cap: `0x20`
 - **`Volume`**: Alarm playback volume
   - validation: stored in the alarm record
+  - **TODO:** Established: the arg's parse path (0x10561478) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Volume` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Volume`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 - **`IncludeLinkedZones`**: Extend the alarm across linked zones
   - validation: stored in the alarm record
+  - **TODO:** Established: the arg's parse path (0x10561444) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `IncludeLinkedZones` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `IncludeLinkedZones`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0x1c\] named lookup + typed parse helpers; req->v\[+0x8\] validity check (nonzero proceeds); impl->v\[slot\] rc -> cr0.eq emits outputs, nonzero faults through req->v\[+0x14\].
 ::: details Evidence (1)
@@ -2224,9 +2806,12 @@ Wrapper convention (verified on sibling handlers): inputs fetched via req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×11, validate×1, commit×1); member delegates: *(r30+4) v\[+?\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×11, validate×1, commit×1); member delegates: *(r30+4) v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x107346ac; req-vfunc call map: {'0x1c': 11, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -2234,9 +2819,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×11, val
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+?\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x107346ac; member vfunc calls: \['*(r30+4) v\[+?\]'\]
@@ -2247,10 +2835,16 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+?\]
 #### Side effects
 
 - state mutation delegated to *(impl+0x4)->v\[...\]; impl parses args then commits via req->v\[+0x0c\]
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v\[...\]; impl parses args then commits via req->v\[+0x0c\].
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+?\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x107346ac; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+?\]'\]
@@ -2258,9 +2852,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107346ac; bl call scan: notify-family sites = \[\]
@@ -2268,9 +2865,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107346ac; commit/fault slot usage: {'0x1c': 11, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -2280,8 +2880,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`vret(*(r3-in+0x4),+0x38)`** `strong`
+**`vret(*(r3-in+0x4),+0x38)`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x38); sites: 0x10734900).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 alarm-store vfunc 0x1027ac80 (slot +0x38) domain: literal 402 gate (0x1027ad34) plus accumulator r31 seeded from arg r5 / call results
 
 - the impl vfunc produced a nonzero code
@@ -2290,14 +2893,17 @@ alarm-store vfunc 0x1027ac80 (slot +0x38) domain: literal 402 gate (0x1027ad34) 
 **Bounded unknown (proven):** literal 402 exit + derived paths
 **Bounded unknown (unresolved):** update worker rc domain (f_10273bb8/f_10273ac0 field setters, f_1027a8f8 commit) | commit chain: f_1027a8f8 -> f_1027f94c persist writer (rc = inner-call result, no literal faults observed)
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).
+Still unknown: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates.
+Next step: disassemble the upstream worker named in the code expression and map each return code to its trigger predicate.
 alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -2360,6 +2966,7 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 - **wss_registry:**
   - idx: 5, name: alarmClock, id: 20, tag: 64
   - idx: 6, name: alarmVersionChange, id: 24, tag: 1
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `alarmClock`, `alarmVersionChange`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 :::
 
@@ -2368,8 +2975,11 @@ alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,80
 
 ::: details Technical details
 
-**`401`** `strong`
+**`401`**
 
+Established: fault sites and trigger conditions for code 401 are documented with binary evidence.
+Still unknown: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated.
+Next step: sweep the dispatcher fault table for additional emit sites of this code.
 unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler
 
 - Request action name matches no entry in the service dispatch table after the name-table search

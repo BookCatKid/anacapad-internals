@@ -10,6 +10,10 @@ the complete muse route registration table recovered from rodata: 603 route reco
 
 :::
 
+**TODO:** Established: the full 603-record route table, 67 resources / 332 operations, the op-descriptor decode (spec streams), the dispatch mechanism, event channels, and the authz/lechmere verb registry are decoded and documented.
+**TODO:** Still unknown: roughly a fifth of muse verbs (verbs_bound 237 of verbs_total 265) have no resolved op binding; several payload families remain opaque (opaque_payloads, loadcontent variants), and a set of route records have unrecovered verb names.
+**TODO:** Next step: extend the spec-pair decode to the remaining unbound verbs, decode the opaque payload schemas, and trace the ~28 unbound verbs to their handlers.
+
 Each route carries a bitmask saying which HTTP verbs it accepts (GET for reads, POST for creates, PUT and PATCH for edits, DELETE for removals) plus a marker dividing 'settings' operations from 'playback' operations. That division turns out to be meaningful, because the pipeline treats the two classes differently when checking permissions.
 
 Every route funnels into one shared router: a single front door that all API traffic passes through. Two thin entry points merely record which channel the request arrived on (local network versus the cloud tunnel) before joining the same machinery, so every operation sees a uniform request no matter where it came from.

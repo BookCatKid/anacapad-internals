@@ -10,6 +10,9 @@ ConnectionManager evented variable in f_10735918
 
 :::
 
+- **TODO:** Established: the variable's type (string), evented=True, and declared semantics are documented for ConnectionManager.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `ConnectionManager.A_ARG_TYPE_AVTransportID`
 

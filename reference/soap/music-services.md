@@ -1,8 +1,12 @@
 # `MusicServices` `/MusicServices/Control`
 
-**visibility** `advertised` · **status** `strong`
+**visibility** `advertised`
 
 This service manages the player's relationship with streaming services: Spotify, Apple Music, and the dozens of others Sonos supports. It answers 'which services are available on this system', asks the cloud for a refreshed service list, and hands out session tokens, meaning the credentials a service (or the app on its behalf) needs to keep a logged-in session alive on the speaker. It's the account and session plumbing between your speaker and your streaming subscriptions, not the commands that actually play music.
+
+**TODO:** Established: the service's action surface, dispatch records, and state variables are fully documented.
+**TODO:** Still unknown: the three actions share virtual-dispatch handlers; the service-list impl behind them is untraced.
+**TODO:** Next step: resolve the impl functions behind each action's handler and record them per action.
 
 ::: details Technical details
 
@@ -24,17 +28,21 @@ Sonos music-service account/session service; impl member at svc+4 for the sessio
 
 ## Actions
 
-| Action | Visibility | Reachability | Confidence | Dispatch | Error codes |
-|---|---|---|---|---|---|
-| `GetSessionId` | advertised | callable | `strong` | virtual | 401, 402 |
-| `ListAvailableServices` | advertised | callable | `strong` | virtual | 402 |
-| `UpdateAvailableServices` | advertised | callable | `strong` | virtual | 402, 800 |
+| Action | Visibility | Reachability | Dispatch | Error codes |
+|---|---|---|---|---|
+| `GetSessionId` | advertised | callable | virtual | 401, 402 |
+| `ListAvailableServices` | advertised | callable | virtual | 402 |
+| `UpdateAvailableServices` | advertised | callable | virtual | 402, 800 |
 
 ### `GetSessionId`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Returns the session token for a specific music-service account, the credential string that lets a client act on that service as you. You name the service and the account username, and the speaker hands back its stored session ID.
+
+**TODO:** Established: virtual dispatch to handler 0x1073a264; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x1073a264, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -66,7 +74,7 @@ Returns the session id for a music-service account. Wrapper parses ServiceId (in
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 ::: details Evidence (1)
@@ -76,9 +84,12 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0xc\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v\[+0xc\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a264; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
@@ -86,9 +97,12 @@ impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a264; member vfunc calls: \['*(r30+4) v\[+0xc\]'\]
@@ -100,9 +114,12 @@ service-internal state reached through member delegate(s): *(r30+4) v\[+0xc\]
 
 - Read-only session-id lookup; no persistent mutation on the impl path.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0xc\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v\[+0xc\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a264; no transition-literal/store pattern; member delegates: \['*(r30+4) v\[+0xc\]'\]
@@ -110,9 +127,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a264; bl call scan: notify-family sites = \[\]
@@ -120,9 +140,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a264; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}
@@ -132,15 +155,21 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`402`** `strong`
+**`402`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0xc); parse/req-layer; sites: 0x1073a330).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 impl->v\[+0xc\] rc surfaced | Wrapper parse layer rejected an argument before the impl call.
 
 - impl vfunc nonzero
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
-**`401`** `strong`
+**`401`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: code 401; sites: via propagated return codes (no direct fault site in this action)).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 capability/mode flag gate (sp byte flags tested before arg parse)
 
 - *(sp+0x18)!=0 then *(sp+0x14)==0 -> 401
@@ -167,9 +196,13 @@ capability/mode flag gate (sp byte flags tested before arg parse)
 
 ### `ListAvailableServices`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Returns the full list of music services this system knows about, the catalog the app shows when you browse 'Add Music Services' or pick a source. Each entry includes service names, capabilities, and how to talk to each one.
+
+**TODO:** Established: virtual dispatch to handler 0x1073a424; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x1073a424, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -194,7 +227,7 @@ Returns the list of available music services. Wrapper reaches the impl through *
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 ::: details Evidence (1)
@@ -204,9 +237,12 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (validate×1); member delegates: r4 v\[+0x3c\], *(r30+8) v\[+0x8\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (validate×1); member delegates: r4 v\[+0x3c\], *(r30+8) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a424; req-vfunc call map: {'0x8': 1}
@@ -214,9 +250,12 @@ impl consumes in-args via req slots (validate×1); member delegates: r4 v\[+0x3c
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r4 v\[+0x3c\], *(r30+8) v\[+0x8\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v\[+0x3c\], *(r30+8) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a424; member vfunc calls: \['r4 v\[+0x3c\]', '*(r30+8) v\[+0x8\]'\]
@@ -228,9 +267,12 @@ service-internal state reached through member delegate(s): r4 v\[+0x3c\], *(r30+
 
 - Read-only serialization of the impl service table via secondary-base vfunc f_100c6314.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x3c\], *(r30+8) v\[+0x8\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v\[+0x3c\], *(r30+8) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a424; no transition-literal/store pattern; member delegates: \['r4 v\[+0x3c\]', '*(r30+8) v\[+0x8\]'\]
@@ -238,9 +280,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a424; bl call scan: notify-family sites = \[\]
@@ -248,9 +293,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a424; commit/fault slot usage: {'0x8': 1}
@@ -260,8 +308,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`402`** `strong`
+**`402`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; parse/req-layer; sites: 0x1073a424).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 impl->v\[+0x8\] rc surfaced | Wrapper parse layer rejected an argument before the impl call.
 
 - impl vfunc rc
@@ -292,9 +343,13 @@ impl->v\[+0x8\] rc surfaced | Wrapper parse layer rejected an argument before th
 
 ### `UpdateAvailableServices`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `virtual`
+visibility `advertised` · reachability `callable` · dispatch `virtual`
 
 Asks the speaker to refresh its catalog of music services by re-pulling the current service list, so newly launched or updated services appear.
+
+**TODO:** Established: virtual dispatch to handler 0x1073a3b4; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x1073a3b4, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -304,7 +359,7 @@ Triggers a refresh of the available music-services list via impl->v\[+0x8\] on t
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 ::: details Evidence (1)
@@ -314,9 +369,12 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: *(r3+4) v\[+0x8\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: *(r3+4) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a3b4; req-vfunc call map: {'0x14': 1, '0xc': 1}
@@ -324,9 +382,12 @@ impl consumes in-args via req slots (raise-fault×1, commit×1); member delegate
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): *(r3+4) v\[+0x8\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r3+4) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a3b4; member vfunc calls: \['*(r3+4) v\[+0x8\]'\]
@@ -337,10 +398,16 @@ service-internal state reached through member delegate(s): *(r3+4) v\[+0x8\]
 #### Side effects
 
 - state-mutation delegate: *(r3+4) v\[+0x8\] (call-derived member-method semantics)
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r3+4) v\[+0x8\] (call-derived member-method semantics).
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v\[+0x8\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v\[+0x8\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a3b4; no transition-literal/store pattern; member delegates: \['*(r3+4) v\[+0x8\]'\]
@@ -348,9 +415,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a3b4; bl call scan: notify-family sites = \[\]
@@ -358,9 +428,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x1073a3b4; commit/fault slot usage: {'0x14': 1, '0xc': 1}
@@ -370,8 +443,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`800`** `strong`
+**`800`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x8); sites: 0x1073a404).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 impl->v\[+0x8\] rc surfaced
 
 - impl vfunc rc
@@ -380,14 +456,17 @@ impl->v\[+0x8\] rc surfaced
 **Bounded unknown (proven):** impl->v\[+0x8\] rc surfaced
 **Bounded unknown (unresolved):** none identified
 
-**`402`** `confirmed`
+**`402`**
 
 Wrapper parse layer rejected an argument before the impl call.
 
 - Missing or unparseable input at the req->v\[+0x1c\]/helper parse stage
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).
+Still unknown: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates.
+Next step: disassemble the upstream worker named in the code expression and map each return code to its trigger predicate.
 music-services list refresh rc domain adds {801} via service-catalog worker
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -435,6 +514,7 @@ music-services list refresh rc domain adds {801} via service-catalog worker
 - **wss_registry:**
   - idx: 44, name: musicServices, id: 166, tag: 73
   - idx: 45, name: musicServicesChanged, id: 167, tag: 25
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `musicServices`, `musicServicesChanged`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 :::
 
@@ -443,8 +523,11 @@ music-services list refresh rc domain adds {801} via service-catalog worker
 
 ::: details Technical details
 
-**`401`** `strong`
+**`401`**
 
+Established: fault sites and trigger conditions for code 401 are documented with binary evidence.
+Still unknown: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated.
+Next step: sweep the dispatcher fault table for additional emit sites of this code.
 unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler
 
 - Request action name matches no entry in the service dispatch table after the name-table search

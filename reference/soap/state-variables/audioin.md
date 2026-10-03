@@ -11,6 +11,9 @@ AudioIn evented variable; emitted by f_10243170 e:property dump.
 :::
 
 - form: `<e:property><NAME>value</e:property>`
+- **TODO:** Established: the variable's type (string), evented=True, and declared semantics are documented for AudioIn.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `AI.TOSLinkConnected`
 
@@ -23,6 +26,9 @@ AudioIn evented variable; emitted by f_10243170 e:property dump.
 :::
 
 - form: `<e:property><NAME>value</e:property>`
+- **TODO:** Established: the variable's type (boolean), evented=True, and declared semantics are documented for AudioIn.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `AudioIn.A_ARG_TYPE_MemberID`
 

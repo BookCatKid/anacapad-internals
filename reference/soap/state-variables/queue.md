@@ -242,3 +242,6 @@ savedqueues.rsq persistence
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.

@@ -10,6 +10,9 @@ DeviceProperties evented variable (ZoneNameChangedEvent)
 
 :::
 
+- **TODO:** Established: the variable's type (string), evented=True, and declared semantics are documented for DeviceProperties.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `DP.Invisible`
 
@@ -21,6 +24,9 @@ DeviceProperties evented variable (DeviceInfo attr literal)
 
 :::
 
+- **TODO:** Established: the variable's type (boolean), evented=True, and declared semantics are documented for DeviceProperties.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `DP.MicEnabled`
 
@@ -32,6 +38,9 @@ DeviceProperties evented variable (DeviceInfo attr literal)
 
 :::
 
+- **TODO:** Established: the variable's type (boolean), evented=True, and declared semantics are documented for DeviceProperties.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `DP.ResetVolumeAfter`
 
@@ -43,6 +52,9 @@ DeviceProperties evented variable in f_102fc6f4
 
 :::
 
+- **TODO:** Established: the variable's type (boolean), evented=True, and declared semantics are documented for DeviceProperties.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `DeviceProperties.A_ARG_TYPE_ButtonState`
 
@@ -639,6 +651,9 @@ more state vars
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `device_props_update_ids`
 
@@ -650,3 +665,6 @@ update counters
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.

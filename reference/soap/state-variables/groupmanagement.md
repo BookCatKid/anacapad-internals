@@ -10,6 +10,9 @@ GroupManagement evented variable (event-pool literal)
 
 :::
 
+- **TODO:** Established: the variable's type (string), evented=True, and declared semantics are documented for GroupManagement.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `GM.LocalGroupUUID`
 
@@ -21,6 +24,9 @@ GroupManagement evented variable (event-pool literal)
 
 :::
 
+- **TODO:** Established: the variable's type (string), evented=True, and declared semantics are documented for GroupManagement.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `GM.VirtualLineInGroupID`
 
@@ -32,6 +38,9 @@ GroupManagement evented variable (setVirtualLineInGroupIDLocked worker)
 
 :::
 
+- **TODO:** Established: the variable's type (string), evented=True, and declared semantics are documented for GroupManagement.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `GroupManagement.A_ARG_TYPE_AVTransportURI`
 

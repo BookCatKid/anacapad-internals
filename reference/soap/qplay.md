@@ -1,6 +1,6 @@
 # `QPlay` `/QPlay/Control`
 
-**visibility** `advertised` · **status** `confirmed`
+**visibility** `advertised`
 
 This service exists for one integration: QPlay, the protocol Tencent's QQ Music uses to send music to speakers, which is the equivalent of a 'cast to device' feature inside China's dominant streaming service. It has a single command, the authentication handshake that begins a QPlay session: the app sends a seed value and the player returns the corresponding response, proving it can participate in the exchange. On this build the command is fully present, because QPlay shipped only on units sold for the Chinese market, which is why most users have never seen it.
 
@@ -23,13 +23,13 @@ QPlay (QQ Music) authentication service stub; the extractor resolved no handler 
 
 ## Actions
 
-| Action | Visibility | Reachability | Confidence | Dispatch | Error codes |
-|---|---|---|---|---|---|
-| `QPlayAuth` | advertised | callable | `confirmed` | strcmp-dispatched | 401, 402 |
+| Action | Visibility | Reachability | Dispatch | Error codes |
+|---|---|---|---|---|
+| `QPlayAuth` | advertised | callable | strcmp-dispatched | 401, 402 |
 
 ### `QPlayAuth`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp-dispatched`
+visibility `advertised` · reachability `callable` · dispatch `strcmp-dispatched`
 
 The QPlay login handshake, the first step when a QQ Music app wants to send audio to this speaker. The app presents a 'seed' challenge value and the player computes the matching response code, proving it speaks the QPlay protocol and unlocking the session that streams music afterward. Only used by the Tencent integration, so it is meaningless to ordinary apps.
 
@@ -59,7 +59,7 @@ QPlay authentication handshake (Tencent seed->code exchange, fully decoded): dis
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 req->v\[+0x08\] validation gate; failure emits 402 (literal 0x192 at 0x1073a6b8)
 ::: details Evidence (2)
@@ -70,7 +70,7 @@ req->v\[+0x08\] validation gate; failure emits 402 (literal 0x192 at 0x1073a6b8)
 :::
 
 
-#### Requirements / preconditions `confirmed`
+#### Requirements / preconditions
 
 Seed is required: parse via f_1056157c precedes the impl call and the req->v\[+0x08\] gate rejects missing/malformed args with 402
 ::: details Evidence (1)
@@ -80,7 +80,7 @@ Seed is required: parse via f_1056157c precedes the impl call and the req->v\[+0
 :::
 
 
-#### State dependencies `confirmed`
+#### State dependencies
 
 auth computation reads device-identity material via f_106453a8/f_1064548c lookups inside impl f_104666b4; impl object injected into svc+4 by ctor f_1073a768 (called at 0x1018f28c)
 ::: details Evidence (2)
@@ -95,7 +95,7 @@ auth computation reads device-identity material via f_106453a8/f_1064548c lookup
 
 - Stores the action-name pointer into ctx+0x70 member +0xe0 and TLS+0x28 (f_100ad1bc/f_100a9750); auth computation itself returns 0 with no persistent mutation in this build.
 
-#### State transitions `confirmed`
+#### State transitions
 
 none: no state-machine mutation in handler f_1073a5d0 or impl f_104666b4 beyond the action-name/TLS stores
 ::: details Evidence (1)
@@ -105,7 +105,7 @@ none: no state-machine mutation in handler f_1073a5d0 or impl f_104666b4 beyond 
 :::
 
 
-#### Events `confirmed`
+#### Events
 
 none emitted: impl f_104666b4 returns 0 unconditionally with no event/notify call; the only side effect is the action-name store into ctx+0x70 member +0xe0 and TLS+0x28
 ::: details Evidence (1)
@@ -115,7 +115,7 @@ none emitted: impl f_104666b4 returns 0 unconditionally with no event/notify cal
 :::
 
 
-#### Return behavior `confirmed`
+#### Return behavior
 
 impl returns 0 unconditionally -> success response commits Code/MID/DID via req->v\[+0x24\] emitters then req->v\[+0x0c\]; nonzero would surface via the same fault/commit path
 ::: details Evidence (2)
@@ -128,19 +128,19 @@ impl returns 0 unconditionally -> success response commits Code/MID/DID via req-
 
 #### Errors
 
-**`402`** `confirmed`
+**`402`**
 
 request-validate gate failed (req->v\[+0x08\] returned 0)
 
 - req->v\[+0x08\] request gate fails (handler literal 0x192 at 0x1073a6b8)
 
-**`401`** `confirmed`
+**`401`**
 
 unknown action name on QPlay dispatcher
 
 - action name != QPlayAuth (dispatcher strcmp) (dispatcher fault 0x1073a548)
 
-**`401`** `confirmed`
+**`401`**
 
 action-name strcmp miss in wrapper f_1073a4f0 -> req v\[+0x14\] emit 0x191
 
@@ -178,6 +178,7 @@ action-name strcmp miss in wrapper f_1073a4f0 -> req v\[+0x14\] emit 0x191
 ::: details Technical details
 
 - **notify_path:** 'updateSharedTQPlayMode' worker ('...bad context!' log) is the QPlay state-update path; X_QPlay_SoftwareCapability static; no dedicated emitter recovered
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue).`, `Still unknown: the notify emission path inside the binary is not recovered.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 :::
 
@@ -186,8 +187,11 @@ action-name strcmp miss in wrapper f_1073a4f0 -> req v\[+0x14\] emit 0x191
 
 ::: details Technical details
 
-**`401`** `strong`
+**`401`**
 
+Established: fault sites and trigger conditions for code 401 are documented with binary evidence.
+Still unknown: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated.
+Next step: sweep the dispatcher fault table for additional emit sites of this code.
 unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler
 
 - Request action name matches no entry in the service dispatch table after the name-table search

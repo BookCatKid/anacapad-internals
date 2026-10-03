@@ -120,6 +120,24 @@ inference), `inferred` (heuristic), `unresolved`. Lint flags
 `confirmed`/`strong` claims that carry no evidence records. Never silently
 upgrade inferred facts.
 
+## User-facing rule: no coverage labels, TODOs instead
+
+Status grades are internal bookkeeping only. The generated site never
+renders them: no badges, no status columns, no tiers, no percentages, no
+confidence vocabulary. Instead, every record whose status is anything
+other than `confirmed` must carry a `todo` field describing:
+
+1. what the record already establishes,
+2. what remains unknown,
+3. the concrete next reverse-engineering step.
+
+A `todo` is a string or a list of strings; never leave a bare `TODO`
+with no explanation. `confirmed` records need no `todo`. The rendered
+site collects every `todo` automatically into
+`subsystems/open-work.md`, and `TodoPolicyTests` enforces both sides of
+the contract: no non-confirmed record may lack a `todo`, and no
+generated page may emit coverage/confidence metadata.
+
 Evidence records carry `type` (`firmware`, `live_test`, `network_capture`,
 `runtime_trace`, `device_observation`), `binary`, `build`, `function`,
 `address`, `callsite`, `notes`, `status`.

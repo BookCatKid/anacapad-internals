@@ -19,21 +19,12 @@ The counts below distinguish three things that are easy to conflate, and conflat
 | **canonical action records** | 205 | every action object under services.*.actions in this dataset; 195 unique action names (some names recur across services) |
 | unique action names | 195 | some names recur across services |
 
-## Confidence vocabulary
-
-Every fact on this site carries a confidence tag so nothing is overstated. 'Confirmed' means the code path was followed end to end: we traced the command from arrival through its routine and saw exactly what it does. 'Strong' means the evidence is solid but some detail remains inferred, for example the command's job is proven but one internal branch wasn't worth mapping. 'Weak' means structure suggests the claim but the trail runs cold partway. Where a behavior can't be resolved without running the device (and remember, this whole project is static analysis: no player was ever touched), the page says so explicitly rather than guessing.
-
-- **visibility**: action/service surface classification: 'advertised' = declared in a shipped SCPD document AND (at service level) present in the served device_description.xml serviceList (16 of 17 services, everything except AudioIn); 'hidden' = service omitted from the serviceList even though its SCPD ships (AudioIn only); 'internal' = callable on the wire but not SCPD-declared; supported class, EMPTY on this build (verified: all 205 canonical actions appear in their service's SCPD actionList)
-- **reachability**: 'callable' = dispatched to a real implementation; 'hidden-callable' = reachable by action name on the control path but not SCPD-declared: EMPTY on this build
-- **confidence**: confirmed = direct binary proof; strong = strong static evidence; inferred = heuristic; unresolved = not yet determined
-- **fault_vocabulary_caveat**: identical fault-code vocabularies across builds do NOT prove identical error behavior; a fault-code vocabulary delta claim is made only where control flow was also compared
-
 ## Sections
 
 - [Architecture](architecture.md): routing, dispatch, request lifecycle, shared subsystems
 - [SOAP / UPnP](soap/index.md): the seventeen services, state variables, eventing, errors, and wire grammars
 - [muse API](muse/index.md): the v1 REST surface, resources, outbound client, and spec streams
 - [HTTP layer](http/index.md): non-SOAP HTTP endpoints, discovery, auth, and outbound clients
-- [Subsystems](subsystems/index.md): non-SOAP protocols and engines with coverage levels
+- [Subsystems](subsystems/index.md): non-SOAP protocols, engines, and on-device daemons
 - [Firmware differences](firmware-differences.md): cross-build/cross-model deltas
 - [Firmware artifacts](artifacts/index.md): every extractable file in the image, playable or downloadable

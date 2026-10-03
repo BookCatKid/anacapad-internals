@@ -10,6 +10,9 @@ HTControl evented variable in f_10739c34
 
 :::
 
+- **TODO:** Established: the variable's type (string), evented=True, and declared semantics are documented for HTControl.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `HT.RemoteConfigured`
 
@@ -21,6 +24,9 @@ HTControl evented variable in f_10782194
 
 :::
 
+- **TODO:** Established: the variable's type (boolean), evented=True, and declared semantics are documented for HTControl.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `HTControl.A_ARG_TYPE_IRCode`
 

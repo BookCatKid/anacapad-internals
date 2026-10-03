@@ -1,6 +1,6 @@
 # `AudioIn` `/AudioIn/Control`
 
-**visibility** `hidden` · **status** `confirmed`
+**visibility** `hidden`
 
 On paper this service is the control point for line-in audio, the physical input jack that lets you plug a turntable or another source into a Sonos player. The product specification still advertises commands for configuring that input and for broadcasting line-in audio to other rooms. But in this particular firmware build none of it actually works: every single command in this service is routed to a 'reject everything' routine that refuses each request with an error before doing anything. Think of it as a door that was left in the spec sheet after the feature behind it was removed. The menu entries are all there, and all of them are dead.
 
@@ -22,18 +22,18 @@ AudioIn service on the zone player: registered, but its service object is a 4-by
 
 ## Actions
 
-| Action | Visibility | Reachability | Confidence | Dispatch | Error codes |
-|---|---|---|---|---|---|
-| `StartTransmissionToGroup` | advertised | callable | `confirmed` | strcmp_stub | 401 |
-| `StopTransmissionToGroup` | advertised | callable | `confirmed` | strcmp_stub | 401 |
-| `SetAudioInputAttributes` | advertised | callable | `confirmed` | strcmp_stub | 401 |
-| `GetAudioInputAttributes` | advertised | callable | `confirmed` | strcmp_stub | 401 |
-| `SetLineInLevel` | advertised | callable | `confirmed` | strcmp_stub | 401 |
-| `GetLineInLevel` | advertised | callable | `confirmed` | strcmp_stub | 401 |
+| Action | Visibility | Reachability | Dispatch | Error codes |
+|---|---|---|---|---|
+| `StartTransmissionToGroup` | advertised | callable | strcmp_stub | 401 |
+| `StopTransmissionToGroup` | advertised | callable | strcmp_stub | 401 |
+| `SetAudioInputAttributes` | advertised | callable | strcmp_stub | 401 |
+| `GetAudioInputAttributes` | advertised | callable | strcmp_stub | 401 |
+| `SetLineInLevel` | advertised | callable | strcmp_stub | 401 |
+| `GetLineInLevel` | advertised | callable | strcmp_stub | 401 |
 
 ### `StartTransmissionToGroup`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub, faults 401**
+visibility `advertised` · reachability `callable` · dispatch `strcmp_stub` · **removed/stub, faults 401**
 
 Supposed to begin broadcasting whatever is plugged into the line-in jack to a group of speakers, which is the command that turns one player's turntable into house-wide audio. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
@@ -69,7 +69,7 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 n/a: fault precedes any arg validation
 ::: details Evidence (1)
@@ -79,7 +79,7 @@ n/a: fault precedes any arg validation
 :::
 
 
-#### Requirements / preconditions `confirmed`
+#### Requirements / preconditions
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
 ::: details Evidence (1)
@@ -89,7 +89,7 @@ none: the dispatcher faults 401 before reading any in-arg; advertised args are n
 :::
 
 
-#### State dependencies `confirmed`
+#### State dependencies
 
 none: the stub touches no service state; it only emits a fault
 ::: details Evidence (1)
@@ -103,7 +103,7 @@ none: the stub touches no service state; it only emits a fault
 
 - none besides the SOAP fault emit: no state mutation, no member delegate
 
-#### State transitions `confirmed`
+#### State transitions
 
 none: no state machine touched
 ::: details Evidence (1)
@@ -113,7 +113,7 @@ none: no state machine touched
 :::
 
 
-#### Events `confirmed`
+#### Events
 
 none: the stub emits no events
 ::: details Evidence (1)
@@ -123,7 +123,7 @@ none: the stub emits no events
 :::
 
 
-#### Return behavior `confirmed`
+#### Return behavior
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
 ::: details Evidence (1)
@@ -135,7 +135,7 @@ always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits succe
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments
 
@@ -150,7 +150,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
 - impl `0x1073d8f8` (vfunc `+0x08`)
-- engine resolution `resolved` → `0x1073d8f8`
+- engine impl resolved to `0x1073d8f8`
 - Reject-all: loads *(req)+0x14 fault emitter, emits literal 0x191 (401), returns 401 for any action name; no name table, no arg parsing
 - the entire AudioIn service is a stub: SCPD advertises the action but the binary dispatches every name to 401
 
@@ -161,7 +161,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 ### `StopTransmissionToGroup`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub, faults 401**
+visibility `advertised` · reachability `callable` · dispatch `strcmp_stub` · **removed/stub, faults 401**
 
 Supposed to stop a line-in broadcast that StartTransmissionToGroup had started. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
@@ -183,7 +183,7 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 n/a: fault precedes any arg validation
 ::: details Evidence (1)
@@ -193,7 +193,7 @@ n/a: fault precedes any arg validation
 :::
 
 
-#### Requirements / preconditions `confirmed`
+#### Requirements / preconditions
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
 ::: details Evidence (1)
@@ -203,7 +203,7 @@ none: the dispatcher faults 401 before reading any in-arg; advertised args are n
 :::
 
 
-#### State dependencies `confirmed`
+#### State dependencies
 
 none: the stub touches no service state; it only emits a fault
 ::: details Evidence (1)
@@ -217,7 +217,7 @@ none: the stub touches no service state; it only emits a fault
 
 - none besides the SOAP fault emit: no state mutation, no member delegate
 
-#### State transitions `confirmed`
+#### State transitions
 
 none: no state machine touched
 ::: details Evidence (1)
@@ -227,7 +227,7 @@ none: no state machine touched
 :::
 
 
-#### Events `confirmed`
+#### Events
 
 none: the stub emits no events
 ::: details Evidence (1)
@@ -237,7 +237,7 @@ none: the stub emits no events
 :::
 
 
-#### Return behavior `confirmed`
+#### Return behavior
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
 ::: details Evidence (1)
@@ -249,7 +249,7 @@ always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits succe
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments
 
@@ -264,7 +264,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
 - impl `0x1073d8f8` (vfunc `+0x08`)
-- engine resolution `resolved` → `0x1073d8f8`
+- engine impl resolved to `0x1073d8f8`
 - Reject-all: loads *(req)+0x14 fault emitter, emits literal 0x191 (401), returns 401 for any action name; no name table, no arg parsing
 - the entire AudioIn service is a stub: SCPD advertises the action but the binary dispatches every name to 401
 
@@ -275,7 +275,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 ### `SetAudioInputAttributes`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub, faults 401**
+visibility `advertised` · reachability `callable` · dispatch `strcmp_stub` · **removed/stub, faults 401**
 
 Supposed to configure the line-in jack, for example giving the source a friendly name so 'Turntable' shows up as an input choice in the app. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
@@ -301,7 +301,7 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 n/a: fault precedes any arg validation
 ::: details Evidence (1)
@@ -311,7 +311,7 @@ n/a: fault precedes any arg validation
 :::
 
 
-#### Requirements / preconditions `confirmed`
+#### Requirements / preconditions
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
 ::: details Evidence (1)
@@ -321,7 +321,7 @@ none: the dispatcher faults 401 before reading any in-arg; advertised args are n
 :::
 
 
-#### State dependencies `confirmed`
+#### State dependencies
 
 none: the stub touches no service state; it only emits a fault
 ::: details Evidence (1)
@@ -335,7 +335,7 @@ none: the stub touches no service state; it only emits a fault
 
 - none besides the SOAP fault emit: no state mutation, no member delegate
 
-#### State transitions `confirmed`
+#### State transitions
 
 none: no state machine touched
 ::: details Evidence (1)
@@ -345,7 +345,7 @@ none: no state machine touched
 :::
 
 
-#### Events `confirmed`
+#### Events
 
 none: the stub emits no events
 ::: details Evidence (1)
@@ -355,7 +355,7 @@ none: the stub emits no events
 :::
 
 
-#### Return behavior `confirmed`
+#### Return behavior
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
 ::: details Evidence (1)
@@ -367,7 +367,7 @@ always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits succe
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments
 
@@ -382,7 +382,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
 - impl `0x1073d8f8` (vfunc `+0x08`)
-- engine resolution `resolved` → `0x1073d8f8`
+- engine impl resolved to `0x1073d8f8`
 - Reject-all: loads *(req)+0x14 fault emitter, emits literal 0x191 (401), returns 401 for any action name; no name table, no arg parsing
 - the entire AudioIn service is a stub: SCPD advertises the action but the binary dispatches every name to 401
 
@@ -393,7 +393,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 ### `GetAudioInputAttributes`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub, faults 401**
+visibility `advertised` · reachability `callable` · dispatch `strcmp_stub` · **removed/stub, faults 401**
 
 Supposed to report how the player's line-in jack is configured, including things like the name it shows in the app and the audio format it accepts. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
@@ -419,7 +419,7 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 n/a: fault precedes any arg validation
 ::: details Evidence (1)
@@ -429,7 +429,7 @@ n/a: fault precedes any arg validation
 :::
 
 
-#### Requirements / preconditions `confirmed`
+#### Requirements / preconditions
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
 ::: details Evidence (1)
@@ -439,7 +439,7 @@ none: the dispatcher faults 401 before reading any in-arg; advertised args are n
 :::
 
 
-#### State dependencies `confirmed`
+#### State dependencies
 
 none: the stub touches no service state; it only emits a fault
 ::: details Evidence (1)
@@ -453,7 +453,7 @@ none: the stub touches no service state; it only emits a fault
 
 - none besides the SOAP fault emit: no state mutation, no member delegate
 
-#### State transitions `confirmed`
+#### State transitions
 
 none: no state machine touched
 ::: details Evidence (1)
@@ -463,7 +463,7 @@ none: no state machine touched
 :::
 
 
-#### Events `confirmed`
+#### Events
 
 none: the stub emits no events
 ::: details Evidence (1)
@@ -473,7 +473,7 @@ none: the stub emits no events
 :::
 
 
-#### Return behavior `confirmed`
+#### Return behavior
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
 ::: details Evidence (1)
@@ -485,7 +485,7 @@ always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits succe
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments
 
@@ -500,7 +500,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
 - impl `0x1073d8f8` (vfunc `+0x08`)
-- engine resolution `resolved` → `0x1073d8f8`
+- engine impl resolved to `0x1073d8f8`
 - Reject-all: loads *(req)+0x14 fault emitter, emits literal 0x191 (401), returns 401 for any action name; no name table, no arg parsing
 - the entire AudioIn service is a stub: SCPD advertises the action but the binary dispatches every name to 401
 
@@ -511,7 +511,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 ### `SetLineInLevel`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub, faults 401**
+visibility `advertised` · reachability `callable` · dispatch `strcmp_stub` · **removed/stub, faults 401**
 
 Supposed to set the line-in gain, meaning how much the player amplifies the signal coming in on the jack before it plays or is sent to other rooms. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
@@ -537,7 +537,7 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 n/a: fault precedes any arg validation
 ::: details Evidence (1)
@@ -547,7 +547,7 @@ n/a: fault precedes any arg validation
 :::
 
 
-#### Requirements / preconditions `confirmed`
+#### Requirements / preconditions
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
 ::: details Evidence (1)
@@ -557,7 +557,7 @@ none: the dispatcher faults 401 before reading any in-arg; advertised args are n
 :::
 
 
-#### State dependencies `confirmed`
+#### State dependencies
 
 none: the stub touches no service state; it only emits a fault
 ::: details Evidence (1)
@@ -571,7 +571,7 @@ none: the stub touches no service state; it only emits a fault
 
 - none besides the SOAP fault emit: no state mutation, no member delegate
 
-#### State transitions `confirmed`
+#### State transitions
 
 none: no state machine touched
 ::: details Evidence (1)
@@ -581,7 +581,7 @@ none: no state machine touched
 :::
 
 
-#### Events `confirmed`
+#### Events
 
 none: the stub emits no events
 ::: details Evidence (1)
@@ -591,7 +591,7 @@ none: the stub emits no events
 :::
 
 
-#### Return behavior `confirmed`
+#### Return behavior
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
 ::: details Evidence (1)
@@ -603,7 +603,7 @@ always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits succe
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments
 
@@ -618,7 +618,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
 - impl `0x1073d8f8` (vfunc `+0x08`)
-- engine resolution `resolved` → `0x1073d8f8`
+- engine impl resolved to `0x1073d8f8`
 - Reject-all: loads *(req)+0x14 fault emitter, emits literal 0x191 (401), returns 401 for any action name; no name table, no arg parsing
 - the entire AudioIn service is a stub: SCPD advertises the action but the binary dispatches every name to 401
 
@@ -629,7 +629,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 ### `GetLineInLevel`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `strcmp_stub` · **removed/stub, faults 401**
+visibility `advertised` · reachability `callable` · dispatch `strcmp_stub` · **removed/stub, faults 401**
 
 Supposed to report the current line-in signal level or the gain configured for it, the software equivalent of looking at the input meter. In this firmware build the command is wired to a reject-everything routine instead of a real implementation: any caller receives an immediate error and nothing happens, because the whole AudioIn feature was left out of this build. The command name still appears in the advertised spec, which is why apps can see it listed.
 
@@ -655,7 +655,7 @@ Advertised AudioIn action: dispatched to the reject-all dispatcher f_1073d8f8 wh
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 n/a: fault precedes any arg validation
 ::: details Evidence (1)
@@ -665,7 +665,7 @@ n/a: fault precedes any arg validation
 :::
 
 
-#### Requirements / preconditions `confirmed`
+#### Requirements / preconditions
 
 none: the dispatcher faults 401 before reading any in-arg; advertised args are never consumed
 ::: details Evidence (1)
@@ -675,7 +675,7 @@ none: the dispatcher faults 401 before reading any in-arg; advertised args are n
 :::
 
 
-#### State dependencies `confirmed`
+#### State dependencies
 
 none: the stub touches no service state; it only emits a fault
 ::: details Evidence (1)
@@ -689,7 +689,7 @@ none: the stub touches no service state; it only emits a fault
 
 - none besides the SOAP fault emit: no state mutation, no member delegate
 
-#### State transitions `confirmed`
+#### State transitions
 
 none: no state machine touched
 ::: details Evidence (1)
@@ -699,7 +699,7 @@ none: no state machine touched
 :::
 
 
-#### Events `confirmed`
+#### Events
 
 none: the stub emits no events
 ::: details Evidence (1)
@@ -709,7 +709,7 @@ none: the stub emits no events
 :::
 
 
-#### Return behavior `confirmed`
+#### Return behavior
 
 always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits success
 ::: details Evidence (1)
@@ -721,7 +721,7 @@ always req->v\[+0x14\] raise-fault with literal 0x191 (401); never commits succe
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) for every action name regardless of arguments
 
@@ -736,7 +736,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - handler `0x1073d8f8`
 - dispatch entry `0x10f11f70` (voff `8`)
 - impl `0x1073d8f8` (vfunc `+0x08`)
-- engine resolution `resolved` → `0x1073d8f8`
+- engine impl resolved to `0x1073d8f8`
 - Reject-all: loads *(req)+0x14 fault emitter, emits literal 0x191 (401), returns 401 for any action name; no name table, no arg parsing
 - the entire AudioIn service is a stub: SCPD advertises the action but the binary dispatches every name to 401
 
@@ -772,6 +772,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 - **wss_registry:**
   - idx: 9, name: audioInput, id: 40, tag: 65
   - idx: 19, name: lineInStatus, id: 62, tag: 15
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `audioInput`, `lineInStatus`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 :::
 
@@ -780,7 +781,7 @@ action_not_authorized: AudioIn reject-all dispatcher emits literal 0x191 (401) f
 
 ::: details Technical details
 
-**`401`** `confirmed`
+**`401`**
 
 reject-all dispatcher: every action name faults 401 including the documented AudioIn action set
 
@@ -797,9 +798,8 @@ reject-all dispatcher: every action name faults 401 including the documented Aud
 ::: details Technical details
 
 - **description:** AudioIn1.xml SCPD advertises 6 actions {StartTransmissionToGroup,StopTransmissionToGroup,SetAudioInputAttributes,GetAudioInputAttributes,SetLineInLevel,GetLineInLevel} but the service is NOT in device_description's serviceList and its dispatcher 0x1073d8f8 rejects every action with 401: a registered stub (control surface present, impl removed/gated).
-- **status:** confirmed
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: AudioIn1.xml SCPD + reject-all dispatcher 0x1073d8f8
+  - type: firmware, binary: anacapad, build: 86.10-80260, notes: AudioIn1.xml SCPD + reject-all dispatcher 0x1073d8f8
 
 :::
 

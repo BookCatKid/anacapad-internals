@@ -1,8 +1,12 @@
 # `RenderingControl` `/MediaRenderer/RenderingControl/Control`
 
-**visibility** `advertised` · **status** `strong`
+**visibility** `advertised`
 
 This service controls how the speaker sounds: volume, mute, and tone. The everyday commands live here, meaning the volume slider, the mute button, and the bass/treble/loudness settings in the equalizer panel. It also holds a few oddities unique to this firmware: some commands are half-connected (they accept your request but do nothing with it), a couple are only implemented on certain internal builds of the player, and one documented command actually does something completely different from its name. The per-channel design (Master, left-front, right-front) also reveals that the same code drives single speakers and channel-splitting configurations like a soundbar.
+
+**TODO:** Established: the service's action surface, dispatch records, and state variables are fully documented.
+**TODO:** Still unknown: shared EQ/volume workers are partially mapped; the +0x7ff/+0x801/+0xe0 field semantics and the class-gated vtable differences remain unresolved.
+**TODO:** Next step: resolve the impl functions behind each action's handler and record them per action.
 
 ::: details Technical details
 
@@ -24,39 +28,39 @@ UPnP RenderingControl for the zone player: per-channel volume, mute, loudness an
 
 ## Actions
 
-| Action | Visibility | Reachability | Confidence | Dispatch | Error codes |
-|---|---|---|---|---|---|
-| `GetBass` | advertised | callable | `confirmed` | direct | 401, 402 |
-| `GetEQ` | advertised | callable | `strong` | direct | 401, 402 |
-| `GetHeadphoneConnected` | advertised | callable | `strong` | direct | 401, 402 |
-| `GetLoudness` | advertised | callable | `confirmed` | direct | 401, 402 |
-| `GetMute` | advertised | callable | `confirmed` | direct | 401, 402, 702 |
-| `GetOutputFixed` | advertised | callable | `strong` | direct | 401, 402 |
-| `GetRoomCalibrationStatus` | advertised | callable | `strong` | direct | 401, 402 |
-| `GetSupportsOutputFixed` | advertised | callable | `confirmed` | direct | 401, 402 |
-| `GetTreble` | advertised | callable | `strong` | direct | 401, 402 |
-| `GetVolume` | advertised | callable | `strong` | direct | 401, 402, 501, 702 |
-| `GetVolumeDB` | advertised | callable | `strong` | direct | 401, 402 |
-| `GetVolumeDBRange` | advertised | callable | `confirmed` | direct | 401, 402 |
-| `RampToVolume` | advertised | callable | `strong` | direct | 401, 402 |
-| `ResetBasicEQ` | advertised | callable | `strong` | direct | 401, 402 |
-| `ResetExtEQ` | advertised | callable | `confirmed` | direct | 401, 402 |
-| `RestoreVolumePriorToRamp` | advertised | callable | `strong` | direct | 401, 402 |
-| `SetBass` | advertised | callable | `confirmed` | direct | 401, 402 |
-| `SetChannelMap` | advertised | callable | `strong` | direct | 401, 402 |
-| `SetEQ` | advertised | callable | `confirmed` | direct | 401, 402 |
-| `SetLoudness` | advertised | callable | `confirmed` | direct | 401, 402 |
-| `SetMute` | advertised | callable | `confirmed` | direct | 401, 402, 702 |
-| `SetOutputFixed` | advertised | callable | `strong` | direct | 401, 402 |
-| `SetRelativeVolume` | advertised | callable | `strong` | direct | 401, 402 |
-| `SetRoomCalibrationStatus` | advertised | callable | `strong` | direct | 401, 402 |
-| `SetTreble` | advertised | callable | `confirmed` | direct | 401, 402 |
-| `SetVolume` | advertised | callable | `confirmed` | direct | 401, 402 |
-| `SetVolumeDB` | advertised | callable | `confirmed` | direct | 401, 402 |
+| Action | Visibility | Reachability | Dispatch | Error codes |
+|---|---|---|---|---|
+| `GetBass` | advertised | callable | direct | 401, 402 |
+| `GetEQ` | advertised | callable | direct | 401, 402 |
+| `GetHeadphoneConnected` | advertised | callable | direct | 401, 402 |
+| `GetLoudness` | advertised | callable | direct | 401, 402 |
+| `GetMute` | advertised | callable | direct | 401, 402, 702 |
+| `GetOutputFixed` | advertised | callable | direct | 401, 402 |
+| `GetRoomCalibrationStatus` | advertised | callable | direct | 401, 402 |
+| `GetSupportsOutputFixed` | advertised | callable | direct | 401, 402 |
+| `GetTreble` | advertised | callable | direct | 401, 402 |
+| `GetVolume` | advertised | callable | direct | 401, 402, 501, 702 |
+| `GetVolumeDB` | advertised | callable | direct | 401, 402 |
+| `GetVolumeDBRange` | advertised | callable | direct | 401, 402 |
+| `RampToVolume` | advertised | callable | direct | 401, 402 |
+| `ResetBasicEQ` | advertised | callable | direct | 401, 402 |
+| `ResetExtEQ` | advertised | callable | direct | 401, 402 |
+| `RestoreVolumePriorToRamp` | advertised | callable | direct | 401, 402 |
+| `SetBass` | advertised | callable | direct | 401, 402 |
+| `SetChannelMap` | advertised | callable | direct | 401, 402 |
+| `SetEQ` | advertised | callable | direct | 401, 402 |
+| `SetLoudness` | advertised | callable | direct | 401, 402 |
+| `SetMute` | advertised | callable | direct | 401, 402, 702 |
+| `SetOutputFixed` | advertised | callable | direct | 401, 402 |
+| `SetRelativeVolume` | advertised | callable | direct | 401, 402 |
+| `SetRoomCalibrationStatus` | advertised | callable | direct | 401, 402 |
+| `SetTreble` | advertised | callable | direct | 401, 402 |
+| `SetVolume` | advertised | callable | direct | 401, 402 |
+| `SetVolumeDB` | advertised | callable | direct | 401, 402 |
 
 ### `GetBass`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Supposed to report the speaker's bass level, but in this firmware build it is a documented no-op: the routine behind it was replaced by an empty routine that performs nothing and returns nothing. The command still appears in the service's advertised list, so an app can call it, it just gets an empty answer rather than a bass value. The settings that do work are reached through the generic GetEQ command instead.
 
@@ -118,13 +122,13 @@ If the emit path runs, CurrentBass is formatted from an uninitialized stack slot
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
@@ -154,9 +158,13 @@ Sonos neutered GetBass while leaving GetTreble (+0x38 -> real impl f_100e3450) f
 
 ### `GetEQ`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reads one of the speaker's tone settings through the generic equalizer query, which can fetch bass, treble, or other tone parameters depending on which one you ask for. This is the working path apps actually use to read the EQ panel's values.
+
+**TODO:** Established: dispatch to handler 0x1073bcb0; f_100e382c is the shared EQ-read worker for GetEQ/GetTreble/GetVolume's spatial branch.
+**TODO:** Still unknown: the EQ-context record layout the worker reads.
+**TODO:** Next step: trace the worker's field reads to map EQ storage.
 
 ::: details Technical details
 
@@ -187,6 +195,9 @@ Reads an EQ parameter via the shared audio-context path: f_10118278 ctx init + f
 
 - **`CurrentValue`**: EQ value returned through the ctx worker f_100e382c (same worker the GetVolume 'spatial' branch invokes); out-write path unresolved.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentValue`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentValue`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
@@ -220,13 +231,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -258,9 +269,13 @@ f_100e382c is the shared EQ-read worker - GetEQ, GetTreble's f_100e1fec sibling,
 
 ### `GetHeadphoneConnected`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports headphone-related state, the readout the firmware uses to know whether a headphone output path is in play and what the associated volume and mute bookkeeping is. On a soundbar-class product like this one it is part of the shared volume/mute record rather than a feature the user sees.
+
+**TODO:** Established: dispatch to handler 0x1073b0d8 with the shared RC impl machinery.
+**TODO:** Still unknown: field semantics of +0x7ff/+0x801 - they appear in SetMute's Master path, GetHeadphoneConnected and SetChannelMap and are likely 'output-fixed' and 'headphone/slave' mode flags (per the record's notes).
+**TODO:** Next step: pin down which field each of +0x7ff/+0x801 backs by tracing their writers.
 
 ::: details Technical details
 
@@ -287,6 +302,9 @@ Locks impl+0x938 (via f_10988268) and fills a state record: volume u32 from impl
 - **`CurrentHeadphoneConnected`**: Derived from the state record the impl fills: impl writes u32@rec+8 = volume (field +0x7da when flag+0x7ff set OR +0x801 set, else +0x7e0), byte@rec+0xc = Master mute (impl+0x7f1), byte@rec+0xd = (+0x7ff!=0 ? +0x801^1: 0). Which field maps to the SOAP output is unresolved.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
   - impl f_100d66cc dumps a {volume,mute,flag} record rather than a simple bool - the headphone semantic likely lives in the flag byte at rec+0xd computed from flags +0x7ff/+0x801.
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentHeadphoneConnected`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentHeadphoneConnected`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
@@ -320,13 +338,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -357,7 +375,7 @@ Field semantics of +0x7ff/+0x801 remain the key unknown: they appear in SetMute'
 
 ### `GetLoudness`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports the loudness setting, Sonos's bass/treble boost that makes quiet listening sound fuller. On this build it is only half-wired: whether the command does anything depends on which internal flavor of the player is running, and the firmware doesn't make that choice visible from the outside. On some configurations it answers properly, and on others the routine slot is a stub.
 
@@ -425,13 +443,13 @@ Class A: stale-cr0 return - likely commits success with uninitialized output / n
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
@@ -462,7 +480,7 @@ Loudness exists only on the derived/proxy impl class - plausible device-capabili
 
 ### `GetMute`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports whether the speaker is muted, which is the state behind the mute button. Mute is stored per audio channel (master, left, right), and this reads the flag for the channel you ask about.
 
@@ -526,20 +544,20 @@ Success is signaled by the implementation leaving cr0.eq=1 at return (the callee
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper (missing or malformed InstanceID/Channel), or an unrecognized Channel token rejected by the impl strcmp chain.
 
 - req vfunc +0x08 parse failed
 - Channel not in {Master, LF, RF}
 
-**`702`** `confirmed`
+**`702`**
 
 InstanceID was nonzero: impl checks the parsed value and returns 0x2be before touching channel state.
 
@@ -569,9 +587,13 @@ GetMute accepts only 3 channels although the mute field array has a 4th entry (+
 
 ### `GetOutputFixed`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports whether the speaker's output is fixed-level, meaning locked at full line level for feeding an external amplifier, or variable (controlled by the volume slider). A wiring option for setups where the player feeds another amp that should do the volume control.
+
+**TODO:** Established: dispatch to handler 0x1073afb8; flag +0x7ff elsewhere in the impl suggests +0xe0 returns the output-fixed state.
+**TODO:** Still unknown: which field backs the returned value (unverified per the record's notes).
+**TODO:** Next step: verify the +0xe0 read against SetOutputFixed's writer.
 
 ::: details Technical details
 
@@ -597,6 +619,9 @@ Pure delegation: impl f_100d6610 forwards to impl->v\[+0xe0\](impl, 0, r4-in) - 
 
 - **`CurrentFixed`**: Produced by a pure vfunc forward: impl calls impl->v\[+0xe0\](impl, 0, arg) and returns its result - the flag source is a deeper object interface.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentFixed`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentFixed`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
@@ -630,13 +655,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -667,9 +692,13 @@ Reading flag +0x7ff elsewhere in the impl suggests +0xe0 returns the output-fixe
 
 ### `GetRoomCalibrationStatus`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports the state of the speaker's room-calibration, which is Sonos's tuning process (Trueplay on newer products, the sonar-based tuning on this era) that measures a room and adjusts the speaker's sound to fit. The answer tells an app whether calibration has been done and what state it's in.
+
+**TODO:** Established: dispatch to handler 0x1073b1ec; uses the shared 0x34 record-builder pattern of SetOutputFixed's impl f_100dcfc0.
+**TODO:** Still unknown: the shared config/status record's field layout.
+**TODO:** Next step: decode the 0x34 record structure.
 
 ::: details Technical details
 
@@ -696,8 +725,14 @@ Builds a 0x34-byte calibration-record (size tag + zeroed fields + caller regs st
 
 - **`RoomCalibrationEnabled`**: Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after a >>16 shift on an arg, and fills the record fields that become these outputs.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `RoomCalibrationEnabled`'s emitted value is not traced.
+  - **TODO:** Next step: trace `RoomCalibrationEnabled`'s use inside the action's impl worker.
 - **`RoomCalibrationAvailable`**: Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after a >>16 shift on an arg, and fills the record fields that become these outputs.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `RoomCalibrationAvailable`'s emitted value is not traced.
+  - **TODO:** Next step: trace `RoomCalibrationAvailable`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
@@ -731,13 +766,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call.
 
@@ -769,7 +804,7 @@ Same record-builder pattern as SetOutputFixed impl f_100dcfc0 - the 0x34 record 
 
 ### `GetSupportsOutputFixed`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports whether this player can do fixed-level output at all. It is the 'can I even offer the fixed-volume option' check apps use before showing the setting.
 
@@ -831,13 +866,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -868,9 +903,13 @@ Verify at runtime: the 63/52 returns suggest this getter may fault or emit disti
 
 ### `GetTreble`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Supposed to report the speaker's treble level, but like GetBass it is a documented no-op in this build: the routine is an empty routine that does and returns nothing. The advertised command exists, and the working read path for treble is the generic GetEQ command.
+
+**TODO:** Established: dispatch to handler 0x1073bb9c; EQ reads funnel through the shared worker family.
+**TODO:** Still unknown: the CurrentTreble out path - the record flags f_100e1fec as the largest unresolved piece.
+**TODO:** Next step: trace f_100e1fec to recover the out-arg write path.
 
 ::: details Technical details
 
@@ -929,20 +968,23 @@ Success is signaled by the implementation leaving cr0.eq=1 at return (the callee
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
 - req vfunc +0x08 parse failed
 
-**`impl_rc`** `strong`
+**`impl_rc`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: impl_rc; sites: via propagated return codes (no direct fault site in this action)).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 impl-level return surfaced as the SOAP error code
 
 - impl returns nonzero - see rc vocabulary
@@ -973,9 +1015,13 @@ Largest unresolved piece: the CurrentTreble out path. Worth a focused pass on f_
 
 ### `GetVolume`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports the speaker's volume for whichever channel you ask about: the number behind the app's volume slider, on a 0-100 scale.
+
+**TODO:** Established: direct dispatch to handler 0x1073bdf0; the wrapper-level behavior (argument validation and fault ladder) is documented.
+**TODO:** Still unknown: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record.
+**TODO:** Next step: disassemble handler 0x1073bdf0, follow its impl/vfunc call, and record the resolved impl function.
 
 ::: details Technical details
 
@@ -1004,6 +1050,11 @@ Reads the channel volume through a two-stage impl: shim f_100e43b4 gates Instanc
 | Name | Type | Values / range |
 |---|---|---|
 | `CurrentVolume` | unsigned int16 | u16 (device gain units) |
+
+- **`CurrentVolume`**: populated by worker f_100da830 under the +0x938 lock; spatial channel additionally passes through f_100e382c
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentVolume`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentVolume`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
@@ -1037,32 +1088,35 @@ Success is signaled by the implementation leaving cr0.eq=1 at return (the callee
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
 - req vfunc +0x08 parse failed
 
-**`501`** `confirmed`
+**`501`**
 
 Audio context not ready: f_102a5028(*(impl+0x3ac)) returned failure inside worker f_100e42a8.
 
 - context/state gate failed (source not active or audio ctx absent)
 
-**`702`** `confirmed`
+**`702`**
 
 InstanceID nonzero at the impl shim f_100e43b4.
 
 - parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)
 
-**`impl_rc`** `strong`
+**`impl_rc`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: impl_rc; sites: via propagated return codes (no direct fault site in this action)).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 impl-level return surfaced as the SOAP error code
 
 - impl returns nonzero - see rc vocabulary
@@ -1098,9 +1152,13 @@ Error code differs from AVTransport: nonzero InstanceID yields 702 here vs 718 i
 
 ### `GetVolumeDB`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Reports the volume in decibel terms rather than the 0-100 scale. It is the technical-scale companion to GetVolume, used where the system wants real loudness units rather than slider position.
+
+**TODO:** Established: dispatch to handler 0x1073b7e0; impl is a mode-select thunk over the SetVolume/SetRelativeVolume worker.
+**TODO:** Still unknown: mode-0 semantics - whether it reads dB or raw volume (per the record's notes).
+**TODO:** Next step: disassemble the thunk's mode dispatch to pin the read semantics.
 
 ::: details Technical details
 
@@ -1131,6 +1189,9 @@ Returns a volume reading via shared worker f_100dcb00 invoked in mode 0 with fla
 
 - **`CurrentVolume`**: Current volume expressed in the worker's mode-0 units (the +0x24 thunk passes mode=0, flag r6=1 to shared worker f_100dcb00 - the 'dB' reading path).
   - Exact unit/scale produced by worker mode 0 is unresolved (thunk constants 0/1 select the path inside f_100dcb00).
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `CurrentVolume`'s emitted value is not traced.
+  - **TODO:** Next step: trace `CurrentVolume`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
@@ -1164,13 +1225,13 @@ Success is signaled by the implementation leaving cr0.eq=1 at return (the callee
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
@@ -1200,7 +1261,7 @@ Despite the name the impl is a mode-select thunk over the same worker used by Se
 
 ### `GetVolumeDBRange`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Supposed to report the decibel range the volume control can span, but in this build it is a documented anomaly: the routine registered for this command is actually the physical-button mute routine, the same code that runs when you press the unit's mute button. Calling it toggles mute rather than returning a range. It is a wiring mistake preserved in the firmware, and a good example of how these reference docs capture what the binary really does rather than what the spec says it should.
 
@@ -1269,13 +1330,13 @@ Success is signaled by the implementation leaving cr0.eq=1 at return (the callee
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
@@ -1305,9 +1366,13 @@ Flag for live-object verification: the installed impl may differ if a derived cl
 
 ### `RampToVolume`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Commands a gradual volume change, a 'ramp' from the current level to a target over time rather than a jump. On this build it only exists on one internal flavor of the player (the command's implementation slot is absent on the base class), so whether it works depends on which build path is running.
+
+**TODO:** Established: dispatch to handler 0x1073c834; feature-gated by impl class like SetRoomCalibrationStatus.
+**TODO:** Still unknown: the class gate and the ramp behavior (curve, duration units).
+**TODO:** Next step: identify the exposing impl class and trace the ramp worker.
 
 ::: details Technical details
 
@@ -1328,21 +1393,39 @@ CLASS-B ONLY: vtable A has no +0x6c entry (0x00000000 terminator); derived class
 
 - **`InstanceID`**: consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (0x105614e0) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `InstanceID` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `InstanceID`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 - **`Channel`**: consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `Channel` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `Channel`'s use inside the action's impl worker.
   - buffer cap: `0x400`
 - **`RampType`**: consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `RampType` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `RampType`'s use inside the action's impl worker.
   - buffer cap: `0x40`
 - **`DesiredVolume`**: consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (0x10561478) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `DesiredVolume` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `DesiredVolume`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 - **`ResetVolumeAfter`**: consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (0x10561444) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `ResetVolumeAfter` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `ResetVolumeAfter`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 - **`ProgramURI`**: consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `ProgramURI` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `ProgramURI`'s use inside the action's impl worker.
   - buffer cap: `0x401`
 
 #### Outputs
@@ -1354,6 +1437,9 @@ CLASS-B ONLY: vtable A has no +0x6c entry (0x00000000 terminator); derived class
 - **`RampTime`**: consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars
   - unit: seconds (nominal)
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `RampTime`'s emitted value is not traced.
+  - **TODO:** Next step: trace `RampTime`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
@@ -1387,13 +1473,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -1424,9 +1510,13 @@ Feature-gated by impl class like SetRoomCalibrationStatus.
 
 ### `ResetBasicEQ`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Resets the basic tone settings, meaning bass, treble, and loudness back to neutral, and returns the resulting per-channel values so the app can update its EQ display. The reset can also touch the mute state as part of its housekeeping.
+
+**TODO:** Established: dispatch to handler 0x1073bf30; f_100d9d40 is a shared per-channel parameter worker also used by ResetExtEQ.
+**TODO:** Still unknown: which channels the worker covers and the reset values written.
+**TODO:** Next step: enumerate the worker's channel loop and constants.
 
 ::: details Technical details
 
@@ -1456,14 +1546,29 @@ Resets the basic EQ set: locks impl+0x938, calls worker f_100d9d40(this, instID,
 
 - **`Bass`**: Post-reset value emitted from the impl's record/context after the reset sequence.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `Bass`'s emitted value is not traced.
+  - **TODO:** Next step: trace `Bass`'s use inside the action's impl worker.
 - **`Treble`**: Post-reset value emitted from the impl's record/context after the reset sequence.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `Treble`'s emitted value is not traced.
+  - **TODO:** Next step: trace `Treble`'s use inside the action's impl worker.
 - **`Loudness`**: Post-reset value emitted from the impl's record/context after the reset sequence.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `Loudness`'s emitted value is not traced.
+  - **TODO:** Next step: trace `Loudness`'s use inside the action's impl worker.
 - **`LeftVolume`**: Post-reset value emitted from the impl's record/context after the reset sequence.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `LeftVolume`'s emitted value is not traced.
+  - **TODO:** Next step: trace `LeftVolume`'s use inside the action's impl worker.
 - **`RightVolume`**: Post-reset value emitted from the impl's record/context after the reset sequence.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `RightVolume`'s emitted value is not traced.
+  - **TODO:** Next step: trace `RightVolume`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
@@ -1497,13 +1602,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call.
 
@@ -1535,7 +1640,7 @@ f_100d9d40 is a shared per-channel parameter worker also used by ResetExtEQ.
 
 ### `ResetExtEQ`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Resets an extended equalizer band back to its neutral value. Extended bands are the finer-grained tone controls beyond basic bass and treble, and this returns the named band to flat without touching other bands.
 
@@ -1591,13 +1696,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -1628,9 +1733,13 @@ The 'SetVolumeWithoutProxy' tag inside ResetExtEQ confirms f_100d9d40/f_100d99b0
 
 ### `RestoreVolumePriorToRamp`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Undoes a volume ramp by putting the volume back to whatever it was before a RampToVolume started. Interestingly the class split is the mirror of the ramp command: this restore works on the base player flavor where the ramp itself is absent, the leftover of a half-finished feature.
+
+**TODO:** Established: dispatch to handler 0x1073a9f4; inverse class-gating vs RampToVolume/SetRoomCalibrationStatus.
+**TODO:** Still unknown: the gating predicate and how it pairs with RampToVolume's ramp state.
+**TODO:** Next step: identify which class exposes this vs the ramp pair.
 
 ::: details Technical details
 
@@ -1669,6 +1778,9 @@ The wrapper restores state through impl vfunc +0x70 on a deeper vtable; concrete
 #### Side effects
 
 - state-mutation delegate: r30 v\[+0x70\] (call-derived member-method semantics)
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v\[+0x70\] (call-derived member-method semantics).
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
 #### State transitions
 
@@ -1684,13 +1796,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -1724,7 +1836,7 @@ Inverse class-gating vs RampToVolume/SetRoomCalibrationStatus.
 
 ### `SetBass`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Sets the speaker's bass level, which is the app's bass slider. The value is stored in the player's tone state, and one quirk is that a sentinel value is treated as 'leave it alone' rather than as a real setting.
 
@@ -1781,13 +1893,13 @@ Success is signaled by the implementation leaving cr0.eq=1 at return (the callee
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
@@ -1817,9 +1929,13 @@ Impl signature is (impl, recordptr) - a different convention than the channel/va
 
 ### `SetChannelMap`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Assigns which audio channels each part of the player outputs. This is the mapping used in bonded, stereo, and home-theater arrangements to say which physical output carries left, right, or other channels. It is plumbing for multi-speaker configurations rather than an everyday setting.
+
+**TODO:** Established: dispatch to handler 0x1073ab0c; derived-class B overrides this slot (0x104717f4) - grouped channel-map behavior differs.
+**TODO:** Still unknown: what the derived-class override changes semantically.
+**TODO:** Next step: compare base vs derived slot implementations.
 
 ::: details Technical details
 
@@ -1840,6 +1956,9 @@ Sets the channel-map: entry branches on cr0.eq as an INPUT condition (wrapper pr
 - **`ChannelMap`**: Channel-map descriptor string; the impl strcmps channel tokens including 'Master' and dispatches per-channel setup; the entry tests cr0.eq as an input flag (0x100d7434) - the impl vfunc is invoked with a pre-set condition flag, a convention the wrapper establishes.
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
   - Impl also checks impl->v\[+0x5c\] == base fn 0x100d7364 to detect class overrides before applying (0x100d7438-0x100d744c).
+  - **TODO:** Established: the arg's parse path (0x1056157c) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `ChannelMap` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `ChannelMap`'s use inside the action's impl worker.
   - buffer cap: `0x20`
 
 ::: details Technical analysis
@@ -1874,13 +1993,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -1911,7 +2030,7 @@ Derived-class B overrides this slot (0x104717f4) - grouped channel-map behavior 
 
 ### `SetEQ`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Sets one of the speaker's tone parameters through the generic equalizer path. This is the working route the app uses when you move a tone slider, since the dedicated SetTreble command is a no-op in this build.
 
@@ -1974,13 +2093,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -2011,7 +2130,7 @@ Zero-gated dual worker calls are an unusual pattern - possibly 'apply defaults w
 
 ### `SetLoudness`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Turns the loudness setting on or off, the fullness boost for quiet listening. Like GetLoudness it is conditionally implemented: on this firmware whether the command really runs depends on which internal player class is installed, which cannot be determined from the outside.
 
@@ -2074,13 +2193,13 @@ Class A: stale-cr0 return - likely commits success with uninitialized output / n
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
@@ -2111,7 +2230,7 @@ Loudness exists only on the derived/proxy impl class - plausible device-capabili
 
 ### `SetMute`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Mutes or unmutes the speaker for a given channel, the mute button. Beyond flipping the flag it also does bookkeeping: on the master channel it synchronizes the saved volume snapshot so that unmuting restores the level you had, marks the state as changed so other parts of the system update, and applies the committed state to the audio hardware.
 
@@ -2173,20 +2292,20 @@ Success is signaled by the implementation leaving cr0.eq=1 at return (the callee
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper, or unrecognized Channel token (not Master/LF/RF/FocusMode) rejected by the worker.
 
 - req vfunc +0x08 parse failed
 - Channel not in {Master, LF, RF, FocusMode}
 
-**`702`** `confirmed`
+**`702`**
 
 InstanceID nonzero; checked inside worker f_100d99b0 under the mutex.
 
@@ -2217,9 +2336,13 @@ InstanceID nonzero; checked inside worker f_100d99b0 under the mutex.
 
 ### `SetOutputFixed`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Chooses fixed versus variable output level, meaning whether the speaker's output is pinned at full level for an external amp or follows the volume control.
+
+**TODO:** Established: dispatch to handler 0x1073b5b4; flag +0x7ff gates SetVolume's write and selects volume fields in GetHeadphoneConnected - SetOutputFixed is very likely its writer.
+**TODO:** Still unknown: proof that this action writes +0x7ff and the flag's full semantics.
+**TODO:** Next step: trace the handler's field write to confirm +0x7ff.
 
 ::: details Technical details
 
@@ -2239,6 +2362,9 @@ Builds/fills a 0x34-byte config record (size tag 0x34, fields zeroed, then condi
   - buffer cap: `0x18`
 - **`DesiredFixed`**: Requested fixed-output state; arrives in the impl's record-building convention (impl zeroes a 0x34 record at r3 and reads flags +0x7ff/+0x801 from an object in r4).
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (0x10561444) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `DesiredFixed` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `DesiredFixed`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 
 ::: details Technical analysis
@@ -2273,13 +2399,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -2310,9 +2436,13 @@ Flag +0x7ff is the same byte that gates SetVolume's write and selects volume fie
 
 ### `SetRelativeVolume`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Moves the volume by a relative step, 'up by 5' rather than 'to 55', and reports the resulting level. This is how volume-up/down buttons that don't know the current value do their job.
+
+**TODO:** Established: dispatch to handler 0x1073c224; shares SetVolume's worker caveats.
+**TODO:** Still unknown: same SetVolume internals - dead InstanceID check, hardcoded 'Master' channel, the +0x7ff no-op gate, and the LUT path details.
+**TODO:** Next step: document the shared worker's LUT and gate semantics.
 
 ::: details Technical details
 
@@ -2347,6 +2477,9 @@ Applies a signed adjustment to the Master volume through the shared worker f_100
 
 - **`NewVolume`**: Resulting volume after the relative apply; emitted as i16/u16 from the stack out slot written by the worker chain.
   - Out-write site inside the worker chain is unresolved (worker writes u16 at its own stack slot 0x12 via f_100da1e0; exact propagation to this out arg not yet traced).
+  - **TODO:** Established: the arg's parse path (the request parser) and declared constraints are documented.
+  - **TODO:** Still unknown: which impl field or worker produces `NewVolume`'s emitted value is not traced.
+  - **TODO:** Next step: trace `NewVolume`'s use inside the action's impl worker.
 
 ::: details Technical analysis
 
@@ -2380,13 +2513,13 @@ Success is signaled by the implementation leaving cr0.eq=1 at return (the callee
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
@@ -2416,9 +2549,13 @@ Shares all worker caveats with SetVolume (dead InstanceID check, hardcoded 'Mast
 
 ### `SetRoomCalibrationStatus`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Writes the room-calibration state. It is the setter that pairs with GetRoomCalibrationStatus, recording that tuning was started, completed, or cleared. On this build it only exists on one internal player flavor, and on the base class the slot is absent so calling it hits an unimplemented path.
+
+**TODO:** Established: dispatch to handler 0x1073b6cc; one of three actions missing from the base vtable - feature-gated by impl class (with RampToVolume, RestoreVolumePriorToRamp).
+**TODO:** Still unknown: which impl classes expose it and what the gating predicate is.
+**TODO:** Next step: identify the class gate and the derived vtable carrying the slot.
 
 ::: details Technical details
 
@@ -2438,6 +2575,9 @@ ABSENT IN CLASS A: vtable A's slot +0x68 is 0xfffffff8 (vtable terminator - the 
   - buffer cap: `0x18`
 - **`RoomCalibrationEnabled`**: consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars
   - validation: request-layer parse (req vfunc +0x08); no impl-side checks
+  - **TODO:** Established: the arg's parse path (0x10561444) and declared constraints are documented.
+  - **TODO:** Still unknown: the impl's post-parse handling of `RoomCalibrationEnabled` - which values it rejects or which impl field consumes it - is not traced.
+  - **TODO:** Next step: trace `RoomCalibrationEnabled`'s use inside the action's impl worker.
   - buffer cap: `0x18`
 
 ::: details Technical analysis
@@ -2472,13 +2612,13 @@ Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.
 
 - implementation object pointer null at dispatch
 
-**`402`** `confirmed`
+**`402`**
 
 Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.
 
@@ -2510,7 +2650,7 @@ One of three actions missing from the base vtable (with RampToVolume and Restore
 
 ### `SetTreble`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Supposed to set the treble level, but in this build it is a documented no-op: its routine is the same empty routine as GetBass and GetTreble. The request is accepted and an empty success is returned while nothing changes. Real treble adjustment happens through the generic SetEQ path.
 
@@ -2566,13 +2706,13 @@ SOAP success commits with no state change whatsoever - SetTreble silently no-ops
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
@@ -2602,7 +2742,7 @@ Asymmetric with SetBass (+0x34 -> real impl f_100d72dc): bass can be written but
 
 ### `SetVolume`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Sets the speaker's absolute volume, which is what the app's volume slider sends. On the master channel it also maintains a shadow copy of the level used for mute/unmute restore, and in certain configurations the write can be skipped entirely when a flag says an external path owns the level.
 
@@ -2663,13 +2803,13 @@ Success is signaled by the implementation leaving cr0.eq=1 at return (the callee
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
@@ -2701,7 +2841,7 @@ Shared worker for three SOAP actions via arg-remapping thunks; the 'desired<2' s
 
 ### `SetVolumeDB`
 
-visibility `advertised` · reachability `callable` · confidence `confirmed` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Supposed to set the volume in decibel units, but in this build it is a documented anomaly: the registered routine ignores the arguments and toggles the speaker's mute state, running the same routine as a press of the physical mute button. Calling it flips mute on or off instead of setting a decibel level. It is another case where the spec advertises one thing and the binary wires another.
 
@@ -2763,13 +2903,13 @@ Success is signaled by the implementation leaving cr0.eq=1 at return (the callee
 
 #### Errors
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 
 - implementation object pointer null at dispatch time
 
-**`402`** `confirmed`
+**`402`**
 
 Request parse/validation failure at the wrapper.
 
@@ -2869,7 +3009,7 @@ Whether this is deliberate feature-rewiring or the live object uses class B's ov
 
 ::: details Technical details
 
-**`401`** `confirmed`
+**`401`**
 
 Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.
 

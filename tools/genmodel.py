@@ -78,6 +78,7 @@ class SemanticBlock:
     text: Optional[str] = None
     status: Optional[str] = None
     evidence: list = field(default_factory=list)
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
     @classmethod
@@ -95,17 +96,18 @@ class SemanticBlock:
                                      status=e.get("status"),
                                      evidence=[Evidence.from_raw(x)
                                                for x in e.get("evidence")
-                                               or []]))
+                                               or []],
+                                     todo=e.get("todo")))
                 else:
                     items.append(cls(text=str(e)))
             return items
         if isinstance(raw, dict):
-            known = {"description", "status", "evidence"}
+            known = {"description", "status", "evidence", "todo"}
             extra = {k: v for k, v in raw.items() if k not in known}
             return cls(text=raw.get("description"), status=raw.get("status"),
                        evidence=[Evidence.from_raw(x)
                                  for x in raw.get("evidence") or []],
-                       extra=extra)
+                       todo=raw.get("todo"), extra=extra)
         return cls(text=str(raw))
 
 
@@ -154,12 +156,13 @@ class Argument:
     validation: object = None
     evidence: list = field(default_factory=list)
     notes: Optional[str] = None
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
     KNOWN = {"description", "status", "direction", "primitive",
              "semantic_type", "format", "unit", "accepted_values", "range",
              "special_values", "required", "default", "validation",
-             "evidence", "notes"}
+             "evidence", "notes", "todo"}
 
     @classmethod
     def from_raw(cls, name, raw):
@@ -181,7 +184,8 @@ class Argument:
                    validation=raw.get("validation"),
                    evidence=[Evidence.from_raw(e)
                              for e in raw.get("evidence") or []],
-                   notes=raw.get("notes"), extra=extra)
+                   notes=raw.get("notes"), todo=raw.get("todo"),
+                   extra=extra)
 
     @property
     def never_consumed(self):
@@ -215,6 +219,7 @@ class ErrorEntry:
     evidence: list = field(default_factory=list)
     unresolved: Optional[dict] = None   # {proven, unknown}
     notes: Optional[str] = None
+    todo: object = None
 
     @classmethod
     def from_raw(cls, raw):
@@ -226,7 +231,8 @@ class ErrorEntry:
                                for c in raw.get("conditions") or []],
                    evidence=[Evidence.from_raw(e)
                              for e in raw.get("evidence") or []],
-                   unresolved=raw.get("unresolved"), notes=raw.get("notes"))
+                   unresolved=raw.get("unresolved"), notes=raw.get("notes"),
+                   todo=raw.get("todo"))
 
     @property
     def code_label(self):
@@ -318,6 +324,7 @@ class Action:
     notes: Optional[str] = None
     implementation_notes: Optional[str] = None
     args_verified_empty: object = None
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
     KNOWN = {"description", "status", "visibility", "reachability",
@@ -327,7 +334,7 @@ class Action:
              "events_triggered", "state_transitions", "return_behavior",
              "errors", "unresolved", "fault_sites", "firmware_differences",
              "evidence", "notes", "implementation_notes",
-             "args_verified_empty", "crossbuild_binary"}
+             "args_verified_empty", "crossbuild_binary", "todo"}
 
     @classmethod
     def from_raw(cls, service_name, control_path, name, raw):
@@ -367,6 +374,7 @@ class Action:
             notes=raw.get("notes"),
             implementation_notes=raw.get("implementation_notes"),
             args_verified_empty=raw.get("args_verified_empty"),
+            todo=raw.get("todo"),
             extra=extra)
 
     @property
@@ -401,6 +409,7 @@ class Availability:
     status: Optional[str] = None
     enabled_source: Optional[dict] = None
     cap_flags: Optional[str] = None
+    todo: object = None
     evidence: list = field(default_factory=list)
     extra: dict = field(default_factory=dict)
 
@@ -409,10 +418,11 @@ class Availability:
         if not isinstance(raw, dict):
             return cls(notes=None)
         known = {"notes", "status", "enabled_source", "cap_flags",
-                 "evidence"}
+                 "evidence", "todo"}
         return cls(notes=raw.get("notes"), status=raw.get("status"),
                    enabled_source=raw.get("enabled_source"),
                    cap_flags=raw.get("cap_flags"),
+                   todo=raw.get("todo"),
                    evidence=[Evidence.from_raw(e)
                              for e in raw.get("evidence") or []],
                    extra={k: v for k, v in raw.items() if k not in known})
@@ -471,12 +481,13 @@ class StateVariable:
     evidence: list = field(default_factory=list)
     notes: Optional[str] = None
     client_summary: Optional[str] = None
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
     KNOWN = {"service", "status", "evented", "data_type", "description",
              "accepted_values", "range", "related_actions", "form",
              "template_addr", "emitter", "evidence", "notes",
-             "client_summary"}
+             "client_summary", "todo"}
 
     @classmethod
     def from_raw(cls, key, raw, service_name=None):
@@ -496,6 +507,7 @@ class StateVariable:
                    evidence=[Evidence.from_raw(e)
                              for e in raw.get("evidence") or []],
                    notes=raw.get("notes"),
+                   todo=raw.get("todo"),
                    extra={k: v for k, v in raw.items()
                           if k not in cls.KNOWN})
 
@@ -512,10 +524,11 @@ class FormatSpec:
     evidence: list = field(default_factory=list)
     notes: Optional[str] = None
     client_summary: Optional[str] = None
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
     KNOWN = {"status", "description", "format", "fields", "used_by",
-             "evidence", "notes", "client_summary"}
+             "evidence", "notes", "client_summary", "todo"}
 
     @classmethod
     def from_raw(cls, key, kind, raw):
@@ -528,6 +541,7 @@ class FormatSpec:
                    evidence=[Evidence.from_raw(e)
                              for e in raw.get("evidence") or []],
                    notes=raw.get("notes"),
+                   todo=raw.get("todo"),
                    extra={k: v for k, v in raw.items()
                           if k not in cls.KNOWN})
 
@@ -551,6 +565,7 @@ class Capability:
     affected_services: list = field(default_factory=list)
     evidence: list = field(default_factory=list)
     notes: Optional[str] = None
+    todo: object = None
 
 
 @dataclass
@@ -575,13 +590,14 @@ class Service:
     impl_files: list = field(default_factory=list)
     impl_return_pattern: Optional[str] = None
     removed_actions: list = field(default_factory=list)
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
     KNOWN = {"name", "control_path", "description", "status", "visibility",
              "registration", "availability", "object", "dispatcher",
              "actions", "state_variables", "events", "errors", "evidence",
              "notes", "visibility_note", "impl_files",
-             "impl_return_pattern", "removed_actions"}
+             "impl_return_pattern", "removed_actions", "todo"}
 
     @classmethod
     def from_raw(cls, control_path, raw):
@@ -609,6 +625,7 @@ class Service:
             impl_files=list(raw.get("impl_files") or []),
             impl_return_pattern=raw.get("impl_return_pattern"),
             removed_actions=list(raw.get("removed_actions") or []),
+            todo=raw.get("todo"),
             extra=extra)
 
     @property
@@ -657,6 +674,7 @@ class Model:
     capabilities: dict = field(default_factory=dict)
     internal_functions: dict = field(default_factory=dict)
     dispatch_candidates: dict = field(default_factory=dict)
+    cert_layer: dict = field(default_factory=dict)
 
     def all_actions(self):
         for s in self.services:
@@ -717,6 +735,7 @@ def normalize(doc, client_text=None):
     m.muse = doc.get("muse") or {}
     m.internal_functions = doc.get("internal_functions") or {}
     m.dispatch_candidates = doc.get("dispatch_candidates") or {}
+    m.cert_layer = doc.get("cert_layer") or {}
 
     m.services = [Service.from_raw(p, s)
                   for p, s in (doc.get("services") or {}).items()]
@@ -760,7 +779,7 @@ def normalize(doc, client_text=None):
                           v.get("affected_services") or []),
                       evidence=[Evidence.from_raw(e)
                                 for e in v.get("evidence") or []],
-                      notes=v.get("notes"))
+                      notes=v.get("notes"), todo=v.get("todo"))
         for k, v in (doc.get("capabilities") or {}).items()}
 
     m.counts = _compute_counts(m)
@@ -774,7 +793,7 @@ def normalize(doc, client_text=None):
 # content; qa() errors on both stale keys and missing required ones so
 # no rendered prose block can silently lack a client layer.
 PAGE_TEXT_SPEC = {
-    "index": {"intro", "counts", "confidence"},
+    "index": {"intro", "counts"},
     "soap": {"intro"},
     "architecture": {"intro", "routing", "request_vtable",
                      "capability_fields", "internal_functions",
@@ -790,6 +809,7 @@ PAGE_TEXT_SPEC = {
     "firmware": {"intro", "product_surface", "service_matrix", "entries",
                  "entry_text"},
     "subsystems": {"intro"},
+    "open_work": {"intro"},
     "artifacts": {"intro"},
     "muse_spec_streams": {"intro"},
     "muse": {"intro", "description", "flags_decode", "dispatch",

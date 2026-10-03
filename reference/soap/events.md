@@ -46,6 +46,7 @@ GENA SUBSCRIBE accepted at /AlarmClock/Event via f_105e8290 (NT:upnp:event + NTS
 - **wss_registry:**
   - idx: 5, name: alarmClock, id: 20, tag: 64
   - idx: 6, name: alarmVersionChange, id: 24, tag: 1
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `alarmClock`, `alarmVersionChange`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -71,6 +72,7 @@ GENA SUBSCRIBE accepted at /AudioIn/Event via f_105e8290 (NT:upnp:event + NTS:up
 - **wss_registry:**
   - idx: 9, name: audioInput, id: 40, tag: 65
   - idx: 19, name: lineInStatus, id: 62, tag: 15
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `audioInput`, `lineInStatus`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -94,6 +96,7 @@ GENA SUBSCRIBE accepted at /MediaRenderer/ConnectionManager/Event via f_105e8290
 - **notify_path:** f_10735918 emits CurrentConnectionIDs
 - **wss_registry:**
   - idx: 22, name: connectionManager, id: 77, tag: 67
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `connectionManager`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -117,6 +120,7 @@ GENA SUBSCRIBE accepted at /MediaServer/ConnectionManager/Event via f_105e8290 (
 - **notify_path:** shares CurrentConnectionIDs emitter f_10735918 (CM family); SourceProtocolInfo/SinkProtocolInfo are static (GetProtocolInfo)
 - **wss_registry:**
   - idx: 22, name: connectionManager, id: 77, tag: 67
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `connectionManager`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -143,6 +147,7 @@ GENA SUBSCRIBE accepted at /MediaServer/ContentDirectory/Event via f_105e8290 (N
   - idx: 42, name: indexerStatus, id: 152, tag: 23
   - idx: 31, name: favoritesVersionChange, id: 115, tag: 11
   - idx: 50, name: playlistsVersionChange, id: 195, tag: 34
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `contentDirectory`, `indexerStatus`, `favoritesVersionChange`, `playlistsVersionChange`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -171,6 +176,7 @@ GENA SUBSCRIBE accepted at /DeviceProperties/Event via f_105e8290 (NT:upnp:event
   - idx: 14, name: microphoneSwitchStatus, id: 57, tag: 15
   - idx: 12, name: batteryStatus, id: 55, tag: 15
   - idx: 65, name: speakerPresenceStatus, id: 289, tag: 61
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `deviceProperties`, `extendedDeviceStatus`, `microphoneSwitchStatus`, `batteryStatus`, `speakerPresenceStatus`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -195,6 +201,7 @@ GENA SUBSCRIBE accepted at /GroupManagement/Event via f_105e8290 (NT:upnp:event 
 - **wss_registry:**
   - idx: 34, name: groupManagement, id: 136, tag: 70
   - idx: 33, name: groupCoordinatorChanged, id: 134, tag: 12
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `groupManagement`, `groupCoordinatorChanged`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -218,6 +225,7 @@ GENA SUBSCRIBE accepted at /MediaRenderer/GroupRenderingControl/Event via f_105e
 - **notify_path:** internal event 'GroupVolumeChangedEvent'/'GroupVolumeSetActionEvent' pool -> GENA/WSS; evented var 'GroupVolumeChangeable' literal proven; GroupMute/GroupVolume go through the same group-volume event pool
 - **wss_registry:**
   - idx: 35, name: groupRendering, id: 137, tag: 71
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `groupRendering`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -241,6 +249,7 @@ GENA SUBSCRIBE accepted at /HTControl/Event via f_105e8290 (NT:upnp:event + NTS:
 - **notify_path:** f_10739c34/f_10782194 emit {LEDFeedbackState, RemoteConfigured}
 - **wss_registry:**
   - idx: 41, name: htControl, id: 149, tag: 72
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `htControl`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -266,6 +275,7 @@ GENA SUBSCRIBE accepted at /MusicServices/Event via f_105e8290 (NT:upnp:event + 
 - **wss_registry:**
   - idx: 44, name: musicServices, id: 166, tag: 73
   - idx: 45, name: musicServicesChanged, id: 167, tag: 25
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `musicServices`, `musicServicesChanged`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -286,6 +296,7 @@ GENA SUBSCRIBE accepted at /QPlay/Event via f_105e8290 (NT:upnp:event + NTS:upnp
 **Additional data**
 
 - **notify_path:** 'updateSharedTQPlayMode' worker ('...bad context!' log) is the QPlay state-update path; X_QPlay_SoftwareCapability static; no dedicated emitter recovered
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue).`, `Still unknown: the notify emission path inside the binary is not recovered.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -357,6 +368,7 @@ GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event
   - idx: 60, name: settingsPlayerSettingsChanged, id: 254, tag: 38
   - idx: 28, name: entitlementsVersionChanged, id: 106, tag: 10
   - idx: 71, name: voiceAccountsVersionChange, id: 313, tag: 81
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `systemProperties`, `settingsVersionChanged`, `settingsDataChanged`, `effectiveSettingsDataChanged`, `settingsPlayerSettingsChanged`, `entitlementsVersionChanged`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -380,6 +392,7 @@ GENA SUBSCRIBE accepted at /MediaRenderer/VirtualLineIn/Event via f_105e8290 (NT
 - **notify_path:** 'setVirtualLineInGroupIDLocked'/'VirtualLineInGroupID' state + internal event bus; no dedicated emitter recovered
 - **wss_registry:**
   - idx: 70, name: virtualLineIn, id: 309, tag: 77
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `virtualLineIn`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -407,6 +420,7 @@ GENA SUBSCRIBE accepted at /ZoneGroupTopology/Event via f_105e8290 (NT:upnp:even
   - idx: 2, name: activeZonesChange, id: 12, tag: 82
   - idx: 3, name: zoneDefinitionsChange, id: 13, tag: 82
   - idx: 4, name: zoneError, id: 14, tag: 82
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `zoneGroupTopology`, `activeZonesChange`, `zoneDefinitionsChange`, `zoneError`.`, `Still unknown: the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 
 :::
@@ -425,11 +439,10 @@ The named event channels the player offers on its modern websocket connection, w
 - **lookup:** f_109e10d8 (tag/type -> entry+0 value; cmd 0x4a compared at call site)
 - **reject_paths:** `Invalid transport: WSS is required (0x10f02958)`, `Invalid namespace: UPnP renew not supported (0x10f0297c)`, `Invalid namespace: UPnP unsubscribe not supported (0x10f029a8)`
 - **entry_layout:** {+0x0 id/value, +0x4 name_ptr, +0x8 u32 monotonic event-type id (3..355), +0xc u16 tag, +0xe s8 type, +0x10 u32 kind}
-- **status:** confirmed
 - **note:** 73 WSS event-subscription types; each {name,id,tag,type} via runtime .bss table; kind field at +0x10 (kind==2 predicate at f_109e12b0); reject paths WSS-required/renew-not-supported/unsubscribe-not-supported
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10098d34, notes: populator writes name/tag/handler triples
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x109e10d8, notes: 73-iteration lookup loop, entry stride 0x14
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10098d34, notes: populator writes name/tag/handler triples
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x109e10d8, notes: 73-iteration lookup loop, entry stride 0x14
 - **entries** (73):
 
   ```
@@ -452,9 +465,9 @@ The named event channels the player offers on its modern websocket connection, w
   - **field:** entry +0x10 u32 kind/category
   - **consumer:** f_109e12b0(idx): bounds idx<=0x48, entry=0x110b8ce8+idx*0x14, returns (entry\[+0x10\]==2) predicate
   - **writer_semantics:** literal stores of {0,1,2} observed in the f_109d8bxx/f_109d8bxx registration-path region; kind values enumerate entry categories (0/1/2); kind==2 = the service-visible category gated by the predicate accessor
-  - **status:** strong
   - **evidence:**
     - type: disassembly, locator: 0x109e12b0..0x109e12e8, note: lwz +0x10 -> xori 0x2 -> cntlzw -> rlwinm = ==2 predicate
+  - **todo:** `Established: the field is the entry kind/category at +0x10; the predicate accessor f_109e12b0 gates kind==2 as the service-visible category; literal stores of {0,1,2} observed in the registration-path region.`, `Still unknown: what categories kinds 0 and 1 represent - only kind==2's service-visible meaning is decoded.`, `Next step: trace a registration call for a kind-0 or kind-1 entry to identify those categories.`
 - **name_order:** registry index order from f_10098d34 sequential stores
 - **table_full:**
   - idx: 0, name: accessorySwapStatus, id: 78, tag: 18
@@ -542,7 +555,6 @@ How the classic notification mechanism is implemented on this player: what happe
 
 ::: details Technical details
 
-- **status:** confirmed
 - **files:** `/oc/zone/common/upnpeventing_source.cxx`, `/oc/zone/common/eventing.cxx`, `eventing.cxx`
 - **name:** upnpeventing notification engine (upnpeventing_sender.cxx + upnpeventing_source.cxx)
 - **sender:** thread "upnpeventing" (runOnce loop); fireNotifications/fireNotificationData; emits <e:propertyset><e:property><...></e:property></e:propertyset>; retry backoff "%d failure(s) sending event ... Now %ld Retry at %ld expires at %ld"; Initial ZGT (ZoneGroupTopology) completion tracked

@@ -21,11 +21,10 @@ The /status route table: the full registration map of the diagnostics website, c
 - **shell_passthrough:** `date`, `ls`, `df`, `du`, `free`, `ifconfig`, `lsmod`, `mount`, `netstat`, `chronyc ntpsources`, `ps`, `route`, `scanresults`, `wifi/athconfig`, `brctl showmacs/showports/showstats/showstp`, `uptime`
 - **proc_passthrough:** `/proc/ath_rincon{,_ath1}/{device,dfs,fullstatus,mibcc,nf,phyerr,roam,station,status,primary}`, `/proc/driver/{accel,audioctl,fpga/{circ,data,reg},gravity-vector,ledctl/status,tas5708/data,tdm/{regs,rxring,stats,txring},temp-sensor}`, `/proc/fs/cifs/DebugData`, `/proc/{interrupts,slabinfo,timeinfo}`, `/proc/net/{arp,netstat,snmp,sockstat,tcp,udp}`
 - **debug_files:** `/jffs/irconfig.txt`, `/jffs/localsettings.txt`, `/jffs/settings/{alarmclock.xml,areas.json,cloudconfig.json,householdsettings.json,zones.json,zpMetricsConfigV2.xml}`, `/jffs/{recovery,recovery_prev,upgrade,upgrade_prev,upgrade_tmp_prev,watchdog.dmesg,watchdog}.log`, `/jffs/sys/log/setup*`, `/opt/log/anacapa.{alarm.job,avt.play,chsrc.state,dc,ext.audio.action,gm.events,ht,hw.events,lechmere.event,musecmdandrsp,musedebug,museevt,rc.upnp,snf,spotify.debug,spotify,sps,trueplay,vl}.log`, `/opt/log/{chronyd,dropbear,ledmgr.debug,netstartd,sddpd}.log`, `/opt/log/mdnsd.log`
-- **status:** confirmed
 - **note:** path literals proven in rodata; per-route handler output schemas harvested from handler+callee string refs: elements=XML/format templates emitted, files=shell/proc/jffs paths execd or read, misc_fields=field/token literals. Handlers dispatch through a module registry (vfunc +0x24) or call the shared command-stream helper f_1076b10c.
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e75c5c, notes: subhandler string cluster
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e73e21, notes: ZPInfo field cluster
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e75c5c, notes: subhandler string cluster
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e73e21, notes: ZPInfo field cluster
 - **route_table:**
   - **address:** 0x110908c8
   - **stride:** 12
@@ -295,11 +294,11 @@ The /status route table: the full registration map of the diagnostics website, c
           hhSwgenState, build.date, build.scm.version, release, topology, informLocalPlayerChange, getLocalChannelName, S43, ZP120, ZP90, BR200, Sub, S21, S12, S11, S13, S18, S14, S15, S16, S17, S20, S59, S19, S34, S22, S23, S38, S54, S35, S27, S42, S28, S33, S56, S53, S51, S45, S44, S37
           ```
   - **/logger:**
-    - **status:** strong
     - **description:** Sonos Logger admin form (POST, csrfToken): fields {dest:file\|"udp"\|"stderr",cat:category e.g. avt_impl,level:0-11 DIAGC(0)→SONOS_LOG(3)} + UDP {udp,udp_addr,udp_port,udp_default} + stderr {stderr,stderr_default} + Diag Msg {msg} + Log Backup {backup_dir,submitAction=logBackup→/jffs/app/log}; errors {Invalid log level/UDP port/UDP default/STDERR default,Log destination not found,UDP already enabled,Diag Msg not allowed}; "Private IP address is required for UDP logging"; dest charset `_ -./\`; status shows Active Destinations(default level)
+    - **todo:** `Established: the route's registration, path, and documented behavior: Sonos Logger admin form (POST, csrfToken): fields {dest:file\|"udp"\|"stderr",cat:category e.g. avt_impl,level:0-11 DIAGC(.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: locate and trace the handler behind this route.`
   - **/devmode:**
-    - **status:** strong
     - **description:** dev-mode code entry: GET shows Model/Device ID/Version + form{csrfToken,statement textarea(11x80),button=submit\|delete} → "Statement installed."/"Statement removed.": signed statement mechanism
+    - **todo:** `Established: the route's registration, path, and documented behavior: dev-mode code entry: GET shows Model/Device ID/Version + form{csrfToken,statement textarea(11x80),button=submit\|delete} .`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: locate and trace the handler behind this route.`
   - **/support:**
     - **detail:** ZPSupportInfo XML: <ZPSupportInfo><ZPNetworkInfo type="%s" %s="%s"><ZPSupportItem title="%s">… exec pages wrap <Command cmdline="…"> + /tmp/diagstdout+/tmp/diagstdin + <!-- SDT: %ld ms -->; path allowlist {/jffs/app/log,/jffs/app/settings,/jffs,/opt/log,/opt,/tmp,/var} + ambient caps dropped + child read timeout; application/octet downloads; CDATA escapes
 - **description:** Full registration table decoded: 59 routes at .data 0x110908c8, entry {path, flags, handler} stride 0xc. Flag values: 0x2 default GET, 0xa/0xb/0xe privilege variants (dmesg/topology/upnp, enetports/wireless, cpumon/perfcounters), 0x82 prefix-mount (sub-dispatcher) (api/cloudqueue/leds), 0x6 (mdnsd log + playmode), 0x1 (/zp root page).
@@ -545,7 +544,7 @@ The /status route table: the full registration map of the diagnostics website, c
       - **handler:** f_10675234
       - **flags:** `256`
       - **detail:** mfg unlock sibling
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_10675234`: mfg unlock sibling.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_10675234 and document its accepted parameters and effects.`
     - **/devmode:**
       - **handler:** f_105e8d90
       - **flags:** 
@@ -579,7 +578,7 @@ The /status route table: the full registration map of the diagnostics website, c
       - **handler:** f_100c1230
       - **flags:** 
       - **detail:** mDNS announce button on /spotifyzc
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100c1230`: mDNS announce button on /spotifyzc.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100c1230 and document its accepted parameters and effects.`
     - **/pcap:**
       - **handler:** f_100d416c
       - **flags:** 
@@ -588,7 +587,7 @@ The /status route table: the full registration map of the diagnostics website, c
       - **handler:** f_100ba144
       - **flags:** 
       - **detail:** writes eqdata.txt via path-builder f_100b97f4 + form processor f_1068a70c
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100ba144`: writes eqdata.txt via path-builder f_100b97f4 + form processor f_1068a70c.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100ba144 and document its accepted parameters and effects.`
     - **/getDSP:**
       - **handler:** f_100bd9fc
       - **flags:** 
@@ -597,12 +596,12 @@ The /status route table: the full registration map of the diagnostics website, c
       - **handler:** f_100bb63c
       - **flags:** 
       - **detail:** gate → obj->vt\[2\] commit + atomic refcount; uploads DSP config
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100bb63c`: gate → obj->vt\[2\] commit + atomic refcount; uploads DSP config.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100bb63c and document its accepted parameters and effects.`
     - **/setPersistentEQ:**
       - **handler:** f_100ba218
       - **flags:** 
       - **detail:** writes app/debug/dsp/persistentEQ.xml via same form processor
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100ba218`: writes app/debug/dsp/persistentEQ.xml via same form processor.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100ba218 and document its accepted parameters and effects.`
     - **/removeDSPDebugFiles:**
       - **handler:** f_100bc518
       - **flags:** 
@@ -611,7 +610,7 @@ The /status route table: the full registration map of the diagnostics website, c
       - **handler:** f_100be454
       - **flags:** 
       - **detail:** gate f_10548a14 → f_100be1cc writes config; else 500-class
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100be454`: gate f_10548a14 → f_100be1cc writes config; else 500-class.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100be454 and document its accepted parameters and effects.`
     - **/audio_tap:**
       - **handler:** f_100becc4
       - **flags:** 
@@ -627,7 +626,7 @@ The /status route table: the full registration map of the diagnostics website, c
       - **handler:** f_100b85ec
       - **flags:** `1024`
       - **detail:** exec registry {init f_10571a84,run f_10571ae4,cleanup f_10571c88} over rodata struct 0x10e72a9c
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100b85ec`: exec registry {init f_10571a84,run f_10571ae4,cleanup f_10571c88} over rodata struct 0x10e72a9c.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100b85ec and document its accepted parameters and effects.`
     - **/diaglevel:**
       - **handler:** f_105e93d8
       - **flags:** 
@@ -648,7 +647,7 @@ The /status route table: the full registration map of the diagnostics website, c
       - **handler:** f_105e935c
       - **flags:** 
       - **detail:** Factory Reset / Reboot page: generic form "<h2>%s</h2> POST /%s csrfToken Submit" + "Remote factory reset." + "<h2>%s</h2>Rebooting..."
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_105e935c`: Factory Reset / Reboot page: generic form "<h2>%s</h2> POST /%s csrfToken Submit" + "Remote factory reset." + "<h2>%s</h.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_105e935c and document its accepted parameters and effects.`
     - **/sonarctl:**
       - **handler:** f_100bc354
       - **flags:** 
@@ -670,17 +669,17 @@ The /status route table: the full registration map of the diagnostics website, c
       - **handler:** f_105e9578
       - **flags:** `257`
       - **detail:** tail f_10670638 reads fingerprint buffer 0x11097680+0x8d0; record fields {+15c,+158,+178,+182,+184}
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_105e9578`: tail f_10670638 reads fingerprint buffer 0x11097680+0x8d0; record fields {+15c,+158,+178,+182,+184}.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_105e9578 and document its accepted parameters and effects.`
     - **/snapshotspdiftap:**
       - **handler:** f_100bd5e4
       - **flags:** 
       - **detail:** gate → verifies vt+0x124==f_100c3f5c snapshot vfunc → takes snapshot
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100bd5e4`: gate → verifies vt+0x124==f_100c3f5c snapshot vfunc → takes snapshot.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100bd5e4 and document its accepted parameters and effects.`
     - **/downloadspdiftap:**
       - **handler:** f_100b9ed0
       - **flags:** 
       - **detail:** gate f_1054bdc8 → snprintf %s/%s spdiftap.compressed → streams file
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100b9ed0`: gate f_1054bdc8 → snprintf %s/%s spdiftap.compressed → streams file.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100b9ed0 and document its accepted parameters and effects.`
     - **/cloudqueuepoll:**
       - **handler:** f_100b8260
       - **flags:** `1024`
@@ -695,7 +694,7 @@ The /status route table: the full registration map of the diagnostics website, c
       - **flags:** 
       - **detail:** Spotify Connect ZeroConf endpoint (f_1020f8c4). POST application/x-www-form-urlencoded; addUser action takes userName + player uuid, replies application/json. Error vocabulary ERROR-INVALID-ARGUMENTS/ERROR-UNKNOWN/ERROR-SPOTIFY-ERROR/ERROR-LOGIN-FAILED; pulls token/key from DC account ("%s@%s" user@device fmt, SONOS_DC_UNKNOWN).
       - **page:** <h3>Tools for debugging Spotify issues</h3> + forms {mDNS Announce→/mdnsannounce,Reset NTS→/spotresetnts} both csrfToken POSTs; "spot: permission denied"
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_1020f8c4`: Spotify Connect ZeroConf endpoint (f_1020f8c4). POST application/x-www-form-urlencoded; addUser action takes userName + .`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_1020f8c4 and document its accepted parameters and effects.`
     - **/spotdbg:**
       - **handler:** f_100b8140
       - **flags:** 
@@ -703,7 +702,7 @@ The /status route table: the full registration map of the diagnostics website, c
       - **handler:** f_100b7fd8
       - **flags:** 
       - **detail:** Reset NTS button on /spotifyzc
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100b7fd8`: Reset NTS button on /spotifyzc.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100b7fd8 and document its accepted parameters and effects.`
     - **/sethostip:**
       - **handler:** f_100b9fac
       - **flags:** 
@@ -717,12 +716,12 @@ The /status route table: the full registration map of the diagnostics website, c
       - **handler:** f_100b7cb4
       - **flags:** 
       - **form:** <h2>System Settings</h2> POST {csrfToken hidden,key size=80,value size=80}; responses {"Setting changed","HTTP Error %d"}
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100b7cb4`: route record.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100b7cb4 and document its accepted parameters and effects.`
     - **/removestring:**
       - **handler:** f_100b79e0
       - **flags:** 
       - **form:** <h2>Remove System Setting</h2> POST {csrfToken hidden,key size=64}; responses {"Setting removed","HTTP Error %d"}; cache-control "no-cache, no-store, must-revalidate" + application/x-www-form-urlencoded
-      - **status:** strong
+      - **todo:** `Established: the route's registration and handler address `f_100b79e0`: route record.`, `Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.`, `Next step: disassemble f_100b79e0 and document its accepted parameters and effects.`
     - **/support/directsubmit:**
       - **handler:** f_105e9b30
       - **flags:** 
@@ -838,7 +837,6 @@ The /status route table: the full registration map of the diagnostics website, c
     - **/enetports:**
       - **schema:** <EnetPorts><Port port=%d><Link>%d</Link><Speed>%d%s</Speed></Port>...</EnetPorts>
       - **fields:** `port`, `Link`, `Speed + unit suffix`
-      - **confidence:** PROVEN (dp_impl 0x10ef3494)
     - **/cpumon:** <CpuMonitor>
     - **/hardwareevents:** <HardwareStatusInfo>
     - **/upnp:** <Subscriptions>
@@ -857,26 +855,20 @@ The /status route table: the full registration map of the diagnostics website, c
       - **render:** f_10599c28
       - **schema:** <Cloud><ProtocolVersion>%s</ProtocolVersion><LastRetryAfter>%lld</LastRetryAfter><MillisecondsToNextConnect>%ld</MillisecondsToNextConnect><WebsocketRegistration>%s (%s)</WebsocketRegistration></Cloud>
       - **fields:** `ProtocolVersion`, `LastRetryAfter (optional, %lld)`, `MillisecondsToNextConnect (optional, %ld)`, `WebsocketRegistration: "%s (%s)" e.g. OK (Current)/Pending`
-      - **confidence:** PROVEN
     - **/policy:**
       - **render:** f_10372d34
       - **schema:** <Entitlements><Entitlement type="%s" isTrial="%s" sku="%s" startDate="%s" endDate="%s" codes="%s"/></Entitlements>
       - **fields:** `type`, `isTrial`, `sku`, `startDate`, `endDate`, `codes`
-      - **confidence:** PROVEN
     - **/audiocore:** <AudioCore> + <SoundDevice><Zones>…</Zones></SoundDevice> + <DSPStateManager><Zones>…</Zones></DSPStateManager> + <PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>
     - **/track_queue_summary:**
       - **render:** f_10265324
       - **schema:** <TrackQueueSummary> member dump </TrackQueueSummary>
-      - **confidence:** PROVEN wrapper
     - **/accounts:**
       - **render:** f_101b6edc adjustor thunk this+=280 -> f_10427174
-      - **confidence:** PROVEN mechanism; module is SMB/share-account code (literals are share-connect errors), member-dump output
     - **/ethportstatistics:**
       - **schema:** EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions} + EthIntrf detail {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr} read from /sys/class/net/eth0 (eth%u)
-      - **confidence:** PROVEN literals (dp_impl 0x10ef34e0-0x10ef35e8)
     - **/root_cert_bundles:**
       - **schema:** <RootCertBundleInfo><Bundles><CurrentBundle><BundleVersion/><BundleID/><IsFallback/></CurrentBundle><CachedCloudBundle><BundleVersion/><BundleID/><ETag/></CachedCloudBundle><PreviousBundle><BundleVersion/><BundleID/></PreviousBundle></Bundles></RootCertBundleInfo>
-      - **confidence:** PROVEN (reportuploader 0x10eeb9b4+)
     - **/renderingcontrol:** <RenderingControl><DuckingFlags>%s</DuckingFlags><SodVolume>%d</SodVolume><ExtVolume>%d</ExtVolume><AudioCoreReady>%s</AudioCoreReady><DeviceTime>%d.%06d</DeviceTime></RenderingControl>: literals found in f_100b8f2c handler body (previously listed unresolved; the stub tail-calls into the shared emit fn but the schema literals sit in the handler itself)
     - **/decoder:** <MusicDecoder><LastActiveDecoder>%s</LastActiveDecoder></MusicDecoder>
     - **/topology:** <ReplicatedNetSettings LastUpdateDevice="%s" Version="%d" FileSchemaVersion="%d"><SonosNet Disable="%d"/><SonosNet Frequency="%d"/><Network SSID="%s" Flags="%d"/><BackupLanSwapPsk id="%s"/></ReplicatedNetSettings>: shared emitter also used by /wireless,/dmesg,/netsettings.*,/ssidlist.txt (same render lib)
@@ -960,7 +952,6 @@ Extra HTTP endpoints: the second sweep of web paths found in the binary beyond t
 
 ::: details Technical details
 
-- **status:** strong
 - **name:** HTTP paths outside the /status route-table cluster
 - **description:** Second-sweep string audit of the anacapad HTTP server surface: paths present in rodata that were not in the decoded /status route table. Covers SSH-key install, firmware download, group ops, local OAuth/authz, content bridges, DSP control, Spotify debug, retail-demo hooks, support-bundle submission, the /testenv environment switcher, sibling-daemon IPC proxies (/X-external) and htdocs pages. Presence of a path string does not prove a registered route; addresses are the literal locations.
 - **paths:**
@@ -1043,10 +1034,10 @@ Extra HTTP endpoints: the second sweep of web paths found in the binary beyond t
   - path: /alt-svc.html, address: 0x10f822e2
 - **missing_strings:** 
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efee2e, notes: /ssh/authorized_keys
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e763d8, notes: /testenv
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e76500, notes: /sonarctl
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e765a4, notes: /spotifyzc
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10efee2e, notes: /ssh/authorized_keys
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e763d8, notes: /testenv
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e76500, notes: /sonarctl
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e765a4, notes: /spotifyzc
 - **range:** "Session status 0x%x connected %d wantWrite %d wantRead %d" + "Current state: %d Current Status 0x%08x" + HTTP/1.1 206 partial-content support
 - **decoded_handlers:**
   - **/setstring:** f_100b7cb4: POST application/x-www-form-urlencoded {key, value, csrfToken} -> "<h2>System Settings</h2>Setting changed" / "HTTP Error %d". CSRF-protected settings write (writes a raw key/value into the settings store).
@@ -1107,6 +1098,7 @@ Extra HTTP endpoints: the second sweep of web paths found in the binary beyond t
   - **/websocket/api:** f_100bb8ac (flag 0x200): websocket upgrade endpoint for the muse API.
   - **/device_account_note:** aux 0x100 = POST-ish routes (unlock family, rdm*, device_account); 0x200 = websocket; 0x400 = internal; 0x30000/0x30002 = support-submit variants; 0x10000000 = raw/streaming.
 - **csrf_note:** All mutating form endpoints carry a csrfToken form field (setstring/removestring/mdnsannounce + the form posts) - the HTTP layer enforces CSRF on writes while reads are open.
+- **todo:** `Established: the second-sweep endpoint inventory, decoded handlers (e.g. /setstring CSRF flow), and the CSRF-on-writes policy are documented.`, `Still unknown: the paths list is a rodata audit - handlers for most listed paths are not decoded, only the string evidence is catalogued.`, `Next step: decode the remaining listed endpoints' handlers the way /setstring was done.`
 
 :::
 
@@ -1117,7 +1109,6 @@ The diagnostics manifest: the packing list of what a diagnostics bundle contains
 
 ::: details Technical details
 
-- **status:** confirmed
 - **table:** 0x11090034..0x110908c8 (~100 entries) - ordered manifest feeding /support/aggregate diagnostics
 - **task_handlers:**
   - **HighResUsageMetrics:** f_100bbc80
@@ -1150,7 +1141,6 @@ The diagnostics machinery: the overall system for gathering health data, coverin
 
 ::: details Technical details
 
-- **status:** confirmed
 - **files:** `/oc/zone/common/diag_progress.cxx`, `/oc/zone/common/diagnostics.cxx`
 
 :::
@@ -1162,7 +1152,6 @@ The proprietary HTTP headers: the Sonos-specific request and response headers th
 
 ::: details Technical details
 
-- **status:** confirmed
 - **outbound:** `X-Sonos-Playback-Id: %.*s`, `X-Sonos-SWGen: %u`, `X-RINCON-BOOTSEQ: %s`, `X-RINCON-VARIANT: %u`, `X-Sonos-Household-Id`, `X-Sonos-Corr-Id`, `x-sonos-target-udn`, `x-sonos-upnp-loopback-token`, `x-rincon-content-format (repset)`, `x-rincon-roomicon:generic`
 - **hls_vocabulary:** `#EXT-X-VERSION`, `#EXT-X-TARGETDURATION`, `#EXT-X-MEDIA-SEQUENCE`, `#EXT-X-PLAYLIST-TYPE`, `#EXT-X-INDEPENDENT-SEGMENTS`, `#EXT-X-KEY:`, `#EXT-X-SESSION-KEY:`, `#EXT-X-MAP:`, `#EXT-X-DISCONTINUITY`, `#EXT-X-BYTERANGE`, `#EXT-X-ENDLIST`, `#EXT-X-MEDIA`, `#EXT-X-STREAM-INF`, `#EXT-X-PROGRAM-DATE-TIME`
 - **hls_validation:** 'attempted to store an invalid rendition that doesn't begin with #EXT-X-MEDIA' (rendition-group enforcement)
@@ -1211,7 +1200,6 @@ The proprietary HTTP headers: the Sonos-specific request and response headers th
     - **X-Sonos-User-Role:** 0x10ed96a4
     - **X-Sonos-UserId:** 0x10ef21e0
     - **X-Sonos-VClockCloud:** 0x10edef34 (NEW: vector-clock cloud sync)
-  - **status:** confirmed
   - **notes:** Case variants (X-Sonos-MuseHouseholdId vs -Muse-Household-Id) coexist as distinct literals.
 
 :::
@@ -1223,7 +1211,6 @@ How strictly the HTTP layer enforces chunked-transfer rules: the parsing strictn
 
 ::: details Technical details
 
-- **status:** confirmed
 - **rules:** `Reject response when 'chunked' is not the last Transfer-Encoding`, `Ignore duplicate 'chunked' decoder`, `Suppress chunked TE on HTTP version >= 2`, `'Chunky upload is not supported by HTTP 1.0'`, `Missing chunk/close/size -> assume close signals end`, `chunk hex-length max bound + hex-digit validation`, `'Chunk callback failed' / 'cf_body_send last CHUNK'`, `trailers accepted: 'added last chunk with trailers from client'`
 
 :::
@@ -1235,7 +1222,6 @@ HTTP range support: byte-range request handling for serving and requesting parti
 
 ::: details Technical details
 
-- **status:** confirmed
 - **grammar:** Range: bytes=%s + =%d-%d + =%d- ; Content-Range: bytes {0-%lld/%lld, %s%lld/%lld, %s/%lld, %llu-%llu/%llu}: 64-bit
 - **status_line:** 0x10ee6bcc 'HTTP/1.0 206' - range responses are emitted on the HTTP/1.0 status line (HTTP/1.1 variant not separately templated)
 
@@ -1248,7 +1234,6 @@ The HTTP cache manager: the component owning the web-content cache, covering wha
 
 ::: details Technical details
 
-- **status:** confirmed
 - **file:** httpcachemgr/httpcaches.json: httpcache_manager.cxx
 - **protocol:** {cacheHashes, hashLocal, hashRemote} + Force-cleared cache + Invalidated local cache + Invalidating remote caches: distributed HTTP-cache invalidation across zones w/ hash comparison
 
@@ -1261,13 +1246,12 @@ The CSRF protection on the web forms: every browser-facing POST endpoint embeds 
 
 ::: details Technical details
 
-- **status:** confirmed
 - **name:** CSRF tokens on browser-facing POST endpoints
 - **description:** Every browser-form POST endpoint embeds a hidden csrfToken field: /advconfig, /customsd, /devmode, /fcs, /logger, /mdnsannounce, /nslookup, /ping, /removestring, /setstring, /spotresetnts, /ssh/authorized_keys, /support/directsubmit, /testenv, /traceroute. Token generation/validation mechanics not decoded.
 - **form_endpoints:** `/advconfig`, `/customsd`, `/devmode`, `/fcs`, `/logger`, `/mdnsannounce`, `/nslookup`, `/ping`, `/removestring`, `/setstring`, `/spotresetnts`, `/ssh/authorized_keys`, `/support/directsubmit`, `/testenv`, `/traceroute`
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e730f0, notes: csrfToken
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10efee26, notes: action="/ssh/authorized_keys"
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e730f0, notes: csrfToken
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10efee26, notes: action="/ssh/authorized_keys"
 
 :::
 
@@ -1278,8 +1262,8 @@ The device-description variants: the different self-description documents the pl
 
 ::: details Technical details
 
-- **status:** strong
 - **description:** \["/xml/device_description.xml", "/xml/group_description.xml", "/xml/satellite_device.xml", "/xml/device_description_no_ai.xml"\]
+- **todo:** `Established: the four device-description XML variant paths are listed.`, `Still unknown: the selection rule - which conditions serve which variant - is not decoded.`, `Next step: trace the variant-selection logic in the description endpoint.`
 
 :::
 
@@ -1295,17 +1279,16 @@ The album-art proxy: it serves artwork through the player's own web server so ap
 - **params:** u= source URL (validated: 'AlbumArtURI longer than expected.'), v= version/etag-style param, m=1 / s=1 select medium/small variants; '%s?albumArt=true' marks upstream art requests
 - **flags:** enableSecureAlbumArt feature flag gates a secured art fetch path; AlbumArtistDisplayOption + GetAlbumArtistDisplayOption control whether album-artist metadata is displayed (microsoft:artistAlbumArtist DIDL extension supported in sort/filter caps)
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e76390, notes: /getaa route literal
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e8937c, notes: /getaa?u=%s&v=%u form
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f0df90, notes: /getaa?m=1&u=%s variant
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f0f3c4, notes: /getaa?s=1&u=%s variant
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ecd458, notes: AlbumArt_{GUID}_Large.jpg cache filename
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f9c1f0, notes: enableSecureAlbumArt flag
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x100b8c2c, notes: /getaa route handler: queue + singleton create
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x100c34fc, notes: request processor: m/s/vli/u param parse + u-terminator
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x100c3714, notes: Cache-Control: private, max-age=15780000 response header
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10299e5c, notes: worker thread: 32-slot ring + TCP_INFO abort check
-- **status:** confirmed
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e76390, notes: /getaa route literal
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e8937c, notes: /getaa?u=%s&v=%u form
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10f0df90, notes: /getaa?m=1&u=%s variant
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10f0f3c4, notes: /getaa?s=1&u=%s variant
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10ecd458, notes: AlbumArt_{GUID}_Large.jpg cache filename
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10f9c1f0, notes: enableSecureAlbumArt flag
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x100b8c2c, notes: /getaa route handler: queue + singleton create
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x100c34fc, notes: request processor: m/s/vli/u param parse + u-terminator
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x100c3714, notes: Cache-Control: private, max-age=15780000 response header
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10299e5c, notes: worker thread: 32-slot ring + TCP_INFO abort check
 - **request_grammar:** GET /getaa?{m\|s\|vli}...&u=<url>\[&v=<n>\] (query parsed by f_10c3b72c: param names <=32 chars, values <=1024 chars, '&'-separated. Recognized params (compared in order m,s,vli,u via strcmp at 0x100c35cc-0x100c3618): 'm' medium-variant flag, 's' small-variant flag, 'vli' virtual-line-in image flag, 'u' upstream image URL. IMPORTANT: 'u' is the TERMINATOR) when encountered, parsing stops and the request proceeds; any params AFTER u= are never read. 'v' is NOT parsed by the handler at all: it appears in emitted URIs (/getaa?u=%s&v=%u) purely as a client-side cache-buster/etag. Unknown params are skipped silently
 - **response:** image bytes streamed back via vliStreamImage (f_101867c8), logged as 'invoking vliStreamImage on %s %u %u %u %s' and 'Fetching album art for %s: %s'. Response header: Cache-Control: private, max-age=15780000 (~6 months). Failure path: 'vliStreamImage failed on %s %u %u %u %s' then status 0x194 sent via f_100b4614: upstream fetch failures surface as 404
 - **async_model:** handler f_100b8c2c is async: logs 'queueing album art request %s %u %u %u', lazily creates the mod_zp_aa server singleton (new 0x428a0, ctor f_10299a48) at 0x11096c98, enqueues the request into a 32-slot ring of 0x2134-byte entries (f_10299c34) and returns. Worker thread f_10299e5c blocks on a condvar, pops slots, probes the client socket with getsockopt(TCP_INFO) and takes an abort path (f_100c34fc slot-discard) when the peer is already in CLOSE/CLOSE_WAIT/CLOSING: clients that give up early are never served
@@ -1321,13 +1304,13 @@ The alert and notification audio player: it plays short sounds like chimes, prom
 
 ::: details Technical details
 
-- **status:** strong
 - **name:** alert/chime interrupt engine
 - **description:** alertContent player with priority policies ('Cannot interrupt current clip due to priority policies', JOIN_CHIME_UNAVAILABLE, ALEXA_ALERT); audioclipmanager + /duck /unduck endpoints; surfaces via the audioClip muse resource and the R_AUDIO_CLIP_* codes.
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eaacd4, notes: alertContent
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ec76ac, notes: JOIN_CHIME_UNAVAILABLE
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ec0814, notes: ALEXA_ALERT
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eaacd4, notes: alertContent
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10ec76ac, notes: JOIN_CHIME_UNAVAILABLE
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10ec0814, notes: ALEXA_ALERT
+- **todo:** `Established: the alert/chime engine with priority policies, audioclipmanager, and /duck//unduck endpoints is identified.`, `Still unknown: the priority-policy evaluation order and the duck/unduck endpoint handler internals are untraced.`, `Next step: decode the policy table and the duck endpoint's flag semantics.`
 
 :::
 

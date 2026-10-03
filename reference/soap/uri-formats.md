@@ -8,7 +8,7 @@ URI scheme grammars recovered from literal tables and parser call sites.
 
 :::
 
-## `cloud_api_routes` `confirmed`
+## `cloud_api_routes`
 
 The full map of outbound cloud API calls the player can make: hundreds of route templates covering everything the player asks Sonos's cloud for, including accounts, services, updates, and telemetry. It's documented as the outbound counterpart of the API the player serves.
 
@@ -64,7 +64,11 @@ Complete outbound cloud API route+dispatch map: 533 route literals, 324 {scope,p
 
 :::
 
-## `explore_scheme` `strong`
+## `explore_scheme`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The 'explore:' container scheme, an address family for explorable content collections that sits alongside the radio and container schemes. It marks browsable sections of service catalogs rather than individual playable items.
 
@@ -91,7 +95,11 @@ music-service browse URI family; IDs prefixed alb./art./pp./mp.
 
 :::
 
-## `hls-aac` `strong`
+## `hls-aac`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 An HLS AAC stream address: segmented AAC audio in the scheme vocabulary, distinct from the generic HLS token.
 
@@ -114,7 +122,11 @@ HLS AAC variant
 
 :::
 
-## `hls-radio` `strong`
+## `hls-radio`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 An HLS radio stream address: segmented radio appearing in the scheme vocabulary as its own token.
 
@@ -137,7 +149,11 @@ HLS radio stream
 
 :::
 
-## `hls_aac` `strong`
+## `hls_aac`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 An HLS variant in AAC encoding: a segmented-stream address whose marker steers the fetch machinery toward the right decoder for that format.
 
@@ -161,7 +177,11 @@ HLS AAC variant scheme token in the protocol vocabulary.
 
 :::
 
-## `hls_radio` `strong`
+## `hls_radio`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 An HLS-radio stream variant, meaning Apple's segmented-stream format used for radio. The tag in the address tells the player to pick the right streaming machinery for it.
 
@@ -185,7 +205,11 @@ HLS radio variant scheme token in the protocol vocabulary.
 
 :::
 
-## `hm` `strong`
+## `hm`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The Spotify 'Hermes' channel: the hardware bridge inside the embedded Spotify client that carries Connect traffic. It's what the hm:// addresses route to.
 
@@ -208,7 +232,7 @@ Spotify Hermes-style daemon channel (see hm_scheme): hwptp = hardware-platform p
 
 :::
 
-## `hm_scheme` `confirmed`
+## `hm_scheme`
 
 The 'hm://' address for the Spotify Connect channel. It routes to the embedded Spotify component (the 'Hermes' path) that lets the speaker appear as a Spotify Connect device in the Spotify app.
 
@@ -233,7 +257,11 @@ hm:// host-scheme for the Spotify Connect Hermes channel: the embedded Spotify e
 
 :::
 
-## `http-endpoints-muse` `strong`
+## `http-endpoints-muse`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: cloud alarm sync, UPnP-bridge subscription relay.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The outbound API paths the player itself calls. When the player acts as a client toward other players or the cloud, these are the route templates it formats its requests against.
 
@@ -260,7 +288,7 @@ Outbound muse/HTTP API path templates (client side, plus local /avt.txt persiste
 
 :::
 
-## `last_fm-radio-http` `confirmed`
+## `last_fm-radio-http`
 
 A Last.fm radio HTTP address: the service-namespaced radio scheme for the Last.fm integration, a leftover of one of the older service partnerships.
 
@@ -283,7 +311,11 @@ Last.fm radio HTTP scheme
 
 :::
 
-## `misc_schemes` `strong`
+## `misc_schemes`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 Address schemes missed by the main sweep: oddballs like Pandora's ad-insertion transport and HLS radio variants. They're collected so the scheme inventory is genuinely complete rather than just the common cases.
 
@@ -309,7 +341,11 @@ URI schemes missed by the main sweep: pndrradioad:// (Pandora ad-insertion trans
 
 :::
 
-## `oauth_jwt_urn` `strong`
+## `oauth_jwt_urn`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 A standard token-grant identifier from the OAuth world. It's part of the vocabulary used when the player exchanges credentials with services, recorded as reference rather than a playable address.
 
@@ -333,7 +369,11 @@ IETF JWT-bearer OAuth grant URN used in token flows. Recorded as grant vocabular
 
 :::
 
-## `pandora_com-pndrradioad` `strong`
+## `pandora_com-pndrradioad`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 A Pandora ad-insertion address with the service prefix: Pandora's ad stream with the provider prefix attached, in the service-namespaced form.
 
@@ -356,7 +396,11 @@ pandora ad service prefix
 
 :::
 
-## `pndrradio-http` `strong`
+## `pndrradio-http`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 Pandora's plain-HTTP radio variant: the non-ad stream address used for the normal station feed, as distinct from the ad-insertion variant.
 
@@ -379,7 +423,11 @@ Pandora radio HTTP variant
 
 :::
 
-## `pndrradioad` `strong`
+## `pndrradioad`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 Pandora's ad-insertion stream marker: the address variant used when Pandora injects ads into a stream. It lets the player treat those segments correctly rather than mistaking them for the station's audio.
 
@@ -403,7 +451,7 @@ Pandora ad-insertion stream marker; scheme strings embedded in the streamer URI 
 
 :::
 
-## `protocol_info_schemes` `confirmed`
+## `protocol_info_schemes`
 
 The scheme vocabulary the player advertises in its capability strings: the address families it tells the world it can accept or produce. Devices read them when checking compatibility before handing each other streams.
 
@@ -434,7 +482,11 @@ protocolInfo URI scheme vocabulary: the GetProtocolInfo capability set across si
 
 :::
 
-## `rdradio_scheme` `strong`
+## `rdradio_scheme`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The 'rdradio:' scheme, an address family marking radio-station items for the streaming-radio path. It's how a saved station is identified as something to tune into rather than a file to fetch.
 
@@ -461,7 +513,7 @@ radio-service URI family
 
 :::
 
-## `rhapsody_imageserver` `confirmed`
+## `rhapsody_imageserver`
 
 The Rhapsody (later Napster) image-server addresses, describing how artwork from that service's catalog was fetched. It's a leftover of one of Sonos's oldest music-service integrations, kept for compatibility.
 
@@ -486,7 +538,11 @@ hardcoded Rhapsody/Napster album-art CDN template; %s = image id, fixed 300x300 
 
 :::
 
-## `rinconnetworks_urn` `strong`
+## `rinconnetworks_urn`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The 'RinconNetworks' URN namespace prefix: the internal namespace Sonos's metadata and service identifiers use. 'Rincon' is the platform's internal codename, which is why it appears throughout these schemes.
 
@@ -510,7 +566,11 @@ RinconNetworks URN namespace prefix observed in service/URN vocabulary.
 
 :::
 
-## `skd` `strong`
+## `skd`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 A scheme token present in the streamer's vocabulary whose meaning couldn't be resolved. It's recorded for completeness with the honest note that its purpose is unknown rather than guessing.
 
@@ -534,7 +594,11 @@ Scheme token in the streamer URI vocabulary; semantics unresolved.
 
 :::
 
-## `sonos-schemes` `strong`
+## `sonos-schemes`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: internal IDs, muse token fields.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 Bare 'sonos:' addresses used internally as templates and identifiers, a small family of Sonos-namespaced locators for housekeeping rather than playable content. They show up inside the system's own bookkeeping rather than in anything you'd browse to.
 
@@ -561,7 +625,11 @@ Bare sonos: forms used as printf templates and identifiers: "sonos:%d" (0x10ecc3
 
 :::
 
-## `sonos_albumart_path` `strong`
+## `sonos_albumart_path`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The filename pattern for album-art assets the player stores or serves. It's a GUID-shaped name so every image has a unique, stable address that apps can cache against.
 
@@ -584,7 +652,11 @@ Album-art asset path: %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%
 
 :::
 
-## `sonos_com-hls-radio` `strong`
+## `sonos_com-hls-radio`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 An HLS-radio address carrying the 'sonos.com' service prefix: the service-namespaced form of the segmented-radio scheme, tagging which provider the stream belongs to.
 
@@ -607,7 +679,11 @@ hls-radio service prefix
 
 :::
 
-## `sonos_queue_track_uri` `strong`
+## `sonos_queue_track_uri`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How a queue-track reference looks when the player emits one: the device-and-queue address plus a fragment naming the track's position. It lets a reply identify exactly which entry is meant rather than just 'the queue'.
 
@@ -630,7 +706,11 @@ Queue URI emit form: x-rincon-queue:%s#%u: device selector + #track fragment (1-
 
 :::
 
-## `sonos_settings_rest` `strong`
+## `sonos_settings_rest`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The settings paths the player calls on the household's configuration service, which is where effective settings and per-location settings live on the REST surface.
 
@@ -653,7 +733,11 @@ Household settings REST paths: /settings/api/v1/locations/%s/effectiveSettings a
 
 :::
 
-## `spotify_scheme` `strong`
+## `spotify_scheme`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 Spotify's own address family: 'spotify:track:' and friends plus the x-spotify form. These are the markers telling the player an item comes through the Spotify integration rather than the generic service path, so the request routes through the Spotify machinery.
 
@@ -680,7 +764,11 @@ native spotify URI passthrough family (image:%h = hex-encoded variant)
 
 :::
 
-## `stub` `strong`
+## `stub`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 A stub-player address: the placeholder used where a real source hasn't been selected yet. It's a stand-in address rather than playable content.
 
@@ -703,7 +791,11 @@ stub player URI
 
 :::
 
-## `stub_scheme` `strong`
+## `stub_scheme`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 A stub scheme token, most likely a placeholder marking a source the player recognizes but can't actually play. It stands in where a real address would go.
 
@@ -727,7 +819,11 @@ Stub scheme token; likely a placeholder/no-op transport marker.
 
 :::
 
-## `tqueue_probe_chain` `strong`
+## `tqueue_probe_chain`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: t, q, u, e, u, e,  , o, p, e, n.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The queue's address-sniffing chain. When a URI arrives that isn't obviously one type, the queue probes it through an ordered fallback sequence to figure out what it actually is.
 
@@ -752,7 +848,11 @@ queue URI sniffing/fallback chain
 
 :::
 
-## `tqueue_scheme_registry` `strong`
+## `tqueue_scheme_registry`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: t, q, u, e, u, e,  , e, n, q, u, e, u, e, /, p, r, o, b, e.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The complete zoo of playable address schemes harvested from the queue engine's routing table: every scheme the queue knows how to direct, in one inventory. It is the master list of what kinds of source addresses exist.
 
@@ -777,7 +877,11 @@ complete playable-URI scheme zoo harvested as a contiguous literal run from tque
 
 :::
 
-## `x-rincon-buzzer` `strong`
+## `x-rincon-buzzer`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: alarm fallback playback (AVT).
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The address of the player's built-in alarm tones. Instead of waking to music, an alarm can play a buzzer sound stored inside the speaker's own software, and this scheme names those built-in assets so an alarm's 'sound' can be something that works with zero network. These files live inside the speaker itself, so there's nothing for you to download or configure.
 
@@ -802,7 +906,11 @@ Built-in buzzer/alarm-tone URI. "x-rincon-buzzer:" (0x10e93a38), "x-rincon-buzze
 
 :::
 
-## `x-rincon-configmode-sonar` `strong`
+## `x-rincon-configmode-sonar`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: speaker-detect/sonar calibration playback.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The addresses of the setup and calibration tones: the chirps and test sounds the player emits during speaker-detection and room-calibration. These point at built-in audio files used while configuring a system, not at music, and they live inside the speaker where you never interact with them directly.
 
@@ -831,7 +939,11 @@ Setup/calibration tone URIs: x-rincon-configmode:{sonar-calibrate-tone, sonar-ca
 
 :::
 
-## `x-rincon-cpcontainer` `strong`
+## `x-rincon-cpcontainer`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: ContentDirectory object IDs, AVTransport EnqueueURI container refs.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How a music service's browsable folders are addressed. When an app browses a service's catalog (its playlists, charts, and stations), the containers it walks carry addresses in this scheme, tagging them as provider-hosted content rather than local items.
 
@@ -925,7 +1037,6 @@ RDCPA/RDCPI namespace semantics RESOLVED via the id->path map (cp_id_map). Resid
       - **flags:** 0x2020
       - **short:** Tra.
       - **path:** ondemand_track::tra.%s
-  - **status:** confirmed
   - **notes:** kind_enum f1 (4=album,5=artist,0xc=station,0xd=playlist/artist-album-list,0xe=playlist,0xf=track-list,3=track) and flag words f2 are inferred groupings, not proven semantics; f3=0x1000000 marks local-library entries. Extended 8-word records canonicalize legacy service URI domains (radea:/npsdy: on-demand track ids, rdradio: station ids) onto internal path templates + an explicit source scheme (x-sonos-http:/x-sonosapi-radio:) - i.e. service-URI rewrite rules.
   - **uri_rewrite_entries:**
     - **_shape:** 8 words: {match_prefix, kind_enum, flags, short_id, source_ext, path_template, source_scheme, trailer}
@@ -974,7 +1085,11 @@ RDCPA/RDCPI namespace semantics RESOLVED via the id->path map (cp_id_map). Resid
 
 :::
 
-## `x-rincon-mp3radio` `strong`
+## `x-rincon-mp3radio`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: AVTransport radio playback.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The address family for internet radio. A radio-station item carries this scheme so the player knows it's a live MP3 stream to tune into rather than a file or queue entry. It's the marker that sends the request down the streaming-radio path.
 
@@ -1000,7 +1115,11 @@ MP3-radio stream marker. "x-rincon-mp3radio://" (0x10e93918), "x-rincon-mp3radio
 
 :::
 
-## `x-rincon-playlist` `strong`
+## `x-rincon-playlist`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: saved-queue playlists.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The address of a saved Sonos playlist, which is how commands refer to a stored playlist rather than the live queue. Handing this scheme to 'play' loads the playlist as the current source.
 
@@ -1025,7 +1144,11 @@ Local playlist URI "x-rincon-playlist:" (0x10e89327).
 
 :::
 
-## `x-rincon-queue` `strong`
+## `x-rincon-queue`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: AVTransport queue-backed playback (EnqueueURI/SetAVTransportURI family).
+**TODO:** Still unknown: Selector field semantics (room UDN vs queue owner) not yet resolved.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How you address the local play queue. When a command says 'play the queue' or 'play track 5 of the queue', the address it hands the player starts with x-rincon-queue: followed by the player's own ID. The address identifies the queue itself rather than an item inside it, and a '#5' style suffix on some forms pins it to a specific queue position.
 
@@ -1055,7 +1178,7 @@ Selector field semantics (room UDN vs queue owner) not yet resolved.
 
 :::
 
-## `x-rincon-sonarcal` `confirmed`
+## `x-rincon-sonarcal`
 
 The addresses of the sonar-calibration audio: the test tones played during this generation's room-tuning process, including the leader tone, the test tone, and the completion sound. They are kept as built-in assets inside the player rather than files on your network.
 
@@ -1079,7 +1202,11 @@ x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg: sonar-calibration audio URI
 
 :::
 
-## `x-rincon-stream` `strong`
+## `x-rincon-stream`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: grouped zone playback - slaves pull coordinator stream.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How you point a player at another room's audio. When rooms are grouped, the followers don't fetch the music themselves; they play a stream served by the group leader, and this address names that stream using the source player's ID plus a stream reference. It's the address that makes 'play what the living room is playing' work across the network.
 
@@ -1105,7 +1232,11 @@ Rincon inter-room stream URI. Variants: "x-rincon-stream:" (0x10eacf20), "x-rinc
 
 :::
 
-## `x-sonos-misc` `strong`
+## `x-sonos-misc`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: internal transport/sync/auth plumbing.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 A catch-all of internal Sonos address schemes for odds and ends: home-theater audio streams, plain HTTP variants, MMS-era stream types, service locators. Individually rare, collectively the long tail of sources the player can address.
 
@@ -1137,7 +1268,7 @@ Catch-all record; split into per-scheme records as uses get traced.
 
 :::
 
-## `x-sonos-unknown` `confirmed`
+## `x-sonos-unknown`
 
 The 'unknown source' placeholder: the address the player uses when it can't identify what a source is. It's a safe label rather than a wrong guess.
 
@@ -1160,7 +1291,11 @@ unknown-source placeholder URI
 
 :::
 
-## `x-sonos-vli` `strong`
+## `x-sonos-vli`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: VirtualLineIn source routing, AVTransport line-in playback.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The address of a virtual line-in source, the marker for audio being pushed at the player by an external feed rather than pulled from a queue or stream. Seeing this scheme means the sound originates outside the normal playback machinery.
 
@@ -1186,7 +1321,11 @@ Virtual line-in source URI. "x-sonos-vli" / "x-sonos-vli:" (0x10ecb64c/0x10ecc20
 
 :::
 
-## `x-sonosapi-*` `strong`
+## `x-sonosapi-*`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: AVTransport external-content playback, music-service tracks.
+**TODO:** Still unknown: One umbrella record for the family; per-service token grammars unresolved.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The address family for cloud and music-service items: the whole family of schemes that say 'this item lives behind a service's API', covering HLS streams, radio services, and streaming-service tracks. Each variant marks how the player should fetch and interpret the content.
 
@@ -1218,7 +1357,11 @@ One umbrella record for the family; per-service token grammars unresolved.
 
 :::
 
-## `x-sonosapi-radio` `strong`
+## `x-sonosapi-radio`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The address of a Sonos Radio station. It carries the station identifier plus flags and a session number as parameters, and pairs with an API-key header when the station is fetched.
 
@@ -1245,7 +1388,7 @@ service-track radio URI carrying station id, flags, serial number
 
 :::
 
-## `x_rincon_schemes` `confirmed`
+## `x_rincon_schemes`
 
 The x-rincon* scheme family as a group: the queue, radio, buzzer, calibration, and container address types collected under their shared 'rincon' prefix, rincon being Sonos's internal platform name.
 
@@ -1276,7 +1419,7 @@ x-rincon* URI scheme family: queue/mp3radio/buzzer/configmode/sonarcal/trueroom/
 
 :::
 
-## `x_sonos_schemes` `confirmed`
+## `x_sonos_schemes`
 
 The x-sonos* scheme family as a group: every Sonos-prefixed address type and the headers that travel with them, collected so the whole family's grammar lives in one place.
 

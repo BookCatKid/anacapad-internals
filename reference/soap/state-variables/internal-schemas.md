@@ -10,6 +10,9 @@ HT input-session telemetry fields
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `netsettings_schema`
 
@@ -21,6 +24,9 @@ netsettings.json replicated network+PSK store
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `playstatemanager_schema`
 
@@ -32,6 +38,9 @@ The fields of the play-state manager page on the diagnostics site. It is the com
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `replicated_netsettings_schema`
 
@@ -43,6 +52,9 @@ netsettings replicated XML
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `sounddevice_status_schema`
 
@@ -54,6 +66,9 @@ SoundDevice page (per-zone volume/ducking)
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `update_info_schema`
 
@@ -65,6 +80,9 @@ UpdateInfo page
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `userradio_schema`
 
@@ -76,6 +94,9 @@ userradio.xml (+.d.xml delta) replicated favorites
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `zoneplayers_status_schema`
 
@@ -87,6 +108,9 @@ The fields of the ZonePlayers diagnostics page: the player's internal census of 
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `zp_support_info`
 
@@ -98,6 +122,9 @@ ZPSupportInfo schema
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `zpinfo_schema`
 
@@ -109,6 +136,9 @@ ZPInfo + DeviceInfo + Playmode
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
 
 ### `zps_page`
 
@@ -120,3 +150,6 @@ household update status page fields
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.

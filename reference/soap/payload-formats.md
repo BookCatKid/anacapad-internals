@@ -8,7 +8,11 @@ Opaque payload/field grammars recovered from sscanf/printf templates and parser 
 
 :::
 
-## `SonosAvtStateFile` `strong`
+## `SonosAvtStateFile`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: AVTransport save/restore on zone lifecycle (not a SOAP-visible payload).
+**TODO:** Still unknown: Field-to-offset mapping and value formats per key are not yet decoded - requires the restore worker loop (loads base once, emits/consumes fields by offset).
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The vocabulary of names used in the transport's save and restore machinery: the keys the player writes when it persists playback state so it can resume after a reboot.
 
@@ -48,7 +52,7 @@ Field-to-offset mapping and value formats per key are not yet decoded - requires
 
 :::
 
-## `SonosRcChannel` `confirmed`
+## `SonosRcChannel`
 
 The channel names the volume and tone commands accept: 'Master', 'LF' (left-front), 'RF' (right-front), plus some extended tokens used internally. Sending an unrecognized channel name is an error, so the accepted vocabulary is documented exactly.
 
@@ -79,7 +83,7 @@ RenderingControl channel token compared verbatim by impl strcmp chains: 'Master'
 
 :::
 
-## `SonosRcInstance` `confirmed`
+## `SonosRcInstance`
 
 The instance-number convention on the volume service: the commands expect the instance to be 0 and reject anything else. It uses a different rejection code than the transport service, a quirk worth knowing when an app gets a fault back.
 
@@ -109,7 +113,7 @@ RenderingControl InstanceID convention: impls that check it accept only 0 and re
 
 :::
 
-## `SonosSeekTime` `confirmed`
+## `SonosSeekTime`
 
 How a seek-time argument is written. When you scrub to a position, the time arrives as text with a specific grammar: an optional minus sign for 'go back', then numbers. The parser is strict enough that the exact accepted shapes were recovered, and this entry documents what the seek argument can legally look like.
 
@@ -138,7 +142,7 @@ Action-specific restrictions layer on top: e.g. Seek indexed mode rejects a set 
 
 :::
 
-## `SonosTrackOrdinal` `confirmed`
+## `SonosTrackOrdinal`
 
 How 'play track N' is expressed: the number you send to select a track by position. The parser accepts ordinary decimal text with the usual tolerance for spacing and signs, and this documents what counts as a valid track number.
 
@@ -167,7 +171,11 @@ The mask-before-validate ordering looks alarming but is inert: the record field 
 
 :::
 
-## `codec_mime_flags` `strong`
+## `codec_mime_flags`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The decoder and format flag packing: how audio-format capabilities are encoded as bit flags alongside their MIME descriptions.
 
@@ -188,7 +196,11 @@ The decoder and format flag packing: how audio-format capabilities are encoded a
 
 :::
 
-## `contentdir_root_map` `strong`
+## `contentdir_root_map`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The top of the music library tree: the fixed root containers every browse starts from, including artists, albums, tracks, genres, playlists, and folders, recovered from the enumeration code.
 
@@ -209,7 +221,7 @@ Top-level ContentDirectory browse tree recovered from the root-enumeration funct
 
 :::
 
-## `device_description` `confirmed`
+## `device_description`
 
 The root device-description document: the file every client fetches first, containing the player's self-description with its substitution tokens filled and the list of all 16 service specs it advertises.
 
@@ -234,7 +246,11 @@ UPnP root device-description htdocs template + 35 substitution tokens; advertise
 
 :::
 
-## `didl_cdudn_desc` `strong`
+## `didl_cdudn_desc`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 A special descriptor element in track metadata: the 'cdudn' desc that tags which content directory an item came from. It lets the system trace an item back to its source library.
 
@@ -253,7 +269,7 @@ DIDL desc element: <desc id="cdudn" nameSpace="urn:schemas-rinconnetworks-com:me
 
 :::
 
-## `didl_lite` `confirmed`
+## `didl_lite`
 
 The track-metadata format end to end: the XML envelope carrying title, artist, album, artwork, class, and resource for every track the player describes, plus the Sonos-specific extension fields. This is the single most-seen document in the system, because everything 'now playing' passes through it.
 
@@ -280,7 +296,7 @@ DIDL-Lite metadata envelope + full object.* class/protocolInfo/search-criteria g
 
 :::
 
-## `didl_lite_header` `confirmed`
+## `didl_lite_header`
 
 The opening lines of the track-metadata XML the player emits when describing tracks: the namespace declarations every track description starts with.
 
@@ -299,7 +315,11 @@ DIDL-Lite document header (verbatim literal at 0x10ee8958): <DIDL-Lite xmlns:dc=
 
 :::
 
-## `didl_res_protocolinfo` `strong`
+## `didl_res_protocolinfo`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How a track's resource line describes its format: the 'protocolInfo' field pattern the player writes per source scheme, declaring the MIME type and addressing each item uses.
 
@@ -318,7 +338,11 @@ DIDL res protocolInfo emitters by scheme: x-rincon-playlist:*:*:* (0x10e89314), 
 
 :::
 
-## `fixed_volume_tokens` `strong`
+## `fixed_volume_tokens`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 'FV' markers and related tokens the tone machinery parses for fixed-volume handling: the small vocabulary inside the extended-EQ router that decides when volume stays locked.
 
@@ -339,7 +363,7 @@ RenderingControl-internal token space parsed by the extended SetEQ/EQType dispat
 
 :::
 
-## `gena_event_envelope` `confirmed`
+## `gena_event_envelope`
 
 The wire envelope of a classic event notification: the propertyset body plus the headers (event type, sequence number, subscription ID, and Sonos's own boot counter) that make a notification a valid subscription message.
 
@@ -364,7 +388,11 @@ GENA event wire envelope: <e:propertyset>/<e:property> var elements + NT/NTS/SEQ
 
 :::
 
-## `group_effective_values_blob` `strong`
+## `group_effective_values_blob`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 A second signed-blob variant: the version-11 sibling envelope used for group effective-values data, with its own magic marker distinguishing it.
 
@@ -383,7 +411,11 @@ Version-11 sibling section of sonos_signed_blob_json: ',\n{"magic":"(=^+^=)","ve
 
 :::
 
-## `http_status_map` `strong`
+## `http_status_map`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The player's HTTP status-code tables: two parallel maps translating internal results into web status codes, covering the extended set of statuses its web layer can emit.
 
@@ -409,7 +441,11 @@ The player's HTTP status-code tables: two parallel maps translating internal res
 
 :::
 
-## `itunes_plist_importer` `strong`
+## `itunes_plist_importer`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The vocabulary of the iTunes-library importer: the keys the player recognizes when importing an iTunes XML playlist file. It's the bridge that lets an iTunes library become a Sonos library.
 
@@ -436,7 +472,7 @@ Apple plist-XML grammar keys; importer maps iTunes XML library (Tracks/Playlists
 
 :::
 
-## `lastchange_templates` `confirmed`
+## `lastchange_templates`
 
 The three LastChange document roots: the envelope shapes each service's bundled-change report uses, with their per-service namespaces. Every service uses one of these roots, and this is the shared shape underneath the per-service details.
 
@@ -468,7 +504,7 @@ the three LastChange/Event doc root templates + per-service xmlns
 
 :::
 
-## `ncd_device_payload` `confirmed`
+## `ncd_device_payload`
 
 The factory-default configuration blob: the template of non-volatile config data programmed into each unit at manufacture, found embedded in the firmware as a payload.
 
@@ -481,7 +517,7 @@ device-payload.bin (section type 13, 54757B) = the factory-default NCD (non-vola
 
 :::
 
-## `protocolinfo` `confirmed`
+## `protocolinfo`
 
 The full capability vocabulary the player declares in its format strings: every MIME type and scheme it claims to send or accept. It's the complete 'what can this box play' contract.
 
@@ -509,7 +545,7 @@ ConnectionManager protocolInfo capability set (libavcodec decoder): complete sin
 
 :::
 
-## `savedqueues_rsq` `confirmed`
+## `savedqueues_rsq`
 
 The saved-playlists file format: the structure of the file where Sonos playlists persist, with per-playlist records carrying versioning and track lists. It's written atomically so a crash can't leave a corrupt store.
 
@@ -540,7 +576,7 @@ replicated via nodetx like netsettings; 'Migrated tracks for account sn=%u' migr
 
 :::
 
-## `scpd` `confirmed`
+## `scpd`
 
 The service-specification documents: the advertised command lists served at /xml/*.xml, describing what the product claims to support as distinct from what the binary actually implements. This page's whole availability story rests on that comparison.
 
@@ -566,7 +602,11 @@ SCPD (Service Control Point Definition) XML served at /xml/<Svc>1.xml: advertise
 
 :::
 
-## `scrobble_submission` `strong`
+## `scrobble_submission`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The scrobbling submission format: the form a last.fm-style 'now playing report' takes when the player submits your listening history to a scrobble service, carrying session, artist, title, timestamp, and source per track.
 
@@ -587,7 +627,11 @@ Audioscrobbler submissions-protocol form body: s=<session>&a\[n\]=artist&t\[n\]=
 
 :::
 
-## `skip_restriction_bits` `strong`
+## `skip_restriction_bits`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The packed skip-restriction flags: the bits describing what a source forbids (no next, no previous), used when a service constrains navigation.
 
@@ -607,7 +651,11 @@ The packed skip-restriction flags: the bits describing what a source forbids (no
 
 :::
 
-## `smapi_capability_bits` `strong`
+## `smapi_capability_bits`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The capability bitfield for music-service integrations: the packed flags word where each bit declares a feature a service supports (seeking, skipping, metadata kinds), decoded bit by bit.
 
@@ -627,7 +675,7 @@ The capability bitfield for music-service integrations: the packed flags word wh
 
 :::
 
-## `soap_envelope` `confirmed`
+## `soap_envelope`
 
 The request and response envelope: the wrapping document every command call and reply is built inside, consisting of header, body, and the per-command element naming the operation and its service.
 
@@ -654,7 +702,7 @@ SOAP request/response/fault wire envelope: <s:Envelope><s:Header><s:Body><u:{act
 
 :::
 
-## `soap_envelope_variants` `confirmed`
+## `soap_envelope_variants`
 
 The two envelope openings the command layer uses: one with an explicit encoding-style declaration and one without. Both wrap the same request and response bodies.
 
@@ -673,7 +721,7 @@ Two SOAP envelope open-templates: with encodingStyle (0x10eebc90: s:encodingStyl
 
 :::
 
-## `soap_fault_wire` `confirmed`
+## `soap_fault_wire`
 
 The body of a fault reply: the exact document skeleton every error response is built as, carrying the code and description fields that tell a caller what failed.
 
@@ -702,7 +750,7 @@ SOAP fault body emitted for every req->v\[+0x14\] fault. DOM-built via ns|localn
 
 :::
 
-## `soapaction_header` `confirmed`
+## `soapaction_header`
 
 The command-name header: the HTTP header that says which operation a request wants (service type plus action name). It's the routing key telling the player which command to run.
 
@@ -726,7 +774,11 @@ SOAPACTION HTTP header grammar: SOAPACTION: "{serviceType}#{action}" targeting t
 
 :::
 
-## `sonos_access_settings_json` `strong`
+## `sonos_access_settings_json`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The template of the access-control settings document: the small JSON record controlling restricted-admin and read-access levels on the player.
 
@@ -747,7 +799,7 @@ Access-control settings document template: \[{"version":%u,"lastUpdateDevice":"%
 
 :::
 
-## `sonos_alarm_doc` `confirmed`
+## `sonos_alarm_doc`
 
 The alarm document's opening structure: the versioned envelope the stored alarm list is written in, carrying which device last updated it.
 
@@ -766,7 +818,11 @@ Alarm document grammar: <Alarms LastUpdateDevice="%s" Version="0" SchemaVersion=
 
 :::
 
-## `sonos_audio_settings_line` `strong`
+## `sonos_audio_settings_line`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The packed audio-settings line: a compact serialization stuffing every tone and volume setting into one text record, covering volume, balance, bass, treble, loudness, and the surround and sub fields in a fixed order.
 
@@ -787,7 +843,11 @@ Packed audio-settings serialization: AMV%hd LV%hd RV%hd B%hd T%hd L%c F%c SS%hd 
 
 :::
 
-## `sonos_browse_filter_vocab` `strong`
+## `sonos_browse_filter_vocab`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 Which metadata fields a browse request can ask for: the accepted filter lists (title, artist, album, duration, resource) so callers know what they can select back.
 
@@ -806,7 +866,11 @@ Browse-filter capability lists: dc:title,upnp:artist,upnp:album,res@duration,res
 
 :::
 
-## `sonos_buzzer_uri` `strong`
+## `sonos_buzzer_uri`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The file paths of the built-in alarm buzzers: where the speaker's own software keeps its wake-up tones. These files live inside the device's storage and aren't something you can browse to or change.
 
@@ -825,7 +889,11 @@ Buzzer asset URIs: file:///opt/buzzers/%s and file://%s/buzzers/0.mp3 (f_1026bad
 
 :::
 
-## `sonos_class_audioBook` `strong`
+## `sonos_class_audioBook`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The object class for audiobook items: the tag marking a library item as an audiobook rather than music, so apps can shelve it correctly.
 
@@ -844,7 +912,11 @@ The object class for audiobook items: the tag marking a library item as an audio
 
 :::
 
-## `sonos_diag_filename` `strong`
+## `sonos_diag_filename`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The diagnostic filename pattern: IP address plus date and time baked into the name, so a diagnostics bundle names which machine and moment it came from at a glance.
 
@@ -863,7 +935,11 @@ Diagnostic/log filename grammar: %d.%d.%d.%d_%4d-%2d-%2d_%2d-%2d-%2d: IPv4_date_
 
 :::
 
-## `sonos_duration_hhmmss` `strong`
+## `sonos_duration_hhmmss`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How durations are written: the sleep timer's hours:minutes:seconds format, where 'stop in 20 minutes' travels as 00:20:00. This documents the exact accepted shape of the duration argument.
 
@@ -885,7 +961,11 @@ SleepTimer duration argument grammar: sscanf format %02hu:%02hu:%02hu (HH:MM:SS,
 
 :::
 
-## `sonos_favorites_version` `strong`
+## `sonos_favorites_version`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The 'FV:' version token: a marker used in two different places, inside the EQ parameter machinery and as a favorites-list version. It's documented separately so the same-looking token isn't misread.
 
@@ -908,7 +988,11 @@ FV: token grammar (DUAL-USE prefix. In f_100e1654 (rc_impl/RenderingControl SetE
 
 :::
 
-## `sonos_hex_blob_line` `strong`
+## `sonos_hex_blob_line`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The hex-dump record line format: colon-separated hex fields of specific widths, a debugging line shape the player parses.
 
@@ -927,7 +1011,11 @@ Hex blob/record line grammar (f_10803f38): %02X: / %08X:%08X:%016llX: / %02X%02X
 
 :::
 
-## `sonos_http_date` `strong`
+## `sonos_http_date`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How the player reads HTTP Date headers. The three date spellings web standards allow are all accepted, so servers writing any of them parse correctly.
 
@@ -946,7 +1034,11 @@ HTTP Date parsers (f_100a6724): RFC1123 %*s %d %d:%d:%d %d%*s, RFC850 %d %n%*s %
 
 :::
 
-## `sonos_http_date_emit` `strong`
+## `sonos_http_date_emit`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How the player writes HTTP Date headers: the single canonical date format it emits when dating its own responses.
 
@@ -965,7 +1057,11 @@ HTTP Date emit: %s, %02d %s %04d %02d:%02d:%02d GMT (f_100a663c)
 
 :::
 
-## `sonos_http_statusline` `strong`
+## `sonos_http_statusline`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How the player reads an HTTP status line: the 'HTTP/1.1 200' shape its own HTTP client and server machinery parses.
 
@@ -984,7 +1080,11 @@ HTTP status-line parsers HTTP/%d.%d (f_100a4b24), HTTP/1.1 %d + HTTP/1.0 %d (f_1
 
 :::
 
-## `sonos_https_ep` `strong`
+## `sonos_https_ep`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The secure-endpoint address pattern: 'https://' plus IP and port, which is how a direct secure endpoint is written when the player names one.
 
@@ -1003,7 +1103,11 @@ HTTPS endpoint emit: https://%d.%d.%d.%d:%d: IPv4:port (f_10653a34)
 
 :::
 
-## `sonos_iso8601_timestamps` `strong`
+## `sonos_iso8601_timestamps`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How timestamps are written. Two shapes are accepted: the compact form (20241031T153000.000Z) and the dashed extended form, used wherever times travel in arguments.
 
@@ -1024,7 +1128,11 @@ ISO-8601 timestamp grammars (parser f_103c1f50): compact %04hu%02hu%02huT%02hu%0
 
 :::
 
-## `sonos_iv_token` `strong`
+## `sonos_iv_token`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 An 'IV=' prefixed token the firmware scans for: an initialization-vector style field seen where encrypted data is handled.
 
@@ -1043,7 +1151,7 @@ IV= prefixed token scan in f_103c0364
 
 :::
 
-## `sonos_lastchange_attr_form` `confirmed`
+## `sonos_lastchange_attr_form`
 
 A Sonos formatting choice worth knowing: the player's LastChange documents write each changed variable as an attribute-valued element rather than the element-body style other devices use. A parser expecting the standard shape will misread these.
 
@@ -1062,7 +1170,11 @@ Sonos LastChange serializes variables in ATTRIBUTE form <r:NAME val="..."/> (rin
 
 :::
 
-## `sonos_linein_demo` `strong`
+## `sonos_linein_demo`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The line-in demo-mode settings field: a bracketed flag the settings store carries for the line-in feature, which is stubbed on this build.
 
@@ -1081,7 +1193,11 @@ Settings field: LineInDemoMode: \[%hu\] parsed by f_100a6ce0
 
 :::
 
-## `sonos_mac_dash` `strong`
+## `sonos_mac_dash`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 A MAC-address variant using dashes instead of colons: the second accepted hardware-address shape, so both common spellings parse.
 
@@ -1100,7 +1216,11 @@ MAC grammar variant: %02hhX-%02hhX-%02hhX-%02hhX-%02hhX-%02hhX:%*c: dash-separat
 
 :::
 
-## `sonos_mac_parse` `strong`
+## `sonos_mac_parse`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How the player reads a MAC address: the six-hex-pairs-with-colons shape it accepts for hardware identifiers, parsed strictly so malformed addresses are rejected.
 
@@ -1121,7 +1241,11 @@ MAC-address parser: sscanf %02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX: six 2-digi
 
 :::
 
-## `sonos_metadata_urn` `strong`
+## `sonos_metadata_urn`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The metadata URN for content ratings: the namespace tag marking rating metadata inside track descriptions so rating fields get recognized.
 
@@ -1140,7 +1264,11 @@ Metadata URN scan: urn:schemas-rinconnetworks-com:metadata-1-0/|rating: content-
 
 :::
 
-## `sonos_packed_object_id` `strong`
+## `sonos_packed_object_id`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The packed object-ID format: a long hex string encoding many fields into one identifier, used where an item's ID must carry several pieces of information at once.
 
@@ -1161,7 +1289,11 @@ Packed binary object-ID grammar: sscanf %04hX%08X%08X%08X%04hX%02hhX%08X%08X%08X
 
 :::
 
-## `sonos_path_two_seg` `strong`
+## `sonos_path_two_seg`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 A two-segment path split: the 'first/second' grammar used where a route or locator is divided into exactly two parts.
 
@@ -1180,7 +1312,11 @@ Two-segment path split %\[^/\]/%\[^/\] by f_1055c55c
 
 :::
 
-## `sonos_queue_doc` `strong`
+## `sonos_queue_doc`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The 'NumTracks' attribute the queue's XML documents carry, meaning how the queue's track count is written in its stored form.
 
@@ -1201,7 +1337,11 @@ Queue doc attribute emit: " NumTracks="%u"": the queue XML serialization writes 
 
 :::
 
-## `sonos_saved_queue_file` `strong`
+## `sonos_saved_queue_file`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The saved-playlists filename, 'savedqueues.rsq': the on-disk file where Sonos playlists persist across reboots.
 
@@ -1220,7 +1360,11 @@ Saved-queue persist filename savedqueues.rsq (f_104791b0)
 
 :::
 
-## `sonos_saved_queue_id` `strong`
+## `sonos_saved_queue_id`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How a saved-playlist ID is written: 'SQ:' followed by a number. It's the identifier commands use to name which stored playlist they mean.
 
@@ -1241,7 +1385,11 @@ Saved-queue object-ID grammar: sscanf SQ:%d: decimal index after SQ: prefix; par
 
 :::
 
-## `sonos_signed_blob_json` `strong`
+## `sonos_signed_blob_json`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The signed-blob envelope: a JSON wrapper carrying a magic marker, a length, a checksum, and a counter. It's used where the player needs a self-verifying data block that can't be silently truncated or corrupted.
 
@@ -1266,7 +1414,11 @@ Signed/checksummed blob envelope: {"magic":"`|_(:/)_|`","length":%u,"checksum":"
 
 :::
 
-## `sonos_state_flags` `strong`
+## `sonos_state_flags`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 Zone state flags as written: the 'frozen / allowed / auto' style fields the zone settings carry as packed text rather than separate booleans.
 
@@ -1287,7 +1439,11 @@ Zone state-flag tokens frozen:%d / allow:%d / auto:%d parsed by f_1076ff3c (zone
 
 :::
 
-## `sonos_track_encryption_meta` `strong`
+## `sonos_track_encryption_meta`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The track-encryption metadata fields: elements describing how a track's data is encrypted, for the protected content the player can handle.
 
@@ -1306,7 +1462,7 @@ Track-encryption metadata elements: <TrackEncryptionMethod>%s</..> and <TrackEnc
 
 :::
 
-## `sonos_track_summary_doc` `confirmed`
+## `sonos_track_summary_doc`
 
 The track-summary document roots: the envelope the player's queue-summary endpoints emit when describing what's in the queue.
 
@@ -1325,7 +1481,11 @@ Queue-summary doc roots: <TrackQueueSummary> (0x10ea978c) and <TrackSummary> (0x
 
 :::
 
-## `sonos_version_pair` `strong`
+## `sonos_version_pair`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 How version numbers are written: 'major.minor' pairs like 86.10, which is the shape the firmware's version comparisons and update checks accept.
 
@@ -1346,7 +1506,7 @@ Version-pair grammar: sscanf %d.%d: major.minor; parsers f_10553e94, f_10554218
 
 :::
 
-## `status_doc` `confirmed`
+## `status_doc`
 
 The complete element grammar of the diagnostics pages: every field the built-in status website can emit, so the diagnostics surface is fully documented rather than just its route list.
 
@@ -1385,7 +1545,7 @@ complete /status + diagnostic XML doc element grammar
 
 :::
 
-## `trackqueue_rsq` `confirmed`
+## `trackqueue_rsq`
 
 The live-queue persistence format: how the current play queue is written to disk. It's a transactional store with a guard mechanism so an interrupted write doesn't destroy the queue.
 
@@ -1412,7 +1572,11 @@ trackqueue.rsq live-queue persistence store: transactional append/replace w/ txn
 
 :::
 
-## `transport_action_bits` `strong`
+## `transport_action_bits`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The packed transport-actions field: how the 'currently legal commands' answer is encoded as bits, and which bit means play, pause, seek, and the rest.
 
@@ -1432,7 +1596,7 @@ The packed transport-actions field: how the 'currently legal commands' answer is
 
 :::
 
-## `upnp_gena_event_doc` `confirmed`
+## `upnp_gena_event_doc`
 
 The envelope of a classic event notification: the 'propertyset' document the player sends when it announces changed variables to subscribers, plus the LastChange wrapper for bundled updates.
 
@@ -1451,7 +1615,11 @@ GENA event document: <e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0"> (0
 
 :::
 
-## `upnp_search_criteria_vocab` `strong`
+## `upnp_search_criteria_vocab`
+
+**TODO:** Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.
+**TODO:** Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.
+**TODO:** Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants.
 
 The search grammar the library accepts: which 'where' clauses a search request can legally use, namely matching by object class and reference-ID existence.
 
@@ -1470,7 +1638,7 @@ UPnP search-criteria grammar accepted by CD search: upnp:class = "object.contain
 
 :::
 
-## `vli_mimes` `confirmed`
+## `vli_mimes`
 
 The content types a virtual line-in session accepts: the whitelist of formats an external source may push at the player.
 
@@ -1485,7 +1653,7 @@ VLI/queue accepted MIME whitelist
 
 :::
 
-## `zone_audio_state` `confirmed`
+## `zone_audio_state`
 
 The extended per-zone audio state blocks: the status records the player keeps for each zone's audio, covering volume, EQ, and queue-related flags beyond the headline values.
 

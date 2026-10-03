@@ -45,14 +45,16 @@ reference/soap/             UPnP section: one page per service, plus
 reference/muse/             muse v1 API section: overview, outbound
                             client, resources/ family pages, spec streams
 reference/http/             non-SOAP HTTP surface, grouped by function
-reference/subsystems/       native subsystems, split by coverage tier
+reference/subsystems/       native subsystems: alphabetical index plus
+                            open-work.md, the auto-generated queue of
+                            every record's outstanding TODO
 reference/artifacts/        firmware artifact pages, one per category
 reference/public/files/     extracted firmware artifacts (audio, XML
                             specs, configs, scripts, binaries, package
                             pieces); refreshed by tools/extract_artifacts.py
 site/                       generated static HTML site
 tools/                      extraction + doc pipeline (see below)
-tests/                      unittest suite (34 tests)
+tests/                      unittest suite (43 tests)
 extract_soap_api.py         ELF/SOAP surface extractor (source of truth
                             for soap_api-*.json)
 reference/.vitepress/       VitePress site config (sidebar is generated

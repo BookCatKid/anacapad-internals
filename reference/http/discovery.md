@@ -6,11 +6,11 @@ The discovery layer: how the player finds other devices and is found, covering t
 
 ::: details Technical details
 
-- **status:** strong
 - **mdns:** mDNS controller on RZonePlayer (m_spMdnsController); '%s.local' hostname construct ('Failed construct mdns hostname'); refreshMdnsRegistration; log /opt/log/mdnsd.log; 'new cert updating mDNS service \[%s\]'
 - **spotify_connect:** _spotify-connect._tcp service registered/unregistered dynamically ('Registering Spotify Connect mDNS service'); MdnsSpotifyService ../anacapa-1.0/oc/zone/zoneplayer/mdns_spotify_service.cxx; SpotifyMDNSRequest events
 - **ssdp:** RMSearchNotifyHandler select-thread handles SSDP M-SEARCH/NOTIFY; dedup vs mDNS: 'handleDefunctZP %s reason %s IGNORED from MDNS - discovered by SSDP' and inverse
 - **dedup_policy:** a zone-player defunct signal is ignored when the same ZP is discovered via the other discovery channel (mDNS-primary if SSDP-unseen, SSDP-primary if mDNS-unseen)
+- **todo:** `Established: the mDNS controller on RZonePlayer, Spotify Connect service registration, SSDP handler, and the cross-channel defunct-dedup policy are all documented.`, `Still unknown: the dedup policy's arbitration details (which channel wins under simultaneous discovery) and the mDNS refresh cadence are sketched only.`, `Next step: trace the defunct-signal arbitration logic in handleDefunctZP.`
 
 :::
 
@@ -21,7 +21,6 @@ Device-discovery announcements and searches: the classic find-each-other protoco
 
 ::: details Technical details
 
-- **status:** confirmed
 - **wire:** M-SEARCH * HTTP/1.1 + HOST:239.255.255.250 + USN: + ssdp:alive/ssdp:byebye; 'Sent MSEARCH reply to %s:%u'; '%s unicast MSEARCH from %s'
 - **headers:** X-RINCON-{HOUSEHOLD,BOOTSEQ,PROXY,VARIANT,REASON} extension headers; MX: search window
 - **signing:** HMAC-signed M-SEARCH: X-SONOS-SIG: %s + X-Sonos-MS-Sig: headers; 'signature HMAC init failed'/'Failed to calculate/add M-SEARCH signature'/'base64 encoding failed'; signed manifests ('Got manifest with invalid signature', '<!-- SIGNATURE:')
@@ -44,7 +43,6 @@ Signed M-search: the authenticated form of discovery search, a signed variant pr
 
 ::: details Technical details
 
-- **status:** confirmed
 - **wire:** M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: %d\r\nST: %s\r\nUSER-AGENT: %s\r\n%s\r\n (trailer = signature block)
 - **signature:** HMAC over request -> base64 ('M-SEARCH signature HMAC init failed','Failed to add M-SEARCH signature'); inbound verify: 'hmac sig verify error'; keys hmacDigest/hmac
 - **response_headers:** `BOOTID.UPNP.ORG: %s`, `CONFIGID.UPNP.ORG: %d`, `CACHE-CONTROL: max-age = %u`
@@ -58,7 +56,6 @@ Target-UDN routing: how requests addressed to a specific device ID get routed, w
 
 ::: details Technical details
 
-- **status:** confirmed
 - **header:** X-SONOS-TARGET-UDN: uuid:%s + targetUDN param: directs a SOAP action to a specific bonded-zone member UDN
 - **semantics:** multi-device action routing: the coordinator/group proxy forwards actions to the target member identified by UDN; pairs w/ MobileDeviceUDN/playerUDN/HTPrimaryUDN identity fields
 
@@ -71,7 +68,6 @@ The association tracker: it watches which network devices the player is associat
 
 ::: details Technical details
 
-- **status:** confirmed
 - **semantics:** Wi-Fi station-association tracking
 
 :::
@@ -83,22 +79,22 @@ The internals of classic eventing: how subscriptions are installed and validated
 
 ::: details Technical details
 
-- **status:** strong
 - **name:** GENA internals + per-service LastChange schemas
 - **description:** Subscription machinery vocabulary: SID preinstall ('Attempting to preinstall SID=%u', '?sid=0' URL form), status fields SubscribedEvents/LogicalSID/UPnPSID/NotifyErrors, sender/source pair upnpeventing_sender+upnpeventing_source, AVTStateLastChangedEvent event name, and the <LastChange>%s</LastChange> wrapper emitted per service. Per-service LastChange payload schemas not enumerated.
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e9b408, notes: Attempting to preinstall SID
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f0c580, notes: <LogicalSID>
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f00cb8, notes: <NotifyErrors>
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e89d80, notes: <LastChange>
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed1c6c, notes: <Event xmlns="urn:schemas-sonos-com:metadata-1-0/Queue/">: proprietary Queue LastChange
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10ed1cd0, notes: <QueueID val="%.20s"> + QueueOwnerID/UpdateID/Curated elements
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eb29e8, notes: AVT LastChange envelope with r: namespace + full element sequence
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e9b408, notes: Attempting to preinstall SID
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10f0c580, notes: <LogicalSID>
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10f00cb8, notes: <NotifyErrors>
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e89d80, notes: <LastChange>
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10ed1c6c, notes: <Event xmlns="urn:schemas-sonos-com:metadata-1-0/Queue/">: proprietary Queue LastChange
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10ed1cd0, notes: <QueueID val="%.20s"> + QueueOwnerID/UpdateID/Curated elements
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eb29e8, notes: AVT LastChange envelope with r: namespace + full element sequence
 - **lastchange_schemas:**
   - **RCS:** <Event xmlns="urn:schemas-upnp-org:metadata-1-0/RCS/"><InstanceID val="0">...: standard UPnP RCS event envelope
   - **AVT:** <Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/"> then elements in order: TransportState, CurrentPlayMode, CurrentCrossfadeMode, NumberOfTracks, CurrentTrack, CurrentSection (non-standard), CurrentTrackURI, CurrentTrackDuration, CurrentTrackMetaData, r:EnqueuedTransportURI, r:EnqueuedTransportURIMetaData, PlaybackStorageMedium, AVTransportURI, AVTransportURIMetaData, NextAVTransportURI, NextAVTransportURIMetaData: all as <X val="..."> attribute-value form
   - **Queue:** proprietary Sonos namespace urn:schemas-sonos-com:metadata-1-0/Queue/ (NOT a UPnP standard schema. Elements: <QueueID val="%.20s"> (20-char truncated), <QueueOwnerID val="%s"/>, <UpdateID val="%u"/>, <Curated val="...">) the Curated flag matches the SavedQueue store schema
 - **notes:** AVT envelopes carry the r: extension namespace for Sonos fields; Queue events live in a Sonos-private namespace (schemas-sonos-com, not rinconnetworks): clients parsing LastChange must handle all three namespaces; val="" attribute form used throughout
+- **todo:** `Established: the subscription machinery vocabulary, the three event namespaces, and the per-service LastChange schemas are documented.`, `Still unknown: the notify-delivery internals (resend on NotifyErrors, subscription expiry) are sketched at vocabulary level only.`, `Next step: trace the upnpeventing sender's delivery and retry path.`
 
 :::
 

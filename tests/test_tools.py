@@ -7,6 +7,7 @@ or:   python3 tests/test_tools.py
 import copy
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -534,6 +535,131 @@ class GenSiteTests(unittest.TestCase):
         src = open(self.CFG).read()
         for rule in ("html_inline", "html_block", "curly_attributes"):
             self.assertIn("'%s'" % rule, src)
+
+
+class TodoPolicyTests(unittest.TestCase):
+    """The no-coverage-labels policy: every record whose status is
+    anything other than 'confirmed' carries an informative TODO, and no
+    generated page emits coverage/confidence metadata."""
+
+    DOCS = os.path.join(ROOT, "docs", "documentation.json")
+    # evidence-item grades, resolution verdicts and per-expression decode
+    # grades are domain facts, not coverage labels on a record
+    SKIP_KEYS = {"evidence", "engine_resolution", "enabled",
+                 "enabled_source"}
+    CONFIDENCE_WORDS = {"inferred", "weak", "unproven", "speculative",
+                        "partial", "strong", "absent", "documented",
+                        "unresolved"}
+    BADGE = re.compile(
+        r"`(confirmed|strong|partial|inferred|weak|vocab|absent|"
+        r"documented|unresolved|resolved|todo)`")
+    GENERIC_TODO = re.compile(
+        r"^\s*(todo|tbd|tbc|fixme|investigate|research|unknown|"
+        r"needs work|more research needed|details unknown)"
+        r"[\s.]*$", re.I)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = doclib.load_json(cls.DOCS)
+        cls.tmp = tempfile.mkdtemp()
+        m = genmodel.normalize(cls.doc)
+        cls.written = gendocs.render_all(m, cls.tmp)
+        cls.pages = {}
+        for rel in cls.written:
+            with open(os.path.join(cls.tmp, rel)) as fh:
+                cls.pages[rel] = fh.read()
+        cls.all_md = "\n".join(cls.pages.values())
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp)
+
+    # -- helpers ----------------------------------------------------------
+    def _incomplete(self, o, path="", _in_skipped=False):
+        """Yield (path, status) for graded records lacking a todo."""
+        if isinstance(o, dict):
+            st = o.get("status")
+            if isinstance(st, str) and st != "confirmed" \
+                    and not _in_skipped and not o.get("todo"):
+                yield path, st
+            conf = o.get("confidence")
+            if isinstance(conf, str) and not _in_skipped \
+                    and conf.strip().lower() in self.CONFIDENCE_WORDS \
+                    and not o.get("todo"):
+                yield path, "confidence:%s" % conf[:40]
+            for k, v in o.items():
+                yield from self._incomplete(
+                    v, "%s/%s" % (path, k),
+                    _in_skipped or k in self.SKIP_KEYS)
+        elif isinstance(o, list):
+            for i, v in enumerate(o):
+                yield from self._incomplete(
+                    v, "%s[%d]" % (path, i), _in_skipped)
+
+    def _todos(self, o, path=""):
+        if isinstance(o, dict):
+            if "todo" in o:
+                yield path, o["todo"]
+            for k, v in o.items():
+                yield from self._todos(v, "%s/%s" % (path, k))
+        elif isinstance(o, list):
+            for i, v in enumerate(o):
+                yield from self._todos(v, "%s[%d]" % (path, i))
+
+    # -- data policy ------------------------------------------------------
+    def test_every_nonconfirmed_record_has_todo(self):
+        missing = list(self._incomplete(self.doc))
+        self.assertEqual([], missing[:50])
+
+    def test_no_bare_or_generic_todos(self):
+        bad = []
+        for path, todo in self._todos(self.doc):
+            items = todo if isinstance(todo, list) else [todo]
+            for t in items:
+                if not isinstance(t, str) or len(t.strip()) < 20 \
+                        or self.GENERIC_TODO.match(t):
+                    bad.append((path, t))
+        self.assertEqual([], bad[:50])
+
+    # -- generated-output policy ------------------------------------------
+    def test_no_status_columns_or_badge_lines(self):
+        hits = [(p, l) for p, t in self.pages.items()
+                for l in t.split("\n")
+                if re.search(r"\|\s*Status\s*\|", l)
+                or self.BADGE.search(l)]
+        self.assertEqual([], hits[:30])
+
+    def test_no_confidence_vocabulary_sections(self):
+        for pat in ("Confidence vocabulary", "confidence vocabulary",
+                    "coverage tier", "coverage summary",
+                    "substantially decoded tier"):
+            self.assertNotIn(pat, self.all_md)
+
+    def test_no_coverage_percentages(self):
+        hits = [l for t in self.pages.values() for l in t.split("\n")
+                if re.search(r"\d+\s*%\s*(of|coverage|documented)", l,
+                             re.I)
+                or re.search(r"coverage[^\n]{0,40}\d+\s*%", l, re.I)]
+        self.assertEqual([], hits[:30])
+
+    def test_no_em_or_en_dashes(self):
+        hits = [(p, l) for p, t in self.pages.items()
+                for l in t.split("\n") if re.search("[\u2014\u2013]", l)]
+        self.assertEqual([], hits[:30])
+
+    def test_open_work_page_collects_todos(self):
+        ow = self.pages.get("subsystems/open-work.md", "")
+        self.assertIn("## Subsystems", ow)
+        self.assertIn("## SOAP services", ow)
+        self.assertIn("## State variables", ow)
+        self.assertIn("## Internal functions", ow)
+        self.assertIn("## Other records", ow)
+
+    def test_no_placeholder_todo_rendered(self):
+        hits = [l for t in self.pages.values() for l in t.split("\n")
+                if re.search(r"TODO:?\s*:?\s*$", l.strip())
+                and "open-work" not in l]
+        self.assertEqual([], hits[:30])
 
 
 if __name__ == "__main__":

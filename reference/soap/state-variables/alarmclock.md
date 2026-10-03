@@ -11,6 +11,9 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 :::
 
 - form: `<e:property><NAME>value</e:property>`
+- **TODO:** Established: the variable's type (ui4), evented=True, and declared semantics are documented for AlarmClock.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `AC.DateFormat`
 
@@ -23,6 +26,9 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 :::
 
 - form: `<e:property><NAME>value</e:property>`
+- **TODO:** Established: the variable's type (string), evented=True, and declared semantics are documented for AlarmClock.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `AC.TimeFormat`
 
@@ -35,6 +41,9 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 :::
 
 - form: `<e:property><NAME>value</e:property>`
+- **TODO:** Established: the variable's type (string), evented=True, and declared semantics are documented for AlarmClock.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `AC.TimeGeneration`
 
@@ -47,6 +56,9 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 :::
 
 - form: `<e:property><NAME>value</e:property>`
+- **TODO:** Established: the variable's type (ui4), evented=True, and declared semantics are documented for AlarmClock.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `AC.TimeServer`
 
@@ -59,6 +71,9 @@ AlarmClock evented variable; emitted by f_10277d6c e:property dump.
 :::
 
 - form: `<e:property><NAME>value</e:property>`
+- **TODO:** Established: the variable's type (string), evented=True, and declared semantics are documented for AlarmClock.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `AlarmClock.A_ARG_TYPE_AlarmEnabled`
 
@@ -290,3 +305,6 @@ The field list for the alarm page on the player's built-in diagnostics website: 
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.

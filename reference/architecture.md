@@ -41,19 +41,32 @@ The tables below are the player's URL map for control traffic. Each row is one s
 | `/SystemProperties/Control` | SystemProperties | `0x4` | expr (`vret(r3-in,+0x88)`) |
 | `/ZoneGroupTopology/Control` | ZoneGroupTopology | `0x8` | field (`*(r2+0xffff8ff8)`) |
 
+- **TODO:** Established: the enabled gate stores a word at 0x1068bd2c via `vret(r3-in,+0x78)` - an expression-derived value rather than a proven constant.
+- **TODO:** Still unknown: which service-object field the expression reads and therefore what runtime condition actually gates this service's availability.
+- **TODO:** Next step: trace the field read behind the vret expression to identify the gate predicate.
+- **TODO:** Established: the enabled gate stores a word at 0x1068bd44 via `vret(r3-in,+0x7c)` - an expression-derived value rather than a proven constant.
+- **TODO:** Still unknown: which service-object field the expression reads and therefore what runtime condition actually gates this service's availability.
+- **TODO:** Next step: trace the field read behind the vret expression to identify the gate predicate.
+- **TODO:** Established: the enabled gate stores a word at 0x1068bd5c via `vret(r3-in,+0x88)` - an expression-derived value rather than a proven constant.
+- **TODO:** Still unknown: which service-object field the expression reads and therefore what runtime condition actually gates this service's availability.
+- **TODO:** Next step: trace the field read behind the vret expression to identify the gate predicate.
 ### Router chain
 
 - `0x101953c8` → `0x1068bc0c` (at `0x101956e4`)
 
 ## Request object vtable
 
-Every command receives its arguments through the same generic 'request' object. Think of it as a standard form every incoming message is unpacked into. The form has fixed slots: fetch an argument by name, check whether all required fields were filled in, and return an error if not. Because every routine reads its arguments through this shared form, the player gets consistent validation for free: missing arguments produce the same error everywhere, and no routine can accidentally skip checking. It's also why the site can document each command's exact argument list with confidence, since the form's slots are visible in the code.
+Every command receives its arguments through the same generic 'request' object. Think of it as a standard form every incoming message is unpacked into. The form has fixed slots: fetch an argument by name, check whether all required fields were filled in, and return an error if not. Because every routine reads its arguments through this shared form, the player gets consistent validation for free: missing arguments produce the same error everywhere, and no routine can accidentally skip checking. It's also why the site can document each command's exact argument list precisely, since the form's slots are visible in the code.
 
 ::: details Technical details
 
-Every action wrapper interacts with the request through these vfunc slots (confidence: `inferred`).
+Every action wrapper interacts with the request through these vfunc slots.
 
 :::
+
+- **TODO:** Established: the slot map itself - every vfunc offset's role in parse/commit/fault/arg-access/finalize - is documented with a proven consumer for the zone-context accessor (GetZoneGroupAttributes at 0x107338b0).
+- **TODO:** Still unknown: several slot semantics are inferred from caller patterns rather than traced inside the vfunc implementations; the table was graded inferred overall.
+- **TODO:** Next step: trace the vfunc implementations behind the remaining inferred slots to promote each to proven.
 
 | Slot | Purpose |
 |---|---|
@@ -77,24 +90,55 @@ Object fields the firmware reads to gate behavior. Read/write sites are static e
 
 :::
 
-| Field | Effect | Status | Load sites |
-|---|---|---|---|
-| `0x3a8` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | `strong` | 24 |
-| `0x934` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | `strong` | 13 |
-| `0xcdc` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | `strong` | 17 |
-| `0x5704` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | `strong` | 24 |
-| `0x571c` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | `strong` | 16 |
-| `0xaa6c` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | `strong` | 9 |
-| `0xffff8ff8` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | `strong` | 24 |
+| Field | Effect | Load sites |
+|---|---|---|
+| `0x3a8` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | 24 |
+| `0x934` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | 13 |
+| `0xcdc` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | 17 |
+| `0x5704` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | 24 |
+| `0x571c` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | 16 |
+| `0xaa6c` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | 9 |
+| `0xffff8ff8` | Read by firmware to gate or select behavior; exact predicate unresolved - see load sites | 24 |
 
+### `0x3a8`
+
+- **TODO:** Established: all static load/store sites for this capability field are catalogued with the affected-service list.
+- **TODO:** Still unknown: the field's exact predicate remains unproven - reads are catalogued but the condition it gates is inferred from site context, not decoded.
+- **TODO:** Next step: trace the field's writer to recover what condition it encodes.
+### `0x934`
+
+- **TODO:** Established: all static load/store sites for this capability field are catalogued with the affected-service list.
+- **TODO:** Still unknown: the gating predicate is unresolved; the affected-service pattern suggests a feature flag but the semantic is unproven.
+- **TODO:** Next step: trace the field's writer to recover what condition it encodes.
+### `0xcdc`
+
+- **TODO:** Established: all static load/store sites for this capability field are catalogued with the affected-service list.
+- **TODO:** Still unknown: the gate's meaning is undecoded; load sites are catalogued but the condition is not.
+- **TODO:** Next step: trace the field's writer to recover what condition it encodes.
 ### `0x5704`
 
+- **TODO:** Established: all static load/store sites for this capability field are catalogued with the affected-service list.
+- **TODO:** Still unknown: the field's role is unproven; reads cluster around update/registration paths but the predicate is not decoded.
+- **TODO:** Next step: trace the field's writer to recover what condition it encodes.
 Affected services: AudioIn (/AudioIn/Control)
 
 ### `0x571c`
 
+- **TODO:** Established: all static load/store sites for this capability field are catalogued with the affected-service list.
+- **TODO:** Still unknown: the gating predicate remains undecoded despite catalogued load sites.
+- **TODO:** Next step: trace the field's writer to recover what condition it encodes.
 Affected services: HTControl (/HTControl/Control), AVTransport (/MediaRenderer/AVTransport/Control), ConnectionManager (/MediaRenderer/ConnectionManager/Control), GroupRenderingControl (/MediaRenderer/GroupRenderingControl/Control), Queue (/MediaRenderer/Queue/Control), VirtualLineIn (/MediaRenderer/VirtualLineIn/Control), ConnectionManager (/MediaServer/ConnectionManager/Control), ContentDirectory (/MediaServer/ContentDirectory/Control), MusicServices (/MusicServices/Control), QPlay (/QPlay/Control)
 
+### `0xaa6c`
+
+- **TODO:** Established: all static load/store sites for this capability field are catalogued with the affected-service list.
+- **TODO:** Still unknown: the capability semantic is unresolved; affected services suggest a feature gate but the tested condition is unknown.
+- **TODO:** Next step: trace the field's writer to recover what condition it encodes.
+### `0xffff8ff8`
+
+- **TODO:** Established: all static load/store sites for this capability field are catalogued with the affected-service list.
+- **TODO:** Still unknown: a stack-relative field read as a capability gate; the condition it encodes is undecoded.
+- **TODO:** Next step: trace the field's writer to recover what condition it encodes.
 ## Internal functions
 
 Named helper routines the command routines share, which form the common toolbox: argument parsers that turn text fields into numbers, validators that enforce ranges and required values, and error translators that turn internal result codes into proper network error replies. Listing them matters because they're the vocabulary every routine speaks. Once you know these helpers, you can predict how any command will react to malformed input.
@@ -284,6 +328,91 @@ Named helper routines the command routines share, which form the common toolbox:
 | `0x104661fc` | action_wrapper | Queue.Browse wrapper - parses the same browse arg set then calls the shared CDS executor f_103042f0. Reached via impl vfunc slot +0x28 from the Queue.Browse tab |
 | `0x10464200` | action_table_trampoline | Queue.Browse dispatch-table entry - calls req v\[+0x3c\] (alternate in-arg context fetch) then tail-dispatches impl v\[+0x28\] -> f_104661fc. |
 
+::: details Functions with remaining unknowns
+
+- `0x100c5050`: Established: refcount release helper for the queue-session token object (global 0x11096774); decrements *(obj+4) and frees at zero. Pairs with the atomic stwcx. increment performed by every saved-queue caller (role: worker).
+- `0x100caad8`: Established: deferred-scope callback / transport-changed emit helper installed in the getter scope-guard and invoked on Play submit path (role: leaf combiner, no calls (17i)).
+- `0x100d993c`: Established: rc_impl Master-channel volume worker (role: release/free helper: calls 0x11098b08 (free) + f_10572ab0); used by 1 action(s).
+- `0x100d9b4c`: Established: rc_impl 'FocusMode' setter (role: locked apply helper: f_10988268 lock -> f_100d8568 worker); used by 3 action(s).
+- `0x100d9d40`: Established: shared per-channel parameter worker used by ResetBasicEQ and ResetExtEQ with (this, arg1, arg2, val) shape (role: locked settings op: f_10988268 + strcmp(0x11098d98) + f_100d7f34 + notify f_1067c6ec + f_100d993c); used by 2 action(s).
+- `0x100da1e0`: Established: locked rc_impl worker: acquires impl+0x938 lock (0x10988268) + inner 0x100d8784 (role: locked apply helper: f_10988268 lock -> f_100d8784 worker); used by 2 action(s).
+- `0x100dbb74`: Established: rc_impl 'SetVolumeScaling' worker (role: locked settings-store op: f_10988268 + f_100ecbac + f_100d7f34 + f_10557fa8/f_105587f0/f_10558000/f_10559024 settings family + f_100d993c); used by 1 action(s).
+- `0x100dcfc0`: Established: setOutputFixed impl: 0x34-record zero-init + flag reads +0x7ff/+0x801 on the r4 object; likely writer of the +0x7ff fixed-output flag (role: result-record builder: zeroes {+0..+0x1c}, sets +0=0x34 size, calls obj->v\[+0xe4\] and stores result code); used by 1 action(s).
+- `0x100dee74`: Established: restoreVolumePriorToRamp impl (vtable A) (role: virtual-base this-adjust thunk: r3-8 -> f_100de178); used by 1 action(s).
+- `0x100e1fec`: Established: treble ctx-worker (~0x11e0 frame, SPE ops): computes the EQ value consumed by GetTreble.; recovered literals: 'inprocess-events','Change in event loop detected' - event-loop reentrancy instrumentation (role: impl_worker (497i): mutex + XML doc build (f_10807034 appends) + f_1067c6ec notify-all call - produces event/doc then notifies subscribers); used by 1 action(s).
+- `0x1010a2c0`: Established: delegate-object initializer invoked by the per-entry job ctors (0x10ed1750/0x10ed1770 vtables) (role: worker).
+- `0x101475dc`: Established: second crossfade-capability query on impl+0x5dc; must be nonzero (role: string/mem op via 0x110999f8 (37i)).
+- `0x10203ec8`: Established: small record-builder used by GetSupportsOutputFixed before the v+0xf0 delegate call (role: thin wrapper -> f_109ec9f0 (19i)); used by 1 action(s).
+- `0x102ab010`: Established: deferred function pointer (at 0x10eaea90) swapped in by Play/GetTransportInfo boilerplate (role: single-insn stub).
+- `0x102ab5d4`: Established: scoped log-record initializer used by Play non-muse path (role: strlen wrapper via 0x11098920 (22i)).
+- `0x102ad8fc`: Established: getRunningAlarmProperties impl (engine v+0xa0) (role: worker).
+- `0x102ada98`: Established: getRemainingSleepTimerDuration impl (engine v+0x94) (role: worker).
+- `0x102ae2d0`: Established: member-object call on impl+0xaaa0 run at the start of Stop before the precondition check (role: mutex-guarded worker: f_10988564 lock -> f_103d7e8c -> f_10988990 unlock).
+- `0x102b3a84`: Established: shared remove-all-tracks engine worker. Reached from AVTransport.RemoveAllTracksFromQueue and Queue.RemoveAllTracks (vfunc f_10465a74 via *(qm+0x128)) (role: worker).
+- `0x102b4de8`: Established: configureSleepTimer impl (engine v+0x90) (role: worker).
+- `0x102b6948`: Established: engine add-to-queue worker: logs URI+MD under avt_impl tag, takes engine mutex +0x458, forwards to insert op f_102b674c; single exit returns insert rc verbatim (role: worker).
+- `0x102d094c`: Established: conditional teardown call in Stop chime-restore path and Play tail (role: dispatch helper: f_102d086c -> f_102ceb40).
+- `0x102d1fc4`: Established: snoozeAlarm impl (engine v+0xa4) (role: worker).
+- `0x102da774`: Established: uRI-install helper shared with the class-B SetAVTransportURI path (same descriptor 0x10ea6a2c); applies a URI+metadata to the engine session (role: worker).
+- `0x102e14e0`: Established: autoplay-install worker (engine mutex +0x458). Reads suppression flag engine+0x465c: set -> logs "preventing autoplay because operation is overridden" (avt_impl) and returns 0x32a (810). Builds the stored autoplay URI into a 0x1000 buffer via f_10424ac4, then if mode(engine+0x4654)==0 does a full session reset (f_102d4e80 zero-arg + f_10688070) before installing the URI via f_102da774 with descriptor 0x10ea6a2c; nonzero mode installs through per-member path f_102e0fb0 (role: worker).
+- `0x102e17a8`: Established: startAutoplay impl (engine v+0x9c): null arg-vector gate returns 0x2ce (718), then tail-calls the autoplay installer f_102e14e0 (role: worker).
+- `0x102e17dc`: Established: alarm-run worker (0x1300 frame): requires r6 non-null else 0x102e1928 path; uses time/duration helper table 0x1108b284 (f_10c3eb60) to resolve the pending alarm into a URI/mode install similar to the autoplay path (role: worker).
+- `0x102e1d68`: Established: runAlarm impl (engine v+0x98): null arg-vector gate returns 0x2ce (718), then tail-calls alarm worker f_102e17dc (role: worker).
+- `0x10305fec`: Established: browse result-record callback (2-ins stub at its head - real body follows); stored at +0x48 of the browse request record (role: worker).
+- `0x10308aec`: Established: default-path transport-state filler: f(impl+0x5d4,&outs...) used when mode is neither 1 nor 2 (role: string copy via strlcpy(0x11098ad8) (85i)).
+- `0x103a1b8c`: Established: group member fan-out worker (SetGroupMute path): builds per-member {service:'urn:schemas-upnp-org:service:RenderingControl:1',action:'SetMute'} request records (stride 0x2740, callback f_103a3f28), sets the local zone directly, issues remote member ops, and runs a completion loop over request objects via vfunc +0x00 (role: worker).
+- `0x103a2430`: Established: setGroupVolume impl-side worker logging 'SetGroupVolume: local:%d netops:%u zones:%u' - counts local writes, outstanding network ops, and zone count during fan-out (role: worker).
+- `0x104000c4`: Established: class-B (group-capable) engine ctor storing vtable 0x10edfbb8; sibling of the standalone ctor f_102cc070 (role: worker).
+- `0x10424ac4`: Established: stored-URI/path formatter: fills a 0x1000-byte destination with the autoplay/alarm source spec read from saved state (role: worker).
+- `0x10460764`: Established: per-line URI parse/normalize helper applied to each playlist entry before job submission (role: worker).
+- `0x104614b4`: Established: playlist-entry record builder used per parsed line (writes into the 0x5474 entry record) (role: worker).
+- `0x10461e04`: Established: aSX/WAX/WMX playlist expansion worker - same skeleton as the M3U worker: playlist log tag, iterateASXPlayList %s, stream open via f_10545064, per-entry job submission on the shared delegate machinery (role: worker).
+- `0x10462c80`: Established: m3U/M3U8 playlist expansion worker (playlist log tag, iterateM3UPlayList %s): copies the source URI into a 0x401 buffer, opens a stream via f_10545064, iterates lines with f_10546520, closes via f_1054103c. Each line is normalized through URI helpers f_10460764/f_104614b4 and submitted as a per-entry job object on delegate vtables 0x10ed1750/0x10ed1770 (ctor f_104637e8 -> f_1010a2c0) (role: worker).
+- `0x10462f54`: Established: wPL playlist expansion worker - same skeleton: iterateWLPPlayList %s (WPL), stream open via f_10545064 (role: worker).
+- `0x10463164`: Established: pLS playlist expansion worker - same skeleton: iteratePLSPlayList %s, stream open via f_10545064 (role: worker).
+- `0x10465f7c`: Established: queue-manager SaveAsSonosPlaylist vfunc body (vtable +0x24); persists the attached queue as a Sonos playlist (role: worker).
+- `0x10465fac`: Established: queue-manager ctor: initializes the Queue-tagged manager object, stores vtable 0x10ed1bcc, builds member sub-objects via f_1067aec4 and f_10807034 (role: worker).
+- `0x10466280`: Established: queue-manager Browse vfunc body (vtable 0x10ed1bcc +0x28); larger function than the forwarder thunks - performs the queue browse enumeration (role: worker).
+- `0x1046c3cc`: Established: derived-class prelude companion to f_1046dff0, invoked before tail-calling the base impl (role: refcount/resume gate: *(r3+0xc54)++; <=2 returns, else tails f_1046c148); used by 1 action(s).
+- `0x1046dff0`: Established: derived-class prelude: builds an operation object at sp+0xa0 from impl+0xbc8 and impl+0x9c8, readiness-checks it (f_1053ce34), returns a handle consumed by f_1046c3cc (role: grouped-op coordinator (327i): orchestrates member calls f_1053ce34/f_1053db38/f_10759984 + XML append f_10807034 + notify; multi-phase op); used by 2 action(s).
+- `0x1047851c`: Established: queue-subsystem worker called inside the Queue-service registration helper f_104634c4 during singleton refcount setup (role: worker).
+- `0x104791b0`: Established: queue-subsystem worker called from the service-registration path f_101981f0 alongside session-token installation on the zoneplayer object (role: worker).
+- `0x104794d4`: Established: queue persistence worker invoked by the AVTransport SaveQueue path; performs the on-disk queue save after Title validation (role: worker).
+- `0x10479bb4`: Established: createSavedQueue worker on queue-manager singleton 0x11096770 (mutex via f_10988558 on this+0x28). Builds a 0x4040-byte job record through f_103d1aec (job vtable 0x10ec7be0, record +0x403c=-1, +0x4044=flags), copies queue-record fields *(r29+0xb8)/+0xbc/+0xc8, writes the new UpdateID (old *(r29+0xec)+1) into the record, and persists through file "savedqueues.rsq" with callback table 0x10ed2f88 (f_1047f588/f_1047f590) (role: worker).
+- `0x10479fb8`: Established: saved-queue URI-append worker on the queue-manager singleton (0x11096770). Reached through the refcounted-session protocol: caller atomically increments *(session+4) before the call and releases via f_100c5050 after (role: worker).
+- `0x1047a3bc`: Established: saved-queue reorder worker on the queue-manager singleton (0x11096770); same refcounted-session protocol as f_10479fb8 (role: worker).
+- `0x10512bc0`: Established: group-aware SetAVTransportURI worker reached only from the class-B engine; performs URI set with group/coordinator semantics unresolved (role: worker).
+- `0x10513230`: Established: class-B SetAVTransportURI vfunc: thin shim that tail-calls group worker f_10512bc0 with an extra rodata descriptor arg (0x10ea6a2c) (role: worker).
+- `0x10513244`: Established: class-B BecomeCoordinatorOfStandaloneGroup impl: gates on topology-singleton state (f_1090ad44+f_109089f0) and record precondition f_1075c4d0(impl+0x44c, src), logs avt_impl, error path carries 0x3ff (1023) (role: worker).
+- `0x105133e4`: Established: class-B BecomeGroupCoordinator impl: if the topology singleton/state check FAILS it tail-calls the class-A impl f_102de740 verbatim (standalone semantics); otherwise runs the group path after f_1075c4d0 precondition (role: worker).
+- `0x105134a8`: Established: class-B BecomeGroupCoordinatorAndSource impl: identical gating - delegates to class-A f_102df410 when the group state check fails, else group path (role: worker).
+- `0x1053ce34`: Established: readiness/predicate check on the prelude object built by f_1046dff0 in derived-class impls (role: member bool getter: lbz *(r3+0) return); used by 1 action(s).
+- `0x1053db38`: Established: cleanup/teardown of the prelude object in derived-class impls (role: no-op stub (blr only); next fn 0x1053db44 = idx*0x28 stride accessor); used by 1 action(s).
+- `0x1054103c`: Established: stream-close helper for playlist sources: closes via 0x10551300 + 0x10540b4c (role: worker).
+- `0x10545064`: Established: stream open helper used by playlist parsers to fetch the playlist document (URI -> stream object) (role: worker).
+- `0x10546520`: Established: stream line-reader: yields successive playlist lines until exhausted (nonzero = line read) (role: worker).
+- `0x10557cac`: Established: mutex-lock counterpart of f_10557848 for impl+0x458 (role: worker).
+- `0x1055fc08`: Established: boolean+numeric response formatter: serializes bools as '0'/'1' then %u/%d: the boolean-as-int wire encoding (role: output_formatter); used by 16 action(s).
+- `0x1055fc4c`: Established: unsigned (%u)/signed (%d) numeric response formatter (role: output_formatter); used by 7 action(s).
+- `0x1055fc84`: Established: numeric response formatter: %d/%u/%lld variant (role: output_formatter); used by 8 action(s).
+- `0x1055fcbc`: Established: response-serializer printf writer: %-family formatter supporting %u/%d/%lld; contains literal 'BC3000 & LT-19E610': a TV-model device-name edge case (XML-escape test fixture) (role: output_formatter); used by 43 action(s).
+- `0x1055fcf4`: Established: signed integer (%d/%lld) response-format variant (role: output_formatter); used by 13 action(s).
+- `0x105614ac`: Established: arg-descriptor ctor, type-3 int16: same embedded-24B layout, +0x4=type3: EQ/range int16 args (Bass,Treble,Volume) (role: input_arg_parser); used by 4 action(s).
+- `0x105614e0`: Established: numeric input-argument record initializer/parser (type tag 4, 24-byte record); produces the integer value the wrapper forwards as InstanceID (role: input_arg_parser); used by 123 action(s).
+- `0x1056157c`: Established: string input-argument record initializer/parser (type tag 7, caller-supplied capacity 0x400); produces the C string consumed by the impl for Unit and Target (role: input_arg_parser); used by 166 action(s).
+- `0x105615a8`: Established: arg-descriptor ctor, type-8 optional-ptr: embedded-buffer descriptor for nullable/ptr args (role: input_arg_parser); used by 2 action(s).
+- `0x1067c6ec`: Established: notification call on impl+8 with r10=0x1f5 following state writes (role: notify-all-subscribers thunk: tails f_1067c46c(obj,0,0); that fn iterates subscriber list at obj+0xa0 calling f_10686048 per entry); used by 1 action(s).
+- `0x1068f8cc`: Established: impl vfunc at shared-manager vtable 0x10e98278 +0x18, shared by DeviceProperties.AddBondedZones and SystemProperties.AddAccountX. Obtains a refcounted subobject twice via this->v\[+0x54\], runs f_1057d4cc on it, then invokes obj->v\[+0x28\](obj,0). Returns an incidental pointer (shared_ptr control block), not an rc; does not set CR0 (role: shared_impl_v18); used by 2 action(s).
+- `0x10759984`: Established: constructor for the prelude object at sp+0xa0 from impl+0xbc8 and impl+0x9c8 in derived-class impls (role: helper (179i): f_1053daf0 + mutex pair + f_10765a00/f_10762df8 list ops); used by 1 action(s).
+- `0x1075c4d0`: Established: record/lookup precondition on engine field impl+0x44c against the source object (r31+0x3dc): walks a linked record, nonzero result = precondition satisfied/entry found (role: worker).
+- `0x10807034`: Established: scope-guard destructor invoked when the scoped-context self-check fails (role: XML/doc append-alloc via 0x110991a0 (16i)).
+- `0x109089f0`: Established: group membership/state predicate on the topology object: reads obj+0xcc, compares against 0x1d family - nonzero means the zone is in a group-managed state (role: worker).
+- `0x1090ad44`: Established: zonegroup-topology singleton accessor: returns the topology/group object from global 0x110c8478 (via f_108073a0/f_1090acf4 refresh). Used by every group-engine impl gate (role: worker).
+- `0x109b6fe4`: Established: avt_impl-tagged log/error helper called in the group coordinator paths (arg 3 context selector) (role: worker).
+- `f_1034a224`: Established: search-criteria/filter parser worker: strcmp(name,'0') -> returns candidate worker else tails f_10349d00; sibling f_1034a294 validates fields (2x f_10347ad8 parse, sonosTrimWhitespace, strpbrk '\r\n' reject, fault 0x192/402, settings read via *(0x11096770)) (role: named_worker_resolver); used by 1 action(s).
+
+:::
+
 ## Dispatch candidates
 
 Functions we investigated because they looked like command routers: the routines that might have been the switchboard steering incoming commands to the code that runs them. Most turned out to be something else. The survivors are documented here with the evidence for and against.
@@ -372,10 +501,9 @@ The fault wire format: the exact document shape of a returned error, which is wh
 - **name:** SOAP fault wire template
 - **format:** <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns="urn:schemas-upnp-org:control-1-0"><errorCode>%d</errorCode></UPnPError></s:Fault>
 - **note:** fault detail carries ONLY the numeric errorCode - no errorDescription element on the wire; literal detail strings (e.g. Update URL is malformed) travel via out-arg records, not this template
-- **status:** confirmed
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eebdcc, notes: prefix template
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eebe60, notes: suffix template; %d errorCode interpolated between them
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eebdcc, notes: prefix template
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eebe60, notes: suffix template; %d errorCode interpolated between them
 
 :::
 
@@ -384,9 +512,11 @@ The fault wire format: the exact document shape of a returned error, which is wh
 
 The fault-code vocabulary: the full set of numeric error codes the command layer can emit, in their own terms.
 
+- **TODO:** Established: the extended whole-.text census bounds the UPnP-band vocabulary and the per-action bounding rule is stated.
+- **TODO:** Still unknown: the concrete per-action error subset - which codes each action can actually emit - requires tracing each impl's reach set (as the record itself notes).
+- **TODO:** Next step: compute the reachable literal set per impl worker to narrow each action's fault domain.
 ::: details Technical details
 
-- **status:** strong
 - **extraction:** original: li/ori immediates across the 1848 documented worker fns (tools/_errdomain2.py). EXTENDED by the whole-.text census (every accumulator-context error literal, register/class filtered) + transitive call-graph propagation + per-site verification: adds the vendor 800-series store-commit ladder codes {805,809,811,812,813,814,820,821,822,824,850,899} and internal {1020} that the worker-only scan missed.
 - **upnp_band** (92):
 
@@ -395,8 +525,8 @@ The fault-code vocabulary: the full set of numeric error codes the command layer
   ```
 - **semantics:** every 'vret'/passthrough error domain is bounded by the union of its impl worker's exit literals + this aggregate vocabulary; concrete per-action subset requires exit-block dataflow (runtime boundary for the impl->engine delegation chains)
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: strong, notes: 1848 fn literal scan; canonical UPnP bands {101-118,400-411,501,600-730,800-813,1000-1300}
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: whole-.text census: 2713 fns w/ error-band literals; refined accumulator-filtered propagation over 6729-fn call graph; additions verified against store-commit ladders
+  - type: firmware, binary: anacapad, build: 86.10-80260, notes: 1848 fn literal scan; canonical UPnP bands {101-118,400-411,501,600-730,800-813,1000-1300}
+  - type: firmware, binary: anacapad, build: 86.10-80260, notes: whole-.text census: 2713 fns w/ error-band literals; refined accumulator-filtered propagation over 6729-fn call graph; additions verified against store-commit ladders
 - **notes:**
   - **census_union:** Raw accumulator-context literal union over whole .text (198 values, 300-1100 band) includes data constants (field offsets, sizes, HTTP-status reuse) alongside real codes - verified-data constants excluded from upnp_band: {443,480,512,544,640,651,652,682,828,844,900,970,1008,1010,1016,1018,1024}. Unproven candidates in band remain (e.g. 704,707-709,713,714,736-792,825,832,843,863,917,928,935,936,947,952,955,971,974,975,987,998) - present in reachable literal sets but not yet per-site verified as wire faults.
 
@@ -409,7 +539,6 @@ The classic command-protocol client: the machinery for outbound classic-API call
 
 ::: details Technical details
 
-- **status:** confirmed
 - **wire:** SOAPACTION header grammar: '%s%sSOAPACTION: "%s%s%s"' and '%sSOAPACTION: "%s#%s"': urn#action forms
 - **logging:** 'UPnP call: %s:%s from %s:%d' inbound / 'returned %d to %s:%d' outbound; Tunneled UPnP call variant: SOAP relayed over the cloud tunnel shares the dispatcher
 - **impl:** protocol/client/src/{sonos_cprovider,request,client,renew}.cxx: outbound control-point stack
@@ -423,7 +552,6 @@ Parameter redaction: which argument values get scrubbed before logging, which is
 
 ::: details Technical details
 
-- **status:** confirmed
 - **flags:** secure + sensitive + trackIDing + prevent per-param flags
 - **semantics:** params (passwords, tokens, account data) flagged to be excluded from SOAP request logging; 'Invalid secure param' when a redacted param is malformed
 
@@ -436,7 +564,6 @@ The classic-protocol client stack: the outbound layer for acting as a client tow
 
 ::: details Technical details
 
-- **status:** confirmed
 - **lifecycle:** Subscribe{Logical SID,Port,Secure Eventing,srRet} -> SID+UDN assigned -> renew (HTTP result/SR codes) -> 'Unsubscribe in renew' resubscribe-on-4xx -> unsubscribe
 - **tracking:** dual SID model: wire SID + stable 'logical SID' surviving resubscribe; per-UDN binding; X-RINCON-BOOTSEQ detects publisher reboot
 - **ordering:** OOS SEQ detection: 'Received OOS %u/%u for SID' + 'last handled: %u'; 'changedMap: 0x%x' per-var changed bitmask
@@ -451,7 +578,6 @@ The classic eventing implementation: the concrete machinery behind the subscribe
 
 ::: details Technical details
 
-- **status:** confirmed
 - **files:** upnpeventing_{sender,source}.cxx + cprovider/sonos_cprovider.cxx
 - **opt:** enableUPnPEventingGNDOptimization flag: GENA notify-dedup/batching
 - **semantics:** upnpeventing module w/ 'svc:%s' service tagging
@@ -465,7 +591,6 @@ The classic event-protocol client: the client side of subscribe-and-notify, used
 
 ::: details Technical details
 
-- **status:** confirmed
 - **files:** `/oc/protocol/client/src/renew.cxx`, `/oc/protocol/client/src/request.cxx`, `request.cxx`
 
 :::
@@ -477,7 +602,6 @@ The classic subscribe-and-notify protocol implemented in full: listeners subscri
 
 ::: details Technical details
 
-- **status:** confirmed
 - **files:** `/oc/zone/common/upnpeventing_source.cxx`, `/oc/zone/common/eventing.cxx`, `eventing.cxx`
 - **name:** upnpeventing notification engine (upnpeventing_sender.cxx + upnpeventing_source.cxx)
 - **sender:** thread "upnpeventing" (runOnce loop); fireNotifications/fireNotificationData; emits <e:propertyset><e:property><...></e:property></e:propertyset>; retry backoff "%d failure(s) sending event ... Now %ld Retry at %ld expires at %ld"; Initial ZGT (ZoneGroupTopology) completion tracked
@@ -497,13 +621,15 @@ The classic subscribe-and-notify protocol implemented in full: listeners subscri
 
 The subscription manager: it owns the registry of active event subscribers, covering who subscribed, renewals, and expiry cleanup, so a lapsed client stops receiving traffic.
 
+- **TODO:** Established: singleton 0x11097680, the v\[+0x3c\] register path on valid SUBSCRIBE, SID generation via sonos_uuid, and the sub-object record fields are documented.
+- **TODO:** Still unknown: the concrete subscription-manager class bound at runtime and the notify/expiry path internals are untraced.
+- **TODO:** Next step: identify the concrete class instantiation and trace the notify fan-out.
 ::: details Technical details
 
 - **singleton:** 0x11097680
 - **register:** v\[+0x3c\] invoked by GENA handler f_105e8290 on valid SUBSCRIBE (NT/NTS/SID/SEQ checks pass); concrete class runtime-bound
 - **sid:** generated by f_109e117c via sonos_uuid_generate+unparse
 - **record_fields:** sub obj: frame@+0x30, flag@+0x34, state@+0x38
-- **status:** strong
 
 :::
 
@@ -526,11 +652,10 @@ The websocket event vocabulary: the named events the modern channel carries, whi
   ```
   accessorySwapStatus, tvAudioSignalStatus, activeZonesChange, zoneDefinitionsChange, alarmClock, alarmVersionChange, areasVersionChange, zoneError, audioClipStatus, audioInput, availableSoftwareUpdate, avTransport, batteryStatus, wirelessNetworkStatus, microphoneSwitchStatus, waterStatus, bluetoothPairingStatus, bluetoothConnectionStatus, poeStatus, cloudRegistration, connectionManager, contentDirectory, lineInStatus, wiredSubConnectionStatus, deviceProperties, diagnosticSubmissionResults, diagnosticMetadata, effectiveSettingsDataChanged, entitlementsVersionChanged, extendedDeviceStatus, extendedPlaybackStatus, favoritesVersionChange, groupCoordinatorChanged, groupManagement, groupRendering, hdmiStatus, historyVersionChanged, householdUpdateStatus, upgradeManager, htControl, indexerStatus, musicServices, musicServicesChanged, playbackMetadataStatus, playbackStatus, playlistsVersionChange, positioningSessionStatus, positioningSessionError, positioningDeviceStatus, renderingControl, sessionError, sessionInfo, settingsVersionChanged, settingsDataChanged, settingsPlayerSettingsChanged, systemProperties, sleepTimerStatus, trueplayStatus, speakerPresenceStatus, speakerPresenceRateChange, trueroomAdaptationStatusEvent, trueroomCalibrationStatus, trueroomStatusEvent, virtualLineIn, voiceAccountsVersionChange, zoneGroupTopology
   ```
-- **status:** confirmed
 - **note:** 73 WSS event-subscription types; each {name,id,tag,type} via runtime .bss table; kind field at +0x10 (kind==2 predicate at f_109e12b0); reject paths WSS-required/renew-not-supported/unsubscribe-not-supported
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10098d34, notes: populator writes name/tag/handler triples
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x109e10d8, notes: 73-iteration lookup loop, entry stride 0x14
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10098d34, notes: populator writes name/tag/handler triples
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x109e10d8, notes: 73-iteration lookup loop, entry stride 0x14
 - **entries** (73):
 
   ```
@@ -553,9 +678,9 @@ The websocket event vocabulary: the named events the modern channel carries, whi
   - **field:** entry +0x10 u32 kind/category
   - **consumer:** f_109e12b0(idx): bounds idx<=0x48, entry=0x110b8ce8+idx*0x14, returns (entry\[+0x10\]==2) predicate
   - **writer_semantics:** literal stores of {0,1,2} observed in the f_109d8bxx/f_109d8bxx registration-path region; kind values enumerate entry categories (0/1/2); kind==2 = the service-visible category gated by the predicate accessor
-  - **status:** strong
   - **evidence:**
     - type: disassembly, locator: 0x109e12b0..0x109e12e8, note: lwz +0x10 -> xori 0x2 -> cntlzw -> rlwinm = ==2 predicate
+  - **todo:** `Established: the field is the entry kind/category at +0x10; the predicate accessor f_109e12b0 gates kind==2 as the service-visible category; literal stores of {0,1,2} observed in the registration-path region.`, `Still unknown: what categories kinds 0 and 1 represent - only kind==2's service-visible meaning is decoded.`, `Next step: trace a registration call for a kind-0 or kind-1 entry to identify those categories.`
 - **name_order:** registry index order from f_10098d34 sequential stores
 - **table_full:**
   - idx: 0, name: accessorySwapStatus, id: 78, tag: 18
@@ -642,7 +767,6 @@ The internal event bus: the spine connecting in-process events, which is the bac
 
 ::: details Technical details
 
-- **status:** confirmed
 - **src:** ../anacapa-1.0/oc/zone/common/internalevts.cxx; observer perf bound 'Internal event observer (%s.%s) took too long \[%llu ms\]'
 - **vocabulary** (84):
 
@@ -651,7 +775,6 @@ The internal event bus: the spine connecting in-process events, which is the bac
   ```
 - **count:** 84
 - **channels:**
-  - **status:** confirmed
   - **note:** init-table registrants (0x11085328) each subscribe named internal events to three observer classes: ie-obs (immediate observers), ie-schd (scheduled dispatch), ie-cache (cached/latest-value subscribers). ~60 *Event names recovered from registrant string refs.
   - **classes:** `ie-obs`, `ie-schd`, `ie-cache`
   - **events** (60):
@@ -671,7 +794,6 @@ The device-description template: the skeleton document that becomes the player's
 
 ::: details Technical details
 
-- **status:** confirmed
 - **mechanism:** placeholder substitution ('Sending device_description.xml to %s (cv=%d)')
 - **device_types:** `urn:schemas-upnp-org:device:MediaServer:1`, `urn:schemas-sonos-com:device:MediaServer:1`
 - **placeholders** (40):
@@ -701,7 +823,6 @@ The service manifest: the build's service inventory, which is the list behind wh
 
 ::: details Technical details
 
-- **status:** confirmed
 - **file:** svcmanifests.json per-account manifest; downloaded per sid/sn; 'replicating manifest file from %s': manifests household-replicated via nodetx
 - **impl:** svcmanifestfile.cxx
 
@@ -714,7 +835,6 @@ The XML parser: the bundled parser every XML-speaking component decodes through,
 
 ::: details Technical details
 
-- **status:** confirmed
 - **library:** expat 2.5.0 with EXPAT_ACCOUNTING_DEBUG + EXPAT_ENTITY_DEBUG + EXPAT_ENTROPY_DEBUG instrumented (billion-laughs amplification accounting + entropy checks); xmlparse.c:%d debug sites
 - **wrapper:** 'xmlprs' parser-ctx allocator f_10c3fc68 ('parser ctx allocation failed; parameters are not correct'); callback table installed (f_10c3fbcc); mutex-guarded via RabortIfUnlocked
 - **client_parse_error:** 'error parsing XML returned from SOAP request / (utf8 issue?)' (f_10562cac prints ***** banner on outbound-response parse failure)
@@ -729,15 +849,14 @@ The mega implementation object: the large composite structure at the heart of th
 
 ::: details Technical details
 
-- **status:** confirmed
 - **description:** f_101a22c4 constructs a ~0x1b8 multi-base implementation object installing ~30 sub-vptrs from the 0x10e97* vtable family (0x10e97644..0x10e97e8c). Bound to svc px fields via shared_ptr{px,pn} assigns with new(0x14) control blocks (vptr 0x10e98974, strong/weak=1). Each service px points at a different base slice; DP/SP impl vtable 0x10e97e10 belongs to this family - DP and SP literally share one heap impl instance.
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x101a22c4, notes: impl ctor: ~30 sub-vptr installs
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x1018fd14, notes: f_101b08a0 arg-pack build
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x1018fd48, notes: px=r19 store + control-block bind
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: topology +0x124 slice vptr is 0x10e8b1bc (stw at f_10125b54:0x10126250); its slots +0x08..+0x14 = 0x1073e8f0/0x1073e980/0x10752ad4/0x1074d568, all r4(-0x124)-adjustor thunks to f_1073e7c8/f_1073e8f8/f_10752780/f_1074d02c: a member-serializer interface with convention f(r3=out-struct, r4=member-arg+0x124, r5=emit-buf): f_1073e7c8 emits arg+8 via tag-writers f_109dadb8/f_109dad10, f_1073e8f8 via f_109daf48, f_10753110 reads arg+0x438/+0x4c8/+0x4cc; a second vtable 0x10f123dc (installed by sub-ctor f_1074043c inside the same mega-ctor chain) exposes the same run shifted by one slot (+0x08..+0x14 = 0x1073e980/0x10752ad4/0x1074d568/0x107533fc)
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: GroupManagement impl hunt (final negative result): AddMember's impl call at 0x1073874c has an 8-arg out-fill signature (f(r3=impl, r4=&MemberIDbuf(sp+0x30), r5=BootSeq byte, r6=&out(sp+0x70), stack args 0x24/&sp+0x2b/&sp+0x4f8/0x401). Neither serializer-interface vtable matches: their vfuncs take (out, argobj, emitbuf) and would consume r5 as an emit target, not the BootSeq byte. Vtable-signature, thunk-signature, direct-store, indexed-store, registration-table, and px-address-compute searches all exhausted) GM px (ctx+0x3fa48) is bound by a shared_ptr copy-assign helper (f_101a20d0, dst=new/getter-returned ptr, src=ptr-to-{px,pn}) inside the master impl factory f_103fa434, where the dst address is produced by callees and resists static recovery
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: RESOLVED: GroupManagement impl = dedicated 'gm_impl' class (primary vptr 0x10ec2bc0, ctor f_103938f0 registers name 'gm_impl' via f_10391210, ~0xda8-byte multi-base object), NOT a topology-mega-impl slice. Bound via f_101a20d0 shared_ptr copy-assign at f_103fa434:0x103fbfe8. All four action impls verified: AddMember f_10394d10, RemoveMember f_10395b0c->f_10395854, ReportTrackBufferingResult f_105c53d0 (unconditional-402 stub), SetSourceAreaIds f_10395564: resolved via the 'gm_impl' debug-tag string inside the ctor
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x101a22c4, notes: impl ctor: ~30 sub-vptr installs
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x1018fd14, notes: f_101b08a0 arg-pack build
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x1018fd48, notes: px=r19 store + control-block bind
+  - type: firmware, binary: anacapad, build: 86.10-80260, notes: topology +0x124 slice vptr is 0x10e8b1bc (stw at f_10125b54:0x10126250); its slots +0x08..+0x14 = 0x1073e8f0/0x1073e980/0x10752ad4/0x1074d568, all r4(-0x124)-adjustor thunks to f_1073e7c8/f_1073e8f8/f_10752780/f_1074d02c: a member-serializer interface with convention f(r3=out-struct, r4=member-arg+0x124, r5=emit-buf): f_1073e7c8 emits arg+8 via tag-writers f_109dadb8/f_109dad10, f_1073e8f8 via f_109daf48, f_10753110 reads arg+0x438/+0x4c8/+0x4cc; a second vtable 0x10f123dc (installed by sub-ctor f_1074043c inside the same mega-ctor chain) exposes the same run shifted by one slot (+0x08..+0x14 = 0x1073e980/0x10752ad4/0x1074d568/0x107533fc)
+  - type: firmware, binary: anacapad, build: 86.10-80260, notes: GroupManagement impl hunt (final negative result): AddMember's impl call at 0x1073874c has an 8-arg out-fill signature (f(r3=impl, r4=&MemberIDbuf(sp+0x30), r5=BootSeq byte, r6=&out(sp+0x70), stack args 0x24/&sp+0x2b/&sp+0x4f8/0x401). Neither serializer-interface vtable matches: their vfuncs take (out, argobj, emitbuf) and would consume r5 as an emit target, not the BootSeq byte. Vtable-signature, thunk-signature, direct-store, indexed-store, registration-table, and px-address-compute searches all exhausted) GM px (ctx+0x3fa48) is bound by a shared_ptr copy-assign helper (f_101a20d0, dst=new/getter-returned ptr, src=ptr-to-{px,pn}) inside the master impl factory f_103fa434, where the dst address is produced by callees and resists static recovery
+  - type: firmware, binary: anacapad, build: 86.10-80260, notes: RESOLVED: GroupManagement impl = dedicated 'gm_impl' class (primary vptr 0x10ec2bc0, ctor f_103938f0 registers name 'gm_impl' via f_10391210, ~0xda8-byte multi-base object), NOT a topology-mega-impl slice. Bound via f_101a20d0 shared_ptr copy-assign at f_103fa434:0x103fbfe8. All four action impls verified: AddMember f_10394d10, RemoveMember f_10395b0c->f_10395854, ReportTrackBufferingResult f_105c53d0 (unconditional-402 stub), SetSourceAreaIds f_10395564: resolved via the 'gm_impl' debug-tag string inside the ctor
 
 :::
 
@@ -748,11 +867,10 @@ The service array: the registry of service objects embedded in the program, whic
 
 ::: details Technical details
 
-- **status:** confirmed
 - **description:** Embedded service array in service ctx (r31=ctx+0x40000): 0xc-stride {vptr,px,pn} objects. ctx+0x3fa44 GroupManagement f_107389bc, +0x3fa50 GroupRenderingControl f_10739428, +0x3fa5c f_1073ca24, +0x3fa68 ContentDirectory f_10307e94, +0x3fa74 f_104656d0, +0x3fa80 VirtualLineIn f_1073d65c. Getter f_1019dbe4 computes base+0x3fa44 (svc array head); per-service getters adjust secondary base -0x3a8. px=impl shared_ptr ptr, pn=control block; dtor decrefs pn.
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x1018fb74, notes: ctor batch in f_1018d27c
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x1019dbe4, notes: array getter +0x3fa44
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x1018fb74, notes: ctor batch in f_1018d27c
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x1019dbe4, notes: array getter +0x3fa44
 
 :::
 
@@ -761,12 +879,14 @@ The service array: the registry of service objects embedded in the program, whic
 
 How the big implementation objects are assembled: a single service object is built from many sub-objects each providing one interface, and this maps which sub-objects exist and what each contributes.
 
+- **TODO:** Established: the +0x124-family this-adjust thunks and the doc_writer span-append adapter are resolved; the composite-surface interpretation is documented.
+- **TODO:** Still unknown: the full set of embedded-base thunks - which other vtable slots are runtime-wired interfaces vs real methods - is not enumerated.
+- **TODO:** Next step: sweep the composite vtables for additional this-adjust thunks and classify each slot.
 ::: details Technical details
 
 - **signal_accessor:** +0x124-family vtable slots (0x10e98098 etc.): f_10187d14 = this-adjust thunk (-0x124) -> f_10187c18; the real method mutex-guarded (f_1098dfe0/f_10990bcc) registers a {callback f_101804d4, dtor f_10180cf4} pair via f_10694308 (signal-connect) and returns a shared_ptr'd observable (stwcx. atomic refcount in f_10187d1c at 0x10187da8) - the composite's per-subsystem event-source accessors
 - **doc_writer:** f_100e5628 = adapted span-writer: stw self-ptr fixup then f_100d698c(*(in+4), *(in+4)+*(in+8)) byte-span append into a doc; sibling f_100e5670 = mode dispatch on {1,2,3}
 - **implication:** the 'queue engine' and sibling embedded objects are the composite's OBSERVABLE SURFACE - runtime-wired interfaces bridging subsystems to the subscription/event layer; their vtables are runtime-bound exactly as documented
-- **status:** strong
 
 :::
 
@@ -775,6 +895,9 @@ How the big implementation objects are assembled: a single service object is bui
 
 The native protocol set: Sonos's own internal protocols recovered as a group, covering the channel-source/sink audio distribution, node messaging, and related private wire formats.
 
+- **TODO:** Established: the protocol census is decoded per-sub-block - sp_tlv/wss_tlv framing, netstartd IPC transport, SCI-as-board-enum resolution, lechmere/chirp/nodetx/chsrc all confirmed.
+- **TODO:** Still unknown: MRPC remains an honest negative result - zero literals in this build; whether it is absent or unlabeled is unresolved. Bluetooth's local-stack absence is asserted but the cloud-managed model's exact surface is only sketched.
+- **TODO:** Next step: confirm MRPC's absence across the remaining decoded string regions and decode the bluetooth muse resources' backend.
 ::: details Technical details
 
 - **sp_tlv:**
@@ -788,35 +911,31 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
     - **algorithm:** proprietary rotate-xor stream mixer (NOT md5/sha/hmac): per-byte xor-shift into ctx+0xc8 state with byte-counter at +0xcc; block round over ctx+0x00..0x40 state array every 32 bits (f_10d49504..f_10d49564); final squeeze emits 4 bytes via f_10d4a88c (rlwinm rot-xor rounds: x7\|x5, x19\|x22 mixing)
     - **ctx:** reader obj +0x659c MAC context; buffered stream fields +0x4484 base / +0x448c remaining / +0x4490 offset / +0x58 current-pkt len / +0x64a4 oserr / +0x6850 last-result
     - **verify:** memcmp(computed_tag, pkt+3+len, 4); fail -> 'Corrupted packet, invalid MAC' rc=-13; oversize -> 'Skipped %s(%d) (%d > %d)'
-    - **status:** strong
     - **evidence:**
       - type: disassembly, locator: 0x10d0b178-0x10d0b2b4, 0x10d49490, 0x10d4a88c, note: full MAC pipeline + consume arithmetic
+    - **todo:** `Established: the MAC is a proprietary rotate-xor stream mixer - per-byte xor-shift into ctx+0xc8 with a byte counter at +0xcc, a block round over the ctx+0x00..0x40 state array every 32 bits, and a 4-byte final squeeze.`, `Still unknown: the complete round function spec and the key/seed derivation that initializes the state array - the algorithm is decoded at structure level, not to a re-implementable spec.`, `Next step: fully decompile f_10d49504..f_10d49564 and the state-init path to produce a bit-exact algorithm description.`
   - **attribution:** esdk AP-connection packet layer: src /var/lib/spotify/buildagent/.../esdk/src/modules/mod_ap_conn.c; asserts 'ap->packet_size <= 16384', 'Packet from AP is too large! Type: %d / Size: %d' (cap 0x4000)
   - **log_tags:** `sp_a5335660d494963ab7b783a270417bb8`, `sp_60e43b6e629920e455e243bab25b488a`, `sp_e943d8e115bd54bd41443240074a6853`
   - **frame_detail:** per-packet: 7B TLV header {type-byte, size} + payload + proprietary rotate-xor 4B trailing MAC verified via memcmp; 'ap os error code: %d' oserr path
-  - **status:** confirmed
   - **sp_id_note:** ~330 'sp_<md5>' literals exist: esdk per-module log-channel identifiers (hash of module name), NOT distinct protocols; sp_a5335660d494963ab7b783a270417bb8 is the mod_ap_conn packet tag
 - **wss_tlv:**
   - **name:** websocket UPnP event TLV (see wss_event_vocabulary.protocol)
   - **framing:** {u16 tag, s8 type} selector -> table lookup; 73 entries
   - **relation:** same tag/type header family as sp_tlv; WSS path carries subscription mgmt
-  - **status:** confirmed
 - **netstart_ipc:**
   - **name:** netstartd Unix-socket IPC client (the 'netstart' surface in this build - no 'netstart2' literal exists)
   - **transport:** /tmp/netstartd.ipc; hello handshake 'netstartd hello'
   - **files:** /jffs/netstartd_prev.log, /opt/log/netstartd.log, netstartd.dmp, netstartd.properties, netstartd.count, /netstartd-external, /var/run/netstart_mode, /tmp/netstartd.pid
   - **messages:** settings push ('...settings update to netstartd'), PSK update ('...ushed PSK update to netstartd'), pull ('...ettings update from netstartd'), type update '\[%s\]', 'SSID, cannot notify netstartd', refusal handling 'netstart refused'/'meshDisable (netstart refused)'
-  - **status:** confirmed
   - **note:** CORRECTION: netstart2 DOES exist: the literal lives in wifi/netstartd (separate daemon binary); see native_protocols/netstart2 for the full decode
 - **mrpc:**
   - **name:** MRPC
-  - **status:** ZERO literals in anacapad-86.10 - no 'mrpc' string anywhere. Either absent from this binary or unlabeled; honest negative result
+  - **note:** ZERO literals in anacapad-86.10 - no 'mrpc' string anywhere. Either absent from this binary or unlabeled; honest negative result
 - **sci:**
   - **resolution:** 'SCI' = SCI_BOARD enum #48 in the hardware-source name table @0x10ef4ed0 (60 entries, idx 0-59), NOT a separate wire protocol
   - **table:** 0x10ef4ed0: str*\[60\] bound-checked cmplwi 0x3d -> 'UNKNOWN'; enum: NO_SOURCE,AMP,LEDS,IR,HEADPHONE,SUBWOOFER,ORIENTATION,BUTTON_PLAYPAUSE/VOL_UP/VOL_DN/JOIN/MODE/POWER/MICMUTE/PAIRING,CAPZONEA/B/C/M/CAT,LINEIN,DAC,ADC,CPU,SOC,SONGLE,POWER,AVTRIGGER,LIGHT_SENSOR,LINEOUT,SPDIF_OUT,HDMI,BANANA_PLUG,NFC,MOTION_DETECTOR,BLE,WIFI,LAN,BATTERY,CHARGER,RTC,FUEL_GAUGE,MICMUTE_SWITCH,LEAN_UI_JOIN/OPENAP_DIAG/PREV/NEXT/SLIDER,SCI_BOARD,PSOC,CEC,UART,PMU,MCU1..4_AMP_L/R
   - **accessors:** `f_105d0220 (bound 0x3d)`, `f_105d0258`, `f_105d028c (bound 0x31)`, `f_105d02c0`, `f_105d02e0`, `f_105d0318`
   - **event_states:** `NO_EVENT`, `PRESSED`, `RELEASED`, `REPEATED`, `CONNECTED`, `DISCONNECTED`
-  - **status:** confirmed
 - **netstartd_ipc:**
   - **channel:** /tmp/netstartd.ipc unix socket; ipc_msg.cxx client (0x105d3664-region) with performReset/reconnect logic; handshake 'netstartd hello' (0x10691400 via f_109b72ac)
   - **message_format:** key-value event frames: msg obj built by f_10557fa8(init)+f_1055847c(set-field)+v\[+0x1c\](send); fields: eventType=<name>, hardware=wifi
@@ -824,12 +943,11 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **inbound_events:** `netsettings update (Received netsettings update from netstartd)`, `connection type update (Got connection type update from netstartd: \[%s\])`, `SSID decode failure path (Error decoding SSID, cannot notify netstartd)`
   - **files:** `/tmp/netstartd.ipc`, `/tmp/netstartd.pid`, `/var/run/netstart_mode`, `/jffs/netstartd_prev.log`, `/opt/log/netstartd.log`, `netstartd.{dmp,properties,count}`, `/netstartd-external`
   - **netstart2:** 'netstart refused'/'meshDisable (netstart refused)' indicate a netstart mode-gate (/var/run/netstart_mode); 'netstart2' as a protocol name does NOT appear - honest negative
-  - **status:** strong
   - **evidence:**
-    - type: firmware, binary: anacapad, build: 86.10-80260, status: strong, address: 0x10691400, function: 0x105d33a4, notes: msg build/send at 0x10691458-0x106914a4; ipc client 0x105d3664; source path ipc_msg.cxx at 0x10ef5f70
+    - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10691400, function: 0x105d33a4, notes: msg build/send at 0x10691458-0x106914a4; ipc client 0x105d3664; source path ipc_msg.cxx at 0x10ef5f70
   - **full_event_vocabulary:** `netstartd hello (handshake)`, `Netstart is idle`, `Netstart alive`, `Netstart open`, `Netstart SSID set`, `Netstart SSID clear`, `Netstart triggered upgrade (0x%x): %s`, `Got connection type update from netstartd: \[%s\]`, `refusals: 'netstart refused', 'meshDisable (netstart refused)', 'Netstart failed to modify {wifi settings,meshDisable,SonosNet disable}'`, `Pushed netsettings update / PSK update`, `Received netsettings update`
+  - **todo:** `Established: the /tmp/netstartd.ipc channel, the ipc_msg.cxx client region, the 'netstartd hello' handshake, and the key-value frame builder (init + set-field + send) are documented.`, `Still unknown: the per-message field vocabulary - which keys each event type sets - is not enumerated.`, `Next step: trace set-field calls per message type to enumerate the frame vocabulary.`
 - **websocket_lechmere:**
-  - **status:** confirmed
   - **name:** 'lechmere.%u': RFC6455 Sec-WebSocket-Protocol subprotocol token (version-suffixed)
   - **handshake:** sec-websocket-key + sec-websocket-version headers -> Sec-WebSocket-Accept; ../anacapa-1.0/oc/zone/common/websocketserver.cxx (webSocketServer)
   - **endpoints:** `/websocket/api`, `/api/v1/websocket`
@@ -846,7 +964,6 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **activation:** RMuseController activating namespace (apiVersion=%u, ns=%s, cmd=%s); 'Successfully retrieved policy mapping for %zu muse namespaces'; ERROR_UNSUPPORTED_NAMESPACE
   - **debug_form:** <html><body>set: namespace=%s, command=%s, interval=%d, delayMs=%d</body></html> (namespace test page, likely /musedebug)
 - **chirp_acoustic:**
-  - **status:** confirmed
   - **sdk:** chirp-sdk core (/code/src/chirp-sdk + /code/chirp-core): 'Chirp SDK with "%s" profile v%u \[max %u bytes in %.2fs\], supporting %u channel(s), using %s modulation'
   - **modulations:** `cdma (encoder/decoder + codebook)`, `fsk`, `multitone`
   - **coding:** reed-solomon + crc + payload/bitstring/template pipeline; decoder: peaks/voter/scorer/weighting/rms
@@ -860,7 +977,6 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **playback:** playId model: 'Start chirping with unique device value', 'already playing with playId %d', 'Stop playId %d differ than m_chirpPlayId'; volume calibration ('Chirp volume not yet calibrated','current chirp output volume')
   - **wiring:** ext-chirp-as/setup-chirp-as + as-dspin/ext-chirp dsp taps; ChirpExtAudioSrc source; REST v1/.../roomDetection/chirp/{playId} maps here
 - **settings_replication:**
-  - **status:** confirmed
   - **src:** ../anacapa-1.0/oc/zone/common/{nodetx,replicated_settings}.cxx
   - **channels:** `nodetx_chsrc`, `nodetx_ht%d (HT NodeTX Blocks)`, `Hnodetx`, `settingsReplication`, `netsettingsReplication`, `nodetx_vli`
   - **wire_grammar:** <ReplicatedNetSettings LastUpdateDevice="%s" Version="%d" FileSchemaVersion="%d">...</ReplicatedNetSettings>
@@ -871,7 +987,6 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **side_effects:** 'Settings Replication changed SN Disable from %d to %d (source: %s)'; 'Pending netsettings.json update discarded after replicating'; 'failed to rename offered replicated file'
   - **nodetx_generalized:** NodeTX is the generic inter-zone block transport, not just settings: channels nodetx_chsrc, nodetx_ht%d (HT blocks), nodetx_vli (VLI audio blocks, 'NodeTx configured to handle %s audio (qos: %d)', 'VLI NodeTX Blocks'); transport = chunked HTTP (TRANSFER-Encoding: chunked literals in nodetx.cxx)
 - **virtual_linein:**
-  - **status:** confirmed
   - **src:** media_player_vli_ctrl.cxx (mpvlictrl), vli_source_manager.cxx, vli_playback_tracker.cxx, vli_sink.cxx
   - **sessions:** onVirtualLineIn{StartSession,StopSession,SuspendSession,SessionStartInfoUpdated}; action codes AHA_{END,SUSPEND,PAUSE}_VLI_SESSION; group actions JOIN_GROUP_BASED_ON_VLI_STATE / BECOME_STANDALONE_BASED_ON_VLI_STATE
   - **source_types:** `vli_airplay`, `vli_bt (Bluetooth)`, `vli_ot (optical?)`
@@ -879,17 +994,15 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **ops:** 6-op control surface: selectSource, startTransmission, stopTransmission, startAudio, stopAudio + sendBackChannelCmd: bidirectional back-channel (sink→source cmds for delay/volume negotiation)
   - **model:** source-transmits model: startTransmission publishes nodetx_vli stream; sinks join; VliTransportActionEvent lifecycle; delegated sessions handoff via seamless-delegation
 - **airplay:**
-  - **status:** confirmed
   - **transport:** AirPlay enters via VLI channel (vli_airplay); RTSP layer present ('RTSP CSeq mismatch or invalid CSeq')
   - **gates:** `allowAirplay/allowAirplaySetting`, `AirPlayEnabled (settings+ZGT var)`, `informLocalAirPlay`
   - **didl:** object.item.audioItem.linein.airplay; linein.airplay; airplay:; com.sonos.airplay
   - **grouping:** R_AirplayIncludeLinked; AirplayIncludeGroupedEvt; 'airplay include zones: %d'
   - **interactions:** SpZeroConfAnnounce{Pause,Resume}: Spotify Connect announce paused during AirPlay; log /tmp/AirPlay.log
 - **bluetooth:**
-  - **status:** strong
   - **model:** no local BT stack in anacapad: cloud-managed only: v1/players/{playerId}/hardwareStatus/{bluetooth,bluetoothPairing,pairedBluetoothDevices/{bluetoothAddress}} routes + scope cmds getBluetoothStatus/setBluetoothPairing/activatePairedBluetoothDevice/removePairedBluetoothDevice; 'Supported only on devices with bluetooth' gate; vli_bt stream source; hal_detect_get_cable_states
+  - **todo:** `Established: no local BT stack exists in anacapad - bluetooth is cloud-managed only via the hardwareStatus routes and scope commands, with the 'Supported only on devices with bluetooth' gate and the vli_bt stream source.`, `Still unknown: which hal_detect/capability predicate actually enables the bluetooth surface on models that support it, and the vli_bt stream's integration details.`, `Next step: trace the 'Supported only on devices with bluetooth' gate to its capability source.`
 - **netstart2:**
-  - **status:** confirmed
   - **location:** wifi/netstartd (separate binary: the netstart2 literal lives in netstartd, not anacapad; earlier absence claim was anacapad-only scope)
   - **transport:** DTLS over UDP (mbedtls_net_* + ssl_*): full DTLS state names {DISCONNECTED,CONNECTING,HELLO_VERIFY,CONNECTED,WRITING,CLOSING,CLOSE_NOTIFY_SENT,CLOSE_NOTIFY_DISCONNECT,CLOSE_IMMEDIATELY,CLIENT_RECONNECT}; app-level ACKs (message received without ACK for last payload / received unexpected ACK / replay detected retransmitting); ECJPAKE password handshake (ssl_set_hs_ecjpake_password): PAKE for PIN-less provisioning; DTLS PIN alternative; client ID set; PSK auth (Authenticating with PSK)
   - **messages:** NS2_MSG_* {SETUP_BEGIN(mode arg), SETUP_CANCEL(flags), SETUP_CLIENT_HELLO, SETUP_CONTINUE, SETUP_REAUTHORIZE(flags), SETUP_SERVER_HELLO, SETUP_SERVER_HELLO_LEGACY, SETUP_STATUS(0x%x), GET_PSK(type), PSK, REGISTRATION_KEY} + BEGIN_SETUP control
@@ -899,7 +1012,6 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **files:** /jffs/net/settings/netstart2.txt (+ .tmp atomic write): persisted NS2 state; setup logs /jffs/setup.{log,dmesg} + /jffs/sys/log/setup/; chirp payload generation (Netstart2 failed to generate chirp payload); contactless setup attempt-limit + reauthorize (Contactless setup attempt limit reached)
   - **netmanager:** states {ST_CCRD,ST_CCRDA,ST_CON,ST_CON_CR,ST_R} via handlers {NetManagerSonosNet{Base,NoWifi,WithPath},NetManagerStation{Base,CheckCarrier}}Handler; events NM_EVT_SONOSNET_ENABLED + SonosNet Hint; anacapa IPC notifies state update 0x%x + mode %d %d + recovery AP state; LED modes {BOOTING,BYPASS,BYPASS_BLOCKED,CLONE_CHECK_FAIL,FACTORY_RESET,JOIN_HH,JOIN_HH_OPEN,BEGIN_SETUP_MODE,IN_SETUP_MODE}; wacd spawned on wacstart/wactimeout via /tmp/netstartd_wac.ipc
 - **chsrc_chsnk:**
-  - **status:** confirmed
   - **model:** CHSRC (channel source, chsrc.cxx) multicasts group audio to CHSNK (channel sink) receivers via nodetx_chsrc; chsnk refreshes multicast join on NetworkIfaceBouncedEvent/NetworkIpAddrAssignedEvent
   - **sync:** chsnkSync + SNTP-aligned play clock: 'chsnk playing remote chsrc at %d.%06d'
   - **transactions:** 'RCHSRCReq Current Op: %s, Current TransactionID: %d'; 'RChannelSource Reported Spotify position: %lldms, state: %s, transitionAck: %d'
@@ -914,7 +1026,6 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **modes:** chsnk playing local {chsrc,AI,VLI} / remote chsrc; count of off-box VLISrcMgr members <= CHSRC bound
   - **errors:** chsnk_lse, chsnk_ch_data_full, chsnk_w_err, chsrc_framer_uflw (framer underflow)
 - **seamless_delegation:**
-  - **status:** confirmed
   - **model:** coordinator handoff preserving playback state; DelegateGroupCoordinationTo -> 'will try to delegate to %s' (rejects 'delegation target %s not primary','cannot delegate to oneself','%s (type: %u) does not support seamless delegation','HT audio does not support seamless delegation')
   - **state_transfer:** 'Seeking to %ims in support of seamless delegation' (position carryover); 'Resetting track queue info' on receive; delegated source-area-ids parse; 'Refreshing expired content during delegation'; pullContext()/become-active guard (SWPBL-259788)
   - **input_suppression:** during setting-state/delegating: ignores audio flush, track-changed, seeks, pause, became-inactive, volume change
@@ -925,7 +1036,6 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **eligibility:** type-gated: HT audio + adaptive-bitrate streams unsupported (CHSNK stopped to avoid); 'delegation target not primary'/'cannot delegate to oneself'/'will try to delegate to'
   - **coordinator_ops:** BecomeGroupCoordinator{,AndSource} (Clone on non-member); 'change coordinator: old/new/ts/uri'; installClock + VLI-tx paths; 'seamless transition to {remote,local} src' w/ timeout
 - **hwmessage_bus:**
-  - **status:** confirmed
   - **encoding:** nanopb protobuf (pb_encode/pb_decode + pb_encode_submessage/tag_for_field/string); 'could not parse protobuf filter type'
   - **api:** hwmessagelib_connection_{init,getReadFD,readNextMsg,destroy}; enumStr_hwmessage_multicastGroupAddFailure
   - **multicast_groups:** `AUDIO`, `BATTERY`, `BUTTON`, `CAPZONE`, `HT`, `LED`, `SENSOR`, `SWITCH`, `TEMP`
@@ -933,29 +1043,23 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **other_protobuf:** 'Could not convert loaded satellite protobuf to HTChProcConfig': HT satellite channel-processor config is protobuf too
   - **rpath:** $ORIGIN/../../../cc/{sonos-utils,wifi/libwifi,hwmessagelib/lib}
 - **nts_stream_callbacks:**
-  - **status:** confirmed
   - **description:** NTS (stream-delivery) callback interface between the transport layer and stream sources (esdk/SMAPI/VLI)
   - **callbacks:** `NTSCallbackStreamStart: id: %u, fmt: %u, drm: %u, size: %u, gain: %d`, `NTSCallbackStreamEnd`, `NTSCallbackStreamFlush`, `NTSCallbackStreamGetPosition`, `NTSCallbackStreamSeekToPosition`, `NTSCallbackPlaybackApplyVolume`, `NTSCallbackPlaybackNotify`, `NTSCallbackConnectionMessage`, `NTSCallbackConnectionNewCreds`, `NTSCallbackConnectionNotify`, `NTSCallbackError`
   - **fields:** stream {id, fmt-index, drm-id, size, gain}: format/DRM are numeric indexes into codec/DRM tables
 - **smb_library:**
-  - **status:** confirmed
   - **library:** libsmb2.so.1: smb2_{init_context,set_version,get_dialect,set_security_mode,set_user,set_password,parse_url,connect_share,open/read/lseek/fstat/close,lazy_opendir/lazy_readdir/closedir,stat,get_error,get_nterror,disconnect_share,destroy_url/context}
   - **sharelist:** sharelist.cxx: XML '<Share Path=...' list; proposeUpdatedShareList + ShareListUpdateID; 'Rejecting invalid sharelist'/'path already exists' validation; backs x-file-cifs:* playback + /shares status
 - **sntp_sync:**
-  - **status:** confirmed
   - **role:** synchronizedPlay gates group playback on SNTP validity: 'SNTP waiting for valid at %d.%06d' -> 'SNTP valid %d continue to play %d at %d.%06d'; noderx I/O error while waiting
   - **transport:** vli src tx has own 'sntp port: %u': SNTP timebase rides the VLI distribution port; 'Starting/Completed SNTP server switch in %dms'; htsnk_invld_sntp error; {sntppoll config; error %.0f ms %s
 - **ir_decoder:**
-  - **status:** confirmed
   - **impl:** irdecoder.cxx -> selthrd.RIRDecoder thread {reset,data,except,timeout fds} reading 'IR Event read: %zd, msgcount: %u': hardware IR remote events feed the player
 - **mntmgr:**
-  - **status:** confirmed
   - **impl:** mntmgr.cxx: share mount manager shells /bin/mount + umount
   - **semantics:** mountShareDirectlyInternal/unmountShareDirectlyInternal; <Mount> XML doc; trial-mount across protocols w/ strike counter 'unsupported protocol %s (strike %d/%d)'; http-vs-fs mount distinction; credential-change→unmount; idle-share reaper; 'too many shares mounted' cap; mountID validation; temporary-share handling; mount-dir mkdir retry
   - **evidence:**
-    - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, notes: mntmgr.cxx log vocabulary, address: mntmgr.cxx
+    - type: firmware, binary: anacapad, build: 86.10-80260, notes: mntmgr.cxx log vocabulary, address: mntmgr.cxx
 - **ducking_protocol:**
-  - **status:** confirmed
   - **impl:** duck.cxx
   - **wire:** distributed 64-bit ducking-flag bitmasks (0x%016llx) exchanged zone-to-zone: 'Queueing/Dequeueing ducking bit from %s', 'zone %d received ducking bit', 'too many pending ducking bits'
   - **events:** DuckingEvent; LastChange vars <PlaybackDucked>%u <DuckingFlags>%s; RecordDuckingActionEvent telemetry
@@ -964,24 +1068,19 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **http:** /duck /unduck endpoints (duckOrUnduck)
   - **state:** /tmp/crashed_play_state persistence
 - **dropout_logging:**
-  - **status:** confirmed
   - **impl:** dropout_event_logging.cxx
   - **semantics:** collectDropoutTriggered -> /dropout_triggered.xml (the /raw doc); modZPShutdown_DropoutEventHandler; fault injector 'injectdropout'/'Injected dropout error' for test
 - **ht_audio:**
-  - **status:** confirmed
   - **impl:** htaudio.cxx/htaudio_satellite_tx.cxx (+chprocessing/chsnk_processor*)
   - **semantics:** <HTAudioInCode>%u var; 'Using HTAudio TV TX for GM %s': TV-source TX selection for group; RHTAudioSatelliteTx feeds bonded satellites
 - **nodetx_channels:**
-  - **status:** confirmed
   - **channels:** `nodetx_chsrc (group-audio source)`, `nodetx_vli (VirtualLineIn audio)`, `nodetx_ht%d (numbered home-theater channels)`, `settings-replication channel`
   - **qos:** 'NodeTx configured to handle %s audio (qos: %d)': per-channel QoS tags
   - **stats:** <NodeTXBuffer>%.3lf sec %s</NodeTXBuffer>; 'HT NodeTX Blocks'/'VLI NodeTX Blocks' block accounting
   - **impl:** nodetx.cxx
 - **secure_eventing:**
-  - **status:** confirmed
   - **flags:** UPNP_OVER_TLS + 'Secure Eventing: %d' in Subscribe; 'securehhSSLPort'/'securehhsslport' + kSecureHHHttpsPortDeltaFromBase: household secure HTTPS port (base+delta); 'secure HH SSL server creds updated/cleared (port %u)'; SecureRegistration{State,Change}UpdateEvent state machine
 - **lechmere_detail:**
-  - **status:** confirmed
   - **impl:** lechmere.cxx
   - **subprotocols:** Sec-WebSocket-Protocol: lechmere.%u / lechmere-v1 / lechmere.%hhu%n: versioned ws subprotocol
   - **wire:** <Command namespace="%s" cmd="%s" method="%s" credType="%s" />: XML command envelope over ws
@@ -989,7 +1088,6 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **authz:** policy mapping per muse namespace + role from lechmere policy key; RMuseController 'activating namespace (apiVersion=%u, ns=%s, cmd=%s)'
   - **blocks:** 'Invalid namespace: UPnP subscribe/unsubscribe/renew not supported'; 'Namespace has no actor'; 'namespace is not supported'; SONOS_SERVER_LECHMERE_RECONNECT_LATER reconnect
 - **spotify_esdk:**
-  - **status:** confirmed
   - **impl:** spotify/*.cxx + esdk mod_*
   - **playback_ops:** RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeActiveDevice,SetDeviceInactive}
   - **media_delivery:** 'eSDK media delivery stream {start(id,type,size),data(id,size,offset),end(id),flush(id,pos),getPosition(id)}' + DUAL position tracking '(VLI: %d \[%d\], SMAPI: %d \[%d\])'
@@ -997,24 +1095,20 @@ The native protocol set: Sonos's own internal protocols recovered as a group, co
   - **sessions:** SpotifySessions; 'Couldn't find a Spotify SID'; eSDK logged out; group volume 'Sent group volume change %u to eSDK (mute %d)'
   - **uris:** spotify: + x-spotify:// / x-spotify-file:// + spotify:{track,episode}:; <Library Name='Spotify eSDK'>; esdk_api/esdk_spi; 'W esdk pump' thread; /opt/log/anacapa.spotify{,.debug}.log
 - **qplay:**
-  - **status:** confirmed
   - **surface:** /QPlay/Control + QPlayAuth(Seed,MID,DID) action + updateSharedTQPlayMode mode op
   - **advertisement:** <qq:X_QPlay_SoftwareCapability xmlns:qq=http://www.tencent.com>QPlay:2</..> in device description via #QPLAY_SUPPORT# placeholder
   - **note:** Tencent QPlay DLNA extension: seeded auth handshake
 - **muse_async_commands:**
-  - **status:** confirmed
   - **impl:** muse_async_command_handler_impl.cxx
   - **wire:** <muse_async_command ...> XML envelopes consumed off the cloud channel (lechmere)
   - **model:** thread-pool dispatch: queues muse-async-cmdq-* keyed by muse-async-cmd-id-*; scopeAsyncMuse + asyncMuseModZp scopes; modZPShutdown_AsyncMuseThreadPool shutdown; 'Cancelling all async Muse commands' on teardown; %s::%s async command execution failed
   - **wsclient:** websocketclient.cxx: outbound ws client w/ permessage-deflate ('could not initialize per message deflate on ws client')
 - **http2_client:**
-  - **status:** confirmed
   - **lib:** nghttp2
   - **role:** cloud transport: REST/ws API sessions over HTTP/2
   - **surface:** nghttp2_session_{send,upgrade2}; nghttp2_submit_{request,ping,goaway,settings,window_update}; nghttp2_{set_,session_set_}local_window_size
   - **behavior:** h1->h2 upgrade ('(via h1 upgrade)','(upgraded to SSL)','session_upgrade2'); ping/goaway keepalive; per-stream window mgmt; 'send request NOT allowed (via nghttp2)' gating; 'PRIORITY: stream_id == 0' frame error; 'pack_settings_payload' path
   - **headers_frame_validation:** nghttp2 HEADERS-state literals: 'HEADERS: stream closed' / 'HEADERS: no HEADERS allowed from client in reserved state' / 'HEADERS: could not unpack' / 'HEADERS: insufficient padding space' / 'HEADERS: invalid padding' (@0x10f89708-0x10f89dbc) - frame-parser validation layer beyond the documented PRIORITY/RST_STREAM surface
-- **status:** strong
 
 :::
 
@@ -1025,7 +1119,6 @@ The hardware-message library: the shared library for hardware-level messaging be
 
 ::: details Technical details
 
-- **status:** confirmed
 - **api:** hwmessagelib_connection_{init,destroy,getReadFD,readNextMsg}: fd-based protobuf connection; libhwmessagelib.so.1 + libprotobuf-nanopb.so.0
 - **multicast_groups:** 9 groups: {HT,LED,BUTTON,TEMP,SENSOR,BATTERY,CAPZONE,SWITCH,AUDIO}: multicast subscriptions by hardware-domain
 - **handler_thread:** selthrd.RHWEvtHandlerZP.{reset,data,except,timeout}: dedicated hw-event select thread
@@ -1041,7 +1134,6 @@ SonosNet wireless: Sonos's own mesh network, which is the proprietary wireless l
 
 ::: details Technical details
 
-- **status:** confirmed
 - **mgmt:** wifictrl cmd channel (Ignoring wifictrl cmd=%d) + netstart daemon applies settings + wifi mode change/on change transitions
 - **breadcrumb:** 'Unable to leave breadcrumb, can't disable wifi' + 'No controller confirmation, re-enabling wifi': persistent recovery breadcrumb: on a Wi-Fi config change the ZP leaves a known-good marker; absent controller confirmation it self-reverts
 - **state_desc:** dev-wifi-state/dev_wifi/wifi_dev: fields {mode, freq, ext, enabled, eth} via 'update wifi mode:%d freq:%u ext:%u enabled:%d eth:%d'
@@ -1060,7 +1152,6 @@ The Bluetooth SBC decoder path: Bluetooth audio handling present in the shared c
 
 ::: details Technical details
 
-- **status:** confirmed
 - **libs:** libsbc.so.1 + libsonossbcpacket.so.1
 - **codec:** sbc_{init,finish,parse,decode,encode,get_codesize,get_frame_length}: dual decode+encode (sink AND source)
 - **packets:** 'invalid number of frames per sbc packet'; 'unexpected sbc {config,encode} result expected=%u->%u got=%zd->%zd'
@@ -1075,7 +1166,6 @@ Device-discovery announcements and searches: the classic find-each-other protoco
 
 ::: details Technical details
 
-- **status:** confirmed
 - **wire:** M-SEARCH * HTTP/1.1 + HOST:239.255.255.250 + USN: + ssdp:alive/ssdp:byebye; 'Sent MSEARCH reply to %s:%u'; '%s unicast MSEARCH from %s'
 - **headers:** X-RINCON-{HOUSEHOLD,BOOTSEQ,PROXY,VARIANT,REASON} extension headers; MX: search window
 - **signing:** HMAC-signed M-SEARCH: X-SONOS-SIG: %s + X-Sonos-MS-Sig: headers; 'signature HMAC init failed'/'Failed to calculate/add M-SEARCH signature'/'base64 encoding failed'; signed manifests ('Got manifest with invalid signature', '<!-- SIGNATURE:')
@@ -1098,7 +1188,6 @@ Signed M-search: the authenticated form of discovery search, a signed variant pr
 
 ::: details Technical details
 
-- **status:** confirmed
 - **wire:** M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: %d\r\nST: %s\r\nUSER-AGENT: %s\r\n%s\r\n (trailer = signature block)
 - **signature:** HMAC over request -> base64 ('M-SEARCH signature HMAC init failed','Failed to add M-SEARCH signature'); inbound verify: 'hmac sig verify error'; keys hmacDigest/hmac
 - **response_headers:** `BOOTID.UPNP.ORG: %s`, `CONFIGID.UPNP.ORG: %d`, `CACHE-CONTROL: max-age = %u`
@@ -1112,7 +1201,6 @@ The proprietary HTTP headers: the Sonos-specific request and response headers th
 
 ::: details Technical details
 
-- **status:** confirmed
 - **outbound:** `X-Sonos-Playback-Id: %.*s`, `X-Sonos-SWGen: %u`, `X-RINCON-BOOTSEQ: %s`, `X-RINCON-VARIANT: %u`, `X-Sonos-Household-Id`, `X-Sonos-Corr-Id`, `x-sonos-target-udn`, `x-sonos-upnp-loopback-token`, `x-rincon-content-format (repset)`, `x-rincon-roomicon:generic`
 - **hls_vocabulary:** `#EXT-X-VERSION`, `#EXT-X-TARGETDURATION`, `#EXT-X-MEDIA-SEQUENCE`, `#EXT-X-PLAYLIST-TYPE`, `#EXT-X-INDEPENDENT-SEGMENTS`, `#EXT-X-KEY:`, `#EXT-X-SESSION-KEY:`, `#EXT-X-MAP:`, `#EXT-X-DISCONTINUITY`, `#EXT-X-BYTERANGE`, `#EXT-X-ENDLIST`, `#EXT-X-MEDIA`, `#EXT-X-STREAM-INF`, `#EXT-X-PROGRAM-DATE-TIME`
 - **hls_validation:** 'attempted to store an invalid rendition that doesn't begin with #EXT-X-MEDIA' (rendition-group enforcement)
@@ -1161,7 +1249,6 @@ The proprietary HTTP headers: the Sonos-specific request and response headers th
     - **X-Sonos-User-Role:** 0x10ed96a4
     - **X-Sonos-UserId:** 0x10ef21e0
     - **X-Sonos-VClockCloud:** 0x10edef34 (NEW: vector-clock cloud sync)
-  - **status:** confirmed
   - **notes:** Case variants (X-Sonos-MuseHouseholdId vs -Muse-Household-Id) coexist as distinct literals.
 
 :::
@@ -1173,7 +1260,6 @@ The chirp SDK interface: the internal API for the speaker-identification tone, c
 
 ::: details Technical details
 
-- **status:** confirmed
 - **name:** Chirp ultrasonic SDK 4.2.3 (chirp-sdk, build 1898)
 - **evidence:**
   - type: firmware, address: 0x10fcf2d4, notes: chirp_sdk error-string table + /code/src/chirp-sdk/ paths + version literals

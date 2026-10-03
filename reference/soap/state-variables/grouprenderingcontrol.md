@@ -10,6 +10,9 @@ GroupRenderingControl evented variable (SetGroupMute rc-log literal)
 
 :::
 
+- **TODO:** Established: the variable's type (boolean), evented=True, and declared semantics are documented for GroupRenderingControl.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `GRC.GroupVolume`
 
@@ -21,6 +24,9 @@ GroupRenderingControl evented variable (SetGroupVolume rc-log literal)
 
 :::
 
+- **TODO:** Established: the variable's type (i2), evented=True, and declared semantics are documented for GroupRenderingControl.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `GRC.GroupVolumeChangeable`
 
@@ -32,6 +38,9 @@ GroupRenderingControl evented variable (GroupVolumeChangedEvent pool)
 
 :::
 
+- **TODO:** Established: the variable's type (boolean), evented=True, and declared semantics are documented for GroupRenderingControl.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `GroupRenderingControl.A_ARG_TYPE_InstanceID`
 

@@ -6,14 +6,14 @@ The XML schema clusters: element vocabularies across status dumps and persisted 
 
 ::: details Technical details
 
-- **status:** strong
 - **name:** uncatalogued XML schema clusters
 - **description:** Element vocabularies in the /status dumps and persisted files never decomposed: alarmclock.xml, areas.json, cloudconfig.json, householdsettings.json, zones.json, zpMetricsConfigV2.xml; <Scheduler>/<Job*>, <LedPattern*>, <RadioStationLog>, <PerformanceCounterTables>, <IndexStats>, <Satellite*>/<HWMembers>, <RoomCalibration*> + SelfTrueplayEQ/SelfTrueplayInfo, <Ducking*>/<PlaybackDucked>, <ABREvents>/<ABRState>, <HLS*>, <DTSProfile>/<DialNorm>, <AudioDelay*> lip-sync, <PresetNameList> EQ presets, <Account Type=, <Orientation>, <MicFlags>, <FocusModeMute>.
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e99048, notes: <LedPatternEntry
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e86ea1, notes: <RadioStationLog
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10fee998, notes: <SelfTrueplayEQ
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10fe7710, notes: <DTSProfile
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e99048, notes: <LedPatternEntry
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e86ea1, notes: <RadioStationLog
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10fee998, notes: <SelfTrueplayEQ
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10fe7710, notes: <DTSProfile
+- **todo:** `Established: the uncatalogued element vocabularies are listed by file (alarmclock.xml, areas.json, cloudconfig.json, householdsettings.json, zones.json, zpMetricsConfigV2.xml, Scheduler/LedPattern/RadioStationLog/PerformanceCounter clusters).`, `Still unknown: all of them - this record is explicitly a catalog of schemas never decomposed.`, `Next step: decompose each file's schema cluster into per-element records.`
 
 :::
 
@@ -24,12 +24,12 @@ The internal error families: error-code vocabularies outside the standard set, s
 
 ::: details Technical details
 
-- **status:** strong
 - **name:** non-UPnP fault-code families
 - **description:** ERROR_* fault vocabularies outside the UPnP code table: ERROR_LASTFM_{BAD_SUBLEVEL,STREAM_LIMIT,NO_ACCOUNT,NO_CONTENT,BAD_ACCOUNT}, ERROR_PAND_* (Pandora), ERROR_DOCK_INTERRUPT, ERROR_WMP_*: reported via R_* codes and service-layer logs, not SOAP faults.
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee504, notes: ERROR_LASTFM_STREAM_LIMIT
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee550, notes: ERROR_DOCK_INTERRUPT
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eee504, notes: ERROR_LASTFM_STREAM_LIMIT
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eee550, notes: ERROR_DOCK_INTERRUPT
+- **todo:** `Established: the non-UPnP fault families (ERROR_LASTFM_*, ERROR_PAND_*, ERROR_DOCK_INTERRUPT, ERROR_WMP_*) are catalogued with their reporting path.`, `Still unknown: per-family numeric values and the complete member list are not enumerated.`, `Next step: map each family literal to its numeric code at emit sites.`
 
 :::
 
@@ -73,6 +73,7 @@ The system-property key space: the real set of named configuration keys the sett
   - **R_VolNormMode:** f_103f9010,f_104b1e48
 - **side_effect_dispatcher:** f_104b1e48 (strcmp chain on changed key name)
 - **note:** key namespace names live in literal form; values are get/set through SystemProperties; this list is the build's complete visible R_* key vocabulary: other SystemProperties keys may exist under different prefixes
+- **todo:** `Established: the 28 standalone R_* key literals with live code consumers and the side-effect dispatcher f_104b1e48 are catalogued.`, `Still unknown: per-key semantics - what each key controls and its value grammar - are not decoded; R_AvailableSvcTypes has only a .data-table consumer.`, `Next step: decode the get/set semantics per key through SystemProperties impls.`
 
 :::
 
@@ -83,16 +84,15 @@ The internal result-code namespace: the program's own error vocabulary (the R_* 
 
 ::: details Technical details
 
-- **status:** strong
 - **name:** internal ERROR_*/R_* name vocabularies
 - **description:** The binary's internal result/error identifiers in their LITERAL forms: corrected after auditing: the earlier '403 R_* codes' listing was polluted by substring matches (BONDED_STEREOPAIR_AND_SUB→'R_AND_SUB', DEFER_PLAYING→'R_PLAYING'). Word-boundary re-extraction gives 172 ERROR_* literals (the fault namespace that maps to UPnP/muse errors) plus ~47 real R_* enum identifiers (LED modes, play/stream ops, keycert ids, spotify events). Integer enum values remain unproven.
 - **count:** 221
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10fbb0a5, notes: R_LED_BEGIN_SETUP_MODE
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee670, notes: R_CLOUD_QUEUE_STREAM_LIMIT
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10fbedfa, notes: R_MASK_NINE_DOT_ONE_DOT_FOUR
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee508, notes: R_LASTFM_STREAM_LIMIT
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eee6d8, notes: ERROR_* literal cluster (error-name table); word-boundary extraction
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10fbb0a5, notes: R_LED_BEGIN_SETUP_MODE
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eee670, notes: R_CLOUD_QUEUE_STREAM_LIMIT
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10fbedfa, notes: R_MASK_NINE_DOT_ONE_DOT_FOUR
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eee508, notes: R_LASTFM_STREAM_LIMIT
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eee6d8, notes: ERROR_* literal cluster (error-name table); word-boundary extraction
 - **error_families:**
   - **INVALID:** `ERROR_INVALID_ACTION`, `ERROR_INVALID_AUTH_HEADER`, `ERROR_INVALID_CERT`, `ERROR_INVALID_HEADER`, `ERROR_INVALID_LENGTH`, `ERROR_INVALID_OBJECT_ID`, `ERROR_INVALID_PARAMETER`, `ERROR_INVALID_RESOURCE`, `ERROR_INVALID_SESSION_ID`, `ERROR_INVALID_SYNTAX`, `ERROR_INVALID_TRANSPORT`, `ERROR_INVALID_UPM_FORMAT`
   - **UNSUPPORTED:** `ERROR_UNSUPPORTED_COMMAND`, `ERROR_UNSUPPORTED_DRM`, `ERROR_UNSUPPORTED_FORMAT`, `ERROR_UNSUPPORTED_FREQ`, `ERROR_UNSUPPORTED_NAMESPACE`, `ERROR_UNSUPPORTED_POSITIONING_REQUEST`, `ERROR_UNSUPPORTED_REQUEST`, `ERROR_UNSUPPORTED_REQUEST_METHOD`, `ERROR_UNSUPPORTED_VOLUME_MODE`
@@ -122,6 +122,7 @@ The internal result-code namespace: the program's own error vocabulary (the R_* 
 - **noise_note:** single-letter R_A..R_V tokens are column-name/initial noise; R_ALLOW_SSH_PUBKEY_INSTALL is a settings key, not a result code; names extracted from inside longer strings ('R_SPOT_EVT_AUDIO_TIMEOUT event handler.') are real identifiers but the bare-literal table is the ERROR_* set
 - **notes:**
   - **outbound_client_codes:** The 1001/1002-class constants appearing in nearly every propagated reach set are the OUTBOUND SOAP-client result namespace, not per-action wire faults: emitted by f_10181eb8 (outbound SOAP POST emitter, "POST %s HTTP/1.1 ... SOAPACTION"), f_10716614 (sonoscp proxy ("SOAP fault '%s', returning %d" + DeviceCertInvalid/DeviceCertExpired), and f_1038e82c (cloudqueue client) "Client error"/"Connection failed"). Reachable-from-action ≠ emittable-by-action; these codes ride the client-side result path only.
+- **todo:** `Established: the corrected R_*/ERROR_* literal vocabulary (221 names) with substring-pollution fixes, the outbound-client 1001/1002 namespace, and the noise notes are documented.`, `Still unknown: the numeric mapping - which literal names correspond to which numeric codes on the wire - is a vocabulary, not a code table.`, `Next step: pair the R_* literals with their numeric values at emit sites.`
 
 :::
 
@@ -132,7 +133,6 @@ The SMAPI capability vocabulary: the authoritative list of feature flags a music
 
 ::: details Technical details
 
-- **status:** confirmed
 - **name:** SMAPI capability/auth/container vocabulary
 - **description:** The /customsd POST form is a full SMAPI service-descriptor editor and enumerates the authoritative vocabulary that MusicServices ListAvailableServices descriptors carry.
 - **sid_range:** 240-253 or 255
@@ -145,10 +145,10 @@ The SMAPI capability vocabulary: the authoritative list of feature flags a music
   ```
 - **optional_uris:** `strings`, `presentationMap`, `manifest`
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e763e4, notes: /customsd
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e772d4, notes: trFavorites
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e773d4, notes: playlistExtendedMD
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eba94c, notes: SoundLab
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e763e4, notes: /customsd
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e772d4, notes: trFavorites
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e773d4, notes: playlistExtendedMD
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eba94c, notes: SoundLab
 
 :::
 
@@ -232,9 +232,8 @@ The modern-API route verbs: the operation-name vocabulary bound to routes, cover
   - **platformInternal:** invalidateCache/reboot/sync
   - **svc:** getWeatherConfig/setWeatherConfig/voiceCommand: a voice-service config proxy
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e7d060, notes: (param,resource,verb) registration triples, e.g. userId,entitlements,getUserEntitlements
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10e7f660, notes: playerId,pinewood,toggleMute: pinewood verb form
-- **status:** confirmed
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e7d060, notes: (param,resource,verb) registration triples, e.g. userId,entitlements,getUserEntitlements
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10e7f660, notes: playerId,pinewood,toggleMute: pinewood verb form
 
 :::
 
@@ -245,7 +244,6 @@ The enumeration tables: the named-constant vocabularies recovered across the fir
 
 ::: details Technical details
 
-- **status:** confirmed
 - **name:** Static enum name->integer registration tables
 - **note:** 48 {name*, strlen, enumval} record arrays in .data.rel.ro: the binary's own enum registration tables, giving proven integer values for the name vocabularies elsewhere catalogued as unordered literals (muse roles/auth-types/playModes, SMAPI capability bitmask, CHSRC source classes, alarm/timer/power/replication FSM states, remote buttons, speaker orientation, netmodes, trueroom data types, content-object classes, ratings, update-FSM results, vanish reasons). Values are sequential (enum) or power-of-two (bitmask) as marked.
 - **tables:**
@@ -1167,7 +1165,7 @@ The enumeration tables: the named-constant vocabularies recovered across the fir
       - **106:** ERROR_NOT_DESIGNATED_DEVICE
     - **note:** the muse/lechmere result-code enum (systemResult/result fields, cmd responses). 0-51 domain errors, 52-56 success (OK/CREATED/ACCEPTED/NO_CONTENT/NOT_MODIFIED mirroring HTTP 200/201/202/204/304), 57-106 protocol/request errors. Out-of-range renders UNKNOWN
   - **media_service_errors:**
-    - **provenance:** ordered char* name table @0x110925dc, 71 entries; duplicate-name codes share pointers (ACCESS_DENIED x3, NO_RESOURCE x3) confirming index semantics. Consumer not yet located: value binding inferred from table order, lower confidence than muse_result_codes
+    - **provenance:** ordered char* name table @0x110925dc, 71 entries; duplicate-name codes share pointers (ACCESS_DENIED x3, NO_RESOURCE x3) confirming index semantics. Consumer not yet located: value binding inferred from table order, weaker attribution than muse_result_codes
     - **kind:** enum
     - **count:** 71
     - **names:**
@@ -2289,7 +2287,7 @@ The enumeration tables: the named-constant vocabularies recovered across the fir
     - **provenance:** {char* name, u32 id} pair table @0x10fe6bb8, 18 entries
     - **note:** channel/speaker-position name map: lfe=2, lrs=3, lrrs=4, lrw=5, lrtm=6, lrtf=7, lrtr=8, lre=9, lrrh=10, lrfh=11, lrse=12, lrrse=13, lrs1=14, lrrs1=15, lrs2=16, lrrs2=17, lrcs=18, cs=19
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10f99838, notes: SMAPI/SRADIO/SFB capability table {name*,strlen,enum} stride-12
 - **r_star_status:** ALL genuine R_* namespaces now resolved or accounted: R_LED_* (proven mask), R_PLAY_OP_*/R_STREAM_OP_* (proven jump-table), R_CLIENT_KEYCERT_ID_* (proven selector returns 0-3), ~29 R_* settings keys (separate key vocabulary, no integer semantics). Earlier catalogued "R_*" families were substring artifacts of ERROR_*/FLAC__*/SPEAKER_MASK_* strings: those belong to the media_service_errors and muse_result_codes enums instead
 
 :::
@@ -2301,7 +2299,6 @@ The modern-API common layer: shared machinery all modern-API operations use bene
 
 ::: details Technical details
 
-- **status:** confirmed
 - **files:** `muse/src/sonos/muse/common/circuitbreaker.cxx`, `muse/src/sonos/muse/common/context.cxx`, `muse/src/sonos/muse/common/eventing.cxx`, `muse/src/sonos/muse/common/noncehandler.cxx`
 
 :::
@@ -2313,13 +2310,13 @@ Replication protocol elements: the message types household members exchange to s
 
 ::: details Technical details
 
-- **status:** strong
 - **name:** replication-engine wire elements
 - **description:** Replication protocol elements beyond the store inventory: ReplicationOperation/ReplicationPlayer/ReplicationResult/ReplicationTime plus QuarantinedDevices and Denylisted node sets.
 - **elements:** `ReplicationOperation`, `ReplicationPlayer`, `ReplicationResult`, `ReplicationTime`, `ReplicatedNetSettings`, `QuarantinedDevices`, `Denylisted`
 - **evidence:**
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10eacbb0, notes: <ReplicationOperation
-  - type: firmware, binary: anacapad, build: 86.10-80260, status: confirmed, address: 0x10f131f4, notes: <QuarantinedDevices
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10eacbb0, notes: <ReplicationOperation
+  - type: firmware, binary: anacapad, build: 86.10-80260, address: 0x10f131f4, notes: <QuarantinedDevices
+- **todo:** `Established: the wire-element vocabulary (ReplicationOperation/Player/Result/Time, ReplicatedNetSettings, QuarantinedDevices, Denylisted) is catalogued.`, `Still unknown: the replication protocol's message grammar - how these elements compose on the wire - is undecoded.`, `Next step: decode the replication message serializer to specify the wire grammar.`
 
 :::
 

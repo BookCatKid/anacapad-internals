@@ -1,8 +1,12 @@
 # `GroupManagement` `/GroupManagement/Control`
 
-**visibility** `advertised` · **status** `strong`
+**visibility** `advertised`
 
 This service is how grouped Sonos speakers coordinate behind the scenes. When you group rooms together in the app, one speaker becomes the coordinator, the leader that picks the music and relays it to the others. The commands in this service are mostly the members talking to that leader: joining a group, leaving it, reporting how well their audio buffering is coping, and receiving updates about which 'area' of the system is the current music source. You will never see most of this on an app screen. It is the internal glue that makes group playback stay in sync and recover gracefully when a member drops off the network.
+
+**TODO:** Established: the service's action surface, dispatch records, and state variables are fully documented.
+**TODO:** Still unknown: the gm_impl class is resolved at architecture level but per-action impl linkage and member-mutation semantics remain untraced.
+**TODO:** Next step: resolve the impl functions behind each action's handler and record them per action.
 
 ::: details Technical details
 
@@ -24,18 +28,22 @@ Coordinator-internal group membership service: members join/leave and report buf
 
 ## Actions
 
-| Action | Visibility | Reachability | Confidence | Dispatch | Error codes |
-|---|---|---|---|---|---|
-| `AddMember` | advertised | callable | `strong` | direct | 402, 800, 801, 803, 804, 808 |
-| `RemoveMember` | advertised | callable | `strong` | direct | 402, 800 |
-| `ReportTrackBufferingResult` | advertised | callable | `strong` | direct | 402 |
-| `SetSourceAreaIds` | advertised | callable | `strong` | direct | 402 |
+| Action | Visibility | Reachability | Dispatch | Error codes |
+|---|---|---|---|---|
+| `AddMember` | advertised | callable | direct | 402, 800, 801, 803, 804, 808 |
+| `RemoveMember` | advertised | callable | direct | 402, 800 |
+| `ReportTrackBufferingResult` | advertised | callable | direct | 402 |
+| `SetSourceAreaIds` | advertised | callable | direct | 402 |
 
 ### `AddMember`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Adds a speaker to the group as a follower. The new member announces itself to the coordinator (its ID and a boot counter that lets the leader tell a fresh join from a stale reconnect), and the leader replies with everything the member needs to fall into line: the address of the stream it should listen to, the group's identity, whether it should reset its volume, and which settings it should adopt. This is the handshake that turns 'Bedroom selected Living Room' into actual synchronized playback.
+
+**TODO:** Established: dispatch to handler 0x10738654; the impl object is resolved - the dedicated 'gm_impl' class (primary vptr 0x10ec2bc0, ctor f_103938f0) with AddMember impl f_10394d10 (see architecture).
+**TODO:** Still unknown: the impl-function linkage is not recorded in this record, and the member-add semantics inside f_10394d10 (argument roles, member-state writes) are not traced.
+**TODO:** Next step: link f_10394d10 into this record and trace its member-write path.
 
 ::: details Technical details
 
@@ -83,7 +91,7 @@ Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAft
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 ::: details Evidence (1)
@@ -93,9 +101,12 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-arg fetch×2, out-arg write×5, validate×1, commit×1); member delegates: r29 v\[+?\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-arg fetch×2, out-arg write×5, validate×1, commit×1); member delegates: r29 v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x10738654; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 5, '0x10': 4, '0xc': 1}
@@ -103,9 +114,12 @@ impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r29 v\[+?\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r29 v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x10738654; member vfunc calls: \['r29 v\[+?\]'\]
@@ -116,10 +130,16 @@ service-internal state reached through member delegate(s): r29 v\[+?\]
 #### Side effects
 
 - state-mutation delegate: r29 v\[+?\] (call-derived member-method semantics)
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r29 v\[+?\] (call-derived member-method semantics).
+  - **TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+  - **TODO:** Next step: resolve that target and re-derive this section's semantics.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+?\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+?\].
+**TODO:** Still unknown: the delegate/element this section flags as unresolved - `v\[+?\]` - is not resolved
+**TODO:** Next step: resolve that target and re-derive this section's semantics.
 ::: details Evidence (1)
 
 - fn 0x10738654; no transition-literal/store pattern; member delegates: \['r29 v\[+?\]'\]
@@ -127,9 +147,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738654; bl call scan: notify-family sites = \[\]
@@ -137,9 +160,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738654; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 5, '0x10': 4, '0xc': 1}
@@ -149,44 +175,50 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`402`** `strong`
+**`402`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; parse/req-layer; sites: 0x10738654).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 request-validate failure; impl rc passthrough also reaches req->v\[+0x14\]
 
 - req->v\[+0x08\] returned 0 -> addi r4,0x192 -> ->v\[+0x14\]
 
-**`800`** `confirmed`
+**`800`**
 
 gm_impl AddMember impl-level failure
 
 - incompatible member OR proto-compat retrieval failure ('Unable to retrieve invisibility/node proto compatibility', 'incompatible member')
 
-**`801`** `confirmed`
+**`801`**
 
 gm_impl AddMember impl-level failure
 
 - MemberID equals own/coordinator ID (strcmp this+0x210)
 
-**`803`** `confirmed`
+**`803`**
 
 gm_impl AddMember impl-level failure
 
 - BootSeq out-of-sync with group manager ('out-of-sync GM')
 
-**`804`** `confirmed`
+**`804`**
 
 gm_impl AddMember impl-level failure
 
 - target member is a satellite ('Adding member to satellite is not supported')
 
-**`808`** `confirmed`
+**`808`**
 
 gm_impl AddMember impl-level failure
 
 - GC or new member is an ungroupable player
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `strong`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\]); sites: via propagated return codes (no direct fault site in this action)).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,808}: documented set missed 802/806/807. Strings: 'Adding member failed - invalid argument', 'Rejecting AddMember: GC or new member is an ungroupable player', 'Adding member to satellite is not supported'.
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -218,9 +250,13 @@ impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,8
 
 ### `RemoveMember`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Removes a speaker from the group. This is what happens when you uncheck a room in the grouping screen, or when the app decides a member should leave. The coordinator drops that member's entry from its list and stops feeding it group audio.
+
+**TODO:** Established: dispatch to handler 0x10738460; impl resolves to the gm_impl class with RemoveMember impl f_10395b0c->f_10395854 (see architecture).
+**TODO:** Still unknown: per-action impl linkage not recorded here; the member-removal semantics inside f_10395854 untraced.
+**TODO:** Next step: link f_10395b0c into this record and trace the removal path.
 
 ::: details Technical details
 
@@ -240,7 +276,7 @@ Removes MemberID from the group via impl->v\[+0xc\] on r5-in. Handler fully deco
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 ::: details Evidence (1)
@@ -250,9 +286,12 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0xc\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v\[+0xc\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738460; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -260,9 +299,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r30 v\[+0xc\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v\[+0xc\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738460; member vfunc calls: \['r30 v\[+0xc\]'\]
@@ -273,10 +315,16 @@ service-internal state reached through member delegate(s): r30 v\[+0xc\]
 #### Side effects
 
 - state-mutation delegate: r30 v\[+0xc\] (call-derived member-method semantics)
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v\[+0xc\] (call-derived member-method semantics).
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xc\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0xc\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738460; no transition-literal/store pattern; member delegates: \['r30 v\[+0xc\]'\]
@@ -284,9 +332,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738460; bl call scan: notify-family sites = \[\]
@@ -294,9 +345,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738460; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -306,21 +360,27 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`402`** `strong`
+**`402`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0xc); parse/req-layer; vret(gm_impl,+0x0c); sites: 0x107384fc).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] | empty MemberID ('Removing member failed - invalid argument')
 
 - req->v\[+0x08\] returned 0 -> addi r4,0x192 -> ->v\[+0x14\]
 - *(MemberID)==0 -> return 0x192
 
-**`800`** `confirmed`
+**`800`**
 
 MemberID not in member list ('failed (not a member before?)')
 
 - member-list scan this+0x288 (0x19-stride, <=0x20) found no strcmp match
 
-**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`** `inferred`
+**`store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])`**
 
+Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v\[+0x14\])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).
+Still unknown: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates.
+Next step: disassemble the upstream worker named in the code expression and map each return code to its trigger predicate.
 group-membership rc domain reachable {800} plus internal codes via gm_impl chain
 
 - the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved
@@ -344,9 +404,13 @@ group-membership rc domain reachable {800} plus internal codes via gm_impl chain
 
 ### `ReportTrackBufferingResult`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 A feedback channel from member to coordinator. A follower speaker reports how successfully it managed to buffer the audio stream it was given, essentially saying 'I got the track data fine' or 'I had trouble keeping up'. The coordinator uses these reports to judge group health, and a member that keeps reporting failures can be handled differently from one playing happily.
+
+**TODO:** Established: dispatch to handler 0x107388a4; impl resolves to gm_impl ReportTrackBufferingResult = f_105c53d0, an unconditional-402 stub (see architecture).
+**TODO:** Still unknown: whether the 402 stub is reachable in practice and what the action would do on a build where it is implemented.
+**TODO:** Next step: confirm the stub's fault path and note any callers that depend on it.
 
 ::: details Technical details
 
@@ -370,7 +434,7 @@ Member feedback path: reports MemberID's buffering ResultCode to the coordinator
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 ::: details Evidence (1)
@@ -380,9 +444,12 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x10\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v\[+0x10\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107388a4; req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -390,9 +457,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, vali
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r30 v\[+0x10\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v\[+0x10\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107388a4; member vfunc calls: \['r30 v\[+0x10\]'\]
@@ -403,10 +473,16 @@ service-internal state reached through member delegate(s): r30 v\[+0x10\]
 #### Side effects
 
 - state-mutation delegate: r30 v\[+0x10\] (call-derived member-method semantics)
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v\[+0x10\] (call-derived member-method semantics).
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x10\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v\[+0x10\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107388a4; no transition-literal/store pattern; member delegates: \['r30 v\[+0x10\]'\]
@@ -414,9 +490,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107388a4; bl call scan: notify-family sites = \[\]
@@ -424,9 +503,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x107388a4; commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -436,8 +518,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`402`** `strong`
+**`402`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x10); parse/req-layer; vret(gm_impl,+0x10); sites: 0x10738968).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] | impl stub: unconditional 402 regardless of args
 
 - req->v\[+0x08\] returned 0 -> addi r4,0x192 -> ->v\[+0x14\]
@@ -462,9 +547,13 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\] | imp
 
 ### `SetSourceAreaIds`
 
-visibility `advertised` · reachability `callable` · confidence `strong` · dispatch `direct`
+visibility `advertised` · reachability `callable` · dispatch `direct`
 
 Tells group members which area of the system the music is coming from. Sonos organizes a household into logical 'areas' (the multi-room spaces newer app versions use), and this command propagates the coordinator's current source-area choice to the followers so everyone agrees where the sound originates.
+
+**TODO:** Established: dispatch to handler 0x10738550; impl resolves to gm_impl SetSourceAreaIds = f_10395564 (see architecture).
+**TODO:** Still unknown: the impl linkage is unrecorded here and the area-id semantics inside f_10395564 untraced.
+**TODO:** Next step: link f_10395564 and trace how area ids feed the source-area model.
 
 ::: details Technical details
 
@@ -484,7 +573,7 @@ Sets the group's desired source-area ids via impl->v\[+0x14\] on r5-in. Handler 
 
 ::: details Technical analysis
 
-#### Validation `confirmed`
+#### Validation
 
 Wrapper convention (proven on this service): each input is fetched by req->v\[+0x1c\] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v\[+0x8\] then validates the request (nonzero proceeds); the impl call impl->v\[slot\] returns a code -> cr0.eq emits outputs, nonzero goes through req->v\[+0x14\] as a SOAP fault with the impl code verbatim.
 ::: details Evidence (1)
@@ -494,9 +583,12 @@ Wrapper convention (proven on this service): each input is fetched by req->v\[+0
 :::
 
 
-#### Requirements / preconditions `strong`
+#### Requirements / preconditions
 
 impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r29 v\[+0x14\]
+**TODO:** Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r29 v\[+0x14\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738550; req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -504,9 +596,12 @@ impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, vali
 :::
 
 
-#### State dependencies `strong`
+#### State dependencies
 
 service-internal state reached through member delegate(s): r29 v\[+0x14\]
+**TODO:** Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r29 v\[+0x14\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738550; member vfunc calls: \['r29 v\[+0x14\]'\]
@@ -517,10 +612,16 @@ service-internal state reached through member delegate(s): r29 v\[+0x14\]
 #### Side effects
 
 - state-mutation delegate: r29 v\[+0x14\] (call-derived member-method semantics)
+  - **TODO:** Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r29 v\[+0x14\] (call-derived member-method semantics).
+  - **TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+  - **TODO:** Next step: trace the impl/delegate path feeding this section.
 
-#### State transitions `strong`
+#### State transitions
 
 no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+0x14\]
+**TODO:** Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v\[+0x14\].
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738550; no transition-literal/store pattern; member delegates: \['r29 v\[+0x14\]'\]
@@ -528,9 +629,12 @@ no state-machine transition literal in impl; transition, if any, inside member d
 :::
 
 
-#### Events `strong`
+#### Events
 
 direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method
+**TODO:** Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738550; bl call scan: notify-family sites = \[\]
@@ -538,9 +642,12 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 :::
 
 
-#### Return behavior `strong`
+#### Return behavior
 
 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\])
+**TODO:** Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v\[+0x24/+0x10\] then req->v\[+0x0c\] commit (200); failure -> req->v\[+0x14\] raise-fault with impl code (r4 lits: \[\]).
+**TODO:** Still unknown: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced.
+**TODO:** Next step: trace the impl/delegate path feeding this section.
 ::: details Evidence (1)
 
 - fn 0x10738550; commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}
@@ -550,8 +657,11 @@ direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call 
 
 #### Errors
 
-**`402`** `strong`
+**`402`**
 
+Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x14); parse/req-layer; sites: 0x107385fc).
+Still unknown: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated.
+Next step: trace the impl vfunc's return-code production for this action and enumerate every predicate that selects a code.
 request-validate failure; impl rc passthrough also reaches req->v\[+0x14\]
 
 - req->v\[+0x08\] returned 0 -> addi r4,0x192 -> ->v\[+0x14\]
@@ -601,6 +711,7 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\]
 - **wss_registry:**
   - idx: 34, name: groupManagement, id: 136, tag: 70
   - idx: 33, name: groupCoordinatorChanged, id: 134, tag: 12
+- **todo:** `Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `groupManagement`, `groupCoordinatorChanged`.`, `Still unknown: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven.`, `Next step: trace the service's notify emit call (GENA sender or WSS registry consumer) to recover the emission path.`
 
 :::
 
@@ -609,8 +720,11 @@ request-validate failure; impl rc passthrough also reaches req->v\[+0x14\]
 
 ::: details Technical details
 
-**`401`** `strong`
+**`401`**
 
+Established: fault sites and trigger conditions for code 401 are documented with binary evidence.
+Still unknown: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated.
+Next step: sweep the dispatcher fault table for additional emit sites of this code.
 unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler
 
 - Request action name matches no entry in the service dispatch table after the name-table search

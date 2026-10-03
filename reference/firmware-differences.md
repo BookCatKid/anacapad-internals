@@ -38,7 +38,6 @@ A literal check of which service identifiers exist in each build: a simple prese
   - **added_57.10:** `EndDirectControlSession`, `GetButtonLockState`, `SetButtonLockState`, `SetSourceAreaIds`
   - **added_86.8:** `RoomDetectionStartChirping`, `RoomDetectionStopChirping`
   - **note:** all 193 other documented action names present verbatim in all four builds; no documented action was found removed
-- **status:** confirmed
 - **qplay_evolution:** 34.16/57.10: urn:schemas-tencent-com:service:QPlay:1 as a serviceType URN. 86.8/86.10: URN removed; QPlay:2 advertised via qq:X_QPlay_SoftwareCapability in the device description; /QPlay/Control + QPlayAuth dispatch retained
 
 :::
@@ -471,7 +470,6 @@ m9-only: libdcadec.so.0 (DTS), libsqlite3.so.0, modules/ir_rcvr.ko + opt/ir/ (Pl
 
 **Additional data**
 
-- **status:** confirmed
 
 
 :::
@@ -493,7 +491,6 @@ Normalized string-level diff of the two 86.8 sibling binaries (peel-normalized f
 
 **Additional data**
 
-- **status:** confirmed
 
 
 :::

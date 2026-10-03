@@ -31,10 +31,6 @@ import genmodel
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_OUT = os.path.join(ROOT, "reference")
 
-STATUS_BADGE = {"confirmed": "`confirmed`", "strong": "`strong`",
-                "inferred": "`inferred`", "unresolved": "`unresolved`"}
-
-
 # --------------------------------------------------------------------------
 # small rendering helpers
 # --------------------------------------------------------------------------
@@ -89,10 +85,6 @@ def _details(out, lines, summary="Technical details"):
     out.append("")
 
 
-def _status(s):
-    return STATUS_BADGE.get(s, "`%s`" % s if s else "_unassessed_")
-
-
 def _sentinel(v):
     return v if v else ""
 
@@ -139,6 +131,8 @@ def _block(out, title, b, level=4):
         body = []
         if b.text:
             body.append(_para(b.text))
+        for t in _todo_lines(b.todo):
+            body.append("**TODO:** %s" % t)
         for k, v in b.extra.items():
             if v is None:
                 continue
@@ -155,8 +149,6 @@ def _block(out, title, b, level=4):
         if not body:
             return
         heading = "%s %s" % ("#" * level, title)
-        if b.status:
-            heading += " " + _status(b.status)
         out.append(heading)
         out.append("")
         out.extend(body)
@@ -187,6 +179,19 @@ def _table(out, header, rows):
     out.append("")
 
 
+_CONF_VOCAB = {"confirmed", "strong", "weak", "partial", "inferred",
+               "unresolved", "vocab", "absent", "documented",
+               "substantially decoded", "decoded-structure", "todo",
+               "catalogued", "none", "resolved"}
+
+
+def _is_conf_field(k, v):
+    if k == "confidence":
+        return True
+    return (k == "status" and isinstance(v, str)
+            and v.lower() in _CONF_VOCAB)
+
+
 def _generic(out, obj, depth=0):
     """Render an arbitrary dict/list primitive block compactly."""
     if isinstance(obj, str):
@@ -195,7 +200,7 @@ def _generic(out, obj, depth=0):
         return
     if isinstance(obj, dict):
         for k, v in obj.items():
-            if v is None or k == "client_summary":
+            if v is None or k == "client_summary" or _is_conf_field(k, v):
                 continue
             if isinstance(v, dict):
                 out.append("- **%s:**" % _e(k))
@@ -231,7 +236,9 @@ def _generic(out, obj, depth=0):
                 if flat and len(v) <= 8:
                     out.append("- " + ", ".join("%s: %s" % (_e(k), _e(x))
                                                 for k, x in v.items()
-                                                if x is not None))
+                                                if x is not None
+                                                and not _is_conf_field(k,
+                                                                       x)))
                 else:
                     sub = []
                     _generic(sub, v, depth + 1)
@@ -298,13 +305,6 @@ def render_index(m):
     rows.append(["unique action names", str(c.unique_action_names),
                  "some names recur across services"])
     _table(out, ["Count", "Value", "Definition"], rows)
-    out += ["## Confidence vocabulary", ""]
-    _pt_add(m, out, "index", "confidence")
-    term = m.meta.get("terminology") or {}
-    if term:
-        for k, v in term.items():
-            out.append("- **%s**: %s" % (_e(k), _e(v)))
-        out.append("")
     out += ["## Sections", "",
             "- [Architecture](architecture.md): routing, dispatch, request "
             "lifecycle, shared subsystems",
@@ -314,8 +314,8 @@ def render_index(m):
             "outbound client, and spec streams",
             "- [HTTP layer](http/index.md): non-SOAP HTTP endpoints, "
             "discovery, auth, and outbound clients",
-            "- [Subsystems](subsystems/index.md): non-SOAP protocols and "
-            "engines with coverage levels",
+            "- [Subsystems](subsystems/index.md): non-SOAP protocols, "
+            "engines, and on-device daemons",
             "- [Firmware differences](firmware-differences.md): "
             "cross-build/cross-model deltas",
             "- [Firmware artifacts](artifacts/index.md): every "
@@ -333,10 +333,9 @@ def _service_table(m, link_prefix):
         if stub:
             desc += " (%d stub)" % stub
         rows.append(["[%s](%s%s.md)" % (s.name, link_prefix, s.slug),
-                     "`%s`" % s.control_path, _e(s.visibility), desc,
-                     _status(s.status)])
-    _table_rows = [["Service", "Control path", "Visibility", "Actions",
-                    "Status"], rows]
+                     "`%s`" % s.control_path, _e(s.visibility), desc])
+    _table_rows = [["Service", "Control path", "Visibility", "Actions"],
+                   rows]
     return _table_rows
 
 
@@ -404,6 +403,9 @@ def render_architecture(m):
                          "%s (`%s`)" % (_e(en.get("kind")),
                                         _e(en.get("raw_expr")))])
         _table(out, ["Path", "Service", "Cap flags", "Enabled gate"], rows)
+        for rec in recs:
+            for t in _todo_lines(rec.get("todo")):
+                out.append("- **TODO:** %s" % t)
     if rt.get("router_chain"):
         out.append("### Router chain")
         out.append("")
@@ -417,10 +419,12 @@ def render_architecture(m):
         out += ["## Request object vtable", ""]
         _pt_add(m, out, "architecture", "request_vtable")
         _details(out, ["Every action wrapper interacts with the request "
-                       "through these vfunc slots (confidence: `%s`)."
-                       % _e(m.request_vtable.get("confidence"))])
+                       "through these vfunc slots."])
+        for t in _todo_lines(m.request_vtable.get("todo")):
+            out.append("- **TODO:** %s" % t)
+        out.append("")
         rows = [["`%s`" % k, _e(v)] for k, v in m.request_vtable.items()
-                if k != "confidence"]
+                if k not in ("confidence", "todo")]
         _table(out, ["Slot", "Purpose"], rows)
 
     if m.capabilities:
@@ -432,13 +436,15 @@ def render_architecture(m):
                        "unresolved."])
         rows = []
         for off, cap in m.capabilities.items():
-            rows.append(["`%s`" % off, _e(cap.effect), _status(cap.status),
-                         str(len(cap.loads))])
-        _table(out, ["Field", "Effect", "Status", "Load sites"], rows)
+            rows.append(["`%s`" % off, _e(cap.effect), str(len(cap.loads))])
+        _table(out, ["Field", "Effect", "Load sites"], rows)
         for off, cap in m.capabilities.items():
-            if cap.affected_services or cap.notes:
+            if cap.affected_services or cap.notes \
+                    or getattr(cap, "todo", None):
                 out.append("### `%s`" % off)
                 out.append("")
+                for t in _todo_lines(getattr(cap, "todo", None)):
+                    out.append("- **TODO:** %s" % t)
                 if cap.affected_services:
                     out.append("Affected services: %s"
                                % ", ".join(_e(x) for x in
@@ -455,6 +461,15 @@ def render_architecture(m):
             rows.append(["`%s`" % addr, _e(f.get("role")),
                          _e(f.get("description"))[:160]])
         _table(out, ["Address", "Role", "Description"], rows)
+        open_fns = [(a, f) for a, f in m.internal_functions.items()
+                    if f.get("todo")]
+        if open_fns:
+            lines = []
+            for addr, f in sorted(open_fns):
+                t = f["todo"]
+                first = t[0] if isinstance(t, list) else t
+                lines.append("- `%s`: %s" % (addr, _para(first)))
+            _details(out, lines, "Functions with remaining unknowns")
 
     if m.dispatch_candidates:
         out += ["## Dispatch candidates", ""]
@@ -487,9 +502,11 @@ def render_architecture(m):
             if v.get("client_summary"):
                 out.append(_para(v["client_summary"]))
                 out.append("")
+            for t in _todo_lines(v.get("todo")):
+                out.append("- **TODO:** %s" % t)
             _details(out, _generic_lines(
                 {kk: vv for kk, vv in v.items()
-                 if kk != "client_summary"}))
+                 if kk not in ("client_summary", "todo")}))
         else:
             out.append(_para(v))
         out.append("")
@@ -552,6 +569,8 @@ def _arg_details(out, args):
             extras.append("validation: %s" % _para(a.validation))
         if a.notes and _para(a.notes) != _para(a.description):
             extras.append(_para(a.notes))
+        for t in _todo_lines(a.todo):
+            extras.append("**TODO:** %s" % t)
         p = a.primitive
         if p and p.buf_cap:
             extras.append("buffer cap: `%s`" %
@@ -575,8 +594,9 @@ def _render_errors(out, errors, level=4, heading="Errors"):
         out.append("%s %s" % ("#" * level, heading))
         out.append("")
     for e in errors:
-        out.append("**`%s`** %s" % (e.code_label, _status(e.status)))
+        out.append("**`%s`**" % e.code_label)
         out.append("")
+        out += _todo_lines(e.todo)
         if e.meaning:
             out.append(_para(e.meaning))
             out.append("")
@@ -604,7 +624,6 @@ def render_action(a):
     out = ["### `%s`" % a.name, ""]
     badges = ["visibility `%s`" % a.visibility,
               "reachability `%s`" % a.reachability,
-              "confidence %s" % _status(a.status),
               "dispatch `%s`" % a.dispatch_kind]
     if a.is_stub:
         badges.append("**removed/stub, faults 401**")
@@ -612,6 +631,10 @@ def render_action(a):
     out.append("")
     if a.summary:
         out.append(_para(a.summary))
+        out.append("")
+    if a.todo:
+        for t in _todo_lines(a.todo):
+            out.append("**TODO:** %s" % t)
         out.append("")
     if a.description:
         _details(out, [_para(a.description)])
@@ -637,6 +660,8 @@ def render_action(a):
         for se in a.side_effects:
             if isinstance(se, genmodel.SemanticBlock):
                 tech.append("- %s" % _para(se.text))
+                for t in _todo_lines(se.todo):
+                    tech.append("  - **TODO:** %s" % t)
             else:
                 tech.append("- %s" % _e(se))
         tech.append("")
@@ -677,8 +702,13 @@ def render_action(a):
             det.append("- impl `%s` (vfunc `%s`)"
                        % (impl.impl_function, _e(impl.impl_vfunc)))
         if impl.engine_status:
-            det.append("- engine resolution `%s` → `%s`"
-                       % (_e(impl.engine_status), _e(impl.engine_impl_func)))
+            if impl.engine_status == "resolved":
+                det.append("- engine impl resolved to `%s`"
+                           % _e(impl.engine_impl_func))
+            else:
+                det.append("- engine resolution: %s → `%s`"
+                           % (_para(impl.engine_status),
+                              _e(impl.engine_impl_func)))
         for c in impl.calls:
             det.append("- impl call `%s` obj `%s` slot `%s` arg4 `%s`"
                        % (_e(c.get("site")), _e(c.get("obj")),
@@ -709,11 +739,14 @@ def render_action(a):
 
 def render_service(s):
     out = ["# `%s` `%s`" % (s.name, s.control_path), ""]
-    out.append("**visibility** `%s` · **status** %s"
-               % (s.visibility, _status(s.status)))
+    out.append("**visibility** `%s`" % s.visibility)
     out.append("")
     if s.summary:
         out.append(_para(s.summary))
+        out.append("")
+    if s.todo:
+        for t in _todo_lines(s.todo):
+            out.append("**TODO:** %s" % t)
         out.append("")
     if s.description:
         _details(out, [_para(s.description)])
@@ -721,8 +754,8 @@ def render_service(s):
                            or s.availability.enabled_source):
         av = s.availability
         out += ["## Availability", ""]
-        if av.status:
-            out.append("- status %s" % _status(av.status))
+        for t in _todo_lines(av.todo):
+            out.append("- **TODO:** %s" % t)
         if av.cap_flags:
             out.append("- capability flags `%s`" % _e(av.cap_flags))
         if av.enabled_source:
@@ -766,8 +799,8 @@ def render_service(s):
                                  if e.code is not None},
                                 key=int))
         rows.append(["`%s`" % n, _e(a.visibility), _e(a.reachability),
-                     _status(a.status), _e(a.dispatch_kind), errs])
-    _table(out, ["Action", "Visibility", "Reachability", "Confidence",
+                     _e(a.dispatch_kind), errs])
+    _table(out, ["Action", "Visibility", "Reachability",
                  "Dispatch", "Error codes"], rows)
     for a in s.actions.values():
         out.append(render_action(a))
@@ -868,9 +901,8 @@ def render_state_variables(m):
                      % (_e(svc), slugs[svc]),
                      _e(sv.data_type),
                      ("yes" if sv.evented else "no")
-                     if sv.evented is not None else "?",
-                     _status(sv.status)])
-    _table(out, ["Variable", "Service", "Type", "Evented", "Status"], rows)
+                     if sv.evented is not None else "?"])
+    _table(out, ["Variable", "Service", "Type", "Evented"], rows)
     files["soap/state-variables.md"] = "\n".join(out)
 
     for svc in sorted(by_svc):
@@ -900,6 +932,8 @@ def render_state_variables(m):
                     "`%s`" % r for r in sv.related_actions))
             if sv.notes:
                 out.append("- %s" % _para(sv.notes))
+            for t in _todo_lines(getattr(sv, "todo", None)):
+                out.append("- **TODO:** %s" % t)
             out.append("")
         files["soap/state-variables/%s.md" % slugs[svc]] = "\n".join(out)
     return files
@@ -1001,16 +1035,16 @@ def render_errors(m):
         for a in s.actions.values():
             for e in a.errors:
                 rows.append(["`%s`" % a.name, "`%s`" % e.code_label,
-                             _status(e.status), _e(e.meaning)[:140]])
+                             _e(e.meaning)[:140]])
         if s.errors:
             for e in s.errors:
                 rows.append(["_(dispatcher)_", "`%s`" % e.code_label,
-                             _status(e.status), _e(e.meaning)[:140]])
+                             _e(e.meaning)[:140]])
         if not rows:
             continue
         out.append("### `%s`" % s.name)
         out.append("")
-        _table(out, ["Action", "Code", "Status", "Meaning"], rows)
+        _table(out, ["Action", "Code", "Meaning"], rows)
     return "\n".join(out)
 
 
@@ -1020,8 +1054,12 @@ def render_formats(m, kind, title, blurb):
     _details(out, [blurb])
     src = m.uri_formats if kind == "uri" else m.payload_formats
     for k, f in sorted(src.items()):
-        out.append("## `%s` %s" % (k, _status(f.status)))
+        out.append("## `%s`" % k)
         out.append("")
+        for t in _todo_lines(getattr(f, "todo", None)):
+            out.append("**TODO:** %s" % t)
+        if getattr(f, "todo", None):
+            out.append("")
         if getattr(f, "client_summary", None):
             out.append(_para(f.client_summary))
             out.append("")
@@ -1183,34 +1221,26 @@ def render_firmware(m):
     return "\n".join(out)
 
 
-_STATUS_ORDER = {"absent": 0, "vocab": 1, "partial": 2,
-                 "documented": 3, "todo": 4}
-
-
-_SUB_TIERS = [
-    ("decoded", "Decoded subsystems",
-     {"strong", "confirmed", "substantially decoded", "documented"}),
-    ("partial", "Partially decoded", {"partial"}),
-    ("catalogued", "Catalogued / absent", None),
-    ("queued", "Queued: not yet reverse-engineered", {"todo"}),
-]
-
-
-def _sub_tier(status):
-    if status == "todo":
-        return "queued"
-    for slug, _, statuses in _SUB_TIERS[:-2]:
-        if status in statuses:
-            return slug
-    return "catalogued"
+def _todo_lines(todo):
+    """Normalize a todo field (string or list) to renderable lines."""
+    if not todo:
+        return []
+    if isinstance(todo, list):
+        return [_para(t) for t in todo]
+    return [_para(todo)]
 
 
 def _subsystem_body(out, n, s):
     out += ["## `%s`" % n, ""]
-    out.append("**coverage** `%s`" % _e(s.get("status") or "?"))
-    out.append("")
     if s.get("client_summary"):
         out.append(_para(s["client_summary"]))
+        out.append("")
+    todo = _todo_lines(s.get("todo"))
+    if todo:
+        out.append("**TODO**")
+        out.append("")
+        for t in todo:
+            out.append("- %s" % t)
         out.append("")
     tech = []
     if s.get("summary"):
@@ -1221,7 +1251,7 @@ def _subsystem_body(out, n, s):
                              for a in s["anchors"]), ""]
     _generic(tech, {k: v for k, v in s.items()
                     if k not in ("summary", "status", "anchors",
-                                 "evidence")})
+                                 "evidence", "todo")})
     _ev_details([genmodel.Evidence.from_raw(e)
                  for e in s.get("evidence") or []], tech)
     if any(x.strip() for x in tech):
@@ -1230,52 +1260,170 @@ def _subsystem_body(out, n, s):
 
 def render_subsystems(m):
     files = {}
-    subs = sorted(m.subsystems.items(),
-                  key=lambda kv: (_STATUS_ORDER.get(
-                      kv[1].get("status"), 9), kv[0]))
-    by_tier = {}
-    for n, s in subs:
-        by_tier.setdefault(_sub_tier(s.get("status")), []).append((n, s))
+    subs = sorted(m.subsystems.items())
 
     out = ["# Non-SOAP subsystems", ""]
     _pt_add(m, out, "subsystems", "intro")
-    _details(out, ["Self-contained protocols/engines living in the same "
-                   "binary beside or below the UPnP layer. `absent` = no "
-                   "coverage, `vocab` = names/strings catalogued but "
-                   "semantics undecoded, `partial` = some real "
-                   "documentation exists. Evidence addresses are the "
-                   "rodata anchor strings."])
+    _details(out, ["Self-contained protocols, engines, and daemons "
+                   "living in the same binary beside or below the UPnP "
+                   "layer. Any record that still has reverse-engineering "
+                   "work ahead carries a TODO naming what is already "
+                   "established, what remains unknown, and the next "
+                   "concrete step. Evidence addresses are the rodata "
+                   "anchor strings."])
 
     def _gloss(s):
         t = s.get("client_summary") or s.get("summary") or ""
+        if not isinstance(t, str):
+            t = json.dumps(t, ensure_ascii=False) \
+                if isinstance(t, (dict, list)) else str(t)
         cut = t.find(". ")
         if cut > 0:
             t = t[:cut + 1]
         return t
 
-    rows = [["[`%s`](%s.md#%s)" % (n, _sub_tier(s.get("status")), n),
-             "**%s**" % _e(s.get("status") or "?"),
-             _e(_gloss(s))]
+    rows = [["[`%s`](#%s)" % (n, n), _e(_gloss(s))]
             for n, s in subs]
-    _table(out, ["Subsystem", "Coverage", "Summary"], rows)
+    _table(out, ["Subsystem", "Summary"], rows)
+    for n, s in subs:
+        _subsystem_body(out, n, s)
     files["subsystems/index.md"] = "\n".join(out)
 
-    _TIER_INTRO = {
-        "queued": ["These records mark components that are shipped and "
-                   "known to matter but have not been reverse-engineered "
-                   "yet. Each entry names the artifact it refers to and "
-                   "what still needs decoding, so this page doubles as "
-                   "the project's open-work list.", ""],
-    }
-    for slug, title, _ in _SUB_TIERS:
-        members = by_tier.get(slug) or []
-        if not members:
+    open_rows = []
+    for n, s in subs:
+        raw = s.get("todo")
+        if not raw:
             continue
-        out = ["# %s" % title, ""]
-        out += _TIER_INTRO.get(slug, [])
-        for n, s in members:
-            _subsystem_body(out, n, s)
-        files["subsystems/%s.md" % slug] = "\n".join(out)
+        first = raw[0] if isinstance(raw, list) else raw
+        open_rows.append(["[`%s`](index.md#%s)" % (n, n),
+                          _e(first[:200])])
+
+    def _first_todo(t):
+        return t[0] if isinstance(t, list) else t
+
+    soap_rows = []
+    for s in m.services:
+        if s.todo:
+            soap_rows.append(
+                ["service [`%s`](../soap/%s.md)" % (s.name, s.slug),
+                 _e(_first_todo(s.todo)[:200])])
+        for a in s.actions.values():
+            if a.todo:
+                soap_rows.append(
+                    ["action [`%s`](../soap/%s.md#%s)"
+                     % (a.name, s.slug, a.name.lower()),
+                     _e(_first_todo(a.todo)[:200])])
+            for e in a.errors:
+                if getattr(e, "todo", None):
+                    soap_rows.append(
+                        ["error [`%s` %s](../soap/%s.md#%s)"
+                         % (a.name, e.code_label, s.slug,
+                            a.name.lower()),
+                         _e(_first_todo(e.todo)[:200])])
+        for e in s.errors:
+            if getattr(e, "todo", None):
+                soap_rows.append(
+                    ["error [`%s` dispatcher %s](../soap/%s.md)"
+                     % (s.name, e.code_label, s.slug),
+                     _e(_first_todo(e.todo)[:200])])
+        av = s.availability
+        if av and getattr(av, "todo", None):
+            soap_rows.append(
+                ["availability [`%s`](../soap/%s.md)" % (s.name, s.slug),
+                 _e(_first_todo(av.todo)[:200])])
+
+    sv_rows = []
+    for k, sv in m.all_state_variables().items():
+        if getattr(sv, "todo", None):
+            sv_rows.append(
+                ["[`%s`](../soap/state-variables.md)" % k,
+                 _e(_first_todo(sv.todo)[:200])])
+
+    fmt_rows = []
+    for kind, src in (("uri", m.uri_formats),
+                      ("payload", m.payload_formats)):
+        for k, f in sorted(src.items()):
+            if getattr(f, "todo", None):
+                fmt_rows.append(
+                    ["[`%s`](../soap/%s-formats.md#%s)"
+                     % (k, kind, str(k).lower()),
+                     _e(_first_todo(f.todo)[:200])])
+
+    prim_rows = []
+    for k, v in sorted(m.shared_primitives.items()):
+        if isinstance(v, dict) and v.get("todo"):
+            anchor = k if k in _SOAP_PRIM_KEYS \
+                else "other-recovered-subsystems"
+            prim_rows.append(
+                ["[`%s`](../architecture.md#%s)" % (k, anchor),
+                 _e(_first_todo(v["todo"])[:200])])
+
+    fn_rows = []
+    for addr, f in sorted(m.internal_functions.items()):
+        if isinstance(f, dict) and f.get("todo"):
+            fn_rows.append(
+                ["[`%s`](../architecture.md#internal-functions)" % addr,
+                 _e(_first_todo(f["todo"])[:200])])
+
+    misc_rows = []
+    if m.request_vtable.get("todo"):
+        misc_rows.append(
+            ["[request vtable](../architecture.md#request-object-vtable)",
+             _e(_first_todo(m.request_vtable["todo"])[:200])])
+    for raddr, r in (m.routing.get("routers") or {}).items():
+        for rec in r.get("records") or []:
+            if rec.get("todo"):
+                misc_rows.append(
+                    ["routing [`%s`](../architecture.md)" % rec.get("path"),
+                     _e(_first_todo(rec["todo"])[:200])])
+    if isinstance(m.muse, dict) and m.muse.get("todo"):
+        misc_rows.append(
+            ["[muse API](../muse/index.md)",
+             _e(_first_todo(m.muse["todo"])[:200])])
+    for k, v in sorted((m.muse or {}).items()):
+        if k == "todo":
+            continue
+        if isinstance(v, dict) and v.get("todo"):
+            misc_rows.append(
+                ["muse record `%s`" % k,
+                 _e(_first_todo(v["todo"])[:200])])
+    cl = getattr(m, "cert_layer", None) or {}
+    if isinstance(cl, dict) and cl.get("todo"):
+        misc_rows.append(
+            ["cert layer (`documentation.json` `cert_layer`)",
+             _e(_first_todo(cl["todo"])[:200])])
+
+    if open_rows or soap_rows or sv_rows or fmt_rows \
+            or prim_rows or fn_rows or misc_rows:
+        ow = ["# Open work", ""]
+        _pt_add(m, ow, "open_work", "intro")
+        _details(ow, ["Every record that still has documented "
+                      "reverse-engineering work ahead, auto-collected "
+                      "from each record's TODO. The first TODO line is "
+                      "shown here; the full established / unknown / "
+                      "next-step detail lives on the record itself."])
+        if open_rows:
+            ow += ["## Subsystems", ""]
+            _table(ow, ["Subsystem", "TODO"], open_rows)
+        if prim_rows:
+            ow += ["## Shared primitives", ""]
+            _table(ow, ["Primitive", "TODO"], prim_rows)
+        if soap_rows:
+            ow += ["## SOAP services, actions and errors", ""]
+            _table(ow, ["Record", "TODO"], soap_rows)
+        if sv_rows:
+            ow += ["## State variables", ""]
+            _table(ow, ["Variable", "TODO"], sv_rows)
+        if fmt_rows:
+            ow += ["## Formats", ""]
+            _table(ow, ["Format", "TODO"], fmt_rows)
+        if fn_rows:
+            ow += ["## Internal functions", ""]
+            _table(ow, ["Function", "TODO"], fn_rows)
+        if misc_rows:
+            ow += ["## Other records", ""]
+            _table(ow, ["Record", "TODO"], misc_rows)
+        files["subsystems/open-work.md"] = "\n".join(ow)
     return files
 
 
@@ -1450,6 +1598,9 @@ def render_muse(m):
     _pt_add(m, out, "muse", "description")
     if mu.get("description"):
         _details(out, [_para(mu["description"])])
+    for t in _todo_lines(mu.get("todo")):
+        out.append("**TODO:** %s" % t)
+    out.append("")
     _pt_add(m, out, "muse", "flags_decode")
     _pt_add(m, out, "muse", "dispatch")
     _pt_add(m, out, "muse", "tables")
@@ -1622,9 +1773,8 @@ def render_availability(m):
             flag = "stub" if a.is_stub else (
                 "hidden-callable" if a.is_hidden_callable else "callable")
             rows.append(["`%s`" % n, _e(a.visibility), flag,
-                         _status(a.status),
                          "`%s`" % (a.handler or "-")])
-        _table(out, ["Action", "Visibility", "Wire status", "Confidence",
+        _table(out, ["Action", "Visibility", "Wire status",
                      "Handler"], rows)
     return "\n".join(out)
 

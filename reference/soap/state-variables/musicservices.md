@@ -11,6 +11,9 @@ MusicServices evented variable; emitted by f_100c7084 e:property dump.
 :::
 
 - form: `<e:property><NAME>value</e:property>`
+- **TODO:** Established: the variable's type (ui4), evented=True, and declared semantics are documented for MusicServices.
+- **TODO:** Still unknown: the runtime producer - which impl field or event path writes and emits this variable - is not traced.
+- **TODO:** Next step: trace the variable's LastChange/update emitter back to its backing field.
 
 ### `MusicServices.A_ARG_TYPE_ServiceDescriptorList`
 
@@ -82,3 +85,6 @@ replicated services list XML
 
 :::
 
+- **TODO:** Established: the emitted field set for this internal structure is decoded and listed in this record.
+- **TODO:** Still unknown: which impl-side fields or storage produce each emitted value; the producers behind the schema are not traced field-by-field.
+- **TODO:** Next step: trace the emitter's field reads to their backing storage to confirm each field's source.
