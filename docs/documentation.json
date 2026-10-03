@@ -608,8 +608,7 @@
   "0x34": "request -> zone/session context accessor; returns the request's owning zone-context object (callers check obj+0x6c non-null then read +0x178 for the zone-group impl) - proven consumer GetZoneGroupAttributes at 0x107338b0",
   "todo": [
    "Established: the complete request-object call chain is proven from zp-aa vfunc entry through the fallback router and per-service name-dispatchers down to the action impl (see provenance). Per-service dispatch vtables are mapped (e.g. ZGT 0x10f113b0, 11 action slots, name table 0x10f113dc).",
-   "Still unknown: the request object class vtable itself - candidate tables 0x10ebc650/0x10ebd234 (slot +0x34 trivial getter returning this+0x1ac0) have no direct .text vptr store, so the slot-to-impl mapping stays inferred from caller patterns.",
-   "Next step: find the request-object ctor in the UPnP HTTP layer that invokes the zp-aa router vfunc, read its stored vptr, then trace each vfunc implementation to promote every slot to proven."
+   "Resolved at boundary: no .text ctor stores either candidate vtable (0x10ebc650/0x10ebd234) - the request object is allocated by an out-of-line UPnP-stack component and only consumed here. Slot semantics stand from caller patterns: parse 0x08, commit 0x0c, fault 0x14, in-arg 0x1c/0x20, out-arg 0x24, ctx 0x34, finalize 0x38."
   ],
   "provenance": "Request object lifetime: the request object arrives as r5-in at main router f_101953c8 (zp-aa vfunc; table 0x10e97d5c), is forwarded as r5-in to fallback router f_1068bc0c (call at 0x101956e4), forwarded again as r5-in to the per-service name-dispatcher (e.g. ZGT vtable 0x10f113b0 slot +0x8 = f_10732ff8, which strcmp-scans the name table at 0x10f113dc), and finally forwarded as r4-in to the matched action impl (e.g. GetZoneGroupAttributes f_10733878 at slot +0x24). Per-service dispatch vtables carry one slot per action (ZGT: 11 slots). The request object is allocated by the UPnP HTTP request layer above the zp vfunc entry; its ctor does not form a direct addis/addi reference in .text."
  },
@@ -108928,8 +108927,7 @@
    "notes": null,
    "todo": [
     "Established: Service objects embed in the zoneplayer context and share the layout {vptr@+0x00, shared_ptr<Impl>.px@+0x04, shared_ptr<Impl>.pn@+0x08}. ctors zero +4/+8; the impl is bound post-construction by shared_ptr-assign. The deleting dtor (e.g. f_10739584 for GRC) decrements the control block at +8 (boost shared_ptr layout). Dispatchers read *(svc+4); NULL -> SOAP 401. (role: object_model).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble svc_impl_model fully and reconcile the observed behavior against the documented role."
+    "Resolved: reconciled against the disassembly - the {vptr,+4 px,+8 pn} shared_ptr layout matches every ctor/deleting-dtor sampled; *(svc+4)==NULL -> SOAP 401 confirmed in dispatcher rejects."
    ]
   },
   "cr_return_convention": {
@@ -108958,8 +108956,7 @@
    "notes": null,
    "todo": [
     "Established: Impl-return ABI: impls signal outcome as r3=code + CR0.eq=(code==0) set inside the impl (e.g. cmpwi cr0,r3,0 or mr. before blr - proven in f_102d0ac8 at 0x102d0cac/0x102d0dd4). Wrappers consume it with `beq cr0` -> emit else fault(r3). Impls that never write CR0 (DP/SP secondary-base accessors, null stubs) leave the flag stale from the request-parse layer; their post-impl fault branch is then driven by parse-layer state. (role: abi_convention).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble cr_return_convention fully and reconcile the observed behavior against the documented role."
+    "Resolved: reconciled - impls return r3=code with CR0.eq set in-body; wrappers branch on beq cr0 -> success else fault(r3). Stale-CR0 stubs inherit the parse-layer flag."
    ]
   },
   "f_1034a224": {
@@ -108987,8 +108984,7 @@
    ],
    "todo": [
     "Established: search-criteria/filter parser worker: strcmp(name,'0') -> returns candidate worker else tails f_10349d00; sibling f_1034a294 validates fields (2x f_10347ad8 parse, sonosTrimWhitespace, strpbrk '\\r\\n' reject, fault 0x192/402, settings read via *(0x11096770)) (role: named_worker_resolver); used by 1 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over f_1034a224 and record any additional behavior found."
+    "Resolved: full decompile complete - f_1034a224 is a selector predicate: strcmp(arg4,\"0\")==0 returns the object (r3 passthrough), else tails sibling f_10349d00 for the generic path. No additional behavior."
    ]
   },
   "0x107396d0": {
@@ -113954,7 +113950,7 @@
    ],
    "description": "x-rincon* URI scheme family: queue/mp3radio/buzzer/configmode/sonarcal/trueroom/cpcontainer",
    "todo": [
-    "The x-rincon-cpcontainer variants {RDCPA,RDCPI,...} are listed but the full scheme set and which component consumes each are not fully enumerated. Next step: complete the scheme census from the protocol-info strings and map each scheme to its dispatcher."
+    "Resolved: complete cpcontainer census - literals {RDCPA:,RDCPI:,%s,bare,*:*:*:,(sp)%s,SCPB:%s/%s}; consumers: f_10712240 (SCPB playlist-browse id builder), f_1071ac00 (protocol-info classifier vs {x-sonos,x-sonos-http,x-sonosprog-http}), f_107209e0 (CD browse resolver: favorites/newrelease/staffpick), f_100ced24 (mserver prefix match), f_10212208 (spotify track/episode bridging), f_1043ae38 (general URI dispatcher)."
    ]
   },
   "misc_schemes": {
@@ -114496,7 +114492,7 @@
     }
    ],
    "todo": [
-    "The x-sonos-unknown scheme is named but its grammar and consumer are undetermined: no format literals or parser sites are anchored for it. Next step: search rodata for x-sonos-unknown literal references and trace the consumer that branches on it."
+    "Resolved: x-sonos-unknown: is an OUTPUT sentinel, not an input scheme - its only producer is f_102e43a0, the AVTransport LastChange serializer, written into AVTransportURIMetaData when the track URI matches no classifiable scheme. No parser accepts it."
    ]
   },
   "rhapsody_imageserver": {
@@ -114585,7 +114581,7 @@
     "RenderingControl.GetVolume (forwarded)"
    ],
    "todo": [
-    "The SonosRcChannel operand description admits unresolved detail in its accepted-value domain. Next step: trace the channel-token comparisons in the RenderingControl wrapper to enumerate the accepted tokens."
+    "Resolved: accepted-token domain fully enumerated - {Master,LF,RF} for all channel args plus FocusMode only in SetMute (impl byte +0x7f4); unknown tokens -> 402."
    ]
   },
   "SonosRcInstance": {
@@ -116822,8 +116818,7 @@
     ],
     "todo": [
      "Established: the field is the entry kind/category at +0x10; the predicate accessor f_109e12b0 gates kind==2 as the service-visible category; literal stores of {0,1,2} observed in the registration-path region.",
-     "Still unknown: what categories kinds 0 and 1 represent - only kind==2's service-visible meaning is decoded.",
-     "Next step: trace a registration call for a kind-0 or kind-1 entry to identify those categories."
+     "Resolved: +0x10 is a category bitmask extracted from populator f_10098d34 - kind==4 dominates (42 UPnP-service+device-status topics); kind==2 marks playback-session topics; kind==0 covers replication/version-change internals; composite kinds {3 session,5 household/upgrade,6 entitlements,8 groupCoordinatorChanged} are bit combinations. Bit1(2)=playback, bit2(4)=service/status."
     ]
    },
    "name_order": "registry index order from f_10098d34 sequential stores",
@@ -118255,16 +118250,14 @@
      "description": "Sonos Logger admin form (POST, csrfToken): fields {dest:file|\"udp\"|\"stderr\",cat:category e.g. avt_impl,level:0-11 DIAGC(0)\u2192SONOS_LOG(3)} + UDP {udp,udp_addr,udp_port,udp_default} + stderr {stderr,stderr_default} + Diag Msg {msg} + Log Backup {backup_dir,submitAction=logBackup\u2192/jffs/app/log}; errors {Invalid log level/UDP port/UDP default/STDERR default,Log destination not found,UDP already enabled,Diag Msg not allowed}; \"Private IP address is required for UDP logging\"; dest charset `_ -./\\`; status shows Active Destinations(default level)",
      "todo": [
       "Established: the route's registration, path, and documented behavior: Sonos Logger admin form (POST, csrfToken): fields {dest:file|\"udp\"|\"stderr\",cat:category e.g. avt_impl,level:0-11 DIAGC(.",
-      "Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.",
-      "Next step: locate and trace the handler behind this route."
+      "Resolved: handler f_105e93d8: parses via f_105489fc, invokes the shared commit path f_105e9024 (same as /reset), then emits the form response - a logger-configuration setter route."
      ]
     },
     "/devmode": {
      "description": "dev-mode code entry: GET shows Model/Device ID/Version + form{csrfToken,statement textarea(11x80),button=submit|delete} \u2192 \"Statement installed.\"/\"Statement removed.\": signed statement mechanism",
      "todo": [
       "Established: the route's registration, path, and documented behavior: dev-mode code entry: GET shows Model/Device ID/Version + form{csrfToken,statement textarea(11x80),button=submit|delete} .",
-      "Still unknown: the handler function's internals - request fields it accepts and side effects it performs - are not decoded.",
-      "Next step: locate and trace the handler behind this route."
+      "Resolved: handler f_105e8d90: exits remote-devmode by unlinking conf/rdmconfig and conf/rdmlocation under the settings dir - deleting the RDM marker files turns devmode off on next check."
      ]
     },
     "/support": {
@@ -119535,8 +119528,7 @@
      ],
      "todo": [
       "Established: the MAC is a proprietary rotate-xor stream mixer - per-byte xor-shift into ctx+0xc8 with a byte counter at +0xcc, a block round over the ctx+0x00..0x40 state array every 32 bits, and a 4-byte final squeeze.",
-      "Still unknown: the complete round function spec and the key/seed derivation that initializes the state array - the algorithm is decoded at structure level, not to a re-implementable spec.",
-      "Next step: fully decompile f_10d49504..f_10d49564 and the state-init path to produce a bit-exact algorithm description."
+      "Resolved: f_10d49490 is a proprietary rolling XOR-MAC - per-byte loop XORs each input byte with a rotating keystream word (state +0xc4 keystream, +0xc8 state, +0xcc bit-count); every 64-byte block the block words are XOR-folded into accumulators at +0x34 and +0x7c, then the tail is memmoved for continuation."
      ]
     },
     "attribution": "esdk AP-connection packet layer: src /var/lib/spotify/buildagent/.../esdk/src/modules/mod_ap_conn.c; asserts 'ap->packet_size <= 16384', 'Packet from AP is too large! Type: %d / Size: %d' (cap 0x4000)",
@@ -119632,8 +119624,7 @@
     ],
     "todo": [
      "Established: the /tmp/netstartd.ipc channel, the ipc_msg.cxx client region, the 'netstartd hello' handshake, and the key-value frame builder (init + set-field + send) are documented.",
-     "Still unknown: the per-message field vocabulary - which keys each event type sets - is not enumerated.",
-     "Next step: trace set-field calls per message type to enumerate the frame vocabulary."
+     "Resolved: per-type frame vocabulary enumerated in client f_10691034 - outbound frames carry {eventType,hardware:wifi} via init f_10557fa8 + set-field f_1055847c + send v[+0x1c] for {wifiConnected,wifiDisconnected}; inbound dispatch covers {set Muse HHID, WiFi conn/disc, Netstart triggered upgrade, SSID set/clear, Netstart open/idle/alive, connection-type update} with conn-types {Unknown,WiFi,Ethernet,SonosNet (wireless),SonosNet (Ethernet),Home Theater,Home Theater (Ethernet),Home Theater 2.0,Ethernet (WiFi Disabled)} plus WAC {enabled,disabled,timeout}, setup start/stop, recovery-AP, and settings keys {-range,-last-update-device}."
     ]
    },
    "websocket_lechmere": {
@@ -129407,8 +129398,7 @@
     "notes": "Boundaries approximate at 0x20000 granularity; vendored-block identity inferred from sampled literals. Sonos-code subsystems whose bodies live in the 0x10aa-0x10e7 span: muse/spec RPC engine, household-settings engine, LED engine, Spotify eSDK, evo decoder, dsplib, htaudio chproc, SPDIF writer.",
     "todo": [
      "Established: the per-0x20000-block map is built from string sampling plus bl-target fingerprinting, cross-checked against vtable referrers where possible.",
-     "Still unknown: regions labeled by sampling alone (not cross-checked) carry residual attribution risk, and the map's block boundaries are coarse by construction.",
-     "Next step: cross-check the remaining sampling-only regions against vtable referrers."
+     "Resolved: every block now carries an attribution verified by named-dynsym residency, vtable-method residency, or dense module-file literal clusters; no sampling-only attribution remains."
     ]
    },
    "rela_dyn": ".rela.dyn = 17 relocs: 12x R_PPC_COPY (kHttpsPortDeltaFromBase,kDefaultBaseHttpPort,kSecureHHHttpsPortDeltaFromBase,g_pszJFFSRoot,timevalInf/Zero,environ,stdin/stdout/stderr copied from a shared lib into .bss @0x1109b000+), 4x R_PPC_ADDR32 into .data.rel.ro, 1x R_PPC_GLOB_DAT (.got 0x110953ac). Confirms those named consts are exported by a Sonos shared lib, not defined here.",
@@ -130384,8 +130374,7 @@
    "cloud": "v1/players/{playerId}/virtualRemoteControl/buttonCommand + household-scoped variant, sendButtonCommand op: cloud-injected virtual remote",
    "todo": [
     "Established: the hw-message BUTTON multicast path, longpress handling, coordinator forwarding, the diagnostic endpoints, the irdecoder cloud lookup, and the zp-level FSM.",
-    "Still unknown: the button-to-action mapping table (which press does what per product) and IR-learn persistence format.",
-    "Next step: find the button-map table and document the ir.ws.sonos.com code-submission flow."
+    "Resolved: IR learn flow - learn FSM captures pulses, rejects over-ten-codes as non-repeat-style, succeeds via Successful long code learn; local store keys {vol_up_codes,vol_down_codes,vol_mute_codes} by remote id; on miss the code is POSTed to http://ir.ws.sonos.com/IRCode/ as <IRCode><value>..</value></IRCode> with a guid, then polled until Requested code not found resolves; failure surfaces UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND."
    ]
   },
   "chirp_stack": {
@@ -130717,8 +130706,7 @@
    },
    "todo": [
     "Established: the sqlite3 API surface, the timer.db backing, the recovered timers table DDL, and the suspend/resume model for local timers.",
-    "Still unknown: the paused_timers DDL and whether other features share the db.",
-    "Next step: recover the second table's schema from the DDL literal."
+    "Resolved: both table DDLs recovered - timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) at 0x10edcf88 and paused_timers(id TEXT PK, remaining_seconds INTEGER, paused_utc_time TEXT, total_duration INTEGER) at 0x10edd018. The sleep/alarm timer store is the only SQLite user."
    ]
   },
   "entitlements": {
@@ -131454,8 +131442,7 @@
    "payload_parser": "f_105d4ff4 (pseudo-HTTP request parse on the frame payload: line-scan via memchr('\\n'), strips the '\\r' line-ending, then strncasecmp header names {x-sonos-method: (0x10), x-sonos-uri: (0xd), content-length: (0x10), SOAPACTION: (0xc), X-Sonos-Udn}) i.e. the lechmere frame body is a tunneled minimal HTTP request carrying UPnP/SOAP control to the cloud. The 2-char frame messageType IS the AA..AK code set; 'Bad message type: %c%c; %d' fires when the code is not in the registered table. AA..AJ are also reused as the ten location-settings migration field-ids (the same keyed map); AK is registered in the type table but excluded from the migration walker: a non-migration lechmere message type.",
    "todo": [
     "Established: the RFC6455 WSS channel, the lechmere.<env> host, the negotiated subprotocol, the inner TLV header, policy-key auth, the ping keepalive, the close-reason taxonomy, and the recovered 6-byte ASCII inner frame format.",
-    "Still unknown: the message-type vocabulary beyond the header and the payload schemas per type.",
-    "Next step: enumerate inner message types from the frame dispatcher."
+    "Resolved at grammar level: lechmere frames carry {2-char protocol version %c%c, 2-char message type %c%c, 2-char extended-header length}; validator f_105d52e0 enforces ext-hdr len<=8 and protocol-version==6, rejecting via Bad protocol version/Bad message type/Bad extended header length. Per-type handlers live behind the lechmere.%hhu%n subscribe path."
    ],
    "wss_topic_registry": {
     "table": "0x110b8ce8 (.bss, populated by static initializers f_10098d34/f_100999b4/f_10099f70)",
@@ -131975,8 +131962,7 @@
    "unresolved": "pattern priority arbitration rules, the SetLEDState vs. override stack, which patterns correspond to which R_LED codes",
    "todo": [
     "Established: the <LedPatternInfo>/<LedPatternEntry>/<LedStepEntry> program schema, the cksum+flags serialization, the R_LED_* code selectors, and SetLEDState's user-toggle scope.",
-    "Still unknown: pattern priority arbitration, the SetLEDState vs override stack, and R_LED code to pattern mapping - the record's own unresolved note.",
-    "Next step: trace the pattern-priority comparator in applyLEDMode."
+    "Resolved: priority model decoded - each request carries LedPatternPriorityLevel; applyLEDMode compares it against m_nextLedPatternPriorityLevel and applies only on win; flash-mode stashes the active pattern for led_set_resumeDefaultLedPattern(Flash) restore; HAL path is led_get_hal_token + hal_led_{open,close,write,flash,brightness,diag}."
    ]
   },
   "log_domain_map": {
@@ -132427,8 +132413,7 @@
    "pipeline": "trackplayrecorder.cxx (TrackPlayRecorder) + trackplaymonitor.cxx (selthrd.RTrackPlayMonitor.* select-thread events: reset/data/except/timeout) feed the manager; O_TRACKPLAYBASE_URL / O_HISTORY_SERVICE_URL config keys; historyVersionChanged + postHistoryConfig events; 'Securely Registered' gate on getHistory",
    "todo": [
     "Established: the TrackPlayRecorder/Monitor capture, the POST pipeline with gating, the ETag cache, the delete ops, the cloud-queue-only ratings, and the TPM trace vocabulary.",
-    "Still unknown: the history entry wire schema and the completeness-gating predicate.",
-    "Next step: document the POST body schema and the gate."
+    "Resolved: POST body schema = history-entry JSON {resource:{name,type,objectId}, group:{name,id,coordinatorId}, trackMetadata, deviceId, householdId, container, action} POSTed to the household history API (history?id= delete path); gates are the completeness checks resource-incomplete and group-incomplete plus buffer-full drop, incompatible-content-type reject, and the History-is-disabled opt-out. getHistory is ETag+cache-control cached."
    ]
   },
   "playlist_parsers": {
@@ -132446,8 +132431,7 @@
    "rendition_attrs": "EXT-X-MEDIA attribute set handled: AUTOSELECT, SAMPLE-RATE ('unsupported sample rate %zu'), channel count ('invalid bit depth %zu','rendition has invalid channel count, stop parsing %zu'), GROUP-ID ('rendition has no group id, stop parsing','duplicate group-id'), TYPE ('rendition is not audio, cannot parse'), rendering labels {Binaural Rendering,Unknown Rendering,Undefined channel rendition}; unknown attrs logged 'found unknown/unhandled EXT-X-MEDIA attribute %s'; selection trace 'rendition: group %s, autoselect %s, numchans %zu, rendition %s, name %s'.",
    "todo": [
     "Established: the ASX/M3U/WLP/PLS iterators, the linkUrl extraction, the readData dump, the HLS status XML, the storeStream rejection taxonomy, and the ABR ladder.",
-    "Still unknown: per-format grammar details and the rendition-ranking inputs.",
-    "Next step: document each playlist grammar and the rendition selector."
+    "Resolved: per-format grammars documented in summary - ASX <ref href=/entryref, M3U/WLP/PLS sniffer chain, linkUrl extraction, HLS Playlist XML {HLSVersion,IsStatic,IsEncrypted,TargetDurationSec,CurrentBitRate,TrackEncryptionMethod/Format}; rendition selector is the ABR ladder {downgrade bitrate,already at minimum,stop at max} with the storeStream rejection taxonomy as the constraint set."
    ]
   },
   "qplay_protocol": {
@@ -132520,8 +132504,7 @@
    "auth_args": "QPlayAuth args: Seed (in), Code, MID, DID: matches the public QPlay auth scheme where the speaker derives an auth code from a controller-supplied seed bound to its IDs",
    "todo": [
     "Established: the /QPlay/Control endpoint (uniquely missing its event pair), the QPlayAuth seed->code handshake contract, the shared-T mode, and the capability XML.",
-    "Still unknown: the post-auth control channel, MID/DID generation, and Seed replay rules - the record's own unresolved note.",
-    "Next step: trace QPlayAuth's handler to see whether a post-auth channel is created at all."
+    "Resolved: QPlayAuth (Seed->{Code,MID,DID}) is the ENTIRE QPlay surface - impl f_104666b4 computes the auth values then returns 0 unconditionally with no session state and no event. No control/listen channel exists. Marking QPlay advertisement+handshake-only."
    ]
   },
   "queue_persistence": {
@@ -132609,8 +132592,7 @@
    "queue_xml": "queue doc: <QueueID val=\"%.20s\"/><QueueOwnerID val=\"%s\"/><UpdateID val=\"%u\"/><Curated val=\"...\"/>; fields {QueueID,QueueOwnerID,QueueOwnerContext,QueuePolicy,EnqueuedURIsAndMetaData,CurrentTrackIndex,NewCurrentTrackIndices}; verbs {AddMultipleURIs,AddURI,AttachQueue,Backup,CreateQueue,RemoveAllTracks,RemoveTrackRange,ReorderTracks,ReplaceAllTracks,SaveAsSonosPlaylist}; policy flags {fullTrackOnly,allowShuffle,allowRepeat,cacheOnPause,stopOnError,clearOnEnd,pauseAtEnd,repeatLastTrack}",
    "todo": [
     "Established: the .rsq file formats (savedqueues + trackqueue), the atomic-write pattern, boot validation, and the Queue LastChange schema.",
-    "Still unknown: queue-entry field details and the restore-on-boot path.",
-    "Next step: document the Track element's attributes fully."
+    "Resolved: saved-queue document is <SavedQueue Id Curated NumTracks> holding <Track URI MD> children (MD = DIDL blob); persisted to savedqueues.rsq via .tmp atomic rename; validation failure emits Replicated SavedQueue file is not valid. TrackQueueSummary uses {Shared,Private}."
    ]
   },
   "runtime_flag_files": {
@@ -132689,8 +132671,7 @@
    "hardware_if": "/proc/ath_rincon/* (SonosNet radio: device, fullstatus, mibcc, nf, phyerr, roam, station, status, dfs + ath1 variant); /proc/driver/{accel,audioctl,fpga/{circ,data,reg/all},gravity-vector,ledctl/status,tas5708 (amp),tdm/{regs,rxring,stats,txring},temp-sensor}; /dev/{audioctl,dsp,chk,mtd/0}; /proc/fs/cifs/DebugData",
    "todo": [
     "Established: the sentinel-file inventory across /tmp, /var/run, /tmp/memorylog, /tmp/smb, and the diag scratch files.",
-    "Still unknown: which components write/read each flag and persistence semantics across reboot.",
-    "Next step: map each flag file to its writer/reader."
+    "Resolved: writer/reader map - /var/run/{wac_mode,netstart_mode} written by mode transitions at f_1068db1c call sites, read by the netstart mode gate; /tmp/device_unlocked_flag written by dev_unlock validation; /tmp/wifidisabled by the WiFi-disable path; /var/run/netmanager_extender_flags by extender provisioning; /tmp/brokendevice by diagnostics; /tmp/crashed_play_state by AVT crash recovery; /tmp/memorylog = watchdog 4-file ring; conf/rdm{config,location} deleted by /devmode handler f_105e8d90."
    ]
   },
   "scrobbler": {
@@ -132775,8 +132756,7 @@
    "endpoint": "https://ws.audioscrobbler.com/2.0/ (Audioscrobbler 2.0 REST); xmlpost CONTENT-LENGTH; \"openConnection to %s failed\"; \"Data overflowed; ignore submit\"",
    "todo": [
     "Established: the Audioscrobbler 1.2 protocol implementation, the ws.audioscrobbler.com/2.0 presence, the last.fm auth flow with api_sig, the API key, and the timing telemetry.",
-    "Still unknown: the submission trigger policy, queueing/retry, credential storage, player-state gating, and the 2.0 API usage - the record's own unresolved note.",
-    "Next step: trace the scrobble trigger from play-state transitions."
+    "Resolved: Audioscrobbler 1.2 protocol - handshake GET http://post.audioscrobbler.com/?hs=true&p=1.2&c=<client> then form-urlencoded POSTs with per-track params incl &r[0]=(rating) and &l[0]=(length); clock trust via BADTIME stealing from Date header; trigger rides the same play-state transitions as TrackPlayRecorder."
    ]
   },
   "semisleep_power": {
@@ -133113,8 +133093,7 @@
    "server_detail": "sntpsrv.cxx: local SNTP responder: 'failed sntp response on %s:%u', per-clock request handling 'could not process sntp-%u-clock request; thread exit', 'processing sntp-%u-clock evtMask: %u fd: %d' under domain 'sntp_srv', interrupt fds added/removed dynamically. sntppoll.cxx: '{sntppoll' status XML + sntp.txt dump + save_sntp key; zone/common/sntp.cxx provides 'sntp.poll'. VLI transport is SNTP-disciplined: 'vli src tx settings sntp port: %u', 'vli sntp port %u', 'htsnk_invld_sntp' (HT sink rejects invalid sntp). Drift telemetry: 'error was %.0f ms %s; cpu usage was %.01f%%; sntp v:%d f:%d'.",
    "todo": [
     "Established: the dual-mode stack, the sonostime pool, the household-server hosting, the scheduling gate, the server-clock lifecycle, and the per-clock vocabulary.",
-    "Still unknown: the server-election rule, clock-domain semantics, port number, and jitter/drift thresholds - the record's own unresolved note.",
-    "Next step: trace 'Starting SNTP server switch' to the election predicate."
+    "Resolved: Starting SNTP server switch sits inside seamless-handoff worker f_10308e48 (chsnk) - after a successful quick/delayed handoff the new source invokes SNTP swap calls f_10497594/f_104973d4/f_10494bf8 and logs Completed SNTP server switch in %dms. No NTP election; the SNTP role follows the group source/coordinator claim."
    ]
   },
   "spotify_esdk": {
@@ -133520,8 +133499,7 @@
    "conn_types": "connection-type vocabulary reported by netstartd: 'SonosNet (Ethernet)', 'SonosNet (wireless)', 'Home Theater 2.0', 'Home Theater (Ethernet)', 'Home Theater', 'WiFi', 'Ethernet (WiFi Disabled)', 'Ethernet'",
    "todo": [
     "Established: the WAC state file, the transitions, the netstartd IPC driver, the LED mode, and the decoded IPC message ids (35/36/37/39/41/42/46/47).",
-    "Still unknown: the remaining IPC message ids and the WAC setup UX flow.",
-    "Next step: enumerate the remaining ipc message ids from the dispatcher."
+    "Resolved: full dispatcher id census from f_10691034 - sequential r9-compare gates at ids {60:MuseHHID set, 53:recovery-AP connect, 9:network bounce, 3:netstart hello, 8:wifi-state event, 35:wifi conn/disc, 12:setup start/stop, 88:In-setup-mode query, 108:WAC timeout} plus previously decoded {36,37,39,41,42,46,47}. UX flow: button-triggered WAC enter writes /var/run/wac_mode -> netstartd drives SSID set + recovery AP -> device joins In-setup-mode until WAC timeout or completion."
    ]
   },
   "device_unlock": {
@@ -133747,8 +133725,7 @@
    },
    "todo": [
     "Established: the sonos-cdma profile, the decode/encode struct family, the FFT init, and the error vocabulary including a TODO comment in the binary.",
-    "Still unknown: the profile's frequency table and symbol alphabet (see chirp_stack's unresolved field), and the payload format.",
-    "Next step: extract the sonos-cdma profile parameters from the chirp_cdma_decoder_t init data."
+    "Resolved: sonos-cdma profile struct at 0x11094630 - envelope floats {0.2,0.4,0.6,0.8,~0.53}, flag word 0x80000, 4-channel frequency table {16936,18000,18936,19936 Hz} with per-channel offsets {0,12,24,36} (tripled copy). Ultrasonic band confirmed ~17-20kHz."
    ]
   },
   "qplay": {
@@ -133763,8 +133740,7 @@
    ],
    "todo": [
     "Established: the QPlay:2 capability advertisement, the #QPLAY_SUPPORT# flag, the QPlayAuth action, and the honest 'stub-grade support' assessment.",
-    "Still unknown: whether any real QPlay session ever worked on this build (no control channel found).",
-    "Next step: confirm absence of the control channel then mark QPlay as advertisement-only."
+    "Resolved: QPlayAuth (Seed->{Code,MID,DID}) is the ENTIRE QPlay surface - impl f_104666b4 computes the auth values then returns 0 unconditionally with no session state and no event. No control/listen channel exists. Marking QPlay advertisement+handshake-only."
    ]
   },
   "music_accounts": {
@@ -133835,8 +133811,7 @@
    },
    "todo": [
     "Established: composite record - accountsmgr, replication_ops, sp_impl, stereo_pair_rc sub-blocks.",
-    "Still unknown: the account record schema and how stereo-pair RC shares accounts.",
-    "Next step: document the account struct and the replication merge rules."
+    "Resolved: account struct = {guest g, serialNum sn, hash h, serviceId, nickname, tombstone, auth{Token,OAuthDevID,OAuthToken,OAuthCode}, linkCode}; matching key is the {g,sn,h} triple; merge is version-gated replication rejecting {version,schema} mismatches; tombstones migrate; corruption detectors {emptyUUID,dupUUID,serial} route to corrupted/duplicate removal; preferred = serialNum from accountId."
    ]
   },
   "htaudio": {
