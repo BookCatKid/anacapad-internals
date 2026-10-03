@@ -389,15 +389,21 @@ def render_architecture(m):
             continue
         out.append("### `%s` records" % addr)
         out.append("")
+        if r.get("notes"):
+            _details(out, [_para(r["notes"])])
         rows = []
         for rec in recs:
             en = rec.get("enabled") or {}
             rows.append(["`%s`" % rec.get("path"), _e(rec.get("name")),
                          "`%s`" % _e(rec.get("cap_flags")),
                          "%s (`%s`)" % (_e(en.get("kind")),
-                                        _e(en.get("raw_expr")))])
-        _table(out, ["Path", "Service", "Cap flags", "Enabled gate"], rows)
+                                        _e(en.get("raw_expr"))),
+                         _e(rec.get("obj"))])
+        _table(out, ["Path", "Service", "Cap flags", "Enabled gate", "Obj"],
+               rows)
         for rec in recs:
+            if rec.get("notes"):
+                _details(out, [_para(rec["notes"])])
             for t in _todo_lines(rec.get("todo")):
                 out.append("- **TODO:** %s" % t)
     if rt.get("router_chain"):

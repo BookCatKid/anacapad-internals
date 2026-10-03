@@ -775,9 +775,6 @@ def analyze_router(elf, text, starts, extents, fva, plt):
             if xs and xs[-1][2] in ("stb", "stbu"):
                 en = xs
                 break
-        if en is None:
-            xs = stw.get(o + 0x0C) or stw.get(o + 0x10)
-            en = xs
         if en:
             pc_, src, sz = en[-1]
             rec["enabled"] = {"val": src, "pc": pc_, "size": sz}
