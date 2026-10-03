@@ -32,6 +32,8 @@ PAGE_ORDER = [
     ("http-api", "HTTP / non-SOAP"),
     ("muse-api", "muse API (v1)"),
     ("firmware-differences", "Firmware differences"),
+    ("artifacts", "Firmware artifacts"),
+    ("muse_spec_streams", "Muse spec streams"),
     ("subsystems", "Subsystems"),
 ]
 

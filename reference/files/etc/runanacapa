@@ -1,0 +1,28 @@
+#!/bin/sh
+
+. /etc/rundaemon.sh
+
+trackrestart anacapa /var/run/anacapa.start 1
+
+if [ -f /var/run/upgradeinfo ]; then
+    mkdir /tmp
+    rm /jffs/upgrade_tmp_prev.log
+    mv /tmp/upgrade.log /jffs/upgrade_tmp_prev.log
+    echo Running upgrade ...
+    /bin/upgrade >> /tmp/upgrade.log 2>&1
+    rr=$?
+    echo RESULT = $rr >> /tmp/upgrade.log
+    rm /var/run/upgradeinfo
+    exit $rr
+fi
+for X in /tmp/smb/*
+do 
+    if [ -d "$X" ] 
+    then
+        umount "$X"
+        rmdir "$X"
+    fi
+done
+waitwhiletrue "[ -f /var/run/stopanacapa ]"
+
+exec /opt/bin/anacapactl start-demo

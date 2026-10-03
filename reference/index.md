@@ -63,3 +63,5 @@ Every fact on this site carries a confidence tag so nothing is overstated. 'Conf
 - [muse API](muse-api.md): the v1 REST surface (route table, methods, op names)
 - [Subsystems](subsystems.md): non-SOAP protocols and engines with coverage levels
 - [Firmware differences](firmware-differences.md): cross-build/cross-model deltas
+- [Firmware artifacts](artifacts.md): every extractable file in the image, playable or downloadable
+- [Muse spec-pair streams](muse_spec_streams.md): the raw field-type catalog behind the v1 API

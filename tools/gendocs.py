@@ -339,6 +339,10 @@ def render_index(m):
             "engines with coverage levels",
             "- [Firmware differences](firmware-differences.md): "
             "cross-build/cross-model deltas",
+            "- [Firmware artifacts](artifacts.md): every extractable "
+            "file in the image, playable or downloadable",
+            "- [Muse spec-pair streams](muse_spec_streams.md): the raw "
+            "field-type catalog behind the v1 API",
             ""]
     return "\n".join(out)
 
@@ -1416,6 +1420,176 @@ def render_availability(m):
 
 
 # --------------------------------------------------------------------------
+# firmware artifacts (docs/artifacts.json + reference/files/)
+# --------------------------------------------------------------------------
+
+def _fmt_size(n):
+    if n is None:
+        return "size unknown"
+    if n < 1024:
+        return "%d B" % n
+    if n < 1024 * 1024:
+        return "%.1f KB" % (n / 1024)
+    return "%.1f MB" % (n / (1024 * 1024))
+
+
+def _preview_lines(path, limit=60):
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+            lines = fh.read(65536).splitlines()
+    except OSError:
+        return None, 0
+    return lines[:limit], len(lines)
+
+
+def render_artifacts(m):
+    """Categorized, downloadable firmware artifact page. The manifest
+    (docs/artifacts.json) is authored by hand; tools/extract_artifacts.py
+    copies the real files into reference/files/ and fills in size, sha256
+    and kind."""
+    man_path = os.path.join(ROOT, "docs", "artifacts.json")
+    man = json.load(open(man_path))
+    cats = man.get("categories") or {}
+    files = man.get("files") or {}
+
+    out = ["# Firmware artifacts", ""]
+    _pt_add(m, out, "artifacts", "intro")
+    shipped = [p for p, e in files.items()
+               if e.get("status") in ("shipped", "package")]
+    total = sum(e.get("size") or 0 for p, e in files.items()
+                if e.get("status") in ("shipped", "package"))
+    out.append("Every file below was extracted from the `%s` firmware "
+               "image (%d files, %s total). Audio plays in the page, "
+               "images render inline, and text files can be viewed or "
+               "downloaded. Programs, libraries and modules are download-"
+               "only: they are ARM binaries, not something a browser can "
+               "open." % (man.get("rootfs", "firmware"), len(shipped),
+                          _fmt_size(total)))
+    out.append("")
+
+    for cat, cmeta in cats.items():
+        members = sorted(p for p, e in files.items()
+                         if e.get("category") == cat)
+        if not members:
+            continue
+        out.append("## %s" % _e(cmeta.get("title") or cat))
+        out.append("")
+        if cmeta.get("friendly"):
+            out.append(_para(cmeta["friendly"]))
+            out.append("")
+        if cmeta.get("technical"):
+            _details(out, [_para(cmeta["technical"])])
+
+        for rel in members:
+            e = files[rel]
+            name = os.path.basename(rel)
+            status = e.get("status")
+            out.append("### `%s`" % name)
+            out.append("")
+            if e.get("friendly"):
+                out.append(_para(e["friendly"]))
+                out.append("")
+
+            fs_path = os.path.join(ROOT, "reference", "files", rel)
+            link = "files/" + rel
+            # raw HTML embeds need to step out of the page's directory URL
+            raw_link = "../files/" + rel
+            if status == "absent":
+                out.append("*Not shipped in this build; documented because "
+                           "other firmware versions and binary string "
+                           "evidence reference it.*")
+                out.append("")
+            elif status == "missing" or not os.path.isfile(fs_path):
+                out.append("*Listed in the manifest but not found during "
+                           "the last extraction run.*")
+                out.append("")
+            else:
+                kind = e.get("kind") or "binary"
+                if kind == "audio":
+                    out.append('<audio controls preload="none" '
+                               'src="%s"></audio>' % raw_link)
+                    out.append("")
+                elif kind == "image":
+                    out.append('<img src="%s" alt="%s" '
+                               'style="max-width:120px">' % (raw_link,
+                                                             _e(name)))
+                    out.append("")
+                if e.get("sensitive"):
+                    out.append("*Security-sensitive file: it is published "
+                               "firmware data and stays downloadable, but "
+                               "its contents are not previewed inline.*")
+                    out.append("")
+                bits = []
+                if kind in ("text",) and not e.get("sensitive"):
+                    bits.append("[View](%s)" % link)
+                bits.append("[Download](%s)" % link)
+                bits.append(_fmt_size(e.get("size")))
+                out.append(" · ".join(bits))
+                out.append("")
+                if kind == "text" and not e.get("sensitive"):
+                    preview, nlines = _preview_lines(fs_path)
+                    if preview:
+                        fold = ["First %d of %d lines:"
+                                % (len(preview), nlines), "",
+                                "```"]
+                        fold += preview
+                        fold.append("```")
+                        _details(out, fold, summary="Preview")
+
+            tech = []
+            tech.append("- **Path in image:** `/%s`"
+                        % (rel if not rel.startswith("package/")
+                           else rel))
+            tech.append("- **Category:** %s" % cat)
+            if e.get("size") is not None:
+                tech.append("- **Size:** %s (%d bytes)"
+                            % (_fmt_size(e["size"]), e["size"]))
+            if e.get("sha256"):
+                tech.append("- **SHA-256:** `%s`" % e["sha256"])
+            tech.append("")
+            if e.get("technical"):
+                tech += [_para(e["technical"]), ""]
+            _details(out, tech)
+        out.append("")
+    return "\n".join(out)
+
+
+# --------------------------------------------------------------------------
+# muse spec-pair streams (docs/muse_spec_streams.json)
+# --------------------------------------------------------------------------
+
+def render_muse_spec_streams(m):
+    """Reproducible rendering of the decoded spec-pair streams. The JSON
+    source (docs/muse_spec_streams.json) holds the extracted stream data;
+    this function owns the page layout so the output is regenerated, not
+    hand-maintained."""
+    path = os.path.join(ROOT, "docs", "muse_spec_streams.json")
+    data = json.load(open(path))
+    out = ["# Muse spec-pair streams", ""]
+    _pt_add(m, out, "muse_spec_streams", "intro")
+    _details(out, [
+        "Each row is `{member_name_idx, type_name_idx}` decoded through "
+        "the %d-entry name table at %s."
+        % (data.get("name_table_size", 0), data.get("name_table_addr")),
+        "`ffffffff`/`ffffffff` terminates a stream. `globalError` rows "
+        "enumerate the error/variant payload types an op may produce;",
+        "`ok`/named members with `upnpEvent` are event-delivered "
+        "payloads."])
+    for s in data.get("streams") or []:
+        out.append("## stream @ %s (n=%d)" % (s["addr"], s["n"]))
+        if s.get("verbs"):
+            out.append("adjacent verb/param pool: %s"
+                       % ", ".join("`%s`" % v for v in s["verbs"]))
+        out.append("")
+        for r in s.get("rows") or []:
+            out.append("- `%s` %s : `%s` %s"
+                       % (r["member_idx"], r["member"],
+                          r["type_idx"], r["type"]))
+        out.append("")
+    return "\n".join(out)
+
+
+# --------------------------------------------------------------------------
 # driver
 # --------------------------------------------------------------------------
 
@@ -1438,6 +1612,12 @@ def render_all(m, outdir):
              "subsystems.md": render_subsystems(m),
              "firmware-differences.md": render_firmware(m),
              "availability-matrix.md": render_availability(m)}
+    for rel, fn in (("artifacts.md", render_artifacts),
+                    ("muse_spec_streams.md", render_muse_spec_streams)):
+        try:
+            files[rel] = fn(m)
+        except FileNotFoundError:
+            pass
     svc_dir = os.path.join(outdir, "services")
     os.makedirs(svc_dir, exist_ok=True)
     for s in m.services:

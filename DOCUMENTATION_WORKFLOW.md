@@ -25,7 +25,13 @@ tools/validate.py              structural + semantic validation
 tools/lint.py                  weak-documentation linter
 tools/coverage.py              coverage report
 tools/genmodel.py              normalized generator IR + consistency QA
-tools/gendocs.py               Markdown reference renderer (consumes the IR)
+tools/gendocs.py               Markdown reference renderer (consumes the IR;
+                               also renders artifacts.md from docs/artifacts.json
+                               and muse_spec_streams.md from
+                               docs/muse_spec_streams.json)
+tools/extract_artifacts.py     copies manifest files from an unpacked rootfs
+                               into reference/files/ (ANACAPAD_ROOTFS env var),
+                               refreshing size/sha256/kind in the manifest
 tools/gensite.py               static HTML renderer for reference/
 reference/                     generated Markdown reference tree
 site/                          generated static HTML site

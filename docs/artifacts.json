@@ -1,0 +1,1823 @@
+{
+ "rootfs": "rootfs-86.10-80260-1-9",
+ "categories": {
+  "audio": {
+   "title": "Audio files",
+   "friendly": "Sounds the speaker itself can play on demand: button chimes, setup prompts, and calibration tones. None of these are music files; they are short built-in sounds the firmware keeps on board so it can answer instantly without downloading anything.",
+   "technical": "Playback is triggered through x-rincon-buzzer:, x-rincon-configmode: and x-rincon-sonarcal: URIs resolved against /opt/buzzers and (for downloaded tones) an ETag-managed cache."
+  },
+  "image": {
+   "title": "Images",
+   "friendly": "Picture files the speaker stores for its own use, mostly the small product icon shown to apps and other players so your speaker appears with the right picture in lists of devices.",
+   "technical": "Served from /opt/htdocs/img and referenced by the device description's iconList so controllers can render the model correctly."
+  },
+  "specs": {
+   "title": "Service specifications and device descriptions (XML)",
+   "friendly": "These XML files are the speaker's public contract. They describe, in a standard format, every service the player offers, every command each service accepts, and every value it reports. Apps and other software read these files straight off the speaker to learn what it can do before they ever send it a command.",
+   "technical": "UPnP SCPD documents plus the #TOKEN#-templated device description, served verbatim from /opt/htdocs/xml over the device's embedded web server."
+  },
+  "config": {
+   "title": "Configuration files",
+   "friendly": "Settings files that ship inside the firmware image itself. They set defaults and behaviors before anything personal is added: how the web server listens, how logs are recorded, which radio setups are allowed, and which background measurements are on.",
+   "technical": "Static defaults under /opt/conf, /opt/ir, /opt/dsp, /opt/localsettings and /etc; runtime state that changes later lives separately under the writable /jffs partition."
+  },
+  "system": {
+   "title": "Base system files",
+   "friendly": "Standard Unix-era system files that every Linux-style appliance carries: the account list, the startup table, filesystem mounts, and network name resolution. They are unglamorous but they define the basic shape of the device as a small computer.",
+   "technical": "Busybox-era /etc plumbing from the limelight buildroot: user database, init table, mount table, resolver config, and protocol/service name databases."
+  },
+  "scripts": {
+   "title": "Boot and service scripts",
+   "friendly": "Small shell scripts that start and stop the device's programs in the right order, bring the network up, and recover when something crashes. Reading them is the clearest way to see how the player actually boots.",
+   "technical": "POSIX shell launchers and lifecycle scripts under /etc; they glue the kernel, the sibling daemons, and anacapad together during boot, shutdown, and reset."
+  },
+  "binaries": {
+   "title": "Programs",
+   "friendly": "The runnable programs shipped on the speaker: the main player software itself, the daemons that manage networking and LEDs, and the utility tools used for upgrades, diagnostics, and factory procedures. These are compiled machine code, so you can download them but not read them like a text file.",
+   "technical": "ELF executables for the limelight (ARM) target. anacapad is the analysis subject of this site; the rest are sibling daemons and vendor/board utilities."
+  },
+  "libs": {
+   "title": "Shared libraries",
+   "friendly": "Reusable code bundles the programs load at runtime. Each one provides a specialty, like playing a music format, encrypting a connection, or talking to a database, so the main program does not have to carry everything itself.",
+   "technical": "Dynamically linked ELF shared objects under /lib and /usr/lib; includes Sonos-internal libsonos-* components plus bundled third-party libraries."
+  },
+  "modules": {
+   "title": "Kernel modules",
+   "friendly": "Drivers that plug into the Linux kernel at boot: the audio hardware driver, the infrared receiver, the watchdog, and the WiFi chipset modules. They are the lowest software layer, sitting between the operating system and the physical chips.",
+   "technical": "Loadable kernel objects under /modules and /wifi (Atheros driver family for the SonosNet-capable radio stack)."
+  },
+  "webui": {
+   "title": "Diagnostics web pages",
+   "friendly": "The raw ingredients of the speaker's hidden status website: JavaScript and HTML pages you can reach in a browser at the player's address. Sonos support and engineers use these pages to inspect a player; this is what the site actually is under the hood.",
+   "technical": "Static assets served by the embedded web server from /opt/htdocs and the locked variant /opt/htdocs_locked (gated DSP console pages)."
+  },
+  "package": {
+   "title": "Firmware package pieces",
+   "friendly": "The parts of the actual update file Sonos ships: the kernel image, the compressed filesystem that contains everything else on this page, the installer script, and the factory data block written per-device. Together these are what a firmware update physically delivers to the speaker.",
+   "technical": "Sections extracted from the signed .upd update package: uImage kernel, squashfs rootfs, preinstall script, and the per-device NCD payload template."
+  },
+  "referenced": {
+   "title": "Referenced but not shipped on this model",
+   "friendly": "Files the software knows about and can use, but which are not present in this model's firmware image. Some are downloaded on demand when a feature runs (like calibration tones), some belong to other models, and some are created at runtime rather than shipped. Documented here because the code references them by name.",
+   "technical": "Path and filename literals recovered from the binary that resolve to CDN downloads, other-model firmware trees, or runtime-created state rather than files in this squashfs."
+  }
+ },
+ "files": {
+  "opt/buzzers/0.mp3": {
+   "category": "audio",
+   "friendly": "The loudest of the four numbered button chimes. The player plays this through its own speaker when a physical button press needs a clear audible confirmation, such as the final step of a setup or pairing gesture.",
+   "technical": "Buzzer asset index 0, about 88 KB. Resolved by the x-rincon-buzzer:0 URI family and played through the mixer on the alert path rather than the music pipeline.",
+   "status": "shipped",
+   "size": 87989,
+   "sha256": "9448835023747a67c6a060bc168b32fa11c9bb4018727a27d10e9961da3dc250",
+   "kind": "audio"
+  },
+  "opt/buzzers/1.mp3": {
+   "category": "audio",
+   "friendly": "A quieter numbered chime used for softer confirmations. It sits alongside the other numbered buzzers as part of the small vocabulary of sounds the player can make without involving a music service.",
+   "technical": "Buzzer asset index 1, about 41 KB. Same alert-path playback as 0.mp3; the four numbered files form the graded confirmation set.",
+   "status": "shipped",
+   "size": 41288,
+   "sha256": "e9ccea41f9c98e27b355fe68034dbf77274f3df004cfef18f9ead1817c33a28d",
+   "kind": "audio"
+  },
+  "opt/buzzers/100.mp3": {
+   "category": "audio",
+   "friendly": "Another of the numbered confirmation sounds, used for a different stage or type of action than the low-numbered chimes.",
+   "technical": "Buzzer asset index 100, about 42 KB. The jump in numbering suggests a second group of sounds for a distinct event class inside the same directory.",
+   "status": "shipped",
+   "size": 42061,
+   "sha256": "35669519666e9a07838c621dfaf809fe2086d53790d02ddcfa5ed19622e41733",
+   "kind": "audio"
+  },
+  "opt/buzzers/101.mp3": {
+   "category": "audio",
+   "friendly": "The smallest buzzer file, a very short tick or blip used for the lightest possible confirmation.",
+   "technical": "Buzzer asset index 101, about 5 KB. Its size implies a sub-second clip, consistent with a minimal UI tick.",
+   "status": "shipped",
+   "size": 5054,
+   "sha256": "6e68b9122065d617ec6c081365345d04091a48b646699e8f478798923c9f9a45",
+   "kind": "audio"
+  },
+  "opt/buzzers/speaker-detect.mp3": {
+   "category": "audio",
+   "friendly": "The loud chirp a speaker emits when the app asks 'which box is this?' During setup or diagnostics the player plays this tone so you can identify which physical speaker you are configuring.",
+   "technical": "About 255 KB, the largest buzzer by far because it is a longer identification tone. This is the file behind the 'chirp' feature and the x-rincon-configmode:speaker-detect URI documented in the URI formats page.",
+   "status": "shipped",
+   "size": 254725,
+   "sha256": "1611d71bab8d9a7a7d72ae6afc662c6637a9d4eaca9272166de6e54e9c1ff934",
+   "kind": "audio"
+  },
+  "opt/buzzers/leader.ogg": {
+   "category": "referenced",
+   "friendly": "The tone a group leader plays during the older Sonar room-calibration flow. The firmware references it by name, but it is not stored in this model's image; it is fetched when calibration runs.",
+   "technical": "Referenced by the x-rincon-sonarcal:leader.ogg URI and the trueplay/sonarcal tone-download machinery; delivered on demand via the ETag-cached tone download path rather than shipped in /opt/buzzers.",
+   "status": "absent"
+  },
+  "opt/buzzers/testtone.ogg": {
+   "category": "referenced",
+   "friendly": "The measurement tone used while calibrating a speaker's sound for the room. Referenced by name in the calibration code but downloaded only when a tuning session actually runs.",
+   "technical": "x-rincon-sonarcal:testtone.ogg; pulled through the tone_download machinery (etags.txt cache) at calibration time.",
+   "status": "absent"
+  },
+  "opt/buzzers/complete.ogg": {
+   "category": "referenced",
+   "friendly": "The 'finished' jingle played at the end of a calibration pass so you know the measurement succeeded. Named in the binary, fetched on demand.",
+   "technical": "x-rincon-configmode:sonar-calibrate-complete / sonarcal complete.ogg family.",
+   "status": "absent"
+  },
+  "opt/buzzers/complete_ht.ogg": {
+   "category": "referenced",
+   "friendly": "The completion tone for home-theater calibration specifically, the variant used when tuning a soundbar rig with satellites.",
+   "technical": "x-rincon-sonarcal:complete_ht.ogg; home-theater variant of the calibration-complete asset.",
+   "status": "absent"
+  },
+  "opt/buzzers/trueroom_tone.ogg": {
+   "category": "referenced",
+   "friendly": "The tone for the trueroom tuning pass, a second-generation room measurement the firmware supports but does not ship as a file.",
+   "technical": "x-rincon-sonarcal:trueroom family; downloaded per-session like the other sonarcal assets.",
+   "status": "absent"
+  },
+  "opt/htdocs/audio/level.mp3": {
+   "category": "referenced",
+   "friendly": "A test tone that the smaller Play:1 model ships for audio level checks. On the Playbar build this file does not exist; the same menu of sounds is implemented but this asset was left out of this model.",
+   "technical": "271 KB in the m8/fenway rootfs (documented in the firmware-differences page); absent from the m9 image.",
+   "status": "absent"
+  },
+  "opt/htdocs/img/icon-S9.png": {
+   "category": "image",
+   "friendly": "The little Playbar picture the speaker offers to apps and to other players. When a controller lists the devices in your home, this is the icon drawn next to the Playbar's name.",
+   "technical": "Product icon for model S9 (Playbar). Served over HTTP from the device itself; referenced by the iconList in device_description.xml. Sister models ship icon-S1.png, icon-S3.png and Sub.png instead, which is how the topology page distinguishes products.",
+   "status": "shipped",
+   "size": 1263,
+   "sha256": "c3a409a2ae628cab55fb09e4f83fc0e11e28bd4978d43ae399e9dbaba7aa7d15",
+   "kind": "image"
+  },
+  "opt/htdocs/xml/device_description.xml": {
+   "category": "specs",
+   "friendly": "The speaker's self-description document: the first file any controller downloads. It announces the model, the serial number, the icon, and the list of services the device offers, so everything else in the conversation starts from here.",
+   "technical": "The #TOKEN#-templated root UPnP device description. 35 substitution tokens (#UUID#, #HOST#, #MODEL#, #SW_VERSION#...) are filled in per-unit before serving. This is the file that makes the box discoverable and describable.",
+   "status": "shipped",
+   "size": 9936,
+   "sha256": "58dabd2bfc174cafa5d524805c681a2c759bc1ee0636d364702df56b1d80633d",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/group_description.xml": {
+   "category": "specs",
+   "friendly": "The same kind of self-description, but for a grouped room rather than a single speaker. When a group of players acts as one, this document describes that combined identity to the outside world.",
+   "technical": "The group-level device description variant. Distinct from satellite_device.xml on smaller models; here it presents the zone group's virtual device surface.",
+   "status": "shipped",
+   "size": 825,
+   "sha256": "cf5570ddb9e3f7ba505ef790c0f599bda7476390b856f58b7e413a8ee2513cc6",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/AlarmClock1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the AlarmClock service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for AlarmClock1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 14871,
+   "sha256": "548d73b396023dfb1bc1125cf195ff224dda63563f012a6ab43af38e9d1d0387",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/AudioIn1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the AudioIn service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for AudioIn1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 4282,
+   "sha256": "86b16d72f97cf9acd2838755c2fa2e1316e64328eb5b0a59618779f7d9bf9b2a",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/AVTransport1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the AVTransport service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for AVTransport1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 52535,
+   "sha256": "37b60a5577dbc75d12d11574e6cfbfec0a8442363fb1590ebd3fa147df14d84d",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/ConnectionManager1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the ConnectionManager service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for ConnectionManager1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 4410,
+   "sha256": "e83cb407f88ee426584e81b72ec0cf6f81c9f7cc93d1fe0c781a76050e999c9f",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/ContentDirectory1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the ContentDirectory service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for ContentDirectory1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 12412,
+   "sha256": "da7fba3dbe2a6e1b2a5800d405acd9224ccc21b670486ba5b799da2b94d2759d",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/DeviceProperties1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the DeviceProperties service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for DeviceProperties1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 21692,
+   "sha256": "e28dca20dc7acd059a6793cb9b703b51b079204685772f50788e19c85909d95f",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/GroupManagement1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the GroupManagement service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for GroupManagement1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 4192,
+   "sha256": "5d0aecb87832118364f3f0ebc25034d40d3d6113cddb20fdbd86966b4e187c67",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/GroupRenderingControl1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the GroupRenderingControl service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for GroupRenderingControl1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 3847,
+   "sha256": "b57c4da0060d81daeddbdcce776f6450e86b3a29444c9dd0f30d24b06d011fc1",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/HTControl1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the HTControl service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for HTControl1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 4096,
+   "sha256": "77f2bbc05da5be3f69c111e18caa6d0e382f9906ed3423f637fefe06ab9b2759",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/MusicServices1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the MusicServices service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for MusicServices1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 2437,
+   "sha256": "443c68da88cfaa81fb693ae95d61554d8d4cbf15636a56e88d2fe753e49141c4",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/QPlay1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the QPlay service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for QPlay1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 1541,
+   "sha256": "f24c1e176d29b120a34d4e45fdf08c624cc412a7456b50a4c1d0bfe04d58d7e3",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/Queue1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the Queue service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for Queue1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 16218,
+   "sha256": "dc3a1fbf9ab423435c47898efe6155e70087aaece34f8b7de386fc9e1e14c897",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/RenderingControl1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the RenderingControl service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for RenderingControl1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 24173,
+   "sha256": "f2f3a113a1b4b1b6fc30466e6b63c7f38e92c24cf87ed396d698ac7d1175c656",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/SystemProperties1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the SystemProperties service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for SystemProperties1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 14284,
+   "sha256": "b28a3a00f1d8cadae1b518a1205366fc9bc19011106f36b30729fb8b637db993",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/VirtualLineIn1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the VirtualLineIn service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for VirtualLineIn1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 4665,
+   "sha256": "5cac437abedee9e253984bad999a9094c6b6b03dbb1792995719390dd80d5396",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/ZoneGroupTopology1.xml": {
+   "category": "specs",
+   "friendly": "The official contract for the ZoneGroupTopology service: every command it accepts, every argument those commands take, and every state value it can report, written in the standard format apps understand. This file is what makes the commands on the matching service page 'real' rather than guesswork.",
+   "technical": "SCPD (Service Control Protocol Description) for ZoneGroupTopology1. The advertised action list and state-variable table for that service; the analysis on this site is cross-validated against these documents.",
+   "status": "shipped",
+   "size": 8661,
+   "sha256": "326ef256aedc954c06984039a6c9940a9e537e27b37c5ed2031728a835fe330f",
+   "kind": "text"
+  },
+  "opt/musicservices/musicservices.xml": {
+   "category": "specs",
+   "friendly": "The seed list of music services the player knows about before the cloud supplies an updated catalog. On first boot this is how the speaker already knows names like Spotify before your account adds anything.",
+   "technical": "Seed service catalog under /opt/musicservices. Replaced by the cloud-delivered service list at registration; replicated household-wide afterwards via the settings-replication machinery.",
+   "status": "shipped",
+   "size": 293,
+   "sha256": "d3b7e14ddaf84f03c59b21ae228efc0dafe44c8d6800a849676ea4c10f361e8b",
+   "kind": "text"
+  },
+  "opt/timezones/timezones.xml": {
+   "category": "specs",
+   "friendly": "The timezone table the speaker keeps on board: the complete list of named time zones it understands, so when you set your location the player can convert it to the right clock offset and daylight-saving rules.",
+   "technical": "Zone index used by GetTimeZone/SetTimeZoneAndRule; the firmware's static mapping from index to POSIX timezone rule. Referenced by the timezone_table primitive entry.",
+   "status": "shipped",
+   "size": 7293,
+   "sha256": "2b944103333dae5995405bbf961f2e2efd5e3e7a9afd79594ac799206b27d879",
+   "kind": "text"
+  },
+  "opt/conf/zpMetricsConfigV2.xml": {
+   "category": "specs",
+   "friendly": "The telemetry rulebook: a 104-entry list of exactly which usage events the speaker is even capable of reporting to Sonos, with almost all of them switched off by default. It is the clearest evidence of what the player could measure about your usage, and proof that most of it is not collected unless enabled.",
+   "technical": "Metrics category table, revision 13. Positionally parsed for S1-era compatibility (the file carries a comment warning not to reorder it). Three categories default ON; the rest are opt-in. Referenced by telemetry_submission and the shipped_config record.",
+   "status": "shipped",
+   "size": 8015,
+   "sha256": "22632157b4ff286933f1792da55a19e673a1361d9b597e5d0c804041632ba7ab",
+   "kind": "text"
+  },
+  "opt/dsp/S9_array.xml": {
+   "category": "specs",
+   "friendly": "The Playbar's speaker-array description: which physical drivers exist, where they sit, and how they are wired. The audio processing reads this to know what hardware it is mixing sound for.",
+   "technical": "Per-model driver/array map for model S9 consumed by the DSP configuration layer. Sister entries exist for other models (the S39/S41 variants referenced in dsp_files are not shipped here).",
+   "status": "shipped",
+   "size": 13775,
+   "sha256": "9f918ed4a9ea9d584af2e72d5d9e61083a482fa55bf73b98bd02ac8841758e46",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/factory_reset.xsl": {
+   "category": "specs",
+   "friendly": "A stylesheet used to render a simple page during the factory-reset flow: the tiny bit of presentation logic behind the reset web screen.",
+   "technical": "XSL transform shipped alongside the XML specs; used when rendering reset-related status content in the embedded web UI.",
+   "status": "shipped",
+   "size": 647,
+   "sha256": "27510614835b3191e769680c2a3bcd4fa618dcf9980cf966146bf54a67ba44d2",
+   "kind": "text"
+  },
+  "opt/htdocs/xml/review.xsl": {
+   "category": "specs",
+   "friendly": "A companion stylesheet for rendering a review-style status page in the speaker's built-in web interface.",
+   "technical": "XSL transform under /opt/htdocs/xml; pairs with review.js in the web assets.",
+   "status": "shipped",
+   "size": 92259,
+   "sha256": "61d6e6c46d29a2cb2a85d49cef6a01221ce4091422807894d37942300d8f0f82",
+   "kind": "text"
+  },
+  "opt/conf/anacapa.conf": {
+   "category": "config",
+   "friendly": "The main configuration file for the player software itself: which ports the web server listens on, which features and directories it uses, and the base settings the program reads at launch. Port 1400 for the status website is defined here.",
+   "technical": "Central config consumed at anacapad startup: web listener ports (1400 HTTP / 1443 HTTPS / 1843 household TLS), paths, and feature flags. Some values get overridden by files in the writable /jffs/conf directory.",
+   "status": "shipped",
+   "size": 2793,
+   "sha256": "2327552e496415e9fc97e8f9d8cc8e4deb881b00dade0a642d16e61c206e6b3b",
+   "kind": "text"
+  },
+  "opt/conf/anacapa_logger.toml": {
+   "category": "config",
+   "friendly": "The logging configuration for the main player software: which subsystem writes which log file, how chatty each one is allowed to be, and where the logs land on disk. The 21 log channels described in the subsystems page map onto the rules in this file.",
+   "technical": "TOML logger config for anacapad; defines per-domain sinks and severities. The domain list inside is effectively a module map of the program.",
+   "status": "shipped",
+   "size": 4975,
+   "sha256": "4d2f14b7baa47e7fb3a33d0ec7b820bb84d018187329ec4d268e5e8f42a89eee",
+   "kind": "text"
+  },
+  "opt/conf/sonosledmgrd_logger.toml": {
+   "category": "config",
+   "friendly": "The logging configuration for the LED manager daemon, the small helper program that owns the speaker's status light. Same idea as the main logger config, but for the light show.",
+   "technical": "TOML logger config for the sonosledmgrd sibling daemon; controls its /opt/log output.",
+   "status": "shipped",
+   "size": 1042,
+   "sha256": "6dc66acb328836dd2139ffa4c12003fb493954614c4b03c8983eeff2cc81fd1d",
+   "kind": "text"
+  },
+  "opt/conf/mime.types": {
+   "category": "config",
+   "friendly": "The web server's file-type table: it lets the built-in web server label each file it serves with the right content type so browsers handle them correctly.",
+   "technical": "Standard MIME map read by the embedded HTTP server when serving static files and status pages.",
+   "status": "shipped",
+   "size": 140,
+   "sha256": "c9f310db9fc13a8f9a59a717e3c37f337aac5620d10480046d2259b9da5b3742",
+   "kind": "text"
+  },
+  "opt/ir/irconfig.txt": {
+   "category": "config",
+   "friendly": "The remote-control configuration: the learned infrared codes and receiver settings the soundbar uses to understand a TV remote's volume keys.",
+   "technical": "IR decoder config consumed by ir_decoder/ir_learn; holds the learned code list for volume up/down/mute/input. A per-device copy also lives at /jffs/irconfig.txt once learning has run.",
+   "status": "shipped",
+   "size": 98,
+   "sha256": "bd06bfd84d8332241b98afc27c38dbc2f375f1e850f291c38541323348811af6",
+   "kind": "text"
+  },
+  "opt/conf/v1_auth_offline_policy_guest.json": {
+   "category": "config",
+   "friendly": "The offline permission list for the guest role: the rules for what a guest or unauthenticated visitor on your network may call when the speaker cannot reach Sonos's servers to ask. Even with no internet, the player still enforces who is allowed to do what.",
+   "technical": "v1 API authorization policy for the guest role, applied when the authz backend is unreachable (offline fallback). Defines the resource/verb whitelist enforced by the authz stage.",
+   "status": "shipped",
+   "size": 2090,
+   "sha256": "4006046d5b8375a6b174af5ea402152dc42d066a8cd6de55a770401a3c664035",
+   "kind": "text"
+  },
+  "opt/conf/v1_auth_offline_policy_owner.json": {
+   "category": "config",
+   "friendly": "The offline permission list for the owner role: the rules for what the household owner's apps and controllers may call when the speaker cannot reach Sonos's servers to ask. Even with no internet, the player still enforces who is allowed to do what.",
+   "technical": "v1 API authorization policy for the owner role, applied when the authz backend is unreachable (offline fallback). Defines the resource/verb whitelist enforced by the authz stage.",
+   "status": "shipped",
+   "size": 2591,
+   "sha256": "52aec9a38aa1dce27aa7c1215cdf24ab7a5ee67c89da6e0501bc144d3431b4f4",
+   "kind": "text"
+  },
+  "opt/conf/v1_auth_offline_policy_p2p.json": {
+   "category": "config",
+   "friendly": "The offline permission list for the peer-to-peer role: the rules for what other players in your household may call on each other when the speaker cannot reach Sonos's servers to ask. Even with no internet, the player still enforces who is allowed to do what.",
+   "technical": "v1 API authorization policy for the p2p role, applied when the authz backend is unreachable (offline fallback). Defines the resource/verb whitelist enforced by the authz stage.",
+   "status": "shipped",
+   "size": 2000,
+   "sha256": "ddabfd2ded8520c8e99014595934f05b065d784eebbd80eaa79982981bb57566",
+   "kind": "text"
+  },
+  "opt/localsettings/global_attrdata.json": {
+   "category": "config",
+   "friendly": "The settings-schema records describing the household-wide settings surface: which keys exist, their types, and who may write them. These ship as templates; the live values you change are stored separately in the writable partition.",
+   "technical": "Attribute-data schema for the global settings bucket (the _settings.json / _attrdata.json / _effective.json / _exclude.json family the local settings manager resolves). Static template shipped under /opt/localsettings.",
+   "status": "shipped",
+   "size": 547,
+   "sha256": "1f6910354c4eb6c2e7d587d824418d76e7634bb237b309b40cabe49358a18086",
+   "kind": "text"
+  },
+  "opt/localsettings/playback_attrdata.json": {
+   "category": "config",
+   "friendly": "The settings-schema records for playback-related settings: the typed keys the playback surface accepts. These ship as templates; the live values you change are stored separately in the writable partition.",
+   "technical": "Attribute-data schema for the playback settings bucket (the _settings.json / _attrdata.json / _effective.json / _exclude.json family the local settings manager resolves). Static template shipped under /opt/localsettings.",
+   "status": "shipped",
+   "size": 584,
+   "sha256": "62e6d8e70979057c44d86116018034d73c6aac12bcf601a135b26fe7197749d5",
+   "kind": "text"
+  },
+  "opt/localsettings/playerBasic_attrdata.json": {
+   "category": "config",
+   "friendly": "The settings-schema records for basic per-player settings like name, icon, and core behavior toggles. These ship as templates; the live values you change are stored separately in the writable partition.",
+   "technical": "Attribute-data schema for the playerBasic settings bucket (the _settings.json / _attrdata.json / _effective.json / _exclude.json family the local settings manager resolves). Static template shipped under /opt/localsettings.",
+   "status": "shipped",
+   "size": 1591,
+   "sha256": "3d0a4d482df44f5e4e39da4d59e3cad7ed7e528a5adb0b692c879c58c30f29f9",
+   "kind": "text"
+  },
+  "opt/localsettings/playerUI_attrdata.json": {
+   "category": "config",
+   "friendly": "The settings-schema records for the player-facing interface options. These ship as templates; the live values you change are stored separately in the writable partition.",
+   "technical": "Attribute-data schema for the playerUI settings bucket (the _settings.json / _attrdata.json / _effective.json / _exclude.json family the local settings manager resolves). Static template shipped under /opt/localsettings.",
+   "status": "shipped",
+   "size": 560,
+   "sha256": "45ed16ae4064c927d1989f70d4486d1a6b7d90a5227e3fada01b7019e3fd067e",
+   "kind": "text"
+  },
+  "opt/localsettings/security_attrdata.json": {
+   "category": "config",
+   "friendly": "The settings-schema records for security-relevant settings like credential and access-related keys. These ship as templates; the live values you change are stored separately in the writable partition.",
+   "technical": "Attribute-data schema for the security settings bucket (the _settings.json / _attrdata.json / _effective.json / _exclude.json family the local settings manager resolves). Static template shipped under /opt/localsettings.",
+   "status": "shipped",
+   "size": 751,
+   "sha256": "a43e141699c153e8979a0f63af9e10a63cf6f98b5c3b8c5f5654f0799ec177c4",
+   "kind": "text"
+  },
+  "opt/localsettings/settings_targettypes.json": {
+   "category": "config",
+   "friendly": "The master list of setting scopes: which settings apply to a whole household, which to a room, and which to a single speaker. The settings machinery uses it to decide where a change should be stored.",
+   "technical": "Target-type registry for the settings schema; defines the scope classes the settings validator routes keys into.",
+   "status": "shipped",
+   "size": 128,
+   "sha256": "58ddeee7de9389b2cd3dfc53d04746bf142b4f190b6b6b6010071ef499b6214d",
+   "kind": "text"
+  },
+  "etc/chrony.conf": {
+   "category": "config",
+   "friendly": "The time-sync configuration: which time servers the speaker asks for the correct clock. Accurate shared time is what keeps rooms playing in perfect sync, so this file quietly matters a lot.",
+   "technical": "chronyd client config pointing at Sonos's *.sonostime.pool.ntp.org pool; drift state lands in /jffs/chrony/chrony.drift.",
+   "status": "shipped",
+   "size": 915,
+   "sha256": "6245ff35b9e68a1d8738dcc430bc8b28e53efaa0c9a834010fde3c72fcc32789",
+   "kind": "text"
+  },
+  "etc/sddpd.conf": {
+   "category": "config",
+   "friendly": "Configuration for the device-announcement daemon, the component that keeps re-broadcasting 'here I am' so your speakers and apps keep finding each other on the network.",
+   "technical": "Config for the sddpd sibling daemon (Sonos's device-announcement layer); a development override exists at /jffs/dev_sddp.conf.",
+   "status": "shipped",
+   "size": 644,
+   "sha256": "7f5c87bfb326d7fa91e28cf30f5696c2e4c6b789d71f9695d7486ca55029d204",
+   "kind": "text"
+  },
+  "etc/host.conf": {
+   "category": "config",
+   "friendly": "A small resolver rulebook: the order in which the speaker tries to turn names into addresses, such as checking its local hosts file before asking the network's name service.",
+   "technical": "Standard glibc resolver order file (hosts before DNS).",
+   "status": "shipped",
+   "size": 26,
+   "sha256": "83b331f98a128e1721c54be5c07bd38ad0d146e89cdecbe0eb53cbc23ff6b86a",
+   "kind": "text"
+  },
+  "etc/nsswitch.conf": {
+   "category": "config",
+   "friendly": "The name-service switch table: the classic Unix file deciding where the system looks up things like user names, hosts, and networks, and in what order.",
+   "technical": "Standard NSS configuration; controls which sources answer name lookups.",
+   "status": "shipped",
+   "size": 452,
+   "sha256": "5c24de7911e2eab827332ff98c40aa79f951b951c3106940ac049bdee7d083cc",
+   "kind": "text"
+  },
+  "etc/syslog.conf": {
+   "category": "config",
+   "friendly": "The routing table for system log messages: which kind of message goes to which log file, used by the classic system logger outside the main program.",
+   "technical": "syslogd routing rules for kernel/daemon messages outside anacapad's own logger framework.",
+   "status": "shipped",
+   "size": 1670,
+   "sha256": "0141a530669a95b7c8eb63b29e74b136660fa8d989d8b394acaa78e71483fcda",
+   "kind": "text"
+  },
+  "build.properties": {
+   "category": "config",
+   "friendly": "The birth certificate of this exact firmware build: when it was compiled, on which machine, from which source revision, in release mode. It answers 'exactly which build is this' better than any version number alone.",
+   "technical": "Build metadata recorded at compile time: build 86.10-80260 dated 2026-08-26, limelight (Playbar) target, release type, git revision a78cd9a393d on branch release/main_alt_release of the Sonos-internal player repo.",
+   "status": "shipped",
+   "size": 806,
+   "sha256": "693983d6e86275f5a2a34c589306733a3c214f9375e49c368626d57f7b483eb7",
+   "kind": "text"
+  },
+  "VERSION": {
+   "category": "config",
+   "friendly": "The plain version stamp of the firmware image, the file the update machinery and the system read to know what release is installed.",
+   "technical": "Top-level version marker for the squashfs image; pairs with MINCOMPATVER and LEGACYCOMPATVER in update compatibility checks.",
+   "status": "shipped",
+   "size": 12,
+   "sha256": "e8bdcaec2e1a5cf440f834ca2058e09221e4a5ef52877868dfba438840eab71d",
+   "kind": "text"
+  },
+  "MINCOMPATVER": {
+   "category": "config",
+   "friendly": "The minimum compatible version marker: the oldest software version this image is willing to coexist with. It is one of the numbers that decides whether an update is allowed to proceed.",
+   "technical": "Compatibility floor consumed by the update machinery (the 'minimum auto-update version' logic in update_machinery).",
+   "status": "shipped",
+   "size": 11,
+   "sha256": "41915dcb2732e231c1106044676f9225ac6040164dd713f291fcc9f92f18c848",
+   "kind": "text"
+  },
+  "LEGACYCOMPATVER": {
+   "category": "config",
+   "friendly": "The legacy-compatibility marker: how far back this firmware can interoperate with very old players still in a household.",
+   "technical": "Compatibility marker for mixed-era households; checked during update rollout decisions alongside MINCOMPATVER.",
+   "status": "shipped",
+   "size": 11,
+   "sha256": "ee22aa9ca28edb870170c612a3ef59ea2cb063c8c2816994e986aae308c67c69",
+   "kind": "text"
+  },
+  "etc/passwd": {
+   "category": "system",
+   "friendly": "The device's account list: which usernames exist on the box (root, the web user, the player software's own user, and the usual service accounts). This is the classic Unix roster, present on almost every Linux appliance.",
+   "technical": "Standard passwd file. No password hashes here (those live in shadow); notable entries: root, chrony, anacapa (uid 20), www-data.",
+   "status": "shipped",
+   "size": 868,
+   "sha256": "a44fe8e73007ba8dba381d054e99bda955bb1a7d39ed5403187a40be906296b8",
+   "kind": "text"
+  },
+  "etc/shadow": {
+   "category": "system",
+   "friendly": "The account password table. It shows a factory-set root password hash plus locked service accounts, which is normal for an appliance where root login is not meant to be used day to day.",
+   "technical": "MD5-crypt ($1$) root hash as shipped. This is a published firmware default, not a per-device secret; the diag build history around SSH access is documented under ssh_authorized_keys and the secure_console scripts.",
+   "status": "shipped",
+   "size": 565,
+   "sha256": "0150ca4b759cfeb1d1df4d2f819b55b5db556a24bdd11399652df3269df7ed68",
+   "kind": "text",
+   "sensitive": true
+  },
+  "etc/group": {
+   "category": "system",
+   "friendly": "The group list matching the account file: which user groups exist on the device.",
+   "technical": "Standard group file; mostly stock groups plus the anacapa service account.",
+   "status": "shipped",
+   "size": 504,
+   "sha256": "662a6eac5e3759afce5eaee7200c75525d8ffae965c9d958a60d5a9d8180668c",
+   "kind": "text"
+  },
+  "etc/inittab": {
+   "category": "system",
+   "friendly": "The startup table: the ordered list of what the device runs when it boots, including which console and service launchers come up and in what order. It is the first page of the boot story.",
+   "technical": "SysV-style inittab for busybox init; wires getty, the rc.d runlevels, and the rcK shutdown sequence.",
+   "status": "shipped",
+   "size": 679,
+   "sha256": "44c96d00788087c4e852552c19a557abe6642b4fcdfc4ef543a53dc1ad32a3ec",
+   "kind": "text"
+  },
+  "etc/fstab": {
+   "category": "system",
+   "friendly": "The filesystem mount table: which storage areas exist (system files, the writable settings partition, temporary memory disks) and where they attach. It explains why settings survive reboots while scratch space does not.",
+   "technical": "Mounts jffs2 (persistent) alongside tmpfs runtime dirs; the rootfs itself is read-only squashfs.",
+   "status": "shipped",
+   "size": 501,
+   "sha256": "f8d2d28e0d0f6c3f37b2a5635f02d9801d5f9b5b7e257891fe79ac6b19706af4",
+   "kind": "text"
+  },
+  "etc/hosts.orig": {
+   "category": "system",
+   "friendly": "The original hosts file: a few built-in name shortcuts the firmware ships with before the system generates its working copy at boot.",
+   "technical": "Template copied to /jffs/hosts during bring-up (the generated live file sits on the writable side).",
+   "status": "shipped",
+   "size": 100,
+   "sha256": "cc9e641227208bec49d4f7b234aeb564656daa63b4ab542e4a70cba6c12bb828",
+   "kind": "text"
+  },
+  "etc/issue": {
+   "category": "system",
+   "friendly": "The login banner text shown before a login prompt on a console. On most appliances it is leftover decoration, but it is part of the image.",
+   "technical": "Stock /etc/issue banner.",
+   "status": "shipped",
+   "size": 29,
+   "sha256": "c99e814fd5e8a7a6753ab2a693bc2451f225d64723f8e513b11dddc158ebe19a",
+   "kind": "text"
+  },
+  "etc/issue.net": {
+   "category": "system",
+   "friendly": "The network variant of the login banner, shown by remote login services such as the SSH daemon when a session opens.",
+   "technical": "Banner presented by dropbear/ssh on connect.",
+   "status": "shipped",
+   "size": 38,
+   "sha256": "b2efa8dd090865fb16c2a2246992cdc1514fb6afa1589627f80cf72fef62e7c5",
+   "kind": "text"
+  },
+  "etc/motd": {
+   "category": "system",
+   "friendly": "The 'message of the day' text shown after login. On a shipping appliance it is usually a placeholder.",
+   "technical": "Standard motd file.",
+   "status": "shipped",
+   "size": 29,
+   "sha256": "c99e814fd5e8a7a6753ab2a693bc2451f225d64723f8e513b11dddc158ebe19a",
+   "kind": "text"
+  },
+  "etc/mtab": {
+   "category": "system",
+   "friendly": "The file reporting which filesystems are currently mounted. On this build it is a link into the kernel's live mount list rather than a static file.",
+   "technical": "Symlink to /proc/mounts (live kernel view), standard on embedded systems.",
+   "status": "shipped",
+   "size": 193,
+   "sha256": "2b4f42d7e66f82fe677f6b514512f877cee048147a8ccdd87a33848d882c2206",
+   "kind": "text"
+  },
+  "etc/profile": {
+   "category": "system",
+   "friendly": "The shell profile: environment defaults applied when a login shell starts, such as search paths for commands.",
+   "technical": "System-wide shell profile for the busybox environment.",
+   "status": "shipped",
+   "size": 375,
+   "sha256": "3b4fd21ee8a7ad3a7de4894e7515759cfaf54cf0448810e900a1bc11a7fe5275",
+   "kind": "text"
+  },
+  "etc/protocols": {
+   "category": "system",
+   "friendly": "The protocol-name database: the table mapping names like 'tcp' and 'udp' to their protocol numbers, a classic Unix leftover that networking tools still consult.",
+   "technical": "Standard protocols database.",
+   "status": "shipped",
+   "size": 5834,
+   "sha256": "aa00b2cb0b6f77291c6e244774438f367e1407cb96e6c76189451243c26d9ca1",
+   "kind": "text"
+  },
+  "etc/rpc": {
+   "category": "system",
+   "friendly": "The RPC program-number table, another standard Unix database file mapping remote-procedure names to numbers.",
+   "technical": "Standard RPC database; part of the buildroot base image.",
+   "status": "shipped",
+   "size": 1595,
+   "sha256": "ebc43541c32b314942f92b105755b192ac8451e0e50e9a5c196e3b02c4a789a7",
+   "kind": "text"
+  },
+  "etc/services": {
+   "category": "system",
+   "friendly": "The service-name database: which named services correspond to which port numbers (http = 80 and so on). Networking code consults it when translating names.",
+   "technical": "Standard services database.",
+   "status": "shipped",
+   "size": 15319,
+   "sha256": "9bc2ae7e79ef825a57eecb90681b0d9e2415fe8fc1be0cc5a2ecefebfb3ac611",
+   "kind": "text"
+  },
+  "etc/shells": {
+   "category": "system",
+   "friendly": "The list of shells the system considers legal login shells. Mostly boilerplate on an appliance.",
+   "technical": "Standard shells file.",
+   "status": "shipped",
+   "size": 53,
+   "sha256": "82f4ce9af632497f688c4e48917e6f8aa00ad959677a4980731ef1dfd983b58d",
+   "kind": "text"
+  },
+  "etc/inputrc": {
+   "category": "system",
+   "friendly": "Readline keybinding configuration: how command-line editing behaves in an interactive shell session.",
+   "technical": "Standard inputrc for readline-based shells.",
+   "status": "shipped",
+   "size": 421,
+   "sha256": "01946fd5134804a8f5ba087fb4fe9dbf17f450213e8a47b9973eec167a588fd2",
+   "kind": "text"
+  },
+  "etc/pointercal": {
+   "category": "system",
+   "friendly": "Touchscreen calibration parameters. The Playbar has no touchscreen; this file is inherited from the shared base image that also serves products that do.",
+   "technical": "Calibrate-touchscreen constants retained from the common buildroot; vestigial on this model.",
+   "status": "shipped",
+   "size": 14,
+   "sha256": "2e7213cec5f47e7e9aade9d17b6d565d64395a39a1117f6dac56ce079478a84b",
+   "kind": "text"
+  },
+  "etc/arch": {
+   "category": "system",
+   "friendly": "A small marker file naming the hardware architecture family the image was built for.",
+   "technical": "Records the limelight architecture identifier used by scripts and tooling.",
+   "status": "shipped",
+   "size": 10,
+   "sha256": "e014957c02d19fce55760cb98e40b2613f849ac985abdeef6a7a267bf55e1065",
+   "kind": "text"
+  },
+  "etc/arch_attrs": {
+   "category": "system",
+   "friendly": "Architecture attributes: a small data file describing the board family's properties for scripts that need to branch on hardware type.",
+   "technical": "Architecture attribute table consumed by board-level scripts (see Configure and soc_arch).",
+   "status": "shipped",
+   "size": 1020,
+   "sha256": "56c5c16a238b04190906c57e617e05a4e4dcbcdb18a3adc4a24f908b42bccf8b",
+   "kind": "text"
+  },
+  "etc/soc_arch": {
+   "category": "system",
+   "friendly": "The system-on-chip identifier: which processor family this firmware targets.",
+   "technical": "SoC family marker used by the launch and diagnostic scripts.",
+   "status": "shipped",
+   "size": 10,
+   "sha256": "e014957c02d19fce55760cb98e40b2613f849ac985abdeef6a7a267bf55e1065",
+   "kind": "text"
+  },
+  "etc/Configure": {
+   "category": "system",
+   "friendly": "The legacy configuration entry point name used by older Sonos utilities: a small script-era file the toolchain still ships for compatibility.",
+   "technical": "Historic configuration hook referenced by sibling tooling (Configure/Configure.dev naming appears in the jffs config layout too).",
+   "status": "shipped",
+   "size": 2488,
+   "sha256": "7820e289f6266bd6b11b02b979a700cb0c767417ef347676ac5969f26ca97460",
+   "kind": "text"
+  },
+  "etc/dhcp.script": {
+   "category": "system",
+   "friendly": "The DHCP handler script: what the device does each time it receives an address from your router, including updating its name resolution and recording the lease details.",
+   "technical": "udhcpc hook script; writes lease info and refreshes resolv.conf/hosts on the writable side.",
+   "status": "shipped",
+   "size": 1209,
+   "sha256": "e21b831e538f132d86422ead668e0f6e9c3e1d7c7f6a2e0aed4e0783e22c7f07",
+   "kind": "text"
+  },
+  "etc/diagprocessd": {
+   "category": "system",
+   "friendly": "The diagnostic coprocessor helper: a tiny FIFO-driven menu the factory uses to run production-line commands over a pipe interface.",
+   "technical": "mkfifo-based command loop (diagstdin/diagstdout) dispatching numbered commands; generated from configs/arch/limelight.toml per the build system.",
+   "status": "shipped",
+   "size": 2304,
+   "sha256": "b5489037250b71ffaf6f6bf22192730dd9b36da829141a0ef886dd157285a079",
+   "kind": "text"
+  },
+  "etc/fallback_trusted_roots.rcb": {
+   "category": "system",
+   "friendly": "The backup set of root certificates: the trust anchors the player uses to check secure connections when its primary bundle is unavailable or being updated. It is the device's emergency list of who to trust.",
+   "technical": "RCB-format certificate bundle under /etc; managed by libsonos-certval with runtime bundle updates watched for (documented under libsonos_certval).",
+   "status": "shipped",
+   "size": 27215,
+   "sha256": "e47699bd55299b5447add14a24a04a1a1044648755ce5637267fe634aa34139e",
+   "kind": "binary"
+  },
+  "etc/runanacapa": {
+   "category": "scripts",
+   "friendly": "The launcher for the main player software: the script that starts anacapad with its config file, drops privileges to its own user, and sets up its environment. The player's whole life starts here at every boot.",
+   "technical": "Launches 'anacapad -c /opt/conf/anacapa.conf -u anacapa -C all=eip' with the pid file at /opt/log/anacapa.pid; supports gdb-wrapped debug starts and the demo-mode direct exec (documented on the rootfs_boot_chain entry).",
+   "status": "shipped",
+   "size": 568,
+   "sha256": "3c701e472a5ea6ff664deb092dbecbb1642e12799f8f92095955dc0e3cc999fb",
+   "kind": "text"
+  },
+  "etc/runchrony": {
+   "category": "scripts",
+   "friendly": "The launcher for the time-sync daemon: starts the component that keeps the speaker's clock correct, which everything from multi-room sync to alarm timing depends on.",
+   "technical": "Starts chronyd against /etc/chrony.conf; drift persisted to /jffs/chrony.",
+   "status": "shipped",
+   "size": 2851,
+   "sha256": "dca6c5babccbc7a1166106912ea0dc736aab27c10a2a3effb12457e55934194f",
+   "kind": "text"
+  },
+  "etc/rundaemon.sh": {
+   "category": "scripts",
+   "friendly": "A shared daemon-runner script: a generic wrapper used to start background services with the right bookkeeping instead of each launcher reinventing it.",
+   "technical": "Generic daemon launcher shared by the run* scripts; also referenced by the sibling-daemon IPC work (see multi_daemon_boundary).",
+   "status": "shipped",
+   "size": 847,
+   "sha256": "6f76a74572f19e09223d9876b30b0d9bef2dfaf4036529bf7aa6a5a55f4a7c38",
+   "kind": "text"
+  },
+  "etc/rundiagprocessd": {
+   "category": "scripts",
+   "friendly": "The launcher for the diagnostic coprocessor menu: brings up the FIFO command interface used for factory and service diagnostics.",
+   "technical": "Starts the /etc/diagprocessd FIFO loop.",
+   "status": "shipped",
+   "size": 160,
+   "sha256": "391f9002a197c91e482230680636757415fdfd2b26e8fc90ba8e9983af9003ff",
+   "kind": "text"
+  },
+  "etc/runledmgrd": {
+   "category": "scripts",
+   "friendly": "The launcher for the LED manager daemon: starts the little program that owns the speaker's lights and runs the animated patterns.",
+   "technical": "Starts sonosledmgrd; the daemon owns /dev/ledctl and the LED scripting engine documented in led_engine.",
+   "status": "shipped",
+   "size": 995,
+   "sha256": "5dd6c8b9b8e4ea32fecd923aa6b281ef4037199b1e477c6f9de912f79ab3a2b2",
+   "kind": "text"
+  },
+  "etc/runmdns": {
+   "category": "scripts",
+   "friendly": "The launcher for the discovery daemon: starts the service that announces the speaker on the network and finds its siblings.",
+   "technical": "Starts mdnsd for multicast-DNS announce/browse; feeds the discovery_layer machinery.",
+   "status": "shipped",
+   "size": 94,
+   "sha256": "3172ecf3a73d634a681441d73e371ac41e47e62e5eccc4989f5fb0e8541350b2",
+   "kind": "text"
+  },
+  "etc/runnetstartd": {
+   "category": "scripts",
+   "friendly": "The launcher for the network-startup daemon: starts the component that brings up WiFi and Ethernet in the right order during boot and setup.",
+   "technical": "Starts netstartd, the process anacapad talks to over /tmp/netstartd.ipc for network state and setup transitions.",
+   "status": "shipped",
+   "size": 134,
+   "sha256": "79a483bfb764152467a90515b8c597b7381e64a0ddee82823840f1b7705bf3a8",
+   "kind": "text"
+  },
+  "etc/runsddp": {
+   "category": "scripts",
+   "friendly": "The launcher for the device-announcement daemon: starts the broadcaster that keeps the household map populated.",
+   "technical": "Starts sddpd with /etc/sddpd.conf.",
+   "status": "shipped",
+   "size": 651,
+   "sha256": "60984a4598d37a6ac93bc3be3a29708537bbd8c4118ca884452ed2d99bcc66aa",
+   "kind": "text"
+  },
+  "etc/scripts/mount_jffs.sh": {
+   "category": "scripts",
+   "friendly": "The script that mounts the writable partition: the step during boot that makes the speaker's saved settings, logs, and queues available. Until this runs, the device only has its read-only image.",
+   "technical": "Mounts the jffs2 flash partition at /jffs; ordering matters because nearly every subsystem reads persisted state from it.",
+   "status": "shipped",
+   "size": 389,
+   "sha256": "af1c5c97306ffd2b06366562b5ea601814310739d671c2f938a4958cabee4d69",
+   "kind": "text"
+  },
+  "etc/scripts/run_sshd.sh": {
+   "category": "scripts",
+   "friendly": "The script that conditionally starts the SSH daemon: SSH exists on the box but is gated, and this is the gatekeeper deciding whether remote shell access is allowed at all.",
+   "technical": "Starts dropbear only when the device is in a permitted state (engineering/unlock path); installs host keys under /jffs/persist/ssh on first run.",
+   "status": "shipped",
+   "size": 499,
+   "sha256": "822523d641bd6ee7ea0b271e4dadb05ebe598249f86d0717f03cc6394ba97732",
+   "kind": "text"
+  },
+  "usr/sbin/netconfig.sh": {
+   "category": "scripts",
+   "friendly": "The network reconfiguration state machine in a single shell script: one call with a mode argument moves the player between Sonos's mesh, normal home WiFi, the open setup hotspot, credential-checking, or a standalone island mode. It is why the speaker can hop between network setups without reflashing.",
+   "technical": "The netconfig FSM documented under netconfig_fsm: modes include SonosNet join, infrastructure join, open-AP setup, check-only, and island; touches wpa_supplicant, ssidlist, and the flag files under /var/run.",
+   "status": "shipped",
+   "size": 10932,
+   "sha256": "13f8bb6219d077e3eac73df1005b42547306f7d506ce62752a5db9cbcd2aea83",
+   "kind": "text"
+  },
+  "usr/sbin/secure_console.sh": {
+   "category": "scripts",
+   "friendly": "The secure console gate: the script that decides whether the device will expose a debug console, checking the unlock state before offering a shell.",
+   "technical": "Gates console access on the device-unlock flag (/tmp/device_unlocked_flag family); part of the engineering surfaces documented under dev_unlock.",
+   "status": "shipped",
+   "size": 236,
+   "sha256": "fa1827c45a7048097e57a0660942022f10ef4420b0e53d50fb35e68078f4f30b",
+   "kind": "text"
+  },
+  "usr/sbin/secure_console_login.sh": {
+   "category": "scripts",
+   "friendly": "The login half of the secure console: how a permitted console session is actually opened once the gate allows it.",
+   "technical": "Companion to secure_console.sh; performs the session setup after the gate check.",
+   "status": "shipped",
+   "size": 1048,
+   "sha256": "69e775c702e96d1688c33ab498e286f88bbf682d503eef70a1223ed8b1ce59de",
+   "kind": "text"
+  },
+  "etc/init.d/Krandom": {
+   "category": "scripts",
+   "friendly": "The shutdown-time entropy script: preserves randomness state across reboots so the device's cryptographic operations do not restart from a predictable seed.",
+   "technical": "Saves/restores the random seed (cf. /jffs/random-seed) in the K-order shutdown sequence.",
+   "status": "shipped",
+   "size": 499,
+   "sha256": "43ba173153df8d85b25e6257324ea471938a7bd0cd1ce12faeea81791ba50b0f",
+   "kind": "text"
+  },
+  "etc/init.d/Srandom": {
+   "category": "scripts",
+   "friendly": "The boot-time entropy script: seeds the random number generator early so keys, tokens, and nonces are unpredictable from the very first connection.",
+   "technical": "Restores /jffs/random-seed into urandom at boot (S-order init step).",
+   "status": "shipped",
+   "size": 246,
+   "sha256": "0a52cb3a89b1b93982143ba9bfc9f426249e4a6dfc7090887798f91e39635219",
+   "kind": "text"
+  },
+  "etc/init.d/rcK": {
+   "category": "scripts",
+   "friendly": "The kill script: the ordered teardown list run at shutdown or reboot, stopping services in the right sequence before power-off.",
+   "technical": "Init runlevel-K aggregation; pairs with the inittab shutdown entries.",
+   "status": "shipped",
+   "size": 719,
+   "sha256": "1970b0bb740fb4d244af646e2567fb6f16aaea2c9cbf2987403605058729e08b",
+   "kind": "text"
+  },
+  "opt/bin/anacapad": {
+   "category": "binaries",
+   "friendly": "The main event: the Sonos player daemon itself. This single program implements nearly everything this site documents, from the classic remote-control commands to the modern app API to the media pipeline. If you download one file, this is the one.",
+   "technical": "The analysis subject: ~4 MB ARM ELF (limelight). Every dispatch table, URI grammar, and subsystem entry on this site was recovered from this binary. Build 86.10-80260 per build.properties.",
+   "status": "shipped",
+   "size": 17329076,
+   "sha256": "f60262a152aac48bd39bf0285d17d080e6820e37be12d0af9de7bffee8d3e257",
+   "kind": "binary"
+  },
+  "opt/bin/anacapactl": {
+   "category": "binaries",
+   "friendly": "The supervisor script for the main player: a shell wrapper that starts anacapad with the right privileges, watches it, and can launch it under a debugger for development. It is the little harness around the big program.",
+   "technical": "POSIX sh supervisor (fully readable text): handles start/stop/restart, demo-mode exec, cache-drop on certain boards, and gdb wrapping via $SONOS_GDB_ARGS.",
+   "status": "shipped",
+   "size": 2015,
+   "sha256": "546ecdef28593ecdd6dfdbe81cf96e62b0bd41773cf9984dd469b287a3a9d0c5",
+   "kind": "text"
+  },
+  "opt/bin/sonosledmgrd": {
+   "category": "binaries",
+   "friendly": "The LED manager daemon: the small program that owns the speaker's status light and plays the animation patterns for states like setup, playing, and muted.",
+   "technical": "ELF daemon; owns /dev/ledctl. Its animated pattern engine and per-model feature map are documented under led_engine/leds_zp/led_hw.",
+   "status": "shipped",
+   "size": 1248340,
+   "sha256": "4a4afe45e2b31f26458268e1b7cc7a01ac57a7631337753c9d914135cf1c540f",
+   "kind": "binary"
+  },
+  "wifi/netstartd": {
+   "category": "binaries",
+   "friendly": "The network-startup daemon: the sibling process that actually brings the network up, manages setup mode, and hands connection status back to the main program. When the speaker joins WiFi, this is the program doing the joining.",
+   "technical": "ELF daemon; anacapad reaches it over /tmp/netstartd.ipc (the multi_daemon_boundary contract). It drives netconfig.sh and the flag files under /var/run.",
+   "status": "shipped",
+   "size": 264076,
+   "sha256": "9654a16c9b5c07c84131b574e216e7ba311be405c4a831e360a59d10ac35de7e",
+   "kind": "binary"
+  },
+  "wifi/wacd": {
+   "category": "binaries",
+   "friendly": "The setup-mode daemon: the program that runs the temporary open network your phone joins during initial setup, where the player receives its first WiFi credentials.",
+   "technical": "Wireless-accessory-configuration daemon; the /var/run/wac_mode flag and WAC timeout are documented under wac_mode.",
+   "status": "shipped",
+   "size": 67128,
+   "sha256": "a51d696f54f86c637ceac00ee8d9e83b20e354fee7219a2de37f89b133570305",
+   "kind": "binary"
+  },
+  "wifi/wpa_supplicant": {
+   "category": "binaries",
+   "friendly": "The WiFi client program: the standard open-source component that handles the actual handshake joining your home network. Practically every Linux WiFi device carries this.",
+   "technical": "wpa_supplicant build for the Atheros radio; driven by configs like /var/run/htapsatwpa.conf and the jffs debug overrides.",
+   "status": "shipped",
+   "size": 329684,
+   "sha256": "b3ed6402fc388bd7aa73919b1dd7828a011186d1e384fdb6487c7c85c9737ddf",
+   "kind": "binary"
+  },
+  "wifi/wpaconfig": {
+   "category": "binaries",
+   "friendly": "A small helper used to generate or adjust WiFi client configuration for the supplicant.",
+   "technical": "WPA config utility invoked by the netconfig script family.",
+   "status": "shipped",
+   "size": 2236,
+   "sha256": "883675c1177bd4ce329e34fe2a861dd0fbc64bac8288b17328e27f388eb082ac",
+   "kind": "text"
+  },
+  "wifi/athconfig": {
+   "category": "binaries",
+   "friendly": "The Atheros radio configuration utility: low-level control of the WiFi chipset for modes like SonosNet mesh that the normal client stack does not handle.",
+   "technical": "Atheros-specific tool for the radio's mesh/AP modes (SonosNet operates through this layer).",
+   "status": "shipped",
+   "size": 67208,
+   "sha256": "cde6b1233c354fc940b00b44678694ebe2956785373df54a7d6acec1a7e6f545",
+   "kind": "binary"
+  },
+  "wifi/sta-assoc": {
+   "category": "binaries",
+   "friendly": "A small association-status helper: used to check or report the radio's link state.",
+   "technical": "Station-association utility tied to the Atheros stack and the assoctracker monitoring.",
+   "status": "shipped",
+   "size": 1169,
+   "sha256": "a376a1f0774a09b3a642ce4626ccd335d81a52d9a527a21cb9cfd3d0c2c3267e",
+   "kind": "text"
+  },
+  "sbin/chronyd": {
+   "category": "binaries",
+   "friendly": "The time-sync daemon: the program that keeps the speaker's clock disciplined against internet time servers, which is the quiet foundation of sample-accurate multi-room playback.",
+   "technical": "chrony daemon build; Sonos's sntp layer plus chrony is documented under sntp/sntp_server.",
+   "status": "shipped",
+   "size": 264144,
+   "sha256": "df82a031253bbf53f2c0b491525eeaeae0f67e3f3368df879777a4c16871721f",
+   "kind": "binary"
+  },
+  "bin/chronyc": {
+   "category": "binaries",
+   "friendly": "The command-line client for the time daemon: the tool scripts and diagnostics use to ask 'what does the clock think right now?'.",
+   "technical": "chrony control client; referenced by the exec-page diagnostics (chronyc source tracking).",
+   "status": "shipped",
+   "size": 132812,
+   "sha256": "723675cde72cd0a37754828c9463877c9d303301424d4e36aa0e6906d1d81afe",
+   "kind": "binary"
+  },
+  "sbin/mdnsd": {
+   "category": "binaries",
+   "friendly": "The discovery daemon: the standalone program that handles announcing and finding devices on the local network, shared across the system.",
+   "technical": "Multicast-DNS daemon; the mdns/mdnsd log and the discovery layer on this site trace back to it.",
+   "status": "shipped",
+   "size": 526152,
+   "sha256": "5e1bf99fe4ca077de4e71d4713afe8ce49f7450a4674b3ab1f8a655a2b4710a3",
+   "kind": "binary"
+  },
+  "sbin/sddpd": {
+   "category": "binaries",
+   "friendly": "The device-announcement daemon: the sibling process running Sonos's own broadcast protocol that keeps players aware of each other.",
+   "technical": "Sonos Discovery Protocol daemon configured by /etc/sddpd.conf; complements multicast DNS with Sonos's proprietary announce layer.",
+   "status": "shipped",
+   "size": 67464,
+   "sha256": "3b49f832d445c0f5c3c3bb15ffa5c596b22710ac8ae766615d2695fe38823521",
+   "kind": "binary"
+  },
+  "sbin/udhcpc": {
+   "category": "binaries",
+   "friendly": "The DHCP client: the tiny program that asks your router for an address when the speaker boots on a normal network.",
+   "technical": "busybox-style udhcp client driving /etc/dhcp.script on lease events.",
+   "status": "shipped",
+   "size": 67852,
+   "sha256": "26803ab4fa77327f3f9518800c91aa35a37077955bb6ed35ce2fec7d7399a4ba",
+   "kind": "binary"
+  },
+  "bin/dropbearmulti": {
+   "category": "binaries",
+   "friendly": "The SSH server toolkit in one binary: provides the secure shell access the device can open for engineering, plus the key tools that go with it.",
+   "technical": "Dropbear multi-call binary (sshd/dropbearkey in one); gated by run_sshd.sh and the unlock flags; host keys persist under /jffs/persist/ssh.",
+   "status": "shipped",
+   "size": 264552,
+   "sha256": "4fdab40a039cd989323458024aa010600c7849afc54e728d2735871b381583fc",
+   "kind": "binary"
+  },
+  "bin/mdputil": {
+   "category": "binaries",
+   "friendly": "The device-data utility: reads and writes the small factory data block that carries this unit's identity like its serial number and calibration slots, programmed at manufacturing.",
+   "technical": "MDP (manufacturing data payload) tool; initializes the device-payload.bin template documented in firmware-differences; source of serial/MAC/calibration fields.",
+   "status": "shipped",
+   "size": 67596,
+   "sha256": "e3b2f55b3ecd50b3b26aeb1771f0e9b1b0ed30dea84fa759e7adfa70f6a0cd61",
+   "kind": "binary"
+  },
+  "bin/pcap": {
+   "category": "binaries",
+   "friendly": "The packet-capture tool: records network traffic for diagnostics, used when Sonos needs to see what the speaker is actually receiving.",
+   "technical": "pcap capture utility invoked from the diagnostics surface.",
+   "status": "shipped",
+   "size": 66996,
+   "sha256": "1f774e76d0904d94c3321eead021c9063e111a3bd6a82e2ad476aa250d8fb52f",
+   "kind": "binary"
+  },
+  "bin/upgrade": {
+   "category": "binaries",
+   "friendly": "The low-level updater: the program that actually writes a downloaded firmware image to flash during an update.",
+   "technical": "Update applier invoked by upgrade_mgr; the recovery path runs it in a loop (documented in update_machinery's sibling-binaries record).",
+   "status": "shipped",
+   "size": 200036,
+   "sha256": "6777928534592ccec85ff9505334fb0c85f842565aab9cc64fcc23e41d03eca6",
+   "kind": "binary"
+  },
+  "bin/upgrade_mgr": {
+   "category": "binaries",
+   "friendly": "The update manager: orchestrates a downloaded update, verifies it, and schedules the reboot into the new firmware.",
+   "technical": "Upgrade orchestrator; its status and report files land under /tmp/upgrade_mgr_* and /jffs/upgrade*.",
+   "status": "shipped",
+   "size": 67160,
+   "sha256": "b806c0df7934b9fd3fa367aa1a9eb73a09c4f0c81cd06e6b3ec28fb34636cd2c",
+   "kind": "binary"
+  },
+  "sbin/frcheck": {
+   "category": "binaries",
+   "friendly": "The factory-reset checker: looks at the button/reset state at boot and reports whether the device should wipe itself clean before anything else starts.",
+   "technical": "Its return code feeds the rootfs boot chain: on m8 it maps to netstartd --soft-reset, on m9 to --hard-reset (a real per-model behavioral difference).",
+   "status": "shipped",
+   "size": 67080,
+   "sha256": "8bd04de01ac8d4ed07ba3daee7a3d32db13fbad53486dc9da6ad06602ff1fde5",
+   "kind": "binary"
+  },
+  "sbin/capsh": {
+   "category": "binaries",
+   "friendly": "A capability-inspection utility from the libcap package, used for checking process privileges.",
+   "technical": "Standard libcap tool; ships with the capability-aware launch path (anacapactl's -C keep-set).",
+   "status": "shipped",
+   "size": 68432,
+   "sha256": "4ddf9eef05b0be1aca5e03e082c8062dd7e5ccfb6844e7298f52585058ce2875",
+   "kind": "binary"
+  },
+  "usr/sbin/brctl": {
+   "category": "binaries",
+   "friendly": "The bridge control tool: manages the network bridge interface the speaker uses to share its connection in SonosNet setups.",
+   "technical": "Ethernet-bridging utility for the bridged-wireless topology SonosNet requires.",
+   "status": "shipped",
+   "size": 67624,
+   "sha256": "6ffee508067d9163c73ae2c9ff256355ef4ca54cace0589ce12d20cfb3695ba7",
+   "kind": "binary"
+  },
+  "usr/sbin/keyval": {
+   "category": "binaries",
+   "friendly": "The key-value store tool: reads and writes small system-level settings keys used by the lower-level services.",
+   "technical": "Keyval utility referenced by updater and network scripts; one of the persistent-state primitives below anacapad.",
+   "status": "shipped",
+   "size": 67128,
+   "sha256": "3bd52f3d28928b29ca3da547485bf4e5b71744b3db22c57a0930a4a73b99c859",
+   "kind": "binary"
+  },
+  "usr/sbin/setmac": {
+   "category": "binaries",
+   "friendly": "The MAC-address assignment tool: programs the unit's network hardware address during manufacturing or recovery.",
+   "technical": "Writes the device MAC; paired with mdputil's factory provisioning.",
+   "status": "shipped",
+   "size": 67248,
+   "sha256": "fb3f727de446ffe5100c85b314eec2f19f037b15476aa189201e4ea9b7ea32c2",
+   "kind": "binary"
+  },
+  "bin/busybox": {
+   "category": "binaries",
+   "friendly": "The Swiss Army knife of the system: one small program providing all the everyday Unix commands (ls, cp, ping, ps, and dozens more). Most of the other tools in /bin are just shortcuts to this one file.",
+   "technical": "busybox multi-call binary; the /bin utilities (cat, ls, mount, netstat, ping, ps, ...) are symlinks into it.",
+   "status": "shipped",
+   "size": 526096,
+   "sha256": "f04f6646c7d054e995cd09d4c17205d1cd71a080171e97a80750de6a190f16c7",
+   "kind": "binary"
+  },
+  "modules/audiodev.ko": {
+   "category": "modules",
+   "friendly": "The audio device driver: the kernel module that exposes the sound hardware to the programs above, carrying the actual digital audio to the amplifiers.",
+   "technical": "Core audio driver; the lla and tdm_driver entries document the interface layered on it.",
+   "status": "shipped",
+   "size": 146328,
+   "sha256": "65bb803d74054376cad1f9305696ad0df921763981c3071fb10c70cfbf138ba4",
+   "kind": "binary"
+  },
+  "modules/chk.ko": {
+   "category": "modules",
+   "friendly": "The hardware-check module: a small kernel piece the system uses to verify board identity and hardware health.",
+   "technical": "Board-check module; its device node (/dev/chk) appears in the updater's sibling-binary inventory.",
+   "status": "shipped",
+   "size": 4736,
+   "sha256": "f099055a15c41e29074bd0855c3c0add5f30d23df2a5d7c14f172bc3df00978e",
+   "kind": "binary"
+  },
+  "modules/hwevent_queue.ko": {
+   "category": "modules",
+   "friendly": "The hardware-event queue: delivers physical events like button presses and jack insertions from the kernel up to the programs that handle them.",
+   "technical": "Kernel queue feeding hw_input_events / hwmessagelib, the layer that turns physical presses into internal messages.",
+   "status": "shipped",
+   "size": 17596,
+   "sha256": "b569eb24c4d5591dd4874e2ca99b6c8109465eb442e7484c79cf08bfbe5eb2ea",
+   "kind": "binary"
+  },
+  "modules/ir_rcvr.ko": {
+   "category": "modules",
+   "friendly": "The infrared receiver driver: the kernel piece that captures remote-control signals from the IR sensor on models that have one, like the Playbar.",
+   "technical": "IR receiver driver feeding /opt/ir config and the ir_decoder/ir_learn machinery. Absent on models without an IR sensor (a documented m8-vs-m9 difference).",
+   "status": "shipped",
+   "size": 7948,
+   "sha256": "467aaf41cc857a0109c1b4d124a9031c291188f238fc1f93917118f21ccff715",
+   "kind": "binary"
+  },
+  "modules/sonos_device.ko": {
+   "category": "modules",
+   "friendly": "The Sonos board-support module: kernel glue for the custom hardware bits specific to the player.",
+   "technical": "Board-support kernel module for the limelight platform.",
+   "status": "shipped",
+   "size": 3640,
+   "sha256": "c5047d17c5bf529db12a3009b21c6f432d0fd51fb47f1949e83ba6bdacb2a571",
+   "kind": "binary"
+  },
+  "wifi/bridge.ko": {
+   "category": "modules",
+   "friendly": "The network-bridge module: lets the speaker bridge wired and wireless interfaces so SonosNet members can share a connection.",
+   "technical": "Kernel bridge support used by brctl in the SonosNet topology.",
+   "status": "shipped",
+   "size": 78056,
+   "sha256": "1f738329dd9016b52f1872a5fde659ca2291fca638253adc94024fb52215252a",
+   "kind": "binary"
+  },
+  "wifi/N/adf.ko": {
+   "category": "modules",
+   "friendly": "A lower-level Atheros driver framework module the WiFi stack loads beneath the main radio driver.",
+   "technical": "Atheros Driver Framework layer for the wifi/N radio build.",
+   "status": "shipped",
+   "size": 24776,
+   "sha256": "7a137d22cbc1cf94d2eabe2aa093867b11d8cddb75f14aa133c6fa5f23ea4705",
+   "kind": "binary"
+  },
+  "wifi/N/asf.ko": {
+   "category": "modules",
+   "friendly": "Another Atheros support layer in the WiFi stack, handling shared services the radio driver relies on.",
+   "technical": "Atheros Service Framework layer for the wifi/N radio build.",
+   "status": "shipped",
+   "size": 13124,
+   "sha256": "537acdbc2de81b9c75f3aed2849ad37ebaa3768c78a8671554ae4f1e0b734bf1",
+   "kind": "binary"
+  },
+  "wifi/N/ath_driver.ko": {
+   "category": "modules",
+   "friendly": "The main WiFi radio driver: the kernel module that actually talks to the Atheros wireless chip and does the work of joining networks and carrying traffic.",
+   "technical": "Primary ath driver for the Atheros-based radio in this generation of hardware.",
+   "status": "shipped",
+   "size": 362008,
+   "sha256": "13e8c2658306cb55464fc942fb01d9be49b9ec53f62518367812b36454e43778",
+   "kind": "binary"
+  },
+  "wifi/N/ath_hal.ko": {
+   "category": "modules",
+   "friendly": "The radio's hardware-abstraction module: the closed-off layer between the open driver and the actual radio silicon.",
+   "technical": "Atheros HAL (hardware abstraction layer), the proprietary core of the driver stack.",
+   "status": "shipped",
+   "size": 349744,
+   "sha256": "bf6fa38237599dc0c7551eb8c8dd850874dc922b3db907f8bfaede36f8d9f3db",
+   "kind": "binary"
+  },
+  "wifi/N/dfs.ko": {
+   "category": "modules",
+   "friendly": "The radar-detection module: watches for radar on restricted WiFi channels so the speaker can legally operate on them, part of the 5 GHz regulatory machinery.",
+   "technical": "DFS (Dynamic Frequency Selection) module; pairs with the radartool utility.",
+   "status": "shipped",
+   "size": 58024,
+   "sha256": "7721e59669177601410ee881d03d935ddc7b33edb6ece2c618bce130773debd1",
+   "kind": "binary"
+  },
+  "lib/ld.so.1": {
+   "category": "libs",
+   "friendly": "The dynamic loader itself: the very first piece of code that runs when any program starts, responsible for finding and linking all the shared libraries below.",
+   "technical": "Runtime linker/loader (glibc ld.so); resolves every .so dependency at process start.",
+   "status": "shipped",
+   "size": 202084,
+   "sha256": "925663a234c829c93f0a154a888d475cd5f529d4e8bb78093052db73a0286484",
+   "kind": "binary"
+  },
+  "lib/libanl.so.1": {
+   "category": "libs",
+   "friendly": "A resolver helper for asynchronous name lookups, part of the standard C library family.",
+   "technical": "glibc async DNS stub resolver library.",
+   "status": "shipped",
+   "size": 67216,
+   "sha256": "bf44349ff423df018391a8c8c33717e3b43bcb82f3e710f7a69ced43276ff374",
+   "kind": "binary"
+  },
+  "lib/libatomic.so.1": {
+   "category": "libs",
+   "friendly": "Provides atomic operations for code that needs to update shared values safely across threads.",
+   "technical": "GCC runtime for atomic builtins used by the C++ concurrency primitives.",
+   "status": "shipped",
+   "size": 66888,
+   "sha256": "936d09871114ec00675d9dca65d9ee65602f8cfff561a9d1600f2f0951765d8e",
+   "kind": "binary"
+  },
+  "lib/libavcodec.so.59": {
+   "category": "libs",
+   "friendly": "One of the FFmpeg libraries: provides the codecs that decode compressed audio formats the speaker receives.",
+   "technical": "FFmpeg codec library (avcodec 59); backs part of the decode layer alongside the dedicated decoders.",
+   "status": "shipped",
+   "size": 526112,
+   "sha256": "b76beb0d832bcd54646196e33459fb06ef16e15b71fbd6619d68f95d87fb3772",
+   "kind": "binary"
+  },
+  "lib/libavformat.so.59": {
+   "category": "libs",
+   "friendly": "The FFmpeg container-format library: understands the file and stream wrappers that audio arrives in, like MP4 or streaming containers.",
+   "technical": "FFmpeg demuxer library; parses container formats for the audio pipeline.",
+   "status": "shipped",
+   "size": 329396,
+   "sha256": "8fdf976dca64b38bc36953b83b1ebd21962d1aecc5b3861232c26c4a1ab7d778",
+   "kind": "binary"
+  },
+  "lib/libavutil.so.57": {
+   "category": "libs",
+   "friendly": "The FFmpeg utility foundation: shared helpers the other FFmpeg libraries use for buffers, math, and data structures.",
+   "technical": "FFmpeg utility library (libavutil 57).",
+   "status": "shipped",
+   "size": 788656,
+   "sha256": "c5410f65833a122f6d03945554ab28150085733e8091179ad25c85318d99a082",
+   "kind": "binary"
+  },
+  "lib/libc.so.6": {
+   "category": "libs",
+   "friendly": "The core C library: the basic building blocks every program uses, from memory and strings to files and sockets. The single most fundamental library on the device.",
+   "technical": "glibc 6; the platform C runtime.",
+   "status": "shipped",
+   "size": 1593260,
+   "sha256": "68480e345dae7c02b16cce5797c23f7205baf08e0b491e11c34eccaae4121c74",
+   "kind": "binary"
+  },
+  "lib/libcrypt.so.1": {
+   "category": "libs",
+   "friendly": "The password-hashing library: implements the cryptographic hashing used for account passwords in the shadow file.",
+   "technical": "libcrypt with MD5-crypt ($1$) and friends; the format etc/shadow uses.",
+   "status": "shipped",
+   "size": 67152,
+   "sha256": "6045bf5a663a0b035f0dde6fb858ecb01b53215ee81ad27411d1d799db5bf39d",
+   "kind": "binary"
+  },
+  "lib/libdcadec.so.0": {
+   "category": "libs",
+   "friendly": "The DTS decoder: handles the DTS surround format that some TVs and discs send instead of Dolby. Its presence is a Playbar-specific feature; smaller speakers do not ship it.",
+   "technical": "DTS decode library (dcadec); an m9-only component flagged in the firmware-differences page.",
+   "status": "shipped",
+   "size": 394888,
+   "sha256": "4bd12f82476b9b10cd5ae7007143f7207923bb85f98b465a61426b28c906b50d",
+   "kind": "binary"
+  },
+  "lib/libdl.so.2": {
+   "category": "libs",
+   "friendly": "The dynamic-loading helper: lets programs open extra shared libraries on demand after they have already started.",
+   "technical": "glibc dlopen/dlsym stubs.",
+   "status": "shipped",
+   "size": 67268,
+   "sha256": "4af444ffc67a8ce5e9a7c69b6890a9a28de563c97ccd083020be98213d332faf",
+   "kind": "binary"
+  },
+  "lib/libdns_sd.so.1": {
+   "category": "libs",
+   "friendly": "The service-discovery client library: the piece programs use to announce and find services on the local network.",
+   "technical": "DNS-SD client library backing the mDNS/discovery layer.",
+   "status": "shipped",
+   "size": 66968,
+   "sha256": "7f0c4057b48f02e4586370837b83148c62eea8951a06562c2bcf2234d5a4bf33",
+   "kind": "binary"
+  },
+  "lib/libflash.so.1": {
+   "category": "libs",
+   "friendly": "The flash-memory library: safe read/write access to the device's flash storage, used by the updater and the factory-data tooling.",
+   "technical": "Sonos flash/NCD access library; backs mdputil and the device-payload handling.",
+   "status": "shipped",
+   "size": 67016,
+   "sha256": "454a6c5e2bde42f0f6fa64854dc738a3d1b4731a99f4af6c9272576ca2ff641d",
+   "kind": "binary"
+  },
+  "lib/libgcc_s.so.1": {
+   "category": "libs",
+   "friendly": "A small GCC support runtime providing helpers the compiler emits calls into, like long-division on hardware that lacks the instruction.",
+   "technical": "GCC shared runtime support library.",
+   "status": "shipped",
+   "size": 132564,
+   "sha256": "3210e9d6b8605e995224f9f65cd1eb2a09edd67d2b690198059184d785450ae2",
+   "kind": "binary"
+  },
+  "lib/libhwmessagelib.so.1": {
+   "category": "libs",
+   "friendly": "Sonos's hardware-message library: the shared code for sending events between the kernel drivers and the programs, covering things like button presses and jacks.",
+   "technical": "Sonos-internal lib; backs hwmessagelib/hw_input_events.",
+   "status": "shipped",
+   "size": 67068,
+   "sha256": "f9a8118a37378555d5e0015135c53db84119f4cda90b4ac5eab95c411c58e1c4",
+   "kind": "binary"
+  },
+  "lib/libm.so.6": {
+   "category": "libs",
+   "friendly": "The math library: floating-point and transcendental functions used by audio processing and anything else that computes.",
+   "technical": "glibc math library.",
+   "status": "shipped",
+   "size": 1196608,
+   "sha256": "b50c76409e06d9d4d44318a5ef80acebe3bb20e99f28946a31419c51fa782363",
+   "kind": "binary"
+  },
+  "lib/libmbedcrypto.so.16": {
+   "category": "libs",
+   "friendly": "The cryptographic primitives library: the raw math for encryption, hashing, and signing that the TLS layer builds on.",
+   "technical": "mbedTLS crypto core; underpins the secure channels (lechmere, TLS to music services, cert verification).",
+   "status": "shipped",
+   "size": 394952,
+   "sha256": "a1963eed20b9837f13c0d8620ec78508e3a096174d799ca3556dea9988bdb866",
+   "kind": "binary"
+  },
+  "lib/libmbedtls.so.21": {
+   "category": "libs",
+   "friendly": "The secure-connection library: implements the encrypted protocol behind every https and secure-socket conversation the speaker has, from cloud calls to music services.",
+   "technical": "mbedTLS TLS implementation; the tls_stack entry documents the layer built on it.",
+   "status": "shipped",
+   "size": 132560,
+   "sha256": "c61d42e59c107c5a8bf9d01358322d2cef656e890e3c46141cc4ae3599694cde",
+   "kind": "binary"
+  },
+  "lib/libmbedx509.so.7": {
+   "category": "libs",
+   "friendly": "The certificate-parsing library: understands the format of digital certificates so the device can verify who it is talking to.",
+   "technical": "mbedTLS X.509 parser; used with libsonos-certval for device identity.",
+   "status": "shipped",
+   "size": 66976,
+   "sha256": "730be3bbb923833a5fdb17c4bd65b0eb16a96ab962f12276492bab287016b437",
+   "kind": "binary"
+  },
+  "lib/libmpg123.so.0": {
+   "category": "libs",
+   "friendly": "The MP3 decoder library: fast, mature MPEG-audio decoding for one of the oldest formats the player accepts.",
+   "technical": "mpg123 decode library.",
+   "status": "shipped",
+   "size": 198636,
+   "sha256": "18566d9f255bcbd5d41ec649738c5a7b1e06180458fcb97eebbdc51f2c362fda",
+   "kind": "binary"
+  },
+  "lib/libnl-3.so.200": {
+   "category": "libs",
+   "friendly": "The netlink library: how userspace programs talk to the kernel's networking subsystem for things like interface and route events.",
+   "technical": "netlink-3 core library.",
+   "status": "shipped",
+   "size": 132980,
+   "sha256": "7860c4c6239085ecab4c42092796f9e58b4da6788c5509a1001eeb8863361e35",
+   "kind": "binary"
+  },
+  "lib/libnl-genl-3.so.200": {
+   "category": "libs",
+   "friendly": "The generic-netlink extension: the modern netlink flavor used for wireless and other kernel subsystems.",
+   "technical": "netlink-3 generic library; consumed by WiFi tooling.",
+   "status": "shipped",
+   "size": 67584,
+   "sha256": "a757566c04cebbb4db3d4b435d6de7cbb5506a4238722a3e92f26cb6cc540104",
+   "kind": "binary"
+  },
+  "lib/libnss_dns.so.2": {
+   "category": "libs",
+   "friendly": "The DNS name-service module: the piece that actually performs name lookups when a program asks for a hostname's address.",
+   "technical": "glibc NSS DNS plugin loaded per nsswitch.conf.",
+   "status": "shipped",
+   "size": 67060,
+   "sha256": "dbd9e2ce0f5805dfabdcbcf41068d44b2c23e0ec9160db8e9123b02a434f288a",
+   "kind": "binary"
+  },
+  "lib/libnss_files.so.2": {
+   "category": "libs",
+   "friendly": "The file-based name-service module: answers lookups from flat files like hosts and passwd before the network is consulted.",
+   "technical": "glibc NSS files plugin.",
+   "status": "shipped",
+   "size": 67228,
+   "sha256": "0dacf4f54ea6e3bf02dd6839aa0e15686220c9860e78e69d34d33b112c4a3a4b",
+   "kind": "binary"
+  },
+  "lib/libpcap.so.1": {
+   "category": "libs",
+   "friendly": "The packet-capture library: the standard API for sniffing network traffic, backing the pcap diagnostic tool.",
+   "technical": "libpcap; used by bin/pcap for diagnostic captures.",
+   "status": "shipped",
+   "size": 266780,
+   "sha256": "a41237fb615ad5af53c1fbfa8a853b0d17d0be44a6aae177a68188eddf9785f6",
+   "kind": "binary"
+  },
+  "lib/libprotobuf-nanopb.so.0": {
+   "category": "libs",
+   "friendly": "A small protocol-buffers implementation for structured data: the lightweight serialization used in the embedded plumbing.",
+   "technical": "nanopb protobuf runtime; pairs with the decoded protobuf descriptor set documented under protobuf_descriptors.",
+   "status": "shipped",
+   "size": 66976,
+   "sha256": "5cf58557c28f238743c16c45ca6aa69f473abf75e6b12674426932162dea48a3",
+   "kind": "binary"
+  },
+  "lib/libpthread.so.0": {
+   "category": "libs",
+   "friendly": "The threading library: lets programs run many things at once, which a speaker needs constantly for playback, networking, and control at the same time.",
+   "technical": "glibc POSIX threads.",
+   "status": "shipped",
+   "size": 134284,
+   "sha256": "a7e61be7e6fc906d4a8ae1b241c02fedca47c5aac4d3161b4e3687e43d06fec1",
+   "kind": "binary"
+  },
+  "lib/libresolv.so.2": {
+   "category": "libs",
+   "friendly": "The resolver library: full DNS query machinery beyond the simple name lookups.",
+   "technical": "glibc resolver library.",
+   "status": "shipped",
+   "size": 133324,
+   "sha256": "36bd8c24be52922455395f6399ac6d02cb5d7b03ba1d1d797be7c33d9a7117a3",
+   "kind": "binary"
+  },
+  "lib/libsbc.so.1": {
+   "category": "libs",
+   "friendly": "The Bluetooth audio codec library: decodes the standard Bluetooth audio format on products that ship a Bluetooth radio. It is present here because the codebase is shared across models.",
+   "technical": "SBC codec library; dormant on this wired-only Playbar (documented under bt_sbc).",
+   "status": "shipped",
+   "size": 132612,
+   "sha256": "a1a5998d4a6d6a6563185296da0515997cede5d88449419bbc150fbfedca6c9a",
+   "kind": "binary"
+  },
+  "lib/libsmb2.so.1": {
+   "category": "libs",
+   "friendly": "The Windows file-sharing client library: the component that lets the speaker mount and read music stored on computers and NAS drives.",
+   "technical": "SMB2 client library backing the smb/mntmgr music-share machinery.",
+   "status": "shipped",
+   "size": 198556,
+   "sha256": "ba823cc96747f662227885c14134a735f24d1338d6c53b659816468a7ec0805a",
+   "kind": "binary"
+  },
+  "lib/libsonos-certval.so.2": {
+   "category": "libs",
+   "friendly": "The device-certificate verifier: Sonos's own library for checking that a presented certificate chains back to a trusted Sonos root. It is what 'a genuine Sonos device' means in code.",
+   "technical": "Sonos-internal cert validation library; manages the RCB bundles including /etc/fallback_trusted_roots.rcb (see libsonos_certval).",
+   "status": "shipped",
+   "size": 1706972,
+   "sha256": "6a3aaba84eea36d6ea0fafbcce1321199958950a62d4a8ded483fc796fa4f230",
+   "kind": "binary"
+  },
+  "lib/libsonos-mdp.so.1": {
+   "category": "libs",
+   "friendly": "The manufacturing-data library: reads and writes the factory data block carrying serial number, MAC, and per-unit calibration values.",
+   "technical": "Sonos-internal MDP library behind mdputil and the device-payload.bin template.",
+   "status": "shipped",
+   "size": 66888,
+   "sha256": "919a36bec2cd00aaa31efefff2b0cf7d4ba3247d63f1ac88f5739a6a630b628c",
+   "kind": "binary"
+  },
+  "lib/libsonos-root-cert-bundle.so.2": {
+   "category": "libs",
+   "friendly": "The packaged root-cert bundle: the primary set of trust anchors for secure connections, shipped as its own updatable library.",
+   "technical": "Sonos cert-bundle carrier; its runtime-update path is documented under libsonos_certval/rcb_bundle_format.",
+   "status": "shipped",
+   "size": 66984,
+   "sha256": "4cd8ae0486d1d68f01e25408f98b572b6e55ae41f77912d8adaeae812f9803a6",
+   "kind": "binary"
+  },
+  "lib/libsonos-time-c.so.1": {
+   "category": "libs",
+   "friendly": "Sonos's own time library: the company's shared clock code that the sync machinery builds on.",
+   "technical": "Sonos-internal time library feeding the sntp/time-sync layer.",
+   "status": "shipped",
+   "size": 67116,
+   "sha256": "c3b34b1a671da66b2e61f8cb2c6bf47991d6f9c0777fd726f06e71b2666c1325",
+   "kind": "binary"
+  },
+  "lib/libsonoscrypto.so.3": {
+   "category": "libs",
+   "friendly": "Sonos's cryptographic wrapper: the company's own layer on top of the base crypto, used for signing and key handling across the household protocols.",
+   "technical": "Sonos-internal crypto utility library; the PSK hierarchy entries describe what it protects.",
+   "status": "shipped",
+   "size": 67316,
+   "sha256": "7ba2531b9c5921e414af50404e202d5ad0f3f015214d8f2578355fb6ea69f681",
+   "kind": "binary"
+  },
+  "lib/libsonoseventreporter.so.1": {
+   "category": "libs",
+   "friendly": "The event-reporting library: the shared machinery for packaging and shipping telemetry and diagnostic events up to Sonos.",
+   "technical": "Sonos-internal reporter library; part of the telemetry/reporting pipeline.",
+   "status": "shipped",
+   "size": 66984,
+   "sha256": "e0f4b82d2d4d85a1d53eafb0d0e02cf3172f8d2f279f4990f453a9c96b8684f5",
+   "kind": "binary"
+  },
+  "lib/libsonosminiutils.so.1": {
+   "category": "libs",
+   "friendly": "A grab-bag Sonos utility library: small shared helpers the daemons and tools reuse.",
+   "technical": "Sonos-internal utility library.",
+   "status": "shipped",
+   "size": 67500,
+   "sha256": "94c1afdcdff05f2696a13878de75d209f36c6086938059d501f91c68af81a192",
+   "kind": "binary"
+  },
+  "lib/libsonossbcpacket.so.1": {
+   "category": "libs",
+   "friendly": "The Sonos channel-protocol packet library: framing for the proprietary audio-distribution protocol that keeps grouped players in sync.",
+   "technical": "Sonos-internal packet library for the chsrc/chsnk group-audio channel (see native_protocols).",
+   "status": "shipped",
+   "size": 66976,
+   "sha256": "64fa1ab7469501d0e8cc43b882b4b3dbb3fef287a90921a6bf98249a959e8dee",
+   "kind": "binary"
+  },
+  "lib/libsonossyslog.so.1": {
+   "category": "libs",
+   "friendly": "Sonos's logging glue: the internal library that routes messages into the per-subsystem log files.",
+   "technical": "Sonos-internal syslog/log plumbing tied to the log_domains machinery.",
+   "status": "shipped",
+   "size": 67056,
+   "sha256": "d329c65f3724229a9303f9b9b0db3f2c61a1c7178db44b69dfd0da575c931cec",
+   "kind": "binary"
+  },
+  "lib/libsonosutils.so.1": {
+   "category": "libs",
+   "friendly": "Sonos's general utility library: the shared toolbox of helpers used across the daemons, from containers to string handling.",
+   "technical": "Sonos-internal general-purpose library.",
+   "status": "shipped",
+   "size": 67388,
+   "sha256": "c8c1c75905f955c5d7c9759171a7f7e207930a18bb62f3e8c2444fb9fda622de",
+   "kind": "binary"
+  },
+  "lib/libsqlite3.so.0": {
+   "category": "libs",
+   "friendly": "The embedded database library: a whole SQL database engine in one file, used for structured stores like the timer and alarm records.",
+   "technical": "SQLite3; the embedded_sqlite entry documents its use (timer.db prepared statements and friends).",
+   "status": "shipped",
+   "size": 926600,
+   "sha256": "3a96ea0afd93227345d6d8e6155e13440eb0a4d2ae2968d215755a5cee73a795",
+   "kind": "binary"
+  },
+  "lib/libsyslib_hal.so.1": {
+   "category": "libs",
+   "friendly": "The hardware-abstraction library: gives programs a uniform way to talk to the board's LEDs, buttons, and sensors without caring about the exact chips.",
+   "technical": "Sonos hardware-abstraction library sitting above the kernel modules.",
+   "status": "shipped",
+   "size": 66972,
+   "sha256": "3f1fc46c69ee388ef4783910c9d5dc15e09997c7d3e609fd14762184017eb628",
+   "kind": "binary"
+  },
+  "lib/libthread_db.so.1": {
+   "category": "libs",
+   "friendly": "A debugger-support library: helps tools like gdb understand a program's threads. Harmless plumbing that ships with the toolchain.",
+   "technical": "glibc thread-debug helper (gdb support).",
+   "status": "shipped",
+   "size": 67680,
+   "sha256": "e8be7d7c581e0d939c54812d6ddaf1be4c146303034b97b055b03209794f4840",
+   "kind": "binary"
+  },
+  "lib/libtomlc99.so.1": {
+   "category": "libs",
+   "friendly": "The config-file parser library: reads the TOML format used by the logger configs and other modern config files in the image.",
+   "technical": "tomlc99 parser; backs the *_logger.toml files and limelight.toml-style configs (see toml_config).",
+   "status": "shipped",
+   "size": 67052,
+   "sha256": "9e2650c723f9b70b9a05a495588ecf75b90ea1a263746201af9af49236d94223",
+   "kind": "binary"
+  },
+  "lib/libutil.so.1": {
+   "category": "libs",
+   "friendly": "A small utility library with terminal and process helpers from the C library family.",
+   "technical": "glibc libutil (pty/login helpers).",
+   "status": "shipped",
+   "size": 67004,
+   "sha256": "9c933e83204eb337114efeed4e6beefa6869e9e9f7c19282492e3f6974e53fbf",
+   "kind": "binary"
+  },
+  "lib/libuuid.so.1": {
+   "category": "libs",
+   "friendly": "The unique-ID library: generates and parses the long identifier strings the system uses everywhere for devices, groups, and accounts.",
+   "technical": "libuuid; produces the RINCON_-style UUIDs documented under rincon_uuid.",
+   "status": "shipped",
+   "size": 67184,
+   "sha256": "a179176cfee5b04bd400183110013ec12372db62432a99d3127052fb6abdc8e7",
+   "kind": "binary"
+  },
+  "lib/libwifi.so.1": {
+   "category": "libs",
+   "friendly": "The wireless support library: a shared layer for controlling and querying the WiFi hardware, used by the network daemons.",
+   "technical": "WiFi utility library for the Atheros stack (wifi_hal).",
+   "status": "shipped",
+   "size": 66964,
+   "sha256": "911d6f28bd36442832a749e7a3c066939de53a2d8044cc9216d0668df9a506ef",
+   "kind": "binary"
+  },
+  "lib/libz.so.1": {
+   "category": "libs",
+   "friendly": "The compression library: the classic zlib, used anywhere data gets squeezed or unpacked, from saved files to network payloads.",
+   "technical": "zlib; the iocompress queue/state compression wraps it.",
+   "status": "shipped",
+   "size": 132740,
+   "sha256": "510c0897069e9837bb3af133f2d95ec2e752773ea7c13e5d0fe8f45bb3250e04",
+   "kind": "binary"
+  },
+  "opt/htdocs/perfcounters.js": {
+   "category": "webui",
+   "friendly": "The JavaScript behind the performance-counters status page: it fetches the counter data from the speaker and draws it in your browser when you visit the diagnostics site.",
+   "technical": "Client-side script for the perf-counter status page; pairs with the perf_counters schema documented on the subsystems page.",
+   "status": "shipped",
+   "size": 9230,
+   "sha256": "ac4fb0d72fa0a4dfffcd4921e0461cb14018ab929841d18028bc0c89b52efaff",
+   "kind": "text"
+  },
+  "opt/htdocs/review.js": {
+   "category": "webui",
+   "friendly": "The script for a review-style page in the built-in web UI, working with the matching stylesheet file.",
+   "technical": "Companion to xml/review.xsl for the status site's review page.",
+   "status": "shipped",
+   "size": 15822,
+   "sha256": "58300bba90ff52b053921a08e494df9d839bb747a08fbe701ecfbbf99ce6b710",
+   "kind": "text"
+  },
+  "opt/htdocs_locked/dsp/configDSP.htm": {
+   "category": "webui",
+   "friendly": "The HTML shell of the hidden DSP console: a gated page in the diagnostics site that exposes the audio-processing knobs, meant for engineering rather than daily use.",
+   "technical": "Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).",
+   "status": "shipped",
+   "size": 1699,
+   "sha256": "c0c1ab3d462adeb5847244c9f353d338d1d8345898d5bc2cb9cbdbba8fec5af6",
+   "kind": "text"
+  },
+  "opt/htdocs_locked/dsp/configDSP.css": {
+   "category": "webui",
+   "friendly": "The stylesheet for the DSP console page.",
+   "technical": "Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).",
+   "status": "shipped",
+   "size": 5958,
+   "sha256": "e0f5761e73fd0e00e15400ca5a285b0303576457c1f5e35b67d9ded25cb51780",
+   "kind": "text"
+  },
+  "opt/htdocs_locked/dsp/configDSP.js": {
+   "category": "webui",
+   "friendly": "The JavaScript driving the DSP console page: it reads and writes the audio-processing parameters behind the gated interface.",
+   "technical": "Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).",
+   "status": "shipped",
+   "size": 96410,
+   "sha256": "f5218ecb1c633c9634d4b25014a10a99f66c2773fa56b9f4ea6ec5d9912f1bb2",
+   "kind": "text"
+  },
+  "opt/htdocs_locked/dsp/meters.htm": {
+   "category": "webui",
+   "friendly": "The HTML shell of the input-level meters page: shows live signal levels per channel, used for audio debugging.",
+   "technical": "Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).",
+   "status": "shipped",
+   "size": 587,
+   "sha256": "aad190d5fd301239fe1cd4f014e177f8c5fb13b0d56b7c44a6c56fe0bc2797e0",
+   "kind": "text"
+  },
+  "opt/htdocs_locked/dsp/meters.css": {
+   "category": "webui",
+   "friendly": "The stylesheet for the meters page.",
+   "technical": "Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).",
+   "status": "shipped",
+   "size": 240,
+   "sha256": "160125d1a65cb0d7242daef7195264d29e6b32d7929952ce4e9d937c44bd4c20",
+   "kind": "text"
+  },
+  "opt/htdocs_locked/dsp/meters.js": {
+   "category": "webui",
+   "friendly": "The JavaScript that polls the meter data and draws the live channel levels on the meters page.",
+   "technical": "Static asset for the locked DSP console under /opt/htdocs_locked; reachable only through gated diagnostic routes (ChProcInputMeter.xml-era surface, documented under dsp_params/exec_pages).",
+   "status": "shipped",
+   "size": 12471,
+   "sha256": "1bf1c14a27e27e9b08ae6b3206a6d266ba8a93515540a9c4c525cef4b8bd914b",
+   "kind": "text"
+  },
+  "package/86.10-80260-1-9-kernel.uImage": {
+   "category": "package",
+   "friendly": "The Linux kernel image for this firmware: the actual operating-system core the speaker boots. Everything else on this page runs on top of it.",
+   "technical": "uImage-wrapped ARM kernel from the update package, about 1.8 MB. The modules/ and wifi/ kernel objects above load into this kernel at boot.",
+   "status": "package",
+   "size": 1792719,
+   "sha256": "f74b36a9a6ae5efe2fe0c1ea1daf05ed5e30212bfe48a30b2c4ea7af2da4ae34",
+   "kind": "binary"
+  },
+  "package/86.10-80260-1-9-device-payload.bin": {
+   "category": "package",
+   "friendly": "The factory data template: a small binary block carrying the per-unit identity slots (serial, MAC, calibration) that get filled in when the device is manufactured. Amusingly, its embedded template still carries a 2012-era factory timestamp from the original Playbar.",
+   "technical": "Section-13 payload from the .upd, about 55 KB. Its tagged-record layout (board ID '3s50avq100', the '2012/06/14' template date, empty serial/MAC slots) is fully decoded on the firmware-differences page; mdputil -B initializes it.",
+   "status": "package",
+   "size": 54757,
+   "sha256": "36b47a4c7ef9e974ccfa82efda203754f0316ddc38b836e66b050e71074ae7cc",
+   "kind": "binary"
+  },
+  "package/86.10-80260-1-9-preinstall.sh": {
+   "category": "package",
+   "friendly": "The installer script inside the update package: the small program that runs on the device when a firmware update lands, preparing the new image for installation.",
+   "technical": "Pre-install script from the .upd; runs ahead of the squashfs/rootfs swap during upgrade.",
+   "status": "package",
+   "size": 1599,
+   "sha256": "feddb7ad14034b06c316ccbed244a11925093a882a9d7bd81ea64a61364cbe70",
+   "kind": "text"
+  },
+  "package/86.10-80260-1-9-rootfs.squashfs": {
+   "category": "package",
+   "friendly": "The compressed filesystem image: the single block that contains the entire root filesystem, all the files on this page included. This is what the device actually writes during an update.",
+   "technical": "Squashfs image (~14 MB) extracted from the .upd; the rootfs-86.10-80260-1-9 directory on this site was unpacked from this file.",
+   "status": "package",
+   "size": 13918208,
+   "sha256": "c8deece292bf7025be0533ca4c238e582d2890872ce4681a8ade7666dbbb81d6",
+   "kind": "binary"
+  },
+  "package/86.10-80260-1-9.upd": {
+   "category": "package",
+   "friendly": "The complete update package itself: the signed bundle Sonos's servers deliver when this model updates, containing the kernel, the filesystem, and the installer all in one signed file.",
+   "technical": "The signed .upd for build 86.10-80260-1-9 (~16 MB). Everything under the other categories on this page ultimately comes from inside this file.",
+   "status": "package",
+   "size": 15919011,
+   "sha256": "6c82af3a66596cac485e30b8b8f2f89f7039f211a379686d011786173db447de",
+   "kind": "binary"
+  },
+  "usr/lib/libcap.so.2": {
+   "category": "libs",
+   "friendly": "The capabilities library: manages the fine-grained Linux privilege bits that let a program keep only the powers it needs instead of running fully as root.",
+   "technical": "libcap; supports the capability keep-set on the anacapad launch line.",
+   "status": "shipped",
+   "size": 67196,
+   "sha256": "b4b2bd747773e10fda5f2d0fa3f47b17a4bb46c6d5b42acba0c486332bd0b0ec",
+   "kind": "binary"
+  },
+  "wifi/N/radartool": {
+   "category": "binaries",
+   "friendly": "The radar-detection tool: on 5 GHz bands the radio must listen for radar before transmitting, and this utility performs those checks. It exists on this build because the Playbar can master SonosNet on radar-controlled channels.",
+   "technical": "DFS (radar) utility for the wifi/N modules; the dfs.ko module + this tool satisfy regulatory radar-detection requirements.",
+   "status": "shipped",
+   "size": 67084,
+   "sha256": "93d9c6e54e9abe4a3769123d8cc42afcf79cc101d71ced4303b3fe5e0aad36b6",
+   "kind": "binary"
+  }
+ }
+}

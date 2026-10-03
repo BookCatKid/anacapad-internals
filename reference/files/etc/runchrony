@@ -1,0 +1,70 @@
+#!/bin/sh
+
+#####
+# Handler script for chronyd, the NTP daemon which sets the system clock.
+# This is meant to be run in perpetuity thanks to the inittab.
+# If you must use another technique to set the system clock, touch
+# /var/run/stopchrony and run `killall chronyd` first.
+#
+# chrony detects errors in the system clock relative to the real UTC time it
+# determines by polling NTP servers. These errors can be either "small" or
+# "big" (see all/mtools/gen_chronyconf.py for the threshhold between these).
+# Whenever it's running, chronyd corrects small errors by "slewing" the system
+# clock (adjusting how fast it ticks so that it matches up with UTC time fairly
+# quickly, but not immediately). When clock errors are big, chronyd can correct
+# them by instead "stepping" the system clock (correcting it immediately).
+# Stepping the clock can theoretically be dangerous to running processes, so we
+# only let chronyd do it once per operation.
+#####
+. /etc/rundaemon.sh
+
+trackrestart chrony /var/run/chrony.start
+
+# Wait until the platform has an IP address AND a DNS server is available:
+# until both conditions are met, chronyd cannot make forward progress.
+waitfordns
+
+waitwhiletrue "[ -f /var/run/stopchrony ]"
+
+# Set up directories chrony needs
+mkdir -p /jffs/chrony
+chown -R chrony:sonos /jffs/chrony
+mkdir -p /var/lib/chrony
+chown -R chrony:sonos /var/lib/chrony
+
+# It's possible (though rare) for the system clock to get set too far ahead of
+# detected NTP time. If this happens, chrony logs this, increments the count in
+# this file, and exits. We restart chrony in case we got unlucky and synced with
+# bad servers, but to prevent perpetual restarting, we do so less and less
+# frequently the more we fail.
+#
+# If an RTC is present, we set its value to match the detected NTP time,
+# so that if forward drift of the RTC was the cause of the system clock's
+# inaccuracy, the system clock will be set more accurately during the next
+# reboot.
+if [ -f /var/lib/chrony/sync_failure_count ]; then
+  if grep -Fxq HAS_RTC /etc/arch_attrs && \
+     [ -f /var/lib/chrony/sync_time_offset ]; then
+    hwclock -u -w$(cat /var/lib/chrony/sync_time_offset)
+  fi
+  fail_count=$(cat /var/lib/chrony/sync_failure_count)
+  if [ $fail_count -eq 1 ]; then
+    echo "sysclock uncorrectably fast of true; trying again in 5 minutes"
+    sleep 300
+  elif [ $fail_count -eq 2 ]; then
+    echo "sysclock uncorrectably fast of true; trying again in 30 minutes"
+    sleep 1800
+  else
+    echo "sysclock uncorrectably fast of true; trying again in 60 minutes"
+    sleep 3600
+  fi
+fi
+
+chronyd_opts="-n -u chrony" # don't daemonize - become user chrony
+
+if [ -f /jffs/dev_chrony.conf ]; then
+  echo "Found /jffs/dev_chrony.conf; using it instead of default /etc/chrony.conf."
+  chronyd_opts="$chronyd_opts -f /jffs/dev_chrony.conf"
+fi
+
+exec /sbin/chronyd $chronyd_opts

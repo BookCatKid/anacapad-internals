@@ -32,9 +32,17 @@ docs/documentation.json     canonical dataset — every claim + evidence
 docs/client_text.json       hand-written reader-friendly overlay
 docs/documentation.schema.json
 docs/crossbuild_matrix.json per-build/feature availability data
+docs/artifacts.json         firmware artifact manifest (friendly +
+                            technical descriptions; extract_artifacts.py
+                            fills size/sha256/kind)
+docs/muse_spec_streams.json decoded spec-pair streams (muse API field
+                            catalog; rendered by gendocs.py)
 soap_api-86.10-80260.json   raw extractor output (SOAP surface)
-reference/                  generated Markdown (29 files)
+reference/                  generated Markdown (31 files)
 reference/services/         one page per UPnP service (18 files)
+reference/files/            extracted firmware artifacts (audio, XML
+                            specs, configs, scripts, binaries, package
+                            pieces); refreshed by tools/extract_artifacts.py
 site/                       generated static HTML site
 tools/                      extraction + doc pipeline (see below)
 tests/                      unittest suite (34 tests)
@@ -64,17 +72,22 @@ Requirements: Python 3.10+, `zensical` (site builder; falls back to
 # 1. Validate the canonical dataset (structural + cross-ref QA)
 python3 tools/validate.py
 
-# 2. Regenerate reference Markdown + run content QA
+# 2. Extract firmware artifacts into reference/files/ (optional; needs an
+#    unpacked rootfs: ANACAPAD_ROOTFS=/path/to/rootfs-86.10-80260-1-9).
+#    Without it the committed copies under reference/files/ are used.
+python3 tools/extract_artifacts.py
+
+# 3. Regenerate reference Markdown + run content QA
 #    (fails on missing client text, stale overlay keys, broken refs)
 python3 tools/gendocs.py          # -> reference/*.md, prints QA result
 
-# 3. Build the static site
+# 4. Build the static site
 python3 tools/gensite.py          # -> site/, "No issues found" expected
 
-# 4. Unit tests
+# 5. Unit tests
 python3 -m unittest discover -s tests
 
-# 5. Coverage + lint reports (optional)
+# 6. Coverage + lint reports (optional)
 python3 tools/coverage.py
 python3 tools/lint.py
 ```

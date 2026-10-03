@@ -1,6 +1,6 @@
-# Muse spec-pair streams (auto-extracted)
+# Muse spec-pair streams
 
-The field catalog behind the modern REST API. Every request or response body is a set of named fields with declared types. This page lists, for each API operation, which fields it accepts or produces and what type each one is. `globalError` rows name the error payloads an operation can return; rows marked `upnpEvent` are pushed to subscribers rather than returned on request.
+Behind the modern REST API there is a catalog that spells out, for every operation, exactly which fields a request or response may carry and what type each field is. This page is that catalog, listed raw. Each section is one cluster of related operations (the verb names printed beside it), and each row inside is a field name paired with the type the firmware expects for it. Rows marked 'globalError' name the error shapes an operation can hand back, and rows marked 'upnpEvent' describe payloads the speaker pushes out to subscribers on its own rather than returning when asked. It is dense reading, but it is the ground truth for anyone building or studying a client for the API.
 
 <details markdown="1"><summary><b>Technical details</b></summary>
 
@@ -1003,4 +1003,3 @@ adjacent verb/param pool: `fronthaulChannel`, `backhaulChannel`, `getActiveZoneL
 - `0x01` accessoryId : `0x01` accessoryId
 - `0x01` accessoryId : `0x00` none
 - `0x01` accessoryId : `0x03` accessorySwap
-

@@ -1,0 +1,35 @@
+#!/bin/sh
+# Preserve seed
+/etc/init.d/Krandom
+
+daemonkill() {
+    for daemon in sonosledmgrd sonosdiagd \
+	sonospowercoordinator anacapad chronyd sddpd \
+	dropbear netstartd mdnsd udhcpc rngd ; do
+	killall -$1 $daemon 2> /dev/null
+    done
+}
+
+for stop in stopupgrade stopledmgrd stopdiagapp \
+    stopsonospowercoordinator \
+    stopmdns stopdiagprocessd stopanacapa stopchrony stopsddp stopnetstartd; do
+    touch /var/run/$stop
+done
+
+echo Sending SIGTERM
+daemonkill TERM
+sync
+sleep 2
+
+echo Sending SIGKILL
+daemonkill KILL
+sync
+sleep 1
+
+if [ -x /etc/scripts/ampmcu-down.sh ]; then
+    echo Disabling AMPMCU instances
+    /etc/scripts/ampmcu-down.sh
+fi
+
+echo Unmounting /jffs
+grep -q /jffs /proc/mounts && umount /jffs

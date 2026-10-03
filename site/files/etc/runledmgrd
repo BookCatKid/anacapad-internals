@@ -1,0 +1,27 @@
+#!/bin/sh
+
+. /etc/rundaemon.sh
+
+trackrestart sonosledmgrd /var/run/sonosledmgrd.start
+
+while [ -f /var/run/stopledmgrd ] || [ -e /var/run/sonosledmgrd.pid ]; do
+    # If we are not deliberately stopping and a pid file exists, check to make
+    # sure that the pid is actually running. If not, the process has exited abnormally
+    # and needs to be kicked after logging a message.
+    if  [ ! -f /var/run/stopledmgrd ]; then
+        curpid=`pidof sonosledmgrd`
+        if [ $? = 1 ]; then
+            pid=`cat /var/run/sonosledmgrd.pid`
+            _dat=`date "+%h %d %H:%m:%S runledmgrd"`
+            # this is a system daemon.. so use '3' for message priority
+            echo "<3> $_dat LED Manager PID $pid is stale. Likely caused by an abnormal exit. Check logs. Restarting LED Manager" >> /opt/log/sonosledmgrd.log
+            unset _dat
+            unset pid
+            break
+        fi
+        unset curpid
+    fi
+    sleep 5
+done
+echo "Starting LED Manager"
+exec /opt/bin/sonosledmgrd

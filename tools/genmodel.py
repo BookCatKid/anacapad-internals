@@ -789,6 +789,8 @@ PAGE_TEXT_SPEC = {
     "firmware": {"intro", "product_surface", "service_matrix", "entries",
                  "entry_text"},
     "subsystems": {"intro"},
+    "artifacts": {"intro"},
+    "muse_spec_streams": {"intro"},
     "muse": {"intro", "description", "flags_decode", "dispatch",
              "tables", "op_spine", "validation_lib", "pipeline",
              "request_envelope", "content_type", "auth", "path_params",
