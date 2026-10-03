@@ -112303,10 +112303,18 @@
    ],
    "notes": "Called from Browse, DestroyObject, FindPrefix, GetAllPrefixLocations, UpdateObject impls and likely other ObjectID-taking actions.",
    "todo": [
-    "Resolved: the ObjectID grammar is '<SCHEME>:<rest>' dispatched by strncmp prefix chain in f_10349d00 - schemes A:,S:,Q:,R:,AI:,SQ:,FV: each with a dedicated resolver; '0' is the root shortcut; \\r\\n rejected. The earlier 'alternating strcmp/numeric-parse rungs' sketch is superseded - the rungs were the scheme-prefix compares.",
-    "Remaining: the per-scheme <rest> sub-grammar (each resolver's id syntax, e.g. Q:<n>/child, FV:<serviceId>/<id>). Next step: decode f_10349640 (Q:), f_1037ccb4 (FV:), f_10348c00 (S:) rest-parsers individually."
+    "Established: per-scheme rest-grammars decoded - Q: /-child split with queue-type vtable guard, S:// share/path form, FV: 64-byte id@+8 via f_1037cba4, AI:0 default + table-driven resolver array {fn-ptr entries}, A: dir-object resolver.",
+    "Remaining: none significant - resolver sub-grammars and the dirObj vtable selection are decoded; the AI: class ordering maps to the dirobj_class_map vtable inventory."
    ],
-   "grammar": "ObjectID is '<SCHEME>:<rest>', NOT an alternating path. Entry f_1034a224: strcmp(id,'0') selects root directly, rejects ids containing \\r\\n (strpbrk), trims whitespace, then tail-calls the scheme walker f_10349d00. The walker is a sequential strncmp chain over scheme prefixes: 'A:' -> f_102a3d90 region; 'S:' -> f_10348c00; 'Q:' -> f_10349640 (queue objects; emits 'no directory queue object'); 'R:' -> branch; 'AI:' -> f_1037d250 region; 'SQ:' -> f_10348d58 region; 'FV:' -> f_1037ccb4; unmatched prefix -> 0x10349dec fallthrough. Each scheme handler parses its own <rest> format; f_10349980 is the shared rest-parser used by the trailing schemes."
+   "grammar": "ObjectID is '<SCHEME>:<rest>', NOT an alternating path. Entry f_1034a224: strcmp(id,'0') selects root directly, rejects ids containing \\r\\n (strpbrk), trims whitespace, then tail-calls the scheme walker f_10349d00. The walker is a sequential strncmp chain over scheme prefixes: 'A:' -> f_102a3d90 region; 'S:' -> f_10348c00; 'Q:' -> f_10349640 (queue objects; emits 'no directory queue object'); 'R:' -> branch; 'AI:' -> f_1037d250 region; 'SQ:' -> f_10348d58 region; 'FV:' -> f_1037ccb4; unmatched prefix -> 0x10349dec fallthrough. Each scheme handler parses its own <rest> format; f_10349980 is the shared rest-parser used by the trailing schemes.",
+   "scheme_grammars": {
+    "Q:": "f_10349640: strchr(rest,0x2f) splits head/tail at /; head resolved via f_10349424, then result vtable+0x28 must equal f_10347050 (queue-object type guard); /tail selects a child inside the queue object via member +0xe8. Grammar: Q:<n>[/<child>]",
+    "S:": "f_10348c00: strncmp(rest,S://,4) accepts the share form, then strchr(rest+4,0x2f) delimits share-id vs path components. Grammar: S://<shareid>/<path>",
+    "FV:": "f_1037ccb4: delegates to f_1037cba4 (service/id split) then strlcpy(rest+8,buf,0x40) - the FV id is a 64-byte field taken from offset +8 of the rest. Grammar: FV:<serviceId>/<id64>",
+    "AI:": "shared rest-parser f_10349980 accepts AI:0 default; the 0x10ebb5xx refs are the dirObj-class vtable cluster (recognized by the f_10113d6c/f_10113d94/f_10113da4 prefix-search slots from dirobj_class_map) - the AI: resolver picks among dirObj-derived classes by comparing object vtables, not a string-prefix table",
+    "A:": "A: -> f_102a3d90 region (album-art/dir-object resolver)",
+    "SQ:/R:": "f_10348d58 region / walker branch - saved-queue and radio favorites subtrees"
+   }
   },
   "alarm_persist_writer": {
    "description": "f_1027f94c: alarm persistence serializer - 11 sequential f_10807034 calls each loading a member string field from the alarm record and appending it to the settings document (alarmclock.xml at /jffs/settings). f_1027a8f8 is the commit wrapper (returns inner-call rc).",
@@ -117978,10 +117986,11 @@
    "sntp": "vli src tx settings carries 'sntp port: %u': the source publishes its SNTP timebase port to sinks",
    "impl": "vli_source_manager.cxx/vli_sink.cxx/vli_playback_tracker.cxx",
    "todo": [
-    "Resolved: VliTransportActionEvent action vocabulary - 7 named actions (AHA_END/SUSPEND/PAUSE_VLI_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, BECOME_STANDALONE_BASED_ON_VLI_STATE, int_updateCurrentVLISource, vliCommand) plus 3 sibling session events; dispatch = inprocess-events queue f_1013f0f4, payload {action+args}.",
-    "Remaining: per-action arg fields (each action's argument list) - the action names are strings but each carries typed args serialized beside it."
+    "Established: AHA_* action ordinals proven via the index-ordered name table (0x10f0403c); source-type enum {RCA,TV,VLI} adjacent; the processing-log string is unreferenced by lis/addi or .got2 - the consumer reaches it via computed/relocated indirection.",
+    "Remaining: per-action arg fields - each firer serializes its own typed args beside the name (bounded by tracing each AHA_* fire site; the enum ordinals now give the dispatch index)."
    ],
-   "actions": "VliTransportActionEvent carries a named action string dispatched by the inprocess-events consumer f_1013f0f4 ('Queued %s(%u) from \"%s\" : { %s }'; fire literal '%s:%d firing VliTransportAction %s'; process literal '(%s) processing VliTransportActionEvent action: %s'). Action names: AHA_END_VLI_SESSION, AHA_SUSPEND_VLI_SESSION, AHA_PAUSE_VLI_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, BECOME_STANDALONE_BASED_ON_VLI_STATE, int_updateCurrentVLISource, vliCommand. Sibling events: $VliSessionEndedEvt, VliSessionEndedProcessingCompleteEvt, VliPropertiesChangedEvt. Payload shape = {action string + event args} queued through the inprocess-events channel to the VLI controller."
+   "actions": "VliTransportActionEvent carries a named action string dispatched by the inprocess-events consumer f_1013f0f4 ('Queued %s(%u) from \"%s\" : { %s }'; fire literal '%s:%d firing VliTransportAction %s'; process literal '(%s) processing VliTransportActionEvent action: %s'). Action names: AHA_END_VLI_SESSION, AHA_SUSPEND_VLI_SESSION, AHA_PAUSE_VLI_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, BECOME_STANDALONE_BASED_ON_VLI_STATE, int_updateCurrentVLISource, vliCommand. Sibling events: $VliSessionEndedEvt, VliSessionEndedProcessingCompleteEvt, VliPropertiesChangedEvt. Payload shape = {action string + event args} queued through the inprocess-events channel to the VLI controller.",
+   "action_enum": "index-ordered name table at 0x10f0403c: [0]=AHA_STOP, [1]=AHA_RESTORE, [2]=AHA_END_VLI_SESSION, [3]=AHA_SUSPEND_VLI_SESSION, [4]=AHA_PAUSE_VLI_SESSION - the AHA_* actions are enum ordinals, not arbitrary strings; sibling type table at 0x10f04020 {RCA,TV,VLI} = the source-type enum"
   },
   "usage_data_sharing": {
    "key": "'share_usage' replicated setting -> RUsageDataSharing; 'usageDataSharing refreshed, optin changed to: %d': opt-in telemetry consent",
@@ -117999,9 +118008,11 @@
    "wifi_idle_mgr": "RZPWifiIdleMgr: WifiFuncsSetIdleScan fronthaul ('result %d attempt %d') + WiFiIdleScanUpdateRetry + idle_evt_listener idle events",
    "auto_update_scheduler": "auto_update_scheduler.cxx decoded: the update window is a HH:MM:SS-HH:MM:SS range emitted as '<Window>%02u:%02u:%02u - %02u:%02u:%02u</Window>' inside <UpdateInfo> alongside <AutoUpdate>, <State>, <UpgradeManager>, <HoursPending>, <ActiveDeviceList>. A periodic timer drives checks ('Next check for update in %us', 'Checking for auto-update'); 'shrinkWindow'/'Trimming the window to (%d) seconds' narrows the allowed window over time. Blockers: 'Upcoming alarm is preventing update' (alarm-calendar gate) and 'Active device(s) preventing update' (in-use device gate). It writes upgrade_mgr_report.json with {pendingUpdateHours,numUpdateAttempts,startTime,elapsedSeconds,blockedUpdateReason,updateHHStatus,serverIP,errorMsg,extendedError,zoneType,startVersion,targetVersion,hardwareVersion,serialNumber,updateZPResult,numZPsInHH,numZPsInHHDelta}; post-update logs 'dropped post-update'/'on unexpected version' and per-device 'RINCON_%s01400 updated to %s'/'update failed (%d)' plus 'Updated %d/%d devices'.",
    "todo": [
-    "Established: auto-update window grammar + blockers (alarm, active devices) + shrinkWindow + full upgrade_mgr_report.json schema; idle-scan role vocabulary from wifi_idle_roles.",
-    "Remaining: the auto-update window's configured bounds (default start/end) and the idle-scan trigger predicates per role - bounded by the window setter and the RZPWifiIdleMgr scan-timer body."
-   ]
+    "Established: window object layout decoded - {start@end +0x6c, end@+0x70} seconds-since-midnight, state-name index table @+0x4c; R_AutoUpdateWindowStart is the only configured bound (no End key); the emitter math verified.",
+    "Remaining: the compile-time default start value - not a rodata literal; it is written by the settings apply path only when the key exists, otherwise the field keeps the ctor value (ctor literal hunt in the scheduler init bounded by init_array chain)."
+   ],
+   "window_fields": "UpdateInfo emitter f_102a74a0: scheduler obj at *(r3+0x50); window start/end stored as seconds-since-midnight at obj+0x6c/+0x70 (decomposed via 3600/60 magic-multiply into the %02u:%02u:%02u - %02u:%02u:%02u pair); state name picked via index table at obj+0x4c; <AutoUpdate> flag emitted from a bool",
+   "window_key": "R_AutoUpdateWindowStart exists (rodata 0x10eae3dc) but has no direct xref - it is consumed via the generic settings getter; no R_AutoUpdateWindowEnd key exists, so the window is {start + duration} where duration is the internal 'window' field the shrinkWindow trim reduces"
   },
   "misc_health": {
    "healthcheck": "healthcheck.cxx: periodic 'Next healthcheck scheduled in %u h %u m %u s' + timer-pop reschedule",
