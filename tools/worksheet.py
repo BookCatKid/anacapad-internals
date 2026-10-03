@@ -55,8 +55,7 @@ def worksheet(api, doc, svc, act):
     p("Router:  %s   cap_flags: %s" % (svc.get("router"),
                                      svc.get("cap_flags")))
     en = svc.get("enabled") or {}
-    p("Enabled: %s = %s (confidence %s)"
-      % (en.get("kind"), en.get("raw_expr"), en.get("confidence")))
+    p("Enabled: %s = %s" % (en.get("kind"), en.get("raw_expr")))
     obj = svc.get("object") or {}
     p("Object:  %s -> vptr %s (source %s)"
       % (obj.get("expr"), obj.get("vptr"), obj.get("source")))
@@ -128,14 +127,13 @@ def worksheet(api, doc, svc, act):
     p("KNOWN EVIDENCE")
     for e in doc_act.get("evidence") or []:
         loc = e.get("address") or e.get("callsite") or e.get("function")
-        p("  [%s] %s %s" % (e.get("status"), e.get("type"), loc))
+        p("  %s %s" % (e.get("type"), loc))
         if e.get("notes"):
             p("       %s" % e["notes"])
     p("")
-    p("EXISTING DOC STATUS")
+    p("EXISTING DOC")
     p("  description: %s" % _fmt(doc_act.get("description")))
-    p("  status: %s   visibility: %s" % (doc_act.get("status"),
-                                       doc_act.get("visibility")))
+    p("  visibility: %s" % doc_act.get("visibility"))
     p("")
     p("STILL UNDOCUMENTED")
     issues = doclib.action_issues(act["name"], doc_act)
@@ -149,9 +147,9 @@ def worksheet(api, doc, svc, act):
         p("")
         p("ERROR ENTRIES IN DOC")
         for e in doc_act["errors"]:
-            p("  code=%s expr=%s status=%s"
+            p("  code=%s expr=%s%s"
               % (_fmt(e.get("code")), _fmt(e.get("code_expr")),
-                 e.get("status")))
+                 " (unresolved)" if e.get("unresolved") else ""))
             u = e.get("unresolved") or {}
             if u.get("proven"):
                 p("    proven: %s" % u["proven"])

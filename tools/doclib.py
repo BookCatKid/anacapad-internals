@@ -4,7 +4,7 @@ Shared library for the anacapad documentation workflow.
 
 Loads the extractor JSON (binary-derived structural facts) and
 documentation.json (human + skeleton semantics), and implements the
-completeness rules shared by validate.py, coverage.py, worksheet.py and
+field-completeness rules shared by validate.py, worksheet.py and
 lint.py so every tool judges documentation identically.
 """
 import json
@@ -19,8 +19,6 @@ DEFAULT_SCHEMA = os.path.join(DOCS_DIR, "documentation.schema.json")
 
 DEFAULT_BINARY = "anacapad"
 DEFAULT_BUILD = "86.10-80260"
-
-STATUSES = ("confirmed", "strong", "inferred", "unresolved")
 EVIDENCE_TYPES = ("firmware", "live_test", "network_capture",
                   "runtime_trace", "device_observation")
 VISIBILITIES = ("advertised", "hidden", "internal", "unknown")
@@ -99,12 +97,11 @@ def assessed(v):
 
 
 # ------------------------------------------------------------------
-# Status-honesty rules (audit tier)
+# Generic-claim detection (audit tier)
 #
-# A semantic claim may be `confirmed` or `strong` only when attached
-# evidence actually proves it in the binary. Generic wrapper-level
-# observations ("forwarded to impl", "worker-determined", "written on
-# success") are first-pass documentation, never verified semantics.
+# Wrapper-level observations ("forwarded to impl", "worker-determined",
+# "written on success") are first-pass documentation, never verified
+# semantics.
 
 _GENERIC_CLAIM_RES = [
     re.compile(p, re.I) for p in (
@@ -151,82 +148,10 @@ def is_generic_claim(text):
     return False
 
 
-def _status_of(obj):
-    return (obj or {}).get("status")
-
-
-def claim_ok(obj):
-    """True if a status-bearing object's claim strength is honest:
-    confirmed/strong must carry at least one evidence record."""
-    s = _status_of(obj)
-    if s in ("confirmed", "strong") and not (obj.get("evidence") or []):
-        return False
-    return True
-
-
-def arg_verified_issues(name, arg):
-    """Binary-verified tier for one argument. Returns [] when the arg's
-    semantics are proven, else a list of what blocks verification."""
-    issues = []
-    if arg.get("status") not in ("confirmed", "strong"):
-        issues.append("status %s" % arg.get("status"))
-    if not (arg.get("evidence") or []):
-        issues.append("no evidence records")
-    for fld in ("description", "accepted_values", "range",
-                "special_values", "default", "validation"):
-        v = arg.get(fld)
-        if is_generic_claim(v):
-            issues.append("%s is generic" % fld)
-    return issues
-
-
-def action_verified_issues(name, act):
-    """Binary-verified tier for one action: impl path proven, arg
-    semantics proven, errors have real code semantics, no generic
-    claims, and status carries evidence."""
-    issues = []
-    if act.get("status") not in ("confirmed", "strong"):
-        issues.append("status %s" % act.get("status"))
-    if not (act.get("evidence") or []):
-        issues.append("no evidence records")
-    impl = act.get("implementation") or {}
-    if not (impl.get("impl_function") or impl.get("impl_vfunc")
-            or impl.get("impl_addr")):
-        issues.append("no concrete impl address")
-    for an, arg, direction in iter_args(act):
-        for i in arg_verified_issues(an, arg):
-            issues.append("%s %s: %s" % (direction, an, i))
-    for e in act.get("errors") or []:
-        if e.get("status") == "unresolved":
-            issues.append("error %s unresolved" % e.get("code"))
-            continue
-        if not (e.get("evidence") or []):
-            issues.append("error %s no evidence" % e.get("code"))
-        if is_generic_claim(e.get("meaning")):
-            issues.append("error %s generic meaning" % e.get("code"))
-        for c in e.get("conditions") or []:
-            if is_generic_claim(c.get("description")):
-                issues.append("error %s generic condition" % e.get("code"))
-            if not (c.get("evidence") or []):
-                issues.append("error %s condition no evidence"
-                              % e.get("code"))
-    for fld in ("requirements", "state_dependencies",
-                "events_triggered", "state_transitions",
-                "return_behavior", "validation", "description"):
-        if is_generic_claim(act.get(fld)):
-            issues.append("%s is generic" % fld)
-    for s in act.get("side_effects") or []:
-        if is_generic_claim(s.get("description")
-                            if isinstance(s, dict) else s):
-            issues.append("generic side effect")
-    return issues
-
-
 def ev(address=None, function=None, callsite=None, notes=None,
-       status="confirmed", type_="firmware",
-       binary=DEFAULT_BINARY, build=DEFAULT_BUILD):
+       type_="firmware", binary=DEFAULT_BINARY, build=DEFAULT_BUILD):
     """Construct a schema-conformant evidence record."""
-    d = {"type": type_, "binary": binary, "build": build, "status": status}
+    d = {"type": type_, "binary": binary, "build": build}
     if function:
         d["function"] = function
     if address:
@@ -305,12 +230,6 @@ def arg_issues(name, arg):
     ok, why = is_meaningful(arg.get("description"), name)
     if not ok:
         issues.append("description (%s)" % why)
-    if arg.get("status") == "unresolved":
-        issues.append("status unresolved")
-    if arg.get("status") in ("confirmed", "strong") \
-            and not (arg.get("evidence") or []):
-        issues.append("status %s with no evidence records"
-                      % arg.get("status"))
     if arg.get("required") not in (True, False, "conditional"):
         issues.append("required/optional not assessed")
     for fld in ("semantic_type", "format", "accepted_values", "range",
@@ -324,14 +243,11 @@ def _err_entry_complete(e):
     """An error entry is complete if it is either resolved (meaningful
     meaning + at least one complete condition) or explicitly documented
     as unresolved with proven/unknown filled and evidence attached."""
-    if e.get("status") == "unresolved":
-        u = e.get("unresolved") or {}
+    u = e.get("unresolved") or {}
+    if u.get("unknown") or not is_meaningful(e.get("meaning"))[0]:
         return (assessed(u.get("proven")) and assessed(u.get("unknown"))
                 and assessed(e.get("evidence")))
-    if not is_meaningful(e.get("meaning"))[0]:
-        return False
-    if e.get("status") in ("confirmed", "strong") \
-            and not (e.get("evidence") or []):
+    if not (e.get("evidence") or []):
         return False
     conds = e.get("conditions") or []
     if not conds:
@@ -366,8 +282,6 @@ def action_issues(name, act):
     ok, why = is_meaningful(act.get("description"), name)
     if not ok:
         issues.append("action description (%s)" % why)
-    if act.get("status") == "unresolved":
-        issues.append("action status unresolved")
     vis = act.get("visibility")
     if vis == "unknown" or not vis:
         issues.append("visibility not classified")
@@ -398,8 +312,6 @@ def service_issues(svc):
     ok, why = is_meaningful(svc.get("description"), svc.get("name"))
     if not ok:
         issues.append("description (%s)" % why)
-    if svc.get("status") == "unresolved":
-        issues.append("status unresolved")
     avail = svc.get("availability") or {}
     ok, why = is_meaningful(avail.get("notes"))
     if not ok:
@@ -417,8 +329,6 @@ def capability_issues(key, cap):
     ok, why = is_meaningful(cap.get("effect"))
     if not ok:
         issues.append("effect (%s)" % why)
-    if cap.get("status") == "unresolved":
-        issues.append("status unresolved")
     return issues
 
 
@@ -430,8 +340,6 @@ def internal_fn_issues(addr, fn):
     ok, why = is_meaningful(fn.get("why_external"))
     if not ok:
         issues.append("why_external (%s)" % why)
-    if fn.get("status") == "unresolved":
-        issues.append("status unresolved")
     return issues
 
 
@@ -440,8 +348,6 @@ def candidate_issues(func, cand):
     ok, why = is_meaningful(cand.get("assessment"), func)
     if not ok:
         issues.append("assessment (%s)" % why)
-    if cand.get("status") == "unresolved":
-        issues.append("status unresolved")
     return issues
 
 
@@ -454,8 +360,6 @@ def statevar_issues(name, var):
         issues.append("data_type not assessed")
     if var.get("evented") not in (True, False):
         issues.append("evented not assessed")
-    if var.get("status") == "unresolved":
-        issues.append("status unresolved")
     return issues
 
 
@@ -466,8 +370,6 @@ def evidence_errors(e, where):
         return ["%s: evidence not an object" % where]
     if e.get("type") not in EVIDENCE_TYPES:
         errs.append("%s: bad evidence type %r" % (where, e.get("type")))
-    if e.get("status") not in STATUSES:
-        errs.append("%s: bad evidence status %r" % (where, e.get("status")))
     if not (e.get("address") or e.get("callsite") or e.get("function")
             or e.get("notes")):
         errs.append("%s: evidence record carries no locator" % where)

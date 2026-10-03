@@ -20,7 +20,6 @@ import doclib
 import import_extract
 import validate
 import lint
-import coverage
 import worksheet
 import genmodel
 import gendocs
@@ -32,7 +31,6 @@ FIXTURE = os.path.join(ROOT, "tests", "fixture_api.json")
 def fully_documented_arg(direction="in"):
     return {
         "description": "Free-form user label stored with the object.",
-        "status": "confirmed",
         "direction": direction,
         "primitive": {"type_tag": 7, "parse_helper": "0x9000"},
         "semantic_type": "string",
@@ -122,14 +120,14 @@ class ImportTests(unittest.TestCase):
         self.doc["services"]["/Test/Control"]["actions"]["DoThing"][
             "description"] = "Does the thing described on the tin."
         self.doc["services"]["/Test/Control"]["actions"]["DoThing"][
-            "status"] = "confirmed"
+            "todo"] = "Human-authored open work marker."
         doclib.save_json(self.doc_path, self.doc)
         doc2, _, _ = import_extract.run_import(FIXTURE, self.doc_path,
                                                "TEST-1")
         act = doc2["services"]["/Test/Control"]["actions"]["DoThing"]
         self.assertEqual(act["description"],
                          "Does the thing described on the tin.")
-        self.assertEqual(act["status"], "confirmed")
+        self.assertEqual(act["todo"], "Human-authored open work marker.")
 
     def test_machine_fields_refreshed(self):
         # change extractor output -> structural fields update
@@ -172,7 +170,6 @@ class ValidateTests(unittest.TestCase):
         act.update({
             "description": "Applies a mode change to the test object and "
                            "returns a status string.",
-            "status": "confirmed",
             "visibility": "advertised",
             "requirements": "none",
             "state_dependencies": "none",
@@ -189,7 +186,6 @@ class ValidateTests(unittest.TestCase):
         for e in act["errors"]:
             if e["code"] == 718:
                 e.update({
-                    "status": "confirmed",
                     "meaning": "Request rejected because the object state "
                                "does not permit the change.",
                     "conditions": [{
@@ -241,16 +237,6 @@ class LintTests(unittest.TestCase):
         ws = lint.lint(self.doc, self.api)
         self.assertTrue(any("echoes identifier" in w for w in ws))
 
-    def test_flags_confirmed_without_evidence(self):
-        self.doc["capabilities"]["0xcdc"]["status"] = "confirmed"
-        self.doc["capabilities"]["0xcdc"]["evidence"] = []
-        self.doc["capabilities"]["0xcdc"]["description"] = (
-            "Bitmask gating which SOAP services respond to requests.")
-        self.doc["capabilities"]["0xcdc"]["effect"] = (
-            "Clears matching service cap_flags at request routing time.")
-        ws = lint.lint(self.doc, self.api)
-        self.assertTrue(any("no evidence" in w for w in ws))
-
     def test_flags_stale_and_orphan(self):
         # doc action not in extractor -> stale
         self.doc["services"]["/Test/Control"]["actions"]["Ghost"] = \
@@ -277,28 +263,6 @@ class LintTests(unittest.TestCase):
         ws = lint.lint(self.doc, self.api)
         self.assertTrue(any("hidden action without reachability" in w
                             for w in ws))
-
-
-class CoverageTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp()
-        self.doc_path = os.path.join(self.tmp, "documentation.json")
-        self.api = doclib.load_json(FIXTURE)
-        self.doc, _, _ = import_extract.run_import(FIXTURE, self.doc_path,
-                                                   "TEST-1")
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp)
-
-    def test_counts(self):
-        text, done, units = coverage.report(self.api, self.doc)
-        # fixture: 2 services, 2 actions, 2 inputs, 1 output,
-        # 2 action faults + 2 dispatcher faults = 4 fault paths,
-        # 1 capability, 1 dispatch candidate, 2 required helpers
-        self.assertEqual(done, 0)
-        self.assertEqual(units, 2 + 2 + 2 + 1 + 4 + 1 + 1 + 2)
-        self.assertIn("2 discovered", text)
-        self.assertIn("0 / 2 semantically complete", text)
 
 
 class WorksheetTests(unittest.TestCase):
@@ -333,7 +297,6 @@ class WorksheetTests(unittest.TestCase):
 def _gen_action(name="DoThing", **over):
     a = {
         "description": "Does a documented thing.",
-        "status": "strong",
         "visibility": "advertised",
         "reachability": "callable",
         "handler": "0x8000",
@@ -351,7 +314,7 @@ def _gen_service(path="/X/Control", name="SvcX", actions=None, **over):
     s = {
         "name": name, "control_path": path,
         "description": "Test service.",
-        "status": "strong", "visibility": "advertised",
+        "visibility": "advertised",
         "availability": {"notes": "always registered"},
         "actions": actions or {"DoThing": _gen_action()},
         "evidence": [doclib.ev(address="0x7000", notes="svc")],
@@ -413,7 +376,7 @@ class GenModelTests(unittest.TestCase):
                             for e in r.errors))
 
     def test_stub_flag_and_render(self):
-        stub = _gen_action("StartTransmission", status="confirmed",
+        stub = _gen_action("StartTransmission",
                            dispatch={"kind": "strcmp_stub",
                                      "entry_addr": "0x1", "voff": 8})
         doc = _gen_doc({"/AudioIn/Control": _gen_service(
@@ -453,7 +416,7 @@ class GenModelTests(unittest.TestCase):
 
     def test_type_mismatch_warns(self):
         a = _gen_action(inputs={"ID": {
-            "direction": "in", "status": "confirmed",
+            "direction": "in",
             "description": "numeric id",
             "primitive": {"type_tag": 4, "parse_helper": "0x1",
                           "buf_cap": 24},
@@ -467,7 +430,7 @@ class GenModelTests(unittest.TestCase):
         a = _gen_action(errors=[{
             "code": None, "code_expr": "vret(r5,+0x34)",
             "meaning": "computed rc passthrough",
-            "status": "strong", "fault_sites": ["0x1234"],
+            "fault_sites": ["0x1234"],
             "conditions": [{"description": "impl rc forwarded",
                             "evidence": [doclib.ev(address="0x1234")]}],
             "evidence": [doclib.ev(address="0x1234")],
@@ -486,7 +449,7 @@ class GenModelTests(unittest.TestCase):
         # prose references InstanceID but the action declares no args
         # (and another action declares it, seeding the vocabulary)
         declares = _gen_action("Other", inputs={"InstanceID": {
-            "direction": "in", "status": "confirmed",
+            "direction": "in",
             "description": "instance",
             "primitive": {"type_tag": 4, "parse_helper": "0x1",
                           "buf_cap": 24},
@@ -502,8 +465,7 @@ class GenModelTests(unittest.TestCase):
 
     def test_stale_unresolved_after_resolution(self):
         a = _gen_action(implementation={
-            "engine_resolution": {"status": "resolved",
-                                  "impl_func": "0x999"},
+            "engine_resolution": {"impl_func": "0x999"},
             "notes": "worker sibling unresolved"})
         m = genmodel.normalize(_gen_doc({"/A/Control":
                                          _gen_service(actions={"A": a})}))
@@ -543,8 +505,7 @@ class TodoPolicyTests(unittest.TestCase):
     still carries structured unknowns must carry an informative `todo`
     (established / still unknown / next step). No generated page may emit
     grading or coverage metadata. TODO presence is derived from the
-    record's own content, never from the deprecated `status`/`confidence`
-    bookkeeping fields."""
+    record's own content."""
 
     DOCS = os.path.join(ROOT, "docs", "documentation.json")
     # evidence items, resolution verdicts and per-expression decode
@@ -594,8 +555,8 @@ class TodoPolicyTests(unittest.TestCase):
                     impl = o.get("implementation")
                     if isinstance(impl, dict) and "impl_function" in impl \
                             and not impl["impl_function"] \
-                            and (impl.get("engine_resolution") or {}) \
-                                    .get("status") != "resolved":
+                            and not (impl.get("engine_resolution") or {}) \
+                                    .get("impl_func"):
                         yield path, "impl_function untraced"
             for k, v in o.items():
                 yield from self._incomplete(

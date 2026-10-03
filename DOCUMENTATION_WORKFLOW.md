@@ -23,7 +23,6 @@ tools/import_extract.py        extractor JSON -> doc skeletons (never overwrites
 tools/worksheet.py             per-action RE worksheet
 tools/validate.py              structural + semantic validation
 tools/lint.py                  weak-documentation linter
-tools/coverage.py              coverage report
 tools/genmodel.py              normalized generator IR + consistency QA
 tools/gendocs.py               Markdown reference renderer (consumes the IR;
                                also renders artifacts/*.md from
@@ -47,12 +46,12 @@ tests/                         unittest suite + synthetic fixture
 ```
 1. Run binary extractor.
 2. Import structural findings.          python3 tools/import_extract.py
-3. Pick one action from the open-work list (reference/subsystems/open-work.md)
-   or the internal inventory.            python3 tools/coverage.py
+3. Pick one record from the open-work list
+   (reference/subsystems/open-work.md).
 4. Generate worksheet.                  python3 tools/worksheet.py AVTransport Seek
 5. Reverse the implementation path (handler -> impl vfunc -> callee).
 6. Fill semantic fields in documentation.json for that action.
-7. Add evidence records (address + build + status) for every non-obvious claim.
+7. Add evidence records (address + build + type) for every non-obvious claim.
 8. Verification pass (see below) BEFORE treating the entry as finished.
 9. Remove or narrow the record's `todo` only when the remaining work in it
    is actually done; otherwise update the `todo` text to reflect the new
@@ -143,19 +142,8 @@ A `todo` is a string or a list of strings; never a bare `TODO` and never
 generic boilerplate. Narrow or remove a `todo` only when the work it names
 is actually done; update the text whenever analysis narrows the residual.
 
-**Deprecated internal bookkeeping.** Records still carry `status` /
-`confidence`-style fields (`confirmed`, `strong`, `inferred`,
-`unresolved`) from an older grading scheme. They are retained temporarily
-because `lint.py` uses them to flag evidence-free claims and
-`coverage.py` builds its inventory from them. They are not completion
-state and must never decide whether a record needs a `todo`. Treat them
-as migration metadata to be removed once nothing depends on them. Never
-silently upgrade an inferred claim.
-
 ### User-facing rendering
 
-The generated site never emits grading or coverage metadata: no badges,
-no status columns, no tiers, no percentages, no confidence vocabulary.
 Each record renders its `todo` next to its evidence, and
 `subsystems/open-work.md` collects every `todo` automatically into a work
 queue grouped by record kind. `TodoPolicyTests` enforces the contract:
@@ -164,7 +152,7 @@ be generic, and no generated page may emit grading metadata.
 
 Evidence records carry `type` (`firmware`, `live_test`, `network_capture`,
 `runtime_trace`, `device_observation`), `binary`, `build`, `function`,
-`address`, `callsite`, `notes`, `status`.
+`address`, `callsite`, `notes`.
 
 ## What the importer owns vs. what you own
 
@@ -177,20 +165,19 @@ overwrites human text:
   capability `loads`/`stores`, dispatch-candidate fields, `meta`,
   `routing`, `request_vtable`
 - human-owned: `description`, `meaning`, `conditions`, `requirements`,
-  `side_effects`, `semantic_type`, `visibility`, `status`, `notes`, ...
+  `side_effects`, `semantic_type`, `visibility`, `todo`, `notes`, ...
 
 Fault sites are auto-covered by skeleton `errors` entries; matching is by
 `fault_sites` membership, so a human-written entry that lists the site is
 never duplicated. Doc objects that no longer exist in extractor output are
 flagged `STALE` by lint, never deleted.
 
-## Internal inventory
+## Open-work inventory
 
-`coverage.py` is an internal tool that reports discovered-vs-documented
-units (services, actions, arguments, fault paths, capability fields,
-dispatch candidates, required internal functions, state variables). Its
-counts are a bookkeeping aid for finding undocumented objects; they are
-not a definition of done and the numbers never appear in generated docs.
+`reference/subsystems/open-work.md` is generated with the docs and
+collects every record that still carries a `todo`, grouped by record
+kind. It is the work queue: closing a record's open items means editing
+its `todo` away, and the next regeneration drops it from the page.
 
 ## Generating reference docs
 
@@ -224,7 +211,6 @@ Generation doubles as a consistency QA pass (`genmodel.qa()`):
 - prose that references arguments absent from the argument model
 - implementation text saying "unresolved" after an engine was resolved
 - `type_tag`/`format`/`buf_cap` mismatches
-- claims marked as evidence-backed that carry no evidence records
 - state-variable `related_action` links and argument/state-variable
   cross-links
 

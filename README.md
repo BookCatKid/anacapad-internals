@@ -96,8 +96,7 @@ python3 tools/gensite.py          # wraps npm run docs:build -> site/
 # 5. Unit tests
 python3 -m unittest discover -s tests
 
-# 6. Internal inventory + lint reports (optional)
-python3 tools/coverage.py   # discovered-vs-documented bookkeeping aid
+# 6. Lint reports (optional)
 python3 tools/lint.py
 ```
 
@@ -121,7 +120,7 @@ python3 tools/import_extract.py        # fold into docs/documentation.json
 `tools/extract_upd.py` can pull the ELF out of a Sonos `.upd` container.
 `tools/` also contains the analysis helpers used during the RE work
 (`disas.py`, `xref.py`, `sfind.py`, `expand_surface.py`, `parse_scpd.py`,
-`propagate.py`, `worksheet.py`, `_errdomain*.py`) — they all honor
+`worksheet.py`, `_errdomain*.py`) — they all honor
 `ANACAPAD`.
 
 ## GitHub Pages

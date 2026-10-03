@@ -65,7 +65,7 @@ Every action wrapper interacts with the request through these vfunc slots.
 :::
 
 - **TODO:** Established: the slot map itself - every vfunc offset's role in parse/commit/fault/arg-access/finalize - is documented with a proven consumer for the zone-context accessor (GetZoneGroupAttributes at 0x107338b0).
-- **TODO:** Still unknown: several slot semantics are inferred from caller patterns rather than traced inside the vfunc implementations; the table was graded inferred overall.
+- **TODO:** Still unknown: several slot semantics come from caller patterns rather than tracing inside the vfunc implementations themselves.
 - **TODO:** Next step: trace the vfunc implementations behind the remaining inferred slots to promote each to proven.
 
 | Slot | Purpose |

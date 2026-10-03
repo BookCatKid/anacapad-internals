@@ -468,9 +468,6 @@ Two products running the same firmware version ship different filesystems: the m
 
 m9-only: libdcadec.so.0 (DTS), libsqlite3.so.0, modules/ir_rcvr.ko + opt/ir/ (Playbar has an IR receiver; Play:1 does not), opt/dsp/S9_array.xml (woofer array), opt/buzzers/speaker-detect.mp3 (chirp room-detect tone), wifi/N/dfs.ko + radartool (DFS radar, HT master owns SonosNet), icon-S9.png, opt/bin/anacapad. m8-only: opt/bin/update. RECOVERY BOOT LOOP: writes 'URL: \[http://update-firmware.sonos.com/firmware/Prod/JFFS_Static_Link/fenway.upd\]' to /var/run/upgradeinfo (honors /var/run/forceupdateurl override), rotates /jffs/recovery.log -> recovery_prev.log (112-line trim), runs /bin/upgrade -b every 30s (the unbricker path, ABSENT on m9 where limelight recovery is handled differently, likely boot-bank); opt/htdocs/audio/level.mp3 (271KB test tone); opt/htdocs/xml/satellite_device.xml (fenway ships a SATELLITE device-description template so Play:1 can present as a bonded surround); icons S1/S3/Sub.png for topology display. Configure diffs: JFFS on mtdblock3/mtd3 (m8) vs mtdblock4/mtd4 (m9) (different flash layouts; frcheck rc==0 -> netstartd --soft-reset on m8 vs --hard-reset on m9): the same factory-reset status maps to DIFFERENT reset severity per model.
 
-**Additional data**
-
-
 
 :::
 
@@ -488,9 +485,6 @@ Comparing the read-only data of the same program across two models on the same v
 **Description**
 
 Normalized string-level diff of the two 86.8 sibling binaries (peel-normalized for packer-tag junk). m9-only (3748) = the entire HT-SOURCE stack: tv_processor_usage.cxx/htaudio_{autoplay,chprocessing,configuration}.cxx/htaudio_satellite_tx.cxx modules; /spdiftap + /snapshotspdiftap + /downloadspdiftap + /tvprocessor + /dolby_config status pages; SPDIFTap/Satellites XML emit schemas (<Satellite Channel Delay Gain IP Eth WiEna>, <ActiveDecoder>DTS|PCM, <DTSProfile>, <SurroundEnabled/Mode/Level>, AudioDelay{LeftRear,RightRear}, StartupLatency/DialogDelay/FrontSatDelay/TVGroupLatency, SurroundState/SubState/GMDownMixState); ARRAY_SUB_SYSTEM_TYPE_{APOLLO,BRAVO,FURY,LASSO,OPTIMO2,OPTIMO2_SURROUND} array taxonomy; ASRC coefficients; debug web forms /ssh/authorized_keys + /removestring + sonos-logger JS; a line:col JSON parser (jsoncpp-style) absent on m8; richer service-token refresh FSM (acct sn refresh sync/wait/token-from-file); CDALIVE keepalive. m8-only (1103) = the HT-SATELLITE + multi-product-DSP side: htsnk.cxx + HTSNK telemetry (<HTSNKPipelineVer>, Consecutive Missed Frames/Latency/Rx Time To Play/Totals, v%u pipeline, Faking satellite removal in shared sat mode, GainISat/SatAttack); per-product DSP classes {DSPControlPlay1,DSPControlPlay3,DSPControlSub,DSPPlay1,DSPPlay3,DSPSysSub} + dspControlSub.cxx; all-in-one sonar ({En,Dis}abling spatial sonar, SonarControl, sonarFreq/sonarMode, x-rincon-sonarcal:complete.ogg, all-in-one sonar not implemented note); Sub-bond machinery (SUB improperly linked..Unlink it, isSubImproperlyLinked, lsubmodel, Unsupported fenway Submodel, bonded subs); /proc/driver/gpio; /tmp/current_play_state; /var/run/forceupdate{,url} force-update flags; R_CustomerID=0 setting default. Confirms the codebase is one binary parameterized by model: fenway builds carry the satellite/sink + Play1/Play3/Sub DSP personalities, limelight builds carry the master/HT-source + Playbar array stack.
-
-**Additional data**
-
 
 
 :::

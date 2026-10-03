@@ -1959,7 +1959,7 @@
    "m8": "FUN_1074b910 via ZGT impl vtable 0x10c6f618",
    "m9": "FUN_10823850 via ZGT impl vtable 0x10f0d1e0",
    "identical": "instruction-identical shape in both binaries: req->vfunc+0x3c begin/telemetry -> req->vfunc+0x8 parse (0x192 on fail) -> worker->vfunc+0x28 builds ZoneGroupState XML -> req->vfunc+0x24('ZoneGroupState') out-arg -> out->vfunc+0x10 write -> req->vfunc+0xc commit. Same worker slot +0x28 = same ZGT backend interface = same source.",
-   "status": "confirmed decompiled/disasm"
+   "verification": "confirmed decompiled/disasm"
   }
  },
  "request_object_vtable": {
@@ -1997,7 +1997,6 @@
   "interpretation": "backend-delegate + action-method + output-arg architecture is ancient (>=34.x); only the request plumbing was virtualized into a polymorphic request-context class by 86.x (enabling per-service request subclasses)"
  },
  "worker_identity_unresolved": {
-  "status": "runtime-bound, not statically resolvable",
   "evidence": "worker@svc_ctx+4 is NULL in the svc_ctx ctor (FUN_10754790) and bound post-construction during device init. No operator_new+store@+4 pattern found (workers are likely embedded members of the zone-player aggregate or device objects, bound via computed offsets in init code). DSPControlPlay1/Play3/Sub class names appear only as log/registration strings with no code xrefs to a ctor/factory.",
   "what_is_proven": "the backend-delegate interface is uniform: impls call worker->vfunc+SLOT (SetVolume->+0x1c, Play->+0x2c, GetZoneGroupState->+0x28). The shared volume backend FUN_100cef4c(m8)/0x100dc8e8(m9) calls the audio object via vfunc+0xe0/+0xe4. Whether all services share one ZonePlayer backend or per-service workers is unresolved statically.",
   "distinction": "the 'req' object (SOAP plumbing, per-service request-context subclass) and the 'worker' (product audio/zone backend) are SEPARATE objects - conflating them is an error; only the former is statically mappable",
@@ -2006,7 +2005,8 @@
    "facade": "worker methods are thin delegate trampolines: e.g. reads this->sub@0x158 -> inner@0x714 -> vfunc+0x10, forwarding to deeper audio/DSP sub-objects. The concrete sibling is product-selected at runtime via the hwmodel gate (why class names have no ctor xref - selection is data-driven)",
    "conclusion": "worker = a DSPControl-family facade class sharing a common backend interface (worker->vfunc+SLOT). Which concrete sibling (Play1 vs Play3 vs Sub vs HT) backs each service is runtime-selected; the family + shared interface is now statically mapped"
   },
-  "m9_parity": "m9 has the same polymorphic backend-class architecture: 466 .rodata vtable runs including large shared-tail families (39,17,8-member hierarchies) = sibling classes sharing base method blocks. Same DSPControl-family facade structure."
+  "m9_parity": "m9 has the same polymorphic backend-class architecture: 466 .rodata vtable runs including large shared-tail families (39,17,8-member hierarchies) = sibling classes sharing base method blocks. Same DSPControl-family facade structure.",
+  "verification": "runtime-bound, not statically resolvable"
  },
  "netstart_ipc_protocol": {
   "transport": "custom Sonos IPC over Unix socket /tmp/netstartd.ipc via InitializeIPCContext(ctx,2,name)/CloseIPCContext (ipc_msg.cxx). Not a raw socket - an internal IPC framework.",
@@ -2044,10 +2044,10 @@
   "vtable": "manager obj vtable at 0x10c504b8; event-name table at 0x10c509dc"
  },
  "native_proto_static_bound": {
-  "status": "verified static boundary - not unexplored",
   "method": "three independent anchor attempts exhausted: (1) lis+addi code materialization - no refs; (2) data-pointer table search - apparent hits are ASCII false-positives inside GENA error strings ('event source (%s) is only legal for the eventing sub-system', 'Observer \"%s\" subscribed'); (3) the 'SCI'/'SonosNet'/'snk_'/'src_' hits are SUBSTRINGS of hardware-enum/job names (SCI_BOARD, PSOC, UART, PMU, checkSonosNetDisableTestTimedJob), not protocol entry points",
   "conclusion": "the SCI/SonosNet/MRPC/TLV/nodetx-protocol handler functions are invoked through virtual dispatch and descriptor/registration tables consistent with the binary's pervasive vtable architecture; they are not statically linkable by string or table anchor. Decoding them needs a full virtual-call call-graph reconstruction - beyond string/table static analysis - and/or runtime.",
-  "what_IS_decoded_statically": "netstart IPC protocol (ipc_msg.cxx hello/IPC-context), nodetx named node-request shape, internalevts 7-type observer bus, TLV 7-field header format, CHSNK state machine (local chsrc/AI/VLI/remote), fenway-vs-limelight master/satellite protocol split"
+  "what_IS_decoded_statically": "netstart IPC protocol (ipc_msg.cxx hello/IPC-context), nodetx named node-request shape, internalevts 7-type observer bus, TLV 7-field header format, CHSNK state machine (local chsrc/AI/VLI/remote), fenway-vs-limelight master/satellite protocol split",
+  "verification": "verified static boundary - not unexplored"
  },
  "uri_codec_grammar": {
   "codec_type_table": "{name,type_code} flat records at m8 0x10c2db80, looked up by FUN_1044ca58 (strcasecmp, returns 1 if known). type codes:",
@@ -2076,19 +2076,19 @@
   "claim": "86.8-78270 -> 86.10-80260 m9 dispatch surface is structurally frozen/identical",
   "evidence": "Extracted 86.8 surface with extract_soap_api.py vs shipped soap_api-86.10-80260.json: all 16 services identical, identical action names+counts (AVT 42, RC 27, DeviceProperties 27, AlarmClock 17, ContentDirectory 16, HTControl 8, ...), and the 13-record soap_path_router table is SEMANTICALLY IDENTICAL (same paths, names, cap_flags 0x10-0x10000, enabled-gate kinds const/field/field_inverted).",
   "interpretation": "All JSON 'diffs' are pure recompilation address/offset shifts (same routers at 0x1019a31c vs 0x101953c8; same zp cap-fields at 0x5434/0x544c vs 0x5704/0x571c). The ONLY behavioral delta is below the SOAP surface: the ClearSource arg-descriptor addition documented separately. Dispatch layer frozen across 86.8->86.10.",
-  "confidence": "proven (surface-level)"
+  "verification": "proven (surface-level)"
  },
  "svc_ctx_route_registration": {
   "claim": "svc_ctx objects are wired to routes via a registration builder, not compile-time linkage; worker field is bound indirectly",
   "evidence": "m8: 7 svc_ctx objects at zp+0x2d50..0x2d98 (12B stride, ctors 0x10357788/0x10751144/0x10751b48/0x10754790/0x103626ac/0x1049194c/0x10755340, each storing {vtable, worker=0, ref=0}). Route-builder 0x101877c0 materializes all svc_ctx addrs (r10+11600/+11624/+11636/+11648/+11660/+11672) + path/name/cap records into a stack table -> bl 0x10665ffc registers into router r28+840. Registration fn builds {argName,typecode} descriptor records (codes 1,2,4,8) on stack and calls service-virtual getters r29->vtable[108,120,124,136].",
   "worker_binding": "EXHAUSTIVE: every stw to the exact svc_ctx+4 offsets (0x2d54/0x2d60/0x2d6c/0x2d78/0x2d84/0x2d90/0x2d9c) across the binary hits only r1 stack spills - NO constant-offset object store exists. Combined with worker=0 in ctor + DSPControl objects being product-selected, the worker pointer is injected via the svc_ctx object pointer passed to a runtime binding routine, not a statically-visible store.",
-  "confidence": "proven (mechanism); per-service sibling still runtime-selected"
+  "verification": "proven (mechanism); per-service sibling still runtime-selected"
  },
  "buf_cap_resolved": {
   "claim": "arg buffer capacities fully resolved - string cap is caller-supplied r5 at the FUN_1055a7c0 call site",
   "evidence": "m9 86.10: string-descriptor helper FUN_1055a7c0 stores rec+0x10 = r5 (caller's 5th arg). Extractor now reads the call-site r5 -> 332/332 parseable args resolved. Scalar types use 24B inline buf; strings span 64B-1025B up to bulk payloads EnqueuedURIsMetaData=40970B, ContentDirectory.Elements=16384B, RedirectURI=8194B.",
   "residual": "null buf_cap remains only for non-descriptor arg paths: id-table virtual-method args, bulk-state-transfer actions (BecomeGroupCoordinator/AddMultipleURIs/ReplaceAllTracks move whole snapshots not per-arg bufs), and reject-all stubs where the arg is never parsed.",
-  "confidence": "proven"
+  "verification": "proven"
  },
  "hwmessage_netlink_bus": {
   "claim": "the native hw-message bus is Linux generic netlink; SCI/SonosNet/UART/PMU/CEC are hardware EVENT-SOURCE IDs, not protocol handlers",
@@ -2097,22 +2097,22 @@
   "event_ids": "V_VLWL/V_VRWL(volume wheels), O_FDWN/O_INVR/O_INVA(orientation), Q_OVRN(overrun), TIME_O, _CLIP_(amp clip), HW_ERR/HW_OK_, T_WARN/T_FALT/T_OK__(thermal), AMP_HR/AMP_LR/AMP_OF, MOTDET/MOTSET(motion), ON_BAT/ON_CHG/LOWBAT/CRTBAT, INVCHG, SW_ON_/SW_OFF(micmute switch), M_LEFT/MRIGHT(slider).",
   "multicast_groups": "AUDIO BATTERY BUTTON BUTTON_POWER CAPZONE HT LED SENSOR TEMP WAKEUP SWITCH - the hwmessage subscriber channels.",
   "reinterpretation": "This EXPLAINS the anacapad-side boundary: SCI/SonosNet/TLV strings are enum names in this event-source/type table (registered via nodetx named requests over the same bus), not anacapad code anchors. The protocol 'handlers' live in the kernel netlink driver + libhwmessagelib, which is why anacapad has no code xref - it only names sources/types.",
-  "confidence": "proven (library + enum tables decoded)",
   "mrpc_tlv_sonosnet": "MRPC/SonosNet resolve to anacapad-internal naming + libwifi SonosNet mesh config (39 hits anacapad = enum/job names, 2 libwifi). TLV = anacapad-internal serialization (7-field header 'TLV header %d %d/7 oserr %d'); 0 TLV refs in ANY rootfs lib - not a shared wire protocol. The hwmessage netlink bus is the real kernel/hw transport these all ride on.",
-  "wire_format": "generic netlink via libnl-genl-3.so.200: genl_connect + genl_ctrl_resolve(family) + genl_ctrl_resolve_grp(multicast group); messages built by genlmsg_put/hdr, parsed by genlmsg_valid_hdr + nla_parse against hwevtq_policy (an nla_policy[] table returned via GOT). Attributes read nla_get_u16 (event source) / nla_get_u64 (event info/value) / nla_put_string (source name on TX). Required-field bitmask validated ('not all fields found [0x%04X]') + IS_VALID_HWEVENT(). The '7-field TLV header' in anacapad is the netlink-attribute (nla_len/nla_type) encoding - same TLV grammar."
+  "wire_format": "generic netlink via libnl-genl-3.so.200: genl_connect + genl_ctrl_resolve(family) + genl_ctrl_resolve_grp(multicast group); messages built by genlmsg_put/hdr, parsed by genlmsg_valid_hdr + nla_parse against hwevtq_policy (an nla_policy[] table returned via GOT). Attributes read nla_get_u16 (event source) / nla_get_u64 (event info/value) / nla_put_string (source name on TX). Required-field bitmask validated ('not all fields found [0x%04X]') + IS_VALID_HWEVENT(). The '7-field TLV header' in anacapad is the netlink-attribute (nla_len/nla_type) encoding - same TLV grammar.",
+  "verification": "proven (library + enum tables decoded)"
  },
  "ssdp_discovery_layer": {
   "claim": "UPnP SSDP discovery is fully in anacapad, with Sonos HMAC-signed M-SEARCH and custom location headers",
   "evidence": "NOTIFY alive/byebye templates to 239.255.255.250:1900 (NTS:ssdp:alive/ssdp:byebye, CACHE-CONTROL max-age, LOCATION, SERVER 'Linux UPnP/1.0 Sonos/'). M-SEARCH * HTTP/1.1 with MAN:'ssdp:discover', targets upnp:rootdevice + ssdp:all.",
   "security": "M-SEARCH requests are HMAC-signed ('M-SEARCH signature HMAC init failed','base64 encoding failed','Failed to calculate M-SEARCH signature') - authenticated discovery anti-spoofing. Custom SSDP headers: X-RINCON-VARIANT:%u, SECURELOCATION.UPNP.ORG:%s, X-SONOS-HHSECURELOCATION:%s, LOCATION.SMARTSPEAKER.AUDIO:. ERROR_SONOS_BAD_LOCATION validates device location.",
   "lifecycle": "vanished-object tracking ('Vanished object %s: byebye reason %s', byebyereason, zp byebye, TRANS_NEW_LOCATION/NEW_LOCATION/F_UPDATE_LOCATION) + config flags ssdpAdvertiseConfig/ssdpCacheControlDivisor/ssdpBroadcastOnlyZonePlayer1/ssdpAdvertiseOnlyEssentialServices. GENA event NOTIFY (NT:upnp:event) shares the NOTIFY transport but is separate from SSDP.",
-  "confidence": "proven"
+  "verification": "proven"
  },
  "req_arg_map_model": {
   "claim": "the SOAP request object stores parsed arguments in a std::map<argName,value> at req+0x900",
   "evidence": "m8 0x100db940: arg-insert builds nodes at req+0x900 region - stw r20,req+0x990 (root), stw r9,req+0x994 (leftmost/tail), next slot req+0x998 (count) = _Rb_tree_header layout. Insert calls 0x108d84b4 (tree insert/balance) + 0x100d2e8c (node find with compare). Inbound XML body is parsed into this name-keyed map; req->vfunc+0x1c (in-arg lookup) and +0x24 (out-arg accessor) find/insert entries by name.",
   "implication": "arg fetch is a std::map lookup - explains the uniform req->vfunc+0x1c(name)->rec contract: every action's in/out args live in one ordered map built at parse time, then each arg is materialized into a {type,storage,cap} descriptor on demand.",
-  "confidence": "proven"
+  "verification": "proven"
  },
  "model2_25.2_generation": {
   "claim": "25.2-50130 model-2 is a completely different, earlier SOAP/UPnP architecture generation - pre-dating the {name,fn,id} dispatch mechanism entirely. Surface IS extractable despite being 'flat'.",
@@ -2121,7 +2121,7 @@
   "services": "13 UPnP services (urn:schemas-upnp-org:service:X:1): AlarmClock, RenderingControl, AVTransport, ZoneGroupTopology, SystemProperties, MusicServices, ContentDirectory, ConnectionManager, DeviceProperties, GroupManagement, AudioIn, HTControl, GroupRenderingControl. ABSENT: Queue, VirtualLineIn, QPlay - queue ops were AVTransport methods (addURIToQueue/saveQueue/removeTrackFromQueue), not a separate service; service decomposition evolved later.",
   "audioin_live": "AudioIn is FULLY IMPLEMENTED in 25.2 with the same action set that's reject-all-stubbed in 86.x: StartTransmissionToGroup, StopTransmissionToGroup, SetAudioInputAttributes, GetAudioInputAttributes, SetLineInLevel(DesiredLeft/RightLineInLevel), GetLineInLevel(CurrentLeft/RightLineInLevel) + UPNPAudioInput/HTAudioIn/LineIn.comp.uncomp.sec.err/R_AudioInEncodeType. The 86.x 'dead' surface is a stub applied over a formerly-live service.",
   "era_sources": "early music-service set: RHAPSODY_RADIO/NAPSODY/PANDORA_RADIO/SIRIUS_RADIO/LASTFM_RADIO/SONOS_PROGRADIO + SONOS_DOCK_ZP/SONOS_DOCK + x-sonos-dock/lfmtrack/radio-radea/pndrradio/radio-npsdy URI schemes; HT present (HT_AUDIO_SOURCE/HTSatChanMapSet/x-sonos-htastream).",
-  "confidence": "proven (ELF + string surface extracted)"
+  "verification": "proven (ELF + string surface extracted)"
  },
  "model2_25.2_vs_86x_surface_diff": {
   "claim": "Quantitative action-surface comparison 25.2 vs 86.10: 170/188 (90%) of 86.x UPnP action names already exist in the 25.2 binary - the surface is remarkably conserved across the full stack rewrite.",
@@ -2148,7 +2148,7 @@
   "added_clusters": "OAuth music accounts (AddOAuthAccountX/ReplaceAccountX/SetAccountNicknameX - 25.2 used AddAccountWithCredentialsX/ProvisionTrialAccountX instead), HT satellite config mode, physical button lock, Trueplay/sonar room calibration + chirp detection, gapless SetNextAVTransportURI + direct-control session, source-area ids",
   "removed_after_25.2": "pre-OAuth account actions (AddAccount, AddAccountWithCredentialsX, ProvisionTrialAccountX, ProvisionCredentialedTrialAccountX, ReauthorizeAccount, ResetThirdPartyCredentials), ReportAlarmStartedRunning, ReorderTrackInSavedQueue (singular, renamed to plural in 86.x), SetInvisible",
   "monolith": "25.2 hh.anacapad ('household' binary) embeds subsystems split into separate processes by 86.x: a Flash ActionScript VM (ActionGotoFrame/ActionDefineFunction/ActionGetURL2/SwfObj* classes - the controller UI), font glyph tables, and embedded music-service catalog clients (RhapsodyDirect*, TracksForArtistInLibrary/AlbumsForArtistInLibrary SMAPI-style browse). In 86.x anacapad is server-only; UI/catalog live elsewhere.",
-  "confidence": "proven for counts/added names (string presence in both binaries); removed list is representative (noisy reverse-diff filtered manually)"
+  "verification": "proven for counts/added names (string presence in both binaries); removed list is representative (noisy reverse-diff filtered manually)"
  },
  "sbc_packet_codec_decoded": {
   "claim": "libsonossbcpacket.so.1 = Bluetooth A2DP SBC media-packet framer, NOT SonosNet ('SBC' = Low-Complexity Subband Coding audio codec). anacapad imports all 13 SBCPacket methods.",
@@ -2158,7 +2158,7 @@
   "sonosnet_libwifi": "libwifi.so.1 exports the SonosNet *config* surface only: WifiFuncsSetHHID/SetHHIDWEPKeyChannel (household WEP keying), StartScanForSonosNetPrimary, SendNetstartProbe, EnableNetstartIndication, IgnoreProbesFromBoost, IgnoreNonSatProbes, EnableHtAPMode, AddBridgeMcastAddrForPort, SetNetworkSettingsIE, NetSettingsUpdate{PrimaryUUID,DemoMode,NFWSSIDFile}. Implemented via __WifiFuncsDoIoctl + rtnl_open/rtnl_close \u2192 mesh protocol is in the wifi driver/kernel, not userspace - same boundary as hwmessage bus.",
   "libsonos_mdp": "libsonos-mdp.so.1 = manufacturing/device-identity, not a protocol: sonosGetSeriesID, sonosGetColorVariantString, sonosGetCertColorVariant, sonosMdpSerialToString, sonosSetSeriesID.",
   "mrpc": "MRPC remains anacapad-internal naming - absent from all 30 rootfs libraries; no userspace wire codec.",
-  "confidence": "proven (dynsym exports + PPC disasm of validate/toString/callers + reloc-resolved label strings)"
+  "verification": "proven (dynsym exports + PPC disasm of validate/toString/callers + reloc-resolved label strings)"
  },
  "hardware_stack_fully_mapped": {
   "claim": "The complete anacapad->hardware stack is now mapped across all rootfs libs. 'SCI' resolves: SCI_BOARD/PSOC/UART/MCU-amps are kernel-side event sources whose events reach userspace via the hwmessage generic-netlink bus; the userspace boundary is libsyslib_hal.",
@@ -2170,13 +2170,13 @@
    "anacapad -> libsonos-mdp (series/color variant), libflash (SPI flash), libsonosutils, libsonos-time-c, libsonoseventreporter (telemetry ctx)"
   ],
   "consequence": "No userspace SCI/MRPC/SonosNet wire codec exists in anacapad or any of the 30 rootfs libs - hardware comms terminate at kernel drivers; userspace sees only event fds and config ioctls. The 'handler internals' question is closed: nothing further is statically reachable.",
-  "confidence": "proven (dynsym export tables of all relevant libs)"
+  "verification": "proven (dynsym export tables of all relevant libs)"
  },
  "model2_25.2_environment": {
   "claim": "25.2-50130 model-2 is a development/ZP-emulator build, not shipped device firmware.",
   "evidence": "opt/bin/hh.anacapactl is a launcher script: on arch sh4 it runs 'gdbserver 10.10.1.237:1234 hh.anacapad -c conf -d 10' (remote-debug dev harness); on other archs 'gdb --args'. opt/conf/hh.anacapa.conf: '#HackModel 8.1' comments 'Override the default Model[.Submodel] of the ZP emulator'; ZPMusicServicesBackstop/ZPTimeZonesBackstop point into a dev source tree ('../../../../cc/anacapa/anacapa/pkg/htdocs/xml/').",
   "server_config": "hh.anacapa.conf: Port 3400, ServerRoot /opt, Path htdocs, MaxConn 4, TimeOut 10, DiagLevel default=1,docked=3, PidFile log/hh.anacapa.pid, SWFFilePath /opt/swf/MainUI.swf (Flash UI served by the monolith), JFFSRoot /tmp/jffs_3400, OnlineUpdateBaseURL http://update.sonos.com/firmware/latest/, ZPMusicServicesList http://service-catalog.ws.sonos.com/catalog/services",
-  "confidence": "proven (config + launcher script contents)"
+  "verification": "proven (config + launcher script contents)"
  },
  "model2_25.2_dispatch_decoded": {
   "claim": "25.2 dispatch mechanism decoded via SH4 literal-pool xrefs + minimal disasm: NOT {name,fn,id} tables. Each action has a generated registration wrapper that calls registerAction(obj+8, serviceURN, actionName, ctx{17936,2000,0,0,0})@0x57a560 then binds each SOAP arg by name via lookupArg(ctx+10828,'ArgName')@0x55d280/0x55ed80 -> arg->vfunc+0x10(member-binder), finalized by 0x57a720+0x57a660. A declarative UpnpOp registration model predating the binary-search dispatch.",
@@ -2231,7 +2231,7 @@
    "RoomDetectionStart/StopChirping",
    "StartTransmission/StopTransmission (Queue/QPlay-side)"
   ],
-  "confidence": "proven (SH4 disasm of registration wrappers + literal-pair extraction across all 13 URNs)"
+  "verification": "proven (SH4 disasm of registration wrappers + literal-pair extraction across all 13 URNs)"
  },
  "model2_25.2_http_surface": {
   "claim": "hh.anacapad's custom HTTP endpoint surface (beyond SOAP control) extracted from .rodata - the 25.2 server is also the device's web/diag front-end (monolith).",
@@ -2289,12 +2289,12 @@
   "misc": [
    "/opt/anacapa//conf/anacapa.conf default path; /opt/htdocs_locked + /tmp/device_unlocked_flag = locked-state UI; toolchain stamp /usr/local/toolchain/sh4-20040827/gcc-3.2.3; ConnectionManager protocolInfo incl x-file-cifs (SMB), audio/audible, real.com-rhapsody"
   ],
-  "confidence": "proven (string-table extraction; glyph-noise filtered)"
+  "verification": "proven (string-table extraction; glyph-noise filtered)"
  },
  "model2_25.2_no_scpd": {
   "claim": "25.2 embeds NO standard UPnP SCPD XML: zero hits for <scpd/serviceStateTable/actionList/argumentList/<stateVariable/sendEvents/<dataType/direction=. Only device-description elements exist (serviceType, controlURL, eventSubURL).",
   "implication": "Argument metadata lives only in the generated registration wrappers (lookupArg->vfunc+0x10 member binders); the SCPD schema layer either isn't served or is synthesized differently in this pre-86.x generation. Arg types/directions for 25.2 actions are therefore not directly recoverable from string tables - they'd need fuller SH4 dataflow through the binder args.",
-  "confidence": "proven (absence verified across the whole rodata)"
+  "verification": "proven (absence verified across the whole rodata)"
  },
  "rodata_diff_868_vs_8610": {
   "claim": "Model-9 limelight 86.8-78270 -> 86.10-80260: the SOAP dispatch surface is frozen (m9_868_to_8610_frozen) but the .rodata string diff shows substantial subsystem-level change \u2014 Muse REST update API restructured, upgrade-manager FSM state vocabulary added, 5 new RMuseFeature flags, bundled-curl upgrade with DoH/HTTPS-RR, muse common code extracted into sonos-muse-1.0 shared lib, and new ungroupable-player group-forming guards.",
@@ -2456,7 +2456,6 @@
    "x-rincon-cpcontainer:SCPB:%s/%s",
    "Rhapsody Media Server"
   ],
-  "confidence": "proven (literal presence/absence); behavioral interpretation inferred from string context, not decompiled call sites",
   "boundary_identity": {
    "dt_needed": "identical \u2014 same 35 DT_NEEDED libraries in both builds",
    "dynsym": "5723 vs 5724 exports/imports; sole delta: 86.8 imports __atomic_compare_exchange_8, 86.10 does not (libatomic 64-bit CAS helper no longer referenced)",
@@ -2477,7 +2476,8 @@
     "playerId,update,beginHouseholdSoftwareUpdate"
    ],
    "note": "binding-level confirmation of the muse_route_delta: beginHouseholdSoftwareUpdate moved from the player/update resource to the device/householdUpdate resource; getUpdateStatus/getHouseholdUpdateStatus added"
-  }
+  },
+  "verification": "proven (literal presence/absence); behavioral interpretation inferred from string context, not decompiled call sites"
  },
  "build_provenance": {
   "repo": "git@github.com:Sonos-Inc/pdsw-sonos-controller-player-s2.git",
@@ -2490,7 +2490,7 @@
   "build_type": "release, build.locked=True, build.docker=False, Ubuntu 22.04.5 host, kernel 6.8.0-1063-aws",
   "strings_remote": "SWPBL-250456",
   "upd_structure": "86.10-80260-1-9.upd sections: preinstall.sh (type 3), kernel.uImage (type 6), rootfs.squashfs (type 4) + device-payload.bin \u2014 per-section sha256 + recipient_id 12e82a182af27801eba0ff3c94e8e649ed962dbb",
-  "confidence": "proven (rootfs build.properties + receipt.json)"
+  "verification": "proven (rootfs build.properties + receipt.json)"
  },
  "rodata_diff_m8_vs_m9_868": {
   "claim": "model-8 fenway vs model-9 limelight at SAME version 86.8-78270: m9 has ~3212 meaningful unique strings vs m8's ~962 \u2014 the delta is almost entirely the home-theater stack plus a few surprising m8-only surfaces",
@@ -2518,8 +2518,8 @@
    "limiter plumbing: 'Lim Ramp Time {Attack,Release}'"
   ],
   "shared_schema_delta": "<Zone> XML schema nearly identical BUT m9 adds <SourceGainOffsetdB>%d</SourceGainOffsetdB> field absent on m8",
-  "confidence": "proven (normalized .rodata diff, substring-verified both directions)",
-  "method": "identical packer-normalization as 86.8->86.10 diff; raw m8=25863/m9=30763 unique strings, real post-filter m8-only=962 m9-only=3212"
+  "method": "identical packer-normalization as 86.8->86.10 diff; raw m8=25863/m9=30763 unique strings, real post-filter m8-only=962 m9-only=3212",
+  "verification": "proven (normalized .rodata diff, substring-verified both directions)"
  },
  "arch_attrs_capability_manifest": {
   "claim": "/etc/arch_attrs is the compile-time capability manifest per arch (generated by gen_inittab.py). The limelight-vs-fenway diff proves the hardware role split definitively",
@@ -2601,7 +2601,7 @@
    "fenway MIGHT_BE_SUBWOOFER + SUPPORTS_SRC_SUBW \u2014 fenway binaries cover Play:1/3 AND Sub via runtime submodel split",
    "both LACKS_WIDEVINE/OPUS/MPEGDASH + SUPPORTS_FFMPEG_WMA \u2014 codec set is DTS/DD/ffmpeg-WMA, no Widevine DRM"
   ],
-  "confidence": "proven (rootfs /etc/arch_attrs, autogenerated per-arch)",
-  "source": "artifacts/downloads/rootfs-86.10-80260-1-{8,9}/etc/arch_attrs"
+  "source": "artifacts/downloads/rootfs-86.10-80260-1-{8,9}/etc/arch_attrs",
+  "verification": "proven (rootfs /etc/arch_attrs, autogenerated per-arch)"
  }
 }

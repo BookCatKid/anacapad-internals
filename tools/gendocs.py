@@ -188,19 +188,6 @@ def _table(out, header, rows):
     out.append("")
 
 
-_CONF_VOCAB = {"confirmed", "strong", "weak", "partial", "inferred",
-               "unresolved", "vocab", "absent", "documented",
-               "substantially decoded", "decoded-structure", "todo",
-               "catalogued", "none", "resolved"}
-
-
-def _is_conf_field(k, v):
-    if k == "confidence":
-        return True
-    return (k == "status" and isinstance(v, str)
-            and v.lower() in _CONF_VOCAB)
-
-
 def _generic(out, obj, depth=0):
     """Render an arbitrary dict/list primitive block compactly."""
     if isinstance(obj, str):
@@ -209,7 +196,7 @@ def _generic(out, obj, depth=0):
         return
     if isinstance(obj, dict):
         for k, v in obj.items():
-            if v is None or k == "client_summary" or _is_conf_field(k, v):
+            if v is None or k == "client_summary":
                 continue
             if isinstance(v, dict):
                 out.append("- **%s:**" % _e(k))
@@ -245,9 +232,7 @@ def _generic(out, obj, depth=0):
                 if flat and len(v) <= 8:
                     out.append("- " + ", ".join("%s: %s" % (_e(k), _e(x))
                                                 for k, x in v.items()
-                                                if x is not None
-                                                and not _is_conf_field(k,
-                                                                       x)))
+                                                if x is not None))
                 else:
                     sub = []
                     _generic(sub, v, depth + 1)
@@ -433,7 +418,7 @@ def render_architecture(m):
             out.append("- **TODO:** %s" % t)
         out.append("")
         rows = [["`%s`" % k, _e(v)] for k, v in m.request_vtable.items()
-                if k not in ("confidence", "todo")]
+                if k != "todo"]
         _table(out, ["Slot", "Purpose"], rows)
 
     if m.capabilities:
@@ -710,14 +695,9 @@ def render_action(a):
         if impl.impl_function:
             det.append("- impl `%s` (vfunc `%s`)"
                        % (impl.impl_function, _e(impl.impl_vfunc)))
-        if impl.engine_status:
-            if impl.engine_status == "resolved":
-                det.append("- engine impl resolved to `%s`"
-                           % _e(impl.engine_impl_func))
-            else:
-                det.append("- engine resolution: %s → `%s`"
-                           % (_para(impl.engine_status),
-                              _e(impl.engine_impl_func)))
+        if impl.engine_impl_func:
+            det.append("- engine impl resolved to `%s`"
+                       % _e(impl.engine_impl_func))
         for c in impl.calls:
             det.append("- impl call `%s` obj `%s` slot `%s` arg4 `%s`"
                        % (_e(c.get("site")), _e(c.get("obj")),
@@ -759,7 +739,7 @@ def render_service(s):
         out.append("")
     if s.description:
         _details(out, [_para(s.description)])
-    if s.availability and (s.availability.notes or s.availability.status
+    if s.availability and (s.availability.notes
                            or s.availability.enabled_source):
         av = s.availability
         out += ["## Availability", ""]
@@ -1259,7 +1239,7 @@ def _subsystem_body(out, n, s):
                  % ", ".join("`%s`" % _e(a)
                              for a in s["anchors"]), ""]
     _generic(tech, {k: v for k, v in s.items()
-                    if k not in ("summary", "status", "anchors",
+                    if k not in ("summary", "anchors",
                                  "evidence", "todo")})
     _ev_details([genmodel.Evidence.from_raw(e)
                  for e in s.get("evidence") or []], tech)
@@ -1959,7 +1939,8 @@ def render_muse_spec_streams(m):
     this function owns the page layout so the output is regenerated, not
     hand-maintained."""
     path = os.path.join(ROOT, "docs", "muse_spec_streams.json")
-    data = json.load(open(path))
+    with open(path) as fh:
+        data = json.load(fh)
     out = ["# Muse spec-pair streams", ""]
     _pt_add(m, out, "muse_spec_streams", "intro")
     _details(out, [
