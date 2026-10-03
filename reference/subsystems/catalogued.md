@@ -268,18 +268,6 @@ The persistent cloud pipe, internally named 'lechmere': the always-on channel ca
 
 :::
 
-## `mdns`
-
-**coverage** `Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file`
-
-The multicast-DNS discovery implementation: how devices announce and find each other on the local network without any server. It's the same discovery system Apple devices use, and speakers broadcast what they are while listening for each other.
-
-::: details Technical details
-
-- **controller:** MdnsController ops {register service (twice-guard),unregister,update value (dup-guard),replace values}; failures {registration failure %i,TXTRecord populate %i,update unregistered}
-
-:::
-
 ## `mod_zp`
 
 **coverage** `?`

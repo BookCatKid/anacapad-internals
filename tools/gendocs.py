@@ -1184,7 +1184,7 @@ def render_firmware(m):
 
 
 _STATUS_ORDER = {"absent": 0, "vocab": 1, "partial": 2,
-                 "documented": 3}
+                 "documented": 3, "todo": 4}
 
 
 _SUB_TIERS = [
@@ -1192,11 +1192,14 @@ _SUB_TIERS = [
      {"strong", "confirmed", "substantially decoded", "documented"}),
     ("partial", "Partially decoded", {"partial"}),
     ("catalogued", "Catalogued / absent", None),
+    ("queued", "Queued: not yet reverse-engineered", {"todo"}),
 ]
 
 
 def _sub_tier(status):
-    for slug, _, statuses in _SUB_TIERS[:-1]:
+    if status == "todo":
+        return "queued"
+    for slug, _, statuses in _SUB_TIERS[:-2]:
         if status in statuses:
             return slug
     return "catalogued"
@@ -1257,11 +1260,19 @@ def render_subsystems(m):
     _table(out, ["Subsystem", "Coverage", "Summary"], rows)
     files["subsystems/index.md"] = "\n".join(out)
 
+    _TIER_INTRO = {
+        "queued": ["These records mark components that are shipped and "
+                   "known to matter but have not been reverse-engineered "
+                   "yet. Each entry names the artifact it refers to and "
+                   "what still needs decoding, so this page doubles as "
+                   "the project's open-work list.", ""],
+    }
     for slug, title, _ in _SUB_TIERS:
         members = by_tier.get(slug) or []
         if not members:
             continue
         out = ["# %s" % title, ""]
+        out += _TIER_INTRO.get(slug, [])
         for n, s in members:
             _subsystem_body(out, n, s)
         files["subsystems/%s.md" % slug] = "\n".join(out)

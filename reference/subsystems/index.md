@@ -117,6 +117,7 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | [`log_domain_map`](partial.md#log_domain_map) | **partial** | Every log channel the program can write to names a subsystem boundary, and the 21 log domains are effectively a module map of the whole binary. |
 | [`log_domains`](partial.md#log_domains) | **partial** | The log-domain map: per-subsystem log files under the device's log directory, the main program log, and the categories config file. |
 | [`longpress`](partial.md#longpress) | **partial** | The long-press button behavior: holding the play button cycles through 'cloneable' group coordinators, which is what lets a held button clone another room's queue. |
+| [`mdns`](partial.md#mdns) | **partial** | The multicast-DNS discovery implementation: how devices announce and find each other on the local network without any server. |
 | [`mdns_controller`](partial.md#mdns_controller) | **partial** | The discovery-service controller: register-once guards, record populate/update/remove with duplicate suppression, and startup of player discovery. |
 | [`mdns_discovery`](partial.md#mdns_discovery) | **partial** | The discovery half: record-key enumeration, gone-reason updates, a compatibility check for older or incomplete records, and household filtering so foreign speakers get ignored. |
 | [`media_player_abstraction`](partial.md#media_player_abstraction) | **partial** | Beneath the transport commands sits a plug-in layer of source implementations, one per stream type such as line-in, TV, Spotify, or AirPlay-style sources. |
@@ -209,6 +210,29 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | [`zones_mgr`](partial.md#zones_mgr) | **partial** | The zone lifecycle manager: zone-definition changes fire events, lookups are exposed through the modern API, and channel-map updates flow from primary to secondary players to keep stereo and surround mappings consistent. |
 | [`zones_storage`](partial.md#zones_storage) | **partial** | The zone-definition store: the name, ID, and channel-map records with create, update, and remove operations, plus replication. |
 | [`zpinfo_dpimpl`](partial.md#zpinfo_dpimpl) | **partial** | The ZPInfo diagnostic surface: the device-info document schema (attributes, network info, support fields) plus the ethernet-port statistics and shutdown-log surfaces. |
+| [`bin_athconfig`](queued.md#bin_athconfig) | **todo** | Low-level tools for the Atheros WiFi radio, including the DFS radar-handling utility that legally must move channels when radar is detected. |
+| [`bin_busybox_applets`](queued.md#bin_busybox_applets) | **todo** | Busybox is a well-known tool, but which applets Sonos actually compiled in is not, and that list defines what every boot and update script can assume exists. |
+| [`bin_capsh`](queued.md#bin_capsh) | **todo** | A capabilities helper that does not appear anywhere in the dataset at all. |
+| [`bin_chronyd`](queued.md#bin_chronyd) | **todo** | The time-synchronization daemon that keeps the household agreeing on the clock, which alarms and schedules quietly depend on. |
+| [`bin_dropbearmulti`](queued.md#bin_dropbearmulti) | **todo** | The SSH server built into the firmware. |
+| [`bin_frcheck`](queued.md#bin_frcheck) | **todo** | A verification tool run around boot and update time, most likely checking that a freshly written root filesystem is sane before the speaker trusts it. |
+| [`bin_keyval`](queued.md#bin_keyval) | **todo** | A tiny key-value store tool that boot and update scripts lean on for small bits of persistent state. |
+| [`bin_mdnsd`](queued.md#bin_mdnsd) | **todo** | Sonos's mDNS daemon, which announces services the household can browse. |
+| [`bin_mdputil`](queued.md#bin_mdputil) | **todo** | A small helper binary that travels with the update machinery, probably for partition or manifest work. |
+| [`bin_net_utils`](queued.md#bin_net_utils) | **todo** | The small DHCP and bridge helpers that bring network interfaces up in the first place. |
+| [`bin_netstartd`](queued.md#bin_netstartd) | **todo** | The daemon behind the netstart/SCI bus, the internal channel that coordinates early networking and hardware bring-up. |
+| [`bin_pcap`](queued.md#bin_pcap) | **todo** | A packet-capture utility, most likely used by the diagnostics tooling. |
+| [`bin_sddpd`](queued.md#bin_sddpd) | **todo** | The daemon behind SDDP, Sonos's own device discovery protocol: the thing that lets a new speaker or app find players on the network before anything else is configured. |
+| [`bin_setmac`](queued.md#bin_setmac) | **todo** | The tool that programs the speaker's factory MAC address. |
+| [`bin_sonosledmgrd`](queued.md#bin_sonosledmgrd) | **todo** | The daemon in charge of the LED: every blink pattern for pairing, errors, mute and setup flows is decided here. |
+| [`bin_upgrade`](queued.md#bin_upgrade) | **todo** | The pair of executables that actually install new firmware. |
+| [`bin_wacd`](queued.md#bin_wacd) | **todo** | The provisioning daemon that runs when a brand-new speaker is being joined to WiFi from the app, before it has any network credentials. |
+| [`bin_wpa_supplicant`](queued.md#bin_wpa_supplicant) | **todo** | The standard WiFi supplicant, but the interesting part is everything around it: the Sonos helper tools that configure it, the control interface other daemons talk to, and which of its events get fed back into the system. |
+| [`fmt_device_payload`](queued.md#fmt_device_payload) | **todo** | The per-model payload image inside the update package, the actual blob that ends up written to flash. |
+| [`fmt_upd`](queued.md#fmt_upd) | **todo** | The firmware package format itself: how a .upd file is laid out, where the manifest and signature live, and how minimum-version rules are enforced. |
+| [`kmod_ath_wifi`](queued.md#kmod_ath_wifi) | **todo** | The Atheros WiFi driver modules that power the radio and SonosNet mesh. |
+| [`kmod_sonos`](queued.md#kmod_sonos) | **todo** | The custom kernel modules that glue hardware to userland: the audio device interface, the hardware-event queue, the IR receiver and the core Sonos device module. |
+| [`sonos_custom_libs`](queued.md#sonos_custom_libs) | **todo** | Among the shared libraries, most are off-the-shelf code like mbedTLS or ffmpeg, but a handful are Sonos-built and contain real logic. |
 | [`account_actions`](decoded.md#account_actions) | **strong** | The operations behind music-service account management: the routines that actually add, edit, and remove the saved logins for services like Spotify. |
 | [`accounts_replication`](decoded.md#accounts_replication) | **strong** | Keeps music-service accounts in sync across the household: when you add a Spotify login on one speaker, this machinery replicates it to the others so any room can play that service. |
 | [`acoustic_metrics`](decoded.md#acoustic_metrics) | **strong** | Gathers measurements about the audio hardware: signal levels, channel data, and other acoustic telemetry the player reports for diagnostics and tuning. |
@@ -272,7 +296,6 @@ Self-contained protocols/engines living in the same binary beside or below the U
 | [`libflac`](decoded.md#libflac) | **strong** | The bundled FLAC lossless decoder, version 1.3.4: it carries the decoder error vocabulary and the I/O callback set that FLAC streams play through. |
 | [`lla`](decoded.md#lla) | **strong** | The low-level audio interface between this program and the kernel's audio driver: it opens output and input devices, negotiates buffer limits, sets latency, and does sample-clock math to compute when a write will actually sound. |
 | [`local_settings_mgr`](decoded.md#local_settings_mgr) | **strong** | The local settings manager: the device's own settings files, each wrapped in a magic header with length, checksum, and counter, plus migration data and subversion detection. |
-| [`mdns`](catalogued.md#mdns) | **Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file** | The multicast-DNS discovery implementation: how devices announce and find each other on the local network without any server. |
 | [`mdns_device`](decoded.md#mdns_device) | **strong** | The device's own discovery record schema: the fields it advertises covering protocol versions, household ID, port info, variant, and sequence. |
 | [`mod_zp`](catalogued.md#mod_zp) | **?** | A zone-player module identified by build-tree naming: part of the player-facing internals recovered structurally, inventoried as part of the complete component map. |
 | [`muse`](catalogued.md#muse) | **?** | The 'muse' layer: Sonos's internal name for the modern API machinery as a whole, covering the route tables, router, operation objects, and pipeline documented on the modern-API page. |

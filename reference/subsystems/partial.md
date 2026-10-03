@@ -2476,6 +2476,19 @@ GC list {head,tail,current} of cloneable group coordinators; "cycling to %s:%s"/
 
 :::
 
+## `mdns`
+
+**coverage** `partial`
+
+The multicast-DNS discovery implementation: how devices announce and find each other on the local network without any server. It's the same discovery system Apple devices use, and speakers broadcast what they are while listening for each other.
+
+::: details Technical details
+
+- **controller:** MdnsController ops {register service (twice-guard),unregister,update value (dup-guard),replace values}; failures {registration failure %i,TXTRecord populate %i,update unregistered}
+- **notes:** Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file
+
+:::
+
 ## `mdns_controller`
 
 **coverage** `partial`
