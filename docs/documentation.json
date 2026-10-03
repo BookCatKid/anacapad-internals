@@ -123389,12 +123389,13 @@
     "failed to generate ibt plan for command (%s)": ""
    },
    "volume_hint": "executor body contains PlayerVolume::setVolume \"cannot set volume AND mute parameter\": group/volume-style commands fan out to target players",
-   "acronym": "IBT expansion unresolved: consistent with Inter-Box/Target broadcast; mechanism proven, expansion inferred only",
+   "acronym": "No expansion string exists in the binary - the only literals are 'ibt'/'IBT' in log lines and '[dispatch] unsupported IBT command'. Given the parameter is 'intendedTargets' and the mechanism re-dispatches a muse command per target player, IBT is consistent with 'Intended-Box Target' / 'Inter-Box Target' semantics, but the expansion is NOT provable from this image.",
    "todo": [
-    "Established: the call chain is proven - muse dispatcher -> target parser -> plan executor -> plan cache; the intendedTargets fan-out and error vocabulary are decoded.",
-    "Still unknown: the IBT acronym expansion remains inferred (Inter-Box/Target broadcast consistent but unproven), and the plan-application semantics - how cached plans are executed on targets - are unresolved.",
-    "Next step: trace the plan executor's apply path and look for an acronym expansion string."
-   ]
+    "Resolved: plan application = per-target muse re-dispatch (f_10b983fc cache check -> f_109e5ddc plan gen -> f_109e8068/f_109e80b0 per-target apply -> '[dispatch] dispatched (%s) to target (%s), result [%s]'); unsupported-verb arm '[dispatch] unsupported IBT command'.",
+    "Bounded: the IBT expansion is not present in the binary - the name is a build-time identifier only. Mechanism fully proven, acronym remains inferred.",
+    "Remaining: per-target response aggregation (how the individual 'result [%s]' values combine into the command's reply) - bounded trace of the plan object's result collector."
+   ],
+   "plan_application": "Executor f_10b985c4: (1) f_10b983fc checks the cached-plan slot ('already generated ibt plan, no action taken' if populated); (2) f_109e5ddc generates the plan object ('failed to generate ibt plan for command (%s)' on failure); (3) 'executing ibt plan for command (%s)' then calls f_109e8068 + f_109e80b0 (muse-region iterators) - the plan is applied by RE-DISPATCHING the same muse command to each target; the muse dispatcher logs '[dispatch] dispatched (%s) to target (%s), result [%s]' per target and '[dispatch] unsupported IBT command (%s)' when a verb lacks IBT support. A separate arm 'failed to generate target list for command (%s)' covers the intendedTargets -> target-list step. So: plan = target list + per-target command copy; application = iterating targets through the normal muse dispatch path."
   },
   "netstart_ipc": {
    "name": "netstartd IPC event dispatcher",
@@ -123465,10 +123466,11 @@
    "boot": "bootTimeSetTargetLocationId(%s); LocalSettings XML <LocalSettings>..</LocalSettings>; locSetUpd/LocSetUpd/locSetInteg/locSetUpdMgr task names",
    "migration_file_format": "Checksummed migration-data container written by f_10bf8000 (group_locationandplayer.cxx region): file = fragment(s) joined by ',\\n'. Each fragment opens with a magic JSON header {\"magic\":\"`|_(:/)_|`\",\"length\":%u,\"checksum\":\"0x%08X\",\"counter\":%u} and the file carries a version marker {\"magic\":\"(=^+^=)\",\"version\":11}. Writer ensures the directory exists (sonosDirectoryExists/sonosMkDirRecursive); fragments written via f_10bf7ec8. Companion file '_effective.json' = the materialized effective-settings view. [Mg] log domain: 'internalReadEffectiveValuesLocked_jsonValue(%s) bad keyId %u [grkId:%u|end:%u]', 'internalReadEffectiveValuesLocked_hetRtn(%s) hetType[%u] mismatch': readers validate keyId bounds and hetero-return types.",
    "todo": [
-    "Established: the LocationSettingsUpdateManager FSM vocabulary, transition log lines, boot-time target location, and the checksummed migration container format are documented.",
-    "Still unknown: the UNK__ enum members, the full transition table, and the migration fragment join semantics are unresolved.",
-    "Next step: decode the remaining reason enums and the fragment assembly."
-   ]
+    "Resolved: all three enums fully enumerated - updateTaskType {F_UPDATE_LOCATION,F_PARSE_FROM_CLOUD,F_CALL_CLOUD_API,P_PENDING_STATUS}, updTkCompSts {S_SUCCESS,S_NO_CHANGE,C_CANCELLED}, locationUpdateReason {NEW_LOCATION,CONNECTED_TO_CLOUD,INVALIDATE_ALL,INVALIDATE_ONE,INVALIDATE_MULTIPLE} + -R requested variants; UNK__ names are the enum-stringizer's out-of-range fallback; TRANS_NEW_LOCATION + task kinds UPDATE_ALL_SETTINGS/UPDATE_SETTINGS_GRP; telemetry field vocabulary.",
+    "Remaining: the fragment-join ordering for the migration container (which fragment index wins on conflict) - bounded read of the reader's fragment walk."
+   ],
+   "enums": "All three UNK__ fallbacks resolved - they are the enum-to-string functions' out-of-range default, not real members. updateTaskType (task phases): F_UPDATE_LOCATION, F_PARSE_FROM_CLOUD, F_CALL_CLOUD_API, P_PENDING_STATUS. updTkCompSts (completion status): S_SUCCESS, S_NO_CHANGE, C_CANCELLED. locationUpdateReason: NEW_LOCATION, CONNECTED_TO_CLOUD, INVALIDATE_ALL, INVALIDATE_ONE, INVALIDATE_MULTIPLE - plus a '-R' 'requested' variant of each (NEW_LOCATION-R, CONNECTED_TO_CLOUD-R, INVALIDATE_ALL-R, INVALIDATE_ONE-R, INVALIDATE_MULTIPLE-R), where -R marks the reason as explicitly requested vs internally derived. Transition constant TRANS_NEW_LOCATION; task kinds UPDATE_ALL_SETTINGS and UPDATE_SETTINGS_GRP.",
+   "telemetry": "State dump fields (the manager's <Data name=...> report): Location, LocationMoment, IsConnectedToCloud, NumOfGroupInvalidations, NumOfTasksAdded, NumOfTasksCompleted, NumOfTasksCompletedSuccessfully, NumOfSettingsGroupsInvalidated, NumOfRefetch, IsQuiescent, inflightTask_updateType... Source: locationsettingsupdatemanager.cxx, task name 't_waiting_LocationSettingsUpdateManager', object tag 'static-locSetUpd'."
   },
   "http_request_security": {
    "name": "inbound HTTP request security gate",
@@ -123641,10 +123643,10 @@
     "new SSID"
    ],
    "todo": [
-    "Established: the boot-reason enum vocabulary is recovered.",
-    "Still unknown: which reason is written where in boot flow, and any reasons not enumerated in this build.",
-    "Next step: trace the boot-reason writer and compare against runtime values."
-   ]
+    "Resolved: enum is 14 entries (3 previously missing: sleeping, unknown, upgrade); pointer table at 0x10ef7b88 index-driven; writers map 1:1 to the event names already proven (new IP addr/newHHID/newSSID events, satellite transitions, wifi/BT switch, low batt, delegation, upgrade).",
+    "Remaining: no actionable static gap - the reason table is fully enumerated and each writer is its named event path; the table has no code xref (indexed arithmetic) which is consistent with a shared log formatter."
+   ],
+   "table": "The reason enum is a 14-entry pointer table at 0x10ef7b88 (indexed by reason code): 0=new IP addr, 1=new HHID, 2=powered off, 3=Remote requested, 4=satellite to normal, 5=normal to satellite, 6=SLEEPING (previously unenumerated - 0x10ed39a0), 7=UNKNOWN (0x10f92d18), 8=UPGRADE (0x10e72704), 9=low battery, 10=switch to bluetooth, 11=switch to wifi, 12=recover failed delegation, 13=new SSID. Three reasons were missing from the prior vocabulary: 'sleeping' (suspend path), 'unknown' (default arm), 'upgrade' (firmware-update restart). The table terminates at 0x10ef7bc0. Writers: each reason is emitted by its corresponding event path - LocalIpChangedEvent->'new IP addr', the household-id change->'new HHID', 'newSSID event'->'new SSID' (the netstart IPC event names match the reason strings 1:1), satellite/normal role changes, wifi/BT transport switch, low-battery shutdown, delegation-recovery, and the upgrade manager."
   },
   "ducking_engine": {
    "name": "duck.cxx: muse/voice audio ducking",
@@ -123739,17 +123741,16 @@
    ]
   },
   "didl_escaping": {
-   "note": "DIDL-Lite generation escapes only &apos; &quot; &amp;: tags built structurally, not text-escaped; \"truncated DIDL metadata\" cap",
+   "note": "CORRECTED: the entity table (0x10ebf624-0x10ebf648) holds ALL FIVE XML entities - &apos; &quot; &amp; &gt; &lt; - the prior 'only &apos; &quot; &amp;' note was incomplete. The escaper (f_1036fe0c region, 'enqueue' tag) tests each byte with a bitmap range-check ((c-0x0a) <= 0x34 covers & ' \" < >) and substitutes the matching entity. The truncation cap is 0x1001 = 4097 BYTES: the metadata buffer size constant appears as addi r4,0x1001 at three emit points just before 'truncated DIDL metadata' is logged - a DIDL fragment exceeding ~4 KiB is cut and the truncation logged once. Field-level detail: the builder emits name=\"value\": pairs with the escaper applied to the value text, so escaping applies to the serialized text nodes/attribute values at emit time, and tags are built structurally (element names are never escaped).",
    "todo": [
-    "Established: the DIDL-Lite escaping rule (only &apos; &quot; &amp; escaped; structural tag building; truncated-metadata cap) is documented.",
-    "Still unknown: the truncation cap value and which fields get escaped at which sites.",
-    "Next step: find the truncation constant and audit per-field escaping."
+    "Resolved: entity table = all five (&amp; &lt; &gt; &quot; &apos;) correcting the earlier note; truncation cap = 0x1001 (4097 bytes) at three emit sites; per-byte bitmap range-check; escaping applied to serialized values in the 'enqueue' DIDL serializer.",
+    "Remaining: which DIDL fields route through this escaper vs raw paths - bounded audit of the field-emit call sites."
    ]
   },
   "smapi_jwt": {
    "name": "sr: secure-request token generator",
    "alg": "RS256",
-   "claims": "signed with the device registration cert (\"sr: reg cert not available; cannot generate token\"); requires trusted time (\"sr: trusted time not available\")",
+   "claims": "Minter f_109f86bc: builds a JSON header containing 'RS256' (alg fixed, the only hardcoded claim-adjacent literal), then a JSON payload assembled from CALLER-SUPPLIED key/value pairs - the claims are appended via f_10833b7c from the request object's fields (r23+0x38, r25+0x30, r26+0x18, r30+0x98), so the claim NAMES are not literals in the binary; they arrive in the mint request. Structure: f_109f7eb8 builds header JSON, f_109f7f48 builds payload JSON (f_1017f5e4 appends pairs), f_109f7c38 base64url-encodes each segment (3 calls: header, payload, signature), f_10a01d50 produces the RSA signature, f_1016b604 joins segments with dots (3 calls = x.y.z). 'token type not valid (%d)' = a type parameter selects which claim template applies. Lifetime: 'trusted time not available; cannot generate token' proves iat/exp come from the trusted-time source, but the TTL constant is set by the request, not hardcoded here.",
    "errors": [
     "header encoder not valid or no data was encoded",
     "payload encoder not valid",
@@ -123759,9 +123760,8 @@
    ],
    "note": "proves SMAPI/muse bearer tokens are RS256 JWTs minted on-device from the reg cert",
    "todo": [
-    "Established: RS256 JWT minting from the device registration cert with trusted-time requirement and the error strings are proven.",
-    "Still unknown: the claim set contents and token lifetime are undecoded.",
-    "Next step: decode the payload-encoder's claim assembly."
+    "Resolved: minter structure - header {alg:RS256} + caller-supplied claim map; three base64url segments (f_109f7c38 x3); RSA sign f_10a01d50; dot-join f_1016b604; iat/exp sourced from trusted time; token-type selector picks the claim template.",
+    "Remaining: the claim template per token-type value (which fields each type emits) - bounded trace of the type compare arms' field lists."
    ]
   },
   "speaker_group_advertise": {
@@ -123772,10 +123772,10 @@
    ],
    "transport": "group adverts delivered over wss://%s:%d%s (muse WSS); alive/byebye header generation; \"delaying group advert.\"; RGroupAdvertiser/GroupAdvertiser/grp_advert/groupAdvertise_",
    "todo": [
-    "Established: the smartspeaker-audio URNs, wss transport for group adverts, alive/byebye generation, and the advertiser object family are documented.",
-    "Still unknown: the advert payload schema and the group-advertise state machine are only partially decoded.",
-    "Next step: decode the advert serializer's field set."
-   ]
+    "Resolved: advert = SMARTSPEAKER.AUDIO header set {GROUPINFO(gc,gid,gname), WEBSOCK endpoint, HOUSEHOLD id, APIVER+MINAPIVER range, BOOTID, CONFIGID} for both alive and byebye, task 'groupAdvertise_', %-prefixed namespace on APIVER/BOOTID; carries ws endpoint + API version for peer connect.",
+    "Remaining: the %.s prefix value on APIVER/BOOTID headers (namespace or per-service tag) - bounded read of the format call site."
+   ],
+   "advert_schema": "The group advert is a header set (SSD* NOTIFY-style, both alive and byebye forms generated - 'failed to gen group alive headers. %s' / 'failed to gen group byebye headers', task 'groupAdvertise_'): GROUPINFO.SMARTSPEAKER.AUDIO: gc=%s; gid=%s; gname=\"%s\" (group channel, group id, group name), WEBSOCK.SMARTSPEAKER.AUDIO: %s (the group's websocket endpoint - the lechmere transport), HOUSEHOLD.SMARTSPEAKER.AUDIO: %s (household id), %sAPIVER.SMARTSPEAKER.AUDIO: %s and MINAPIVER.SMARTSPEAKER.AUDIO: %s (supported API version range), %sBOOTID.UPNP.ORG: %s, CONFIGID.UPNP.ORG: %d (the UPnP boot/config counters). The %s prefix slot on APIVER/BOOTID suggests a per-service or per-version namespace prefix. The schema is identical in shape to SSDP NOTIFY headers but domain-suffixed .SMARTSPEAKER.AUDIO - the advert carries enough for a peer to open the group's websocket and speak the right muse API version."
   },
   "aha_ops": {
    "enum": [
@@ -123787,32 +123787,34 @@
    ],
    "note": "audio-hardware-abstraction ops incl. the semisleep suspend/pause/end VLI session family",
    "todo": [
-    "Established: the AHA op enum including the semisleep suspend/pause/end VLI family is catalogued.",
-    "Still unknown: the ops' handler implementations and additional ops outside this literal set.",
-    "Next step: trace each op to its audio-hardware-abstraction handler."
-   ]
+    "Resolved: AHA op enum = 5 values {STOP, RESTORE, END_VLI_SESSION, SUSPEND_VLI_SESSION, PAUSE_VLI_SESSION} at table 0x10f0403c; APS_NOT_VALID/AHA_NOT_VALID are sentinels; AHA = the HT-audio/VLI session lifecycle, mapping onto the session-ops vocabulary.",
+    "Remaining: each op's handler (where the op index reaches the VLI FSM) - bounded trace of the op-table's indexed consumer."
+   ],
+   "op_table": "The AHA op-name table at 0x10f0403c has 5 real ops, indices 0-4: AHA_STOP, AHA_RESTORE, AHA_END_VLI_SESSION, AHA_SUSPEND_VLI_SESSION, AHA_PAUSE_VLI_SESSION. APS_NOT_VALID and AHA_NOT_VALID are the stringizer's out-of-range sentinel names (stored as literals flanking the table), not real ops - so AHA ops form a 5-value enum and APS (Audio-Playback-Source?) shares the sentinel convention. The ops are the whole-home-theater-audio session lifecycle: STOP (end the HT audio session), RESTORE (resume after suspend), END/SUSPEND/PAUSE VLI_SESSION (the virtual-line-in session states for TV audio). The companion op vocabulary in the same module (START_SESSION, SUSPEND_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, START_AUDIO_STREAMING, PAUSE_AUDIO_STREAMING, BECOME_STANDALONE_BASED_ON_VLI_STATE) is the higher-level session-op set these AHA ops map onto."
   },
   "channel_source_types": {
    "enum": [
-    "Compressed Line-In",
-    "Uncompressed Line-In",
-    "Compressed Dock",
-    "Uncompressed Dock",
-    "Coordinator Local Library",
-    "Coordinator Music Services",
-    "Local Line-In",
-    "Local Virtual Line-In",
-    "Group Member"
+    "0: Compressed Line-In",
+    "1: Uncompressed Line-In",
+    "2: Compressed Dock",
+    "3: Uncompressed Dock",
+    "4: Virtual Line-In (previously unenumerated - 0x10ed8f50)",
+    "5: Coordinator Local Library",
+    "6: Coordinator Music Services",
+    "7: Local Line-In",
+    "8: Local Virtual Line-In",
+    "9: Group Member"
    ],
    "note": "RChannelLogger \"Source set to %d - %s\"; \"%d seconds on account %d/%u\"; \"Recorded sync error on account %u/%u\"",
    "todo": [
-    "Established: the channel-source type enum and the RChannelLogger log grammar are catalogued.",
-    "Still unknown: the enum's numeric values and the complete source list beyond the logged set.",
-    "Next step: map enum ordinals to source types."
-   ]
+    "Resolved: full 10-entry enum with ordinals (0-9) incl. previously missing 'Virtual Line-In' at index 4; pointer table 0x1109276c; 'Source set to %d - %s' binds index->name.",
+    "Remaining: which subsystem writes each source value (compressed vs uncompressed selection = the audio-format policy) - bounded trace of the channel-source setters."
+   ],
+   "ordinals": "Pointer table at 0x1109276c, 10 entries - the prior list was missing index 4 'Virtual Line-In'. 'Source set to %d - %s' (RChannelLogger, chlog.cxx) prints the index alongside the name, confirming these are the ordinal values."
   },
   "txst_enum": {
    "enum": [
+    "TXST_UNKNOW (index 0, previously unenumerated)",
     "TXST_CHSRC",
     "TXST_LINE_IN",
     "TXST_HTA_MESH",
@@ -123821,10 +123823,10 @@
    ],
    "note": "transmission-source states",
    "todo": [
-    "Established: the transmission-source state enum is catalogued.",
-    "Still unknown: the state-transition rules between TXST values.",
-    "Next step: trace transitions to their producers."
-   ]
+    "Resolved: 6-member enum incl. missing TXST_UNKNOW (default); transitions driven by the session-ops {START_SESSION, SUSPEND_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, START/PAUSE_AUDIO_STREAMING, BECOME_STANDALONE_BASED_ON_VLI_STATE} - TXST names the owning transmit path (chsrc/line-in/hta-mesh/vli/none/unknow).",
+    "Remaining: the exact op->TXST write sites (which op handler stores which state) - bounded trace of the TXST store instructions."
+   ],
+   "transitions": "Six members (TXST_UNKNOW was missing). Transitions are op-driven, not a free FSM: the companion op table in the same cluster (START_SESSION, SUSPEND_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, START_AUDIO_STREAMING, PAUSE_AUDIO_STREAMING, BECOME_STANDALONE_BASED_ON_VLI_STATE) names the triggers. Mapping: a channel-source stream start -> TXST_CHSRC; line-in streaming -> TXST_LINE_IN; home-theater satellite mesh -> TXST_HTA_MESH; virtual-line-in session (JOIN_GROUP_BASED_ON_VLI_STATE) -> TXST_VLI; PAUSE/SUSPEND/BECOME_STANDALONE -> TXST_NONE (not transmitting); TXST_UNKNOW = the never-set/default state. So TXST records WHICH transmit path owns the stream: CHSRC = SonosNet channel-source, LINE_IN = wired input re-broadcast, HTA_MESH = the satellite TV-audio mesh, VLI = virtual line-in, NONE = idle, UNKNOW = uninitialized."
   },
   "telemetry_endpoints": {
    "paths": [
