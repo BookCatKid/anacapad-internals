@@ -26,8 +26,8 @@ Pipeline:
   8. Capability plumbing: readers/writers of the enabled bytes and the
      capability-mask word
 
-Every emitted fact carries an evidence address and a confidence label
-("proven" = direct binary evidence, "inferred" = heuristic).
+Every emitted fact carries an evidence address; decoded-vs-raw outcomes
+are recorded in the structured `kind` fields.
 
 Usage:  extract_soap_api.py ANACAPAD [--json OUT] [-v]
 """
@@ -699,24 +699,23 @@ def find_routers(elf, text, starts, extents, xrefs, plt):
 def describe_enabled(en):
     """Turn the stored enabled-byte value into a structured description."""
     if not en:
-        return {"kind": "always", "confidence": "proven"}
+        return {"kind": "always"}
     src, pc, sz = en["val"], f"{en['pc']:#x}", en["size"]
     d = {"store_pc": pc, "size": sz, "raw_expr": vstr(src)}
     if isinstance(src, int):
-        d.update(kind="const", value=src, confidence="proven")
+        d.update(kind="const", value=src)
     elif isinstance(src, tuple) and src[0] == "load":
         off = src[2] - 0x100000000 if isinstance(src[2], int) \
             and src[2] & 0x80000000 else src[2]
-        d.update(kind="field", base=vstr(src[1]), off=off,
-                 confidence="proven")
+        d.update(kind="field", base=vstr(src[1]), off=off)
     elif isinstance(src, tuple) and src[0] == "xor" and src[2] == 1 \
             and isinstance(src[1], tuple) and src[1][0] == "load":
         off = src[1][2] - 0x100000000 if isinstance(src[1][2], int) \
             and src[1][2] & 0x80000000 else src[1][2]
         d.update(kind="field_inverted", base=vstr(src[1][1]),
-                 off=off, confidence="proven")
+                 off=off)
     else:
-        d.update(kind="expr", confidence="inferred")
+        d.update(kind="expr")
     return d
 
 
@@ -1753,8 +1752,7 @@ def main():
                      if v["slot"] is not None and v["obj"] == "r3-in"]
             for sm in d.get("compares", []):
                 act = {"name": sm["str"], "kind": "strcmp-dispatched",
-                       "compare_pc": sm["pc"],
-                       "confidence": "proven"}
+                       "compare_pc": sm["pc"]}
                 vp = svc["object"].get("vptr")
                 if vp and slots:
                     hv = elf.u32(int(vp, 16) + slots[0])
@@ -1886,8 +1884,6 @@ def main():
     out = {
         "binary": a.binary,
         "arch": "ppc32-be",
-        "confidence_note":
-            "proven = direct binary evidence; inferred = heuristic",
         "functions_mapped": len(starts),
         "plt_symbols": len(plt),
         "action_tables_found": len(tables),
@@ -1909,7 +1905,6 @@ def main():
             "0x24": "get/create out-arg record by name",
             "0x38": "finalize",
             "0x3c": "in-arg fetch (alternate)",
-            "confidence": "inferred",
         },
     }
     blob = json.dumps(out, indent=1, default=str)

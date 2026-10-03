@@ -34,7 +34,6 @@ def _evidence(**kw):
 def _arg_skeleton(direction, site_ev):
     return {
         "description": None,
-        "status": "unresolved",
         "direction": direction,
         "primitive": None,
         "semantic_type": None,
@@ -56,7 +55,6 @@ def _action_skeleton(act, build):
             "voff": act.get("voff")}
     if act.get("kind") == "strcmp-dispatched":
         disp["compare_pc"] = act.get("compare_pc")
-        disp["confidence"] = act.get("confidence")
     ev = []
     if act.get("handler"):
         ev.append(_evidence(address=act["handler"],
@@ -73,7 +71,6 @@ def _action_skeleton(act, build):
                             build=build))
     return {
         "description": None,
-        "status": "unresolved",
         "visibility": "unknown",
         "reachability": None,
         "handler": act.get("handler"),
@@ -106,7 +103,6 @@ def _service_skeleton(svc, build):
         "name": svc.get("name"),
         "control_path": svc.get("control_path"),
         "description": None,
-        "status": "unresolved",
         "visibility": "unknown",
         "registration": None,
         "availability": {
@@ -136,10 +132,9 @@ def _error_skeleton(site, code, code_expr, build):
         "code": code,
         "code_expr": code_expr,
         "meaning": None,
-        "status": "unresolved",
         "fault_sites": [site],
         "conditions": [],
-        "evidence": [_evidence(address=site, status="confirmed",
+        "evidence": [_evidence(address=site,
                                notes="fault raise site", build=build)],
         "unresolved": {"proven": proven, "unknown": None},
         "notes": None,
@@ -212,9 +207,8 @@ def _merge_action(doc_act, act, build):
     doc_act["req_arg"] = act.get("req_arg")
     disp = {"kind": act.get("kind"), "entry_addr": act.get("entry_addr"),
             "voff": act.get("voff")}
-    for k in ("compare_pc", "confidence"):
-        if act.get(k) is not None:
-            disp[k] = act[k]
+    if act.get("compare_pc") is not None:
+        disp["compare_pc"] = act["compare_pc"]
     doc_act["dispatch"] = disp
     doc_act["implementation"] = {
         "calls": act.get("impl_calls") or [],
@@ -286,7 +280,6 @@ def _merge_capabilities(doc, api, build):
         cap = caps.setdefault(off, {
             "description": None,
             "effect": None,
-            "status": "unresolved",
             "loads": [],
             "stores": [],
             "affected_services": [],
@@ -329,7 +322,6 @@ def _merge_dispatch_candidates(doc, api, build):
             "compares": [],
             "vptr_candidates": [],
             "assessment": None,
-            "status": "unresolved",
             "evidence": [],
             "notes": None,
         })
@@ -355,7 +347,6 @@ def _merge_internal_functions(doc, build):
             "description": None,
             "why_external": None,
             "required_for_behavior": True,
-            "status": "unresolved",
             "used_by": [],
             "evidence": [_evidence(address=addr,
                                    notes="%s helper" % info["role"],
@@ -380,7 +371,6 @@ def run_import(api_path, doc_path, build=None):
         "source_extract": os.path.basename(api_path),
         "generator": "tools/import_extract.py",
         "functions_mapped": api.get("functions_mapped"),
-        "confidence_note": api.get("confidence_note"),
     }
     doc["routing"] = {
         "routers": api.get("routers"),

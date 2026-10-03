@@ -7,7 +7,6 @@ validation cannot see:
 
   - descriptions that merely echo the identifier ("Seek action", "The
     volume", "Plays.")
-  - confirmed/strong claims without evidence records
   - extractor objects with no doc entry (orphans)
   - doc objects that no longer appear in extractor output (stale)
   - resolved error entries with no conditions or no provenance
@@ -34,12 +33,6 @@ def _check_text(warnings, where, field, text, ident=None):
         warnings.append("%s: weak %s (%s): %r" % (where, field, why, text))
 
 
-def _check_claim_evidence(warnings, where, status, evidence):
-    if status in ("confirmed", "strong") and not (evidence or []):
-        warnings.append("%s: status '%s' with no evidence records"
-                        % (where, status))
-
-
 def _check_generic(warnings, where, field, text):
     """Generic wrapper-level prose never counts as semantics."""
     if doclib.is_generic_claim(text):
@@ -52,46 +45,6 @@ def _check_generic_fields(warnings, where, obj, fields):
         _check_generic(warnings, where, f, (obj or {}).get(f))
 
 
-def _weakest_child(act):
-    """Lowest confidence among an action's externally observable child
-    units. A `confirmed` action requires every observable child to be
-    confirmed and free of material unknowns."""
-    obs = ("validation", "requirements", "state_dependencies",
-           "events_triggered", "state_transitions", "return_behavior")
-    rank = {"confirmed": 3, "strong": 2, "inferred": 1, "unresolved": 0}
-    worst = 3
-    def chk(s):
-        nonlocal worst
-        worst = min(worst, rank.get(s, 1))
-    for f in obs:
-        c = act.get(f)
-        if isinstance(c, dict):
-            chk(c.get("status"))
-        elif isinstance(c, list):
-            for e in c:
-                if isinstance(e, dict):
-                    chk(e.get("status"))
-    for grp in ("inputs", "outputs"):
-        for v in (act.get(grp) or {}).values():
-            if isinstance(v, dict):
-                chk(v.get("status"))
-    for e in act.get("errors") or []:
-        if isinstance(e, dict):
-            chk(e.get("status"))
-            if isinstance(e.get("unresolved"), dict) \
-                    and e["unresolved"].get("unknown"):
-                worst = min(worst, 2)
-    imp = act.get("implementation")
-    if isinstance(imp, dict) and "status" in imp:
-        chk(imp["status"])
-    se = act.get("side_effects")
-    if isinstance(se, list):
-        for e in se:
-            if isinstance(e, dict):
-                chk(e.get("status"))
-    return worst
-
-
 def lint(doc, api):
     warnings = []
 
@@ -100,8 +53,6 @@ def lint(doc, api):
         w = "service %s" % svc.get("name", path)
         _check_text(warnings, w, "description", svc.get("description"),
                     svc.get("name"))
-        _check_claim_evidence(warnings, w, svc.get("status"),
-                              svc.get("evidence"))
         _check_text(warnings, w, "availability notes",
                     (svc.get("availability") or {}).get("notes"))
         if svc.get("visibility") == "hidden" and not (svc.get("availability")
@@ -109,7 +60,8 @@ def lint(doc, api):
             warnings.append("%s: hidden service lacks availability notes" % w)
         codes = {}
         for e in svc.get("errors") or []:
-            if e.get("status") == "unresolved":
+            if (e.get("unresolved") or {}).get("unknown") \
+                    or not e.get("meaning"):
                 continue
             if not e.get("conditions"):
                 warnings.append("%s: error %s resolved but has no conditions"
@@ -127,8 +79,6 @@ def lint(doc, api):
             wa = "%s.%s" % (svc.get("name"), name)
             _check_text(warnings, wa, "description",
                         act.get("description"), name)
-            _check_claim_evidence(warnings, wa, act.get("status"),
-                                  act.get("evidence"))
             _check_generic_fields(warnings, wa, act,
                                   ("description", "requirements",
                                    "state_dependencies", "events_triggered",
@@ -148,12 +98,6 @@ def lint(doc, api):
                 warnings.append("%s: reachability not classified" % wa)
             if act.get("visibility") == "unknown":
                 warnings.append("%s: visibility still 'unknown'" % wa)
-            # status propagation: a confirmed action must not contain any
-            # weaker or unresolved observable child
-            if act.get("status") == "confirmed" \
-                    and _weakest_child(act) < 3:
-                warnings.append("%s: status 'confirmed' but an observable"
-                                " child is weaker/unresolved" % wa)
             # stale scaffold: impl decoded but arg model still empty
             impl = act.get("implementation") or {}
             if (impl.get("impl_function") or impl.get("impl_vfunc")
@@ -171,7 +115,8 @@ def lint(doc, api):
                         warnings.append("%s: duplicate error code %s"
                                         % (wa, c))
                     codes[c] = True
-                if e.get("status") != "unresolved":
+                if e.get("meaning") and not (
+                        (e.get("unresolved") or {}).get("unknown")):
                     if not e.get("conditions"):
                         warnings.append(
                             "%s: error %s resolved but has no conditions"
@@ -188,8 +133,6 @@ def lint(doc, api):
                                        "%s error %s condition[%d]"
                                        % (wa, c, ci), "description",
                                        cond.get("description"))
-                _check_claim_evidence(warnings, "%s error %s" % (wa, c),
-                                      e.get("status"), e.get("evidence"))
                 for s in e.get("fault_sites") or []:
                     # a site may legitimately carry several distinct codes
                     # through one emitter; flag only ambiguous duplicate
@@ -204,8 +147,6 @@ def lint(doc, api):
                 wg = "%s %s-arg %s" % (wa, direction, an)
                 _check_text(warnings, wg, "description",
                             arg.get("description"), an)
-                _check_claim_evidence(warnings, wg, arg.get("status"),
-                                      arg.get("evidence"))
                 _check_generic_fields(warnings, wg, arg,
                                       ("description", "accepted_values",
                                        "range", "special_values",
@@ -223,13 +164,7 @@ def lint(doc, api):
                                 "description", sd)
                     _check_generic(warnings, "%s side_effect[%d]" % (wa, i),
                                    "description", sd)
-        # service status must not exceed its weakest action
-        if svc.get("status") == "confirmed" and any(
-                a.get("status") != "confirmed"
-                for a in (svc.get("actions") or {}).values()):
-            warnings.append("%s: status 'confirmed' but contains "
-                            "non-confirmed actions" % w)
-        # empty state/event models are coverage gaps, not completeness
+        # empty state/event models are documentation gaps
         if not svc.get("state_variables") and not svc.get("events"):
             warnings.append("%s: no state-variable/event model documented"
                             % w)
@@ -239,14 +174,10 @@ def lint(doc, api):
         w = "capability %s" % off
         _check_text(warnings, w, "description", cap.get("description"), off)
         _check_text(warnings, w, "effect", cap.get("effect"))
-        _check_claim_evidence(warnings, w, cap.get("status"),
-                              cap.get("evidence"))
     for addr, fn in (doc.get("internal_functions") or {}).items():
         w = "internal fn %s" % addr
         _check_text(warnings, w, "description", fn.get("description"))
         _check_text(warnings, w, "why_external", fn.get("why_external"))
-        _check_claim_evidence(warnings, w, fn.get("status"),
-                              fn.get("evidence"))
         if fn.get("required_for_behavior") and not fn.get("why_external"):
             warnings.append("%s: required_for_behavior but why_external empty"
                             % w)
@@ -277,8 +208,6 @@ def lint(doc, api):
             w = "%s %s" % (section, name)
             _check_text(warnings, w, "description", spec.get("description"),
                         name)
-            _check_claim_evidence(warnings, w, spec.get("status"),
-                                  spec.get("evidence"))
 
     # ---- cross-consistency vs extractor output ----
     ext_services = {}

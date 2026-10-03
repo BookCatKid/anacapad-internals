@@ -45,14 +45,16 @@ reference/soap/             UPnP section: one page per service, plus
 reference/muse/             muse v1 API section: overview, outbound
                             client, resources/ family pages, spec streams
 reference/http/             non-SOAP HTTP surface, grouped by function
-reference/subsystems/       native subsystems, split by coverage tier
+reference/subsystems/       native subsystems: alphabetical index plus
+                            open-work.md, the auto-generated queue of
+                            every record's outstanding TODO
 reference/artifacts/        firmware artifact pages, one per category
 reference/public/files/     extracted firmware artifacts (audio, XML
                             specs, configs, scripts, binaries, package
                             pieces); refreshed by tools/extract_artifacts.py
 site/                       generated static HTML site
 tools/                      extraction + doc pipeline (see below)
-tests/                      unittest suite (34 tests)
+tests/                      unittest suite (43 tests)
 extract_soap_api.py         ELF/SOAP surface extractor (source of truth
                             for soap_api-*.json)
 reference/.vitepress/       VitePress site config (sidebar is generated
@@ -94,8 +96,7 @@ python3 tools/gensite.py          # wraps npm run docs:build -> site/
 # 5. Unit tests
 python3 -m unittest discover -s tests
 
-# 6. Coverage + lint reports (optional)
-python3 tools/coverage.py
+# 6. Lint reports (optional)
 python3 tools/lint.py
 ```
 
@@ -119,7 +120,7 @@ python3 tools/import_extract.py        # fold into docs/documentation.json
 `tools/extract_upd.py` can pull the ELF out of a Sonos `.upd` container.
 `tools/` also contains the analysis helpers used during the RE work
 (`disas.py`, `xref.py`, `sfind.py`, `expand_surface.py`, `parse_scpd.py`,
-`propagate.py`, `worksheet.py`, `_errdomain*.py`) — they all honor
+`worksheet.py`, `_errdomain*.py`) — they all honor
 `ANACAPAD`.
 
 ## GitHub Pages

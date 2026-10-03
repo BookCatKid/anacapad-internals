@@ -8,17 +8,16 @@ module is the single normalization boundary:
 
     documentation.json  ->  Model (typed IR objects)  ->  renderers/QA
 
-Every IR object keeps its uncertainty vocabulary (confirmed / strong /
-inferred / unresolved), sentinel strings ("none", "n/a", "unconstrained"),
-bounded-unknown blocks ({proven, unknown}), stub/removed flags and evidence
-records exactly as the database states them. Extra keys that have no
-dedicated IR field are preserved verbatim under `extra` so normalization
-never silently drops data.
+Every IR object keeps its sentinel strings ("none", "n/a",
+"unconstrained"), bounded-unknown blocks ({proven, unknown}), stub/removed
+flags, todo markers and evidence records exactly as the database states
+them. Extra keys that have no dedicated IR field are preserved verbatim
+under `extra` so normalization never silently drops data.
 
 qa(model, api) implements the loud-consistency checks used as a generation
 gate: contradictory counts, prose/arg-model mismatches, stale unresolved
-text, unit/range/type mismatches, impossible confidence combinations,
-duplicate/conflicting actions, ownership and cross-link problems.
+text, unit/range/type mismatches, duplicate/conflicting actions,
+ownership and cross-link problems.
 """
 import os
 import re
@@ -29,8 +28,6 @@ from typing import Optional
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import doclib
 
-STATUS_RANK = {"confirmed": 3, "strong": 2, "inferred": 1, "unresolved": 0}
-
 
 # --------------------------------------------------------------------------
 # IR objects
@@ -39,7 +36,6 @@ STATUS_RANK = {"confirmed": 3, "strong": 2, "inferred": 1, "unresolved": 0}
 @dataclass
 class Evidence:
     type: Optional[str] = None
-    status: Optional[str] = None
     binary: Optional[str] = None
     build: Optional[str] = None
     function: Optional[str] = None
@@ -50,7 +46,7 @@ class Evidence:
     @classmethod
     def from_raw(cls, raw):
         raw = raw or {}
-        return cls(type=raw.get("type"), status=raw.get("status"),
+        return cls(type=raw.get("type"),
                    binary=raw.get("binary"), build=raw.get("build"),
                    function=raw.get("function"), address=raw.get("address"),
                    callsite=raw.get("callsite"), notes=raw.get("notes"))
@@ -69,15 +65,15 @@ class Evidence:
 
 @dataclass
 class SemanticBlock:
-    """A {description, status, evidence, ...extra} documentation unit.
+    """A {description, evidence, ...extra} documentation unit.
 
     `text` is the human-readable semantics; scalar fields keep their string
     form, dict fields keep their description text and any extra keys in
-    `extra`. `status` may be None when the field was a bare string.
+    `extra`.
     """
     text: Optional[str] = None
-    status: Optional[str] = None
     evidence: list = field(default_factory=list)
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
     @classmethod
@@ -92,20 +88,20 @@ class SemanticBlock:
             for e in raw:
                 if isinstance(e, dict):
                     items.append(cls(text=e.get("description"),
-                                     status=e.get("status"),
                                      evidence=[Evidence.from_raw(x)
                                                for x in e.get("evidence")
-                                               or []]))
+                                               or []],
+                                     todo=e.get("todo")))
                 else:
                     items.append(cls(text=str(e)))
             return items
         if isinstance(raw, dict):
-            known = {"description", "status", "evidence"}
+            known = {"description", "evidence", "todo"}
             extra = {k: v for k, v in raw.items() if k not in known}
-            return cls(text=raw.get("description"), status=raw.get("status"),
+            return cls(text=raw.get("description"),
                        evidence=[Evidence.from_raw(x)
                                  for x in raw.get("evidence") or []],
-                       extra=extra)
+                       todo=raw.get("todo"), extra=extra)
         return cls(text=str(raw))
 
 
@@ -140,7 +136,6 @@ class Primitive:
 class Argument:
     name: str = ""
     direction: Optional[str] = None
-    status: Optional[str] = None
     description: Optional[str] = None
     primitive: Optional[Primitive] = None
     semantic_type: Optional[str] = None
@@ -154,12 +149,13 @@ class Argument:
     validation: object = None
     evidence: list = field(default_factory=list)
     notes: Optional[str] = None
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
-    KNOWN = {"description", "status", "direction", "primitive",
+    KNOWN = {"description", "direction", "primitive",
              "semantic_type", "format", "unit", "accepted_values", "range",
              "special_values", "required", "default", "validation",
-             "evidence", "notes"}
+             "evidence", "notes", "todo"}
 
     @classmethod
     def from_raw(cls, name, raw):
@@ -170,7 +166,6 @@ class Argument:
         if prim is None and "buf_cap" in raw:
             prim = Primitive(buf_cap=raw.get("buf_cap"))
         return cls(name=name, direction=raw.get("direction"),
-                   status=raw.get("status"),
                    description=raw.get("description"), primitive=prim,
                    semantic_type=raw.get("semantic_type"),
                    format=raw.get("format"), unit=raw.get("unit"),
@@ -181,7 +176,8 @@ class Argument:
                    validation=raw.get("validation"),
                    evidence=[Evidence.from_raw(e)
                              for e in raw.get("evidence") or []],
-                   notes=raw.get("notes"), extra=extra)
+                   notes=raw.get("notes"), todo=raw.get("todo"),
+                   extra=extra)
 
     @property
     def never_consumed(self):
@@ -209,24 +205,25 @@ class ErrorEntry:
     code: Optional[int] = None
     code_expr: Optional[str] = None
     meaning: Optional[str] = None
-    status: Optional[str] = None
     fault_sites: list = field(default_factory=list)
     conditions: list = field(default_factory=list)
     evidence: list = field(default_factory=list)
     unresolved: Optional[dict] = None   # {proven, unknown}
     notes: Optional[str] = None
+    todo: object = None
 
     @classmethod
     def from_raw(cls, raw):
         raw = raw or {}
         return cls(code=raw.get("code"), code_expr=raw.get("code_expr"),
-                   meaning=raw.get("meaning"), status=raw.get("status"),
+                   meaning=raw.get("meaning"),
                    fault_sites=list(raw.get("fault_sites") or []),
                    conditions=[Condition.from_raw(c)
                                for c in raw.get("conditions") or []],
                    evidence=[Evidence.from_raw(e)
                              for e in raw.get("evidence") or []],
-                   unresolved=raw.get("unresolved"), notes=raw.get("notes"))
+                   unresolved=raw.get("unresolved"), notes=raw.get("notes"),
+                   todo=raw.get("todo"))
 
     @property
     def code_label(self):
@@ -264,7 +261,6 @@ class Implementation:
     impl_function: Optional[str] = None
     impl_vfunc: Optional[str] = None
     description: Optional[str] = None
-    engine_status: Optional[str] = None
     engine_impl_func: Optional[str] = None
     notes: Optional[str] = None
     extra: dict = field(default_factory=dict)
@@ -281,7 +277,6 @@ class Implementation:
                    impl_function=raw.get("impl_function"),
                    impl_vfunc=raw.get("impl_vfunc"),
                    description=raw.get("description"),
-                   engine_status=er.get("status"),
                    engine_impl_func=er.get("impl_func"),
                    notes=raw.get("notes"),
                    extra={k: v for k, v in raw.items() if k not in known})
@@ -294,7 +289,6 @@ class Action:
     name: str = ""
     description: Optional[str] = None
     summary: Optional[str] = None     # hand-authored client-facing text
-    status: Optional[str] = None
     visibility: Optional[str] = None
     reachability: Optional[str] = None
     handler: Optional[str] = None
@@ -318,16 +312,17 @@ class Action:
     notes: Optional[str] = None
     implementation_notes: Optional[str] = None
     args_verified_empty: object = None
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
-    KNOWN = {"description", "status", "visibility", "reachability",
+    KNOWN = {"description", "visibility", "reachability",
              "handler", "handler_func", "req_arg", "dispatch",
              "implementation", "inputs", "outputs", "validation",
              "requirements", "state_dependencies", "side_effects",
              "events_triggered", "state_transitions", "return_behavior",
              "errors", "unresolved", "fault_sites", "firmware_differences",
              "evidence", "notes", "implementation_notes",
-             "args_verified_empty", "crossbuild_binary"}
+             "args_verified_empty", "crossbuild_binary", "todo"}
 
     @classmethod
     def from_raw(cls, service_name, control_path, name, raw):
@@ -338,7 +333,7 @@ class Action:
         se = raw.get("side_effects") or []
         return cls(
             service=service_name, control_path=control_path, name=name,
-            description=raw.get("description"), status=raw.get("status"),
+            description=raw.get("description"),
             visibility=raw.get("visibility"),
             reachability=raw.get("reachability"),
             handler=raw.get("handler") or raw.get("handler_func"),
@@ -367,6 +362,7 @@ class Action:
             notes=raw.get("notes"),
             implementation_notes=raw.get("implementation_notes"),
             args_verified_empty=raw.get("args_verified_empty"),
+            todo=raw.get("todo"),
             extra=extra)
 
     @property
@@ -398,9 +394,9 @@ class Action:
 @dataclass
 class Availability:
     notes: Optional[str] = None
-    status: Optional[str] = None
     enabled_source: Optional[dict] = None
     cap_flags: Optional[str] = None
+    todo: object = None
     evidence: list = field(default_factory=list)
     extra: dict = field(default_factory=dict)
 
@@ -408,11 +404,12 @@ class Availability:
     def from_raw(cls, raw):
         if not isinstance(raw, dict):
             return cls(notes=None)
-        known = {"notes", "status", "enabled_source", "cap_flags",
-                 "evidence"}
-        return cls(notes=raw.get("notes"), status=raw.get("status"),
+        known = {"notes", "enabled_source", "cap_flags",
+                 "evidence", "todo"}
+        return cls(notes=raw.get("notes"),
                    enabled_source=raw.get("enabled_source"),
                    cap_flags=raw.get("cap_flags"),
+                   todo=raw.get("todo"),
                    evidence=[Evidence.from_raw(e)
                              for e in raw.get("evidence") or []],
                    extra={k: v for k, v in raw.items() if k not in known})
@@ -420,7 +417,6 @@ class Availability:
 
 @dataclass
 class EventInfo:
-    status: Optional[str] = None
     mechanism: Optional[str] = None
     namespace: Optional[str] = None
     lastchange_var: Optional[str] = None
@@ -436,11 +432,11 @@ class EventInfo:
     def from_raw(cls, raw):
         if not isinstance(raw, dict):
             return None
-        known = {"status", "mechanism", "namespace", "lastchange_var",
+        known = {"mechanism", "namespace", "lastchange_var",
                  "lastchange_template", "no_template_note",
                  "wss_event_names", "wss_note", "notify_template",
                  "evidence"}
-        return cls(status=raw.get("status"), mechanism=raw.get("mechanism"),
+        return cls(mechanism=raw.get("mechanism"),
                    namespace=raw.get("namespace"),
                    lastchange_var=raw.get("lastchange_var"),
                    lastchange_template=raw.get("lastchange_template"),
@@ -458,7 +454,6 @@ class StateVariable:
     key: str = ""
     service: Optional[str] = None
     name: str = ""
-    status: Optional[str] = None
     evented: object = None
     data_type: Optional[str] = None
     description: Optional[str] = None
@@ -471,19 +466,20 @@ class StateVariable:
     evidence: list = field(default_factory=list)
     notes: Optional[str] = None
     client_summary: Optional[str] = None
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
-    KNOWN = {"service", "status", "evented", "data_type", "description",
+    KNOWN = {"service", "evented", "data_type", "description",
              "accepted_values", "range", "related_actions", "form",
              "template_addr", "emitter", "evidence", "notes",
-             "client_summary"}
+             "client_summary", "todo"}
 
     @classmethod
     def from_raw(cls, key, raw, service_name=None):
         raw = raw or {}
         name = key.split(".", 1)[1] if "." in key else key
         return cls(key=key, service=raw.get("service") or service_name,
-                   name=name, status=raw.get("status"),
+                   name=name,
                    evented=raw.get("evented"),
                    data_type=raw.get("data_type"),
                    description=raw.get("description"),
@@ -496,6 +492,7 @@ class StateVariable:
                    evidence=[Evidence.from_raw(e)
                              for e in raw.get("evidence") or []],
                    notes=raw.get("notes"),
+                   todo=raw.get("todo"),
                    extra={k: v for k, v in raw.items()
                           if k not in cls.KNOWN})
 
@@ -504,7 +501,6 @@ class StateVariable:
 class FormatSpec:
     key: str = ""
     kind: str = ""                     # "uri" | "payload"
-    status: Optional[str] = None
     description: Optional[str] = None
     format: Optional[str] = None
     fields: list = field(default_factory=list)
@@ -512,15 +508,16 @@ class FormatSpec:
     evidence: list = field(default_factory=list)
     notes: Optional[str] = None
     client_summary: Optional[str] = None
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
-    KNOWN = {"status", "description", "format", "fields", "used_by",
-             "evidence", "notes", "client_summary"}
+    KNOWN = {"description", "format", "fields", "used_by",
+             "evidence", "notes", "client_summary", "todo"}
 
     @classmethod
     def from_raw(cls, key, kind, raw):
         raw = raw or {}
-        return cls(key=key, kind=kind, status=raw.get("status"),
+        return cls(key=key, kind=kind,
                    description=raw.get("description"),
                    format=raw.get("format"),
                    fields=list(raw.get("fields") or []),
@@ -528,6 +525,7 @@ class FormatSpec:
                    evidence=[Evidence.from_raw(e)
                              for e in raw.get("evidence") or []],
                    notes=raw.get("notes"),
+                   todo=raw.get("todo"),
                    extra={k: v for k, v in raw.items()
                           if k not in cls.KNOWN})
 
@@ -545,12 +543,12 @@ class Capability:
     offset: str = ""
     description: Optional[str] = None
     effect: Optional[str] = None
-    status: Optional[str] = None
     loads: list = field(default_factory=list)
     stores: list = field(default_factory=list)
     affected_services: list = field(default_factory=list)
     evidence: list = field(default_factory=list)
     notes: Optional[str] = None
+    todo: object = None
 
 
 @dataclass
@@ -559,7 +557,6 @@ class Service:
     control_path: str = ""
     description: Optional[str] = None
     summary: Optional[str] = None     # hand-authored client-facing text
-    status: Optional[str] = None
     visibility: Optional[str] = None
     registration: Optional[dict] = None
     availability: Optional[Availability] = None
@@ -575,13 +572,14 @@ class Service:
     impl_files: list = field(default_factory=list)
     impl_return_pattern: Optional[str] = None
     removed_actions: list = field(default_factory=list)
+    todo: object = None
     extra: dict = field(default_factory=dict)
 
-    KNOWN = {"name", "control_path", "description", "status", "visibility",
+    KNOWN = {"name", "control_path", "description", "visibility",
              "registration", "availability", "object", "dispatcher",
              "actions", "state_variables", "events", "errors", "evidence",
              "notes", "visibility_note", "impl_files",
-             "impl_return_pattern", "removed_actions"}
+             "impl_return_pattern", "removed_actions", "todo"}
 
     @classmethod
     def from_raw(cls, control_path, raw):
@@ -590,7 +588,7 @@ class Service:
         extra = {k: v for k, v in raw.items() if k not in cls.KNOWN}
         return cls(
             name=name, control_path=control_path,
-            description=raw.get("description"), status=raw.get("status"),
+            description=raw.get("description"),
             visibility=raw.get("visibility"),
             registration=raw.get("registration"),
             availability=Availability.from_raw(raw.get("availability")),
@@ -609,6 +607,7 @@ class Service:
             impl_files=list(raw.get("impl_files") or []),
             impl_return_pattern=raw.get("impl_return_pattern"),
             removed_actions=list(raw.get("removed_actions") or []),
+            todo=raw.get("todo"),
             extra=extra)
 
     @property
@@ -657,6 +656,7 @@ class Model:
     capabilities: dict = field(default_factory=dict)
     internal_functions: dict = field(default_factory=dict)
     dispatch_candidates: dict = field(default_factory=dict)
+    cert_layer: dict = field(default_factory=dict)
 
     def all_actions(self):
         for s in self.services:
@@ -717,6 +717,7 @@ def normalize(doc, client_text=None):
     m.muse = doc.get("muse") or {}
     m.internal_functions = doc.get("internal_functions") or {}
     m.dispatch_candidates = doc.get("dispatch_candidates") or {}
+    m.cert_layer = doc.get("cert_layer") or {}
 
     m.services = [Service.from_raw(p, s)
                   for p, s in (doc.get("services") or {}).items()]
@@ -753,14 +754,14 @@ def normalize(doc, client_text=None):
 
     m.capabilities = {
         k: Capability(offset=k, description=v.get("description"),
-                      effect=v.get("effect"), status=v.get("status"),
+                      effect=v.get("effect"),
                       loads=list(v.get("loads") or []),
                       stores=list(v.get("stores") or []),
                       affected_services=list(
                           v.get("affected_services") or []),
                       evidence=[Evidence.from_raw(e)
                                 for e in v.get("evidence") or []],
-                      notes=v.get("notes"))
+                      notes=v.get("notes"), todo=v.get("todo"))
         for k, v in (doc.get("capabilities") or {}).items()}
 
     m.counts = _compute_counts(m)
@@ -774,7 +775,7 @@ def normalize(doc, client_text=None):
 # content; qa() errors on both stale keys and missing required ones so
 # no rendered prose block can silently lack a client layer.
 PAGE_TEXT_SPEC = {
-    "index": {"intro", "counts", "confidence"},
+    "index": {"intro", "counts"},
     "soap": {"intro"},
     "architecture": {"intro", "routing", "request_vtable",
                      "capability_fields", "internal_functions",
@@ -790,6 +791,7 @@ PAGE_TEXT_SPEC = {
     "firmware": {"intro", "product_surface", "service_matrix", "entries",
                  "entry_text"},
     "subsystems": {"intro"},
+    "open_work": {"intro"},
     "artifacts": {"intro"},
     "muse_spec_streams": {"intro"},
     "muse": {"intro", "description", "flags_decode", "dispatch",
@@ -962,18 +964,14 @@ def _check_stale_unresolved(qa, model):
     pat = re.compile(r"\bunresolved\b|\bnot yet resolved\b", re.I)
     for a in model.all_actions():
         impl = a.implementation
-        if impl and impl.engine_status == "resolved":
+        if impl and impl.engine_impl_func:
             for t in (impl.notes or "", impl.description or ""):
                 if pat.search(t):
-                    qa.error("%s.%s: engine_resolution.status is 'resolved' "
-                             "but implementation text still says "
-                             "unresolved: %r" % (a.service, a.name, t[:80]))
-    for addr, c in model.dispatch_candidates.items():
-        assess = (c.get("assessment") or "")
-        if assess.upper().startswith("RESOLVED") \
-                and c.get("status") == "unresolved":
-            qa.error("dispatch_candidate %s: assessment says RESOLVED but "
-                     "status is still 'unresolved'" % addr)
+                    qa.error("%s.%s: engine impl resolved to %s but "
+                             "implementation text still says "
+                             "unresolved: %r"
+                             % (a.service, a.name, impl.engine_impl_func,
+                                t[:80]))
 
 
 def _check_types(qa, model):
@@ -1009,40 +1007,6 @@ def _check_types(qa, model):
                     if mm and int(mm.group(1)) + 1 != p.buf_cap:
                         qa.warn("%s: buf_cap %s inconsistent with range %r"
                                 % (w, p.buf_cap, rng))
-
-
-def _check_confidence(qa, model):
-    for s in model.services:
-        if s.status == "unresolved":
-            for a in s.actions.values():
-                if a.status == "confirmed":
-                    qa.error("service %s is unresolved but action %s is "
-                             "confirmed (impossible parent/child confidence)"
-                             % (s.name, a.name))
-        for a in s.actions.values():
-            if a.status in ("unresolved", "inferred"):
-                for grp in (a.inputs, a.outputs):
-                    for n, arg in grp.items():
-                        if arg.status == "confirmed":
-                            qa.error("%s.%s arg %s: confirmed child under "
-                                     "%s action" % (a.service, a.name, n,
-                                                    a.status))
-            if a.status == "confirmed":
-                # bare-string children have no status; only declared
-                # statuses participate (matches lint._weakest_child)
-                child_statuses = (
-                    [arg.status for g in (a.inputs, a.outputs)
-                     for arg in g.values()]
-                    + [e.status for e in a.errors]
-                    + [b.status for b in
-                       (a.validation, a.requirements,
-                        a.state_dependencies, a.events_triggered,
-                        a.state_transitions, a.return_behavior)
-                       if isinstance(b, SemanticBlock) and b.status])
-                ranks = [STATUS_RANK.get(x, 2) for x in child_statuses]
-                if ranks and min(ranks) < 3:
-                    qa.warn("%s.%s: 'confirmed' action contains a weaker "
-                            "observable child" % (a.service, a.name))
 
 
 def _check_duplicates(qa, model):
@@ -1132,7 +1096,7 @@ def _check_crosslinks(qa, model):
 def _check_fault_coverage(qa, model):
     for a in model.all_actions():
         raw_errs = [{"fault_sites": e.fault_sites, "code": e.code,
-                     "code_expr": e.code_expr, "status": e.status,
+                     "code_expr": e.code_expr,
                      "meaning": e.meaning,
                      "conditions": [{"description": c.description,
                                      "evidence": [vars(ev)
@@ -1199,7 +1163,6 @@ def qa(model, api_total=None):
     _check_arg_prose(r, model)
     _check_stale_unresolved(r, model)
     _check_types(r, model)
-    _check_confidence(r, model)
     _check_duplicates(r, model)
     _check_ownership(r, model)
     _check_crosslinks(r, model)

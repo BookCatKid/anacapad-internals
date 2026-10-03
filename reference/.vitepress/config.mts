@@ -114,8 +114,10 @@ function buildSidebar() {
     {
       text: 'Subsystems',
       items: [
-        { text: 'Coverage index', link: '/subsystems/' },
-        ...dirItems('subsystems', '/subsystems', new Set(['index'])),
+        { text: 'All subsystems', link: '/subsystems/' },
+        { text: 'Open work', link: '/subsystems/open-work' },
+        ...dirItems('subsystems', '/subsystems',
+                    new Set(['index', 'open-work'])),
       ],
     },
     {

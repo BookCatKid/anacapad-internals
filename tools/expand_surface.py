@@ -58,7 +58,7 @@ def ev(s, notes=None):
     if a is None:
         return None
     return {"type": "firmware", "binary": "anacapad", "build": BUILD,
-            "status": "confirmed", "address": "0x%x" % a,
+            "address": "0x%x" % a,
             "notes": notes or s}
 
 
@@ -100,7 +100,6 @@ def main():
         (found if a else missing).append(
             {"path": p, "address": "0x%x" % a} if a else p)
     sp["http_extra_endpoints"] = {
-        "status": "strong",
         "name": "HTTP paths outside the /status route-table cluster",
         "description": (
             "Second-sweep string audit of the anacapad HTTP server "
@@ -136,7 +135,6 @@ def main():
             fam = "CORE"
         fams.setdefault(fam, []).append(k)
     sp["internal_result_namespace"] = {
-        "status": "strong",
         "name": "R_* internal result/status code namespace",
         "description": (
             "Complete internal status enum recovered from rodata: "
@@ -167,7 +165,6 @@ def main():
              "R_ShowRhapUPnP", "R_SvcAccounts", "R_ThirdPartyCredentials",
              "R_TrialZPSerial", "R_UseSonosContentDirNS", "R_VolNormMode"]
     sp["system_property_keys"] = {
-        "status": "strong",
         "name": "SystemProperties R_* settings key space",
         "description": (
             "Known keys for the SystemProperties Get/Set/Remove "
@@ -183,7 +180,6 @@ def main():
 
     # ---- SMAPI capability vocabulary (/customsd) ----------------------
     sp["smapi_capability_vocabulary"] = {
-        "status": "confirmed",
         "name": "SMAPI capability/auth/container vocabulary",
         "description": (
             "The /customsd POST form is a full SMAPI service-descriptor "
@@ -208,7 +204,6 @@ def main():
 
     # ---- CSRF / POST-form layer ----------------------------------------
     sp["csrf_protection"] = {
-        "status": "confirmed",
         "name": "CSRF tokens on browser-facing POST endpoints",
         "description": (
             "Every browser-form POST endpoint embeds a hidden "
@@ -230,7 +225,6 @@ def main():
 
     # ---- Device description variants -----------------------------------
     sp["device_description_variants"] = {
-        "status": "confirmed",
         "name": "Alternate device-description documents",
         "description": (
             "Three device descriptions exist: device_description.xml "
@@ -252,7 +246,6 @@ def main():
 
     # ---- GENA internals -------------------------------------------------
     sp["gena_internals"] = {
-        "status": "strong",
         "name": "GENA subscription/notify internals",
         "description": (
             "Subscription machinery vocabulary: SID preinstall "
@@ -271,7 +264,6 @@ def main():
 
     # ---- DIDL classes ----------------------------------------------------
     sp["didl_classes_ext"] = {
-        "status": "strong",
         "name": "Extended DIDL object classes",
         "description": (
             "DIDL class vocabulary beyond the core audioItem set: "
@@ -296,7 +288,6 @@ def main():
         end = _e.data.find(b"\0", fo)
         csv_str = _e.data[fo:end].decode()
     sp["protocol_info_full"] = {
-        "status": "confirmed",
         "name": "Complete GetProtocolInfo Source CSV",
         "description": (
             "Verbatim protocol-info CSV returned by "
@@ -310,7 +301,6 @@ def main():
 
     # ---- ICY metadata -----------------------------------------------------
     sp["icy_metadata"] = {
-        "status": "strong",
         "name": "ICY/Shoutcast inline metadata",
         "description": (
             "mp3radio streams carry ICY metadata; '@icy-metaint:' "
@@ -320,7 +310,6 @@ def main():
 
     # ---- Alert/chime engine -----------------------------------------------
     sp["alert_engine"] = {
-        "status": "strong",
         "name": "alert/chime interrupt engine",
         "description": (
             "alertContent player with priority policies "
@@ -335,7 +324,6 @@ def main():
 
     # ---- household PSK vocabulary ------------------------------------------
     sp["household_psk_vocabulary"] = {
-        "status": "strong",
         "name": "household encryption key elements",
         "description": (
             "Replicated-state PSK identifiers: HhPsk (household), "
@@ -351,7 +339,6 @@ def main():
 
     # ---- replication elements ------------------------------------------------
     sp["replication_elements"] = {
-        "status": "strong",
         "name": "replication-engine wire elements",
         "description": (
             "Replication protocol elements beyond the store inventory: "
@@ -368,7 +355,6 @@ def main():
 
     # ---- token refresh state machine ------------------------------------------
     sp["token_refresh_state_machine"] = {
-        "status": "strong",
         "name": "music-account OAuth token refresh lifecycle",
         "description": (
             "Per-account token refresh FSM ('token refresh state for "
@@ -385,7 +371,6 @@ def main():
 
     # ---- XML schema clusters ---------------------------------------------------
     sp["xml_schema_clusters"] = {
-        "status": "strong",
         "name": "uncatalogued XML schema clusters",
         "description": (
             "Element vocabularies in the /status dumps and persisted "
@@ -407,7 +392,6 @@ def main():
 
     # ---- non-UPnP error families --------------------------------------------------
     sp["internal_error_families"] = {
-        "status": "strong",
         "name": "non-UPnP fault-code families",
         "description": (
             "ERROR_* fault vocabularies outside the UPnP code table: "
@@ -421,7 +405,6 @@ def main():
 
     # ---- URI scheme additions -----------------------------------------------------
     doc["uri_formats"]["misc_schemes"] = {
-        "status": "strong",
         "description": (
             "URI schemes missed by the main sweep: pndrradioad:// "
             "(Pandora ad-insertion transport), pndrradio-http://, "
@@ -450,7 +433,6 @@ def main():
     # ---- Part-2 subsystem catalogue --------------------------------------------------
     subsystems = {
         "scrobbler": {
-            "status": "absent",
             "summary": "audioscrobbler/Last.fm submission client in the "
                        "streamer layer: handshake, submission format "
                        "and trigger policy undocumented",
@@ -459,28 +441,24 @@ def main():
                         "scrobbling submission %s",
                         "last.fm-radio-http"]},
         "spotify_esdk": {
-            "status": "vocab",
             "summary": "embedded libspotify (mercury/hermes AP stack) + "
                        "Sonos bridge modules + mDNS Connect discovery; "
                        "names catalogued, protocol internals not",
             "anchors": ["spotify_esdk.c", "hermes.c",
                         "mdns_spotify_service.cxx", "/spotifyzc"]},
         "chirp_stack": {
-            "status": "vocab",
             "summary": "chirp-core/chirp-private acoustic codec "
                        "(encoder/decoder/voter, CDMA+FSK profiles) "
                        "driving RoomDetection chirps and trueplay "
                        "discovery",
             "anchors": ["chirp_private_cdma.c", "protocol-acoustic.c"]},
         "trueplay_tuning": {
-            "status": "partial",
             "summary": "SOAP enable/status documented; measurement, "
                        "etag asset sync, presence discovery and the "
                        "tuning FSM not",
             "anchors": ["trueplay-node", "/trueplayinfo",
                         "SelfTrueplayEQ"]},
         "dsp_ht_engine": {
-            "status": "vocab",
             "summary": "home-theater DSP parameter surface "
                        "(SubCrossover, InvertSub, DialogEnhancementLevel, "
                        "AISpeechEnhance, HeightChannelLevel, Tweaks "
@@ -490,34 +468,29 @@ def main():
                         "AISpeechEnhance", "/htconfig",
                         "R_MASK_NINE_DOT_ONE_DOT_FOUR"]},
         "led_engine": {
-            "status": "absent",
             "summary": "scripted LED animation programs + full R_LED_* "
                        "state vocabulary; SetLEDState on/off only "
                        "documented surface",
             "anchors": ["<LedStepEntry", "R_LED_BEGIN_SETUP_MODE",
                         "/jffs/app/debug/sonosledmgrd.dmp"]},
         "queue_persistence": {
-            "status": "absent",
             "summary": ".rsq on-disk format: savedqueues.rsq + "
                        "trackqueue.rsq XML schemas, .d.rsq backup, "
                        "atomic .tmp rename",
             "anchors": ["savedqueues.rsq", "<SavedQueues",
                         "trackqueue.rsq"]},
         "play_history": {
-            "status": "vocab",
             "summary": "historymgr + History/RestHistory/"
                        "WebSocketHistory/CloudQueueHistory XML types + "
                        "deleteHistory cloud op + rating gating",
             "anchors": ["historymgr.cxx", "<WebSocketHistory",
                         "deleteHistory"]},
         "sntp_server": {
-            "status": "vocab",
             "summary": "player-hosted SNTP server for household time "
                        "(sntpsrv + sntppoll); role/topology unknown",
             "anchors": ["sntpsrv.cxx", "handleSntpRequest",
                         "Created SNTP Server"]},
         "settings_replication": {
-            "status": "vocab",
             "summary": "replicated_settings store inventory known; "
                        "merge/version-vector/dissemination protocol + "
                        "Replication* wire elements not",
@@ -525,14 +498,12 @@ def main():
                         "<ReplicationOperation",
                         "NextFavorite"]},
         "account_cert_lifecycle": {
-            "status": "partial",
             "summary": "certmanager/devicecertmanager/regdevicecert/"
                        "cloudregistration endpoints catalogued; "
                        "enrolment/renewal flows and cert formats not",
             "anchors": ["devicecertmanager.cxx", "regdevicecert.cxx",
                         "R_CLIENT_KEYCERT_ID_SONOS_DEVICE"]},
         "entitlements": {
-            "status": "vocab",
             "summary": "entitlementsmanager + entitlementsVersionChanged "
                        "+ /entitlements/api; what an entitlement gates "
                        "unknown",
@@ -540,7 +511,6 @@ def main():
                         "entitlementsVersionChanged",
                         "/entitlements/api"]},
         "telemetry_submission": {
-            "status": "partial",
             "summary": "reportuploader/usagedatasharing/zonereportmgr + "
                        "submission queue + dropout/trackplay recorders + "
                        "zpMetricsConfigV2; SubmitDiagnostics SOAP "
@@ -549,13 +519,11 @@ def main():
                         "zpMetricsConfigV2.xml",
                         "diagnosticSubmissionResults"]},
         "audio_taps": {
-            "status": "vocab",
             "summary": "audiotap/datatap/spdiftap PCM capture + "
                        "/snapshotspdiftap /downloadspdiftap endpoints",
             "anchors": ["audiotap_manager.cxx", "spdiftap.c",
                         "/downloadspdiftap"]},
         "update_machinery": {
-            "status": "partial",
             "summary": "BeginSoftwareUpdate documented; "
                        "auto_update_scheduler, user_update_scheduler, "
                        "migrationmanager, /softwareDownload, /testenv "
@@ -563,53 +531,45 @@ def main():
             "anchors": ["auto_update_scheduler.cxx",
                         "migrationmanager.cxx", "/softwareDownload"]},
         "media_player_abstraction": {
-            "status": "vocab",
             "summary": "media_player_mgr/autoplay/vli_ctrl + "
                        "extaudiosrc/ai_impl_base plug-in layer under "
                        "AVT sources; vtable map undocumented",
             "anchors": ["media_player_mgr.cxx", "extaudiosrc.cxx",
                         "ai_impl_base.cxx"]},
         "group_object_model": {
-            "status": "partial",
             "summary": "group.cxx/group_playeronly/"
                        "group_locationandplayer + play_state_mgr + "
                        "zones_mgr/zones_storage internals behind ZGT",
             "anchors": ["play_state_mgr.cxx", "zones_storage.cxx",
                         "/jffs/settings/zones.json"]},
         "buttons_ir": {
-            "status": "partial",
             "summary": "longpress gesture detection + irdecoder + "
                        "irconfig.txt; HTControl SOAP surface "
                        "documented, mechanics not",
             "anchors": ["longpress.cxx", "irdecoder.cxx",
                         "/jffs/irconfig.txt"]},
         "muse_semantics": {
-            "status": "vocab",
             "summary": "282 cloud routes catalogued; per-route "
                        "request/response schemas and auth undocumented",
             "anchors": ["v1/households/{householdId}",
                         "muse_async_command_handler_impl.cxx"]},
         "lechmere_wss": {
-            "status": "partial",
             "summary": "RFC6455+TLV framing confirmed; full WSS command "
                        "vocabulary, reconnect/auth, per-namespace "
                        "payloads not",
             "anchors": ["websocket_lechmere", "lechmere.event"]},
         "cloud_queue": {
-            "status": "vocab",
             "summary": "/cloudqueue(+poll), trackQueueAdditions, "
                        "CloudQueueHistory, rating gating; lifecycle "
                        "undocumented",
             "anchors": ["/cloudqueue", "trackQueueAdditions",
                         "CloudQueueHistory"]},
         "business_msp": {
-            "status": "absent",
             "summary": "Sonos Business managed-service-provider hooks "
                        "(AddRemove/Sync Sonos Business MSP)",
             "anchors": ["AddRemoveSonosBusinessMSP",
                         "Sync Sonos Business MSP"]},
         "semisleep_power": {
-            "status": "absent",
             "summary": "suspend/resume engine: enableSemiSleep, "
                        "powerWakeupFromSemiSleep, "
                        "AmplifierPowerStateChanged, "
@@ -618,7 +578,6 @@ def main():
                         "powerWakeupFromSemiSleep",
                         "DirectControlIsSuspended"]},
         "multi_daemon_boundary": {
-            "status": "vocab",
             "summary": "anacapad is one of ~13 daemons (btmanager, "
                        "wacd, netstartd, sonosledmgrd, "
                        "sonospowercoordinator, mdnsd, sddpd, chronyd, "
@@ -628,7 +587,6 @@ def main():
             "anchors": ["/btmanager-external", "/netstartd-external",
                         "wacd.log", "sddpd.log"]},
         "runtime_flag_files": {
-            "status": "vocab",
             "summary": "/tmp + /var/run flag-file semantics: "
                        "device_unlocked_flag, brokendevice, "
                        "wifidisabled, crashed_play_state, "
@@ -637,7 +595,6 @@ def main():
             "anchors": ["/tmp/device_unlocked_flag",
                         "/tmp/brokendevice", "/tmp/memorylog"]},
         "ibt_plans": {
-            "status": "absent",
             "summary": "IBT command plan-execution engine "
                        "('executing ibt plan for command') + "
                        "enablePitchfork feature flag",
@@ -645,26 +602,22 @@ def main():
                         "unsupported IBT command",
                         "enablePitchfork"]},
         "embedded_sqlite": {
-            "status": "vocab",
             "summary": "libsqlite3 linked; local timers persist via "
                        "sqlite3 statements; tables undocumented",
             "anchors": ["sqlite3_exec", "LocalTimer from sqlite3"]},
         "factory_reset": {
-            "status": "vocab",
             "summary": "factoryReset.txt sentinel, "
                        "sonosFactoryResetFull, LED_MODE_FACTORY_RESET, "
                        "remote management/factoryReset muse route",
             "anchors": ["factoryReset.txt", "sonosFactoryResetFull",
                         "management/factoryReset"]},
         "playlist_parsers": {
-            "status": "vocab",
             "summary": "ASX (mswmext), M3U (x-mpegurl), "
                        "vnd.apple.mpegurl, DASH metadata parsers below "
                        "the URI layer",
             "anchors": ["mswmext=.asx", "application/x-mpegurl",
                         "application/dash+xml"]},
         "feature_flag_registry": {
-            "status": "vocab",
             "summary": "featureConfig* flags enumerate the gated "
                        "feature set: DropoutContext, "
                        "HomeTheaterWifiPerfTelemetry, MetricsService, "
@@ -673,7 +626,6 @@ def main():
             "anchors": ["featureConfigPlink", "featureConfigSmartPlay",
                         "featureConfigQuickbonding"]},
         "ab_experiments": {
-            "status": "vocab",
             "summary": "ZoneExperiment framework in production "
                        "firmware: /experiments endpoint, "
                        "ZoneExperiment id/name/value/defaultValue "
@@ -681,7 +633,6 @@ def main():
             "anchors": ["<ZoneExperiment", "/experiments",
                         "experimentId"]},
         "favourites_model": {
-            "status": "vocab",
             "summary": "FV: grammar + GC variants documented; "
                        "enumerate/mutate path, favourites↔muse sync, "
                        "NextFavorite sequencing not",
@@ -689,27 +640,23 @@ def main():
                         "sonos_favorites_version"]},
         "scrobbler_note_family": None,  # merged into scrobbler
         "log_domain_map": {
-            "status": "vocab",
             "summary": "21 anacapa.*.log domains = subsystem boundary "
                        "map (avt.play, chsrc.state, dc, gm.events, ht, "
                        "muse*, snf, sps, trueplay, vl...)",
             "anchors": ["anacapa.snf.log", "anacapa.lechmere.event.log",
                         "anacapa.dc.log"]},
         "model_sku_vocabulary": {
-            "status": "vocab",
             "summary": "ZPS9-ZPS61 / S0-S9 model ids + product names "
                        "embedded for capability conditionals; model->"
                        "capability map untabulated",
             "anchors": ["ZPS9", "HwFeatures"]},
         "qplay_protocol": {
-            "status": "vocab",
             "summary": "only QPlayAuth SOAP action documented; the "
                        "wider Tencent protocol (key derivation, "
                        "control channel) is not",
             "anchors": ["urn:schemas-tencent-com:service:QPlay",
                         "QPlayAuth"]},
         "wac_mode": {
-            "status": "vocab",
             "summary": "WiFi Accessory Config setup mode (wacd, "
                        "/var/run/wac_mode, WAC mode enabled/timeout)",
             "anchors": ["wacd.log", "WAC mode enabled"]},
@@ -722,7 +669,7 @@ def main():
             e = ev(a)
             if e:
                 evs.append(e)
-        out_sub[name] = {"status": s["status"], "summary": s["summary"],
+        out_sub[name] = {"summary": s["summary"],
                          "anchors": s["anchors"], "evidence": evs}
     doc["subsystems"] = out_sub
 

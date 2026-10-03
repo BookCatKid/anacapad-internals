@@ -1,7 +1,7 @@
 # anacapad documentation workflow
 
-A repeatable pipeline for reaching 100% semantic documentation coverage of
-the SOAP/UPnP surface recovered from the `anacapad` binary.
+A repeatable pipeline for exhaustively documenting the SOAP/UPnP surface
+recovered from the `anacapad` binary.
 
 Source of truth for behavior: **the binary**. Extractor output supplies
 structural facts (addresses, names, dispatch, fault sites); humans/agents
@@ -23,7 +23,6 @@ tools/import_extract.py        extractor JSON -> doc skeletons (never overwrites
 tools/worksheet.py             per-action RE worksheet
 tools/validate.py              structural + semantic validation
 tools/lint.py                  weak-documentation linter
-tools/coverage.py              coverage report
 tools/genmodel.py              normalized generator IR + consistency QA
 tools/gendocs.py               Markdown reference renderer (consumes the IR;
                                also renders artifacts/*.md from
@@ -47,22 +46,25 @@ tests/                         unittest suite + synthetic fixture
 ```
 1. Run binary extractor.
 2. Import structural findings.          python3 tools/import_extract.py
-3. Pick one incomplete action.          python3 tools/coverage.py -- see counts
+3. Pick one record from the open-work list
+   (reference/subsystems/open-work.md).
 4. Generate worksheet.                  python3 tools/worksheet.py AVTransport Seek
 5. Reverse the implementation path (handler -> impl vfunc -> callee).
 6. Fill semantic fields in documentation.json for that action.
-7. Add evidence records (address + build + status) for every non-obvious claim.
-8. Verification pass (see below) BEFORE treating the entry as confirmed.
-9. Run validation and coverage.         python3 tools/validate.py
+7. Add evidence records (address + build + type) for every non-obvious claim.
+8. Verification pass (see below) BEFORE treating the entry as finished.
+9. Remove or narrow the record's `todo` only when the remaining work in it
+   is actually done; otherwise update the `todo` text to reflect the new
+   residual.
+10. Run validation.                     python3 tools/validate.py
                                         python3 tools/lint.py
-                                        python3 tools/coverage.py
-10. Repeat.
+11. Repeat.
 ```
 
 ## Verification pass
 
 A first semantic pass produces a *candidate*, not a finished entry. Before
-accepting `confirmed` statuses, re-inspect the instruction/dataflow level for
+calling a claim proven, re-inspect the instruction/dataflow level for
 the boundary assumptions that are easy to get wrong on this target:
 
 - **PPC decode traps**: disassembler mnemonics can mislead — `rlwinm rX,rY,0,16,31`
@@ -87,7 +89,7 @@ the boundary assumptions that are easy to get wrong on this target:
   REL_TIME but is a silent no-op as TIME_DELTA). Preserve the order in the
   docs; do not "clean up" semantics that differ only by check ordering.
 
-## Completeness rules
+## Documentation rules
 
 Every externally relevant object needs at least one meaningful sentence.
 "Meaningful" is enforced: placeholder text and identifier-echo
@@ -98,31 +100,59 @@ both the validator and the linter.
 explicit sentinel: `"none"`, `"n/a"`, `"unconstrained"`, `"any"`,
 `"unbounded"`. An empty list `[]` counts as unassessed — write `"none"`.
 
-Unresolved is a first-class state, not a failure. An unresolved entry must
-state what is **proven**, what is still **unknown**, and carry the evidence
-(address) to resume from.
+### Field requirements per object
 
-### Object-level requirements
+These are the fields each object must populate (the validator and linter
+enforce them). They describe what a record must *contain*, not whether it
+is *finished* — see the completeness rule below.
 
-| Object | Complete when |
+| Object | Required fields |
 |---|---|
 | service | description, availability notes (what the enabled byte/flags mean), evidence |
-| action | description; visibility classified (`advertised`/`hidden`/`internal`; hidden requires `reachability`); every discovered input & output complete; every fault site covered by an `errors` entry; `requirements`, `state_dependencies`, `side_effects`, `events_triggered`, `state_transitions`, `return_behavior`, `validation` all assessed; action-level evidence present |
+| action | description; visibility classified (`advertised`/`hidden`/`internal`; hidden requires `reachability`); every discovered input & output documented; every fault site covered by an `errors` entry; `requirements`, `state_dependencies`, `side_effects`, `events_triggered`, `state_transitions`, `return_behavior`, `validation` all assessed; action-level evidence present |
 | argument | description; `required` set (true/false/`"conditional"`); `semantic_type`, `format`, `accepted_values`, `range`, `special_values`, `default`, `validation`, `unit` all assessed |
-| error entry | either resolved: `meaning` + ≥1 `conditions[]` each with description+evidence; or `status:"unresolved"` with `unresolved.proven` and `unresolved.unknown` filled + evidence |
+| error entry | `meaning` + at least one `conditions[]` entry with description+evidence, or an `unresolved` block stating `proven` and `unknown` + evidence |
 | capability field | description + `effect` (what it gates) |
 | internal function | only counted when `required_for_behavior:true`; needs description + `why_external` |
-| dispatch candidate | `assessment` written (dispatcher? dead stub? unrelated?) + status ≠ unresolved |
+| dispatch candidate | `assessment` written (dispatcher? dead stub? unrelated?) |
 | state variable | description + `data_type` + `evented` |
 
-Statuses: `confirmed` (binary/hardware proves it), `strong` (strong
-inference), `inferred` (heuristic), `unresolved`. Lint flags
-`confirmed`/`strong` claims that carry no evidence records. Never silently
-upgrade inferred facts.
+## Completeness and the `todo` field
+
+A record is finished only when **everything recoverable from the available
+binaries for that record has actually been reversed and documented**. The
+rule:
+
+- If any recoverable semantic detail is still unknown, untraced, inferred,
+  only structurally mapped, or otherwise incomplete, the record carries a
+  `todo` field.
+- A record has no `todo` only when its recoverable content is exhausted.
+- Proven binary/static impossibilities (a dead dispatcher, a removed
+  feature, a fault path that cannot exist) are recorded as explicit
+  limitations in the record's prose and need no actionable `todo` once
+  the impossibility itself is demonstrated.
+
+Every `todo` states three things:
+
+1. what the record already establishes,
+2. exactly what remains unknown,
+3. the concrete reverse-engineering work needed to close it.
+
+A `todo` is a string or a list of strings; never a bare `TODO` and never
+generic boilerplate. Narrow or remove a `todo` only when the work it names
+is actually done; update the text whenever analysis narrows the residual.
+
+### User-facing rendering
+
+Each record renders its `todo` next to its evidence, and
+`subsystems/open-work.md` collects every `todo` automatically into a work
+queue grouped by record kind. `TodoPolicyTests` enforces the contract:
+records with structured unknowns must carry a `todo`, `todo` text may not
+be generic, and the open-work page must collect every outstanding `todo`.
 
 Evidence records carry `type` (`firmware`, `live_test`, `network_capture`,
 `runtime_trace`, `device_observation`), `binary`, `build`, `function`,
-`address`, `callsite`, `notes`, `status`.
+`address`, `callsite`, `notes`.
 
 ## What the importer owns vs. what you own
 
@@ -135,19 +165,19 @@ overwrites human text:
   capability `loads`/`stores`, dispatch-candidate fields, `meta`,
   `routing`, `request_vtable`
 - human-owned: `description`, `meaning`, `conditions`, `requirements`,
-  `side_effects`, `semantic_type`, `visibility`, `status`, `notes`, ...
+  `side_effects`, `semantic_type`, `visibility`, `todo`, `notes`, ...
 
 Fault sites are auto-covered by skeleton `errors` entries; matching is by
 `fault_sites` membership, so a human-written entry that lists the site is
 never duplicated. Doc objects that no longer exist in extractor output are
 flagged `STALE` by lint, never deleted.
 
-## Coverage
+## Open-work inventory
 
-`coverage.py` reports discovered-vs-documented per category and an overall
-percentage computed as (complete units)/(all units), where a unit is one
-service, action, argument, fault path, capability field, dispatch
-candidate, required internal function, or declared state variable.
+`reference/subsystems/open-work.md` is generated with the docs and
+collects every record that still carries a `todo`, grouped by record
+kind. It is the work queue: closing a record's open items means editing
+its `todo` away, and the next regeneration drops it from the page.
 
 ## Generating reference docs
 
@@ -181,7 +211,6 @@ Generation doubles as a consistency QA pass (`genmodel.qa()`):
 - prose that references arguments absent from the argument model
 - implementation text saying "unresolved" after an engine was resolved
 - `type_tag`/`format`/`buf_cap` mismatches
-- `confirmed`/`strong` claims without evidence
 - state-variable `related_action` links and argument/state-variable
   cross-links
 
