@@ -123539,10 +123539,10 @@
    "wifitest": "network connectivity test: disable wifi %d sec -> re-enable -> \"Network test complete: %s\" (netstartd start/end-signaling consumer)",
    "vli_tx": "lTransmitOffBox is now %d [uni=%c]; \"NodeTx configured to handle %s audio (qos: %d)\" (per-channel QoS; \"delay sending new frames until resend finishes\") resend-first ordering; vlintxsink block name \"VLI NodeTX Blocks\"",
    "todo": [
-    "Established: the NACK retransmit grammar, resync op set, packet log format, per-channel QoS, and ITBT types are proven; perfcounter names catalogued.",
-    "Still unknown: the record itself flags it - the bit-level packet layout is unresolved (the log grammar is proven but the wire frame fields are not fully decomposed).",
-    "Next step: decompose the packet-frame fields from the tx/rx serializer."
-   ]
+    "Established: version byte (==2 enforced on NACK), type discriminator, 32-bit BE body words; NACK word0 = {2-bit tag | 30-bit count}, followed by min/max packet-id range; resync carries a packet id; per-channel QoS and per-type instances (chsrc/ht%d/vli).",
+    "Remaining: the data-DataBlock header fields (seq/timestamp/payload-length offsets) - next step is the tx serializer's store instructions rather than the NACK path."
+   ],
+   "note": "nodetx.cxx - the reliable-multicast audio transport transmitter. Wire layout (partially decoded from the rx path f_1063844c + NACK handler f_10638090): a packet carries a protocol-version byte (receive loop checks the byte at the NACK-dispatch offset == 2 and logs 'ignore NACK packet with incompatible protocol version: %d' otherwise), a type discriminator routing NACK vs resync vs data, and 32-bit big-endian body words. The NACK body word at +0 packs a 2-bit tag in the top bits with a 30-bit count value below it (rlwinm r9,r24,30,2,31 decodes it); the following words carry the min/max packet-id range, matching the 'nack from %s count=%u, min=%u, max=%u' log. 'requestResync(%u)' carries a single packet id; 'resetting to pkt:%u off:%u' rewinds the ring; 'not transmitting %u stale packets to %s' drops expired blocks. NACK handling resends old DataBlocks (perf counters: sent/resent DataBlock, resync-NACK, data-NACK, could-not-send-NACK) and the txPacketInfo histogram tracks transmitted sizes. Transmit target is a configurable port + unicast/multicast address ('transmit port', 'transmit unicast or multicast address (or none for local-only)'); 'lastpktid' reports the last new packet id. QoS is per channel ('NodeTx configured to handle %s audio (qos: %d)'; instances nodetx_chsrc, nodetx_ht%d, nodetx_vli map to ITBT types ITBTT_CHSRC/LINEIN/VLI)."
   },
   "vli_grouping": {
    "name": "Virtual Line-In group link manager (vli_*_mgr/link-helper)",
@@ -123616,17 +123616,20 @@
    "flow": "\"Diag submission completed, submissionId: %s, status: %d, diagnosticId: %d\"; \"Failed to add result with submissionId: %s\"",
    "manifest": "<DiagnosticManifest %s=%s %s=%s version 2.0.0> -> POST /v2/diags (product-diagnostics); {\"serial_num\":\"%s\"}; fields serial_num/swversion/secreg/quarantined; ZPSupportInfo{ZPInfo{LocalUID,IPAddress,SoftwareVersion},QuarantineReason,StubReason}; submission errors \"I/O Error: 0x%x. HTTP Result: %d\"",
    "todo": [
-    "Established: the submission flow, DiagnosticManifest v2.0 format, POST /v2/diags endpoint, and the ZPS fields are documented.",
-    "Still unknown: the manifest's full field set and the server-side submission/ack semantics are only partially decoded.",
-    "Next step: enumerate all manifest attributes at the emit site."
-   ]
+    "Resolved: manifest fields (serial_num/quarantined/secreg/swversion/ZPSupportInfo/ZPInfo/LocalUID/IPAddress/SoftwareVersion/QuarantineReason/StubReason/ZPNetworkInfo); artifacts manifest.xml + %s.xml + %s.sha256 + %s.xml.gz; initiate->distribute->trigger->aggregate->submit->report flow; server ack = per-doc GUID echo verified client-side; household fan-out incl. controllers and stubbed players; one-pending gate; progress vocabulary.",
+    "Remaining: the two %s='%s' manifest open-tag attribute names - bounded read of the format call's arguments."
+   ],
+   "manifest_fields": "<DiagnosticManifest %s='%s' %s='%s'> (2-attribute open) ... </DiagnosticManifest>; fields in cluster: serial_num, quarantined, secreg, swversion, ZPSupportInfo, ZPInfo, LocalUID, IPAddress, SoftwareVersion, QuarantineReason, StubReason, ZPNetworkInfo. Artifacts on the wire: manifest.xml, per-doc '%s.xml', a '%s.sha256' hash sidecar per document, '%s.xml.gz' gzipped payloads. Doc types: 'Diagnostic stub' (stubbed-player support doc, 'Failed to generate/serialize hash on Stubbed Support Document') and 'Local diagnostic'.",
+   "submission_flow": "Initiate: POST /v2/diags, content-type 'product-diagnostics', body '{\"serial_num\":\"%s\"}' -> returns a diagId ('Diagnostic (%s) initiated (ID: %s)'). Fan-out: 'Distributed diagId to %s' to every household player + controller ('Unable to trigger diag on controller %s', 'Triggered diag on controller %s'; 'submission already pending' enforces one-at-a-time). Collection: the coordinator pulls each node's dump via 'http://localhost:%u/support/aggregate?type=%s&f=%x&e=%x'. Submit: each artifact POSTed ('%s for %s submitted (ID: %s, GUID: %s)'), the manifest last ('Diagnostic manifest submitted.'). ACK SEMANTICS: the server returns a confirmation GUID per submission and the client REJECTS a mismatched ack ('%s for %s submit error: confirmation guid (%s) doesn't match actual guid (%s)') - so each doc's ack must echo the guid the client assigned. Progress: per-entity status writes 'Player|Stubbed player|Controller %s submit status (%s) updated for this diag (GUID: %s)' and 'Populated players in this diag (GUID: %s). Num players: %zu, Num stubbed players: %zu' (diag_progress.cxx). Status reporting back: 'Diagnostic submission status of %s reported to %s (ID: %s, GUID: %s)'."
   },
   "platform_details": {
    "notes": "U-Boot 17.2.7 banner + OTP: %.32s; KVPair parser \"unable to parse KVPair. %s is an invalid KV pair string.\"",
    "build": "dual toolchain: crosstool-NG 1.24.0 GCC 5.5.0 objects + legacy GCC 4.3.2 objects (.comment); debuglink 'anacapad' CRC32 0xd61b897d; PPC EMB apuinfo present; patched-GCC __ptr_guard wrappers + ZZxxxx scrubbed ordinals (see linked_libraries)",
    "todo": [
-    "Established: the U-Boot banner and KVPair parser strings are recovered. Still unknown: KVPair semantics - which platform keys anacapad reads (serial, cal data) and where they gate behavior. Next step: enumerate KVPair key consumers."
-   ]
+    "Resolved: platform reads = /dev/audioctl ioctl returning bootloader string ('U-Boot ' + '17.2.7' version gate) + 32-char OTP value; KVPair parser f_105bc570 for boot-env key=value; serial + fuse via MDP; mdp2Ver version key; dp_impl telemetry field set.",
+    "Remaining: the full KVPair key set the parser feeds downstream (which boot-env vars anacapad consumes) - bounded audit of f_105bc570's key compares."
+   ],
+   "keys_read": "f_105b4cf8 (dp_impl.cxx): opens /dev/audioctl, issues an ioctl for the bootloader info block, strncasecmp's the returned string against 'U-Boot ' (bootloader detection) and against version '17.2.7' (a version gate - the firmware checks the exact U-Boot version it was built for), and formats 'OTP: %.32s' from the returned OTP/fuse field (a 32-char one-time-programmable identity value logged for diagnostics). The KVPair parser f_105bc570 ('unable to parse KVPair. %s is an invalid KV pair string.') consumes key=value boot-env strings. Device-serial reads come from the manufacturing data partition (the hal_flash_get_mdp path decoded under dev_unlock - mdp+0xc0 fuse field), 'Failed to obtain player serial number!' is its failure arm; 'mdp2Ver' is the MDP format-version key. Gates: the U-Boot version compare and OTP presence gate early-boot behavior reported through dp_impl's telemetry (WirelessMode/ConnectionType/ChannelFreq/BehindWifiExtender/WifiEnabled/EthLink fields sit in the same module)."
   },
   "boot_reasons": {
    "enum": [
@@ -123718,10 +123721,10 @@
    "cache": "share-connection cache: random failover selection \"chose random %s from %s\"; max capacity bound; persisted \"loaded %d share entries\"; failed-share flagging; refcounted contexts; share_usage counter",
    "mp3_probe": "metadata probe: seek/read on random share; ID3v2 skip (\"Ran out of data while skipping ID3v2 tag\"); Xing VBR/ToC parsing (\"No size in xing header\",\"Using VBR duration calc: %zukb/%ukbps = %llds\",\"Assume VBR file without ToC has constant bitrate %d\"); frame sync/resync (\"20 resync required: corrupt file\",\"illegal sample rate\"); WMA radio rejected \"not supported on this platform\"; normalization id3/lame flags",
    "todo": [
-    "Established: the mount.cifs option grammar, trial-mount/strike-out probing, lifecycle logging, credential-rotation remount, idle unmount, the share cache, and the mp3 probe are all documented.",
-    "Still unknown: the dialect-probe order and the share-cache capacity/eviction constants are only partially decoded.",
-    "Next step: decode the dialect negotiation sequence and cache bounds."
-   ]
+    "Resolved: libsmb2 with smb2_set_version(0)=ANY (no fixed probe order, negotiated dialect reported by smb2_get_dialect), security_mode(1) on the authed path, 3-strike trial mount, 0x31-slot share cache, 16-entry mount table, periodic idle-unmount job, credential-rotation remount.",
+    "Remaining: the cache file path + per-entry serialized fields, and the idle timeout value driving tryCloseAllUnusedShares - bounded by reading the job's scheduling constant."
+   ],
+   "note": " Constants and dialect handling decoded (mntmgr, mountMgt tags). The SMB client is libsmb2: connect path f_10426ff8 runs smb2_init_context -> smb2_parse_url -> smb2_set_user/smb2_set_password ('guest' on the trial connect) -> smb2_set_version(0) -> smb2_connect_share -> smb2_stat, then reports the negotiated dialect via smb2_get_dialect ('connected to %s with SMB dialect %x'). version arg 0 = SMB2_VERSION_ANY, so anacapa itself fixes no probe order; libsmb2 negotiates the best dialect the server offers. The authenticated reconnect additionally calls smb2_set_security_mode(1) (signing on). Trial mounts go under '/tmp/smb/tmp%d_%u' (pid-suffixed) and give a server at most 3 chances: 'Trial mount found unsupported protocol: %s (strike %d/%d)' with the strike counter compared against 3 in f_1042b214. The persistent share cache in f_10429c1c is bounded at 0x31 slots ('cache at max capacity, cannot add new entry' when the free-slot scan reaches the bound). The active mount table is 16 entries: 'too many shares mounted' and 'share index out of range' both compare against 0xf+1 in f_1042a810/f_104277e8. Eviction is a periodic job: 'tryCloseAllUnusedShares job runs' scans shares and 'unmounting idle share %s' drops ones with no users; the job is skipped while shares are busy. Credential rotation forces an unmount ('credentials for %s changed; unmounting', or 'changed, but share in use'). Cache persists via 'failed to flush cache to %s' / 'loaded %d share entries'."
   },
   "ext_audio_source": {
    "name": "extaudiosrc.cxx: external audio source (voice/chirp/setup) stream engine",
@@ -123735,10 +123738,10 @@
    "mixer": "mixer stream ids: \"Using incompatible MixerStreamId (%d) for RExtAudioSource object\"; \"Created mixer stream %s\"; notifyStatus/notifyTransportError",
    "event": "ExtAudioPlayStateChangedEvent",
    "todo": [
-    "Established: the stream ids, job-queue model, mixer-stream ids, and the play-state event are documented.",
-    "Still unknown: the job-type enum and the mixer-stream compatibility rules are undecoded.",
-    "Next step: enumerate job types and the stream-id compatibility table."
-   ]
+    "Established: 16-entry job-type enum, 4 named mixer streams, per-object stream binding with incompatible-id rejection, exclusivity/queue/deferral semantics, decoder + volume-override + presentation-time paths, 5-state play-status event vocabulary.",
+    "Remaining: the exact job-type->mixer-stream table (which of the 16 types go to ext-voice-as vs ext-chirp-as vs setup-*-as) - the per-type mapping table in/around the f_1035815c ctor's 12 handler slots."
+   ],
+   "note": "extaudiosrc.cxx - the auxiliary-audio job engine. Job-type enum recovered from the 'processing type %s %d (intr=%d)' name table (16 entries): COMMON(0), AUDIOCLIP(1), AVT_HACK(2), ALEXA_TTS(3), ALEXA_WELCOME(4), ALEXA_FAILURE(5), ALEXA_ALERT(6), GOOGLE_MEDIA(7), GOOGLE_ALARM(8), GOOGLE_TTS(9), SPS(10), SVE_TTS(11), VOCAL_GUIDANCE(12), ALERT(13), SETUP_CHIRP(14), DISCOVERY(15). Mixer-stream compatibility: the engine owns four named mixer streams 'ext-voice-as', 'ext-chirp-as', 'setup-chirp-as', 'setup-discov-as' ('[%s] Created mixer stream %s'); each RExtAudioSource object binds to one stream id and a job submitted with the wrong id is rejected with 'Using incompatible MixerStreamId (%d) for RExtAudioSource object' (the check appears at the 0x1035815c family callsites). The ctor installs per-stream handler thunks at member slots +0x8/+0x11c..+0x234 mapping types to streams. Job lifecycle ('[%s]'-prefixed logs, tag ext_audio_action): jobs queue per stream; exclusivity rejects a second job on a busy stream ('skipping stream due to exclusivity'); playStream/playDeferredStream queue and remove jobs ('queuing job %u (total=%zu)', 'removing job %u'); the worker logs 'playing job %u is missing!', 'current job %u deferred', 'too many deferred jobs!'. Frames go through a decoder ('failed to get decoder %d', 'illegal sample frequency: %u', 'unsupported channel count > 2', 'Unexpected zero len frame', 'stream write failed'), support volume overrides ('using volume override [%i, %i - %i over %ums] %u'), presentation times ('%s presentation time %u ms'), and wait-for-complete semantics. Play-status events '[%s] eventing play status for job %u: %s [%s] @%d.%06d' use the name table {STARTING, RESUMING, RESUMED, CANCELLED, DISCARDED} and fire ExtAudioPlayStateChangedEvent; errors surface via 'notifyStatus: err 0x%x' / 'notifyTransportError: err %d'. Actions logged to /opt/log/anacapa.ext.audio.action.log; playid key 'extaudiosrc_playid'."
   },
   "didl_escaping": {
    "note": "CORRECTED: the entity table (0x10ebf624-0x10ebf648) holds ALL FIVE XML entities - &apos; &quot; &amp; &gt; &lt; - the prior 'only &apos; &quot; &amp;' note was incomplete. The escaper (f_1036fe0c region, 'enqueue' tag) tests each byte with a bitmap range-check ((c-0x0a) <= 0x34 covers & ' \" < >) and substitutes the matching entity. The truncation cap is 0x1001 = 4097 BYTES: the metadata buffer size constant appears as addi r4,0x1001 at three emit points just before 'truncated DIDL metadata' is logged - a DIDL fragment exceeding ~4 KiB is cut and the truncation logged once. Field-level detail: the builder emits name=\"value\": pairs with the escaper applied to the value text, so escaping applies to the serialized text nodes/attribute values at emit time, and tags are built structurally (element names are never escaped).",
@@ -123840,10 +123843,10 @@
    ],
    "writer": "zonereportmgr \"wrote %zu bytes\"/\"open or response to %s failed with %x\"",
    "todo": [
-    "Established: the /binary + /data/submit.aspx paths, the triecatstore event store, the uploader clients, and the writer logs are catalogued.",
-    "Still unknown: the uploaded payload format and the store's schema are undecoded.",
-    "Next step: decode the event-store record format and the uploader serializer."
-   ]
+    "Resolved: two clients - eventUploaderClient (XML, gzip, chunked, submit.aspx, X-Sonos-SWGen) and protoEventUploaderClient (protobuf, octet-stream, /binary, X-Sonos-MessageType: product-data-telemetry); triecatstore is the categorized trie store; write logging.",
+    "Remaining: the XML event document's element grammar (root tag + per-event fields) - bounded read of the XML writer's emit calls."
+   ],
+   "payload_format": "Two uploader clients (zonereportmgr.cxx). eventUploaderClient POSTs '/data/submit.aspx' with headers 'POST %s HTTP/1.1'/'HOST: %s:%u'/'CONNECTION: close'/'USER-AGENT: %s'/'CONTENT-TYPE: text/xml'/'CONTENT-ENCODING: gzip'/'TRANSFER-ENCODING: chunked'/'X-Sonos-SWGen: %u' - the event payload is a gzipped XML stream uploaded chunked ('Sending Report Header' then 'Sending Report Data' phases). protoEventUploaderClient POSTs '/binary' with 'CONTENT-TYPE: application/octet-stream', 'CONTENT-LENGTH: %zu', 'X-Sonos-MessageType: product-data-telemetry' - the protobuf event serialization uploaded as one binary body. 'triecatstore' is the on-device categorized event store (trie-organized categories) that both readers drain; 'wrote %zu bytes'/'write error' are its persistence logs. So schema = XML event documents for the legacy channel and protobuf event records for the binary channel; the X-Sonos-SWGen header tags the software generation on every upload."
   },
   "wifi_idle_roles": {
    "enum": [
@@ -123856,28 +123859,26 @@
     "HT_SWAP",
     "UNKNOWN_ID"
    ],
-   "note": "RZPWifiIdleMgr: idle-scan mgmt \"Device set to %08x with primary chan %d code 0x%x cnt %u retry %u\"; WifiFuncsSetIdleScan fronthaul; WiFiIdleScanUpdateRetry; \"client %s is %s with primary chan %d\"",
+   "note": "RZPWifiIdleMgr: idle-scan mgmt \"Device set to %08x with primary chan %d code 0x%x cnt %u retry %u\"; WifiFuncsSetIdleScan fronthaul; WiFiIdleScanUpdateRetry; \"client %s is %s with primary chan %d\" Role vocabulary decoded from wifi_idle_mgr.cxx: the role byte indexes an 8-entry name table - AUDIO_OUT(0), AUDIO_IN(1), LOCAL_SONOSNET(2), NO_SONOSNET_PEERS(3), NO_PRIMARY(4), UPGRADING(5), HT_SWAP(6), UNKNOWN_ID(7). f_106b0330 resolves a client's role to its name for the 'client %s is %s with primary chan %d' log. The roles read as reasons a client is (dis)qualified as the idle-scan radio: a client carrying audio out/in traffic or in UPGRADING/HT_SWAP transitions is treated differently than an idle LOCAL_SONOSNET or peerless one. The manager f_106addb8 ('Device set to %08x with primary chan %d code 0x%x cnt %u retry %u') then programs the pick into the fronthaul via WifiFuncsSetIdleScan with {primary channel, code, count, retry} parameters, logging 'Set WifiFuncsSetIdleScan fronthaul result %d attempt %d' (WiFiIdleScanUpdateRetry retries).",
    "todo": [
-    "Established: the idle-role enum and the RZPWifiIdleMgr idle-scan machinery are catalogued.",
-    "Still unknown: per-role idle policy (what scan behavior each role selects) is undecoded.",
-    "Next step: trace the role->scan-policy mapping."
+    "Established: 8-role name table (AUDIO_OUT/AUDIO_IN/LOCAL_SONOSNET/NO_SONOSNET_PEERS/NO_PRIMARY/UPGRADING/HT_SWAP/UNKNOWN_ID) resolved per client; chosen device programmed via WifiFuncsSetIdleScan {chan,code,cnt,retry} with update-retry loop.",
+    "Remaining: the exact role->scan-parameter table (which roles get which cnt/retry/channel code) inside f_106addb8's selection block."
    ]
   },
   "wakelock_guard": {
-   "note": "modifyPreventIdleLockForOperationTimeout / modifyWakeLockForOperationTimeout must be guard-acquired or ERROR",
+   "note": "modifyPreventIdleLockForOperationTimeout / modifyWakeLockForOperationTimeout must be guard-acquired or ERROR Guard mechanics decoded: two manager singletons, 'powPrvntIdlM' (prevent-idle-lock) at f_106a4f78 and 'powWakLkMgr' (wake-lock) at f_106ad594, expose a modify*LockForOperationTimeout(op:int, timeout:longlong) entry. Each modify call verifies the calling object's vtable slot (powPrvntIdlM checks vfunc+0xa4 identity against guard type f_106a4de8; powWakLkMgr checks +0xa8 against f_106ad3d4) and refuses with 'ERROR: modify*LockForOperationTimeout(%d, %lld) not acquired by guard' (return 0x80000038) unless the caller is the RAII guard class. Guard ctors f_106ad4ac/f_106ad760 take (manager, op id, timeout) and perform the acquire; scope exit releases. Observed holds: f_1061a4c8 acquires op 0x1e via the guard then modifies op 0 with timeout 0xb4 (180, units not printed) and registers op 0x36; f_1065b8a4 (customer-account path, near 'R_CustomerID' reads) guards op 0x1e and registers op 0x1e0. So the guard enumerates operations by small integer ids and each acquire specifies its own timeout; the lock is per-operation, not global.",
    "todo": [
-    "Established: the guard-acquire requirement on modifyPreventIdleLock/modifyWakeLock timeout calls is documented.",
-    "Still unknown: the guard's enforcement semantics - which operations hold it and for how long.",
-    "Next step: trace guard acquisition sites."
+    "Established: two managers (powPrvntIdlM / powWakLkMgr); modify*LockForOperationTimeout refuses non-guard callers (vtable-identity check, 0x80000038); RAII guard ctors f_106ad4ac/f_106ad760; observed op ids 0, 0x1e, 0x36, 0x1e0 and a 180-unit timeout.",
+    "Remaining: the op-id enum names (which subsystem operation each id means) and the timeout units - bounded by finding the op-table or name strings."
    ]
   },
   "rincon_uuid": {
    "format": "%08X%08X%04hX%08X%08X%08X%08X%08X%08X%08X%08X: RINCON_ device UUID (8+8+4+8x7 hex)",
    "todo": [
-    "Established: the RINCON_ UUID printf format (8+8+4+8x7 hex) is documented.",
-    "Still unknown: how the fields are derived from the device identity (which bytes are MAC/serial).",
-    "Next step: trace the UUID generator's field sources."
-   ]
+    "Resolved: UDN = 'uuid:RINCON_' + 12-hex-MAC + '01400' fixed trailer; MAC carries the 000E58 Sonos OUI; 'VLIDID' literal is the template slot; 8 prefix-formatting sites enumerated; the multi-field %08X printf is a separate diagnostic id, not the UDN.",
+    "Remaining: which MAC source (eth0 vs MDP-stored) feeds the %s render - bounded read of the identity-string producer."
+   ],
+   "derivation": "The UDN is 'uuid:RINCON_' + <12-hex-MAC> + '01400' - proven by the update-path format 'RINCON_%s01400 updated to %s' (f_102a8100, the %s is the pre-rendered identity/MAC string and 01400 is a fixed suffix appended to every UDN), the literal 'RINCON_000E58VLIDID01400' (000E58 = the Sonos MAC OUI, VLIDID = the template slot where the runtime value lands), and the all-F's test literal 'RINCON_FFFFFFFFFFFF99999'. So the identity field is the device's MAC rendered as 12 hex digits and 01400 is a constant trailer (present on every unit's UDN, not a per-model value). Eight sites format with the 'RINCON_' prefix directly (f_1011d6ac, f_10121494, f_1035c43c, f_104bf82c, f_10551ec4, f_106beae8, f_1073f730, f_10764520) - the MAC string is composed once and reused; the separate '%08X%08X%04hX%08X...' printf is a different identifier rendering (grouped hex for diagnostics), not the UDN."
   },
   "mdns_stack": {
    "name": "mdns_{device_service,discovery,listener} + mdns_spotify_service",
