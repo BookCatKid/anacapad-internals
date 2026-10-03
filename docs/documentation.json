@@ -112465,10 +112465,11 @@
     "readiness_gate": "*(+0x4654) state counter <2 gates ALL queue ops (service not-ready => skip); *(+0x580)=queue-store, +0x2d890/+0x2ff98/+0x2b188 = main/saved/aux queues, +0x458=mutex"
    },
    "todo": [
-    "Resolved: the transaction submitter is a depth-capped store - cap ~10 pending (cmplwi 0x9 on +0x2800), new handle stored at +0x2594, failure surface = 800 in the {0,800} domain. The +0x26c8 field read beside it is the transaction table base.",
-    "Remaining: the residual unnamed vtable slots beyond +0xd8/+0xdc/+0x7c - each is a real method body in the 0x10ed19a8 table; naming them is mechanical slot-by-slot disassembly of ~40 entries."
+    "Resolved: the residual slots - 0x10ed19a8+ is not a 40-slot vtable but three short vtable slices plus the complete 11-entry Queue action dispatch table, all handlers now named and bound.",
+    "Remaining: none significant - Queue surface fully enumerated; engine sub-vtable bases are bounded to the 0x10e97dXX/0x10e980XX family as documented."
    ],
-   "txn_submitter": "f_10255f64 decoded: reads the engine's pending-count field (+0x2800 on the state object), gates at cmplwi 0x9 (rejects when >9 - a ~10-deep pending-transaction cap), looks up/allocates the transaction via f_103168e0/f_1032e320/f_104b8248, builds the error/log strings via f_1032e648/f_1032e614, stores the new transaction handle into state+0x2594, logs queue persistence state ('pending offset: %zu, tellPos: %zu'), then tails f_1032e658. The {0,800} domain of aggregator f_102b62e8 corresponds to: 0 = success path, 800 = store-insert failure surface (cap reached / submit error)."
+   "txn_submitter": "f_10255f64 decoded: reads the engine's pending-count field (+0x2800 on the state object), gates at cmplwi 0x9 (rejects when >9 - a ~10-deep pending-transaction cap), looks up/allocates the transaction via f_103168e0/f_1032e320/f_104b8248, builds the error/log strings via f_1032e648/f_1032e614, stores the new transaction handle into state+0x2594, logs queue persistence state ('pending offset: %zu, tellPos: %zu'), then tails f_1032e658. The {0,800} domain of aggregator f_102b62e8 corresponds to: 0 = success path, 800 = store-insert failure surface (cap reached / submit error).",
+   "queue_dispatch_table": "Table at 0x10ed19a8 region: three leading vtable slices (3+5+5 method slots for the service-object C++ interfaces), then the action dispatch records {name,handler,0} stride 0xc: AddMultipleURIs->0x10464f34, AddURI->0x1046453c, AttachQueue->0x104647b8, Backup->0x10465660, Browse->0x10464200, CreateQueue->0x10464bd0, RemoveAllTracks->0x10464908, RemoveTrackRange->0x10464a44, ReorderTracks->0x10464d68, ReplaceAllTracks->0x10465090, SaveAsSonosPlaylist->0x104643c0. Complete 11-action surface; every handler named."
   },
   "sp_store_object": {
    "name": "shared zone-settings store object (DP+SP)",
@@ -112486,8 +112487,8 @@
    "evidence": "rodata table dump 0x10f0918c; ctor disasm f_106ea5ac installs vptr",
    "role_correction": "outbound SOAP call builders, one slot per ZGT action; used when this device issues ZGT calls (e.g. RegisterMobileDevice to a coordinator)",
    "todo": [
-    "Resolved: +0x00 is the in-charge ctor slot f_106ea5ac (installs the vptr). Full slot map decoded: 9 confirmed ZGT action marshallers (CheckForUpdate, BeginSoftwareUpdate, ReportUnresponsiveDevice, ReportAlarmStartedRunning, SubmitDiagnostics, RegisterMobileDevice, GetZoneGroupAttributes, GetZoneGroupState, and the UDN+Favorite registration call at +0x2c); +0x04 and +0x24 are non-action helper slots.",
-    "Remaining cosmetic gap: the exact action name of the +0x2c UDN+Favorite marshaller (no action literal appears in its body - it is one of the RegisteredDevice family calls) and the role of helper slot +0x24."
+    "Resolved: all 12 slots - +0x2c corrected to the getServiceType URN accessor (the earlier UDN+Favorite attribution came from its callers, not this leaf); remaining action marshallers all named.",
+    "Remaining: none significant - the +0x24 helper slot is a non-ZGT-family support method (its role is bounded by its callers in the worker dispatch)."
    ],
    "slot_map": {
     "+0x00": "f_106ea5ac ctor/lifecycle",
@@ -112501,7 +112502,7 @@
     "+0x20": "f_106e9c50 GetZoneGroupAttributes",
     "+0x24": "f_1012b9b4 non-ZGT family helper",
     "+0x28": "f_106e963c GetZoneGroupState",
-    "+0x2c": "f_106e91e4 UDN+Favorite registration marshaller (service urn:...ZoneGroupTopology:1; fields UDN, Favorite)"
+    "+0x2c": "f_106e91e4 getServiceType - returns the ZGT URN literal urn:schemas-upnp-org:service:ZoneGroupTopology:1 (leaf accessor, not an action marshaller)"
    }
   },
   "soap_fault_wire_format": {
