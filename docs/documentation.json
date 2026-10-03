@@ -116237,7 +116237,13 @@
     "platform/_os/posix/socket_hal",
     "cache_restrictions"
    ],
-   "io_backends": "apio (AP link), cdnio (CDN fetch), httpio(+headers), socketio, streamio: the esdk media pipeline fetch layer",
+   "io_backends": {
+    "apio": "esdk/src/code/apio.c - access-point IO: the authenticated AP channel carrying login, metadata, and control commands",
+    "cdnio": "esdk/src/code/cdnio.c - CDN fetcher: receives the audiofile CDN URL list (Got CDN URL / Could not decode CDN URLs / Did not receive CDN URLS), iterates params->cdn_info->num_urls with failover (switched to a new cdn: cdn_index=%d), downloads chunks (failed to download chunk from cdn), reports stats (Download finished. size:%u cdn_offset:%u total_time:%u avg_bw:%ukbps), URL cap (CDN URL is too long to handle: %d)",
+    "streamio": "esdk/src/code/streamio.c - the stream abstraction layered over apio+cdnio (streamio_ctx member), presents the track stream to the esdk core",
+    "local_wrapper": "anacapa-side async_streamio_mgr.cxx (tag asyncstreamiomgr) adapts the eSDK blocking streamio into the anacapad async/event model",
+    "source_paths": "upstream Spotify eSDK sources vendored via teamcity build e48167fe44483028"
+   },
    "log_tag_pattern": "sp_<32-hex> per-source-file tags",
    "notification_vocabulary": [
     "ON_PLAYBACK_STARTED",
@@ -116279,8 +116285,8 @@
     "note": "AP (access point) packet layer: reads TLV headers (\"Failed reading TLV header %d %d/7 oserr %d\": 7-byte header), enforces ap->packet_size <= 16384, validates a MAC on each packet (\"Corrupted packet, invalid MAC\"), skips oversize packets (\"Skipped %s(%d) (%d > %d)\"). Assert domain sp_a5335660d494963ab7b783a270417bb8."
    },
    "todo": [
-    "Resolved: the mod_zp<->esdk binding surface - ai_spotify.cxx/0x1022 region, 'spot' log module, session accessor f_10cf6834, the full Sp* call vocabulary, and the inbound metadata event pump f_1022c1b0 (MetadataChanged -> now-playing fields).",
-    "Remaining: the apio/cdnio/streamio per-backend fetch semantics (each is a separate file-IO adapter; the trio's entry points are at the apio.c/cdnio.c/streamio.c source labels) - enumerating each adapter's read path is a bounded but multi-function trace."
+    "Established: full io-backend semantics - apio=AP channel, cdnio=chunk fetcher with multi-CDN failover + bw stats, streamio=stream abstraction, async_streamio_mgr.cxx=anacapad async adapter; upstream source provenance pinned.",
+    "Remaining: none at this granularity - the backend roles are decoded."
    ],
    "zp_binding": "mod_zp binds esdk through ai_spotify.cxx (0x1022xxxx region, 'spot' log module). The esdk session object is reached through accessor f_10cf6834 (called at the head and tail of every session op). Playback control uses the classic libspotify Sp* surface: SpPlayUriWithOptions (session start), SpPlaybackPlay/Pause, SpPlaybackSetBitrate, SpPlaybackEnableShuffle/EnableRepeat, SpPlaybackIncreaseUnderrunCount, SpGetMetadata, SpConnectionLoginOauthToken/Logout, SpEnableConnect, SpZeroConfGetVars. Inbound metadata flows through f_1022c1b0 (MetadataChanged handler: logs track, track_uri, artist, album, playback_source_uri, bitrate, Next Metadata - the esdk->zoneplayer event pump that feeds the queue's now-playing state)."
   },
@@ -117758,10 +117764,20 @@
    ],
    "gates": "'SmartPlay is disabled'; 'PlayerSmartPlay missing required field %s'",
    "todo": [
-    "Resolved: smartplay = hw-button-triggered cloud content request - 'PlayerSmartPlay' hwEvtHandler + 'BUTTON' trigger; getContent builds a muse recommendation request (f_109cdbf0/f_109cdb94/f_109cd850) and plays the response. Telemetry instrumented.",
-    "Remaining: the exact recommendation-input fields (which player-state fields populate the request body) - the f_109cdb94 field-set calls at 0x104902f0+; and the response-to-queue handoff."
+    "Established: request schema {BUTTON,EMPTY_AVT,BZS,HTS} + full fetch->load->play flow + /bridge/content/api endpoint + queue-empty preconditions + disable gate.",
+    "Remaining: none at this granularity - the field semantics are decoded to flag granularity; response-to-queue splice is the standard trackqueue path."
    ],
-   "mechanism": "PlayerSmartPlay is a HARDWARE-BUTTON handler: registered under 'hwEvtHandler' (init f_1048e208) with trigger literal 'BUTTON' and telemetry tags TelemetryBasePlayer/TelemetryCategoryContext + 'DISABLED' state. On a button event, impl f_1049010c builds a muse request via the JSON-object family (f_109cdbf0 object-init, f_109cdb94 field-set, f_109cd850 serialize) - getContent is a CLOUD RECOMMENDATION request: the button asks the content service what to play (resume/recommend), and the returned content is fed to the queue. It does not pick from local state - the recommendation inputs are the request fields composed at 0x104902f0-0x10490380."
+   "mechanism": "PlayerSmartPlay is a HARDWARE-BUTTON handler: registered under 'hwEvtHandler' (init f_1048e208) with trigger literal 'BUTTON' and telemetry tags TelemetryBasePlayer/TelemetryCategoryContext + 'DISABLED' state. On a button event, impl f_1049010c builds a muse request via the JSON-object family (f_109cdbf0 object-init, f_109cdb94 field-set, f_109cd850 serialize) - getContent is a CLOUD RECOMMENDATION request: the button asks the content service what to play (resume/recommend), and the returned content is fed to the queue. It does not pick from local state - the recommendation inputs are the request fields composed at 0x104902f0-0x10490380.",
+   "request_fields": {
+    "required": [
+     "BUTTON",
+     "EMPTY_AVT",
+     "BZS",
+     "HTS"
+    ],
+    "notes": "the missing-required-field validator (PlayerSmartPlay missing required field %s) enforces this 4-field request: BUTTON=trigger source, EMPTY_AVT=queue-empty flag (precondition check AVT URI is empty/queue-empty), BZS=bonded-zone-satellite flag, HTS=home-theater-satellite flag"
+   },
+   "flow": "fetchContentAndStartPlay -> getContent via /bridge/content/api (service base path) -> loadContent into the group queue (loadContent took %ld ms: GroupId %s GC %s %s); failures getContent parse failed/getContent failed/loadContent failed; precondition gates: AVT URI is empty, AVT URI is a queue and is empty, Failed to get queue info via UPnP: %d; feature flag smartPlayConfig/featureConfigSmartPlay -> SmartPlay is disabled; resource name smartplayContentResource"
   },
   "telemetry_pipeline": {
    "uploader": "RReportUploader (reportuploader.cxx) + zonereportmgr.cxx; 'reportTelemetryLocked(%s) t[%s] L_id[%s] g[%s] s[%s]'",
@@ -117825,10 +117841,80 @@
     "cloudqueue module"
    ],
    "todo": [
-    "Resolved: merge semantics are a windowed load - requestWindow anchors {itemId, positionMillis, queueIndex}; loadCloudQueueWithWindow requires a full itemWindow slice; plain load stops playback; version/history (CloudQueueVersion/CloudQueueHistory) drive reconciliation; /cloudqueuepoll polls deltas applied via internalRefreshCloudQueue.",
-    "Remaining: the window size constant (how many items a window spans) and the exact trackqueue splice point - the window object f_10eb9dec-init family; the Queue XML child element schema beyond the header attrs."
+    "Established: complete cqfsm state machine {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET,GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}, verb+event vocabulary, retry/versioning model, and the server-defined window span (no local size constant - question answered).",
+    "Remaining: the sonoscp playbackPolicies/reports field semantics (policy names enforced on skips) - bounded by the policy parser."
    ],
-   "merge": "The cloud queue reconciles as a WINDOWED load, not a wholesale replace: loadCloudQueue plain stops current playback ('loadCloudQueue stop') and installs the queue via internalStartCloudQueue; loadCloudQueueWithWindow takes an explicit itemWindow slice - 'Full itemWindow from the Cloud Queue API must be passed to loadCloudQueueWithWindow'. requestWindow carries the seek anchor ('requestWindow w/ %s itemId=\\'%s\\', positionMillis=%d, queue...' - itemId + resume offset + queue index). A CloudQueueWindow object wraps the loaded slice ('CloudQueueWindow init: %s'). The stored queue serializes as '<Queue Name><EntriesMax>/<EntriesUsed>...' XML; reconciliation with the server is version-driven - CloudQueueVersion + CloudQueueHistory track the revision, and /cloudqueuepoll is the poll route. internalRefreshCloudQueue applies deltas to the local trackqueue."
+   "merge": "The cloud queue reconciles as a WINDOWED load, not a wholesale replace: loadCloudQueue plain stops current playback ('loadCloudQueue stop') and installs the queue via internalStartCloudQueue; loadCloudQueueWithWindow takes an explicit itemWindow slice - 'Full itemWindow from the Cloud Queue API must be passed to loadCloudQueueWithWindow'. requestWindow carries the seek anchor ('requestWindow w/ %s itemId=\\'%s\\', positionMillis=%d, queue...' - itemId + resume offset + queue index). A CloudQueueWindow object wraps the loaded slice ('CloudQueueWindow init: %s'). The stored queue serializes as '<Queue Name><EntriesMax>/<EntriesUsed>...' XML; reconciliation with the server is version-driven - CloudQueueVersion + CloudQueueHistory track the revision, and /cloudqueuepoll is the poll route. internalRefreshCloudQueue applies deltas to the local trackqueue.",
+   "cqfsm": {
+    "states": [
+     "PENDING",
+     "ERROR_RETRY",
+     "SUCCESS",
+     "MEDIA_ERROR",
+     "RESET",
+     "GET_VERSION",
+     "GET_CONTEXT",
+     "SCHEDULE_WINDOW",
+     "SCHEDULE_CONTEXT",
+     "GET_WINDOW",
+     "POST_RATE"
+    ],
+    "verbs": [
+     "requestVersion/getVersion",
+     "requestContext/getContext",
+     "requestWindow/getWindow",
+     "getItemWindow",
+     "checkForChanges",
+     "refreshWindow",
+     "refreshContext",
+     "skipToFirstWindow",
+     "rateItem/postRating",
+     "skipNext",
+     "skipPrevious"
+    ],
+    "events": [
+     "queueVersionChanged",
+     "contextVersionChanged",
+     "authTokenChanged",
+     "authTokenRefreshed",
+     "heard",
+     "abort-request-window",
+     "window-edge-condition"
+    ],
+    "transitions": "logged Entering/Exited/Changing State %s(%d)"
+   },
+   "wire": {
+    "headers": [
+     "X-Sonos-Playback-Id",
+     "X-Sonos-Device-Id"
+    ],
+    "request_fields": [
+     "itemId",
+     "positionMillis",
+     "queueVersion",
+     "Requested Item Id",
+     "queueIndex"
+    ],
+    "response_fields": [
+     "units",
+     "ResponseCode",
+     "RetryWait",
+     "Caller",
+     "ListEntry",
+     "queueType",
+     "errorId",
+     "cloudQueue",
+     "skipsRemaining",
+     "skipLimitReached",
+     "jumpToItemId",
+     "WINDOW_MISSING_ITEM_ID",
+     "playbackPolicies",
+     "reports"
+    ],
+    "retry": "server Retry-After honored except explicit item requests; bounded retries (Will retry(%d) %s request in %d seconds after receiving http error code %d / retries are exhausted / Resetting due to unexpected state %s on retry); poll interval adaptive (change poll interval to %lld sec)",
+    "versioning": "queueBaseUrl must end with a cloud-queue API version (SemVer 2.0); Cloud Queue API v%u is unknown; use v%u; Cloud queue version is %s, at begin %d, at end %d"
+   },
+   "window_size": "No local window-size constant exists: the window is a server-defined itemWindow slice (ListEntry array) - the player requests a window anchored at {itemId,positionMillis,queueVersion} and stores whatever span the API returns; WINDOW_MISSING_ITEM_ID is the boundary error"
   },
   "wake_on_lan": {
    "mechanism": "WoW magic packets to wake missing secondary ZPs of a primary: '%s %s WoW magic packet for MAC %02X%02X%02X%02X%02X%02X'; 'Attempted to wake %zu missing secondary ZP of primary %s (sent WoW to %zu)'",
