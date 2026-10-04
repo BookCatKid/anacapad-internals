@@ -141632,12 +141632,11 @@
      "notes": "telemetry"
     }
    ],
-   "todo": [
-    "Residual: the final wire destination of the sender thread (muse WS vs cloud POST - the handoff fd is proven, the egress URL is upstream)."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: destination = reportKVEvent encoding {report: name/schemaver/category fields} -> the encoded payload on the shared report channel.",
-    "Transport proven: reportKVEvent encodes the event (Encoding failed/succeeded: %zu bytes), logs report: %s %s %s %u %u, then hands off through an epoll-registered fd (sonos_epoll_add_data) to a sender thread - no inline HTTP. Event envelope is Telemetry 1.0 (Telemetry 1.0 Event field %s = %s) with fields {event_id, event_name, event_schema_version, household_id, model_type, muse_household_id, serial_number, sonos_id, sw_build_type, sw_full_version, timestamp_utc, audio_type}; reports are rate limited (telemetry rate limit exceeded!)."
+    "Transport proven: reportKVEvent encodes the event (Encoding failed/succeeded: %zu bytes), logs report: %s %s %s %u %u, then hands off through an epoll-registered fd (sonos_epoll_add_data) to a sender thread - no inline HTTP. Event envelope is Telemetry 1.0 (Telemetry 1.0 Event field %s = %s) with fields {event_id, event_name, event_schema_version, household_id, model_type, muse_household_id, serial_number, sonos_id, sw_build_type, sw_full_version, timestamp_utc, audio_type}; reports are rate limited (telemetry rate limit exceeded!).",
+    "Resolved: wire destination is a cloud HTTPS POST, not the muse WS - the sender emits \"X-Sonos-MessageType: product-data-telemetry\" with CONTENT-TYPE application/octet-stream to path /data/submit.aspx (@0x10f03bcb-0x10f03c34), via uploader clients named {eventUploaderClient, protoEventUploaderClient}; the epoll handoff fd feeds this uploader thread."
    ]
   },
   "select_thread": {
