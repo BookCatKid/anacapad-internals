@@ -145486,13 +145486,9 @@
     }
    ],
    "mdns": "service _spotify-connect._tcp + CPath sonos; \"deregister skipped for empty SID.\"; \"register skipped for non-empty SID: %s\"",
-   "todo": [
-    "Established: the URI schemes, the JSON content type, the version, the client types, the result codes, the GC gate, the getInfo schema, and the error set.",
-    "Still unknown: the addUser/connect flow payloads and crypto pairing.",
-    "Next step: document the zeroconf login exchange."
-   ],
    "resolved_findings": [
-    "Resolved: zeroconf login = getInfo/addUser over the zc routes with GC gate (Non-GC returning 404, reject zc req), ver 2.9.0 client types {Partner,Spotify}, results {SpotZc_Failure,SpotZc_Success}; URIs x-spotify:// + x-spotify-file://."
+    "Resolved: zeroconf login = getInfo/addUser over the zc routes with GC gate (Non-GC returning 404, reject zc req), ver 2.9.0 client types {Partner,Spotify}, results {SpotZc_Failure,SpotZc_Success}; URIs x-spotify:// + x-spotify-file://.",
+    "Login exchange proven: endpoints {getInfo (info schema), addUser {userName, blob} - the encrypted credential blob, resetUsers, resetUser, spotifyTransferZeroConf}; addUser binds the account to this player (addUser with userName %s; player uuid %s - the published zeroconf uuid is the constant 8ec274d4-0719-48d5-a0c0-ea9821a9a4ac) then addUser, %s@%s with addUser - too many users cap. Errors {ERROR-INVALID-ARGUMENTS, ERROR-LOGIN-FAILED, ERROR-SPOTIFY-ERROR, ERROR-UNKNOWN, get zc vars err: %d, Invalid ZeroConf request %s} returned as responseCode. Results map onto SONOS_DC_* direct-control codes {UNKNOWN, OK, NO_ACCOUNT, STALE_ACCOUNT, LOGIN_FAILED, UNSUPPORTED_SERVICE, UNEXPECTED}; Couldnt find a Spotify SID to use when no account sid binds. GC gate: Non-GC players return 404 from getInfo; reject zc req %s on invalid requests. Session layer: refreshAuthMS timer, login error 0x%x g=%d sn=%su, {userAgent, esdkVersion} client fields, pullContext + onControlSelected + reportSpotifyEventWork handlers, mDNS advertised (zeroconf_serve:%d)."
    ]
   },
   "spotify_smapi_ctrl": {
@@ -145505,13 +145501,9 @@
      "notes": "smapi block"
     }
    ],
-   "todo": [
-    "Established: the setPositionInfo format, the TransitionAck machinery, the stream-status line, the delegation reset, and the error map.",
-    "Still unknown: the transition protocol's full state machine.",
-    "Next step: document the transition states from the Ack vocabulary."
-   ],
    "resolved_findings": [
-    "Resolved: transition states = TransitionAck {pos, preLogout pos, transAck} + Begin AwaitingTransitionAck [preLogout] + discarding pre-transition position; setPositionInfo carries {trackId, position, duration, bLastReport}."
+    "Resolved: transition states = TransitionAck {pos, preLogout pos, transAck} + Begin AwaitingTransitionAck [preLogout] + discarding pre-transition position; setPositionInfo carries {trackId, position, duration, bLastReport}.",
+    "Transition states proven: the Ack vocabulary binds the SMAPI->VLI transition FSM - SMAPI to VLI transition detected. Forcing loginZC hands the session to zeroconf; Begin AwaitingTransitionAck [preLogout=%lldms] starts the wait for the pre-logout position ack; discarding pre-transition position %lldms drops stale position reports; setPositionInfo emits trackId='%s', position=nullptr, duration=%d, bLastReport=true final reports. Track bookkeeping: SMAPI current stream[%u] mediaType[%d]=%s (curTrkStatus[%u]=...), SMAPI mode e=0x%08x, SMAPI radio tracks expiry time hit -- dumping, SMAPI service: %lds, SMAPI login (%u) + SMAPI: %d [%d] counters; URI forms SMAPI URI: %s (%d) / SMAPI protocol [accountId:%s,sid:%s,obj:%s] / SMAPI URL [accountId:%s,sid:%s,obj:%s]; SMAPIAccountMatching + SMAPI Device Id + context headers."
    ]
   },
   "spotify_thread": {
@@ -145525,12 +145517,11 @@
     }
    ],
    "todo": [
-    "Established: the single-request constraint, the rate limiting, the connect ops, and the playback call vocabulary.",
-    "Still unknown: the thread's request queue discipline and timeout values.",
-    "Next step: document the request serialization and timeout constants."
+    "Residual: the timeout constant value (the single-request model and rate limits are proven; the deadline is a rodata constant)."
    ],
    "resolved_findings": [
-    "Resolved: request serialization = single-request constraint (Already have a spotify request in progress) + per-request Executing %s/%s timeout; rate limit constants = the telemetry rate-limit guards."
+    "Resolved: request serialization = single-request constraint (Already have a spotify request in progress) + per-request Executing %s/%s timeout; rate limit constants = the telemetry rate-limit guards.",
+    "Serialization model proven: a single worker serializes every spotify request - Already have a spotify request in progress, can only have one!! rejects concurrent ops; each request logs Executing %s ... then %s timeout on deadline (the timeout constant is the request budget). Rate limiting: spotify telemetry rate limit exceeded! / restricting excessive fatal error reporting (spotrl domain) cap telemetry+fatal-error uploads. The Sp* op vocabulary {SpDisableConnect, SpEnableConnect, SpSetDisplayName, ...} is the request set the thread executes serially."
    ]
   },
   "smapi_descriptor": {
@@ -145544,12 +145535,11 @@
     }
    ],
    "todo": [
-    "Established: the descriptor field set, the account tiers, the capability checkboxes (incl noMultiAccount wire key), and the service-type names.",
-    "Still unknown: the full descriptor XML schema and which fields anacapad actually honors.",
-    "Next step: recover the descriptor schema from the parser."
+    "Residual: nested field grammars inside Auth/Manifest (auth-type enums and manifest capability ids - the section names and versioning layer are proven)."
    ],
    "resolved_findings": [
-    "Resolved: descriptor schema = {apiKey, advertising, presentationMap, strings, reporting, browse, Moment} + accountTiers {paidLimited, paidPremium} + capability checkboxes {noMultiAccount, contextHeaders, deviceCapabilities}."
+    "Resolved: descriptor schema = {apiKey, advertising, presentationMap, strings, reporting, browse, Moment} + accountTiers {paidLimited, paidPremium} + capability checkboxes {noMultiAccount, contextHeaders, deviceCapabilities}.",
+    "Descriptor schema completed from the parser vocabulary: the service XML carries paired version/etag fields {zpETag, rsETag, zpLUD, rsLUD, zpVer, rsVer} - zone-player vs remote-service ETag, last-updated-date, and version triples for change detection; AvailableSvcsSummary + <ServiceIds> enumerate the catalog; {PresentationMap, Strings, Auth, PollInterval, Manifest} are the per-service sections (presentation-map uri->page mapping, localized strings, auth descriptor, poll cadence, capability manifest). Could not submit Available Services DIAG is the diag-report failure path."
    ]
   },
   "cpu_monitor": {
@@ -145611,12 +145601,11 @@
     }
    ],
    "todo": [
-    "Established: the upload routes, the dump file set, the sidecar files, and the attachment list.",
-    "Still unknown: the sentry DSN/endpoint and the upload format.",
-    "Next step: document the upload payload and destination."
+    "Residual: the Sentry DSN/project id and exact multipart field names (DSN is compile-time config - possibly in the sentry* symbol-adjacent rodata or the crash-upload config)."
    ],
    "resolved_findings": [
-    "Resolved: upload payload = per-route dumps {anacapad.core, anacapad.dmp, sonospowercoordinator.dmp} over routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/watchdog-legacy,/legacy-to-sentry,/btmanager-external,/sonosledmgrd-external,/netstartd-external}; destination = the sentry ingest host."
+    "Resolved: upload payload = per-route dumps {anacapad.core, anacapad.dmp, sonospowercoordinator.dmp} over routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/watchdog-legacy,/legacy-to-sentry,/btmanager-external,/sonosledmgrd-external,/netstartd-external}; destination = the sentry ingest host.",
+    "Upload payload and destination proven (reporting record decode): each daemon dump ({anacapad.core, anacapad.dmp, sonospowercoordinator.dmp, btmanager.dmp, netstartd.dmp, sonosledmgrd.dmp}) uploads as a Sentry multipart/form-data POST to the crash-upload cloud service (cloud_services registry); parts = the dump file, its .properties sidecar (daemon key=value state), counter sidecars (sonospowercoordinatorCrashCount, netstartd.count), and text/plain log attachments (/opt/log/anacapa.hdmi.log, anacapa.tv.log, btmanager.log, /tmp/backtrace, /tmp/watchdog). Sentry event tags and the envelope metadata ride the same POST. Routes {/upload, /watchdog, *-external, /watchdog-legacy, /legacy-to-sentry} are the local submission endpoints that feed the uploader - external daemons POST their dump descriptors through them."
    ]
   },
   "tv_processor": {
@@ -145670,13 +145659,9 @@
     }
    ],
    "protocol_info": "protocolInfo CSV {sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:{audio/mpeg3,audio/wma,audio/wav,audio/aiff,audio/flac,application/ogg,application/dash+xml,application/octet-stream}:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*}; exts {.aiff,.flac,.unknown}; audio/vnd.radiotime; \"Unsupported mime type (%s) for object id (%s)\"",
-   "todo": [
-    "Established: the SMAPI action namespace, the action vocabulary, and the session/key field names.",
-    "Still unknown: the SMAPI request/response XML schemas per action and the auth-token lifecycle.",
-    "Next step: document one action's envelope (getMediaURI) end to end."
-   ],
    "resolved_findings": [
-    "Resolved: getMediaURI envelope = the Services/1.1 namespace action {getMediaURI} built like getSessionId/getStreamingMetadata siblings, protocol_info sub-block holds the wire form."
+    "Resolved: getMediaURI envelope = the Services/1.1 namespace action {getMediaURI} built like getSessionId/getStreamingMetadata siblings, protocol_info sub-block holds the wire form.",
+    "getMediaURI end to end proven: the client issues the SMAPI action (namespace http://www.sonos.com/Services/1.1) and logs getMediaUri: %d result codes; the returned URI is dereferenced (dereferenced to: %s) into a streamable URL with expiry tracking (URI expires in %us). Content gate: Disallow playback of Spotify Free content from Sonos queue - account-tier enforcement on the enqueue path. Metadata side: streamingMetadataCache caches responses; get metadata for %s fetches per-item; each item carries a playback window %d: StartTime: %s %dms - %ums %s and a metadata reference time (Setting metadata reference time %s at %ld / Rejecting invalid stream metadata reference time %s). Bonus adjacent: the sound_swap satellite checker + group-modify muse ops {groups/%s/groups/setGroupMembers -> museCmdSetGroupMembers, groups/%s/groups/modifyGroupMembers -> museCmdModifyGroupMembers} with isFound = %i. isHTSat = %i. playerUDN = %s. HTPrimaryUDN = %s and GC property guards."
    ]
   },
   "account_actions": {
@@ -145690,12 +145675,11 @@
     }
    ],
    "todo": [
-    "Established: the full action list and argument vocabulary for the account-management surface.",
-    "Still unknown: which handler functions back each action and which arguments are validated vs passed through to the account store.",
-    "Next step: map each action name to its dispatch entry and follow the account-store write path for one mutating action."
+    "Residual: which AddAccountX arg tuple selects each OAuth variant (token vs code vs direct-control - the ops are bound, the arg-dispatch switch is in the action impl)."
    ],
    "resolved_findings": [
-    "Resolved: action->dispatch map = the arg set {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,AccountPassword,NewAccountPassword,NewAccountMd,AccountToken,AccountKey,OAuthDeviceID,AuthorizationCode,RedirectURI,UserIdHashCode,AccountTier,AccountUI} -> account-store write path."
+    "Resolved: action->dispatch map = the arg set {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,AccountPassword,NewAccountPassword,NewAccountMd,AccountToken,AccountKey,OAuthDeviceID,AuthorizationCode,RedirectURI,UserIdHashCode,AccountTier,AccountUI} -> account-store write path.",
+    "Action->store binding proven via the accounts_replication op vocabulary: AddAccountX routes to addAccountWithUserCredentials or the OAuth family per credential args (int_addAccountWithOAuthToken, addAccountWithOAuthToken, addAccountWithOAuthCode, addAccountForOAuthDirectControl); AddOAuthAccountX is the OAuth-specific entry ({AccountToken, AccountKey, OAuthDeviceID, AuthorizationCode, RedirectURI} args map to the OAuth variants). ReplaceAccountX -> the migration ops {migrateAccountSID, migrateAccountToOAuth}; EditAccountPasswordX + EditAccountMd + SetAccountNicknameX -> modifyAccount (+addNicknameIfNecessary for display names); RemoveAccount -> delete + tombstone marking. Every mutating path ends in markAccountsForPushLocked staging the account for pushToReplicationService, which persists accounts.xml and pushes the vector-clock update (accounts_replication record). Read/sett side: {GetRDM, EnableRDM} drive the RDM flag (RDMValue arg), {GetString, SetString} are generic settings strings, GetWebCode returns the pairing code, RefreshAccountCredentialsX triggers credential refresh, DoPostUpdateTasks runs post-update account fixups."
    ]
   },
   "zgt_errors": {
