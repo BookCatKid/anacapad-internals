@@ -148345,11 +148345,11 @@
      "notes": "shipped shell files"
     }
    ],
-   "notes": "dsmf_setup is a DSMF (device-secure-manufacturing?) hook; mdputil is the manufacturing-data CLI (keyval ^REGION/^SERIAL reads, -fwe write, -B init).",
+   "notes": "dsmf_setup is a DSMF (device-secure-manufacturing?) hook; mdputil is the manufacturing-data CLI (keyval ^REGION/^SERIAL reads, -fwe write, -B init). dsmf_setup proven: /etc/dsmf_setup is an optional manufacturing-provisioning hook gated purely on file presence (etc/Configure lines 69-72); the file is NOT shipped in this rootfs and arch_attrs carries a per-product LACKS_DSMF flag. Position in the chain fixes its role: it runs right after the /jffs/{app,sys,net,persist} tree is created and before /bin/mdputil -B (manufacturing-data-partition utility on /dev/chk and /dev/mtd/0) and hostname minting (Sonos-<serial[0:12]> via mdputil | keyval ^SERIAL) - the point where a factory overlay provisions MDP/serial before first-boot identity.",
    "security_files": "etc/fstab: rootfs mounted from /dev/mapper/crroot (device-mapper 'crroot' (dm-verity/dm-crypt read-only root; the shipped squashfs is integrity-protected at the block layer). /dev/shm tmpfs noexec,nodev,nosuid mode=600. etc/passwd: dedicated users {chrony(19),anacapa(20)} locked with '!' in shadow; root has a shipped MD5crypt hash ($1$AugXR3h8$...)) a fixed factory root credential, reachable only after unlock (dropbear getty are gated on device_unlocked_flag). chrony.conf: pools 0-3.sonostime.pool.ntp.org iburst maxsources 1, driftfile /jffs/chrony/chrony.drift, makestep 60 1, port 0 (no NTP serving). dhcp.script (udhcpc): bound/renew writes /etc/resolv.conf + ifconfig + default-route + multicast route, then removes /var/run/waitforip: the boot handshake anacapad waits on.",
    "todo": [
-    "Established: the full sysinit chain, ramdisk layout, and security-file roles are mapped.",
-    "Residual: dsmf_setup's semantics - the DSMF acronym expansion (device-secure-manufacturing is a guess) and what the hook actually configures."
+    "Established: the full sysinit chain, ramdisk layout, security-file roles, and the dsmf_setup hook position are mapped.",
+    "Residual: DSMF acronym expansion - hook semantics proven (optional factory provisioning before mdputil/hostname); the exact expansion is not confirmed by any literal in the image"
    ]
   },
   "rootfs_data_files": {
