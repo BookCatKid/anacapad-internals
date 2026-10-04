@@ -143881,7 +143881,8 @@
    ],
    "resolved_findings": [
     "Resolved: zone CRUD = the create/join/remove paths on the zones registry; events = the ZoneGroupState + member-change emissions.",
-    "Zone lifecycle decoded: muse ops read defs (museGetZoneDefinition -> found zone [%s]); transitions are primary/secondary aware (zone transition on secondary/primary: zoneId %s / zone transition failed on primary); cms = channel-map-set updates (cms init from %s / cms update from %s) drive speaker-channel assignments; events {ZoneMemberSettingsChangedEvt, ZonesDefinitionsChangedEvent} fan out to replication + muse. Zone records persist via zones_storage (JSON + schema version + atomic rename accept)."
+    "Zone lifecycle decoded: muse ops read defs (museGetZoneDefinition -> found zone [%s]); transitions are primary/secondary aware (zone transition on secondary/primary: zoneId %s / zone transition failed on primary); cms = channel-map-set updates (cms init from %s / cms update from %s) drive speaker-channel assignments; events {ZoneMemberSettingsChangedEvt, ZonesDefinitionsChangedEvent} fan out to replication + muse. Zone records persist via zones_storage (JSON + schema version + atomic rename accept).",
+    "Zone command forwarding vocabulary (zonesutils): primary %s not found guard; forward %sactivateZone cmd to %s, forward updateActiveZone cmd to %s, send joinZone cmd to %s, send updateZoneMemberSettings cmd to %s - the manager forwards zone commands to the primary/coordinator when the local device is not primary."
    ]
   },
   "zones_storage": {
@@ -143900,7 +143901,8 @@
    "resolved_findings": [
     "Resolved: persistence = the zones definition file in the replicated store; accept/apply = the version-gated merge documented under settings replication.",
     "Persistence proven: zone defs live in a JSON file parsed by the custom in-house JSON parser (the verbatim ParseErrorCode strings: root is not an object, incorrect schema [%d != %d], parsing error (offset: %u), missing value (%s), error in the zones data array). Record fields {name, id, channelMapSet} plus per-zone gain trim (Updating GainTrimdB of/on %s: %.2lf dB). Capacity: max definitions guard (too many zones defined in the config file [max=%d]) with eviction (zone def full: %s removed). CRUD logs: failed to create zone def (already exists), updating zone definition, failed to update zone id, removing zone definition guarded by zone currently active, matching zone def found, new zone def created. Replication is the standard accept-or-reject cycle: received replicated file successfully / failed to rename offered replicated file / failed to load offered replicated file / ignoring replicated file: incompatible schema - identical to the areas.json flow.",
-    "Correction: the JSON engine is Sonos's custom parser (json_parser record - its error enum {Exceeded max depth, Unexpected token, Missing required value, ...} is the parse API); no rapidjson identifiers exist in the image."
+    "Correction: the JSON engine is Sonos's custom parser (json_parser record - its error enum {Exceeded max depth, Unexpected token, Missing required value, ...} is the parse API); no rapidjson identifiers exist in the image.",
+    "Correction: RapidJSON is statically linked (its GetParseError_En strings are in the image), so the zone-definition parser may indeed be RapidJSON as first recorded; the custom parser coexists for other consumers (json_parser record)."
    ]
   },
   "thermal": {
@@ -145345,11 +145347,12 @@
     }
    ],
    "todo": [
-    "Residual: the numeric depth/sequence caps and value-type enum mapping (error taxonomy proven; the bound constants are in the parser code)."
+    "Residual: which consumers use which engine (both error vocabularies are proven; the per-consumer binding is a call-site census)."
    ],
    "resolved_findings": [
     "Resolved: implementation = the embedded JSON parser identified by its error enum {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error}; callers = every muse/cloud JSON consumer.",
-    "Implementation proven: a custom in-house recursive JSON parser - no rapidjson/json-c identifiers exist in the image. The error enum is the parser API: {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error} - depth and sequence-length caps bound nesting/array size. Callers: every JSON consumer in the tree - muse command arrays, zones_storage definitions, httpcaches.json cacheHashes, householdsettings.json, feature-config documents, netsettings.json, and the SMAPI/spotify JSON bodies (Content-Type application/json; charset=utf-8)."
+    "Implementation proven: a custom in-house recursive JSON parser (the {Exceeded max depth, Invalid unicode escape, ...} enum). RapidJSON is ALSO statically linked: its verbatim GetParseError_En strings are in the image (Missing a comma or } after an object member / Incorrect hex digit after \\u escape / The surrogate pair in string is invalid / Terminate parsing due to Handler error / Unspecific syntax error), used by zones_storage and common_logger. The error enum is the parser API: {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error} - depth and sequence-length caps bound nesting/array size. Callers: every JSON consumer in the tree - muse command arrays, zones_storage definitions, httpcaches.json cacheHashes, householdsettings.json, feature-config documents, netsettings.json, and the SMAPI/spotify JSON bodies (Content-Type application/json; charset=utf-8).",
+    "Correction: two JSON engines coexist - the custom parser (its own error enum) and RapidJSON (header-only, identified by its verbatim GetParseError_En strings: Missing a comma or } after an object member, Incorrect hex digit after \\u escape, The surrogate pair in string is invalid, Missing a closing quotation mark, Invalid encoding in string, Number too big to be stored in double, Miss fraction part in number, Miss exponent in number, Terminate parsing due to Handler error, Unspecific syntax error). RapidJSON consumers: zones_storage (zone definitions) and common_logger (config)."
    ]
   },
   "event_loop": {
@@ -146410,12 +146413,11 @@
     }
    ],
    "todo": [
-    "Established: the config keys, the log-line format, the category-validation errors, and the rapidjson parse taxonomy.",
-    "Still unknown: how log categories map to the anacapa.*.log files and the rotation policy.",
-    "Next step: trace category registration to the per-domain file sinks in log_domains."
+    "Residual: the category registry rows (which categories exist and their default sinks - config data; mechanism proven)."
    ],
    "resolved_findings": [
-    "Resolved: category registration = {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR} keys + Invalid log category name bounds -> per-domain file sinks."
+    "Resolved: category registration = {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR} keys + Invalid log category name bounds -> per-domain file sinks.",
+    "Config/sink layer proven: keys {filter, fileSize, preserveSize, defaultLevel, backup, hostIP, hostPort, STDERR, .backup, logger, rsettings} load from anacapa_logger.toml; category validation enforces name bounds (Invalid log category name (%s), length: %zu, range [%d, %d]); line format \"[%s | %07ld%03ld] <%s,%d> \" = [domain | sec.usec] <file,line>; IO guards {stat/ferror/read failed}; remote logging to {hostIP, hostPort} plus STDERR sink; config parses via RapidJSON (its error strings surface verbatim)."
    ]
   },
   "http_cache": {
