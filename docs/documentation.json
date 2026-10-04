@@ -142625,12 +142625,11 @@
     }
    ],
    "todo": [
-    "Established: the client handshake headers, the deflate negotiation, the retry, the nonce machinery, the disconnect reason, the close codes, the host names, and the reason enum.",
-    "Still unknown: which services the client connects to (lechmere?) and the reconnect backoff.",
-    "Next step: map ws_client to its users and document reconnect policy."
+    "Residual: whether the group-advertised wss:// endpoint serves the same muse event surface or a dedicated group channel - the advert literal is proven; the listener route for that port is not separately named."
    ],
    "resolved_findings": [
-    "Resolved: users = {lechmere, spotifyzc, WSS eventing}; reconnect policy = the transport {status,protocolVer,reason,retry,uptimeMs,closed,failed,opened} state machine with retry field."
+    "Resolved: users = {lechmere, spotifyzc, WSS eventing}; reconnect policy = the transport {status,protocolVer,reason,retry,uptimeMs,closed,failed,opened} state machine with retry field.",
+    "Consumer census decoded: the WS client serves three endpoints - (1) Lechmere cloud channel lechmere.%s.ws.sonos.com with negotiated subprotocol lechmere.%u (the household event pipe); (2) the local WSS event socket advertised to controllers as <NotificationAddr>wss://%s:%u (muse)</NotificationAddr> inside Subscription records (with a plain <NotificationAddr>%s</NotificationAddr> fallback and <IsSecure>%d flag); (3) the group-advertised WSS endpoint in RGroupAdvertiser - wss://%s:%d%s is emitted beside the SSDP GROUPINFO.SMARTSPEAKER.AUDIO advert (delaying group advert is the backpressure path). The generic client frame uses wss:///ws:// scheme dispatch, Sec-WebSocket-Protocol negotiation, and scheduled ping/send cycles ([%u] scheduled event %s / [%u] send ping). Related non-WSS ws.sonos.com siblings: sonar.ws.sonos.com (tone/sonar service), ir.ws.sonos.com/IRCode (IR code submit), ws.sonos.com/oauth/v4/pdsw (OAuth device-cred exchange)."
    ]
   },
   "wmp_provider": {
@@ -142748,12 +142747,11 @@
   "upgrade": {
    "check_layer": "update-check client: \"Fetching %s\"/\"Failure fetching (0x%x) (%d)\"; fields {updateServerIP,httpResult,updateAutoCheckError,useCachedOnly,updateType}; headers X-Sonos-LatestSWGen: %u + Content-Location: %s; \"Redirect detected, final URI: %s\"; \"UPM Invalid\"; \"Check for updates %s (%u)\"/\"Check for online update (user)\"/\"Unknown upgrade server state\"; R_AvailableSoftwareUpdate sysprop; SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions,allowDowngradeToPrevSWGen,denyDowngradeToPrevSwGenList}; \"Invalid swgen member detected, swgen: 1\"",
    "todo": [
-    "Established: only the check_layer sub-record; the actual upgrade binaries are queued separately (bin_upgrade/bin_upgrade_mgr).",
-    "Still unknown: the check-layer's role in the update path.",
-    "Next step: document check_layer and link to the bin_* records."
+    "Residual: the upgrade-server URL host and manifest body schema (the response parse reads headers + UPM payload; the UPM document fields are handled by the upgrade daemon side outside this client)."
    ],
    "resolved_findings": [
-    "Resolved: check_layer = the update-check client {Fetching %s, updateServerIP, httpResult, updateAutoCheckError, useCachedOnly, updateType}; linked to the bin_* manifest/download records under update_machinery."
+    "Resolved: check_layer = the update-check client {Fetching %s, updateServerIP, httpResult, updateAutoCheckError, useCachedOnly, updateType}; linked to the bin_* manifest/download records under update_machinery.",
+    "Check-layer role proven: this is the update-check client that polls the upgrade server (Fetching %s / Failure fetching %s (0x%x) (%d)) and parses a manifest response - the server returns the latest build via the X-Sonos-LatestSWGen: %u response header and the payload location via Content-Location: %s, with redirect following (Redirect detected, final URI: %s). Checks run in two modes: scheduled auto-check (updateAutoCheckError field) and user-initiated (Check for online update (user)), logged as Check for updates %s (%u); useCachedOnly forces the cached manifest. The request carries device descriptor fields {dd_mhh, dd_sn, dd_md, dd_bld, dd_in_hh, dd_in_ver}. Results land in the R_AvailableSoftwareUpdate system property (error saving ... on failure) which drives the availableSoftwareUpdate lechmere topic; UPM Invalid and Unknown upgrade server state cover bad manifest responses. The SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions} is enforced here before any download job is queued - the actual image fetch/flash is the bin_upgrade/bin_upgrade_mgr layer, not this record."
    ]
   },
   "audio_in": {
