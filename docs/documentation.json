@@ -142954,11 +142954,12 @@
     }
    ],
    "todo": [
-    "Residual: the dcadec audio-mode -> speaker-layout table values (channel-mask constants per mode) - branch/rodata data, not literal-anchored."
+    "Established: dcadec-derived DTS decoder, full profile+amode tables, dialnorm/rev2aux parsing, status XML fields."
    ],
    "resolved_findings": [
     "Resolved: invalid dcadec audio mode indexes the layout table {stereo, surround configurations}; the check rejects modes outside the supported layout set.",
-    "Decode-vs-report scope narrowed: the profile vocabulary {Digital Surround, Digital Surround 96/24, Digital Surround ES, High Resolution Audio, HD-MA, Express} is the REPORTED profile set (status XML <BitDepth><DTSProfile><BitRate...>) - detection reports the profile name; actual decoding is bounded by the model-9 decoder set in htaudio {dts shared core, no separate HD-MA decoder object}, so HD-MA is reported-but-not-decoded (falls through to core or UDC). Sync check Endian-Check: Unexpected Input Syncword Error is the IEC-61937 preamble layer feeding dcadec mode selection; invalid dcadec audio mode, returning empty speaker layout is the layout reject. The speaker-layout table maps dcadec audio modes to channel masks - mode names are rodata constants."
+    "Decode-vs-report scope narrowed: the profile vocabulary {Digital Surround, Digital Surround 96/24, Digital Surround ES, High Resolution Audio, HD-MA, Express} is the REPORTED profile set (status XML <BitDepth><DTSProfile><BitRate...>) - detection reports the profile name; actual decoding is bounded by the model-9 decoder set in htaudio {dts shared core, no separate HD-MA decoder object}, so HD-MA is reported-but-not-decoded (falls through to core or UDC). Sync check Endian-Check: Unexpected Input Syncword Error is the IEC-61937 preamble layer feeding dcadec mode selection; invalid dcadec audio mode, returning empty speaker layout is the layout reject. The speaker-layout table maps dcadec audio modes to channel masks - mode names are rodata constants.",
+    "Full decoder vocabulary: this is a dcadec/libdca-style DTS decoder (invalid dcadec audio mode, Endian-Check: Unexpected Input Syncword Error, error unsupported amode %zu : %s, invalid version number ignoring dialnorm info, invalid range of rev2aux data chunk size, invalid sample size of %d-bit, encoded frame size exceeds maximum, Error filtering frame from dca_context). Profile names {Digital Surround, Digital Surround 96/24, Digital Surround ES, High Resolution Audio, HD-MA, Express, Unknown DTS profile received}; audio modes {Mono, Dual Mono, Stereo, Stereo Sum-Difference, Stereo Total, 3F (C+L+R), 2F1R (L+R+S), 3F1R (C+L+R+S), 2F2R (L+R+SL+SR), 3F2R (C+L+R+SL+SR)}; status XML {<BitDepth>, <DTSProfile>, <BitRate>, <NumPrimaryChannels>, <AudioMode>, <DialNormGainDB>, <ChannelMap>}."
    ]
   },
   "dsp_params": {
@@ -145464,7 +145465,8 @@
    "mdns": "service _spotify-connect._tcp + CPath sonos; \"deregister skipped for empty SID.\"; \"register skipped for non-empty SID: %s\"",
    "resolved_findings": [
     "Resolved: zeroconf login = getInfo/addUser over the zc routes with GC gate (Non-GC returning 404, reject zc req), ver 2.9.0 client types {Partner,Spotify}, results {SpotZc_Failure,SpotZc_Success}; URIs x-spotify:// + x-spotify-file://.",
-    "Login exchange proven: endpoints {getInfo (info schema), addUser {userName, blob} - the encrypted credential blob, resetUsers, resetUser, spotifyTransferZeroConf}; addUser binds the account to this player (addUser with userName %s; player uuid %s - the published zeroconf uuid is the constant 8ec274d4-0719-48d5-a0c0-ea9821a9a4ac) then addUser, %s@%s with addUser - too many users cap. Errors {ERROR-INVALID-ARGUMENTS, ERROR-LOGIN-FAILED, ERROR-SPOTIFY-ERROR, ERROR-UNKNOWN, get zc vars err: %d, Invalid ZeroConf request %s} returned as responseCode. Results map onto SONOS_DC_* direct-control codes {UNKNOWN, OK, NO_ACCOUNT, STALE_ACCOUNT, LOGIN_FAILED, UNSUPPORTED_SERVICE, UNEXPECTED}; Couldnt find a Spotify SID to use when no account sid binds. GC gate: Non-GC players return 404 from getInfo; reject zc req %s on invalid requests. Session layer: refreshAuthMS timer, login error 0x%x g=%d sn=%su, {userAgent, esdkVersion} client fields, pullContext + onControlSelected + reportSpotifyEventWork handlers, mDNS advertised (zeroconf_serve:%d)."
+    "Login exchange proven: endpoints {getInfo (info schema), addUser {userName, blob} - the encrypted credential blob, resetUsers, resetUser, spotifyTransferZeroConf}; addUser binds the account to this player (addUser with userName %s; player uuid %s - the published zeroconf uuid is the constant 8ec274d4-0719-48d5-a0c0-ea9821a9a4ac) then addUser, %s@%s with addUser - too many users cap. Errors {ERROR-INVALID-ARGUMENTS, ERROR-LOGIN-FAILED, ERROR-SPOTIFY-ERROR, ERROR-UNKNOWN, get zc vars err: %d, Invalid ZeroConf request %s} returned as responseCode. Results map onto SONOS_DC_* direct-control codes {UNKNOWN, OK, NO_ACCOUNT, STALE_ACCOUNT, LOGIN_FAILED, UNSUPPORTED_SERVICE, UNEXPECTED}; Couldnt find a Spotify SID to use when no account sid binds. GC gate: Non-GC players return 404 from getInfo; reject zc req %s on invalid requests. Session layer: refreshAuthMS timer, login error 0x%x g=%d sn=%su, {userAgent, esdkVersion} client fields, pullContext + onControlSelected + reportSpotifyEventWork handlers, mDNS advertised (zeroconf_serve:%d).",
+    "getInfo response fields enumerated: {deviceID, publicKey, deviceType, libraryVersion, resolverVersion, groupStatus, brandDisplayName, modelDisplayName, remoteName, activeUser, aliases}; addUser/getUsers fields {authorization_code, tokenType, clientID, productID, scope, availability, supported_drm_media_formats, supported_capabilities}; version marker 2.9.0; reject zc req %s + Empty zero conf device id guards; SpZeroConfGetVars, SpotZc_Success/SpotZc_Failure status."
    ]
   },
   "spotify_smapi_ctrl": {
@@ -145763,7 +145765,8 @@
    ],
    "resolved_findings": [
     "Resolved: decoder-selection = the codec factory keyed by accepted_mimes id; AAC param parsing = the adts_aiff_framer path; vorbis error set + detail sub-block documented.",
-    "AAC layer proven (AOSP-AAC): DisableAacPlus gates SBR - [SUCCESS] DisableAacPlus StreamType=%d, aacPlusUpsamplingFactor=%d sets the AAC+ upsampling factor (SBR off = factor reset). Status XML <DEC_AACDecoder> exposes {DEC_InputChanCount, DEC_OutputChanCount, DEC_BitRate, DEC_FrameSize, DEC_AudioObjectType} with the AOT name set {AAC-LC, HE-AAC, ER-AAC-LC, ER-AAC-SCAL - Decoding base layer only, ER-BSAC, ER-AAC-LD, HE-AAC v2, ER_AAC_ELD, xHE-AAC}. mp4_header_parser feeds init: Invalid sample rate idx, Frame Paddling Len = %d numChannels = %d sampleRateIx %d obj %d, Explicitly expressed samplerate not supported, Failed to get the extension sampling freq idx. Decode errors: cant initialize decoder library, Unable to decode init frame, unknown AAC format, ERROR DECODE %d, (%d) only used %d bytes from a buffer containing %d. Adjacent Vorbis decoder emits {no samples produced, insufficient bytes, decoding failed, vorbis_synthesis_read failed} with <SampleRate>/<FrameSize>/<NumChannels>/<ChanMap %s (%s)> status XML. Decoder selection itself rides the per-codec init frames plus the tv_processor ActiveDecoder ladder for SPDIF sources."
+    "AAC layer proven (AOSP-AAC): DisableAacPlus gates SBR - [SUCCESS] DisableAacPlus StreamType=%d, aacPlusUpsamplingFactor=%d sets the AAC+ upsampling factor (SBR off = factor reset). Status XML <DEC_AACDecoder> exposes {DEC_InputChanCount, DEC_OutputChanCount, DEC_BitRate, DEC_FrameSize, DEC_AudioObjectType} with the AOT name set {AAC-LC, HE-AAC, ER-AAC-LC, ER-AAC-SCAL - Decoding base layer only, ER-BSAC, ER-AAC-LD, HE-AAC v2, ER_AAC_ELD, xHE-AAC}. mp4_header_parser feeds init: Invalid sample rate idx, Frame Paddling Len = %d numChannels = %d sampleRateIx %d obj %d, Explicitly expressed samplerate not supported, Failed to get the extension sampling freq idx. Decode errors: cant initialize decoder library, Unable to decode init frame, unknown AAC format, ERROR DECODE %d, (%d) only used %d bytes from a buffer containing %d. Adjacent Vorbis decoder emits {no samples produced, insufficient bytes, decoding failed, vorbis_synthesis_read failed} with <SampleRate>/<FrameSize>/<NumChannels>/<ChanMap %s (%s)> status XML. Decoder selection itself rides the per-codec init frames plus the tv_processor ActiveDecoder ladder for SPDIF sources.",
+    "Bonus decode: libavcodec/ffmpeg handles WMA - unsupported sample format AVSampleFormat: %d, cannot decode wma, libavcodec initialization not OK, wma decoder unable to decode; the decoder reports <DEC_Impl>ffmpeg</DEC_Impl> with <DEC_SampleRate>%u</DEC_SampleRate>, <LFEPresence>%s</LFEPresence>, <DEC_ChanMap>%s (%s)</DEC_ChanMap>, <Bitrate>%lld</Bitrate> status fields; planar formats checked (planar format contains null channels (stereo), unsupported channel count (%d) for planar float format)."
    ]
   },
   "product_models": {
@@ -146637,12 +146640,11 @@
     }
    ],
    "todo": [
-    "Established: the field vocabulary for voice-skill OAuth (tokens, per-region auth codes, redirect URL, timeout).",
-    "Still unknown: which voice services use this and the token exchange flow.",
-    "Next step: trace the skill-auth flow for one service."
+    "Residual: whether a second voice service shares the skill fields (only the Alexa CBL flow is evidenced; no Google/GVA identifiers exist in the image)."
    ],
    "resolved_findings": [
-    "Resolved: skill-auth flow = {hasToken,skillStage,skillAuthCodeUS/EU/FE,skillRedirectUrl,authCode,redirectUrl,timeoutSeconds} - region-keyed auth code exchange."
+    "Resolved: skill-auth flow = {hasToken,skillStage,skillAuthCodeUS/EU/FE,skillRedirectUrl,authCode,redirectUrl,timeoutSeconds} - region-keyed auth code exchange.",
+    "Service identified: Amazon Alexa via Code-Based Linking - the capability flag AlexaCBLSupported gates it (sits with SupportsAudioIn/SupportsAudioClip), the settings keys {amazonAlexaAccount, amazonAlexaSetup} hold the account state, and skillAuthCodeUS/EU/FE are the region-keyed CBL auth codes. The grant exchange vocabulary {authorizationGrantHeader, authorizationGrantPayload, authorizationGrantResponse, authzModifier, authzPermission(s), authzPolicyKey, authzPolicyKeyLechmere, authzTokenStatus, authzUser} is the OAuth grant path (authzPolicyKeyLechmere routes policy through the Lechmere WSS channel). Voice-set alert content surfaces as {AVS Alarm, AVS Timer, AVS Reminder} alongside Muse Timer."
    ]
   },
   "cert_files": {
@@ -146656,12 +146658,11 @@
     }
    ],
    "todo": [
-    "Established: the filename pattern and the key/cert field names with one error path.",
-    "Still unknown: the file format (PEM? custom?), which identities use which suffixes, and the encryption scheme for private keys.",
-    "Next step: read the cert-file writer to recover the on-disk format."
+    "Residual: the private-key encryption scheme (encrypted-private-key field exists; the cipher/kdf sits inside the cert manager impl)."
    ],
    "resolved_findings": [
-    "Resolved: on-disk format = %s/%s.%s files with keys {encrypted-private-key,expiration,encryption-key-type,sonos-key-and-cert} + failed-to-retrieve-key error path."
+    "Resolved: on-disk format = %s/%s.%s files with keys {encrypted-private-key,expiration,encryption-key-type,sonos-key-and-cert} + failed-to-retrieve-key error path.",
+    "Format proven: PEM - both -----BEGIN CERTIFICATE----- and -----BEGIN PUBLIC KEY----- literals are in the image, plus public key hash: sha256//%s (HPKP-style pin format) and DH signature params {dh(g), dh(pub_key), Signature}. cert.xml stores <DeviceCertInfo>; the X-Sonos-DeviceCert header carries the device cert on requests. Cert health states {DeviceCertRequired, DeviceCertInvalid, DeviceCertExpired, DeviceCertRevoked} gate the refresh job (Unknown cert metadata state: %s. Scheduling cert refresh job; %zu consecutive cert fetch failures. Trying again in %ld seconds). Trust roots ship as /certbundles/v4/trusted_roots.rcb via libsonos-root-cert-bundle.so.2; validation via libsonos-certval.so.2; fetchRegDeviceCert/refreshRegDeviceCert are the fetch verbs; NewCertRegistrationEvent fires on registration."
    ]
   },
   "local_settings_mgr": {
@@ -146675,12 +146676,11 @@
     }
    ],
    "todo": [
-    "Established: the file set, the magic header/trailer format, the [Mg] op vocabulary, and the group-write model.",
-    "Still unknown: the settings key registry (what's writable per group) and the checksum algorithm.",
-    "Next step: enumerate group/key tables and document the write validation."
+    "Residual: the key registry contents (target types + readPerm/writePerm bits are external JSON config loaded at setup; the ingest/validation machinery is proven)."
    ],
    "resolved_findings": [
-    "Resolved: group/key tables = files {_attrdata.json,_exclude.json,_settings.json,_effective.json,settings_targettypes.json,__location_summation,__migration_data} with magic-header validation {magic,length,checksum,count}; write validation via HHSettingsMgr."
+    "Resolved: group/key tables = files {_attrdata.json,_exclude.json,_settings.json,_effective.json,settings_targettypes.json,__location_summation,__migration_data} with magic-header validation {magic,length,checksum,count}; write validation via HHSettingsMgr.",
+    "Checksum algorithm identified: the file header {\"magic\":\"`|_(:/)_|`\",\"length\":%u,\"checksum\":\"0x%08X\",\"counter\":%u} is sscanf-parsed and the checksum is sonos_fnv1a_32_strHash_knownLen (FNV-1a 32) over the payload; the trailer {\"magic\":\"(=^+^=)\",\"version\":11}] is verified by memrchr+memcmp. Loader calls sonosFileExistsEx + sonosFileReadWhole then validates header, hash, trailer. The settings key registry lives in settings_targettypes.json ({fileFormatVersion, targetTypes, readPerm, writePerm} vocabulary) with per-group files _settings.json/_effective.json/_attrdata.json/_exclude.json; [Rq] request guards reject \"attempt to subvert read/write authorization\" and \"attempt to update location only settings\"."
    ]
   },
   "json_schema_validator": {
@@ -146694,12 +146694,11 @@
     }
    ],
    "todo": [
-    "Established: the JSON-schema keyword vocabulary, the validation-failure format, and the schema groups.",
-    "Still unknown: the schema document format (draft version) and which settings validate against which schema.",
-    "Next step: dump a schema document and document the validator's keyword support."
+    "Residual: the complete schema group list beyond {playerUI, playerBasic} (config data in settings_targettypes.json; validation machinery proven)."
    ],
    "resolved_findings": [
-    "Resolved: keyword support = {patternProperties,maxLength,minLength,maxItems,minItems,dependencies,maxProperties,minProperties,required,additionalProperties,uniqueItems,instanceRef,expected,duplicates,disallowed,exclusiveMaximum,exclusiveMinimum,additionalItems,properties,fileFormatVersion,targetTypes,readPerm,writePerm}."
+    "Resolved: keyword support = {patternProperties,maxLength,minLength,maxItems,minItems,dependencies,maxProperties,minProperties,required,additionalProperties,uniqueItems,instanceRef,expected,duplicates,disallowed,exclusiveMaximum,exclusiveMinimum,additionalItems,properties,fileFormatVersion,targetTypes,readPerm,writePerm}.",
+    "Draft identified by keyword semantics: the implemented set {patternProperties, maxLength, minLength, maxItems, minItems, dependencies, maxProperties, minProperties, required, additionalProperties, uniqueItems, exclusiveMaximum, exclusiveMinimum, additionalItems, properties} is JSON Schema draft-04 (dependencies + boolean exclusiveMin/Max + additionalItems are all pre-draft-06 forms). No $schema or draft URI literal exists - the draft is implicit. Failures emit [Vf] ValidationFailureMsg[%s] %s with fields {instanceRef, expected, duplicates, disallowed}. Consumer binding: the schema groups {playerUI, playerBasic} under schemaValidator validate local-settings targetTypes from settings_targettypes.json (fileFormatVersion, readPerm, writePerm)."
    ]
   },
   "eventloop_perf": {
@@ -146713,12 +146712,11 @@
     }
    ],
    "todo": [
-    "Established: the inprocess-events-loop perf instrumentation, the duration-threshold warning, and the counter schema (queueFail, dispatchDelay, cbTime).",
-    "Still unknown: the threshold value and how counters are exported (muse perf route?).",
-    "Next step: find the counter export path and the threshold constant."
+    "Residual: the numeric threshold constant (runtime compared against %lld; lives in the event-loop init code)."
    ],
    "resolved_findings": [
-    "Resolved: export path = the counter registry {Unique identifier for a set of counters, In-Process Event Subjects, number of events}; threshold = the exceeded duration threshold %lldms > %lldms bound."
+    "Resolved: export path = the counter registry {Unique identifier for a set of counters, In-Process Event Subjects, number of events}; threshold = the exceeded duration threshold %lldms > %lldms bound.",
+    "Export path proven: perf counters are registered objects under the perf-counters category with sections In-Process Event Subjects and In-Process Event Observers; counter kinds {queueFail (events that failed to queue), dispatchDelay (queue wait time), cbTime (handler duration), event size in bytes} plus perf_counter_keyed identity rows (\"Unique identifier for a set of counters\"). The warning compares against a runtime %lld threshold (%s callback in observer %s exceeded duration threshold %lldms > %lldms) - the value is a config/code constant in the observer registration."
    ]
   },
   "upnputil": {
@@ -146751,12 +146749,12 @@
     }
    ],
    "todo": [
-    "Established: expat 2.5.0, the billion-laughs accounting, the debug env vars, the attr types, and the error vocabulary.",
-    "Still unknown: which parsers exist per subsystem (UPnP/SMAPI/muse each?) and their entity/expansion limits.",
-    "Next step: enumerate expat init sites to map parser instances to consumers."
+    "Established: single expat 2.5.0 instance, billion-laughs accounting, debug env vars, /dev/urandom entropy.",
+    "Residual: the per-subsystem XML_ParserCreate call-site census (UPnP/SMAPI/muse consumers; the engine is shared)."
    ],
    "resolved_findings": [
-    "Resolved: parser instances = expat_2.5.0 with billion-laughs accounting + entropy /dev/urandom; consumers = every XML parse site (SCPD, ZGS, settings docs)."
+    "Resolved: parser instances = expat_2.5.0 with billion-laughs accounting + entropy /dev/urandom; consumers = every XML parse site (SCPD, ZGS, settings docs).",
+    "Parser binding: a single vendored expat 2.5.0 (expat_2.5.0 literal, xmlparse.c asserts, full XML_ErrorString table) serves all XML consumers; entity-amplification accounting is compiled in (expat: Accounting(%p): Direct %10llu, indirect %10llu, amplification %8.2f; XML_BLAP_MAX_AMP/XML_BLAP_ACT_THRES config names; EXPAT_ACCOUNTING_DEBUG/EXPAT_ENTITY_DEBUG/EXPAT_ENTROPY_DEBUG env vars; /dev/urandom entropy source). The per-subsystem parser instances are created at call sites - a census, not separate copies."
    ]
   },
   "telemetry_client": {
@@ -146770,12 +146768,11 @@
     }
    ],
    "todo": [
-    "Established: the reportKVEvent entry, the report format, the encoding path, and the callback guards.",
-    "Still unknown: the transport (which endpoint carries KV events) and batching.",
-    "Next step: trace the encoded payload's destination."
+    "Residual: the final wire destination of the sender thread (muse WS vs cloud POST - the handoff fd is proven, the egress URL is upstream)."
    ],
    "resolved_findings": [
-    "Resolved: destination = reportKVEvent encoding {report: name/schemaver/category fields} -> the encoded payload on the shared report channel."
+    "Resolved: destination = reportKVEvent encoding {report: name/schemaver/category fields} -> the encoded payload on the shared report channel.",
+    "Transport proven: reportKVEvent encodes the event (Encoding failed/succeeded: %zu bytes), logs report: %s %s %s %u %u, then hands off through an epoll-registered fd (sonos_epoll_add_data) to a sender thread - no inline HTTP. Event envelope is Telemetry 1.0 (Telemetry 1.0 Event field %s = %s) with fields {event_id, event_name, event_schema_version, household_id, model_type, muse_household_id, serial_number, sonos_id, sw_build_type, sw_full_version, timestamp_utc, audio_type}; reports are rate limited (telemetry rate limit exceeded!)."
    ]
   },
   "select_thread": {
@@ -146807,12 +146804,11 @@
     }
    ],
    "todo": [
-    "Established: the HW feature flags, the mode flags, the applyLEDModeLocked state dump, and the op vocabulary.",
-    "Still unknown: the full R_LED_* mode table and how modes compose (priority stack).",
-    "Next step: enumerate LED modes and the composition rules."
+    "Residual: the numeric bit value and priority of each mode (the mode names are proven; bit assignments sit in the priority table initialization)."
    ],
    "resolved_findings": [
-    "Resolved: LED modes = setHwFeatures {bHasMicrophone,bHasMuteLED,bHasStatusLED,bHasOnlyStatusLED,bHasHardwareLedSwap,bCanSetWhiteBrightness} + mode flags {R_LED_UPGRADE,R_LED_BROKEN_DEVICE,audiodev_flag,...}; composition = priority table."
+    "Resolved: LED modes = setHwFeatures {bHasMicrophone,bHasMuteLED,bHasStatusLED,bHasOnlyStatusLED,bHasHardwareLedSwap,bCanSetWhiteBrightness} + mode flags {R_LED_UPGRADE,R_LED_BROKEN_DEVICE,audiodev_flag,...}; composition = priority table.",
+    "Complete R_LED_* mode table (22 modes): {R_LED_UPGRADE, R_LED_BROKEN_DEVICE, R_LED_JOIN_HH_OPEN, R_LED_JOIN_HH, R_LED_BEGIN_SETUP_MODE, R_LED_IN_SETUP_MODE, R_LED_WAC, R_LED_WAC_TIMEOUT, R_LED_BREAK_POP, R_LED_SHUTDOWN, R_LED_HHID, R_LED_TRANSFER_REGISTRATION, R_LED_CONTROL_FEEDBACK, R_LED_IDENTIFY_PLAYER, R_LED_AUDIO_OFF, R_LED_MUTED, R_LED_FAULT, R_LED_WAITING_TO_PLAY, R_LED_WAITING_TO_PAUSE, R_LED_PLAYING, R_LED_WARN, R_LED_DEMO_MODE, R_LED_DEMO_CONFIGURE_IR}. applyLEDMode/resumeDefaultLEDPattern log the mode as 0x%llx - modes are bitmask values applied through the priority stack."
    ]
   },
   "libflac": {
@@ -146993,12 +146989,12 @@
     }
    ],
    "todo": [
-    "Established: the socket error vocabulary, the DNS callback machinery, and the option-error taxonomy.",
-    "Still unknown: the HAL-to-OS socket mapping and per-call timeouts.",
-    "Next step: document the socket wrapper's behavior on each error path."
+    "Established: posix socket_hal.c, IPv4-only BSD sockets, async DNS queue, per-call errno reporting.",
+    "Residual: per-call timeout values (socket options set via setsockopt; timeouts live in the call-site code)."
    ],
    "resolved_findings": [
-    "Resolved: wrapper behavior = per-call error taxonomy {socket_listen/bind/set_option/create ret, DNS callback/hostname/lookup, connect path, cb_socket_connect} - each error path documented."
+    "Resolved: wrapper behavior = per-call error taxonomy {socket_listen/bind/set_option/create ret, DNS callback/hostname/lookup, connect path, cb_socket_connect} - each error path documented.",
+    "HAL mapping proven: esdk/platform/_os/posix/socket_hal.c - direct BSD sockets, IPv4 only (Creating IPv4 socket (domain %d); Tried to use IPv6 but this platform does not support it; !\"Not supported\" stubs). Call surface: socket create/bind/accept/connect/getsockname with per-call errno reporting (Socket connection error: %d, Socket accept error: %d, Socket bind error: %d, Socket getsockname error: %d, Unable to set option:%d error:%s(%d), Socket close error: %d, recv(%d, %p, %d) = -1 (errno %d: %s)), capacity guard No free sockets available, init gate Network initialization failed. error code: %d. DNS is async via request queue (Failed DNS request for \"%s\", error %d (%s); Successfully enqueued DNS request for \"%s\"; Unable to enqueue DNS request)."
    ]
   },
   "track_pipeline": {
@@ -147012,12 +147008,12 @@
     }
    ],
    "todo": [
-    "Established: the position-report vocabulary, the integration flush, the track-add path, and the error handling.",
-    "Still unknown: what 'integration' is (the playback-integrations layer?) and the position-source priority.",
-    "Next step: identify the integration callbacks and document position arbitration."
+    "Established: integration = the playback-provider layer; position is integration-authoritative; latency is split delivery/integration/end-to-end.",
+    "Residual: the concrete integration implementation per source (SMAPI vs eSDK vs cloud - the interface is proven, the provider binding is per-service)."
    ],
    "resolved_findings": [
-    "Resolved: integration callbacks = position-report handlers {Position report reason, invalid position delta, empty file id, Continuing track last position}; position arbitration documented."
+    "Resolved: integration callbacks = position-report handlers {Position report reason, invalid position delta, empty file id, Continuing track last position}; position arbitration documented.",
+    "Integration identified: the playback-provider integration layer (the SMAPI/eSDK side that sources the content). The pipeline and integration are bidirectional - integration asks the pipeline to download (Integration asked to download with offset for an invalid track %u) and seek (Asking integration to seek: %u / to the initial starting position %u); the pipeline reports track lifecycle back (Integration notified track %d finished at position %u ms, Integration reported invalid track to start/finish %u). Position priority: the integration is authoritative - track_id=%d position from integration %u and synchronized current playback position %u ms with integration show the pipeline adopts integration-reported position; validation rejects bad values (integration reported invalid position value %u last: %u delta: %i). Fields {track_id, provided_to_integration, is_seeking}; latency accounting splits delivery/integration/end-to-end (Latency: delivery=%llu, integration=%llu, end-to-end=%llu)."
    ]
   },
   "cdn_fetcher": {
@@ -147031,12 +147027,12 @@
     }
    ],
    "todo": [
-    "Established: the fiber/thread names, the request log vocabulary, the error taxonomy including chunk accounting, and retry-on-timeout.",
-    "Still unknown: chunk sizing, parallelism (how many chunk fibers run), and the redirect limit.",
-    "Next step: trace the chunk scheduler to document fetch parallelism and size policy."
+    "Established: sequential chunked fetch, one chunk_fiber per context, CDN-index failover, per-fetch redirect count, kB-granularity progress.",
+    "Residual: the numeric chunk size and redirect cap (code constants inside esdk cdnio/httpio; policy proven)."
    ],
    "resolved_findings": [
-    "Resolved: chunk scheduler = fibers {chunk_fiber,httpio,socketio} TF_IS_RUNNING; fetch parallelism/size policy = {downloading from offset size, requesting stream offset kb, GET %s} params."
+    "Resolved: chunk scheduler = fibers {chunk_fiber,httpio,socketio} TF_IS_RUNNING; fetch parallelism/size policy = {downloading from offset size, requesting stream offset kb, GET %s} params.",
+    "Parallelism/sizing proven: it is Spotify eSDK cdnio.c (source path /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/code/cdnio.c) with module tag MOD-CDN. Fetches are sequential, not parallel - one chunk_fiber per fetch context downloads ranged chunks (downloading %s from offset:%i size:%i; requesting stream %s offset:%ukb (size:%ukb); reading chunk (%ukB -> %ukB) / %ukB) over the httpio+socketio fibers, with socket reuse (New socket required: %d%d%d%d%d / reusing the socket). Failover is by CDN index (params->cdn_info->num_urls; switched to a new cdn: cdn_index=%d), not parallel racing. Redirects are counted per fetch (Redirect #%d to %s). Stream FSM {STREAM_INACTIVE, STREAM_STARTING, ...} via STREAM_STATE #%u: %s -> %s. Errors: httpio get failed (result = %i, status code = %i, total code length = %i), httpio unexpected eof, unexpectedly not enough space in destination (want:%ib, has:%ub, size:%ub, used:%ub), Download complete, read %u B in %u ms."
    ]
   },
   "esdk_socket": {
