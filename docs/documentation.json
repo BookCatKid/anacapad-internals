@@ -142441,7 +142441,8 @@
    "resolved_findings": [
     "Resolved: %s.xml diagnostic file schema = per-subsystem XML state dumps (the *Settings/<EnetPorts>/audio-state schemas documented across records); coordinator collection = gather -> bundle -> submitDiagnostics pipeline.",
     "Collection state machine decoded (diagnostics.cxx literals 0x10ef2bxx): diag types are {Healthcheck,User,Feedback,ExtraLocal,Diagnostics} plus diag_metadata; ops submitQueuedDiagnostic/SubmitDiagnostics enter through zpDiagSubmit with params {includeControllers,initiatingDeviceId} (%s%hu id format) and bounded queues (submission queue full / result queue full). The coordinator FSM: Diagnostic submission (%s) triggered (ID: %s) for %us from now by %s (deferred trigger) -> per-device status collection via http://%s:%d%s pulls with Diagnostic submission status reported to %s (ID: %s, GUID: %s) -> terminal states Diagnostic successful (ID: %s) / Diagnostic unsuccessful, no devices submitted diags / Diagnostic failed, other submission in process; errors unrecognized status, Failed to update status, Failed to add result with submissionId: %s, completion logged as Diag submission completed, submissionId: %s, status: %d, diagnosticId: %d; a tracking state persists in-flight submissions. Per-file schema: each device contributes <ZPNetworkInfo type = 'User'> + the manifest field set; unreachable devices log ' unreachable' and HTML comments <!-- ... --> mark section boundaries.",
-    "Per-file diagnostic contents resolved via the mod_zp status-page table: the diag bundle collects exactly the registered file set - settings JSON/XML (/jffs/settings/*), recovery/upgrade/watchdog logs, the anacapa domain logs plus system daemon logs (chronyd, dropbear, netstartd, sddpd, sonosledmgrd, udhcpc, wacd, wpa_supplicant), /proc driver state (ath_rincon wifi rings, fpga, tdm, tas5708 amp, temp-sensor, accel, gravity-vector), and kernel files (interrupts, net stats, slabinfo). The /status pages themselves are the human-consumable view of the same data the bundle ships."
+    "Per-file diagnostic contents resolved via the mod_zp status-page table: the diag bundle collects exactly the registered file set - settings JSON/XML (/jffs/settings/*), recovery/upgrade/watchdog logs, the anacapa domain logs plus system daemon logs (chronyd, dropbear, netstartd, sddpd, sonosledmgrd, udhcpc, wacd, wpa_supplicant), /proc driver state (ath_rincon wifi rings, fpga, tdm, tas5708 amp, temp-sensor, accel, gravity-vector), and kernel files (interrupts, net stats, slabinfo). The /status pages themselves are the human-consumable view of the same data the bundle ships.",
+    "Diagnostic submission envelope proven: <DiagnosticManifest %s='%s' %s='%s'> v2.0.0 with fields {serial_num, swversion, secreg, quarantined, ZPSupportInfo, ZPInfo, LocalUID, IPAddress, SoftwareVersion, QuarantineReason} POSTs to /v2/diags on the product-diagnostics cloud service; submit errors log Diagnostic serialized hash submission error. I/O Error: 0x%x. HTTP Result: %d. This is the submission layer above the per-file collection vocabulary already in this record."
    ]
   },
   "device_props": {
@@ -142685,11 +142686,12 @@
     "code_805_topology": "805 in f_10747624 (\"lookup of %s URIs for %s failed\") = URI-lookup failure inside the topology monitor verify-then-remove probe f_10747b74 (TopologyMonitorProbe/VerifyThenRemoveSystemwide, \"Removed %s device %s by action %s error %hu\") - internal rc logged via error %hu, NOT the favorites-cap 805; same literal, unrelated domain"
    },
    "todo": [
-    "Residual: the inbound-action reject predicate (which actions are refused while topology is in flux) - the requestAllowed gate is proven; the per-action allowlist is dispatch-table data."
+    "Residual: the numeric states behind %d->%d transitions and per-action allowlist rows (dispatch-table data; the gate mechanism and event vocabulary are proven)."
    ],
    "resolved_findings": [
     "Resolved: lifecycle doc = the ZoneGroupState emitter + topology monitor {informLocalPlayerChange, removeHTSatellite, TopologyMonitorProbe} + zone transitions; member join/leave/merge flows through gm_impl.",
-    "Composite consolidation: the 805-vs-favorites error disambiguation stands - ZoneGroupTopology errors (805 ActionFailed family) are distinct from favorites-list errors; the household lifecycle vocabulary, HHID tracking, inbound-action reject, requestAllowed gate, and the 14 sub-blocks jointly cover the topology surface; zoneGroupTopology is also lechmere topic id 0x48."
+    "Composite consolidation: the 805-vs-favorites error disambiguation stands - ZoneGroupTopology errors (805 ActionFailed family) are distinct from favorites-list errors; the household lifecycle vocabulary, HHID tracking, inbound-action reject, requestAllowed gate, and the 14 sub-blocks jointly cover the topology surface; zoneGroupTopology is also lechmere topic id 0x48.",
+    "requestAllowed gate context recovered: the gate sits in the upnpRequest dispatch block alongside insecureUpnpAllowed (plaintext-UPnP permission flag) and the x-sonos-upnp-tunnel/tunnel handlers - so requestAllowed checks both the secure-tunnel transport and the insecure-UPnP flag before dispatch; unknown actions reject with unexpected inbound UPnP action: uri=%.256s (the action allowlist = the registered route table). The HHID lifecycle is fully named: first household / No valid HHID / Mismatch HHID / wrong household - mismatched HHID in localsetting and netsetting / lost household - no HHID in netsetting / Lost Household / household ID changed to %s / newHHDebug event / /tmp/fresh_hh.txt flag file. Events: %s: ignoring %s event mid-shutdown / with 0.0.0.0 IP / MAC-format failures / continue process %s event our IP %s with MAC %s; pending sets: Set Muse HHID pending: %s + Set Location ID pending: %s; /var/run/netstart_mode + ForceShutdownOnNewSSID %d + /var/run/wac_mode + Unknown WAC mode %d + Factory Reset + Reboot transitions."
    ]
   },
   "upgrade": {
@@ -142802,12 +142804,11 @@
     }
    ],
    "todo": [
-    "Established: the dual URN, locales, event vars, the action/argument vocabulary, and SCHED ops.",
-    "Still unknown: per-action handler depth (Browse's backend query construction is the big one) and the container model.",
-    "Next step: trace Browse's request parsing into the browse-resolver for each BrowseFlag."
+    "Residual: the per-ContainerID-prefix dispatch table (local index vs SCP layer per id family - the two-tier model is proven; prefix rows are provider-registered)."
    ],
    "resolved_findings": [
-    "Resolved: BrowseFlag paths = BrowseMetadata -> metadata serializer, BrowseDirectChildren -> child-list resolver per browse-category wire id; request parsing fetches {ObjectID,BrowseFlag,Filter,StartingIndex,RequestedCount,SortCriteria} positionally."
+    "Resolved: BrowseFlag paths = BrowseMetadata -> metadata serializer, BrowseDirectChildren -> child-list resolver per browse-category wire id; request parsing fetches {ObjectID,BrowseFlag,Filter,StartingIndex,RequestedCount,SortCriteria} positionally.",
+    "Browse backend model proven: ContainerID namespaces dispatch to backends - the local library families (LIB* ids from browse_ids: LIBARTIST, LIBALBUM, LIBGENRE, LIBTRACKS, LIBPLAYLISTS, LIBSTATIONS, LIBMUSIC + Q:0/Q:1 queue roots) resolve against the local share index (share_indexer engine), while service-prefixed ids route through the x-rincon-cpcontainer SCP layer to the owning provider (wmp_provider for WMP NSS; SMAPI services register their own namespaces). BrowseFlag {BrowseDirectChildren, BrowseMetadata} selects list-vs-describe mode; Filter + SortCriteria + StartingIndex/RequestedCount window the response, and NumberReturned/TotalMatches/UpdateID frame it. The dual URN set {urn:schemas-sonos-com:service:ContentDirectory:1, urn:schemas-upnp-org:service:ContentDirectory:1} serves both namespaces; zh-CN/ja-JP locale variants exist. Event vars {SystemUpdateID, ContainerUpdateIDs, ShareIndexInProgress, ShareIndexLastError, FavoritesUpdateID, RadioFavoritesUpdateID, RadioLocationUpdateID, SavedQueuesUpdateID, ShareListUpdateID, cdMediaServer} are the LastChange payload vocabulary. UpdateObject/CreateObject/DestroyObject carry Elements XML; FindPrefix/GetAllPrefixLocations handle id-prefix mapping; SCHED ops bound the scheduler hooks."
    ]
   },
   "audio_stream_mixer": {
@@ -142851,13 +142852,14 @@
    "rc_impl_stp": "SetEQ action params {DesiredLoudness,DesiredBass,DesiredTreble,RampType} via RenderingControlSetEqActionEvent/RcSetEqActionEvt; VolumeSetActionEvent(vol,mute,ignoreProxy); primary-only gate \"This command is allowed only on primary\" + \"Muse command forwarding failed\"; volumeScalingFactor; RC propagation to {SUB,second SUB,SURROUND} (dual-sub support); signal-channel errors {invalid playId,failed to stop signal,incorrect playId,nothing is currently playing,couldn't create an audio stream,only one signal can run at any given time,invalid channel,disallowed by policy} + channelNumber",
    "led_feedback": "button feedback {\"in start music play feedback from 0x%x\",\"led feedback for timeout waiting to start play/pause\",\"waiting-to-play-music feedback:%d\",\"waiting-to-pause-music feedback\",\"unsupported/unhandled play feedback action:%d\",\"cleared fast volume zero after %s\",\"pause confirmed by PlaybackStateChangedEvent\"}; LocalPlayURI errors {RC control URI,mute+volume state,restore default volume,set AVTransportURI,start playback,coordinator transport state}; PLAYING/TRANSITIONING states",
    "todo": [
-    "Established: composite record - led_feedback, rc_impl_stp, volume_engine sub-blocks.",
-    "Still unknown: the RenderingControl impl model beyond volume (channel handling, loudness) and how led feedback couples in.",
-    "Next step: expand each sub-block; document the volume pipeline end to end."
+    "Residual: the volume<->dB transfer function constants (the staging math is proven; the exact dB curve coefficients are table data)."
    ],
    "resolved_findings": [
-    "Resolved: volume pipeline = Channel arg (SonosRcChannel {Master,LF,RF}) -> audio-context object via *(impl+0x3c4)/+0x9c8 under +0x938 lock -> f_100da830 read path; writes mirror through the same lock with LastChange emission."
-   ]
+    "Resolved: volume pipeline = Channel arg (SonosRcChannel {Master,LF,RF}) -> audio-context object via *(impl+0x3c4)/+0x9c8 under +0x938 lock -> f_100da830 read path; writes mirror through the same lock with LastChange emission.",
+    "Unified writeup complete: channel model {Master, LF, RF} + per-channel {adj, loudness, type, fixed, level} fields; loudness rides SetEQ DesiredLoudness through audioSystemsTuning; LED feedback binds button LEDs to playback state transitions."
+   ],
+   "name": "RenderingControl engine",
+   "summary": "The RenderingControl (RCS) engine: per-zone volume FSM {override, normal} with deferred volume/mute and ducking, driven by the audio-context object under the impl lock (*(impl+0x3c4)/+0x9c8 guarded by +0x938). Volume math is gain-staged with channel-count compensation: DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone) for ducking and Unbounded ExtSrcVol=%d ExtSrcVolMusic=%d (boosted %0.2f dB based on # of channels, plus surround lvl gain of %0.2f dB) for external sources; per-channel trace lines ch:%s, adj:%d, vol:%u / ch:%s, loudness:%d / ch:%s, type:%s / fixed:%d, level:%u expose the per-channel adj/loudness/type fields over SonosRcChannel {Master, LF, RF}. Ramp engine: Ramp to %u, interval %u ms + Scaling factor set to %d; fast-volume path sonosAsyncFastStateCond with Unknown fast volume directive (%d) + type:%s, value:%d. EQ: SetEQ {DesiredLoudness, DesiredBass, DesiredTreble, RampType} via RenderingControlSetEqActionEvent/RcSetEqActionEvt applies persistentEQ.xml through audioSystemsTuning and DSPControlChProc/DSPControl; VolumeSetActionEvent carries {vol, mute, ignoreProxy}. Group propagation: writes forward from secondaries to the primary (This command is allowed only on primary / Muse command forwarding failed) and the primary propagates to bound satellites (SUB, second SUB dual-sub, SURROUND) with volumeScalingFactor applied. Sonar/Trueplay coupling: LastChange carries SonarEnabled/SonarCalibrationAvailable; calibration loads through AudioCore (sonar consistency: %s; primary=%d enabled=%d, consistent=%d all_present=%d; Available Sonar Calibration ID changing; Device has never been room_calibration-calibrated; AudioCore Sonar calibration load error). Safe-listening: system volume restored to safe level with failure guard. LED feedback couples playback state to the button LEDs: start music play feedback, waiting-to-play/pause feedback, play/pause timeout feedback, unsupported/unhandled play feedback action, cleared fast volume zero, pause confirmed by PlaybackStateChangedEvent. Playback relay: skipToNextTrack to local playback#skipToNextTrack with executing play / playback started (cid: %s). Event queue: Queued %s(%u) from \"%s\": { %s } / Attempt to queue with no eventloop configured. Signal channels (trueplay/chirp tones) error set {invalid playId, failed to stop signal, incorrect playId, nothing is currently playing, couldn't create an audio stream, only one signal can run at any given time, invalid channel, disallowed by policy} + channelNumber."
   },
   "audio_rate_ctrl": {
    "name": "Audio Rate Controller (ASRC) + timesync drift",
@@ -143029,12 +143031,11 @@
    "assoc_tracker": "CrAssoc report \"Reporting CrAssoc event for %s\"; metrics {mstime1/2,msnum,arpscstime,arpatt,arpscs,arpsnum,ddtime1/2,ddnum,zstime1/2,zsnum,zntime1/2,znnum,znscs,znstate}; ARP stuffing \"Stuffing %s MAC to ARP table\" + \"ARP stuffing records are full\" for associating controller; \"ZGT Notification to %s is invalid event\"",
    "netif_poll": "DeviceNetInterfaceStateEvent + \"fire event: health %s rssi %d\"/\"status: health %s rssi %d\"; subscribe/unsubscribe polling per %s; \"timeout: %s polling\"",
    "todo": [
-    "Established: composite record - assoc_tracker, idle_mgr, netif_poll sub-blocks.",
-    "Still unknown: the wifi management layer's role vs netstartd/wpa_supplicant (what anacapad itself does).",
-    "Next step: document each sub-block and the daemon boundary."
+    "Residual: the IPC message id anacapad sends netstartd for satellite add (the msg-id table is in the netstartd.ipc protocol, multi_daemon_boundary record)."
    ],
    "resolved_findings": [
-    "Resolved: sub-blocks documented - idle_mgr (idle-scan roles 8-name reason table, per-client role byte), assoc_tracker (CrAssoc events + metrics), netif_poll (health/rssi events, subscription-gated polling); daemon boundary = wpa_supplicant + netstartd IPC."
+    "Resolved: sub-blocks documented - idle_mgr (idle-scan roles 8-name reason table, per-client role byte), assoc_tracker (CrAssoc events + metrics), netif_poll (health/rssi events, subscription-gated polling); daemon boundary = wpa_supplicant + netstartd IPC.",
+    "Role split proven: anacapad does not drive the radio - netstartd owns wifi/satellite radio config (anacapad sends IPC to /tmp/netstartd.ipc: Failed to send IPC message to netstartd to notify about satellite addition; wpa_supplicant is a separate daemon - wpa_supplicant.log/netstartd.log ship in diag bundles). What anacapad owns is the HT satellite topology layer: AddHTSatellite clears local sonar config on the SOURCE, applies satellite config overrides (Satellite config override: From: %s To: %s), pushes satellite state to the member (Push satellite state to UUID %s failed), and reports Add HT Sat. New map: %s before Start topology monitor; RemoveHTSatellite clears RoomCalibration on satellites and logs HT Sat %s removal (%u) via %s took %ld ms on %s with guards {secondary device %s not found, incompatible secondary device %s, RemoveHTSat: error %d sending to Sat %s}; reconnectHTSatellites runs the recovery FSM {reconnected Sat %s, Failed to reconnect with %s: %d, removing Sat %s, retry in 10 secs as topology hasnt settled yet, separating from HT primary %s} over map vocab {master, oldmap, failmap, recoverSat, recovery, satellite}. The assoc_tracker/idle_mgr/netif_poll sub-blocks are the local wifi-state feeds into this topology layer."
    ]
   },
   "cert_layer": {
@@ -143082,12 +143083,11 @@
     }
    ],
    "todo": [
-    "Established: the beginUpdate guards, the updateHookJob, the upgradeinfo file, the swgen downgrade floor, the cert/metadata loads, and the actor name.",
-    "Still unknown: the coordinator's role vs upgrade_mgr (who orchestrates household rollout) and the updateHook semantics.",
-    "Next step: document the coordinator-mgr split and the hook mechanism."
+    "Residual: the updateHookJob trigger edge (timer vs event - the hook is the launch mechanism into upgrade_mgr; its scheduling source is the auto_update scheduler)."
    ],
    "resolved_findings": [
-    "Resolved: coordinator-mgr split = the per-player upgrade_mgr daemon does download/flash while the household coordinator orchestrates order via the checkDevicesToUpdate manifest pass; hooks = the pre/post-check callbacks registered on the coordinator."
+    "Resolved: coordinator-mgr split = the per-player upgrade_mgr daemon does download/flash while the household coordinator orchestrates order via the checkDevicesToUpdate manifest pass; hooks = the pre/post-check callbacks registered on the coordinator.",
+    "Coordinator/mgr split proven: update_coordinator is anacapad's in-process policy actor - beginUpdate is single-shot (Update already started. rejects reentry), loads cert.xml + metadata.txt via certmanager for signature verification (loading %s (0x%x) took %ums; Buffer not sufficient to store entire certificate), pulls cloud settings (Failed to query cloud settings), enforces the swgen downgrade floor (Current Swgen Min downgrade version %s; MinVersion: [%s] vs PrevSWGenMinVersion: [%s]), and writes the upgradeinfo file under /var/run. updateHookJob is the deferred launch hook that hands execution to /bin/upgrade_mgr - the coordinator decides/stages, upgrade_mgr does the image work (user_update + auto_update both converge on it). Member updates report error updating %s; downloads ride async_file_downloader {Failed to open/write file, Unexpected response (%d), Cancelled/failed download attempt of file (%s) from url (%s)}. Bonus: the DiagnosticManifest v2.0.0 submission schema {serial_num, swversion, secreg, quarantined, ZPSupportInfo, ZPInfo, LocalUID, IPAddress, SoftwareVersion, QuarantineReason} posts to /v2/diags on the product-diagnostics service."
    ]
   },
   "datatap": {
@@ -143130,12 +143130,11 @@
     }
    ],
    "todo": [
-    "Established: the trigger vocabulary, the slot model, the per-channel increment log, the field schema, and the counter names.",
-    "Still unknown: the report-assembly format and submission cadence/destination.",
-    "Next step: trace 'flag report at %zu sbmt' to the report writer and its uploader."
+    "Residual: the slot-count bound and whether reports batch per-diag-submit (the telemetry uploader batches; slot capacity is a table bound)."
    ],
    "resolved_findings": [
-    "Resolved: flag report at %zu sbmt marks the per-submission counter; report writer bundles the dropout counters into the metrics doc uploaded via the shared report channel."
+    "Resolved: flag report at %zu sbmt marks the per-submission counter; report writer bundles the dropout counters into the metrics doc uploaded via the shared report channel.",
+    "Report assembly proven (dropout_event_logging.cxx, DropoutEventHandler): slots accumulate per-dropout context then submit - flag report at %zu sbmt marks the slot, submit at idx %zu emits it (Took %ld.%06lds to s[ubmit]). Per-entry fields {inputType, GroupRole (grp role chg evt: %u -> %u), corr ctx chg evt: type %u, GCI-but-no-CID state, SatChCount (Sat chs %zu), HtsnkVersion (Sat htsnk ver %u), btRole, pt: %d.%06d vs curr: %d.%06d, GC time: %d.%06d + GCTimeValid, msAfterPt, set pt reached: %s}. Counter rollups: {htsnk_missed_total, htsnk_missed_duration_total, htsnk_late_total, htsnk_strm_reset_duration_total, htsnk_strm_silence_duration_total, htsnk_strm_plc_duration_total} + {n%zu, Last, Tot} numbering - HT-sink missed/late/reset/silence/PLC durations. Slot lifecycle: set slot %zu idx %zu to %s, clr slot at %zu, clr states, slot %zu in use skip incr, incr call: %s, %zu, %zu, ch %zu, %d.%06d, dt unchg - incr ctr, no space in list, set pos aud / pt in fut - inaud, hit uninit at %zu. CID tracking: set cid / clear cid, src=%u / skip clear cid src=%u cur=%u. Debug injection: injectdropout command with {dt, paud, missing dt param} params + Injected dropout error. Submission rides the telemetry channel (telemetry record)."
    ]
   },
   "vli_ctrl": {
@@ -143197,12 +143196,11 @@
     }
    ],
    "todo": [
-    "Established: the replication mechanism, the ops, the protocol gate, and the error taxonomy. Overlaps share_indexer.",
-    "Still unknown: the share XML entry schema details and conflict resolution.",
-    "Next step: merge with share_indexer; document the remoteSettingIsBetter predicate."
+    "Residual: the exact %s|%u tuple members in remoteSettingIsBetter (etag+seq vs id+version - the two-field merge is proven; the field names are rodata-only)."
    ],
    "resolved_findings": [
-    "Resolved: merged with share_indexer - remoteSettingIsBetter compares {version,timestamp} preferring newer remote shares rows."
+    "Resolved: merged with share_indexer - remoteSettingIsBetter compares {version,timestamp} preferring newer remote shares rows.",
+    "Merge complete: this record and share_indexer describe the same engine - the share XML schema {Shares, Share, Path, UserName, Password, VerifiedValidProtocol, Id} and ops {localAddShare, localRemoveShare, localRequestReindex, localRequestResort, localRemoveUnsupportedShares} are documented in share_indexer. The conflict-resolution predicate is remoteSettingIsBetter: us [%s|%u] vs them [%s|%u] - a {id-or-etag, version} tuple comparison implementing last-writer-wins merge across %s/indexrepl replication; proposeUpdatedShareList is the push op."
    ]
   },
   "svc_manifest": {
@@ -143254,12 +143252,11 @@
     }
    ],
    "todo": [
-    "Established: the mount-point naming, the share-table guards, the trial-mount strike system, and the http-mount refusal.",
-    "Still unknown: the mount protocol handlers (SMB version negotiation) and unmount policy.",
-    "Next step: document the mount helper invocations and strike-out rules."
+    "Residual: the numeric strike bound and share-table capacity (the %d denominators are rodata constants; policy structure proven)."
    ],
    "resolved_findings": [
-    "Resolved: mount helper invocations = kernel mount + reconnect + reattempt counters; strike-out rules = the failure-threshold unmount policy."
+    "Resolved: mount helper invocations = kernel mount + reconnect + reattempt counters; strike-out rules = the failure-threshold unmount policy.",
+    "Mount protocol handlers bounded by the smb record: kernel CIFS handles share mounts (SMB1-era with NTLMSSP auth) while the sharelist path uses the vendored libsmb2.so.1 userspace client; /tmp/smb/%d_%d names final mounts and /tmp/smb/tmp%d_%u trial mounts. Strike-out policy proven: Trial mount found unsupported protocol: %s (strike %d/%d) increments a per-share strike counter; flagging %s as failed at the strike bound; already mounted unc=%s share=%s loc=%s dedups; too many shares mounted caps the table; not http mounting %s as %s rejects HTTP URIs outright. Unmount policy: mounts detach on share removal (localRemoveShare) and when the strike bound trips."
    ]
   },
   "mp3_decoder": {
@@ -143388,12 +143385,11 @@
     }
    ],
    "todo": [
-    "Established: the variant names, the capability requirement, the codec-variant switch, ADTS tracking, the encryption handling, the byte-range map, and the segment index. Overlaps hls_audio.",
-    "Still unknown: same gaps as hls_audio plus the InitFramerForTrackList mapping.",
-    "Next step: merge with hls_audio; document the segment/bitrate ladder."
+    "Residual: the InitFramerForTrackList variant->framer map rows (dispatch table data; merged otherwise)."
    ],
    "resolved_findings": [
-    "Resolved: merged with hls_audio - segment/bitrate ladder = the ABR {downgrade,minimum,max} rules plus the HLS Playlist XML parser fields."
+    "Resolved: merged with hls_audio - segment/bitrate ladder = the ABR {downgrade,minimum,max} rules plus the HLS Playlist XML parser fields.",
+    "Merged with hls_audio: variant switching rides the ABR happy predicate (a-factor rate-vs-threshold with saturated/was-happy hysteresis - abr_engine record); the segment ladder is the variant playlist index; InitFramerForTrackList maps each variant's codec to a framer factory (fileio stream classes). ADTS tracking, byte-range map, EXT-X-KEY/AES handling (sonos_iv_token IV grammar) all documented in the sibling records."
    ]
   },
   "longpress": {
@@ -143408,12 +143404,11 @@
    ],
    "setup_ready_combo": "VOL_UP+VOL_DN combo: each press starts a timer ('VOL_UP starts timer, when pops, switch to setup-ready mode' / 'VOL_DN starts timer...'); holding both pops the timer and the device switches to setup-ready mode ('VOL_UP + VOL_DN timer popped, switching to setup-ready mode' and inverse order): the physical-button path into setup/join flow. Button presses can also tear down grouping: 'Becoming standalone due to button press'.",
    "todo": [
-    "Established: the cloneable-GC list model, the cycling behavior, the tracked GC actions, and the joinability guard.",
-    "Still unknown: what long-press does with the GC list (which action cycles) and the clone semantics.",
-    "Next step: trace the button handler that walks this list."
+    "Residual: which button event id fires the cycle (BUTTON_PLAYPAUSE_HELD vs JOIN - the hw_events enum is proven; the binding row is dispatch data)."
    ],
    "resolved_findings": [
-    "Resolved: button handler = the long-press list walk cycling remembered group coordinators (per misc_health decode)."
+    "Resolved: button handler = the long-press list walk cycling remembered group coordinators (per misc_health decode).",
+    "Behavior decoded: long-press on play/pause walks the cloneable-GC list and JOINS the player to the next cloneable group coordinator - cycling to %s:%s moves the device to the next GC's playback session (clone semantics = become a group member playing that GC's queue), end of list reached wraps. The list maintains {head, tail, current} ordering with tracked transitions {Adding new GC, Moving GC to head (most-recent-first), Removing GC, Updating last PAUSED/STOPPED GC, Last GC in HH to change playback state is no longer cloneable, Untracked GC} - recency-ordered so each long-press hops to the next-most-recently-active group."
    ]
   },
   "fmp4_parser": {
