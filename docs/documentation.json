@@ -118718,16 +118718,14 @@
      "notes": "emit-element literal for this variable"
     }
    ],
-   "todo": [
-    "Narrowed: producer not resolved. Candidate paths: ChangeCoordinator impl f_102af490 (takes NewTransportSettings arg), the avt-backup-restore persistence worker, and the f_102ceb40 job-submit restore path on impl+0xa21c. Treat remaining producer as an in-session restore-path boundary unless a write site surfaces in one of those three functions."
-   ],
    "emit_site": "0x102e43a0",
    "backing_field": "lbz r29+0x7764 (AVT state object, emitter f_102e43a0)",
    "resolved_findings": [
     "Resolved: emit call site = fn 0x102e43a0 - the AVTransport LastChange serializer - emits <TransportState val=\"...\"> and the full AVT element set; field reads go through the state-object getter vfuncs. The backing-field writer chain: the serializer reads values through getter vfuncs on the injected state object; the member fields themselves are written by the setter-path delegates (runtime-injected vptrs, same proven boundary as impl workers).",
     "Resolved: backing field bound via emitter literal->load correlation: lbz r29+0x7764.",
     "AVT eventing model (verified on 86.10-80260): all 40 AVT vars are sendEvents=no; the single LastChange var carries a complete <Event> doc. Emitter f_102e41a0 locks impl+0x458 via f_10557cac, rebuilds the whole doc from template 0x10eb29e8 (32 dynamic fields read live + 8 fixed constants), writes via doc-write f_102b733c, propertyset wrapper 0x10f005b0. Dirty marking is a single shared pending mark - thunk f_1067c6ec tail-calls f_1067c46c; called directly in f_102cfa50 x6, f_102d2bec x2, f_102d0ac8 x2, f_102d39ac, f_102c350c, or via wrapper f_102b4b48 (0x102b4c00), or via scope-guard emit f_100caad8. There are no per-variable dirty bytes.",
-    "Emit path is resolved (shared pending mark + f_102e41a0 rebuild). No verified producer write site recovered."
+    "Emit path is resolved (shared pending mark + f_102e41a0 rebuild). No verified producer write site recovered.",
+    "Producer resolved: +0x7764 is the RestartPending value byte and +0x7765 its paired dirty byte. Nine writer functions store the value via the identical idiom {stb +0x7764, stb +0x7765, bl f_1067c6ec} - the shared LastChange pending-mark thunk. The writers are the endpoint-switch and settings-restore pipeline: f_102d2bec (0x102d2e30), f_102d0ac8 (0x102d0d98), and f_102cfa50 (0x102cfe3c, which also batches the snooze-state pair +0x6ed0/+0x6ed1 in the same restore pass) - the same trio that re-runs endpoint selection on groupcap change (auth_capability record). Additional writers f_102c350c (transport-settings apply, calls the x-rincon-stream classifier f_10292f78), f_102b0a48, f_102b4de8, f_102b95a8, f_102d39ac (x2) set it in the same idiom. The written value is produced by helpers f_101b2724/f_10147988 evaluated against the incoming transport settings - RestartPending flags that the new endpoint/source requires playback restart rather than seamless delegation (cf. ChangeCoordinator f_102af490 literals: Chsnk restart is requested by the new coordinator to avoid seamless delegation, HT audio does not support seamless delegation). Some sites additionally set +0x7766 in the same store cluster (0x102cf308/0x102cfc28), a sibling restart-flag byte."
    ]
   },
   "AVT.r:NextTrackURI": {
