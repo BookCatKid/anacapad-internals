@@ -123859,15 +123859,15 @@
    "key": "'share_usage' replicated setting -> RUsageDataSharing; 'usageDataSharing refreshed, optin changed to: %d': opt-in telemetry consent",
    "impl": "usagedatasharing.cxx",
    "todo": [
-    "Established: the share_usage replicated key and opt-in toggle are identified.",
-    "Residual: which telemetry paths actually gate on the opt-in value."
+    "Established: the share_usage replicated key and opt-in toggle are identified."
    ],
    "mechanism": "'share_usage' is a replicated household key (settings store, synced across members), not a code-referenced literal - consumers read it through the generic replicated-settings getter by key, so no direct xref exists. The opt-in value gates the telemetry/diagnostics upload paths: each telemetry send first resolves share_usage through the replicated store and skips upload when unset (same getter pattern as the other replicated keys decoded under the repset route work).",
    "optin_mechanics": "CORRECTION: 'share_usage' is a dead mntmgr.cxx literal (SMB mount-share usage key, no code refs) - it is NOT the telemetry opt-in. The real opt-in decoded at f_10577870 (usagedatasharing.cxx): a vfunc+0xc call on the replicated-settings object reads key 'UMTracking' into a 0x20-byte buffer; strcmp against 'NoReport' yields the flag stored at this+4 (flag=1 iff UMTracking=='NoReport', i.e. the field is the opt-OUT state). On change the new value is cached at this+9 and a change event posts. The usagemetrics refresh f_10707cd4 (reads R_CustomerID, logs under tag 'usagemetrics' with 'usageDataSharing refreshed, optin changed to: %d') invokes this predicate; the two gated upload channels from reporting_policy (f_105c9f94, f_1066b320) consume the same flag.",
    "key_surface": "usagedatasharing.cxx string set: keys {RUsageDataSharing, UMTracking} both compared against 'NoReport' - RUsageDataSharing is the R_* system-property form; UMTracking the replicated-key form read via vfunc+0xc at f_10577870",
    "value_vocabulary": "only distinguished value is 'NoReport' (opt-out sentinel) - any other/unset value opts in; no second literal appears in the module, so the accepted vocabulary is open-ended beyond the sentinel",
    "resolved_findings": [
-    "Established: complete value vocabulary - 'NoReport' is the only distinguished literal; dual key surface {RUsageDataSharing R-prop, UMTracking replicated} both gated on the same sentinel."
+    "Established: complete value vocabulary - 'NoReport' is the only distinguished literal; dual key surface {RUsageDataSharing R-prop, UMTracking replicated} both gated on the same sentinel.",
+    "Resolved: opt-in state object (usagedatasharing.cxx) layout {+4 isNoReport u32, +8 has-value byte, +9 opt-in string buf[0x20], +0x30 mutex}. Setter stores strcmp(buf,'NoReport') into +4 and buf[0]!=0 into +8. Getter f_105776d8 = isOptedIn = !*(+4). Gating callers proven: UsageMetrics periodic submission ('Checking for periodic submission','Skip submitting daily WD info'), event_reporter_v3 submissions (/tmp/event_reporter_v3, /jffs/sys/log/event_reporter_v3), reporting-domain submit paths (0x1055bad4/0x1055d168), watchdog/diag submit path (watchdog_log/watchdog_dmesg strings at 0x10253728 site), wifi slow-report path ('Wireless hops to first-wire' at 0x1069536c). Sibling getter f_10577748 returns +4-based flag to 7 sites incl. GCUUID zone-config and diag submit paths."
    ]
   },
   "misc_mgrs": {
@@ -124047,11 +124047,12 @@
    "files": "/jffs/{upgrade.log,upgrade_prev.log,upgrade_tmp_prev.log,app/log/upgrade_mgr.log}",
    "todo": [
     "Established: the download path, rate limiting, and the fact that upgrade_mgr runs externally are documented.",
-    "Residual: the anacapad-to-upgrade_mgr handshake - which IPC or sentinel triggers a download-versus-apply and how .upd is verified."
+    "Residual: .upd signature/verification internals live in /bin/upgrade_mgr (separate binary in the rootfs), not anacapad - out of scope for this image unless the upgrade_mgr binary is analyzed separately."
    ],
    "handshake": "The anacapad<->upgrade_mgr handshake is process-spawn + report-file polling, not message IPC. Flow: check decides ('%zu/%zu ZPs need auto-update', or the user path 'User-initiated HH update: ...') -> anacapad downloads the manifest itself ('manifest URL: %s', 'manifest connect error 0x%x (%u)', 'manifest download complete/error') -> the BeginSoftwareUpdate UPnP action is invoked on the local device ('BeginSoftwareUpdate failure for local device (UPnP result: %u)') -> 'creating auto upgr process' spawns /bin/upgrade_mgr ('Failed to spawn auto upgr process'). Manifest URL grammar: '%supdate.upm?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s'; the .upd payload URL appends '&sonosid=%s&householdid=%s&au=1'. upgrade_mgr reports back via files anacapad polls: /tmp/upgrade_mgr_info.txt, upgrade_mgr_report.json (auto), upgrade_mgr_user_report.json + _prev (user path, 'Timed out polling for user-initiated HH upgrade report', 'User-initiated HH upgrade report consumed', \"Unknown upgrade client state: '%s'\", a device-count cap 'Upgrade report has more devices than the maximum supported'), and /jffs/app/log/upgrade_mgr.log.",
    "resolved_findings": [
-    "Established: handshake = BeginSoftwareUpdate UPnP action -> spawn /bin/upgrade_mgr -> poll report files; manifest .upm and payload .upd URL grammars including sonosid/householdid/au params; user vs auto report file split."
+    "Established: handshake = BeginSoftwareUpdate UPnP action -> spawn /bin/upgrade_mgr -> poll report files; manifest .upm and payload .upd URL grammars including sonosid/householdid/au params; user vs auto report file split.",
+    "Resolved: the anacapad-to-upgrade_mgr handshake is process spawn + JSON report files, not a live IPC channel. Trigger chain: UPnP BeginSoftwareUpdate -> manifest URL fetch ('manifest download complete'/'manifest connect error') -> 'creating auto upgr process' spawns /bin/upgrade_mgr (UPGRADE_MGR_SPAWN_FAILED on failure). Result returns via upgrade_mgr_report.json with fields {pendingUpdateHours, numUpdateAttempts, startTime, elapsedSeconds, blockedUpdateReason, updateHHStatus, serverIP, errorMsg, extendedError, zoneType, startVersion, targetVersion, hardwareVersion, serialNumber, updateZPResult, numZPsInHH, numZPsInHHDelta, numZPsToUpdate, numZPsDropped, targetSystemVersion, updateHHResult, numFailedZPs, numZPsWithError}; also upgrade_mgr_user_report.json(+_prev) and state file upgrade_mgr.txt ('Failed to save state %d'). Retry: 'Retrying upgrade (%d/%d)' bounded by max attempts ('Giving up after max upgrade attempts'), 'Launching update failed, retrying in %d seconds'; policy keys {R_AutoUpdatePolicy, R_CheckUpdateInterval}. .upd verification happens inside the spawned /bin/upgrade_mgr, outside this binary."
    ]
   },
   "content_managers": {
@@ -124071,12 +124072,12 @@
    "impl": "timedjob.cxx -> timedjobmgr{,_ac,_btn} channels",
    "semantics": "ReportSvcTimedJob + checkSonosNetDisableTestTimedJob + modZPShutdown_deleteTimedJobManager: scheduled job timers for AC/button/SonosNet-disable-test",
    "todo": [
-    "Established: the timedjob manager channels and named jobs are identified.",
-    "Residual: job scheduling internals - persistence, retry policy, and which jobs persist across reboot."
+    "Established: the timedjob manager channels and named jobs are identified."
    ],
    "scheduling": "Job model decoded (timedjob.cxx, tag 'timedjobmanager', channels {timedjobmgr, timedjobmgr_ac, timedjobmgr_btn}): each job carries an absolute next-fire time m_tmNext ('scheduleJobLater: job: \"%s\" m_tmNext: %ld(%c) is in %ld seconds') and binds to a registered endpoint ('cannot schedule job %p:%p; ep not in list' - the %p:%p pair is {job,endpoint}). Lifecycle: add -> scheduled ('%s job \"%s\" scheduled flag on but time not set' validator) -> remove queued ('job %p:%p remove queued [%d]') -> done waiting ('job %p:%p done waiting' / 'removed (done waiting)') with cancel paths 'removed (add cancelled)', 'job %p:%p not found'. Per-job logging '%s svc:%s td:%ld'. No file/store strings exist in the module - jobs are in-memory only; nothing persists across reboot, registration repeats each boot.",
    "resolved_findings": [
-    "Established: absolute m_tmNext scheduling, endpoint binding, remove-queued/done-waiting lifecycle, in-memory only (no persistence path exists in the module)."
+    "Established: absolute m_tmNext scheduling, endpoint binding, remove-queued/done-waiting lifecycle, in-memory only (no persistence path exists in the module).",
+    "Resolved: timedjob.cxx scheduler semantics - jobs register per-subsystem ({timedjobmgr, timedjobmgr_ac alarmclock, timedjobmgr_btn buttons, ReportSvcTimedJob, timed job play, checkSonosNetDisableTestTimedJob} instances). Scheduling: m_tmNext next-run time, 'scheduleJobLater ... is in %ld seconds'; start log shows {s:%ld n:%ld b:%ld} (scheduled/next/backoff). Retry/defer policy: jobs defer on 'no IP address' and 'recovery AP connection state'; a consecutive-slow-run counter exists ('job took %lds. %zu consecutive' / 'ran normally after %zu consecutive slow runs'). Add/remove are queued ('remove queued', 'add cancelled', 'done waiting'). Persistence: no job-state save/load strings exist - jobs are in-memory registrations; durable state lives in each owner subsystem (e.g. alarm DB), so nothing job-manager-internal survives reboot."
    ]
   },
   "devmode": {
@@ -124101,12 +124102,12 @@
    "impl": "trackplaymonitor.cxx -> RTrackPlayMonitor thread",
    "semantics": "CurrentTrackPlayed event: per-track play-duration monitor (telemetry/billing feed)",
    "todo": [
-    "Established: the per-track duration monitor and CurrentTrackPlayed event are identified.",
-    "Residual: which consumers read play-duration data and how billing/telemetry consumes it."
+    "Established: the per-track duration monitor and CurrentTrackPlayed event are identified."
    ],
    "consumer": "CurrentTrackPlayed is consumed by the Spotify/eSDK playback tracker - the name sits in the spotify.cxx string region (0x10ea1480) directly beside 'AwaitingCurrentTrackAck' and 'AwaitingNextTrackAck' and above the '../zoneplayer/spotify/spotify.cxx' file label. The consumer object is VLIPlaybackTracker ('vli_playback_tracker'/'vliPlaybackTracker' literals) - the per-service position tracker. So play-duration data flows: duration monitor emits CurrentTrackPlayed -> the service's playback tracker records the completion -> position/duration reporting goes back through the service's session channel (SMAPI/esdk reporting), which is how the service meters listening for billing/telemetry. The two Ack names are the track-transition handshake states the tracker moves through.",
    "resolved_findings": [
-    "Resolved: the consumer is the eSDK playback tracker (VLIPlaybackTracker) - CurrentTrackPlayed feeds per-service position/duration reporting which carries the billing-relevant listen data back over the session channel; the Awaiting*Ack pair are its transition states."
+    "Resolved: the consumer is the eSDK playback tracker (VLIPlaybackTracker) - CurrentTrackPlayed feeds per-service position/duration reporting which carries the billing-relevant listen data back over the session channel; the Awaiting*Ack pair are its transition states.",
+    "Resolved: consumers and data shape proven (trackplaymonitor.cxx + trackplayrecorder.cxx). Per-track record fields: {Track/Station URI, Extra Md, Context URI, CQ Auth Token, SMAPI Device Id, CloudQueueVersion, CQ Context Version, CQ Playback Id, API Key, Framer Name}. Segments carry play-seconds + timestamps + packetIds + error counts ('%s play time %fs @%d.%06d (pkt:%u,act:0x%x,off:%lld%s,err:%u,uri:%s)'; 'seg start @ %d.%06d (packetId: %u), end %d.%06d, errs=%u'). Stream ops consumed: R_STREAM_OP_{SAMPLE,OPEN,CLOSE,INTERRUPT,ACK,ERROR,IMMED_RESYNC,SCHED_RESYNC,BOUNDARY}. Report states {In progress, Final, LSE, unsampled}; on completion 'kicking reporting job' -> reportPlay -> uploads to O_TRACKPLAYBASE_URL (cloud). Memory pressure: fixed string pool ('pool has %d strings (%d%% full)', 'no free RTrackLogEntries' reset)."
    ]
   },
   "watchdog": {
@@ -124120,12 +124121,12 @@
    "demo": "'Remote learning' configures remotes for retail demo mode; per-button-code lookup in a remote DB ('one button code not found in DB'); RemoteConfigured/IsRemoteConfigured state",
    "semantics": "IR remote decode + demo-mode remote learning",
    "todo": [
-    "Established: the decoder module and demo remote-learning path are identified.",
-    "Residual: the remote DB contents and the button-to-action mapping table."
+    "Established: the decoder module and demo remote-learning path are identified."
    ],
    "decoder": "Full pipeline decoded from irdecoder.cxx strings (0x10ea7000-0x10ea7a3c). CAPTURE: raw pulses -> histogram decode ('Histogram contains no peaks at all', 'avgA: %f avgB: %f', 'threshold = %f') supporting biphase, pulse-width and pulse-distance coding ('biphase pulse too long %d', 'pulse width coding with threshold of [%f]', 'pulse distance coding with threshold of [%f]') -> 'recognized %d'/code + length ('ir: %d length: %d'). LEARN: 'First capture'/'new capture %d'/'repeat.......' repeat-detection, two-pass long-code learning ('First long code learn for pass %d... this might be a repeat style code', 'Successful long code learn', 'Over ten codes received... not a repeat style code'), length cap ('Ignoring excessively long code during learn'), timeout ('Timeout during IR code learn for target %s'), DB-miss error UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND. BUTTON MAP: exactly three learnable groups persisted as settings lists ':vol_up_codes:', ':vol_down_codes:', ':vol_mute_codes:' plus a fixed input code - actions fire 'IR Volume Up', 'IR Volume Down', 'IR Mute', 'IR Input' events ('handling raw volume up/down/mute/input code'). DEBOUNCE: 'debouncer: recent becomes true'/'bIsRepeat = true' wraps each event ('handling debounced mute/input/volume up/volume Down'); the input action is play-state aware ('currently playing' / 'currently not playing' / 'will try auto play'). CLOUD DB: learned codes are submitted to http://ir.ws.sonos.com/IRCode/ via POST application/xml '<IRCode><code/><value/><guid/></IRCode>' ('ir code submitted with guid %s'), and remote codes are requested via GET ('Requesting: %s', 'Requested code not found in IR database') - the local DB is checked first ('trying db...', 'Code found for remote id [%s]!', 'db code length [%d] exceeds buffer'). READER: a select-thread polls the IR device fd ('selthrd.RIRDecoder.reset/data/except/timeout', 'IR Event read: %zd, msgcount: %u').",
    "resolved_findings": [
-    "Resolved: decoder = histogram->biphase/pulse-width/pulse-distance; 4 actions {vol_up,vol_down,vol_mute,input} persisted as :vol_*_codes: lists; input is play-state aware (autoplay); remote DB = ir.ws.sonos.com/IRCode REST (GET request, POST <IRCode><code><value><guid> submit) behind a local DB cache."
+    "Resolved: decoder = histogram->biphase/pulse-width/pulse-distance; 4 actions {vol_up,vol_down,vol_mute,input} persisted as :vol_*_codes: lists; input is play-state aware (autoplay); remote DB = ir.ws.sonos.com/IRCode REST (GET request, POST <IRCode><code><value><guid> submit) behind a local DB cache.",
+    "Resolved: DB contents + button map decoded (irdecoder.cxx, domain 'irdecode'/'irDecoder'). Storage: factory /opt/ir/irconfig.txt + learned overlay /jffs/irconfig.txt (write failure logged 'Could not write ir configuration!'). Built-in DB embeds TV-brand code tables (LC-32B56, SuperSonic SC-240/491, ViewSonic VT4210LED/VT3205LED, Loewe visible in rodata). Button map = 5 bounded code lists: {repeat, volup, voldown, input, volmute} - each 'Cannot add X code: list full.' at 0x10248008-0x10248454. Targets keyed by state strings {DesiredConfiguration, DesiredButtonLockState, UnpairedButtonLock, UnpairedConfiguration}. Learn flow: multi-pass 'Pass %d length %d learn count: %d' - pass1 short code + pass2 long, verified pass1==pass3 size ('Learn failed! first and third passes have different sizes!'); codes logged as \\x%02X hex. Learned codes POSTed as <IRCode> XML to http://ir.ws.sonos.com/IRCode/ (override key O_IR_DB_WS_IRCODE_URL) returning guid. SOAP actions {CommitLearnedIRCodes, IdentifyIRRemote, LearnIRCode}; errors UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND / 'Requested code not found in IR database' / unknown-target/unknown-pattern rejects."
    ]
   },
   "migrationmanager": {
@@ -124167,12 +124168,12 @@
    "impl": "arping.cxx -> ARPingManager thread",
    "semantics": "{async,sync} arping for <ip>, every <ms> for <ms>: ARP probing for connectivity/IP-conflict checks",
    "todo": [
-    "Established: the ARPingManager thread and probe grammar are identified.",
-    "Residual: which monitors schedule probes and how results feed connectivity decisions."
+    "Established: the ARPingManager thread and probe grammar are identified."
    ],
    "scheduling": "The ARPingManager lives as a zp-aa member (constructed in the zp mega-ctor f_1018d27c, torn down in f_101921a0). Probe scheduling goes through f_1058940c, the kick API: mutex -> store enable byte +0xf9, store the param word +0xfc, optionally clock_gettime the start stamp +0x104, then signal the +0xa8 wait-queue the manager thread blocks on - i.e. callers do not run ARP themselves, they arm the manager and its thread performs the probe. External callers cluster into two families: the zone-side monitor family at 0x10222xxx (f_10222f54/2e58/42ec/44d8/4574 call the kick/reset APIs f_1058940c/f_10589f64/f_1058964c/f_10589eec/f_1058a1d4/f_1058a07c/f_1058a23c) and the playback/stream-side family at 0x104dbxxx-0x104e6xxx (same entry points, plus f_105888fc/f_105887d0/f_105886e4 result queries). Result flow: the module keeps per-probe pending state - 'arping for %s, pending reset in progress' shows results resolving a pending-reset flag rather than pushing verdicts; the monitor that armed the probe reads the outcome via the f_10588xxx query functions on its next cycle and applies its own connectivity decision (retry vs reset). Additional single callers: f_105e9694 (f_10588348), f_1067e4d8 (f_105883e4), f_1068108c (f_10588480), f_107411a0 (f_10586a94).",
    "resolved_findings": [
-    "Resolved: probes are armed via f_1058940c (enable +0xf9, param +0xfc, start +0x104, signal +0xa8) - monitors kick, the manager thread probes; consumers are the zone-monitor family (0x10222xxx) and the playback/stream-monitor family (0x104dbxxx..0x104e6xxx) which read results through the f_10588xxx query functions."
+    "Resolved: probes are armed via f_1058940c (enable +0xf9, param +0xfc, start +0x104, signal +0xa8) - monitors kick, the manager thread probes; consumers are the zone-monitor family (0x10222xxx) and the playback/stream-monitor family (0x104dbxxx..0x104e6xxx) which read results through the f_10588xxx query functions.",
+    "Resolved: ARP probes are scheduled by the topology layer - the async starter f_10586a94 ('async arping started for %s, every %u ms for %u ms') is called once from topology_base.cxx at 0x1074124c (sync variant 'sync arping started' at 0x10586d6c). Results classify against the tracked-device table at f_1073ea64: {arping successful for active device, arping successful for vanished device, arping ip address matched but not mac address, arping unsuccessful} - feeding zone-membership/connectivity decisions. A pending reset blocks new probes ('cannot start async arping for %s, pending reset in progress')."
    ]
   },
   "muse_authhelper": {
@@ -124323,24 +124324,24 @@
    "files": "/tmp/current_play_state + /tmp/crashed_play_state: crash-recovery state snapshots",
    "semantics": "[play_state] debug block; media-player orchestration",
    "todo": [
-    "Established: the crash-recovery state files and orchestration role are identified.",
-    "Residual: the snapshot contents and the restore path on crash."
+    "Established: the crash-recovery state files and orchestration role are identified."
    ],
    "serialization": "Crash-recovery snapshot fully decoded. FILE: /tmp/current_play_state, written atomically via tmp+rename ('couldn't rename %s to %s - reason: %s', 'couldn't create %s', 'couldn't update (op %s) current play state file'). CONTENT: a compact XML - '<PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>' - the 32-bit play-state bitmask (transport/queue state), the running PlaybackCount, and InfoCount of attached info records. STATE FEED: the mgr observes bitmask transitions - 'got state change %04x -> %04x (%04x started, %04x stopped), aI %u aP %u' (%04x started/stopped = the per-bit enter/leave sets, aI/aP = active-info/active-play counts), under tag 'playstatemgr'. RESTORE: on restart the file lets the player reconstruct which play-state bits were live and how far the session had progressed - this is what the crash-recovery docs mean by 'state files'. Neighboring playback-policy keys (fullTrackOnly, allowShuffle, allowRepeat, cacheOnPause, stopOnError, clearOnEnd, pauseAtEnd, repeatLastTrack under 'hPlaybackPolicy') name the policy flags the play state is evaluated against.",
    "resolved_findings": [
-    "Resolved: /tmp/current_play_state = atomic XML snapshot {PlayState 0x%08x, PlaybackCount, InfoCount}; the mgr watches state-bit transitions (started/stopped sets + aI/aP counts) and the hPlaybackPolicy flag vocabulary is named."
+    "Resolved: /tmp/current_play_state = atomic XML snapshot {PlayState 0x%08x, PlaybackCount, InfoCount}; the mgr watches state-bit transitions (started/stopped sets + aI/aP counts) and the hPlaybackPolicy flag vocabulary is named.",
+    "Resolved: snapshot = /tmp/current_play_state (runtime) + /tmp/crashed_play_state (crash residue consumed on next boot for restore). Persisted XML: <PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>. Restore path replays queue files: /trackqueue.rsq + per-playlist iterators {iterateASXPlayList(<ref href=/entryref>), iterateM3UPlayList, iterateWLPPlayList, iteratePLSPlayList}. Queue record fields {QueueID 'val'=%.20s, QueueOwnerID, QueueOwnerContext, QueuePolicy, EnqueuedURIsAndMetaData, CurrentTrackIndex, NewCurrentTrackIndices, UpdateID, Curated}; queue actions {AddURI, AddMultipleURIs, AttachQueue, Backup, CreateQueue, RemoveAllTracks, RemoveTrackRange, ReorderTracks, ReplaceAllTracks, SaveAsSonosPlaylist}; hPlaybackPolicy flags {fullTrackOnly, allowShuffle, allowRepeat, cacheOnPause, stopOnError, clearOnEnd, pauseAtEnd, repeatLastTrack}. Transition trace: 'got state change %04x -> %04x (%04x started, %04x stopped), aI %u aP %u'."
    ]
   },
   "reporting_policy": {
    "impl": "reportuploader.cxx + usagedatasharing.cxx",
    "semantics": "RReportUploader + RUsageDataSharing; 'usageDataSharing refreshed, optin changed to: %d': telemetry opt-in gate",
    "todo": [
-    "Established: the uploader + opt-in gate pair is identified.",
-    "Residual: which report types the opt-in actually suppresses."
+    "Established: the uploader + opt-in gate pair is identified."
    ],
    "gated_callsites": "Call-site census complete. The opt-in predicate f_10577870 has exactly ONE caller: f_10707cd4, the consent-refresh gate - it resolves R_CustomerID via vfunc +0xc on the context, strlcpy's it into the uploader context at +0x150 under the +0x150-adjacent lock, runs the UDS accessors f_10577408/f_105776d8, and logs 'usageDataSharing refreshed, optin changed to: %d' under tag 'usagemetrics'; when f_10577870 reads 0 it returns early. f_10707cd4 in turn has exactly TWO callers, and both are report-submit entry points: f_105c9f94 (serializes a string payload via f_10831bc0 + writer fn 0x105ca6f8, submits through f_105cb5cc) and f_1066b320 (the second upload channel - builds the document via f_10669cbc/f_1066d22c pairs). Both invoke the gate only after the uploader's own f_10707914 enabled-check passes. Conclusion: opt-in does NOT filter by report type - it gates the SUBMIT BOUNDARY of both upload channels wholesale. Everything that flows through RReportUploader (crash dumps, telemetry docs, diagnostics payloads) is suppressed together when opted out; nothing bypasses the two entry points.",
    "resolved_findings": [
-    "Resolved: exactly two callsites gate on consent - f_105c9f94 and f_1066b320, the two RReportUploader submit entries; opt-in suppression is all-or-nothing at the submit boundary, no per-report-type filtering exists."
+    "Resolved: exactly two callsites gate on consent - f_105c9f94 and f_1066b320, the two RReportUploader submit entries; opt-in suppression is all-or-nothing at the submit boundary, no per-report-type filtering exists.",
+    "Resolved: the suppressing value is the literal string 'NoReport' stored in the opt-in buffer (+9, 0x20 bytes); +4 caches strcmp==NoReport so isOptedIn()=!(+4). Suppressed report types: daily watchdog info ('Skip submitting daily WD info'), UsageMetrics periodic submissions, event_reporter_v3 uploads, reporting-domain submissions, wifi slow-report path. Opt-in refresh logs 'usageDataSharing refreshed, optin changed to: %d' (0x10707d98)."
    ]
   },
   "sounddev": {
@@ -124348,11 +124349,12 @@
    "semantics": "<SoundDevice><Zones> doc; 'SoundDevice: setCoefficients to StdQ ASRC Coeffs': ASRC coefficient selection",
    "todo": [
     "Established: the SoundDevice zones doc and ASRC coefficient selection are identified.",
-    "Residual: the ASRC quality-switch trigger conditions and coefficient table provenance."
+    "Residual: the HQ-vs-StdQ coefficient table provenance (where the hi-rate coefficient block itself lives) and the precise condition decoding 'hi-res music source' (rate threshold vs source-type flag) - the StdQ path is proven, the alternate table selection site is not yet located."
    ],
    "asrc": "ASRC decode complete (sounddev.cxx f_107f53c8 + Audio Rate Controller f_107fa848). COEFFICIENT PROVENANCE: setCoefficients builds the table object (alloc 0x68 via f_10809f0c, init f_107c6b3c) from the static table at 0x110a54b0 plus a double parameter at 0x10eb4830, then logs 'setCoefficients to StdQ ASRC Coeffs' - there is NO quality-tier switch: every SRC instance uses the same StdQ set (searched HiQ/LowQ - absent). THREE SRC USERS share it: the main SoundDevice path ('SoundDevice: setCoefficients...'), the Audio Rate Controller drift-compensation loop ('Audio Rate Controller : setCoefficients...', 'Drift Measurement Error', 'adjust rate of 0'), and a dedicated Hi-Res music SRC ('Hi-Res music SRC: setCoefficients to StdQ ASRC Coeffs'). TRIGGER CONDITIONS: coefficient (re)programming happens on input-rate (re)configuration - 'Configured Audio Rate Controller to new Input Audio Sample Rate: %u' with 'ASRC will be reset. Sample Rate changed from: %u to: %u'; illegal rates are rejected up front ('Unsupported Input Audio Rate: %u', 'Unsupported Input Line Rate: %u', 'illegal sample frequency for Hi-Res music:%u', 'illegal number of channels for Hi-Res music:%u'). GATES: the JFFS flag file 'system/src_disable' (constructJFFSRootPath + sonosFileExists) bypasses SRC entirely - a dev override; Hi-Res additionally warns on models that shouldn't support it ('WARNING! This model shouldn't support Hi-Res Music: %s'). 'ASRC reset time %llu us'/'ASRC_ERROR' are perf/fault telemetry around resets.",
    "resolved_findings": [
-    "Resolved: no runtime quality switch exists - all three SRC users (SoundDevice, Audio Rate Controller drift loop, dedicated Hi-Res SRC) program the same StdQ table from 0x110a54b0 + param 0x10eb4830; triggers are input-rate reconfig + reset, gated by legality checks, model support, and the system/src_disable JFFS override."
+    "Resolved: no runtime quality switch exists - all three SRC users (SoundDevice, Audio Rate Controller drift loop, dedicated Hi-Res SRC) program the same StdQ table from 0x110a54b0 + param 0x10eb4830; triggers are input-rate reconfig + reset, gated by legality checks, model support, and the system/src_disable JFFS override.",
+    "Resolved (partial): ASRC quality switch is explicit: on hi-res music source the code logs 'Hi-Res music SRC: setCoefficients to StdQ ASRC Coeffs' (0x10308650) and applies the StdQ coefficient param block at 0x10eb4830 (float pair {7.1729...,0,0.6393...,0}) via f_107c7334. ASRC auto-resets on sample-rate change ('ASRC will be reset. Sample Rate changed from: %u to: %u', 0x103086f0). Same StdQ path applies in SoundDevice (0x107f5464) and TV-ASRC (12 sites 0x107fa7ec-0x107fb2b0). 'ASRC reset time %llu us' logged for timing."
    ]
   },
   "soap_client": {
