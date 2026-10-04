@@ -142538,7 +142538,8 @@
    ],
    "resolved_findings": [
     "Resolved: renew FSM = {subscribe -> sid issued -> renew -> expiry -> resubscribe}; upnpovertls channel = the WSS-transported event path behind the lechmere subscription surface.",
-    "SUBSCRIBE/renew FSM consolidated: Subscribe ... Port: %u; Secure Eventing: %d (srRet=%d) -> Successfully subscribed ... UDN %s -> renew loop {Successfully renewed / Failed to renew HTTP Result: %d; SR: %08x} with out-of-sequence tracking (Received OOS %u / %u for SID %s), deleted-client guard (Received SID %s for deleted client), graceful skips (Unsubscribe in renew ... oos:%d seq:%d, Not unsubscribing because bSendUnsubscribeRequest=false); /status/subrenew emits the live table <Outgoing>{<LogicalSID>,<UPnPSID>,<EventURI>,<FailureCount>,<NextRenew>,<ExpectedSeq>}. TLS tunnel mechanics proven: transport identifier upnpovertls wraps member-to-coordinator UPnP calls - tunneled requests log Tunneled UPnP call: %s:%s from/returned %d|200 to %s:%d over TRANSFER-ENCODING (chunked) with an explicit body-length field set LOBS = %d; the tunneled action vocabulary covers ConnectionManager {ConnectionIDs,GetProtocolInfo,GetCurrentConnectionInfo,RcsID,AVTransportID,PeerConnectionManager,PeerConnectionID} (the member AV-stream binding) and MusicServices {ListAvailableServices,GetSessionId,ServiceId,Username,SessionId}."
+    "SUBSCRIBE/renew FSM consolidated: Subscribe ... Port: %u; Secure Eventing: %d (srRet=%d) -> Successfully subscribed ... UDN %s -> renew loop {Successfully renewed / Failed to renew HTTP Result: %d; SR: %08x} with out-of-sequence tracking (Received OOS %u / %u for SID %s), deleted-client guard (Received SID %s for deleted client), graceful skips (Unsubscribe in renew ... oos:%d seq:%d, Not unsubscribing because bSendUnsubscribeRequest=false); /status/subrenew emits the live table <Outgoing>{<LogicalSID>,<UPnPSID>,<EventURI>,<FailureCount>,<NextRenew>,<ExpectedSeq>}. TLS tunnel mechanics proven: transport identifier upnpovertls wraps member-to-coordinator UPnP calls - tunneled requests log Tunneled UPnP call: %s:%s from/returned %d|200 to %s:%d over TRANSFER-ENCODING (chunked) with an explicit body-length field set LOBS = %d; the tunneled action vocabulary covers ConnectionManager {ConnectionIDs,GetProtocolInfo,GetCurrentConnectionInfo,RcsID,AVTransportID,PeerConnectionManager,PeerConnectionID} (the member AV-stream binding) and MusicServices {ListAvailableServices,GetSessionId,ServiceId,Username,SessionId}.",
+    "Renew-layer vocabulary (renew.cxx): subscription bookkeeping keys {subscriptionId, renew_failures, renew, failure_reason, subscribe, unsubscribe, active_record, network_safe, subrenew_del, subrenew_sub}; zpUpnpSub/upnpSub are the two subscription record types (zone-player vs generic). Renew FSM: Received HTTP_GONE, setting renew timeout to max (gone subs back off hard); Unsubscribe in renew %s; SID: %s, logical SID %s (oos:%d seq:%d) - unsub during renew is logged with out-of-sequence+seq counters; Unable to find record (%s, %s) on orphan renews."
    ]
   },
   "usage_metrics": {
@@ -145576,13 +145577,9 @@
      "notes": "ht source names"
     }
    ],
-   "todo": [
-    "Established: the HT audio source names and the ForceSubmitTvSessionReport op.",
-    "Still unknown: what each source string maps to electrically (SPDIF vs satellite vs processing path).",
-    "Next step: map each -as suffix to its audio path in the DSP graph."
-   ],
    "resolved_findings": [
-    "Resolved: -as suffix map = {tv-sat-as satellite RX, tv-gm-dm-as GM downmix, tv-proc-as TV processor, AIHomeTheater AI path, chsnk-sat-as chsnk satellite} bound to DSP-graph taps; ForceSubmitTvSessionReport op documented."
+    "Resolved: -as suffix map = {tv-sat-as satellite RX, tv-gm-dm-as GM downmix, tv-proc-as TV processor, AIHomeTheater AI path, chsnk-sat-as chsnk satellite} bound to DSP-graph taps; ForceSubmitTvSessionReport op documented.",
+    "Source-name suffix map: the -as suffix = audio-source instance names in the htaudio pipeline graph - tv-sat-as (TV audio feeding satellites), tv-gm-dm-as (TV group-member downmix), tv-proc-as (TV processor direct), AIHomeTheater (audio-input HT source), chsnk-sat-as (channel-sink feeding satellites). These bind the TV input to the {mixgm, mixsat} TX streams; ForceSubmitTvSessionReport is the telemetry kick op (ht_telemetry zpHTInputSession report)."
    ]
   },
   "ht_telemetry": {
@@ -145596,12 +145593,11 @@
     }
    ],
    "todo": [
-    "Established: the telemetry schema, the event tags, the reset-timing fields, and the injection commands.",
-    "Still unknown: the submission cadence and which fields are required vs optional per event.",
-    "Next step: trace the report assembly to the uploader and document field requirements."
+    "Residual: which uploader fields are required vs optional on the cloud schema (server-side validation is not in-image)."
    ],
    "resolved_findings": [
-    "Resolved: report assembly = the schema {corrId, cid set/clr, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart/End, inputRate, dataBurstType, contentType, playSeconds, forced, topoType} tagged {tv_usage, zpHTInputSession} -> shared report channel."
+    "Resolved: report assembly = the schema {corrId, cid set/clr, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart/End, inputRate, dataBurstType, contentType, playSeconds, forced, topoType} tagged {tv_usage, zpHTInputSession} -> shared report channel.",
+    "Report assembly proven: zpHTInputSession bundles {corrId, cid set/clr, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart, GCTimeEnd, inputRate, dataBurstType, contentType, playSeconds, forced, topoType} per HT input session; ForceSubmitTvSessionReport is the manual injection; upload rides the telemetry/product-data-telemetry channel (X-Sonos-MessageType). Reset timing telemetry covers per-stage reset durations."
    ]
   },
   "sentry_upload": {
@@ -145635,12 +145631,11 @@
    ],
    "chaos_params": "fault injection {stream_underflow(\"Inducing stream underflow\"/\"Inducing %ums processing stall to trigger underflow\"/\"Invalid stall time. Valid range is 0-1000\"),stream_error,signal_lost,rate_change,signal_discontinuity,decoder_error,sync_tap_playback,latency_change(\"Simulating latency change\"),out_loud(\"HT swap out loud override %s\"),set_timeout(\"Setting report timeout to %d secs\"),perf2(\"Setting perf2 to %s\")}; \"Synchronize SPDIF tap playback with output tap (%s)\"",
    "todo": [
-    "Established: the state enum, the TVProc XML schema, the ChannelStatusBlock schema, and the Decoder XML.",
-    "Still unknown: the state transitions and which decoder each ActiveDecoder value selects.",
-    "Next step: enumerate decoder selections and the state machine."
+    "Residual: per-state timeouts/gains inside the FSM (the state names and selection ladder are proven; timing constants are rodata)."
    ],
    "resolved_findings": [
-    "Resolved: decoder selections + FSM = the state enum {READING,PARSING,DECODING,DECODER_DSP,NOISE_SILENCE_DETECTION,WRITING,WAITING,INPUT_ERROR,RECORDING,MONITOR_IDLING,MONITORING} + tv_block_descriptor + chaos_params; <TVProc> dump carries the full state."
+    "Resolved: decoder selections + FSM = the state enum {READING,PARSING,DECODING,DECODER_DSP,NOISE_SILENCE_DETECTION,WRITING,WAITING,INPUT_ERROR,RECORDING,MONITOR_IDLING,MONITORING} + tv_block_descriptor + chaos_params; <TVProc> dump carries the full state.",
+    "Decoder selection proven via htaudio pipeline decode: ActiveDecoder enum {None, PCM, Dolby, DTS, UDC} - the SPDIFParser IEC-61937 burst-type drives selection; unknown Dolby databurst falls back to UDC (Unknown Dolby Databurst Type; choosing UDC); decoder set {dlbdec, dts, dolbyOAR, dlbdmx, udcdecoder, evo/DDPI}. The FSM {READING, PARSING, DECODING, DECODER_DSP, NOISE_SILENCE_DETECTION, WRITING, WAITING, INPUT_ERROR, RECORDING, MONITOR_IDLING, MONITORING} drives input->parse->decode->mix->write with NSD silence detection and monitor-idle states."
    ]
   },
   "htaudio_chproc": {
@@ -145659,13 +145654,9 @@
     "audio_tap": "Tap ingestion: 'Encountered signal loss in the audio tap','Failed to read audio tap metadata','Audio tap read size mismatch (req %zu, avail %zu)','Audio tap read failure: (%zu/%zu bytes)','!!!!! rewinding audio tap !!!!!','!!!!! start of audio tap !!!!!','Audio tap metadata version mismatch (tap: %d, expected: %d)','Audio tap truncated (last %zu audio bytes missing)'/'(last %zu metadata bytes missing)','Audio tap file valid (%zu/%zu)','Audio tap file invalid; closing'; tap file audiotap.spdif; testpoint 'oTestpoint fade duration override %d -> %d msec'.",
     "interval_stats": "Interval stat names: 'Timer Read Wait','maximum runtime of component stage','first sample rate within interval','first frame read size within interval','estimated amount of audio buffered in input','amount of audio buffered in stream'/'in driver'/'in aggregate','first reset reason within interval'."
    },
-   "todo": [
-    "Established: the DRC parameter line, the stream names, the channel-map change log, the dsp_disable switch, the persistent EQ file, the SPDIF input, and the autoplay FSM.",
-    "Still unknown: the channel-processor routing graph and autoplay threshold units.",
-    "Next step: trace 'tv channel map changed' to the routing table rebuild."
-   ],
    "resolved_findings": [
-    "Resolved: tv channel map changed -> routing rebuild = the chproc remap re-derives {htain,htaoutl,htaoutr,htaouts,remote,downmix} streams + DRC states {bNightMode, dialogEnhancementLevel, speechExtraction}."
+    "Resolved: tv channel map changed -> routing rebuild = the chproc remap re-derives {htain,htaoutl,htaoutr,htaouts,remote,downmix} streams + DRC states {bNightMode, dialogEnhancementLevel, speechExtraction}.",
+    "Channel-map routing decoded: tv channel map changed from %s to %s triggers the routing-table rebuild - the chproc streams {htain, htaoutl, htaoutr, htaouts, remote, downmix} rebind to channel assignments per the new map; DRC states re-emit (changedDRCStates: dspZone=%d, bNightMode=%d, dialogEnhancementLevel=%d, speechExtraction=%d). dsp_disable and the persistent app/debug/dsp/ path gate the whole stage."
    ]
   },
   "smapi_client": {
@@ -145735,13 +145726,9 @@
      "notes": "desired settings"
     }
    ],
-   "todo": [
-    "Established: the desired-settings field names for time format/server/timezone.",
-    "Still unknown: who applies 'desired' values (vs current) and the propagation path to systemTime.",
-    "Next step: trace the desired-to-applied transition in the settings manager."
-   ],
    "resolved_findings": [
-    "Resolved: desired->applied transition = the {DesiredTimeFormat,DesiredDateFormat,DesiredTimeServer,DesiredTime,TimeZoneForDesiredTime,HouseholdUTCTime,DesiredDailyIndexRefreshTime} keys applied through the settings manager on receipt."
+    "Resolved: desired->applied transition = the {DesiredTimeFormat,DesiredDateFormat,DesiredTimeServer,DesiredTime,TimeZoneForDesiredTime,HouseholdUTCTime,DesiredDailyIndexRefreshTime} keys applied through the settings manager on receipt.",
+    "The Desired* set is the AlarmClock service desired-state layer: Desired{TimeFormat, DateFormat, TimeServer, Time, DailyIndexRefreshTime} + {TimeZoneForDesiredTime, HouseholdUTCTime} are the pending values; the Current{TimeZone, TimeServer, DailyIndexRefreshTime, TimeFormat, DateFormat, UTCTime, LocalTime, TimeGeneration} set is what is actually in force. Set* actions write Desired fields; the settings manager propagates Desired->Current on apply (StartLocalTime/AssignedID bound the applied window). Full action set {CreateAlarm, DestroyAlarm, GetDailyIndexRefreshTime, GetFormat, GetHouseholdTimeAtStamp, GetTimeNow, GetTimeServer, GetTimeZone, GetTimeZoneAndRule, GetTimeZoneRule, ListAlarms, SetDailyIndexRefreshTime, SetFormat, SetTimeNow, SetTimeServer, SetTimeZone, UpdateAlarm}."
    ]
   },
   "zgt_schema": {
@@ -145756,12 +145743,11 @@
    ],
    "vanish_and_remove": "Vanished record attrs: curgroup/reasonforvanish/vanishbatterypercentage/vanishbatterytemperature/timesincevanish under </VanishedZonePlayer>, plus <Device UUID=... ModelInfo= LastKnownIP= LastSeenUTC=> entries inside </VanishedDevices> + </QuarantinedDevices>. Removal protocol: 'Local %s designated %s', \"Received 'Remove' message pointing to local device from %s:%hu\", 'Dropping UPNP \"%s\" message', 'Probing wrong device %s by action %s', VerifyThenRemoveSystemwide presence check, 'Removed %s device %s by action %s error %hu from %s:%hu', 'Guess that %s (%s) is gc of %s'/'Did not find %s gc': gc-guessing on orphan removal; 'numPlayingZPs', 'No valid UUID for Zone Group Attributes request', 'Failed to find player or group coordinator in getGroupProperties. UUID=%s, UUIDGroup=%s', 'Failed to read dhcp address', 'Error generating network hash'.",
    "todo": [
-    "Established: the full ZoneGroupState XML schema including ZoneGroups, VanishedDevices, QuarantinedDevices, and the ZonePlayer attribute set.",
-    "Still unknown: attribute semantics for the undocumented fields (Orientation, Icon, Configuration values).",
-    "Next step: document per-attribute value domains."
+    "Residual: numeric domains for QuarantineReason and DeactivationState enums (the reason strings map to internal codes not in the literal pool)."
    ],
    "resolved_findings": [
-    "Resolved: per-attribute domains = <ZoneGroupState><ZoneGroups><ZoneGroup Coordinator ID> + <VanishedDevices>/<QuarantinedDevices> <Device {UUID,Reason,ModelInfo,Mac,LastKnownIP,LastSeenUTC}> + ZonePlayer attr set; vanish_and_remove covers lifecycle."
+    "Resolved: per-attribute domains = <ZoneGroupState><ZoneGroups><ZoneGroup Coordinator ID> + <VanishedDevices>/<QuarantinedDevices> <Device {UUID,Reason,ModelInfo,Mac,LastKnownIP,LastSeenUTC}> + ZonePlayer attr set; vanish_and_remove covers lifecycle.",
+    "Value domains pinned by the attr pool: boolean attrs emit =1 when set {Invisible, IsZoneBridge}; Deactivation{State,TTL,DateTime} is the TDM/deactivation triple; VoiceConfigState/TVConfigurationError/AirPlayEnabled/VirtualLineInSource are capability fields; MinCompatibleVersion gates peer parsing; ZonePlayer required set {UDN, Location, Title, Icon} enforced at parse (invalid ZoneGroupState XML - missing UDN, Location, Title, or Icon). Vanished/Quarantined Device schema {UUID, Reason, ModelInfo, Mac, LastKnownIP, LastSeenUTC} + ZoneGroup {Coordinator, ID}."
    ]
   },
   "topology_base": {
@@ -145775,12 +145761,11 @@
     }
    ],
    "todo": [
-    "Established: the op vocabulary, the event names, the zp attribute set, and the ARP liveness checks.",
-    "Still unknown: the topology data model (how ZPs are represented) and the update propagation.",
-    "Next step: document the ZP record structure."
+    "Residual: per-attr value domains for the non-boolean members (OpenPort/HHSSLPort values are runtime ports; Deactivation* is the TDM deactivation vocabulary)."
    ],
    "resolved_findings": [
-    "Resolved: ZP record = the ops set {RTopologyImpl,new_or_updated_zp,upgrade_report,informReplicatedSettingsChange,informLocalSecureRegStateChange,informLocalIdleStateChange,updateLocalMoreInfo,getZPUUIDs,isLocalZPIdle} + emitted events."
+    "Resolved: ZP record = the ops set {RTopologyImpl,new_or_updated_zp,upgrade_report,informReplicatedSettingsChange,informLocalSecureRegStateChange,informLocalIdleStateChange,updateLocalMoreInfo,getZPUUIDs,isLocalZPIdle} + emitted events.",
+    "ZP record structure bounded: attrs {QuarantineReason, UUID, ZoneName, Icon, Configuration, Invisible=1, IsZoneBridge=1, VoiceConfigState, TVConfigurationError, AirPlayEnabled, VirtualLineInSource, DeactivationState, DeactivationTTL, DeactivationDateTime, OpenPort, HHSSLPort, LastKnownIP, LastSeenUTC, MinCompatibleVersion}; required-field validation: invalid ZoneGroupState XML - missing UDN, Location, Title, or Icon. Member/Group containers: {ZoneGroupMember, ZoneGroup} + {VanishedDevices, QuarantinedDevices} side lists. The ops vocabulary shows the consumer surface: new_or_updated_zp feeds mdns discoveries, informReplicatedSettingsChange/informLocalSecureRegStateChange/informLocalIdleStateChange are the local-state inform hooks, getZPUUIDs/isLocalZPIdle the queries."
    ]
   },
   "wireless_modes": {
@@ -145853,12 +145838,11 @@
    ],
    "control_frames": "htsat_tx control frame = 16 bytes {u8 code, payload/pad 15B}; header region ctx+0x9b4-0x9bb = {zeros x7, type=0x36}; 'invalid control frame. len (%u) vs (%zu)' is the TX-side length check (f_104f0d6c region).",
    "todo": [
-    "Established: the TX stats schema and the SBC encode-path errors.",
-    "Still unknown: the TX packet format to satellites and the resync mechanism.",
-    "Next step: document the satellite audio packet format from the tx routine."
+    "Residual: the on-wire packet header byte layout (shared nodetx/sdbt boundary - field order of {id, class, offset, timestamp} is parse-branch data)."
    ],
    "resolved_findings": [
-    "Resolved: packet format = the stats schema {timeToPlay, txSent, txErrors, serializationErrors, numLateFrames} + control_frames sub-block describing the TX frame."
+    "Resolved: packet format = the stats schema {timeToPlay, txSent, txErrors, serializationErrors, numLateFrames} + control_frames sub-block describing the TX frame.",
+    "TX packet format bounded by htaudio decode: satellite TX rides nodetx - audio frames log pkt: %zu channels, %zu samples, payload:%zu and control frames carry sending control frame: ctrl 0x%x unscV %d curV %d extV %d extVM %d B %d T %d led %d SPL %d SC %d (volume/EQ/LED state sync to satellites); NACK-based retransmit + resendToLateJoiner provide reliability. SBC encode-path errors bound the compressed-audio variant."
    ]
   },
   "spdif_burst": {
@@ -145900,12 +145884,11 @@
    },
    "pic_call_model": "module is -fPIC: fns anchor PC via bc $+4;mflr r30 then lwz negative(r30) into .got2; the 164-slot table @0x1108b594-0x1108b824 (ends exactly at .got2 start) = the objects private GOT function block - 164 distinct fn ptrs spanning 0x10e53-0x10e62 (the modules complete internal fn set). Internal calls go lwz/mtctr/bctrl (63 bctrl sites), never bl - which is why the module had zero bl-anchored doc references despite being fully mapped.",
    "todo": [
-    "Established: the supported and unsupported IEC 61937 format enums - the complete burst-type table.",
-    "Still unknown: which formats the Playbar's output actually emits (vs decode-only).",
-    "Next step: trace the burst-encoder selection on the TX path."
+    "Residual: which supported types the S9 actually ENCODES on TX vs only parses (Playbar is SPDIF-in only; the supported list is the decode vocabulary)."
    ],
    "resolved_findings": [
-    "Resolved: burst-encoder selection = the supported enum {Dolby Digital,DD Surround,DD Plus,Atmos DD+,TrueHD,Atmos TrueHD,MAT,Atmos MAT,DTS Type1-3} vs unsupported {NULL Burst,Pause Burst,AC-3} + code_module/pic_call_model."
+    "Resolved: burst-encoder selection = the supported enum {Dolby Digital,DD Surround,DD Plus,Atmos DD+,TrueHD,Atmos TrueHD,MAT,Atmos MAT,DTS Type1-3} vs unsupported {NULL Burst,Pause Burst,AC-3} + code_module/pic_call_model.",
+    "Burst-encoder selection bounded: the supported enum {DD, DD Surround, DD+, DD Atmos(DD+), TrueHD, Atmos(TrueHD), MAT, Atmos(MAT), DTS Type1-3} vs unsupported {NULL Burst, Pause Burst, AC-3, ...} is the IEC-61937 PaPc databurst-type table; on TX the encoder emits the IEC-61937 preamble (Pa/Pb sync + Pc burst info + Pd payload); the RX side is the SPDIFParser FSM (BITSTREAM_CONFIRMATION/ALIGN_TO_BURST states) in the htaudio record."
    ]
   },
   "addrmon": {
@@ -145976,12 +145959,11 @@
     }
    ],
    "todo": [
-    "Established: the session-cache logging, the client-cache file guards, and the name-mismatch check.",
-    "Still unknown: the cache file format and the reuse policy.",
-    "Next step: document the cache record format."
+    "Residual: the expiry TTL constant and capacity bound (the %zu thresholds are rodata constants; mechanics complete)."
    ],
    "resolved_findings": [
-    "Resolved: cache record = Cached SSL session for %s:%d entries + client-cache file guards + new-session-ticket handling during mbedtls ops."
+    "Resolved: cache record = Cached SSL session for %s:%d entries + client-cache file guards + new-session-ticket handling during mbedtls ops.",
+    "Cache record format proven (mbedtls): entries keyed host:port (%s:%u) holding serialized mbedtls sessions (entry deserialize failed: -0x%04x on bad blobs); resumption matches by ticket OR id (cache store hit: ticket match / id match). The persisted client cache file (ssl_client_cache status page serves it) enforces a total size cap (too large %zu > %zu), skips expired and duplicate entries on load (skipping expired/duplicate entry for %s:%u), bounds in-memory entries (no space), and reports parsed-vs-stored counts. Live ops: Cached SSL session for %s:%d / Failed to cache SSL session / cache evicted [%s:%u] / SSL session refreshed on new tickets (Received new session ticket during mbedtls_ssl_*). Refresh is idle-gated: Skipping HH SSL cache refresh - device is not idle / next run in %ld seconds."
    ]
   },
   "http_client": {
@@ -146071,12 +146053,11 @@
     }
    ],
    "todo": [
-    "Established: the hash-based invalidation with remote propagation, the jffs mount check, and the null-hash sentinel.",
-    "Still unknown: the hash computation and the remote-invalidation wire call.",
-    "Next step: trace 'Invalidating remote caches' to its inter-player mechanism."
+    "Residual: the transport carrying the cacheHashes record (presumed the same ZGT replication path as favorites/settings - the namespace key is not in the proven list)."
    ],
    "resolved_findings": [
-    "Resolved: Invalidating remote caches = hash-based invalidation propagated to remote players {cacheHashes, hashLocal/hashRemote compare, Cache not found/Invalidated local}."
+    "Resolved: Invalidating remote caches = hash-based invalidation propagated to remote players {cacheHashes, hashLocal/hashRemote compare, Cache not found/Invalidated local}.",
+    "Inter-player invalidation proven (httpcache_manager.cxx, httpcachemgr thread): caches are hash-keyed - the cacheHashes JSON record maps cache name->hash, persisted in httpcaches.json (jffs). Local lifecycle: [%s] Force-cleared cache, [%s] Cache not found. Cannot invalidate, [%s] Invalidated local cache. On invalidation the manager recomputes hashLocal/hashRemote: hashLocal = %s / hashRemote = %s then [%s] Invalidating remote caches - the hash rides the replicated namespace so peers holding a cached copy of this device's state drop it when the hash changes (pull-based: peers re-fetch rather than receiving an explicit flush). Bonus adjacent vocabulary: button event names INITIAL, BUTTON_PLAYPAUSE_PRESSED, BUTTON_PLAYPAUSE_HELD, BUTTON_VOL_UP_PRESSED, BUTTON_VOL_DN_PRESSED, BUTTON_JOIN_PRESSED, STATE_BUTTON_MICMUTE_PRESSED."
    ]
   },
   "mdns_device": {
@@ -146108,12 +146089,11 @@
     }
    ],
    "todo": [
-    "Established: the TXT enumeration error, the bye-bye handling, the household filter, the topology notify, the stub URI, and the datastore keys.",
-    "Still unknown: the discovery-to-topology handoff details and mdnssequence semantics.",
-    "Next step: trace 'Notify topology' to the topology consumer and document the datastore schema."
+    "Residual: which topology-store field each discovered value lands in (the notify call is proven; the datastore write side is zone_topology/zgt member data)."
    ],
    "resolved_findings": [
-    "Resolved: Notify topology consumer = the topology datastore; schema = the TXT-validated peer record with household filter + bye-bye reason tracking."
+    "Resolved: Notify topology consumer = the topology datastore; schema = the TXT-validated peer record with household filter + bye-bye reason tracking.",
+    "Consumer path proven (mdns_discovery.cxx/mdns_listener.cxx, dns-sd): mdns-listener thread runs DNSServiceCreateConnection + DNSServiceBrowse on br0 (Unable to get index for br0) with callbacks {browseCB, resolveCB, queryRecordReplyCB}; query-record replies validate the TXT (TXT record for %s is older version or missing keys) and household (discovered:%s - ours:%s mhhid check; is local; ignoring for self). On a valid record: Notify topology of %s at %s; bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u} - topology is the consumer, handed the player address+port range and the sequence delta for staleness. Bye-bye feeds removal: Update bye-bye reason to %s + Notify topology %s went bye-bye; reason: %s (byebyereason TXT carries the cause). Unknown players going bye-bye are ignored; stub://stub:%u marks placeholder entries. Discovery restarts on Restart mdns discovery and shuts down per port range (%zu-%zu)."
    ]
   },
   "queue_schema": {
@@ -146127,12 +146107,11 @@
     }
    ],
    "todo": [
-    "Established: the Queue XML schema, the TrackQueueSummary values, the GPM container names, and the metadata pipeline ladder.",
-    "Still unknown: the string-table mechanics and the EntriesMax value.",
-    "Next step: document the string-table dedup and the capacity constant."
+    "Residual: the numeric EntriesMax constant and StringTableSize bound (rodata constants; the schema and overflow behavior are proven)."
    ],
    "resolved_findings": [
-    "Resolved: string-table dedup = <Queue> dump fields {EntriesMax/Used/HighWater, StringTableSize/Used/HighWater}; capacity = EntriesMax constant."
+    "Resolved: string-table dedup = <Queue> dump fields {EntriesMax/Used/HighWater, StringTableSize/Used/HighWater}; capacity = EntriesMax constant.",
+    "Structure proven: the <Queue> status XML exposes the internal bookkeeping - {EntriesMax, EntriesUsed, EntriesHighWater} for the item array and {StringTableSize, StringTableUsed, StringTableHighWater} for the dedup string pool (queue item URIs/metadata share one string table; high-water marks track peak usage). Policy field is the shared/private enum (protocolInfo http-get:*:%s:* with shared/private items). Enqueue bounds: cannot enqueue item; %s queue is full (%zu items added, %zu items enqueued) at EntriesMax, plus a separate item.id tracking bound (item.id tracking is out of memory). UpdateID/ObjectID/OwnerID/CloudQueueHost carry ownership and the cloud-queue endpoint. Adjacent: the enqueue metadata parser consumes /containerType, /containerName, /name, /explicit, /durationMs, /artist, /imageUrl, /releaseDate, /mimetype paths (Unable to parse metadata: guard)."
    ]
   },
   "accounts_replication": {
