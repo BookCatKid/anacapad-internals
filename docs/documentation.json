@@ -141591,12 +141591,13 @@
     }
    ],
    "todo": [
-    "Residual: the numeric threshold constant (runtime compared against %lld; lives in the event-loop init code)."
+    "Residual: the numeric threshold constant - the compared value (%lld RHS) is a per-observer field populated at observer registration (counter schema proven); registration args are runtime data"
    ],
    "resolved_findings": [
     "Resolved: export path = the counter registry {Unique identifier for a set of counters, In-Process Event Subjects, number of events}; threshold = the exceeded duration threshold %lldms > %lldms bound.",
     "Export path proven: perf counters are registered objects under the perf-counters category with sections In-Process Event Subjects and In-Process Event Observers; counter kinds {queueFail (events that failed to queue), dispatchDelay (queue wait time), cbTime (handler duration), event size in bytes} plus perf_counter_keyed identity rows (\"Unique identifier for a set of counters\"). The warning compares against a runtime %lld threshold (%s callback in observer %s exceeded duration threshold %lldms > %lldms) - the value is a config/code constant in the observer registration.",
-    "Evidence: the '%s callback in observer %s exceeded duration threshold %lldms > %lldms' format string (0x10faf1d0) is referenced through GOT2 slot 0x1108d768 - the emit site is live code reached via r2-relative got2 loads, not an inline lis/addi pair; the threshold operand (%lldms RHS) is compared per-callback."
+    "Evidence: the '%s callback in observer %s exceeded duration threshold %lldms > %lldms' format string (0x10faf1d0) is referenced through GOT2 slot 0x1108d768 - the emit site is live code reached via r2-relative got2 loads, not an inline lis/addi pair; the threshold operand (%lldms RHS) is compared per-callback.",
+    "Resolved: the event-loop perf-counter schema is literal - subject \"In-Process Event Subjects\" with group key perf_counter_keyed carries counters {queueFail=\"The number of events that failed to queue\", event size=\"The event size in bytes\", dispatchDelay=\"The amount of time an event spent waiting to be dispatched\"} (0x10faf260-0x10faf30c, pointed at by \"Check perf counters for details\" in the threshold log). The loop is named inprocess-events-loop (0x10faf1a8) and logs \"Eventloop %p configured/removed\"."
    ]
   },
   "upnputil": {
