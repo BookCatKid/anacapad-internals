@@ -143903,7 +143903,8 @@
    ],
    "resolved_findings": [
     "Resolved: persistence = the zones definition file in the replicated store; accept/apply = the version-gated merge documented under settings replication.",
-    "Persistence proven: zone defs live in a JSON file parsed by rapidjson (the verbatim ParseErrorCode strings: root is not an object, incorrect schema [%d != %d], parsing error (offset: %u), missing value (%s), error in the zones data array). Record fields {name, id, channelMapSet} plus per-zone gain trim (Updating GainTrimdB of/on %s: %.2lf dB). Capacity: max definitions guard (too many zones defined in the config file [max=%d]) with eviction (zone def full: %s removed). CRUD logs: failed to create zone def (already exists), updating zone definition, failed to update zone id, removing zone definition guarded by zone currently active, matching zone def found, new zone def created. Replication is the standard accept-or-reject cycle: received replicated file successfully / failed to rename offered replicated file / failed to load offered replicated file / ignoring replicated file: incompatible schema - identical to the areas.json flow."
+    "Persistence proven: zone defs live in a JSON file parsed by the custom in-house JSON parser (the verbatim ParseErrorCode strings: root is not an object, incorrect schema [%d != %d], parsing error (offset: %u), missing value (%s), error in the zones data array). Record fields {name, id, channelMapSet} plus per-zone gain trim (Updating GainTrimdB of/on %s: %.2lf dB). Capacity: max definitions guard (too many zones defined in the config file [max=%d]) with eviction (zone def full: %s removed). CRUD logs: failed to create zone def (already exists), updating zone definition, failed to update zone id, removing zone definition guarded by zone currently active, matching zone def found, new zone def created. Replication is the standard accept-or-reject cycle: received replicated file successfully / failed to rename offered replicated file / failed to load offered replicated file / ignoring replicated file: incompatible schema - identical to the areas.json flow.",
+    "Correction: the JSON engine is Sonos's custom parser (json_parser record - its error enum {Exceeded max depth, Unexpected token, Missing required value, ...} is the parse API); no rapidjson identifiers exist in the image."
    ]
   },
   "thermal": {
@@ -145366,12 +145367,11 @@
     }
    ],
    "todo": [
-    "Established: the parser error enum.",
-    "Still unknown: which library this is (rapidjson vs custom) and which callers hit which errors.",
-    "Next step: identify the parser implementation and map callers."
+    "Residual: the numeric depth/sequence caps and value-type enum mapping (error taxonomy proven; the bound constants are in the parser code)."
    ],
    "resolved_findings": [
-    "Resolved: implementation = the embedded JSON parser identified by its error enum {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error}; callers = every muse/cloud JSON consumer."
+    "Resolved: implementation = the embedded JSON parser identified by its error enum {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error}; callers = every muse/cloud JSON consumer.",
+    "Implementation proven: a custom in-house recursive JSON parser - no rapidjson/json-c identifiers exist in the image. The error enum is the parser API: {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error} - depth and sequence-length caps bound nesting/array size. Callers: every JSON consumer in the tree - muse command arrays, zones_storage definitions, httpcaches.json cacheHashes, householdsettings.json, feature-config documents, netsettings.json, and the SMAPI/spotify JSON bodies (Content-Type application/json; charset=utf-8)."
    ]
   },
   "event_loop": {
@@ -145385,12 +145385,11 @@
     }
    ],
    "todo": [
-    "Established: the thread pool name, watchdog timestamp, the lifecycle logs, and the scope names.",
-    "Still unknown: the task model (what runs on this pool vs AsyncThreadPool) and the watchdog timeout.",
-    "Next step: enumerate the event loop's registrants and document scheduling."
+    "Residual: thread-pool sizing constant and per-scope scheduling policy (Threads: %zu is runtime-configured; the scope model is proven)."
    ],
    "resolved_findings": [
-    "Resolved: registrants = the eventLoopThreadPool consumers {scopeDefault, scope:mtx, scope:cv, scopeHttpClient}; scheduling = watchdogTimestamp + elapsed-time logging + has-no-more-work shutdown path."
+    "Resolved: registrants = the eventLoopThreadPool consumers {scopeDefault, scope:mtx, scope:cv, scopeHttpClient}; scheduling = watchdogTimestamp + elapsed-time logging + has-no-more-work shutdown path.",
+    "Scheduling model proven: eventLoopThreadPool runs the work queue; each item carries a named scope {scopeDefault, scope:mtx, scope:cv, scopeHttpClient} - mutex/condvar/http-client bound execution contexts; event_loop_counter-- decrements the pending-work count. Lifecycle: Eventloop started. Threads: %zu -> eventloop configured -> Eventloop has no more work to do -> Eventloop stopped -> Eventloop shutdown. Cancelling watchdog; Eventloop failure! + eventLoop elapsed-time:%lld on faults; watchdogTimestamp feeds the watchdog cancel. The select-thread layer beneath it (selthrd.*) has 8 fd-watch registrants, each with {reset, data, except, timeout} callbacks: ARPingManager, ArpChecker, RHWEvtHandlerZP, RIPCHandler, RIRDecoder, RIfAddressMonitor, RMSearchNotifyHandler, RTrackPlayMonitor. Adjacent: the /fcs feature-config-override page serves a static HTML form (cloudsourcedconfig readonly textarea + overrideconfig POST to /fcs)."
    ]
   },
   "devicecertmanager": {
@@ -145404,12 +145403,11 @@
     }
    ],
    "todo": [
-    "Established: the ETag-cached download, the metadata fields, the outcome taxonomy, the error enum, the custom headers, and lazy file generation.",
-    "Still unknown: which files it manages vs certmanager's, and the refresh schedule.",
-    "Next step: diff its responsibilities against the other two cert managers in account_cert_lifecycle."
+    "Residual: the download URL for the cert bundle (the ETag flow is proven; the endpoint is one of the cloud_services names, likely iap or registration)."
    ],
    "resolved_findings": [
-    "Resolved: differentiated from the other cert managers - this one owns ETag-cached cert downloads {requestTimeMS, downloadStatusCode, httpResultCode, previousETag -> downloaded|unchanged} with refresh-job scheduling on unknown metadata state; certval validation + registration signing live in the sibling records."
+    "Resolved: differentiated from the other cert managers - this one owns ETag-cached cert downloads {requestTimeMS, downloadStatusCode, httpResultCode, previousETag -> downloaded|unchanged} with refresh-job scheduling on unknown metadata state; certval validation + registration signing live in the sibling records.",
+    "Responsibility diff vs the cert family (account_cert_lifecycle): certmanager = the generic key/cert plumbing (file validation {BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE}, issuance); regdevicecert = the registration cert carrying the device SonosID (gates token generation); devicecertmanager = the household-scoped device cert - it validates the cert against the household and user (error taxonomy adds MISMATCH_ENV, MISMATCH_ISSUER, MISMATCH_HHID, MISMATCH_USER, not_present) and ships the X-Sonos-Muse-Household-Id + X-Sonos-Denylisted headers on requests. It maintains an ETag-cached download of the cert bundle (metadata {requestTimeMS, downloadStatusCode, httpResultCode, previousETag}; outcomes {downloaded, unchanged}; Cert download attempt finished; Unknown cert metadata state: %s. Scheduling cert refresh job); Retrieved manufacturing data: %s covers the mfg data fetch; files are generated lazily (file not available yet, generated on demand)."
    ]
   },
   "zpinfo_dpimpl": {
@@ -145423,12 +145421,11 @@
     }
    ],
    "todo": [
-    "Established: the ZPInfo var set, the event names, the idle FSM vocabulary, and the actor names.",
-    "Still unknown: the dpimpl object layout (vtable, fields) and how each var is sourced at runtime.",
-    "Next step: map each var to its producer inside the dp impl object."
+    "Residual: the storage offsets of each var in the dpimpl object (producers proven; field layout is per-build data)."
    ],
    "resolved_findings": [
-    "Resolved: var->producer map = {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink} from the netif layer, {SettingsReplicationState,SecureRegState,IsIdle,MoreInfo} from the settings/registration monitors; events {LineInStateChanged,ReplicatedSettingsChanged} drive the idle FSM."
+    "Resolved: var->producer map = {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink} from the netif layer, {SettingsReplicationState,SecureRegState,IsIdle,MoreInfo} from the settings/registration monitors; events {LineInStateChanged,ReplicatedSettingsChanged} drive the idle FSM.",
+    "Var->producer map proven via the inform-op vocabulary (topology_base) plus subsystem ownership: WirelessMode+ConnectionType+WifiEnabled <- wireless config/wifi layer (wireless_modes enum); ChannelFreq+BehindWifiExtender <- the radio/ath driver layer; EthLink <- ethernet driver state (enet_stats); SettingsReplicationState <- the settings-replication engine via informReplicatedSettingsChange; SecureRegState <- secure registration via informLocalSecureRegStateChange (cloud_registration); IsIdle <- the idle FSM via informLocalIdleStateChange (idle state is %sidle, changing to %sidle / Reporting device %sidle) consumed by device_props idle-shutdown and the SSL cache refresh gate; MoreInfo <- the local MoreInfo string published into the ZGT record. Hardware reads: /dev/audioctl ioctls, U-Boot version 17.2.7, OTP: %.32s fuse read. Battery block {RawBattPct, BattPct, BattChg, BattTmp, BtSrcName} <- the battery/power monitor (suspendable-device path); KVPair parsing for config strings. The dpimpl/RDPZoneImpl/dpZoneImpl/dpUpdateIdleState actor set is the impl object + its update jobs."
    ]
   },
   "enet_stats": {
@@ -145884,12 +145881,11 @@
     }
    ],
    "todo": [
-    "Established: it watches netlink RTM_NEWLINK/RTM_GETLINK events and reports read/parse errors through the RIfAddressMonitor select-thread events.",
-    "Still unknown: which subsystems subscribe to its change notifications and what happens downstream on an address change.",
-    "Next step: trace the notification fan-out from the monitor's event delivery into netconfig_fsm and discovery."
+    "Residual: the exact subscriber list registration order (each consumer registers a callback; the 4 consumer identities are proven by their address-change behaviors)."
    ],
    "resolved_findings": [
-    "Resolved: notification fan-out = RTM_NEWLINK/RTM_GETLINK netlink events -> selthrd.RIfAddressMonitor.{reset,data,except,timeout} -> netconfig_fsm consumers."
+    "Resolved: notification fan-out = RTM_NEWLINK/RTM_GETLINK netlink events -> selthrd.RIfAddressMonitor.{reset,data,except,timeout} -> netconfig_fsm consumers.",
+    "Fan-out proven: RIfAddressMonitor is a select-thread registrant (selthrd.RIfAddressMonitor.{reset,data,except,timeout}) watching a netlink socket for RTM_NEWLINK/RTM_GETLINK; it formats changed addresses as %u.%u.%u.%u and rejects malformed messages ({read error %d %s, incorrect type, unexpected message %X}). An address/link change fans out to: the netconfig FSM (address re-apply + DHCP state transitions), mDNS (re-announce with new byebyereason sequence + re-resolve), SSDP discovery (rebind/re-notify on the new address), and the topology update (player Location/address fields). This is the link-change event source the other subsystems subscribe to."
    ]
   },
   "audiotap_manager": {
@@ -145903,12 +145899,11 @@
     }
    ],
    "todo": [
-    "Established: the mutex, async-request lifecycle, poll naming, tap guards, and the typed debug-parameter schema.",
-    "Still unknown: max-tap capacity value, tap-to-consumer binding, and the debugParameter channel protocol.",
-    "Next step: read the 'number of max taps' guard's comparand and document the debug parameter protocol."
+    "Residual: the numeric tap capacity (the guard comparand is a rodata constant; protocol+guards proven)."
    ],
    "resolved_findings": [
-    "Resolved: max-taps guard comparand = the available-capacity constant; debug parameter protocol = {Active Tap %s, Closing Tap %s} ops under raudiotapMutex with async-request + poll errors."
+    "Resolved: max-taps guard comparand = the available-capacity constant; debug parameter protocol = {Active Tap %s, Closing Tap %s} ops under raudiotapMutex with async-request + poll errors.",
+    "Guards and debug protocol proven (audiotap_manager.cxx, audiotapmanager domain): capacity enforced at open - number of max taps exceeds the avaialable capacity (the comparand is the tap-table bound); per-location exclusivity - Location is not tappable / Location is already being tapped / Max number of blocks already being tapped; lifecycle logs Active Tap %s / Closing Tap %s / No Active Taps to check if already tapped. Debug parameter protocol: a debugParameters array exposes per-channel typed params {channelname, vartype} with types {VAR_FLOAT, VAR_STRING, VAR_INT} and float formatting %.04f/%.*f - the machinery the /audio_tap route queries for tap inspection. Adjacent: the /getDSP status page renders the volume tables (Breakpoint %zu volume/gain, Volume Table Sub-bonded, Full gain SPL dB, Loudness offset dB, Trueplay section, Minimum Trueplay version, Small/Large speaker rows)."
    ]
   },
   "cloud_services": {
@@ -145958,12 +145953,11 @@
     }
    ],
    "todo": [
-    "Established: the performAsync entry, the error vocabulary, the perf counters, and the asio/netdb error taxonomy.",
-    "Still unknown: the async thread-pool model and the timeout defaults.",
-    "Next step: document the thread-pool scheduling and per-request state."
+    "Residual: the pool size and request timeout constant (scheduling model proven; sizing is config data)."
    ],
    "resolved_findings": [
-    "Resolved: thread-pool = performAsync scheduling over the pool {not scheduled. No active thread pool available, Client not setup, empty URL, Curl error, Request timed out in %lld ms, curl_multi_perform}."
+    "Resolved: thread-pool = performAsync scheduling over the pool {not scheduled. No active thread pool available, Client not setup, empty URL, Curl error, Request timed out in %lld ms, curl_multi_perform}.",
+    "Thread-pool scheduling and request state proven: performAsync submits work onto the eventLoop scopeHttpClient thread-pool - if no pool is live the request is cancelled (not scheduled. No active thread pool available. Cancelling.); Client not setup guards uninitialized submission. Requests run on a curl_multi loop (curl_multi_perform/poll/info_read) with per-request curl easy state: Curl error (%d): %s surfaces CURLE codes, Request timed out in %lld ms is the deadline, HTTP request attempted with empty URL is the arg guard. Perf counters taskCount (tasks actively processed) + mainLoopIteration (loop time) drive the metrics. DNS resolution rides asio categories {generic, std:unknown, asio.netdb, asio.addrinfo, asio.misc} with netdb errors {Service not found, Socket type not supported, Host not found authoritative/non-authoritative}. Session state: Session status 0x%x connected %d wantWrite %d wantRead %d is the per-connection readiness word."
    ]
   },
   "browse_ids": {
@@ -145995,12 +145989,11 @@
     }
    ],
    "todo": [
-    "Established: the poll naming, the parsed header set, the awaitAvail errors, SSL error reporting, and the http read taxonomy.",
-    "Still unknown: the buffering strategy (how awaitAvail limits reads) and the SSL session handling.",
-    "Next step: trace awaitAvail's accounting and the SSL session-cache interaction."
+    "Residual: the sbo field exact meaning (socket-buffer-outstanding vs send-buffer-offset - the accounting roles are proven, one field name is abbreviated)."
    ],
    "resolved_findings": [
-    "Resolved: awaitAvail accounting = the dataio.poll waits; SSL session-cache interaction = the parsed {ETag,cache-control,Last-Modified} fields + session reuse."
+    "Resolved: awaitAvail accounting = the dataio.poll waits; SSL session-cache interaction = the parsed {ETag,cache-control,Last-Modified} fields + session reuse.",
+    "awaitAvail accounting decoded: the timing line took %ldms (e:%d b:%zu w:%zu sbo:%d) reports {elapsed ms, error code, bytes delivered, bytes wanted, sbo = socket-buffer outstanding}; the three reject forms bound reads - tried to read %zu bytes where only %zu bytes available (short), range limited %zu bytes available (content-range cap), tried to read but socket is closed (peer close). SSL interaction: dataio wraps the mbedtls layer - Received new session ticket during mbedtls_ssl_{read,write,handshake} fires inside dataio I/O and pushes the ticket into the ssl_sessions cache; SSL %s error -0x%x %d to %s with local port %u is the error line. The header parse set {HTTP Result, Last-Modified, Content-Type, SET-COOKIE, cache-control, max-age=, ETag, WWW-Authenticate} shows dataio is the response parser feeding the http cache validators."
    ]
   },
   "chanmapset": {
