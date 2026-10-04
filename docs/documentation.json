@@ -141585,7 +141585,8 @@
    ],
    "resolved_findings": [
     "Resolved: manifest schema = update_manifest {base update URL, per-device rows {udn,model,submodel,swgen,ver,URI,updateID}, min auto-update version}; flow manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update gated by R_AutoUpdatePolicy+R_CheckUpdateInterval+R_AutoUpdateWindowSeconds keys (window start/end seconds-since-midnight at obj+0x6c/+0x70); the anacapad side hands off to the external upgrade_mgr daemon.",
-    "Hand-off chain proven end to end via extracted files: upgrade_mgr states {ST_UNDEFINED, ST_INIT, ST_REFRESH, ST_SCHEDULED, ST_SCHEDULED_POST_WOW, ST_SESSION_MONITOR, ST_SESSION_REPORT, ST_SESSION_ACTIVE} gated by {R_AutoUpdatePolicy, R_CheckUpdateInterval, R_AutoUpdateWindowStart} with blockers {Upcoming alarm, Active device(s)} and retry FSM Retrying upgrade (%d/%d)/Giving up after max upgrade attempts; /etc/runanacapa runs /bin/upgrade instead of anacapad when /var/run/upgradeinfo exists (log /tmp/upgrade.log, remove sentinel, propagate rc); .upd preinstall.sh is two-phase (warn if /jffs >=98%, abort if anacapad running, else kill udhcpc/inetd/netstartd + touch /var/run/{stopnetstartd,upgradeflag} + reboot), postinst does upgrade.log juggling, umountnone does REGION 5->2 fixup. Downgrade policy keys {downgradeMinVersion, downgradeRestrictions, allowDowngradeToPrevSWGen, denyDowngradeToPrevSwGenList} + manual update required: below manifest min auto-update version."
+    "Hand-off chain proven end to end via extracted files: upgrade_mgr states {ST_UNDEFINED, ST_INIT, ST_REFRESH, ST_SCHEDULED, ST_SCHEDULED_POST_WOW, ST_SESSION_MONITOR, ST_SESSION_REPORT, ST_SESSION_ACTIVE} gated by {R_AutoUpdatePolicy, R_CheckUpdateInterval, R_AutoUpdateWindowStart} with blockers {Upcoming alarm, Active device(s)} and retry FSM Retrying upgrade (%d/%d)/Giving up after max upgrade attempts; /etc/runanacapa runs /bin/upgrade instead of anacapad when /var/run/upgradeinfo exists (log /tmp/upgrade.log, remove sentinel, propagate rc); .upd preinstall.sh is two-phase (warn if /jffs >=98%, abort if anacapad running, else kill udhcpc/inetd/netstartd + touch /var/run/{stopnetstartd,upgradeflag} + reboot), postinst does upgrade.log juggling, umountnone does REGION 5->2 fixup. Downgrade policy keys {downgradeMinVersion, downgradeRestrictions, allowDowngradeToPrevSWGen, denyDowngradeToPrevSwGenList} + manual update required: below manifest min auto-update version.",
+    "Adjacent update-channel artifact: the timezone table rides the same update infrastructure - http://update-timezone.sonos.com/timezone/timezones.xml downloads <TimeZones><TimeZone>{<StandardTime>,<DaylightTime>} rules (Downloaded new time zone table; version %u / Download failed %d / Invalid timezones file, loading default / Unable to open (or copy) timezones file / no timezone data available (%d)) with a shipped default fallback."
    ]
   },
   "wac_mode": {
@@ -143861,12 +143862,11 @@
     }
    ],
    "todo": [
-    "Established: the user-update flow vocabulary, the report files, the householdUpdateStatus limits, the client-state errors, and the failure taxonomy.",
-    "Still unknown: the household rollout ordering (who updates first) and resume-on-failure.",
-    "Next step: trace the rollout coordinator through upgrade_mgr."
+    "Residual: rollout ordering internals are upgrade_mgr binary internals - outside anacapad scope; the kick+report-file contract is fully proven."
    ],
    "resolved_findings": [
-    "Resolved: rollout coordinator = the per-household update pass through upgrade_mgr, ordered by the manifest coordinator rows."
+    "Resolved: rollout coordinator = the per-household update pass through upgrade_mgr, ordered by the manifest coordinator rows.",
+    "Architecture proven (user_update_scheduler.cxx, UserUpdateScheduler): anacapad does NOT sequence the rollout - UserUpdateScheduler kicks the sibling /bin/upgrade_mgr via launchUpdate then POLLS its report files: upgrade_mgr_user_report.json + upgrade_mgr_user_report_prev.json + /tmp/upgrade_mgr_info.txt under app/run (User-initiated HH upgrade report consumed / Timed out polling for user-initiated HH upgrade report). Flow: Running user-initiated HH update -> manifest download -> checkDevicesToUpdate -> launchUpdate, each step failing closed {no updates available, manifest download failed, no devices need updating, checkDevicesToUpdate failed, launchUpdate failed}. The rollout ordering (who updates first) and resume-on-failure therefore live inside upgrade_mgr; anacapad only maps the report into the householdUpdateStatus muse event (capped: more devices than the maximum ... omitted) and surfaces client-state names (Unknown upgrade client state: %s)."
    ]
   },
   "zones_mgr": {
@@ -144150,12 +144150,11 @@
    "namespaces": "{audioClip,householdUpdate,management,musicServiceAccounts,pinewood,platformInternal,positioning,roomDetection,soundSwap,systemReporting,systemTime,virtualRemoteControl} + settings:{accessorySettings,business,frontierLlms,global,playback,playerBasic,playerLineIn,playerUI,positioning,preferences,prodashboard,security,video} + upnp:{AlarmClock,AudioIn,AVTransport,ConnectionManager,ContentDirectory,DeviceProperties,GroupManagement,GroupRenderingControl,HTControl,MusicServices,Queue,RenderingControl,SystemProperties,VirtualLineIn,ZoneGroupTopology}",
    "http_auth": "challenge {private,public,realm,error_description,nonce,Basic}; OAuth errors {invalid_request,invalid_token,insufficient_scope,service_unavailable}; results {denied/403,denied/503,no token}; log \"Muse auth result: [%s] [%s] [%s] [%s] [%s] [%.8s] [%s/%s::%s]\"",
    "todo": [
-    "Established: composite record covering client_auth, command_format, dispatch, http_auth, namespaces, playervolume, type_registry, upnp_bridge sub-blocks.",
-    "Still unknown: no unified engine writeup; each sub-block needs expansion.",
-    "Next step: write the engine overview and expand the dispatch/type_registry blocks."
+    "Residual: per-namespace actor table contents (which actor class each namespace binds) - the dispatch mechanism and namespace list are proven; actor registration is runtime setupWholeDevicePointers data."
    ],
    "resolved_findings": [
-    "Resolved: engine overview written from sub-blocks - dispatch (route->handler), type_registry (spec-pair index), upnp_bridge (15 services x 4 verbs), command_format, client_auth/http_auth, namespaces, playervolume."
+    "Resolved: engine overview written from sub-blocks - dispatch (route->handler), type_registry (spec-pair index), upnp_bridge (15 services x 4 verbs), command_format, client_auth/http_auth, namespaces, playervolume.",
+    "Unified engine writeup: the muse layer is a JSON-RPC-style command bus over WSS (lechmere) and local HTTP routes. Commands arrive as JSON arrays [header, body] (command_format) parsed by rapidjson (failed to parse json body (offset: %u)); dispatch resolves {ns=v%u/%s, cmd=%s} through per-namespace actors (RZPMuseActor - missing/uncreated actor errors name the registration) then validates params against the spec-pair table emitting MISSING_VALUE/UNEXPECTED_TYPE/range-coerce errors. The type_registry is a 203-entry alphabetical spec-type name table (0x10f975c0-0x10f98568) - {accessorySwap, accessPolicyControl, alarmList, authzPolicyKeyLechmere, batteryCells, microphoneSwitch, waterState, poeState, wiredSubStatus, chirpRequest, cloudRegistrationStatus, diagnosticSubmissionMetadata, edidStatus...} indexing spec objects by ordinal. Auth runs two layers: client_auth (wssmtls/httpsmtls schemes, audience v2.api.smartspeaker.audio, credentials {apikey, guest_token, guest_token_pin}, policy-key length cap, API key changed [%.8s] tracking) and http_auth (challenge {private, public, realm, error_description, nonce, Basic}; OAuth {invalid_request, invalid_token, insufficient_scope, service_unavailable}; denied/403-503 results; the 8-field Muse auth result log). The upnp_bridge maps v1/{players,households}/.../upnp{Service}[/subscription[/{logicalSID}]] onto call/subscribe/renew/unsubscribe verbs across 15 UPnP services - muse is the cloud-facing shadow of the local UPnP surface. Namespaces span {audioClip, householdUpdate, management, musicServiceAccounts, pinewood, platformInternal, positioning, roomDetection, soundSwap, systemReporting, systemTime, virtualRemoteControl} + settings:* + upnp:*."
    ]
   },
   "iocompress": {
@@ -144208,12 +144207,11 @@
    ],
    "unlock_dsp_console": "opt/htdocs_locked/dsp/{configDSP,meters}.{htm,css,js} (unlock-gated live DSP console (served via /tmp/htdocs_locked). Exercises the real DSP routes: GET /getDSP (bare = all-block dump, ?audioSystemsTuning, ?ChProcSysPlaybar.ChProcInputMeter, ?<BlockName>, ?<meterId>), POST /putDSP (form pairs 'Block.param=val -- '), GET eqdata.txt + ChProcInputMeter.xml + getDSP_{3,playbar}.xml (static block descriptor XML). Param grammar 'Block.param') ChProcSysPlaybar.ChProcInputMeter, BassManager.mode, active_iir, allpass1.a{0,1,2}/b{0,1,2}/type/bandpassQ, freq '700', gain '0.707', AB_indicator/ab_control preset-compare. Confirms /getDSP returns per-block param XML and /putDSP takes dotted-name writes: the same dotted namespace as the DSP param registry.",
    "todo": [
-    "Established: the DSP file inventory, the sonar-tone flush, the lock file, the modZPAmpTimer hook, and the setting keys.",
-    "Still unknown: each file's binary format (eqdata.txt, dsp_preset*.xml, the .bin images) and who loads which.",
-    "Next step: document each format from its loader, starting with eqdata.txt."
+    "Residual: dsp_system_*.bin image format (the DSP program blob headers) - the files are not present in this image; their loader exists but the payload format needs a dev-supplied file or another build."
    ],
    "resolved_findings": [
-    "Resolved: formats = eqdata.txt (EQ preset rows), persistentEQ.xml (XML param doc), unlock_dsp_console gated debug surface."
+    "Resolved: formats = eqdata.txt (EQ preset rows), persistentEQ.xml (XML param doc), unlock_dsp_console gated debug surface.",
+    "File roles proven: dsp_preset{,_default,_satellite}.xml are XML parameter documents under app/debug/dsp/ (dev/JFFS override location - not shipped); dsp_system_default.bin and dsp_system_satellite.bin plus satellite_processor.bin are compiled DSP program/pipeline images selected per role (default vs bonded satellite); eqdata.txt (+ /dsp/eqdata.txt) is the EQ coefficient text table; persistentEQ.xml stores user EQ. sonos-dspid is the DSP identifier token in the tap/console surface. Only /opt/dsp/S9_array.xml ships in this rootfs (the woofer beamforming arrays, rootfs_data_files record) - the presets/bin images are either compiled-in defaults or developer-installed. The /playmode status XML <Playmode><Shuffle>%s<Repeat>%s<Crossfade>%s sits adjacent. AudioTap target names recovered {linein, codecout, irdecoder, tv_, mixersat, mixergm, as-srcin-chsnk0, as-srcout-chsnk0, as-, mixerstats, dspout, formatter, llaout, mixerout, mzdsp, extvoice, extchirp} - tap points across the pipeline."
    ]
   },
   "mod_zp": {
