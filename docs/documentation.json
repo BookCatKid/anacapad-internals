@@ -117859,12 +117859,13 @@
    "bus_name": "inprocess-events",
    "observer_api": "Registering \"%s\" observer \"%s\". Total observers: %zu (events are named *Event objects; observers register by event name; delivery logs \"Queued %s(%u) from \\\"%s\\\": { %s }\" and \"Beginning delivery of %s(%u) event on thread %zu\") each event has a name, numeric id and a {json} payload string.",
    "todo": [
-    "Established: the ~100-event vocabulary and the observer perf bound are recovered.",
-    "Residual: the dispatch mechanism - event object shape, observer registration structure, and which subsystems produce versus consume each event are unmapped."
+    "Established: 7-type dispatch table, per-type observer list array at +0x10+type*4, deferred subscribe/unsubscribe, type-validity + sender-legality guards.",
+    "Residual: per-event payload field layout and which subsystems consume each of the 7 types - type vocabulary proven; payload schemas are per-event record layouts"
    ],
    "dispatch": "internalevts.cxx module f_105d07e8..f_105d1d04+: f_105d1d04 walks a linked observer list (node {+0xc key/type, +0x2c..}), per-node notify via f_105d1b9c which reads the observer object at node->+0xc and calls its vfunc+0x10 with the event payload, matching on a type word. f_105d11f0 wraps each observer call with sonosClockGetTime timing; overruns emit a muse telemetry event {evtObs,evtType,evtDurMS} ('Internal event observer (%s.%s) took too long [%llu ms]').",
    "resolved_findings": [
-    "Established: the dispatch loop (f_105d1d04 list walk -> f_105d1b9c per-observer vfunc+0x10 notify, timing guard f_105d11f0 with telemetry overrun event), the module bounds, and the event vocabulary (60+ named events catalogued). Still unknown: the producer/consumer map per event type (which subsystems emit vs observe each named event) - the observer list is runtime-populated by each subsystem's init. Next step: enumerate the observer-registration call sites to build the producer/consumer matrix."
+    "Established: the dispatch loop (f_105d1d04 list walk -> f_105d1b9c per-observer vfunc+0x10 notify, timing guard f_105d11f0 with telemetry overrun event), the module bounds, and the event vocabulary (60+ named events catalogued). Still unknown: the producer/consumer map per event type (which subsystems emit vs observe each named event) - the observer list is runtime-populated by each subsystem's init. Next step: enumerate the observer-registration call sites to build the producer/consumer matrix.",
+    "Resolved: the dispatch table is proven - event type indexes a pointer table @0x10ef58e8 = {0:invalid, 1:deferred_event_sub, 2:generic_update, 3:ht_config_update, 4:sonar_cal_mode_changed, 5:avt_device_feedback, 6:entitlements_changed, 7:max}. The bus object holds a per-type observer list array at bus+0x10+type*4 (subscribe path f_105d2510: lwz r3,0x10(bus+type*4)); subscribe/unsubscribe can defer while an event is in flight (\"Observer %s subscription deferred for event %s\" / \"unsubscription deferred\"). Guards: \"source (%s) attempting to create event with invalid type (%s)\" bounds-checks the type index, and \"(%s) event sent by source (%s) is only legal for the eventing sub-system\" restricts senders (deferred_event_sub log tag, internalevts domain)."
    ]
   },
   "alarm_store_object": {
