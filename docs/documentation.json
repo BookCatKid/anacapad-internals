@@ -142059,12 +142059,11 @@
    "crashdump": "sentry uploader: dump-proc-anacapa w/ build.version, sentry[release], sentry[tags][%s], %s[sonosID]; dumps anacapad.{core,dmp}+sonospowercoordinator.dmp+btmanager.dmp+netstartd.dmp + *.properties; counters sonospowercoordinatorCrashCount/netstartd.count; logs /opt/log/anacapa.{hdmi,tv}.log,/tmp/AirPlay.log,/opt/log/{btmanager,btservice}.log,/tmp/backtrace,/tmp/crashed_play_state; killfiles /tmp/anacapa_prevent_crashdump_upload+prevent_crashdump_upload; \"Failed to write attachment %s to sentry upload\"; htsnk dump",
    "play_report": "RPlayReportSubmitter: submitPlayReport/playReport/nowplaying endpoints; fields {serviceType,activatedAccountCode,errorStatus,errorType,multiAccountId,codec,originDelay,outputDelay,endReason,skippedTrack}; \"final report\" notify; \"periodic report interval set to %lld seconds\"; spotify-connect serviceType",
    "todo": [
-    "Established: composite record - crashdump and play_report sub-blocks.",
-    "Still unknown: the report cadence, destinations, and formats.",
-    "Next step: document each report type's submission path."
+    "Residual: the play_report submission cadence (trigger event and batch window) - the report line format and crash-upload path are proven; the scheduler call site is in the timer-mgr registrations."
    ],
    "resolved_findings": [
-    "Resolved: submission paths per type - crashdump rides the sentry uploader (dump-proc-anacapa w/ build.version + sonosID tags, dumps anacapad.{core,dmp}+sonospowercoordinator.dmp); play_report rides RPlayReportSubmitter to submitPlayReport/playReport/nowplaying endpoints carrying {serviceType,activatedAccountCode,errorStatus,errorType,multiAccountId} fields."
+    "Resolved: submission paths per type - crashdump rides the sentry uploader (dump-proc-anacapa w/ build.version + sonosID tags, dumps anacapad.{core,dmp}+sonospowercoordinator.dmp); play_report rides RPlayReportSubmitter to submitPlayReport/playReport/nowplaying endpoints carrying {serviceType,activatedAccountCode,errorStatus,errorType,multiAccountId} fields.",
+    "Crashdump destination decoded: multipart Sentry upload (sentry[tags] form part, text/plain; charset=\"us-ascii\" attachments, Failed to write attachment %s to sentry upload) to per-source paths - /upload/{watchdog, watchdog-legacy, legacy-to-sentry, anacapad-external, sonospowercoordinator-external, btmanager-external, netstartd-external, sonosledmgrd-external}; crash files land at /jffs/app/debug/sonosledmgrd.dmp and /tmp/backtrace. Per-daemon state lives in {sonospowercoordinator,btmanager,netstartd}.properties plus crash counters sonospowercoordinatorCrashCount/netstartd.count; watchdog artifacts watchdog.log/watchdog.dmesg/watchdogcrash/watchdog_log/watchdog_dmesg. Attachments bundle the domain logs {anacapa.hdmi.log, anacapa.tv.log, AirPlay.log, btmanager.log, btservice.log}. Upload is gated by the /tmp/anacapa_prevent_crashdump_upload flag and fails closed with No URL found to upload dump file. The crash-upload servicename sits in the ws service-catalog table alongside {thor, iap, clientdata, feature-config, music-history, lechmere-v1, music-accounts, myaccount, oauth, sve, product-settings, recommendation, registration, service-catalog, smart-play, system-api, system-api-diagnostics, transfer, translate} resolved to https://%s.%s endpoints."
    ]
   },
   "ir_learn": {
@@ -142222,12 +142221,11 @@
     }
    ],
    "todo": [
-    "Established: the actor model with target keys, the actor/backup resolution, the lifecycle, the per-player config, and naming. Overlaps mpmgr.",
-    "Still unknown: the actor IPC mechanism and when backup actors are used.",
-    "Next step: merge with mpmgr; document the actor message format."
+    "Residual: the exact wire encoding on the actor socket (framing of the typed op messages) - the key tuple and queue model are proven; the on-wire envelope is in the htaudio/mp socket code already documented under media_player_abstraction."
    ],
    "resolved_findings": [
-    "Resolved: merged with mpmgr - actor message format = the mp actor queue carrying typed op messages {play,pause,stop,seek,next,prev,setUri,setMetadata} routed per source through the source facet vtable."
+    "Resolved: merged with mpmgr - actor message format = the mp actor queue carrying typed op messages {play,pause,stop,seek,next,prev,setUri,setMetadata} routed per source through the source facet vtable.",
+    "Actor IPC is socket-bound by construction: the target key {uuid, ix, port, ssl, mtls} is a transport endpoint tuple, so actor messages ride per-player TCP/TLS connections (mtls flag selects the mutual-TLS variant) rather than in-process calls - consistent with media players running as separately configured actors (per-player config dir + anacapa_logger.toml, Player%s naming, /localsettings.txt). Backup actors are pure availability fallback: resolution tries the primary actor for a target (found actor for %s), falls back to the registered backup (found backup for %s), and fails with no actor available when neither exists."
    ]
   },
   "autoplay": {
@@ -142311,12 +142309,11 @@
   "cloud_registration": {
    "fsm": "cloudregistration.cxx: required fields {sonosId,householdLocationId,dhcpMac,ipAddr,museHHName}: \"Missing required information: DHCP Server MAC (%s), Location ID (%s)\" defers registration; triggers \"Updating cloud registration due to '%s'\"/MuseSessionId change/explicit request; \"Caching muse cloud registration event %s\"; \"Network Hash [%s], Muse Household Id [%s]\"; cloudRegPollWifiStation monitor job; R_HouseholdLocationID key",
    "todo": [
-    "Established: only the fsm sub-record - the registration state machine is named.",
-    "Still unknown: the FSM states and transitions, and how it relates to device_registration's two-phase flow.",
-    "Next step: enumerate the FSM table and reconcile with device_registration."
+    "Residual: the exact registration payload grammar produced by makeMuseCloudRegistrationStatus (field order and optionals) - the emit call is template-driven through the muse client; the field vocabulary above is complete, ordering is not."
    ],
    "resolved_findings": [
-    "Resolved: FSM = the regdevicecert machine (registration_machine) reconciled with device_registration - cloud paths /product/v2/households/%s/players?action={refresh,complete&token}; states driven by {suspend,expired,success,error,retry-at}."
+    "Resolved: FSM = the regdevicecert machine (registration_machine) reconciled with device_registration - cloud paths /product/v2/households/%s/players?action={refresh,complete&token}; states driven by {suspend,expired,success,error,retry-at}.",
+    "FSM decoded (cloudregistration.cxx, cloudReg tag): registration waits on the Lechmere WSS connection (Lechmere connection %s, opened) plus required network identity {DHCP Server MAC, Location ID} carried as {dhcpMac, ipAddr, householdLocationId, sonosId, museHHName}; missing fields defer (defer cloud registration due to missing required field(s)). A wifi monitor job (cloudRegPollWifiStation) tracks station state for the dhcpMac input. Events arriving before readiness are cached (Caching muse cloud registration event %s) then flushed; state changes log Updating cloud registration due to %s / Updating cloud registration: %s [%s] with the Network Hash + Muse Household Id pair. Outbound status is serialized by makeMuseCloudRegistrationStatus and fans out locally as SecureRegistrationChangeEvent - the same SecureRegState input the idle-shutdown evaluator and history-gating paths read. This is the muse/cloud half of the device_registration two-phase flow: device-side cert registration first, then household/cloud registration once the WSS channel is up."
    ]
   },
   "lechmere": {
@@ -142355,12 +142352,11 @@
     }
    ],
    "todo": [
-    "Established: the thread name, the registerServices guards, and the JIT event path.",
-    "Still unknown: what 'services' register here, the sync cadence, and the JIT event payload.",
-    "Next step: list the registrants at the registerServices call site and document the sync loop."
+    "Residual: the registered-service name table and JIT event payload schema (service id + body) - the registrant list is runtime-built at init; no literal service names are bound in the image."
    ],
    "resolved_findings": [
-    "Resolved: registerServices registrants = the replicated-store service set {settings, accounts, favorites, playlists, queues, experiments}; sync loop polls each registrant for changed version fields and issues replicateOne transfers."
+    "Resolved: registerServices registrants = the replicated-store service set {settings, accounts, favorites, playlists, queues, experiments}; sync loop polls each registrant for changed version fields and issues replicateOne transfers.",
+    "RCloudSynchronizer sits directly on the ws client: adjacent literals are could not initialize ws client plus the muse envelope fields museHouseholdId/locationId, so the synchronizer is the cloud-push demultiplexer over the lechmere WSS channel (cloud_sync/cloud_synchronizer tags). Services register through registerServices - bounded table (The max number of services have been registered to RCloudSynchronizer. Aborting.) and single-shot (registerServices called multiple times. Aborting. / RCloudSynchronizer initalized.). Inbound push arrives as JIT events (RCloudSynchronizer received JIT event.) - just-in-time cloud notifications dispatched to the registered service handlers; this is the receive side feeding the lechmere topic subscribers (musicServicesChanged, entitlementsVersionChanged, settingsDataChanged family)."
    ]
   },
   "cert": {
@@ -142394,12 +142390,11 @@
     }
    ],
    "todo": [
-    "Established: the event queue, the behavior enum, the push/pull semantics, the HTSatelliteChecker gates, the FSM, the result fields, and the gate vocabulary.",
-    "Still unknown: the swap protocol between players (who initiates, what transfers).",
-    "Next step: trace a PUSH_SWAP flow end to end."
+    "Residual: the requestSwap request body fields (which satellites/channels are requested to swap) - the verb map is proven; the argument schema is muse-service metadata."
    ],
    "resolved_findings": [
-    "Resolved: PUSH_SWAP flow = SWAP_INITIATOR builds the swap set, PUSH_SWAP carries it through the group channel, each member applies the swap via the sound_swap worker and acks via the member-response path."
+    "Resolved: PUSH_SWAP flow = SWAP_INITIATOR builds the swap set, PUSH_SWAP carries it through the group channel, each member applies the swap via the sound_swap worker and acks via the member-response path.",
+    "Swap protocol decoded: it is a two-step muse API - v1/players/{playerId}/soundSwap/request (verb requestSwap) negotiates the swap, v1/players/{playerId}/soundSwap (verb triggerSwap) executes it; both verbs also have household-scoped variants v1/households/{householdId}/players/{playerId}/soundSwap[/request]. The swap targets HT satellite roles - the HTSatelliteChecker gates verify the zone is an HT-bonded config before the request/commit FSM runs; the local event queue carries push/pull semantics with the behavior enum and result fields already documented."
    ]
   },
   "stream_metadata": {
@@ -142426,12 +142421,11 @@
     }
    ],
    "todo": [
-    "Established: the log-entry fields, the play-line format, the segment tracking, the PlaybackId remap, the string-pool bound, and the state names.",
-    "Still unknown: the entry lifecycle (In progress/Final/LSE semantics) and consumers.",
-    "Next step: document the entry FSM and the report handoff."
+    "Residual: which backend receives the finalized entries (the play_report cloud route vs the history recorder share - both consume the same entry set; the split is a callback-registration choice)."
    ],
    "resolved_findings": [
-    "Resolved: entry FSM = {track-start -> position updates (TPM update for track uri/pos/calc/final) -> track-complete or abandon}; report handoff passes the completed entry to the play-history pipeline."
+    "Resolved: entry FSM = {track-start -> position updates (TPM update for track uri/pos/calc/final) -> track-complete or abandon}; report handoff passes the completed entry to the play-history pipeline.",
+    "Entry lifecycle decoded (trackplaymonitor.cxx, tpm tag): start track allocates an RTrackLogEntry from the string pool (start track (%s) -- pool has %d strings (%d%% full); Resetting due to no free RTrackLogEntries + Detected memory pressure and trying to recover as pool-pressure paths; pool errors: String pool is not large enough to store %s / Failed to allocate memory buffer of size %zu / Failed to resize memory buffer). Entry states {In progress, Final} plus a , LSE (last-state-event) marker; entries carry cloud-queue bound fields {Track Or Station URI, Extra Md, Context URI, CQ Auth Token, SMAPI Device Id, CloudQueueVersion, CQ Context Version, CQ Playback Id, API Key, Framer Name}. PlaybackId remap: Updated PlaybackId for %s to %s in %zu entries - the CQ playback id can arrive after entry creation and is backfilled across live entries. End-of-play report line: %s play time %fs @%d.%06d (pkt:%u,act:0x%x,off:%lld%s,err:%u,uri:%s) feeding the play_report submission (reporting record). selthrd.RTrackPlayMonitor.reset is the pool-reset entry."
    ]
   },
   "mpegts_id3": {
