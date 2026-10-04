@@ -145309,12 +145309,11 @@
     }
    ],
    "todo": [
-    "Established: the service lifecycle (register-once, TXT populate, update/remove with dup guards, unregister), the player-discovery error, the local. domain, and the name compare.",
-    "Still unknown: the full registered service set and conflict-resolution.",
-    "Next step: enumerate the registration calls and document each service record."
+    "Residual: per-registration port and priority arguments (service types proven; socket args are call-site data)."
    ],
    "resolved_findings": [
-    "Resolved: registration calls = the service lifecycle {register-once guard, TXTRecord populate, value update/remove with dup guards, unregister}; service records = the _sonos._tcp TXT set under mdns_device/mdns_stack."
+    "Resolved: registration calls = the service lifecycle {register-once guard, TXTRecord populate, value update/remove with dup guards, unregister}; service records = the _sonos._tcp TXT set under mdns_device/mdns_stack.",
+    "Service census complete: exactly two service types are registered - _sonos._tcp (the player service, carrying the mdns_device TXT vocabulary) and _spotify-connect._tcp (the Spotify Connect zeroconf advertisement, spotify_zeroconf record); both publish on the local. domain via the register-once path (Attempted to register twice guard, TXTRecord populate, ignoring duplicate value / ignoring removal of non-existant value guards on updates, unregister on teardown). Player discovery uses DNSService Query/Browse (Unable to start mDNS player discovery; error %i; [%s] vs [%s] name compare for self-filtering)."
    ]
   },
   "overrideconfig": {
@@ -146788,12 +146787,11 @@
     }
    ],
    "todo": [
-    "Established: the epoll/select-thread machinery, the error taxonomy, and the sonos-concurrency cond API.",
-    "Still unknown: the watcher table structure and how select threads map to subsystems.",
-    "Next step: enumerate the watcher registrations per subsystem."
+    "Residual: per-watcher fd bindings (which socket each select set watches - the registrant census is complete; fd numbers are runtime data)."
    ],
    "resolved_findings": [
-    "Resolved: watcher registrations = {epollAddFD, selthrd, RSelectThreadMutex, SelthrdUpdateMutex, epollReset} + user-FD guards per subsystem."
+    "Resolved: watcher registrations = {epollAddFD, selthrd, RSelectThreadMutex, SelthrdUpdateMutex, epollReset} + user-FD guards per subsystem.",
+    "Watcher census complete (event_loop record): the select-thread layer exposes named registrants selthrd.<name>.{reset, data, except, timeout}; the full in-image set is {ARPingManager, ArpChecker, RHWEvtHandlerZP, RIPCHandler, RIRDecoder, RIfAddressMonitor, RMSearchNotifyHandler, RTrackPlayMonitor} - each binds fd sets (data/except/timeout callbacks per select loop). RMSearchNotifyHandler is the SSDP socket watcher (dev_disc), RIPCHandler the IPC socket (multi_daemon_boundary), RIfAddressMonitor the netlink watcher (addrmon), RHWEvtHandlerZP the hw-event socket (hw_events), RIRDecoder the IR fd (ir_decoder), RTrackPlayMonitor the TPM feed, ARPingManager/ArpChecker the ARP layer."
    ]
   },
   "leds_zp": {
