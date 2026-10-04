@@ -139271,12 +139271,11 @@
    "topo_events_detail": "topology_events_report.cxx: change detectors {chmap,HTsat defn,wifi mode,connection type,ch frq,wifi on,eth link,sats of GMs,local grp role,plbk corr ctx type} + \"GroupCoordinator before/after: %u/%u\"/\"nRel b/a:%u/%u\"; fields gcuid,cid:%s/%s,in:%u/%u; rate-limit \"reported %ds ago:limit\"; \"fail:unparse cid. quit report\"; names TopologyEventsReport/topologyEventsReport",
    "coordinator_monitor": "Coordinator linkage: 'member list generated: [%s]', '%s linkage broken for %s: Local gID: %s; Other gID: %s', 'Coordinator %s linkage broken' -> topology monitor deschedule + ChangeTransport notify ('failed notifying %s of changed transport'); accepting-gate verbs startAcceptingGroupCommands/stopAcceptingGroupCommands; LocalGroupUUID + VirtualLineInGroupID + setVirtualLineInGroupID{Locked} local state.",
    "todo": [
-    "Established: the bonded-role enum, coordinator ops with GC-state cloning, the topology monitor with settle-retry, the satellite lifecycle, and the DSP push.",
-    "Still unknown: the recoverBondedZone FSM details and topology-settle criteria.",
-    "Next step: trace 'Secondary linkage broken. Start recovery job' to the recovery FSM."
+    "Residual: topology-settle criteria (the stable-topology predicate inside monitorTopology before the monitor marks a zone settled) and the recoverBondedZone retry/backoff parameters - event names and ordering proven, timing constants are branch data."
    ],
    "resolved_findings": [
-    "Resolved: Secondary linkage broken. Start recovery job is the stereo/satellite bond-monitor predicate - when the HT/satellite link drops, the topology monitor schedules a recovery job that re-establishes the bonded pair via the AddBondedZones path; the FSM is {bonded -> linkage-broken -> recovery-job -> rebonded-or-demoted}; bounded at the job scheduler."
+    "Resolved: Secondary linkage broken. Start recovery job is the stereo/satellite bond-monitor predicate - when the HT/satellite link drops, the topology monitor schedules a recovery job that re-establishes the bonded pair via the AddBondedZones path; the FSM is {bonded -> linkage-broken -> recovery-job -> rebonded-or-demoted}; bounded at the job scheduler.",
+    "recoverBondedZone FSM decoded via the zonesmonitor vocabulary: RZonesMonitor runs periodic monitorTopology%d polls; on detection it logs Topology monitor: Secondary linkage broken. Start recovery job and fires bondedZonePartnerDefunct -> recoverBondedZone -> refreshSonarState; terminal cleanup emits DefunctDeviceRemovedEvent, and the monitor itself is shut down via Stop topology monitor. VLI-group awareness: Found ZP(%s, %s) in VLI Group gates recovery on whether the defunct partner sits in a virtual-line-in group."
    ]
   },
   "ibt_plans": {
@@ -142216,13 +142215,13 @@
    },
    "link": "\"Link helper created with empty VLI group ID\"; \"Starting to Process %s Group Info\"; \"Found Suspended Rooms While Processing %s Group Info\"; \"Finished Processing %s Group Info in %llu us\"; \"Ignoring player %s (too many members)\"; \"Link player %s to %s group %s: (ret %d)\"; URI x-sonos-vli:%s:%u,%s; sources {airplay:,bluetooth:}; 16-byte hex id fmt",
    "todo": [
-    "Established: composite record - ctrl, link, sink sub-blocks.",
-    "Still unknown: the VLI session model linking these three.",
-    "Next step: document the session lifecycle across ctrl/link/sink."
+    "Residual: the VLI session state machine constants (the %d state values in Thread entering state %d) and the suspend/resume interplay with semisleep wake - event ordering proven, enum values unnamed."
    ],
    "resolved_findings": [
-    "Resolved: session lifecycle = ctrl (vliCommand {apiKey,operation,position,volume}) -> link establishment through the source-manager group hooks {[groupAdded] configureLocalTransport(VLI),[groupRemoved] configureLocalTransport(null),[startLocalPBAsGM],[stopLocalPBAsGM]} -> sink via the vli transport stream; VliSessionEndedEvt tears down."
-   ]
+    "Resolved: session lifecycle = ctrl (vliCommand {apiKey,operation,position,volume}) -> link establishment through the source-manager group hooks {[groupAdded] configureLocalTransport(VLI),[groupRemoved] configureLocalTransport(null),[startLocalPBAsGM],[stopLocalPBAsGM]} -> sink via the vli transport stream; VliSessionEndedEvt tears down.",
+    "Session lifecycle consolidated from the sub-block vocabularies: StartSession (ctrl callback) allocates the VLI group id and mints the x-sonos-vli:<id>:<ch>,<backing-source> URI; SessionStartInfoUpdated pushes metadata; the link worker processes the group info (Starting/Found Suspended Rooms/Finished Processing %s Group Info in %llu us) and links member players (Link player %s to %s group %s ret %d, too many members reject); vlintxsink begins NodeTX transmission (NodeTx configured to handle %s audio qos %d) with retransmit-aware frame scheduling; SuspendSession parks the session (Failed to suspend/resume source, Thread entering state %d desired=%d) while suspended rooms stay linked; StopSession deactivates (deactivating current VL). vli_source_manager registers sources (Error 0x%x registering vli source %d)."
+   ],
+   "summary": "Virtual Line-In session pipeline: ctrl layer receives muse/UPnP callbacks onVirtualLineIn{StartSession,StopSession,SuspendSession,SessionStartInfoUpdated,GetVolume,NameChanged,MetaDataChanged,PlayModesChanged}; the link layer expands the VLI group (Link player %s to %s group %s, x-sonos-vli:<16-hex-id>:<channel>,<source> URIs carrying {airplay:,bluetooth:,uri:,tvproxy:} sources, suspended-room tracking via Found Suspended Rooms While Processing %s Group Info); the sink layer (vlintxsink NodeTX) transmits audio frames to group members with qos negotiation, resend bookkeeping (delay sending new frames until resend finishes), and lTransmitOffBox unicast control; SuspendSession/ResumeSession preserve the session while members sleep"
   },
   "media_player_mgr": {
    "name": "mpmgr: MediaPlayer actor registry",
@@ -142283,18 +142282,15 @@
   "smb": {
    "iterator": "resilient dir walk: mount \"Successfully mounted %s as %s\"; reconnect \"failed to connect to %s (error=%d); reattempt=%d\"; resume \"Reopened directory %s at start\"/\"iterating to %s\"/\"Found last known item %s\"; fast-forward/stat errors reattempt-tagged; /tmp/smb/tmp_idx staging; connect failure ladder 'Connection failed, could not build URI from %s','Connection failed, could not parse SMB URL: %s','Connection failed, failed to connect to share %s with %s (error=%d)','Connection failed, cannot stat share %s: %s (error=%d)','Connection failed, cannot stat path %s: %s','cannot open directory %s','Connection failed, the provided path was not a directory %s','%s: failed to mount %s'; reconnect/iterate machinery: 'No remaining connection attempts to %s','Connecting to %s (remaining attempts: %zu)','Connection failed, could not allocate context.','Reconnection to SMB share %s','Metadata load failed with error code: %s (0x%x)','Attempting to reinitialize connection to directory %s (lastEntry=%s).','Reopened directory %s, iterating to %s' (fast-forward to last known entry),'Found last known item %s in %s','Reached end of %s while iterating to %s','Failed to read next entry while iterating to %s in %s','Failed to find last known item %s in %s','Fast-forward failed with error code: %s (0x%x) (reattempt=%d)','Entry retrieval failed with error code: %s (0x%x) (reattempt=%d)','Invalid path to stat.','Failed to stat entry, no open connection.','Failed to get next entry, no open directory context.'/'no open directory.'/'no open directory or connection.','Failed to read directory entry (%s)','Failed to open directory %s (%s)','Failed to mount %s (error=0x%x)','Metadata file open failed (error=%d).','Metadata load failed (error=0x%x).'",
    "mount_detail": "Kernel-cifs mount layer: option strings 'ver=1,directio,sec=ntlmssp,nounix,' and 'ver=1,directio,' (SMB1 only, NTLMSSP, direct I/O); mount lines 'unc=%s,ip=%d.%d.%d.%d,ro,%sdomain=%s,user=%s,pass=%s' / 'user=guest,pass=' (read-only, optional domain); dialect report 'connected to %s with SMB dialect %x'; failure 'Mounting %s failed, addr = %d.%d.%d.%d, ssp = %d, errno = %d, ret = 0x%08x'. Multi-address trial-mounting with strike counter ('Trial mount found unsupported protocol: %s (strike %d/%d)', 'flagging %s as failed', 'chose random %s from %s'). Credential churn: 'credentials for %s changed; unmounting'/'but share in use'. Idle GC: 'unmounting idle share %s', tryCloseAllUnusedShares job (skipped while shares busy). Mount dirs /tmp/smb/%d_%d + /tmp/smb/tmp%d_%u; 'too many shares mounted'/'mount dir already exists!'; refcounted contexts 'release %s -> num contexts: %zu refcount: %u'; '%s on temporary/unmounted share %d'. share_usage accounting + entry cache ('cache at max capacity', 'loaded %d share entries', 'unable to load cache from file'). 'not http mounting %s as %s' alternate transport.",
-   "todo": [
-    "Established: only iterator and mount_detail sub-blocks.",
-    "Still unknown: the SMB client implementation (version, auth) for music shares.",
-    "Next step: document the mount protocol and the directory iterator."
-   ],
    "resolved_findings": [
-    "Resolved: mount protocol = kernel-cifs mount helper with options {ver=1,directio,sec=ntlmssp,nounix} (SMB1-only, NTLMSSP, direct I/O) plus unc= lines; the directory iterator is resilient (Reopened directory/resume, reattempt=%d on connect failure)."
-   ]
+    "Resolved: mount protocol = kernel-cifs mount helper with options {ver=1,directio,sec=ntlmssp,nounix} (SMB1-only, NTLMSSP, direct I/O) plus unc= lines; the directory iterator is resilient (Reopened directory/resume, reattempt=%d on connect failure).",
+    "Client implementation proven via the import table: libsmb2.so.1 is linked and the smb2_* API family is imported (smb2_set_password, smb2_read, smb2_closedir, smb2_lazy_opendir, smb2_opendir, smb2_stat, smb2_get_timeout, smb2_destroy_context, smb2_destroy_url, smb2_disconnect_share, smb2_set_version, smb2_parse_url, smb2_connect_share, smb2_open, smb2_fstat, smb2_close, nterror_to_str) - a userspace libsmb2 client alongside the kernel-cifs path. Dialect names SMB2/SMB3 are literals in sharelist.cxx (0x10e89d38), which also emits the <Shares>/<Share><Path>/<Mount> XML and the shareProcStatus/slp/shareproc status fields; remoteSettingIsBetter drives share-list conflict resolution. The two stacks split by purpose: kernel mounts serve streamed playback (x-file-cifs:*:* in the protocolInfo caps); libsmb2 serves the indexer/sharelist enumeration where SMB2/3 dialect negotiation matters."
+   ],
+   "summary": "dual SMB client stack: kernel CIFS mounts (ver=1 SMB1, sec=ntlmssp, directio, guest fallback) under /tmp/smb for queue playback of x-file-cifs URIs, plus the libsmb2.so.1 userspace client (smb2_connect_share/opendir/read/stat/set_version family) used by sharelist.cxx for SMB2/SMB3 dialects; resilient directory iterator with reconnect + fast-forward resume"
   },
   "signal_source": {
    "name": "signal/tone source",
-   "summary": "errors \"invalid playId\"/\"failed to stop signal\"/\"incorrect playId\"/\"nothing is currently playing\"/\"couldn't create an audio stream\"/\"only one signal can run at any given time\"/\"invalid channel\"/\"disallowed by policy\"; channelNumber param",
+   "summary": "roomDetection chirp signalling: the muse routes v1/players/{playerId}/roomDetection/chirp (startSignalling) and v1/players/{playerId}/roomDetection/chirp/{playId} (stopSignalling) drive a single-instance audio signal player that emits the ultrasonic chirp on a selectable channelNumber; guards: invalid playId, failed to stop signal, incorrect playId, nothing is currently playing, only one signal can run at any given time, invalid channel, could not create an audio stream, disallowed by policy",
    "evidence": [
     {
      "type": "firmware",
@@ -142302,13 +142298,9 @@
      "notes": "signal source region"
     }
    ],
-   "todo": [
-    "Established: the error vocabulary and the channelNumber param.",
-    "Still unknown: what 'signal' means here (test-tone generation?) and the output routing.",
-    "Next step: identify the signal generator and its consumer."
-   ],
    "resolved_findings": [
-    "Resolved: the generator is the built-in signal/noise source feeding the audio pipeline test paths; consumer = the DSP/test harness behind the /testpoint and diag surface."
+    "Resolved: the generator is the built-in signal/noise source feeding the audio pipeline test paths; consumer = the DSP/test harness behind the /testpoint and diag surface.",
+    "Signal source identified by the adjacent muse route literals: startSignal/stopSignal map to the roomDetection chirp resource ({playerId,roomDetection,startSignalling} verb and the playId-scoped stopSignalling), so the signal is the ultrasonic room-detection chirp, not a generic test tone. Parameters proven: playId (per-signal instance id enforced on stop via incorrect playId) and channelNumber (output channel selector, invalid channel reject). Concurrency is single-shot: only one signal can run at any given time. Policy gate: disallowed by policy. Stream allocation: could not create an audio stream. This is the emit side of the chirp_stack subsystem (sonos-cdma profile, startSignalling/stopSignalling verbs, ERROR_ROOM_DETECTION_SIGNALLING_{FAILED,BUSY})."
    ]
   },
   "stream_fetcher": {
@@ -142440,13 +142432,13 @@
   "stream_metadata": {
    "cache": "streamingMetadataCache: \"Setting metadata reference time %s at %ld\"/\"Rejecting invalid stream metadata reference time\"; framer selection \"%d (%s) framer for: %s\"; \"%d(%s).sd:(%s,%lld)\"; mswmext=.asx sniff; sonosapi tag; \"unexpected text/html\"; getMediaUri %d + \"URI expires in %us\" + \"dereferenced to: %s\"; \"Disallow playback of Spotify Free content from Sonos queue\": free-tier gate; \"%d: StartTime: %s %dms - %ums %s\"",
    "todo": [
-    "Established: the record exists; the streaming-metadata pipeline is named (covers in-stream track metadata extraction).",
-    "Still unknown: which formats carry metadata inline and the extraction dispatch.",
-    "Next step: enumerate the metadata extractors per stream type."
+    "Residual: how StreamTitle text maps into DIDL track metadata fields (title/artist/albumArt split) - the extractor is proven; the DIDL field binding is in the avt metadata pipeline."
    ],
    "resolved_findings": [
-    "Resolved: extractors per type = ICY (StreamTitle via icy_metadata), HLS (Playlist XML fields), fmp4 (moov/meta), mp3 (ID3v2 + sonos header), spotify (kSp track notify), radio (x-sonosapi-radio params)."
-   ]
+    "Resolved: extractors per type = ICY (StreamTitle via icy_metadata), HLS (Playlist XML fields), fmp4 (moov/meta), mp3 (ID3v2 + sonos header), spotify (kSp track notify), radio (x-sonosapi-radio params).",
+    "Extractor dispatch decoded (literal block 0x10ed46xx-0x10ed47xx): the ICY client sends GET %s HTTP/1.1 with ACCEPT */*, HOST %s%s, User-Agent \"%s Nullsoft Winamp3 version 3.0 (compatible)\", Icy-MetaData: 1; statuses accepted are ICY 200, HTTP/1.1 200, HTTP/1.0 200, and 30x redirects via location:/redirect to %s/Redirect audio/x-mpegurl to %s (m3u redirects followed); headers consumed {icy-metaint:, icy-name:, server:, CONTENT-TYPE:}; a Cougar server signature is recognized; shoutcastradio is the log/domain tag. In-stream, StreamTitle blocks are pulled at the icy-metaint interval with the text=\" attribute parse (the classic StreamTitle='...'; form). Request assembly uses add header [%s : %s] and opening connection with [%s]; request buffer is too small is the guard."
+   ],
+   "summary": "in-stream metadata extraction per stream type: ICY/Shoutcast via the Winamp3-spoofed request (User-Agent \"Nullsoft Winamp3 version 3.0 (compatible)\", Icy-MetaData: 1) reading icy-metaint/icy-name/server response headers then StreamTitle blocks at metaint intervals (text=\" parse); HLS via #EXT-X tags; MPEG-TS via timed-ID3 (mpegts_id3 record); RINCON household streams carry metadata via X-RINCON-* headers (X-RINCON-RANGE: bytes=%zu-%zu proven)"
   },
   "track_play_monitor": {
    "name": "RTrackPlayMonitor/trackPlayRecorder: play-segment recording",
@@ -142480,12 +142472,11 @@
     }
    ],
    "todo": [
-    "Established: the TS parse machinery (PAT/PMT PIDs, field widths, stream-type guards, PTS), and the timed-ID3 extraction with OOB guards.",
-    "Still unknown: which services emit timed-ID3 streams and how ID3 payload maps to track metadata.",
-    "Next step: trace the ID3-to-metadata consumer for a station that uses it."
+    "Residual: which named music services actually emit timed-ID3 (vs ICY or DASL) is service-config data; the extraction grammar is fully proven."
    ],
    "resolved_findings": [
-    "Resolved: ID3 consumer = stations embedding ID3 in MPEG-TS get the timed-metadata extracted at the demux layer and fed to the stream-metadata path (the tsclient demuxer passes PES private data to the ID3 parser)."
+    "Resolved: ID3 consumer = stations embedding ID3 in MPEG-TS get the timed-metadata extracted at the demux layer and fed to the stream-metadata path (the tsclient demuxer passes PES private data to the ID3 parser).",
+    "ID3-to-metadata map decoded (id3v2 frame table at 0x10ee49xx): standard v2.3/v2.4 frames with v2.2 aliases {TPE1/TP1 artist, TCOM/TCM composer, TPE2/TP2 album-artist, TALB/TAL album, TIT2/TT2 title, TCON/TCO genre, TRCK/TRK track number, TPOS/TPA disc number}; artwork via APIC/PIC frames with format sniffing {JPG,PNG,GIF}; COM comment frames; vendor extensions MusicMatch_TrackArtist, Media Jukebox: Album Artist, iTunes TCMP/TCP compilation; WXXX user-URL frames carry remote artwork keys {artworkURL_, imageThumbnail, imageSmall, imageMedium} with WXXX=%s emit and skipping unsupported key=%s rejects. PRIV frames are framer-keyed: found PRIV frame id %s len %zu / file priv data id does not match framer id - the same private-data channel as logical track MD %s with %zu bytes of private data (PRIV data for %s is too big, only %zu bytes allowed). Windows Media frames {AverageLevel, WM/WMCollectionID} recognized. Tag framing: ID3 magic + Advancing pos beyond ID3 tag (%zu bytes). Timed-ID3 on TS is the HLS-radio metadata carrier - the PID guard accepts only audio or timed_id3 stream types."
    ]
   },
   "diagnostics": {
