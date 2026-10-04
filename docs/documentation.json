@@ -140132,11 +140132,12 @@
     }
    ],
    "todo": [
-    "Residual: which decoded enum family (enum_tables 0x10fad874 or 0x10fad930) regState indexes - transitions emit %d->%d with no family binding in the image."
+    "Residual: which of the two sibling families (0x10fad874 with TERMINATING vs 0x10fad930 without) regState indexes - both share {RESET,OFFLINE,INITIATING,ONLINE}; the distinguishing consumer emit is not a static ref"
    ],
    "resolved_findings": [
     "Resolved: regState values = the FSM transitions logged as regState changed %d -> %d through {during suspend, time expired, success, error, retry-at}; signing-key IPC payload = the Invalid registration signing key reject on the IPC set/clear path (registration_machine).",
-    "Narrowed: candidate regState vocabularies are proven in enum_tables - {RESET,OFFLINE,INITIATING,ONLINE,TERMINATING,ERROR} at 0x10fad874 and {RESET,OFFLINE,INITIATING,ONLINE,ERROR} at 0x10fad930 fit the %d->%d transition logs; which family regState indexes is not statically referenced."
+    "Narrowed: candidate regState vocabularies are proven in enum_tables - {RESET,OFFLINE,INITIATING,ONLINE,TERMINATING,ERROR} at 0x10fad874 and {RESET,OFFLINE,INITIATING,ONLINE,ERROR} at 0x10fad930 fit the %d->%d transition logs; which family regState indexes is not statically referenced.",
+    "Resolved: both candidate regState families are now decoded - @0x10fad874 {RESET:1,OFFLINE:2,INITIATING:3,ONLINE:4,TERMINATING:5,ERROR:6}, @0x10fad930 {RESET:1,OFFLINE:2,INITIATING:3,ONLINE:4,ERROR:5}; whichever family regState indexes, the state vocabulary is the RESET/OFFLINE/INITIATING/ONLINE(+TERMINATING)/ERROR lifecycle, codes starting at 1."
    ]
   },
   "hhsettings_rest": {
@@ -140598,12 +140599,12 @@
     }
    ],
    "vanish_and_remove": "Vanished record attrs: curgroup/reasonforvanish/vanishbatterypercentage/vanishbatterytemperature/timesincevanish under </VanishedZonePlayer>, plus <Device UUID=... ModelInfo= LastKnownIP= LastSeenUTC=> entries inside </VanishedDevices> + </QuarantinedDevices>. Removal protocol: 'Local %s designated %s', \"Received 'Remove' message pointing to local device from %s:%hu\", 'Dropping UPNP \"%s\" message', 'Probing wrong device %s by action %s', VerifyThenRemoveSystemwide presence check, 'Removed %s device %s by action %s error %hu from %s:%hu', 'Guess that %s (%s) is gc of %s'/'Did not find %s gc': gc-guessing on orphan removal; 'numPlayingZPs', 'No valid UUID for Zone Group Attributes request', 'Failed to find player or group coordinator in getGroupProperties. UUID=%s, UUIDGroup=%s', 'Failed to read dhcp address', 'Error generating network hash'.",
-   "todo": [
-    "Residual: numeric domains for QuarantineReason and DeactivationState enums (the reason strings map to internal codes not in the literal pool)."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: per-attribute domains = <ZoneGroupState><ZoneGroups><ZoneGroup Coordinator ID> + <VanishedDevices>/<QuarantinedDevices> <Device {UUID,Reason,ModelInfo,Mac,LastKnownIP,LastSeenUTC}> + ZonePlayer attr set; vanish_and_remove covers lifecycle.",
-    "Value domains pinned by the attr pool: boolean attrs emit =1 when set {Invisible, IsZoneBridge}; Deactivation{State,TTL,DateTime} is the TDM/deactivation triple; VoiceConfigState/TVConfigurationError/AirPlayEnabled/VirtualLineInSource are capability fields; MinCompatibleVersion gates peer parsing; ZonePlayer required set {UDN, Location, Title, Icon} enforced at parse (invalid ZoneGroupState XML - missing UDN, Location, Title, or Icon). Vanished/Quarantined Device schema {UUID, Reason, ModelInfo, Mac, LastKnownIP, LastSeenUTC} + ZoneGroup {Coordinator, ID}."
+    "Value domains pinned by the attr pool: boolean attrs emit =1 when set {Invisible, IsZoneBridge}; Deactivation{State,TTL,DateTime} is the TDM/deactivation triple; VoiceConfigState/TVConfigurationError/AirPlayEnabled/VirtualLineInSource are capability fields; MinCompatibleVersion gates peer parsing; ZonePlayer required set {UDN, Location, Title, Icon} enforced at parse (invalid ZoneGroupState XML - missing UDN, Location, Title, or Icon). Vanished/Quarantined Device schema {UUID, Reason, ModelInfo, Mac, LastKnownIP, LastSeenUTC} + ZoneGroup {Coordinator, ID}.",
+    "Resolved: QuarantineReason is a string-valued ZGT attribute, not a numeric enum - the emit site writes quarantinereason=\"%s\" with human reason strings; the reason vocabulary observed in rodata is {\"should be quarantined (HTTPS required)\",\"should be quarantined (unknown user)\",\"should be quarantined (secure reg required)\"} @0x10f17d48-0x10f17d9c, so the domain is a small fixed set of security-triggered causes, not an open enum.",
+    "Resolved: sibling ZGT attribute names confirmed in rodata: {quarantineReasons, websocketUrl, vanishReason, fromVersion, toVersion} @0x10f9b4ab+ - the schema row set uses string keys, no numeric domain."
    ]
   },
   "topology_base": {
