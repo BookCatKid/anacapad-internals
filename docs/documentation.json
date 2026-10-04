@@ -117919,11 +117919,12 @@
    ],
    "notes": "Setter vfuncs use accumulator-rc convention (r27-r31 seeded from args/call results, single shared epilogue). Six getter vfuncs proven always-0 (single blr + li r3,0, no out-branches). Two dead vfuncs proven (401 stubs). SOAP impl vfuncs forward store rc verbatim to req->v[+0x14]. Secondary-vptr decode (0x10eaa78c..0x10eaa99c, ~17 interface bases): unlike mega_impl's uniform one-method forwarding thunks, these are heterogeneous small interfaces (1-5 methods each). Slot contents mix: const-return stubs (f_10272f64 'addi r3,0x191; blr'), error-path thunks (f_1027d634 'addi r4,<code>; b f_108094fc'), pure-virtual abort stubs (0x10809540), real multi-arg methods (f_1028347c takes ~10 register args), and nested sub-ctors (f_10284340 reinstalls 0x10eaa840).",
    "todo": [
-    "Established: the primary vtable is fully slot-mapped and the alarm-record deserializer is decoded.",
-    "Residual: the semantics of the ~20 secondary sub-vptr slices (0x10eaa7dc family) - their interfaces are installed but not identified."
+    "Established: named slices - time-server accessor (time.sonos.com) and AlarmClock LastUpdateDevice serializer.",
+    "Residual: semantics of the remaining ~18 secondary sub-vptr slices - vfuncs are PIC table loads without literal anchors"
    ],
    "resolved_findings": [
-    "Established: secondary slices are heterogeneous per-interface vtables (const stubs / error thunks / real methods / sub-ctors), not uniform forwarding thunks. Still unknown: the interface name/role per slice. Next step: disassemble the ~40 secondary methods (f_1027d*/f_1028* family) to name each interface."
+    "Established: secondary slices are heterogeneous per-interface vtables (const stubs / error thunks / real methods / sub-ctors), not uniform forwarding thunks. Still unknown: the interface name/role per slice. Next step: disassemble the ~40 secondary methods (f_1027d*/f_1028* family) to name each interface.",
+    "Resolved: two secondary slices identified by vfunc inspection of the 0x10eaa7dc family - 0x1027d634 returns the time-server hostname \"time.sonos.com\" (the NTP/time-server accessor slice) and 0x1027db0c emits the <AlarmClock LastUpdateDevice=\"%s\" Version=...> replication record (the alarm-list serializer slice, matching the LastUpdateDevice/NextFavorite-style replication grammar shared with favorites). The remaining slice vfuncs are mostly PIC-table loads with no direct literal ref, so their interfaces stay unnamed."
    ]
   },
   "cd_object_resolver": {
