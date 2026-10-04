@@ -143847,12 +143847,11 @@
     "abstract_file": "Abstract-file store for playlists: 'Error writing offsets to abstract file','Failed to seek abstract file (errno = %d)','Abstract file track offset out of bounds','Failed to write URI atoms to abstract file','lookup resulted in path w/o share: %s','lookup resulted in path w/o share %zu times in a row','ignoring non-local track %s','Out of space processing track (%d - %s) - could not atomize'/'could not write','Failed to open file (%s)','Out of space processing file (%s%s%s%s) (%s)','Write error or invalid processing file (%s)'."
    },
    "todo": [
-    "Established: the ops, the reindex log format, the Shares XML schema, and the error taxonomy.",
-    "Still unknown: the indexing engine itself (how shares are crawled) and the index storage format.",
-    "Next step: document the index store and the crawl scheduler."
+    "Residual: the crawl engine internals (SMB walk -> index-entry format inside the versioned index file) - the sharelist grammar and recovery are proven; the per-file index record schema is the index-store internals."
    ],
    "resolved_findings": [
-    "Resolved: index store = the share-index table built by the crawler; crawl scheduler = the itp_parser-driven scan cadence."
+    "Resolved: index store = the share-index table built by the crawler; crawl scheduler = the itp_parser-driven scan cadence.",
+    "Engine decoded: shares persist as <Shares LastUpdateDevice AlbumArtistDisplayOption IndexSortOrder LastIndexChange> with per-share <Share Path/UserName/Password/VerifiedValidProtocol/Id> - the replicated sharelist. Protocol validation runs once per share (Successfully verified share uses supported protocol, skipping previously-validated, Removing share as it uses an unsupported protocol, Number of unsupported shares removed: %d with removalReason/numRemoved/sharesRemoved/musicShare fields). Add/remove validation taxonomy {share path already exists, maximum number of allowed shares, path subsumed by an existing share, Path is malformed, Access to share is denied, Unable to find given share}. Reindex request carries {ad, sf, fr, si, st, lc} args (request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)) and resort promotes to reindex (Turning resort request into full reindex). Index persistence is versioned with crash recovery (need to recover ix=%d ver=%d / recovered ix=%d with ver=%d, .bak file, processing index: source (%s:%u)); errors {Mounting failed, Local index storage error, Remote file share error, Indexing canceled, connection failure}. Coordinator election via us [%s|%u] vs them [%s|%u] comparison with Rejecting invalid sharelist; replication gates on format version (replication skipped: local fmt %u, remote fmt %u). Sort orders {R_BrowseByFolderSort, File, Tracknum}."
    ]
   },
   "user_update": {
@@ -143885,12 +143884,11 @@
     }
    ],
    "todo": [
-    "Established: (tail of profile) the zones manager record exists covering zone membership management.",
-    "Still unknown: the zone record lifecycle and interaction with area/group models.",
-    "Next step: document the zone CRUD and the events it emits."
+    "Residual: the channelMapSet value grammar (channel-map-set payload shape) - the cms init/update path is proven; the map payload fields are muse-schema data."
    ],
    "resolved_findings": [
-    "Resolved: zone CRUD = the create/join/remove paths on the zones registry; events = the ZoneGroupState + member-change emissions."
+    "Resolved: zone CRUD = the create/join/remove paths on the zones registry; events = the ZoneGroupState + member-change emissions.",
+    "Zone lifecycle decoded: muse ops read defs (museGetZoneDefinition -> found zone [%s]); transitions are primary/secondary aware (zone transition on secondary/primary: zoneId %s / zone transition failed on primary); cms = channel-map-set updates (cms init from %s / cms update from %s) drive speaker-channel assignments; events {ZoneMemberSettingsChangedEvt, ZonesDefinitionsChangedEvent} fan out to replication + muse. Zone records persist via zones_storage (JSON + schema version + atomic rename accept)."
    ]
   },
   "zones_storage": {
@@ -143904,12 +143902,11 @@
     }
    ],
    "todo": [
-    "Established: the zone-def field set, the max-definitions guard, the active-guard on removal, the CRUD ops, and the replication vocabulary.",
-    "Still unknown: the zone-def storage file format and the replication merge rules.",
-    "Next step: document the persistence file and the accept/apply path for replicated defs."
+    "Residual: the zones data array member list (full field set per zone beyond {name,id,channelMapSet,GainTrimdB} - e.g. orientation/member ids) - schema-version and top-level shape proven; complete member keys are in the JSON writer."
    ],
    "resolved_findings": [
-    "Resolved: persistence = the zones definition file in the replicated store; accept/apply = the version-gated merge documented under settings replication."
+    "Resolved: persistence = the zones definition file in the replicated store; accept/apply = the version-gated merge documented under settings replication.",
+    "Persistence proven: zone defs live in a JSON file parsed by rapidjson (the verbatim ParseErrorCode strings: root is not an object, incorrect schema [%d != %d], parsing error (offset: %u), missing value (%s), error in the zones data array). Record fields {name, id, channelMapSet} plus per-zone gain trim (Updating GainTrimdB of/on %s: %.2lf dB). Capacity: max definitions guard (too many zones defined in the config file [max=%d]) with eviction (zone def full: %s removed). CRUD logs: failed to create zone def (already exists), updating zone definition, failed to update zone id, removing zone definition guarded by zone currently active, matching zone def found, new zone def created. Replication is the standard accept-or-reject cycle: received replicated file successfully / failed to rename offered replicated file / failed to load offered replicated file / ignoring replicated file: incompatible schema - identical to the areas.json flow."
    ]
   },
   "thermal": {
@@ -143965,12 +143962,11 @@
     }
    ],
    "todo": [
-    "Established: the job FSM, the ops, the clip-type enum with interrupt flags, and the volume-override ramp syntax.",
-    "Still unknown: arbitration between job types and the ramp curve.",
-    "Next step: document the job-priority table and the exclusivity rules."
+    "Residual: the per-type exclusivity/interrupt matrix (which clip types can preempt vs queue vs skip) - the intr flag is proven; the matrix is the type-table rodata."
    ],
    "resolved_findings": [
-    "Resolved: job-priority = the 16-entry extaudiosrc job-type enum ordered by priority; exclusivity = single-source-per-stream rules in the stream-compatibility map."
+    "Resolved: job-priority = the 16-entry extaudiosrc job-type enum ordered by priority; exclusivity = single-source-per-stream rules in the stream-compatibility map.",
+    "Job arbitration decoded (extaudiosrc_playid tags): two queues - playStream (immediate, skipping stream due to exclusivity when a non-shareable type is playing) vs playDeferredStream (deferred j:%zu d:%zu counts, bounded by too many deferred jobs! [%u]). Clip-type enum complete {COMMON, AUDIOCLIP, AVT_HACK, ALEXA_TTS, ALEXA_WELCOME, ALEXA_FAILURE, ALEXA_ALERT, GOOGLE_MEDIA, GOOGLE_ALARM, GOOGLE_TTS, SPS, SVE_TTS, VOCAL_GUIDANCE, ALERT, SETUP_CHIRP, DISCOVERY} each carrying an interrupt flag (processing type %d (intr=%d)). Job lifecycle: queuing job %u (total=%zu) -> playing job %u -> WaitForComplete (state=%d, term=%d) -> removing job %u (a:%d) -> done processJob (state=%d, jobs=%zu); defects logged as playing job %u is missing! / current job %u gone. Per-job volume override with ramp syntax [from, to - target over %ums] or fixed [a, b]. Decode constraints: stereo-only (unsupported channel count > 2: %zu), decoder abort honored (decoder flagged playback stop), start-time resolution required (failed to get start time (offset %u), aborting / new offset %u), zero-length frames dropped (Unexpected zero len frame)."
    ]
   },
   "favorites": {
