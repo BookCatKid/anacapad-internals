@@ -117672,12 +117672,13 @@
     }
    ],
    "todo": [
-    "Established: the ctor installs ~30 sub-vptrs from the 0x10e97* family and the DP/SP slice sharing is proven.",
-    "Residual: the identity and slot semantics of most of the ~30 sub-vptr slices - only a few (topology serializer, DP/SP impl) are named."
+    "Established: the 29 member ops pairs are {panic-trap, span-registrar} descriptors (two registrars f_1018069c/f_100d698c), installed base-then-derived across +0x00..+0x240.",
+    "Residual: the semantic names of the 29 registered member spans (each registers [arg->4, +arg->8) at dispatch time; the field names are caller data)"
    ],
    "sub_vptr_slices": "20 secondary-base vtables at 0x10e97ae0..0x10e97ca8, stride 0x18, layout {dtor-stub f_10809540, method, 0, 0, -0x20*i back-offset, 0}: each is a single-method listener interface. All 20 methods are IDENTICAL 8-insn forwarding thunks (stw this+8<-this+8 fixup, copy arg+4/+8, tail-forward) - GCC secondary-base glue forwarding each interface to a shared parent handler. Slices: f_100e5628, f_1019fb94, f_1019fb4c, f_100e55e0, f_1019fb04, f_1012e2b0, f_1012e268, f_100f72fc, f_100d5bd0, f_1019fabc, f_1019fa74, f_100f72b4, f_1019fa2c, f_1019f9e4, f_1019f99c, f_1012e388, f_1019f954, f_1019f90c, f_1019f8c4, f_1019f87c.",
    "resolved_findings": [
-    "Established: the ~30 sub-vptrs resolve to 20 single-method listener interfaces (stride-0x18 secondary bases with back-offsets), all GCC forwarding thunks to shared parent handlers, plus the separately proven topology-serializer and DP/SP impl slices. Still unknown: which internal-event type each listener interface subscribes to (the thunk bodies are uniform). Next step: find the registration calls that subscribe each slice to the internal_event_bus to name the 20 event subscriptions."
+    "Established: the ~30 sub-vptrs resolve to 20 single-method listener interfaces (stride-0x18 secondary bases with back-offsets), all GCC forwarding thunks to shared parent handlers, plus the separately proven topology-serializer and DP/SP impl slices. Still unknown: which internal-event type each listener interface subscribes to (the thunk bodies are uniform). Next step: find the registration calls that subscribe each slice to the internal_event_bus to name the 20 event subscriptions.",
+    "Resolved (reinterpretation): the ~30 \"sub-vptr\" installs in f_101a22c4 are not service vtables - each is a 2-entry ops pair {slot0=0x10809540 panic trap (write(2,buf,0x1b)+abort via f_108092bc), slot1=per-member span registrar}. Every slot1 body is the identical shape (e.g. 0x1019f87c, 0x1019f99c, 0x100e5628): store self+8 at self+0, then call a span registrar with [arg->4, arg->4+arg->8) - two registrar targets exist, f_1018069c (the embedded-member registrar) and f_100d698c. So the 0x1b8 object is a self-describing member-descriptor array: each member carries an ops pair that registers its own [begin,end) span. The ctor fills +0x00..+0x240 (stride 0x20, 19 slots) from the 0x10e97ae0..0x10e97c90 family, then a derived-class sweep overwrites +0x240..+0x80 with the 0x10e97644..0x10e97a80 family - a two-layer (base-then-derived) construction, 29 descriptor members total."
    ]
   },
   "svc_array": {
