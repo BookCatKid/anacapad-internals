@@ -138610,11 +138610,12 @@
    "sddp": "sddpd = Control4 SDDP (Simple Device Discovery Protocol) daemon (/etc/sddpd.conf: Type=sonos:Zoneplayer, PrimaryProxy=media_service, Proxies={media_service,amplifier}, Manufacturer=Sonos, Model=Zoneplayer, Driver=sonos.c4z (Control4 driver DB), MaxAge=1800) the device announces itself to Control4 systems. /jffs/dev_sddp.conf overrides the shipped config (-c flag).",
    "anacapa_upgrade_hook": "runanacapa intercepts upgrades BEFORE exec'ing anacapad: if /var/run/upgradeinfo exists -> mkdir /tmp; mv /jffs upgrade_tmp_prev.log; run /bin/upgrade >> /tmp/upgrade.log; echo 'RESULT = $rr'; rm upgradeinfo; exit rr: the daemon slot doubles as the upgrade runner. Normal path also cleans stale /tmp/smb/* mounts.",
    "todo": [
-    "Residual: the 3 header field names (type/length/sequence order) and the per-daemon message-type enums - ReadIPCHeader is an extern; only netstartd message literals are visible in this image."
+    "Residual: the 3 header field names (type/length/sequence order) and the numeric per-daemon message-type enums - ReadIPCHeader lives in the shared sonos IPC library; the NS2_MSG_* name catalog and WAC_* names are now enumerated but their wire ids sit in stripped enum tables."
    ],
    "resolved_findings": [
     "Resolved: IPC frame format = the key-value event frame used by the netstartd client (init f_10557fa8 + set-field f_1055847c + send v[+0x1c]); Bad IPC message received guards malformed frames at the parse layer; /X-external routes are plain HTTP. Frame = {eventType:<name>, hardware:<dev>, type-specific fields}.",
-    "IPC framing decoded (ipc_msg.cxx, reader loop ~0x105d3954 under module ipc): the channel is a 3-field binary header read by ReadIPCHeader (0x11098588) followed by a bounded payload - the length check cmplwi 0x800 at 0x105d39bc rejects frames over 0x800 bytes, and malformed frames log Bad IPC message received (%d %d %d) with the three header fields. Body is then read() and dispatched; the loop is lock-guarded (f_10988558/f_10988984 pair). Connection lifecycle literals: IPC established for %s, IPC closed for %s, IPC timeout occurred, attempting reconnect for %s (retries=%u), performReset performing IPC reconnect for %s, Deferring IPC reconnect for %s - the select-thread registers selthrd.RIPCHandler.reset/.data handler pair. netstartd message vocabulary visible in the same region: Disabling networking, Enabling networking, Signaling start/end of network connectivity test, and the outbound IPC message to netstartd to notify about satellite addition. ReadIPCHeader is an import (0x11098588) - the field semantics of the 3-word header (likely {type, length, seq}) live in the shared sonos IPC library."
+    "IPC framing decoded (ipc_msg.cxx, reader loop ~0x105d3954 under module ipc): the channel is a 3-field binary header read by ReadIPCHeader (0x11098588) followed by a bounded payload - the length check cmplwi 0x800 at 0x105d39bc rejects frames over 0x800 bytes, and malformed frames log Bad IPC message received (%d %d %d) with the three header fields. Body is then read() and dispatched; the loop is lock-guarded (f_10988558/f_10988984 pair). Connection lifecycle literals: IPC established for %s, IPC closed for %s, IPC timeout occurred, attempting reconnect for %s (retries=%u), performReset performing IPC reconnect for %s, Deferring IPC reconnect for %s - the select-thread registers selthrd.RIPCHandler.reset/.data handler pair. netstartd message vocabulary visible in the same region: Disabling networking, Enabling networking, Signaling start/end of network connectivity test, and the outbound IPC message to netstartd to notify about satellite addition. ReadIPCHeader is an import (0x11098588) - the field semantics of the 3-word header (likely {type, length, seq}) live in the shared sonos IPC library.",
+    "Daemon-side confirmation (netstartd strings): the IPC handshake is 'Netstart2 CLIENT_HELLO: protocol version %u, SW version %s, capabilities 0x%x' with registration lock ('unable to lock registration; already registered', '%s registered: %s'); anacapad-driven messages confirmed include SonosNet frequency/disable sets and the Muse HHID handshake; the WAC side channel is /tmp/netstartd_wac.ipc."
    ]
   },
   "muse_semantics": {
@@ -143113,11 +143114,12 @@
     }
    ],
    "todo": [
-    "Established: /X-external proxy routes, watchdog upload routes, attachment vocabulary, sentry fields; netstartd /tmp/netstartd.ipc {msg-id -> field setter} dispatcher decoded under netstartd_ipc.",
-    "Residual: the per-daemon op tables for the other external routes (netstartd fully decoded; others follow the same msg-id pattern)."
+    "Residual: the per-daemon op tables for the remaining external routes (sonospowercoordinator, btmanager - absent on this build, sonosledmgrd message ids). The netstartd msg-id setter table is decoded; the WAC channel is now enumerated at the message-name level."
    ],
    "resolved_findings": [
-    "Resolved: netstartd external route = the /tmp/netstartd.ipc dispatcher {msg-id -> field setter} decoded under netstartd_ipc."
+    "Resolved: netstartd external route = the /tmp/netstartd.ipc dispatcher {msg-id -> field setter} decoded under netstartd_ipc.",
+    "Resolved: wacd->netstartd channel /tmp/netstartd_wac.ipc carries WAC_AP_OPEN/WAC_AP_CLOSE/WAC_STA/WAC_DONE/WAC_TMO/WAC_STOP/WAC_ERROR - decoded from wifi/wacd + wifi/netstartd string tables.",
+    "Resolved (partial): anacapad->sonosledmgrd requests traverse the /sonosledmgrd-external route name; sonosledmgrd runs a socket-based IPC ('hostPort' config field) and consumes the shared leds_zp R_LED_* mode vocabulary - message-level opcodes remain in stripped code."
    ]
   },
   "led_hw": {
@@ -151695,6 +151697,9 @@
      "address": "opt/bin + wifi/ + lib/",
      "notes": "shipped binaries"
     }
+   ],
+   "resolved_findings": [
+    "Daemon-side decode pass (strings/dyn-syms on the 32-bit MSB PPC ELFs): netstartd owns the NS2 setup protocol (NS2_MSG_* catalog + DTLS transport) and the /tmp/netstartd.ipc + /tmp/netstartd_wac.ipc channels; wacd is the Apple WAC agent reporting WAC_AP_OPEN/CLOSE/STA/DONE/TMO/STOP/ERROR to netstartd; upgrade_mgr runs an SSDP-advertised status server with FSM {HELLO,STATUS,PING,DOWNLOAD,FLASHWRITE,REBOOT,COMPLETE,ERROR}; frcheck is a one-shot boot checker with rc contract {0=hard reset,1=normal,2=soft reset}; mdputil prints identity keyvals + writes signed MDP pages; sddpd is Control4 SDDP; mdnsd is stock mDNSResponder; chronyd is stock chrony on sonostime pools; dropbearmulti is dropbear 2020.81 gated on device_unlocked_flag; wpa_supplicant is v2.10 with a '-D sonos' driver; pcap is a libpcap wrapper for the /pcap status route; busybox is v1.35.0 with 133 applets; capsh is unused stock libcap tooling. See per-record bin_* entries for details."
    ]
   },
   "netconfig_fsm": {
@@ -151817,13 +151822,9 @@
   },
   "bin_upgrade": {
    "name": "upgrade / upgrade_mgr daemons",
-   "summary": "The on-device firmware-update executables (bin/upgrade, bin/upgrade_mgr). Related records cover the update flow (update_machinery, update_coordinator, auto_update, user_update) but the binaries themselves have not been disassembled: launch chain, .upd envelope parsing and signature verification, partition selection, the device-payload.bin application path, and rollback behavior are all undecoded.",
+   "summary": "Firmware-update pair: /bin/upgrade performs one upgrade transaction (download, verify, flash, reboot); /bin/upgrade_mgr is the orchestrating daemon that the anacapad update machinery kicks (/var/run/upgradeinfo) and that exposes an SSDP-advertised status server. All evidence below is from stripped 32-bit MSB (PPC) ELF string/dyn-symbol tables plus /etc/runanacapa and /etc/init.d/rcK.",
    "todo": [
-    "disassemble upgrade and upgrade_mgr entry points",
-    "decode the .upd container layout end to end",
-    "document signature/cert verification path (upd_cert_bundle.rcb)",
-    "document device-payload.bin consumption and partition switching",
-    "document failure and rollback handling"
+    "Residual: the .upd section-type enum ids, the envelope cipher/key hierarchy inside libsonoscrypto, and the exact partition-switch + rollback triggers in bootsection handling - the binaries name these operations but the section table and crypto wiring live in stripped code and libsonoscrypto.so.3."
    ],
    "artifacts": [
     "bin/upgrade",
@@ -151832,105 +151833,117 @@
     "package/86.10-80260-1-9-device-payload.bin"
    ],
    "resolved_findings": [
-    "Resolved (boundary): failure/rollback = the upgrade binary pair handles verify-then-write with fallback partition; consolidated into the record - anacapad hands off via update_machinery; binaries themselves are outside the anacapad static surface but the call contract is documented."
+    "Resolved (boundary): failure/rollback = the upgrade binary pair handles verify-then-write with fallback partition; consolidated into the record - anacapad hands off via update_machinery; binaries themselves are outside the anacapad static surface but the call contract is documented.",
+    "bin/upgrade I/O contract: reads /var/run/upgradeinfo ('Error reading upgradeinfo file'); supports a no-op mode ('No-op mode - download/reboot will be skipped' and 'Detected /jffs/VERSION, performing no-op update'); builds the image URL as '%s%s-%u-%u.upd?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s' plus '&sonosid=%s&householdid=%s'; and ends by calling reboot().",
+    "bin/upgrade .upd container: typed sections with a magic header ('Invalid section header. Bad magic value.'), a required/optional split ('Required section %u missing', 'Skipping checks for section %u', 'Unknown section %u', 'Multiple sections of type %u'), a signature section verified via sonosRcbVerifySig ('invalid Sonos signature section length', 'encrypted signature section not supported'), per-section enveloped-data decryption via mbedtls ('Enveloped data parse/decrypt init/decrypt/decrypt final failed', 'Encrypted section too small', 'Out of space while decrypting section'), and cert bundles saved under /jffs/sys/run/rcb/ as upd_cert_bundle.rcb and %s-%s.rcb.",
+    "bin/upgrade hardware gating: mutes and powers off amps through libsyslib_hal before flashing ('warning: failed to mute/power off amps'), reads the boot section via hal_flash_get_bootsection, enforces a HW-feature compatibility matrix ('Critical UPD feature (%s: %s) not supported by player', 'Critical player feature not supported by UPD', 'Upgrade supports all my legacy hw features'), skips M4 and BOOTSOUND sections when no partition exists, and writes /var/upgradescript for post-reboot execution.",
+    "bin/upgrade client-server mode: can listen on a TCP port for a household controller ('client-server mode: listening on port %d', CONNECT/DOWNLOAD/DOWNLOAD_DONE states, 'waiting for connection from HH', monitored attach/detach) and streams progress to that client ('Failure sending progresss to client. Lost connection to client.'); writes the upgrade report to /jffs/upgrade_sys_report.log (prev rotated to _prev) and /var/run/upgrade_report.txt.",
+    "bin/upgrade housekeeping: wipes /jffs/app/install, writes /jffs/sys/run/updateID, references deactivation markers /jffs/persist/deactivation_pending_state.json + deactivated_state, devmode image path /jffs/debug/devmode.bin, and manages /tmp/upgrade_mgr.pid + /var/run/stopupgrade.",
+    "bin/upgrade_mgr state machine: verbs {HELLO, STATUS, PING, DOWNLOAD, FLASHWRITE, REBOOT, COMPLETE, ERROR, 'Unrecognized command'} and states {UNDEFINED, INIT, CONNECT, HELLO_DONE, WAIT, DOWNLOAD_DONE, FLASHWRITE_DONE, REBOOTING_DONE, FINISHED}; the status server binds a TCP port ('status server: listening on port %d') and announces itself over SSDP with NT/USN urn:schemas-upnp-org:device:SonosUpgradeMgr:1, X-RINCON-HOUSEHOLD, and 'X-RINCON-REASON: hh-upgrade'.",
+    "bin/upgrade_mgr reporting: daemonizes (daemon()), reads its info file (ReportFilename must be set), and emits a JSON report to /jffs/app/run/%s with fields {Serial, Type, CurrentVersion, TargetVersion, UpdateID, HardwareVersion, State, ServerIP, ErrorMsg, ExtendedError}; its update-check URL carries '?Version=%s.%s-%s&Auto=%s&Client=%s'."
    ]
   },
   "bin_mdputil": {
    "name": "mdputil",
-   "summary": "Small update-side utility shipped in bin/. Referenced by the update machinery; its verb set (probably partition/manifest helpers) has never been enumerated.",
+   "summary": "Manufacturing-data partition utility (/bin/mdputil) over libsonos-mdp + libflash. Prints keyval-parseable identity lines, validates and writes signed MDP pages on /dev/mtd/0.",
    "todo": [
-    "enumerate command verbs and syscall surface",
-    "tie into the upgrade/upgrade_mgr call graph"
+    "Residual: the MDP page field layout (index namespace for -fwn) and the signature algorithm variant (v1 vs v2 paths) - field ids are numeric ioctls into libflash and the key format lives in libsonos-mdp, not in strings."
    ],
    "artifacts": [
     "bin/mdputil"
    ],
    "resolved_findings": [
-    "Resolved (boundary): tied into the upgrade call graph via get_mdp/mdp_write references in the unlock + update paths - the manufacturing-data partition read/write helper."
+    "Resolved (boundary): tied into the upgrade call graph via get_mdp/mdp_write references in the unlock + update paths - the manufacturing-data partition read/write helper.",
+    "Verbs recovered from usage/error strings: bare invocation prints HW manifest ('%sHW manifest entries:') plus SERIAL=, SERIES_ID=, COPYRIGHT=, UNITSIG=, SERIALSIG= keyval lines; -B is the boot manifest print used by /etc/Configure; '-fwn <index>=<value>' writes fields; '-wf' forces a write past the 'There is already a valid MDP in place' guard; '-k keyfile' selects a signing key ('-k option not available' on unsigned builds).",
+    "Crypto/integrity surface: keyfile open/read, 'Unrecognised key length', 'Public key error', 'Decrypt error', 'Signature no match error', 'v2 signature no match error', 'Key rejected' - MDP pages carry a public-key signature verified on read/write.",
+    "Flash plumbing: opens /dev/mtd/0 via libflash hal_flash_get_mdp/hal_flash_get_mdp2/hal_flash_read_fsn + crc32; errors 'Flash MDP1 error', 'MDP2 error', 'Flash SN error', 'GETFSN failed deviceID %x err %x', 'Manifest parse failed'; exports sonosGetSeriesID/sonosSetSeriesID/sonosGetCertColorVariant from libsonos-mdp.",
+    "Consumers: /etc/Configure runs 'mdputil -B' then 'mdputil | keyval ^SERIAL | cut -c1-12' to set hostname Sonos-<serial12>; wacd reads MDP page1/page2 (model + cert-color variant) to build its WAC AppleDeviceIE."
    ]
   },
   "bin_frcheck": {
    "name": "frcheck",
-   "summary": "Filesystem/rootfs verification binary (sbin/frcheck) invoked around update and boot. Undisassembled: what it validates (squashfs hash, partition table, manifest) and when it runs.",
-   "todo": [
-    "determine invocation sites in boot/update flow",
-    "document what it verifies and its exit contract"
-   ],
+   "summary": "Factory-reset checker (/sbin/frcheck): a 20KB one-shot run once per boot by /etc/Configure that decides whether this boot continues normally or enters a reset. Pure decision component, no daemon.",
    "artifacts": [
     "sbin/frcheck"
    ],
    "resolved_findings": [
-    "Resolved (boundary): verifies rootfs integrity (squashfs/partition consistency) at boot/update; exit contract = nonzero aborts the boot sequence stage."
+    "Resolved (boundary): verifies rootfs integrity (squashfs/partition consistency) at boot/update; exit contract = nonzero aborts the boot sequence stage.",
+    "Invocation site: /etc/Configure calls /sbin/frcheck right after mounting JFFS and touching /var/run/sonosledmgrd.flash_booting_led, before networking modules load.",
+    "Exit contract proven from Configure: rc=0 -> 'sonosledmgrd --fr' + 'netstartd --hard-reset' (full factory reset); rc=2 -> 'sonosledmgrd --fr' + 'netstartd --soft-reset' (settings-only reset); rc=1 -> normal boot continues.",
+    "Decision inputs from strings+dyn syms: reads /jffs/app/run/factoryReset.txt looking for the SOFT token (soft reset request persisted across reboot), samples front-panel button state via hal_inputs_get_buttons_state (button-held reset), and touches /dev/audioctl; prints 'APUinfo'."
    ]
   },
   "bin_sddpd": {
    "name": "sddpd (Sonos discovery daemon)",
-   "summary": "The SDDP (Sonos Device Discovery Protocol) daemon. sddpd.conf ships its config but the wire protocol is undecoded: probe/announce frame format, multicast group, relationship to SSDP and the app discovery path.",
-   "todo": [
-    "decode SDDP frame format and multicast details",
-    "document interaction with SSDP discovery layer",
-    "document sddpd.conf knobs in use"
-   ],
+   "summary": "Control4 SDDP (Simple Device Discovery Protocol) daemon (/sbin/sddpd), a third-party discovery channel parallel to SSDP/mDNS so Control4 remotes find the player. Respawned by inittab via /etc/runsddp after waitfordns; -n keeps it foregrounded, /jffs/dev_sddp.conf overrides /etc/sddpd.conf.",
    "artifacts": [
     "sbin/sddpd",
     "etc/sddpd.conf"
    ],
    "resolved_findings": [
-    "Resolved (boundary): sddpd.conf knobs = the SDDP announce/probe config; wire protocol boundary noted - daemon is external; role = Sonos device discovery parallel to SSDP/mDNS."
+    "Resolved (boundary): sddpd.conf knobs = the SDDP announce/probe config; wire protocol boundary noted - daemon is external; role = Sonos device discovery parallel to SSDP/mDNS.",
+    "Wire surface from strings: builds periodic NOTIFY-style advertisements ('Sending SDDP advertisement', 'Sending Periodic SDDP advertisement', 'SDDP send failed'), answers SEARCH requests when the search target matches ('SEARCH', 'SDDP Search target MATCH'), emits identify on demand ('Sending SDDP identify'), and rejects foreign packets ('Unsupported SDDP request/response packet version: %s', 'Unrecognized SDDP packet: %s'); packet bodies start with the 'SDDP/' version token.",
+    "Sockets: one multicast listener + one unicast socket per interface - sets SO_REUSEADDR, IP_PKTINFO, IP_MULTICAST_TTL, joins a multicast group per interface ('Joining multicast group for %s'), enforces a minimum advertise period ('Setting SDDP max_age to minimum of %d seconds').",
+    "Config: /etc/sddpd.conf ships Type=sonos:Zoneplayer, PrimaryProxy=media_service, Proxies=media_service,amplifier, Manufacturer=Sonos, Model=Zoneplayer, Driver=sonos.c4z, MaxAge=1800; loader validates the file ('Incomplete config file', 'SDDPSetHost failed: host param too long', 'Unable to set device (index = %d)') and usage is '%s -n'."
    ]
   },
   "bin_mdnsd": {
    "name": "mdnsd (Sonos mDNS fork)",
-   "summary": "The multicast-DNS daemon. mdns/mdns_controller/mdns_device/mdns_discovery records exist but are partial: service-type table, TXT record schema, and where it diverges from stock mdns implementations are not fully mapped.",
+   "summary": "Stock Apple mDNSResponder daemon (/sbin/sddpd-adjacent /sbin/mdnsd), run foregrounded as 'mdnsd -f' by /etc/runmdns behind the waitwhiletrue /var/run/stopmdns gate. Sonos ships the posix mDNSResponder, not avahi.",
    "todo": [
-    "enumerate registered service types and TXT schemas",
-    "document divergence from stock mDNS daemons",
-    "document zone/group advertising flow"
+    "Residual: the exact mDNSResponder version (banner carries a build number but no release tag in strings) and whether the uds socket path differs from upstream /var/run/mdnsd."
    ],
    "artifacts": [
     "sbin/mdnsd"
    ],
    "resolved_findings": [
-    "Resolved (boundary): zone/group advertising = the _sonos._tcp announce flow driven by anacapad registration calls (mdns_controller); daemon-side config documented via shipped conf."
+    "Resolved (boundary): zone/group advertising = the _sonos._tcp announce flow driven by anacapad registration calls (mdns_controller); daemon-side config documented via shipped conf.",
+    "Binary is upstream mDNSResponder with the standard internals (mDNSCore*, mDNSPosix::tcpListenCallback, mDNSPlatform{SendUDP,TCPListen,TCPConnect,TCPWritable}, 'mDNSResponder Build %d.%02d.%02d' state-log banner, '---- BEGIN/END STATE LOG ----').",
+    "Privileges/sandboxing: attempts setgid+setuid to nobody and warns on failure ('WARNING: mdnsd continuing as group root / as root because setgid/setuid to nobody failed'); usage is '%s [-debug]' (-f foreground flag comes from mDNSPosix main).",
+    "Client surface: a dns_sd unix-domain-socket server is compiled in ('ExitCallback: udsserver_exit failed', 'requestIOEvents called with fd %d > FD_SETSIZE') - this is how anacapad registers the _sonos._tcp service/TXT records documented under the mdns record; interface tracking registers/deregisters interfaces at runtime ('Registered interface %s', 'Deregistered interface %s').",
+    "Divergence check: no Sonos-patched protocol strings found; the advertised zone/group semantics all live in anacapad's registration calls, not in the daemon. /etc/mdnsd.conf is referenced but absent from the rootfs, so the daemon runs with built-in defaults plus client registrations."
    ]
   },
   "bin_netstartd": {
    "name": "netstartd (netstart2)",
-   "summary": "Daemon behind the netstart/SCI bus (wifi/netstartd). netstart_events and netstart_ipc document part of the picture: the SCI/MRPC message set, client roster, and boot-time role are not fully decoded.",
+   "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "decode the SCI/MRPC message catalog end to end",
-    "document clients and registration handshake",
-    "document role in WiFi bring-up vs wpa_supplicant"
+    "Residual: the numeric NS2_MSG_* opcodes and the field layout of each message - the catalog and FSM are proven by strings but the id-to-message table is an enum in stripped code."
    ],
    "artifacts": [
     "wifi/netstartd"
    ],
    "resolved_findings": [
-    "Resolved (boundary): WiFi bring-up role = SCI/MRPC bus owner {netstart_mode, netstartd.ipc msg ids 3..108}; wpa_supplicant coordination via the IPC set."
+    "Resolved (boundary): WiFi bring-up role = SCI/MRPC bus owner {netstart_mode, netstartd.ipc msg ids 3..108}; wpa_supplicant coordination via the IPC set.",
+    "Control IPC: listens on /tmp/netstartd.ipc (pid /tmp/netstartd.pid, stop flag /var/run/stopnetstartd). Clients complete a CLIENT_HELLO handshake carrying {protocol version, SW version, capabilities} ('Netstart2 CLIENT_HELLO: protocol version %u, SW version %s, capabilities 0x%x', 'Netstart protocol version: %d', 'unable to lock registration; already registered', '%s registered: %s'). anacapad drives SonosNet frequency changes and disable through it ('anacapa IPC: setting SonosNet frequency to %u in %u.%u seconds', 'frequency %u not supported', 'setting SonosNet disable'), and the pair handshake the Muse HHID ('Re-sending Muse HHID to anacapad ... expected ... to match', 'Confirmed anacapad received netstartd's Muse HHID').",
+    "NS2 wire protocol (the setup channel to apps/pending players): full message catalog NS2_MSG_{KEEP_ALIVE, ACK, SETUP_CLIENT_HELLO, SETUP_SERVER_HELLO, SETUP_SERVER_HELLO_LEGACY, SETUP_CANCEL, ECHO, SETUP_BEGIN, SETUP_CONTINUE, SETUP_STATUS, GET_SCAN_LIST, SCAN_LIST, SET_NET_SETTINGS, GET_PSK, PSK, UPGRADE, START_OPEN_AP, COMMIT_SETTINGS, SETUP_REAUTHORIZE, ENABLE_WIFI, START_ISLAND, TIMED_OUT, LOCK_REGISTRATION, REGISTRATION_KEY}; state machine NS2_STATE_{RESET, SETUP_STANDBY, SETUP_START, SETUP_DISCOVERY, SETUP_DISCOVERY_INTERACTION, SETUP_PIN_EXCHANGED, SETUP_WAITING, SETUP_ACTIVE, SETUP_COMPLETE, SETUP_UPDATE, OPEN_AP_PENDING, OPEN_AP_STANDBY, ENABLE_WIFI_PENDING, DEACTIVATED, REAUTH_PENDING, ISLAND_PENDING, SCANNING, CHECKING_CREDS}; setup modes NS2_SETUP_MODE_{NONE, NFC, CHIRP, MANUAL_PIN, CLIENT_PIN, CHIRP_WITH_BUTTON, QR_CODE, QR_CODE_WITH_BUTTON, QR_CODE_WITH_REMOTE}.",
+    "Transport security: the NS2 channel runs inside DTLS with its own FSM (DTLS_STATE_{DISCONNECTED, HELLO_VERIFY, CLIENT_RECONNECT, CONNECTING, CONNECTED, WRITING, CLOSING, CLOSE_IMMEDIATELY, CLOSE_NOTIFY_SENT, CLOSE_NOTIFY_DISCONNECT}, 'netstart2_dtls_write_message failed', handshake-timeout socket re-registration); device frames carry a netstart header in the 'uw' wireless layer ('uw could not add netstart header', 'Netstart msg %d (0x%x) from %d.%d.%d.%d to %d.%d.%d.%d').",
+    "WifiFuncs control surface: 50+ imports of the WifiFuncs* API - channel/freq set-get, AP scan start/cancel/results, SSID-in-beacon toggle, HHID WEP key channel, bridge STP/prio, Apple IE + network-settings IE injection, neighbor-probe ignore/block, advertised-path blocking, third-party disable, UWC presence/hops, station assoc bssid/ssid - driving athconfig under the hood.",
+    "Runtime files: /var/run/netstart_mode records the active mode; per-attempt setup logs %s/setup.log + %s/setup.dmesg under %s/%s/setup%s dirs; /tmp/netstartd_wac.ipc is the wacd channel; settings are read from netsettings.txt, fresh_hh.txt and localsettings.txt; SonosNet WPA PMK is derived locally ('pmk_in_ascii_len too short', 'Failed to generate PMK', 'Failed to serialize'); DHCP is supervised through /tmp/udhcpc.pid + /tmp/udhcpc_renew_option ('DHCP start/renew signal').",
+    "Reset surface: flags --hard-reset, --soft-reset, --qareset, --qareset-lite, --preserve-system (wired to frcheck rc 0/2 in /etc/Configure); log at /opt/log/netstartd.log rotated to /jffs/netstartd_prev.log and /jffs/net/log/netstartd.log."
    ]
   },
   "bin_wacd": {
    "name": "wacd (wireless access config)",
-   "summary": "Daemon handling WAC-mode provisioning (joining the speaker to WiFi from app broadcast). wac_mode record is partial: the provisioning handshake, crypto, and SonosNet bridge path need full decode.",
+   "summary": "wacd (/wifi/wacd): the Apple WAC (Wireless Accessory Configuration) provisioning agent. It opens the temporary WAC soft-AP, advertises an Apple Device IE built from the unit's MDP identity, and reports provisioning progress to netstartd over a dedicated IPC socket.",
    "todo": [
-    "decode the WAC provisioning handshake",
-    "document credential transfer and crypto",
-    "document handoff to wpa_supplicant/netstartd"
+    "Residual: the on-air WAC exchange itself (Apple's accessory handshake) is handled by the soft-AP + IE broadcast; what remains undecoded is the exact credential handoff fields inside WAC_DONE/STA messages."
    ],
    "artifacts": [
     "wifi/wacd"
    ],
    "resolved_findings": [
-    "Resolved (boundary): WAC provisioning handoff = the /var/run/wac_mode state machine + wpa_supplicant/netstartd IPC transitions documented under wac_mode."
+    "Resolved (boundary): WAC provisioning handoff = the /var/run/wac_mode state machine + wpa_supplicant/netstartd IPC transitions documented under wac_mode.",
+    "IPC channel: connects to /tmp/netstartd_wac.ipc and sends WAC_AP_OPEN, WAC_AP_CLOSE, WAC_STA, WAC_DONE, WAC_TMO, WAC_STOP, WAC_ERROR notifications ('Send WAC AP Open/Close/Timeout/Done/Stop/Error msg fail'); owns /tmp/wacd.pid; SIGUSR1 simulates a WAC timeout ('USR1 signal received - simulating WAC timeout'); logs a 'Staying aliiiivveee' keepalive.",
+    "WAC payload: builds the WAC SSID via WifiFuncsWacFillBinarySsid and Base64-encodes it ('Could not initialize WAC SSID', 'Base64 encoded WAC SSID exceeds max length of SSID'), creates the AppleDeviceIE ('Create Apple Device IE fail', 'Setting up IE and bailing'), and starts the platform software AP ('Platform SW AP start fail').",
+    "Identity source: reads MDP page1 (model - 'Could not read MDP page1 data, cannot determine model') and MDP page2 (variant - 'unknown variant', 'Unexpected variant value %u') through the libflash/hal_flash wrappers so the WAC advertisement matches the hardware SKU."
    ]
   },
   "bin_wpa_supplicant": {
    "name": "wpa_supplicant (Sonos build)",
-   "summary": "The WiFi supplicant, driven via wpaconfig/sta-assoc helpers and htapsatwpa.conf. Stock baseline is known but the Sonos control interface (who talks to it, which events feed netstartd) is not documented.",
+   "summary": "wpa_supplicant v2.10 (/wifi/wpa_supplicant) with a custom '-D sonos' driver wrapper instead of nl80211, bound to ath0 and bridge br0. Config is generated on the fly by /wifi/wpaconfig (or manually by /wifi/sta-assoc) rather than shipped.",
    "todo": [
-    "document the control-interface consumers",
-    "document htapsatwpa.conf / ssidlist.txt inputs",
-    "document Sonos-specific build options if any"
+    "Residual: the '-D sonos' driver-wrapper ioctl contract lives inside the binary's driver table and the ath_driver.ko interface; not recoverable from strings beyond the fact that it replaces nl80211."
    ],
    "artifacts": [
     "wifi/wpa_supplicant",
@@ -151940,31 +151953,32 @@
     "etc/ssidlist.txt"
    ],
    "resolved_findings": [
-    "Resolved (boundary): Sonos build = stock supplicant driven through wpaconfig/sta-assoc + htapsatwpa.conf; control-interface events feed netstartd."
+    "Resolved (boundary): Sonos build = stock supplicant driven through wpaconfig/sta-assoc + htapsatwpa.conf; control-interface events feed netstartd.",
+    "Launch contract (from sta-assoc): 'wpa_supplicant -s -B -D sonos -i ath0 -b br0 -c <conf>' - syslog logging, daemonized, custom 'sonos' driver, bridged to br0; sta-assoc then pokes udhcpc with SIGUSR1 to force a DHCP attempt.",
+    "Config generation (/wifi/wpaconfig): writes /var/run/wpa_supplicant.conf with eapol_version=1 + ap_scan=1, then one 'network={ssid=<hex>,scan_ssid=1,psk=<hex>,priority=2}' block per credential plus an open 'key_mgmt=NONE' fallback block for each SSID; sources credentials from NFWSSID/NFWPwd keyval fields of a settings file, or from an SSID-list file of 'SSID=<hexssid>:<hexkey>' lines (SSID_FILE=1 mode).",
+    "Driver-side mirroring: wpaconfig pushes the allowed STA SSID list into the Atheros driver with 'athconfig stassidlistclr ath0', 'athconfig wossidclr ath0' and 'athconfig stassidlistadd ath0 <SSIDHEX> <KEYLEN>' - the driver enforces the SSID whitelist independently of supplicant scanning.",
+    "Debug knobs: /jffs/debug/wpa_proto, /jffs/debug/wpa_ptk, /jffs/debug/wpa_gtk inject proto=/pairwise=/group= overrides into generated configs.",
+    "Build surface: strings show the standard v2.10 feature set (SAE, PMF/IGTK/BIGTK install paths, RRM, Gas/ANQP, bssid_ignore/bssid_accept, roaming_consortiums) plus the 'sonos' driver wrapper ('Override interface parameter: driver/ctrl_interface/bridge'); the Sonos-specific part is the driver shim, the supplicant core is upstream."
    ]
   },
   "bin_athconfig": {
    "name": "athconfig / radartool (Atheros tools)",
-   "summary": "Atheros radio configuration and DFS radar tooling (wifi/athconfig, wifi/N/radartool). Undocumented: which ioctls they drive, how DFS channel moves are coordinated with dfs.ko.",
-   "todo": [
-    "enumerate athconfig commands and ioctls",
-    "document DFS/radar handling with dfs.ko"
-   ],
+   "summary": "athconfig (/wifi/athconfig) is the Atheros radio control utility that every other network component shells out to; radartool (/wifi/N/radartool) is its DFS companion. Together they own channel/Freq control, key cache, SSID allowlists, QoS EDCA, scan, antenna, neighbor blocking, and radar/CAC/NOL management on ath0/ath1.",
    "artifacts": [
     "wifi/athconfig",
     "wifi/N/radartool"
    ],
    "resolved_findings": [
-    "Resolved (boundary): Atheros radio config + DFS - radar events coordinate channel vacate through dfs.ko with the athconfig ioctls."
+    "Resolved (boundary): Atheros radio config + DFS - radar events coordinate channel vacate through dfs.ko with the athconfig ioctls.",
+    "Verb catalog from usage strings: setantswitch V|A|B; get/setchannel (+getchannels); scanstart TYPE [SSID], scangetresults, scanclearssid, getacs (auto channel select w/ DFS/CAC/NOL/Radar columns); setopenmode; stassidlistadd netif SSIDINHEX KEYLEN, stassidlistclr, wossidclr; stasetkeylen, setwepkey WEPkey|disable, keycache {0=init,1=free/all,2=clrhw/all,3=bad/all,10=free/4,20=clrhw/4,30=bad/4}, forcegtkrekey; sethhid, setuuid; setnetsettings mode data; ssidinbeaconenable, nsprobeenable, blockadvertisedpath, neighbor MAC allow/filter; getwirelesscnx, getnchains (maxspatialstreams RX/TX), getmcs, getlinkstats [threshTx threshLat], getmibcc, getqosedca/setqosedca qosidx aifsn cwmin cwmax [txop] [minfbp], sethptxqretries ms each total, gettxbackpressure, setlatencybucket ms, settxpower, setintrmitig ath0 rxfirst rxlast txfirst txlast, txtrigger [seqnum], conttx ifs/count/size/burst, senddeauth DA SUBTYPE REASON, packet-sniffer mode (count/mac-filter/len-filter/timeout/conttx), testpoint get/set.",
+    "Stats output fields: 'Freq = %u; PHY error count = %u', 'GTKFailMode = %u; GTKFailCount = %u NoGCFailCount = %u', 'SSID = %.*s', 'Security keyMgmt: %s Peer: %s Group: %s', per-neighbor 'Tx pkts/min %d; rssiFrom %d; rssiTo %d; PER %d', rates as 'ath rate: %d Mbps / MCS %d', QoS table 'Q(%d) %3d %4d %4d %5d %3d %2d %3d %5d'.",
+    "DFS handling: dfs.ko is loaded by /etc/Configure when present; athconfig verbs nolclear, nolenable 0|1, setnoltimeout, cacenable 0|1, cactimeout, cacreset, bangradar manage the channel-availability-check and non-occupancy-list lifecycle; getacs prints a channel table with FREQ/CM/AGE/CU/APs/LLs/Radar/Flags columns.",
+    "radartool: separate diagnostic binary ('radartool (-i <interface>) [cmd]') with commands bangradar, dfstime, dfsdebug, firpwr, rrssi, maxlen, numdetects, en_relpwr_check, relpwr, en_block_check - radar-detection tuning for the Atheros DFS block (some knobs AR5413-only)."
    ]
   },
   "bin_dropbearmulti": {
    "name": "dropbearmulti (SSH)",
-   "summary": "The Dropbear SSH multicall binary. The unlock gate is documented (device_unlock, secure_console scripts, ssh_authorized_keys) but the daemon's config surface and the factory-vs-dev key paths need consolidating into one record.",
-   "todo": [
-    "document enabled listeners and auth paths",
-    "consolidate the unlock/key story end to end"
-   ],
+   "summary": "Dropbear SSH multi-call binary v2020.81 (/bin/dropbearmulti). Launched only on unlocked devices: /etc/scripts/run_sshd.sh waits for /tmp/device_unlocked_flag then execs 'dropbear -R -F'.",
    "artifacts": [
     "bin/dropbearmulti",
     "usr/sbin/secure_console.sh",
@@ -151972,16 +151986,15 @@
     "etc/scripts/run_sshd.sh"
    ],
    "resolved_findings": [
-    "Resolved (boundary): consolidated unlock/key story - device_unlock writes the flag + ssh_authorized_keys append path; factory vs dev keys under cert_files."
+    "Resolved (boundary): consolidated unlock/key story - device_unlock writes the flag + ssh_authorized_keys append path; factory vs dev keys under cert_files.",
+    "Version/config: Dropbear 2020.81 built from upstream source (paths ../dropbear-2020.81/... embedded), multi-call dispatch ('Dropbear SSH multi-purpose v%s', applets include dropbear and dropbearkey, 'SSH-2.0-dropbear_2020.81' banner).",
+    "Launch gate: inittab respawns run_sshd.sh -> trackrestart dropbear -> waitwhiletrue '[ ! -f /tmp/device_unlocked_flag ]' -> 'dropbear -R -F' (regenerate host keys as needed, foreground). The flag is created by Configure when /etc/unlocked_build_flag or /jffs/system/Configure.dev exists.",
+    "Keys: host key /jffs/persist/ssh/dropbear_ecdsa_host_key (ECDSA, regenerated if empty); authorized_keys at /jffs/sys/debug/ssh/authorized_keys (created empty if missing). Console login is a separate channel: inittab respawns secure_console_login.sh on /dev/ttyS0 gated on /proc/sonos-lock/console_enable."
    ]
   },
   "bin_chronyd": {
    "name": "chronyd / chronyc (time sync)",
-   "summary": "NTP daemon pair (sbin/chronyd, bin/chronyc) with chrony.conf and sntp.txt shipped. Documented only incidentally so far: which sources it uses, how it feeds the household clock consensus, and the systemTime/time muse resources.",
-   "todo": [
-    "document configured sources and drift behavior",
-    "tie to muse systemTime/time resources and AC.* time vars"
-   ],
+   "summary": "Stock chronyd (/sbin/chronyd) + chronyc (/bin/chronyc) NTP client pair against Sonos pool names; the system clock they maintain feeds the household time consensus (anacapad sntp_server) and muse systemTime/time resources.",
    "artifacts": [
     "sbin/chronyd",
     "bin/chronyc",
@@ -151989,118 +152002,110 @@
     "etc/sntp.txt"
    ],
    "resolved_findings": [
-    "Resolved (boundary): sources from chrony.conf + sntp.txt; feeds household clock via SNTP coordinator (sntp_server); muse systemTime/time resources + AC.* vars consume it."
+    "Resolved (boundary): sources from chrony.conf + sntp.txt; feeds household clock via SNTP coordinator (sntp_server); muse systemTime/time resources + AC.* vars consume it.",
+    "Build flags string: '+CMDMON +NTP +REFCLOCK +RTC +PRIVDROP -SCFILTER -SIGND +ASYNCDNS -NTS -SECHASH +IPV6 -DEBUG' - async DNS and privdrop on; SCFILTER/SIGND/NTS/SECHASH off; no NTS.",
+    "chrony.conf: four pools 0-3.sonostime.pool.ntp.org each 'iburst maxsources 1' (resolve multiple addrs per pool name, stop polling pool once one source answers); driftfile /jffs/chrony/chrony.drift; logging {tracking,rawmeasurements,statistics} to /var/log/chrony; 'makestep 60 1' + 'maxchange 60 1 0' (step clock only once per operation and only when error >60s); 'port 0' disables NTP serving entirely.",
+    "Launch: /etc/runchrony via inittab - trackrestart chrony, waitfordns gate (chronyd cannot make progress before IP+DNS), stop flag /var/run/stopchrony, mkdir -p /jffs/chrony.",
+    "Sockets/pid: /var/run/chrony/chronyd.sock (chronyc command socket) and chronyd.pid; the diagprocessd menu item 18 runs 'chronyc -n sources -v' for diagnostics."
    ]
   },
   "bin_net_utils": {
    "name": "udhcpc / brctl / dhcp.script",
-   "summary": "The DHCP client and bridge control pair plus the udhcpc hook script (etc/dhcp.script). Documented only incidentally: which events they feed netconfig_fsm with, and bridge setup for SonosNet.",
-   "todo": [
-    "document dhcp.script event emission",
-    "document bridge topology for SonosNet vs STA mode"
-   ],
+   "summary": "The DHCP/bridge plumbing trio: sbin/udhcpc is a Sonos-forked udhcp 0.9.8 client ('udhcpcd'), etc/dhcp.script is its event hook, and usr/sbin/brctl carries Sonos-specific bridge extensions.",
    "artifacts": [
     "sbin/udhcpc",
     "usr/sbin/brctl",
     "etc/dhcp.script"
    ],
    "resolved_findings": [
-    "Resolved (boundary): DHCP client + bridge control feed netconfig_fsm events; bridge topology = SonosNet mesh vs STA mode bridging."
+    "Resolved (boundary): DHCP client + bridge control feed netconfig_fsm events; bridge topology = SonosNet mesh vs STA mode bridging.",
+    "udhcpc fork deltas (strings): signal-gated start ('Waiting up to 60s for a signal to start' / 'Timed out ... starting anyway'), renew steering via /tmp/udhcpc_renew_option (numeric renew type -> 'DHCP confirm/extend lease renew' vs 'init-reboot renew' vs deconfig->SELECTING), a dedicated SSID-change listener socket ('FATAL: couldn't listen for SSID change'), a raw ARP listener socket, gratuitous ARP + zero-conf probe ('Sending zc arp probe', '/tmp/udhcpc_resp_mac_addr'), internal FSMs named TDP and IODP, per-request counters 'rna/rns/rnn/rqa/rqs/rqn/zc/dup', pid /tmp/udhcpc.pid, and a hostname DHCP option.",
+    "dhcp.script event emission (etc/dhcp.script): invoked as 'dhcp.script {nak|deconfig|renew|bound}' by udhcpc - deconfig zeroes the interface and installs the 255.255.255.255 + 224.0.0.0/4 local multicast routes; renew|bound rewrites /etc/resolv.conf (search + nameserver lines), ifconfigs the lease ip/broadcast/netmask, replaces default gw routes, re-adds the link-local/multicast routes, and removes /var/run/waitforip to release boot waiters; nak only logs.",
+    "Bridge topology: brctl is stock bridge-utils plus the Sonos verbs {setmac, uplink, showstats, showstp}; Configure creates the bridge environment (bridge.ko), setmac assigns eth%d/ath0/ath1/br0 MACs, wpa_supplicant binds ath0 into br0 (-b br0), and SonosNet/STP stats are exposed through showstats/showstp (diagprocessd menu items 11-14)."
    ]
   },
   "bin_keyval": {
    "name": "keyval",
-   "summary": "Key/value store utility (usr/sbin/keyval) used by boot and update scripts. Undocumented: backing store location, key namespace, consumers.",
-   "todo": [
-    "find the backing store and key namespace",
-    "enumerate script consumers"
-   ],
+   "summary": "keyval (/usr/sbin/keyval): a KEY=value line extractor used by boot and config scripts, not a persistent store - each call re-parses the given file.",
    "artifacts": [
     "usr/sbin/keyval"
    ],
    "resolved_findings": [
-    "Resolved (boundary): keyval = the boot/update script KV store; consumers = boot scripts + update machinery."
+    "Resolved (boundary): keyval = the boot/update script KV store; consumers = boot scripts + update machinery.",
+    "Semantics: 'keyval ^KEY [file]' scans KEY=value lines and prints the value; -d<sep> and -s change delimiters.",
+    "Consumers proven in-tree: /etc/Configure ('mdputil | keyval ^SERIAL' for hostname), /wifi/wpaconfig ('keyval ^NFWSSID', 'keyval ^NFWPwd', 'keyval ^SSID' for WPA config and ssid-list parsing), opt/bin/anacapactl, and the netstartd/wacd flows that read netsettings.txt/localsettings.txt fields."
    ]
   },
   "bin_setmac": {
    "name": "setmac",
-   "summary": "MAC-address programming tool (usr/sbin/setmac). Undocumented: which interfaces it programs, where the factory MAC lives.",
-   "todo": [
-    "document target interfaces and MAC source"
-   ],
+   "summary": "setmac (/usr/sbin/setmac): assigns interface MAC addresses during /etc/Configure, deriving them from the MDP identity page.",
    "artifacts": [
     "usr/sbin/setmac"
    ],
    "resolved_findings": [
-    "Resolved (boundary): target interfaces = wifi + ethernet MACs sourced from the manufacturing data partition."
+    "Resolved (boundary): target interfaces = wifi + ethernet MACs sourced from the manufacturing data partition.",
+    "Behavior from strings: reads the MDP serial via libsonos-mdp ('Using MDP serial number %s'), reads the radio MAC from /tmp/wifi_card_mac_addr ('Current wifi address'), programs eth%d, ath0, ath1 and br0 via SIOCSIFHWADDR ('SIOCSIFHWADDR for (%s, %s)', refuses overwrite 'mac address already set for (%s)'), and prints 'br0=%s' in keyval form for scripts."
    ]
   },
   "bin_capsh": {
    "name": "capsh",
-   "summary": "Linux capability-shell helper (sbin/capsh). Zero references anywhere in the dataset; probably used by a wrapper script to drop capabilities before launching a daemon.",
-   "todo": [
-    "find invocation site(s)",
-    "document which daemon runs with reduced caps"
-   ],
+   "summary": "capsh (/sbin/capsh): stock libcap capability shell - present in the image but unused by any shipped script or binary.",
    "artifacts": [
     "sbin/capsh"
    ],
    "resolved_findings": [
-    "Resolved (boundary): capability-shell used by daemon launcher wrappers to drop privileges; identified consumers = the service start scripts."
+    "Resolved (boundary): capability-shell used by daemon launcher wrappers to drop privileges; identified consumers = the service start scripts.",
+    "Binary is upstream capsh: --caps=, --drop=, --keep=, --chroot=, --secbits=, --inh=, --addamb/--delamb/--noamb, --has-ambient, --modes, --strict, --print surface.",
+    "No invocation found: a rootfs-wide grep across etc/, opt/, wifi/, init scripts and binary string tables shows zero references; anacapad drops privileges itself via '-u anacapa -C all=eip' in anacapactl. Residual: it is a provisioned-but-dormant tool (available for dev shells on unlocked devices)."
    ]
   },
   "bin_pcap": {
    "name": "pcap",
-   "summary": "Packet-capture helper (bin/pcap). Referenced by diagnostic tooling; capture filters, output location and invocation path undocumented.",
-   "todo": [
-    "document invocation path (diagnostics? engineering pages?)",
-    "document output location and rotation"
-   ],
+   "summary": "pcap (/bin/pcap): a libpcap capture wrapper invoked by anacapad's hidden /pcap status route to produce downloadable packet captures.",
    "artifacts": [
     "bin/pcap"
    ],
    "resolved_findings": [
-    "Resolved (boundary): output = trace.pcap streamed via the /pcap route; invocation = /bin/pcap with filter args from network_tools."
+    "Resolved (boundary): output = trace.pcap streamed via the /pcap route; invocation = /bin/pcap with filter args from network_tools.",
+    "CLI: 'usage: %s [-B N] [-c N] [-i name] [-P] [-s N] <savefile> [pcap filter]' - buffer size, packet count, interface, promiscuous flag, snaplen, output file, and a compiled bpf filter; implemented directly on libpcap (pcap_create/set_buffer_size/set_snaplen/set_promisc/set_timeout/activate/compile/setfilter/dump_open/dump_flush).",
+    "Invocation path: anacapad's /pcap local route builds the command '/bin/pcap - not (host %s and port %d)' - i.e. captures everything except the controller connection that triggered it - and returns the file as 'attachment; filename=\"trace.pcap\"'. Output location/rotation is the caller-specified savefile; no daemon-side rotation exists."
    ]
   },
   "bin_sonosledmgrd": {
    "name": "sonosledmgrd",
-   "summary": "The LED manager daemon (opt/bin/sonosledmgrd) with its own logger config. led_engine/led_hw/leds_zp records cover the LED vocabulary partially; the daemon's state machine, client IPC and mute/wifi/error blink grammar need a dedicated decode.",
+   "summary": "sonosledmgrd (/opt/bin/sonosledmgrd): the LED manager daemon that executes the R_LED_* mode vocabulary shared with anacapad's leds_zp library - it owns the physical hal_led device, pattern engine, and captouch feedback color.",
    "todo": [
-    "decode LED state machine and blink patterns",
-    "document IPC clients (anacapad, upgrade, netstartd)",
-    "document sonosledmgrd_logger.toml"
+    "Residual: the IPC wire framing on the client socket (message ids for set-pattern vs apply-mode requests) - the socket exists but its message table is in stripped code; the mode vocabulary itself is fully enumerated."
    ],
    "artifacts": [
     "opt/bin/sonosledmgrd",
     "opt/conf/sonosledmgrd_logger.toml"
    ],
    "resolved_findings": [
-    "Resolved (boundary): sonosledmgrd_logger.toml = the daemon log config; LED state machine + client IPC documented via the anacapad-side R_LED vocabulary."
+    "Resolved (boundary): sonosledmgrd_logger.toml = the daemon log config; LED state machine + client IPC documented via the anacapad-side R_LED vocabulary.",
+    "Mode execution: applies every mode in the anacapad-decoded table ('applyLEDMode R_LED_UPGRADE/BROKEN_DEVICE/JOIN_HH[_OPEN]/BEGIN_SETUP_MODE/IN_SETUP_MODE/WAC/WAC_TIMEOUT/BREAK_POP/SHUTDOWN/HHID/TRANSFER_REGISTRATION/CONTROL_FEEDBACK/IDENTIFY_PLAYER/AUDIO_OFF/MUTED/FAULT/WAITING_TO_PLAY/WAITING_TO_PAUSE/PLAYING/WARN/DEMO_MODE/DEMO_CONFIGURE_IR') plus hardcoded patterns set_pattern_for_mode {FACTORY_RESET, BOOTING, JOIN_HH, JOIN_HH_OPEN, BYPASS_BLOCKED, BYPASS, CLONE_CHECK_FAIL} and resumeDefaultLEDPattern fallbacks.",
+    "Pattern record format: 'cksum=%08x, flags=%04x repeats=%u num_steps=%u led_ids=%08x' with per-step 'step[%d]= r=%02x, g=%02x b=%02x hold_time=%u fade=%u' - RGB step sequences with hold/fade timing, repeated and bitmasked across LED ids; writes through hal_led_open/brightness with a hal token guard (led_get_hal_token), plus led_set_feedbackFlash and captouch default-color control.",
+    "Lifecycle: /etc/runledmgrd respawns it with trackrestart and a stale-pid watchdog loop; --fr runs the factory-reset flash pattern (driven by frcheck rc != 1 in Configure); /var/run/sonosledmgrd.flash_booting_led marks boot-time LED activity; writes /var/run/sonosledmgrd.pid.",
+    "Client surface: socket-based IPC (socket/bind imports, 'hostPort' field, client channel name '/sonosledmgrd-external' referenced from anacapad) serving the leds_zp client lib shared with anacapad and netstartd (netstartd contains the same 'applyLEDMode R_LED_WAC_TIMEOUT' call site).",
+    "Logger: /opt/conf/sonosledmgrd_logger.toml (/jffs/conf/ override first) - sonosledmgrd.log at 256KB rotating 64KB preserved, defaultLevel=4 (WARN), domains {ledmgrd, LEDManager, ledmgr-server, leds_zp} at level 6 (INFO)."
    ]
   },
   "bin_busybox_applets": {
    "name": "busybox applet inventory",
-   "summary": "bin/busybox is stock, but the build configuration is not: which applets are compiled in shapes what boot/update scripts can rely on. Cheap to extract from the binary's applet table.",
-   "todo": [
-    "dump compiled-in applet list",
-    "note Sonos-relevant applets (httpd? tftp? flash tools?)"
-   ],
+   "summary": "BusyBox v1.35.0 multi-call binary (/bin/busybox, 526KB PPC MSB) providing init and the shell/utilities the boot and daemon scripts run on.",
    "artifacts": [
     "bin/busybox"
    ],
    "resolved_findings": [
-    "Resolved (boundary): Sonos-relevant applets = the applet table lists available commands (httpd not present; flash/tftp tools per config)."
+    "Resolved (boundary): Sonos-relevant applets = the applet table lists available commands (httpd not present; flash/tftp tools per config).",
+    "Full compiled-in applet list (133, extracted from the packed applet_names table): [[ arping ash awk basename blkid cat chgrp chmod chown chvt clear cmp cp cttyhack cut date dd df dirname dmesg dnsdomainname du echo egrep env expand expr false fbset fgrep find fold free ftpget ftpput getopt getty grep gunzip gzip halt head hexdump hostname hwclock ifconfig ifdown ifup init insmod iostat kill killall ln login ls lsmod lsof lspci makedevs md5sum mdev mkdir mkfifo mknod modinfo more mount mpstat mv nc netstat nslookup od patch pidof ping ping6 pmap poweroff printf ps pwd reboot reset rm rmdir rmmod route rtcwake rx sed seq sh sha1sum sha256sum sha512sum sleep sort strings stty sync sysctl tail tar taskset tee test time top touch traceroute traceroute6 true tty umount uname uniq uptime usleep uudecode uuencode vi watchdog wc wget which xargs yes zcat",
+    "Sonos-relevant subset: init (parses /etc/inittab: sysinit=/etc/Configure, respawn for sshd/ledmgrd/netstartd/mdnsd/diagprocessd/anacapad/chronyd/sddpd/console-login, shutdown=/etc/init.d/rcK, ctrlaltdel=reboot), insmod/lsmod/rmmod for the /modules + /wifi/N .ko stack, ifconfig/route/netstat + mdev for device nodes, hwclock/rtcwake, watchdog, dmesg, killall/pidof used by rundaemon.sh helpers, wget/nc for diagnostics, and getty is bypassed in favor of secure_console_login.sh.",
+    "No httpd/tftpd/syslogd/crond applets - services are real binaries; busybox supplies only the POSIX shell layer and core tools (no flash tools either; MTD access goes through libflash in mdputil/upgrade)."
    ]
   },
   "kmod_sonos": {
    "name": "Sonos kernel modules",
-   "summary": "Custom kernel modules: audiodev.ko (audio device glue), chk.ko, hwevent_queue.ko (hardware event ring), ir_rcvr.ko (IR receiver), sonos_device.ko. Essentially untouched: device nodes, ioctls, and which userland component consumes each.",
-   "todo": [
-    "enumerate device nodes and ioctl surfaces",
-    "map module -> userland consumer",
-    "document hwevent_queue consumer path"
-   ],
+   "summary": "Sonos kernel modules under /modules (loaded by /etc/Configure in this order): sonos_device.ko -> chk.ko -> hwevent_queue.ko -> audiodev.ko -> ir_rcvr.ko (optional). All are Dual BSD/GPL, vermagic 2.6.35-yocto-standard.",
    "artifacts": [
     "modules/audiodev.ko",
     "modules/chk.ko",
@@ -152109,16 +152114,19 @@
     "modules/sonos_device.ko"
    ],
    "resolved_findings": [
-    "Resolved (boundary): hwevent_queue consumer = the hw_events readEvent path; device nodes {chk, ir_rcvr, audiodev, sonos_device} with ioctl surfaces documented per consumer."
+    "Resolved (boundary): hwevent_queue consumer = the hw_events readEvent path; device nodes {chk, ir_rcvr, audiodev, sonos_device} with ioctl surfaces documented per consumer.",
+    "sonos_device.ko: the substrate - 'Sonos device driver' creating the sonos_dev device class (sonos_device_create/destroy exports, device_create_vargs); every other Sonos kmod registers its char node through it ('Error creating <x> sonos device').",
+    "chk.ko: 'chk driver' - registers the /dev/chk character device used by anacapad's watchdog health-check; ioctl-based ('Unknown IOCTL called', copy_to/from_user guards).",
+    "hwevent_queue.ko: 'Driver for Hardware Event Notifications' - the kernel side of the hw-event ring (hwevtq_send_event_defer); consumed by anacapad's hw_events readEvent dispatch and surfaced to userland via libhwmessagelib netlink multicast groups {AUDIO,BATTERY,BUTTON,BUTTON_POWER,CAPZONE,HT,LED,SENSOR,TEMP,WAKEUP,SWITCH}.",
+    "audiodev.ko: the Limelight audio controller - 'Limelight audioctl driver' + Freescale 'TDM Driver For MPC8xxx' + 'MPC8453Q accelerometer driver' merged. Devices/procs: /dev/audioctl char node (buttons via hal_inputs_get_buttons_state, amp power/mute through tas5708_* calls, 'automatically muting amps due to fault', fault latching 'latched faults cleared on mute'), the TDM dsp char node (mpc8xxx_tdm_ioctl, TDM Transmit/Receive Under-Run + Sync error logs), /proc/driver/ledctl, /proc/driver/mma8453q + mma7660 accel + orient procs, thermalsensor proc, fpga_reg/fpga_data/fpga_all procs, SPDIF interrupt counters (lock/block/parity), button simulation ('Simulating %s button press for %dms'), exported audioctl_updateIrSelect.",
+    "ir_rcvr.ko: 'IR Receiver driver' - read() returns raw decoded symbols ('Read must be at least %d bytes (1 max-length symbol)', 'IR Data: %08x'), ioctls set IR timeout and runt-filter duration, write/seek unsupported."
    ]
   },
   "kmod_ath_wifi": {
    "name": "Atheros WiFi modules",
-   "summary": "The Atheros radio stack: adf.ko, asf.ko, ath_driver.ko, ath_hal.ko, dfs.ko, bridge.ko under wifi/. Vendor-derived but load order, custom ioctls for SonosNet bonding, and DFS handling are undocumented.",
+   "summary": "The Qualcomm Atheros 802.11 stack under /wifi/N plus the bridge module: load order enforced by /etc/Configure is adf.ko -> asf.ko -> ath_hal.ko -> dfs.ko (if present) -> ath_driver.ko, then /wifi/bridge.ko.",
    "todo": [
-    "document load order and dependencies",
-    "document SonosNet-specific ioctl/config surface",
-    "document DFS channel-vacate flow"
+    "Residual: the raw ioctl numbers inside ath_driver.ko (the athconfig verb->ioctl map lives in stripped ioctl tables); the DFS event -> userspace notification mechanism (netlink vs proc) is implied but not string-proven."
    ],
    "artifacts": [
     "wifi/N/adf.ko",
@@ -152129,15 +152137,17 @@
     "wifi/bridge.ko"
    ],
    "resolved_findings": [
-    "Resolved (boundary): DFS channel-vacate = radar event -> dfs.ko -> channel switch coordinated with athconfig."
+    "Resolved (boundary): DFS channel-vacate = radar event -> dfs.ko -> channel switch coordinated with athconfig.",
+    "Load order/dependencies (modinfo): adf.ko 'Qualcomm Atheros Device Framework' (no deps), asf.ko 'Atheros Device Module' (adf services), ath_hal.ko 'Atheros HAL' (depends=asf, the proprietary HAL by Errno Consulting/Sam Leffler), dfs.ko 'DFS Support for Atheros 802.11' (optional), ath_driver.ko 'Sonos WiFi driver' (depends=dfs - the Sonos-customized driver on top of the HAL), bridge.ko (GPL, ethernet bridging for br0).",
+    "SonosNet control surface: userland does not ioctls the driver directly - it shells to /wifi/athconfig verbs (see bin_athconfig: setchannel/getacs, stassidlistadd/clr, keycache, sethhid/setuuid, ssidinbeaconenable, nsprobeenable, blockadvertisedpath, setnetsettings, txtrigger, conttx, senddeauth) which map onto ath_driver ioctls; wpa_supplicant binds through the custom '-D sonos' driver wrapper.",
+    "DFS flow: dfs.ko supplies radar detection; athconfig owns the CAC/NOL lifecycle verbs (cacenable/cactimeout/cacreset, nolenable/setnoltimeout/nolclear) and test injection (bangradar); radartool tunes detector thresholds (firpwr, rrssi, dfstime, numdetects, relpwr/block checks). Channel vacate on radar = driver event -> dfs.ko NOL entry -> netstartd channel reselection via getacs."
    ]
   },
   "fmt_upd": {
    "name": ".upd package format",
-   "summary": "The firmware update container (package/*.upd). Partially explored via update_machinery; the complete header/manifest/signature layout has never been written down end to end.",
+   "summary": "The .upd container format, now decoded from package/86.10-80260-1-9.upd. Sections are a linear chain of 16-byte records {magic u32 0x497f1635 (bytes 49 7f 16 35), type u32 LE, length u32 LE including the header, reserved u32} followed by the payload.",
    "todo": [
-    "document container layout, manifest and signature",
-    "document minimum-version fields (MINCOMPATVER etc.)"
+    "Residual: the enveloped inner-header field names (cipher id, wrapped key vs iv split within the 40-byte block) and the exact 0x02 tuple schema - byte-level layout is proven but per-field naming needs a dynamic run or libsonoscrypto symbol detail."
    ],
    "artifacts": [
     "package/86.10-80260-1-9.upd",
@@ -152147,15 +152157,18 @@
     "VERSION"
    ],
    "resolved_findings": [
-    "Resolved (boundary): .upd layout = header {version, MINCOMPATVER-style minimum fields, model targets} + manifest + signature over the payload; update_machinery covers the check side."
+    "Resolved (boundary): .upd layout = header {version, MINCOMPATVER-style minimum fields, model targets} + manifest + signature over the payload; update_machinery covers the check side.",
+    "Section table of the shipped image (all verified by parsing): type 0x01 = target version triplet {cmaj=86, cmin=10, cbld=80260} as u32 LE; type 0x15 = feature manifest, newline-separated capability names ('2021_11_PATCHES:', 'UBI_RED_KEY_WITH_NONCE:', 'MAX_MDP_VERSION_6:', '2023_01/2023_12/2024_12_PATCHES:') - these are the strings the updater's 'Critical UPD feature (%s: %s) not supported by player' check reads; three type 0x02 blocks carry min/max feature-range tuples ({1,9,1,1,0,-2,-1}, {-3,2,0,0,0,0,0x22,7}, {-2,0x20,0,-2,0,-2,-1} with 0xfffffffe/0xffffffff sentinels = open bounds) - the player-feature compatibility ranges.",
+    "Payload sections 0x03 (1.9KB - the preinstall/upgrade script class), 0x06 (1.79MB - kernel.uImage class), 0x04 (13.9MB - rootfs.squashfs class), 0x0d (55KB - device-payload class) all share the same enveloped inner header: u32 magic 0xca996488, u32 0x13a (inner header length 314), u16/u32 fields {ver=1, flags=0, count=1, stamp 0x00140312}, a 40-byte wrapped-key/digest block, then the encrypted blob - matching /bin/upgrade strings 'Enveloped data parse/decrypt*', 'Encrypted section too small', 'Out of space while decrypting section'.",
+    "Trust anchors: type 0x16 (149KB, res=0) is the certificate/manifest bundle - the bytes /bin/upgrade saves to /jffs/sys/run/rcb/upd_cert_bundle.rcb on parse failure; it opens with a u32 timestamp 0x621da74d + table-of-contents counters. type 0x11 (364B, res=1) is the trailing signature section sharing the bundle's timestamp prefix - verified via sonosRcbVerifySig; 'encrypted signature section not supported' and 'invalid Sonos signature section length' guard it.",
+    "The reserved/flags word discriminates plaintext vs enveloped sections: 0 on the version/feature/cert sections, 4 on all enveloped payloads, 1 on the signature. Minimum-version semantics live in the type-0x02 range tuples and the type-0x15 feature names rather than a MINCOMPATVER field - none exists in this image."
    ]
   },
   "fmt_device_payload": {
    "name": "device-payload.bin format",
-   "summary": "The per-model payload image inside the .upd. Format undecoded; presumably the rootfs+kernel bundle the updater writes to flash.",
+   "summary": "The per-model device-payload section inside the .upd (also shipped standalone as package/*-device-payload.bin). It is a manufacturing/configuration data image, NOT the kernel/rootfs - those are separate .upd section types (0x06 and 0x04).",
    "todo": [
-    "decode header and section layout",
-    "document relationship to kernel.uImage/rootfs.squashfs"
+    "Residual: the complete tag namespace past 'e' and the destination flash offset for the payload - the tag walk reaches binary blobs whose per-tag semantics need either a live write trace or the factory producer spec."
    ],
    "artifacts": [
     "package/86.10-80260-1-9-device-payload.bin",
@@ -152163,22 +152176,26 @@
     "package/86.10-80260-1-9-rootfs.squashfs"
    ],
    "resolved_findings": [
-    "Resolved (boundary): payload = the per-model kernel.uImage + rootfs.squashfs bundle written by the updater."
+    "Resolved (boundary): payload = the per-model kernel.uImage + rootfs.squashfs bundle written by the updater.",
+    "Layout: a 5-word prologue {0x0009, 0x0ff0, 0x0ff0, 0x0ff0, 0x0000} then a record stream of {u16 id/tag, u16 BE length, value} entries. The first record (id 0x0161, len 0x20) names the payload 'top_level.ncd;UserID=0xFFFFFFFF' (NCD = the board configuration-data class).",
+    "Tagged fields follow with ASCII-tag + u16 length: 'b' = firmware tag '3s50avq100', 'c' = date '2012/06/14', 'd' = time '23:19:49', then binary sections (tag 'e' and onwards) carrying erased-flash regions and calibration data.",
+    "Relationship to the other payloads: this is the model-specific board data the updater writes to its own flash region - the kernel.uImage and rootfs.squashfs ship as separate .upd sections (and as standalone package files), while device-payload.bin (55KB) is the small per-model calibration/config blob consumed by the type-0x0d section handler."
    ]
   },
   "sonos_custom_libs": {
    "name": "Sonos-custom shared libraries",
-   "summary": "Most .so files are stock (mbedTLS, ffmpeg, musl-era libc), but the Sonos-built set (libflash, libhwmessagelib, and any DSP/SONOS libs) has never been per-library documented: exports, consumers, and role.",
+   "summary": "lib/ ships ~40 shared objects. Sonos-built libraries (libsonos*, libflash, libsyslib_hal, libhwmessagelib, libwifi) vs stock (mbedtls, ffmpeg, sqlite, etc.) split below.",
    "todo": [
-    "identify which libs are Sonos-built vs stock",
-    "per-lib export/consumer map for the custom set"
+    "Residual: per-export consumer maps for the libsonos* set beyond the anchors already proven (each lib is large; the map above names the owning daemon per lib, not every symbol's call graph)."
    ],
    "artifacts": [
     "lib/libflash.so.1",
     "lib/libhwmessagelib.so.1"
    ],
    "resolved_findings": [
-    "Resolved (boundary): custom set = {libflash, libhwmessagelib, certval, DSP libs} with role map; per-lib exports enumerated from dynsym where present."
+    "Resolved (boundary): custom set = {libflash, libhwmessagelib, certval, DSP libs} with role map; per-lib exports enumerated from dynsym where present.",
+    "Sonos-built set: libsonosutils.so.1 (IPC helpers incl. ReadIPCHeader/WriteIPCMessage + sonosFactoryResetFull + arch info), libsonosminiutils.so.1 (file/int helpers, syslog glue), libsonos-mdp.so.1 (MDP serial/series/cert-variant accessors), libsonoscrypto.so.3 (mbedtls-wrapped crypto incl. sonosRcbVerifySig for .upd/rcb), libsonos-certval.so.2 + libsonos-root-cert-bundle.so.2 (cert validation + bundled roots), libsonos-time-c.so.1 (timeval math + sonosClockGetTime), libsonoseventreporter.so.1 (report_event telemetry), libsonossbcpacket.so.1 (satellite SBC packet codec), libsonossyslog.so.1 (syslog extension used by wpa_supplicant), libflash.so.1 (hal_flash_* mtd/MDP/FSN access), libsyslib_hal.so.1 (the hal_* device layer: audioctl, inputs/buttons/captouch/orientation, amps power/mute/hipower/rails, detect cable states, thermal, IR, gpio switches), libhwmessagelib.so.1 (hw-event netlink multicast groups AUDIO/BATTERY/BUTTON/BUTTON_POWER/CAPZONE/HT/LED/SENSOR/TEMP/WAKEUP/SWITCH), libwifi.so.1 (the 72-export WifiFuncs* API consumed by netstartd/wacd).",
+    "Stock third-party set: glibc family (libc/libm/libdl/libpthread/libresolv/libanl/libatomic/libcrypt/libutil/libthread_db/libnss_*/ld.so.1), libgcc_s, libz 1.2.11, mbedtls 2.x trio (mbedcrypto.16/mbedtls.21/mbedx509.7), ffmpeg libavcodec.59/libavformat.59/libavutil.57 (WMA etc.), libmpg123 (mp3), libdcadec (DTS), libsbc (Bluetooth SBC), libsmb2 (SMB2 client), libsqlite3, libdns_sd (mDNSResponder client to sbin/mdnsd), libpcap, libnl-3/libnl-genl-3, libuuid, libtomlc99, libprotobuf-nanopb."
    ]
   }
  },
