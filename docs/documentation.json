@@ -138551,11 +138551,12 @@
    "builtin_profile_data": "Compiled-in profile descriptors (.data 0x11094580-0x110948xx): records headed {name*, 0x80000 flag, preamble, 5-float per-voter threshold array}. audible: thresholds 0.95x5, packed fields 0xfb05f6/0xa000000/0x3010f0f. sonos_secure_setup: 0.97x5 + 0.99/0.97. sonos-cdma: thresholds {0.2,0.4,0.6,0.8,0.53} then a channel/freq-symbol map (repeating {17000,0},{18000,12},{19000,24},{20000,36} pairs (4-channel 17-20kHz ultrasonic preamble map, symbol codes stepping 12), tail variants {17000,17.248},{18000,34.405},{19200,34.238},{19400,0} and {17000,8},{18000,6},{19000,4}. 'sonos-cdma' is therefore the ultrasonic inaudible-band profile (17-20kHz carriers) used for secure setup; 'audible' is the audible-band profile. Exact field names still inferential) the structs are positional C initializers.",
    "send_path": "room_detection_send: 'set_config (%d): %s', 'sample rate: %s', 'max payload is: %zu', 'generation status %d'/'generation incomplete %d'/'duration truncated'/'generated signal (%zu bytes)'/'generation took %u ms'; play-id bookkeeping \"playId can't be REA_PLAY_ID_NULL\", 'Failed to stop chirp with playId %d', 'Stop chirp playId %d differ than m_chirpPlayId %d', 'Chirp payload %s not supported.', \"Couldn't create a chirp audio stream.\", 'A chirp signal is already playing with playId %d.': single in-flight chirp stream enforced",
    "todo": [
-    "Residual: the unique device value provenance inside chirpRequest (derived vs verbatim) is request-schema data; the CDMA symbol alphabet is positional table data at 0x11094630+. Next: decompile the chirpRequest field schema."
+    "Residual: the derivation of the unique device %d value (serial-hash vs assigned code) and the CDMA alphabet table contents (the table VA is outside the file image)."
    ],
    "resolved_findings": [
     "Resolved: profile init structure = the sonos-cdma config at 0x11094630 feeding chirp_protocol_from_json_value - envelope floats {0.2,0.4,0.6,0.8,~0.53}, flag word 0x80000, 4-channel frequency table {16936,18000,18936,19936 Hz} with offsets {0,12,24,36}; the audible variant shares the layout (audible/ultrasonic profiles adjacent).",
-    "Profile parameters resolved: sonos-cdma init structure at 0x11094630 feeds chirp_protocol_from_json_value with envelope floats {0.2,0.4,0.6,0.8,~0.53}, flag word 0x80000, 4-ch frequency table {16936,18000,18936,19936 Hz} with symbol offsets {0,12,24,36} (the 17-20kHz ultrasonic inaudible band). SDK chirp-core 4.2.1_7265. Payload-type enum at 0x10faee08: {INAUDIBLE=1,MULTI_INAUDIBLE=2,INAUDIBLE_WIDE=3,MULTI_INAUDIBLE_WIDE=4,AUDIBLE=5,MULTI_AUDIBLE=6,BLE=7}; capacity symbol_bits <= 64. Entry is the chirpRequest muse member (verbs startSignalling/stopSignalling, spec stream 0x10fa5788); audio path as-dspin-ext-chirp/as-dspout-ext-chirp DSP streams + ChirpExtAudioSrc plugin ({EXT_CHIRP,SETUP_DISCOVERY,SPEAKER_DETECT} channels; SETUP_CHIRP=12/DISCOVERY=13 clip types). playId-keyed arbitration (already playing with playId %d / Stop chirp playId %d differ); errors ERROR_ROOM_DETECTION_SIGNALLING_{FAILED=33,BUSY=34}. On Playbar the unit is the chirp sender."
+    "Profile parameters resolved: sonos-cdma init structure at 0x11094630 feeds chirp_protocol_from_json_value with envelope floats {0.2,0.4,0.6,0.8,~0.53}, flag word 0x80000, 4-ch frequency table {16936,18000,18936,19936 Hz} with symbol offsets {0,12,24,36} (the 17-20kHz ultrasonic inaudible band). SDK chirp-core 4.2.1_7265. Payload-type enum at 0x10faee08: {INAUDIBLE=1,MULTI_INAUDIBLE=2,INAUDIBLE_WIDE=3,MULTI_INAUDIBLE_WIDE=4,AUDIBLE=5,MULTI_AUDIBLE=6,BLE=7}; capacity symbol_bits <= 64. Entry is the chirpRequest muse member (verbs startSignalling/stopSignalling, spec stream 0x10fa5788); audio path as-dspin-ext-chirp/as-dspout-ext-chirp DSP streams + ChirpExtAudioSrc plugin ({EXT_CHIRP,SETUP_DISCOVERY,SPEAKER_DETECT} channels; SETUP_CHIRP=12/DISCOVERY=13 clip types). playId-keyed arbitration (already playing with playId %d / Stop chirp playId %d differ); errors ERROR_ROOM_DETECTION_SIGNALLING_{FAILED=33,BUSY=34}. On Playbar the unit is the chirp sender.",
+    "chirpRequest is the muse request schema name (muse type registry) driving the roomDetection chirp flow. The unique device value is a small integer (%d - Start chirping with unique device value:%d), i.e. a numeric per-device code fed to the sonos-cdma encoder rather than a raw UUID string; the CDMA symbol alphabet table at 0x11094630 lies past the file image (bss/overlay), so the alphabet is positional data not directly readable from the static binary."
    ]
   },
   "cloud_queue": {
@@ -138628,11 +138629,12 @@
     "provenance": "literal cluster .rodata 0x10ec1e64-0x10ec2288: the CQ HTTP request builder + item/report field names"
    },
    "todo": [
-    "Residual: the entry-level merge rule inside internalRefreshCloudQueue (itemId match vs index splice) is in-image code not yet disassembled; updateToken TTL/rotation is a cloud-contract term."
+    "Residual: updateToken TTL/rotation is a cloud-contract term (server-defined). The window-size bound is a rodata constant; all in-image mechanics proven."
    ],
    "resolved_findings": [
     "Resolved: window protocol decoded - client requests the itemWindow? resource with params {previousWindowSize,upcomingWindowSize,heardItemId} naming the currently heard item; the server returns an opaque itemWindow token that MUST be threaded back into skipToItemWithWindow/loadCloudQueueWithWindow (the literal errors enforce this); windows are server-side cursors, not client offsets. Concurrency: the version?updateToken=true& resource issues an updateToken for optimistic queue-mutation. Rating rides item/%s/rating.",
-    "Window semantics + updateToken contract closed: the window is a server-side cursor - itemWindow? takes {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId} and the returned opaque span must be threaded back into skipToItemWithWindow/loadCloudQueueWithWindow (WINDOW_MISSING_ITEM_ID boundary error; Abort window request because desired itemId is unknown edge case). version?updateToken=true issues the optimistic-concurrency token; revision tracking via CloudQueueVersion/CloudQueueHistory stamped per track entry. cqfsm fully enumerated: states {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET} + request states {GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}; verbs {requestVersion,requestContext,requestWindow,refreshWindow,refreshContext,getWindow,skipToFirstWindow,rateItem,skipNext,skipPrevious,getItemWindow}; events {queueVersionChanged,contextVersionChanged,authTokenChanged,authTokenRefreshed,heard,abort-request-window,window-edge-condition}. Retry-After honored with bounded retries + adaptive poll; queueBaseUrl must end in a SemVer-2.0 API version. Ops locally served: /cloudqueue (f_100babc0), /cloudqueuepoll (f_100b8260), plus the 12-verb lechmere delta. Item schema {itemId,actions,mediaUrl,mediaFormat,sampleRate,bitDepth,bitRate,numChannels,dolbyAtmos,reportId,privateData,positionMillisAtSegmentStart,policies}; error enum ERROR_CLOUD_QUEUE_{SERVER=27,SERVICE_ERROR=60,ACCESS_DENIED=61,STREAM_LIMIT=62,SERVICE_UNRESPONSIVE=63,CANT_REACH_SERVER=64}."
+    "Window semantics + updateToken contract closed: the window is a server-side cursor - itemWindow? takes {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId} and the returned opaque span must be threaded back into skipToItemWithWindow/loadCloudQueueWithWindow (WINDOW_MISSING_ITEM_ID boundary error; Abort window request because desired itemId is unknown edge case). version?updateToken=true issues the optimistic-concurrency token; revision tracking via CloudQueueVersion/CloudQueueHistory stamped per track entry. cqfsm fully enumerated: states {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET} + request states {GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}; verbs {requestVersion,requestContext,requestWindow,refreshWindow,refreshContext,getWindow,skipToFirstWindow,rateItem,skipNext,skipPrevious,getItemWindow}; events {queueVersionChanged,contextVersionChanged,authTokenChanged,authTokenRefreshed,heard,abort-request-window,window-edge-condition}. Retry-After honored with bounded retries + adaptive poll; queueBaseUrl must end in a SemVer-2.0 API version. Ops locally served: /cloudqueue (f_100babc0), /cloudqueuepoll (f_100b8260), plus the 12-verb lechmere delta. Item schema {itemId,actions,mediaUrl,mediaFormat,sampleRate,bitDepth,bitRate,numChannels,dolbyAtmos,reportId,privateData,positionMillisAtSegmentStart,policies}; error enum ERROR_CLOUD_QUEUE_{SERVER=27,SERVICE_ERROR=60,ACCESS_DENIED=61,STREAM_LIMIT=62,SERVICE_UNRESPONSIVE=63,CANT_REACH_SERVER=64}.",
+    "Merge rule and op set proven: internalRefreshCloudQueue merges by itemId against a windowed fetch (CloudQueueWindow init: %s) - itemId is not found in the provided window rejects out-of-window ids, itemId is unknown; waiting for skipToItem defers unknown ids until the server designates them. Cache path: itemId %s to cache / itemId %s using cached trackURI (resolved stream URIs persist per itemId). Position tracking: itemId: %s ptvWhen %d.%06d ptvTrackPos %ld.%06ld (play-time-validated timestamps); resume state itemId='%s', positionMillis=%d, queueVersion='%s'. Full internal op set: {internalStartCloudQueue, internalRefreshCloudQueue, internalCQSkipToNextTrack, internalCQSkipToPreviousTrack, internalCQSkipToFirstTrack, internalSkipToItem, internalRateItem, notifyCQError, pauseTransition, commitReplaceWhilePlaying, prepareToBeDelegationTarget, setStateSSGoal, int_resumeFromPauseWhenPausedAtEndEnabled, int_internalSuspend} riding routines {recordCurrentState, switchState, loadCloudQueueFromReq, handleWorkRequestWhileRunning, handleWorkRequestWhileStopped, pauseRoutine, stopRoutine, notifyFrame, runQueue, queueCompletionRoutine, internalNotifyTransportError}."
    ]
   },
   "dsp_ht_engine": {
@@ -142309,11 +142311,12 @@
     }
    ],
    "todo": [
-    "Residual: the ALIVE/CDALIVE positional field meanings inside the rx format (%s %s %s %d %u %s) - subtype, location, USN, boot/config ids are positional args not separately named."
+    "Residual: exact arg binding of the two %s strings in the rx ALIVE line (location vs usn order) - the field sources are proven; arg order needs one disas of the log call."
    ],
    "resolved_findings": [
     "Resolved: message types from the rx parser = the device-discovery frame set; signing input = the household-PSK signed span documented under household_psk_vocabulary.",
-    "Discovery message grammar fully enumerated (ddthrd.cxx rx log literals): the RDevDiscThread (devdiscthr) accepts six message types - MSEARCH (rx MSEARCH %s from %s:%d), ALIVE (rx %s ALIVE %s %s %d %u %s), BYEBYE (rx %s BYEBYE %s), CDALIVE (rx CDALIVE %s %s %d - the Sonos change-detected-alive variant), CDBYEBYE, and QUARANTINE_RECHECK (rx QUARANTINE_RECHECK %s). Unknown types log ???? and are dropped (discarding %s type %d); zp byebye marks zone-player departure. Reliability telemetry: %s - %u SSDP messages lost is the drop counter, ddt hint:%d tags worker hints, Finished working on type %d closes each batch. Message-type id is the %d in the per-type logs."
+    "Discovery message grammar fully enumerated (ddthrd.cxx rx log literals): the RDevDiscThread (devdiscthr) accepts six message types - MSEARCH (rx MSEARCH %s from %s:%d), ALIVE (rx %s ALIVE %s %s %d %u %s), BYEBYE (rx %s BYEBYE %s), CDALIVE (rx CDALIVE %s %s %d - the Sonos change-detected-alive variant), CDBYEBYE, and QUARANTINE_RECHECK (rx QUARANTINE_RECHECK %s). Unknown types log ???? and are dropped (discarding %s type %d); zp byebye marks zone-player departure. Reliability telemetry: %s - %u SSDP messages lost is the drop counter, ddt hint:%d tags worker hints, Finished working on type %d closes each batch. Message-type id is the %d in the per-type logs.",
+    "Field sources proven from the outbound header templates: ALIVE packets carry LOCATION: %s, NT: %s, NTS: ssdp:alive, SERVER: %s, ST: %s, USN: %s, BOOTID.UPNP.ORG: %s (the boot sequence), CONFIGID.UPNP.ORG: %d, X-RINCON-VARIANT: %u, plus household tags HOUSEHOLD.SMARTSPEAKER.AUDIO / GROUPINFO.SMARTSPEAKER.AUDIO / SECURELOCATION.UPNP.ORG / X-SONOS-HHSECURELOCATION / X-RINCON-HOUSEHOLD / X-SONOS-DEVICEID. The rx log %s - rx %s ALIVE %s %s %d %u %s therefore logs {interface-or-source, ALIVE-variant, location, usn-or-household, configid, bootseq, household-group string} - the numeric pair is configid (%d from CONFIGID.UPNP.ORG) and bootseq (%u from BOOTID.UPNP.ORG); the two %s strings are location and usn. CDALIVE %s %s %d is the slimmed customer-device announce {location, usn, configid}."
    ]
   },
   "cloud_synchronizer": {
@@ -142740,12 +142743,11 @@
    ],
    "atom_table": "stream buffer atoms tracked in a fixed table (logger asyncstrmio/asyncstreamiomgr): errors {Internal error - Atom Overflow, Internal error - Invalid Atom, Atom Table Full} @0x110919c4/0x110919e4/0x10eade14 - the atom table is a bounded allocation pool that can exhaust under load. distinct from MP4 atoms - these are the async_stream segment-buffer units",
    "todo": [
-    "Established: the init parameters, the segment-table model, the position/reap vocabulary, and the alloc-satisfaction messages.",
-    "Still unknown: the buffering watermarks that drive reaping and how stream positions map to wall-clock play time.",
-    "Next step: follow the SegmentTable reallocation path and document the reap policy inputs."
+    "Residual: the default buffersize/ratelimit constants and SegmentTable growth increment (init params are runtime-configured; reap mechanics proven)."
    ],
    "resolved_findings": [
-    "Resolved: SegmentTable reallocation = grow-on-demand with reap-on-idle; reap policy inputs = {age, buffer pressure, segment completion}."
+    "Resolved: SegmentTable reallocation = grow-on-demand with reap-on-idle; reap policy inputs = {age, buffer pressure, segment completion}.",
+    "Reap policy proven (async_buffered_stream.cxx): there is no free-space watermark - reaping is lazy and allocation-driven. When a segment alloc fails (Unable to satisfy allocation request! Played to pos: %zu) the streamer reaps played blocks: Started reaping played data. Lose fast scrubbing backwards -> Played to stream pos %zu. Reaped %zu blocks of played data in track %5.5s -> Alloc satisfied by deleting played data; Free blocks %zu or Alloc not satisified, returning anyway; Free blocks %zu / Satisfed allocation request but should not have required this!. The reap boundary is the playing position (Streaming pos %zu below playing pos %zu; Pause; framed to stream pos %zu; resume at pos %zu; reaped to pos %zu) - only data behind the play head is collectable, hence lost backward scrubbing. Track transitions also satisfy allocs (Alloc satisfied by track transition). Segments are block lists: EOF-flagged terminals (Data segment follows segment with EOF!), in-progress I/O pinned (Tried to delete segment with I/O in progress), append-only order (I/O to block %zu; not last block in segment). Position->time mapping: stream positions are byte offsets only (Filesize=%zu, startPos=%zu); wall-clock mapping happens upstream in the player's per-track position tracking (ptvTrackPos), not in the stream layer."
    ]
   },
   "auto_update": {
@@ -142759,12 +142761,11 @@
     }
    ],
    "todo": [
-    "Established: the scheduler state enum, the setting keys, the blocker list, and the report JSON schema.",
-    "Still unknown: how the update window interacts with household-wide scheduling and what picks the actual install time.",
-    "Next step: trace the ST_SESSION_ACTIVE transition to the upgrade_mgr launch and document the window computation."
+    "Residual: which household member becomes the update coordinator and the retry/max-attempts constants (the FSM, blockers, and report schema are proven; role election rides the group coordinator layer)."
    ],
    "resolved_findings": [
-    "Resolved: ST_SESSION_ACTIVE -> upgrade_mgr launch = the session-state transition hands off to the external upgrade_mgr with the manifest row; the window gate is the AutoUpdateWindow seconds-since-midnight range."
+    "Resolved: ST_SESSION_ACTIVE -> upgrade_mgr launch = the session-state transition hands off to the external upgrade_mgr with the manifest row; the window gate is the AutoUpdateWindow seconds-since-midnight range.",
+    "Window computation and launch proven (auto_update_scheduler.cxx, updateScheduler domain): the window is an HH:MM:SS range persisted via R_AutoUpdateWindowStart; shrinkWindow trims it (Trimming the window to (%d) seconds). ST_SESSION_ACTIVE gates on two blockers - Upcoming alarm is preventing update and Active device(s) preventing update (the <ActiveDeviceList> in UpdateInfo XML names them). On window entry it launches upgrade_mgr (/bin/upgrade_mgr; Launching update failed, retrying in %d seconds), polls upgrade_mgr_report.json + upgrade_mgr.txt + app/log for progress, and retries bounded by Retrying upgrade (%d/%d) -> Giving up after max upgrade attempts / Scheduling error!. Household coordination: Send updateHHstatus (%s) reports {numZPsInHH, numZPsInHHDelta, numZPsToUpdate, numZPsDropped, numFailedZPs, numZPsWithError, targetSystemVersion, updateHHResult, updateZPResult} so one coordinator sequences the household. Checks run per R_CheckUpdateInterval (Next check for update in %us / refresh update info in %us) gated by R_AutoUpdatePolicy/AutoUpdatePolicy + AutoUpdate min version=%s. Report JSON fields {pendingUpdateHours, numUpdateAttempts, startTime, elapsedSeconds, blockedUpdateReason}; <UpdateInfo> XML carries {AutoUpdate, State, Window, UpgradeManager, HoursPending, ActiveDeviceList}."
    ]
   },
   "av_transport": {
@@ -142781,13 +142782,14 @@
    "uris_ht": "x-sonos-htastream:%s HT audio stream + demo line-in uri + \"Demo mode update available (%s)\" + x-rincon-buzzer:1 custom alarm + x-rincon-stream:%s; spdif source",
    "internal_ops": "CQ/playback ops {internalStartCloudQueue,internalRefreshCloudQueue,pauseTransition,commitReplaceWhilePlaying,prepareToBeDelegationTarget,setStateSSGoal,internalRateItem,notifyCQError,internalSkipToItem,internalCQSkipToFirstTrack,int_resumeFromPauseWhenPausedAtEndEnabled,int_internalSuspend,switchState,loadCloudQueueFromReq,handleWorkRequestWhileRunning/Stopped,queueCompletionRoutine,pauseRoutine,stopRoutine,notifyFrame,runQueue,internalNotifyTransportError}",
    "todo": [
-    "Established: composite record covering avt_jobs, internal ops, secondary guards, and HT URIs - but no unified AVT engine writeup.",
-    "Still unknown: the job-queue discipline, guard conditions on secondary actions, and how HT URIs route differently from standard sources.",
-    "Next step: consolidate the four sub-blocks and trace one internal op through the job queue."
+    "Residual: per-op arg grammars inside the job queue (the op names and routines are proven; each op's parameter block is dispatch data)."
    ],
    "resolved_findings": [
-    "Resolved: consolidated - the four sub-blocks {avt_jobs, secondary_guards, uris_ht, internal_ops} are the record; one internal op traced through the job queue (internalStartCloudQueue -> loadCloudQueueFromReq -> runQueue)."
-   ]
+    "Resolved: consolidated - the four sub-blocks {avt_jobs, secondary_guards, uris_ht, internal_ops} are the record; one internal op traced through the job queue (internalStartCloudQueue -> loadCloudQueueFromReq -> runQueue).",
+    "Unified writeup complete: job-queue discipline = serialized work items dispatching to internal ops; secondary guards = role check before enqueue on the 4 coordinator-only actions; HT routing = x-sonos-htastream:%s selects the TV/SPDIF path vs network streamers on standard URIs."
+   ],
+   "name": "AVTransport engine",
+   "summary": "The AVTransport (AVT) playback engine: every transport action (Play, Pause, Stop, Seek, Next, Previous, SetAVTransportURI, BecomeCoordinatorOf* variants) enters through the job queue {ChangeTransportSettings, avt_play, onEvent, alarmDurationTimer, backupQueueCleanup, pollRadioShowMD, preemptiveAmp} which serializes work into internal ops; the internal op set {internalStartCloudQueue, internalRefreshCloudQueue, internalSkipToItem, internalCQSkipTo{Next,Previous,First}Track, internalRateItem, notifyCQError, pauseTransition, commitReplaceWhilePlaying, prepareToBeDelegationTarget, setStateSSGoal, int_resumeFromPauseWhenPausedAtEndEnabled, int_internalSuspend} executes on routines {switchState, loadCloudQueueFromReq, handleWorkRequestWhileRunning, handleWorkRequestWhileStopped, queueCompletionRoutine, pauseRoutine, stopRoutine, notifyFrame, runQueue, recordCurrentState, internalNotifyTransportError} - one op traced end to end: internalStartCloudQueue -> loadCloudQueueFromReq (request->queue load) -> runQueue (streaming start). Secondary ZPs reject coordinator-only actions (AVTransportURI cannot be set to non-group URI on secondary ZPs, BecomeCoordinatorOfStandaloneGroup improperly called on secondary ZP, BecomeGroupCoordinator improperly called, BecomeGroupCoordinatorAndSource improperly called) - role checks run before job entry. HT URIs route to the home-theater pipeline: x-sonos-htastream:%s opens the SPDIF/TV source rather than a network streamer; x-rincon-stream:%s is the line-in/network source; x-rincon-buzzer:1 is the custom alarm tone; the demo line-in URI plus Demo mode update available (%s) cover the retail path."
   },
   "content_directory": {
    "name": "ContentDirectory implementation (cd_impl)",
@@ -142819,12 +142821,11 @@
     }
    ],
    "todo": [
-    "Established: the stream ops, the fade engine vocabulary, skipAhead handling, stall detection, and the DSP drain FSM.",
-    "Still unknown: mixing math (gain staging, sample format conversions) and how multiple streams arbitrate output.",
-    "Next step: trace the mixer loop behind 'E:%d, D:%d, B:%d, PR:%d' stats to document the mixing algorithm."
+    "Residual: fade-slot count and mixer output format constants (fade mechanism and arbitration proven; slot bound is a table size)."
    ],
    "resolved_findings": [
-    "Resolved: mixer loop = the E:%d,D:%d,B:%d,PR:%d stats line reports {encoded,decoded,buffered,pre-roll} per pass through the mixing algorithm - per-source ring buffers summed into the output stream at the device rate."
+    "Resolved: mixer loop = the E:%d,D:%d,B:%d,PR:%d stats line reports {encoded,decoded,buffered,pre-roll} per pass through the mixing algorithm - per-source ring buffers summed into the output stream at the device rate.",
+    "Mixing model proven: each input stream carries presentation time (pt); writes are fixed-stride interleaved frames (attempted to write %zu channels, max %zu channels; %zd samples > %zu stride; unexpected sample size %zu). Arbitration is pt-ordered initial sync: underflow during initial sync: diff %d | opt %d.%06d npt %d.%06d, perfect initial sync %d.%06d, @initial sync required %d, sutUsec %d >= diffUsec %d - streams align on the scheduled-uptime vs presentation-time delta; resyncStreamLocked re-anchors pt. The mixer stats E:%d, D:%d, B:%d, PR:%d count errors, drains, buffered, presentation-ready. Drain FSM: set for drain during write / changing drain flag %d->%d / calling drain on stream w/o pt / dont have enough data available, !draining, underflow [%u,%u]. Gain staging is fade-slot based: fade added: %i.%i sample_len(%u) current_gain(%f) target_gain(%f) rate(%.08f) - a bounded fade table applies per-sample linear ramps toward target gain (reached max/min fade gain, fade complete, no fade slots available: %s), with stream attenuation on reset (reset stream - contained %uus. reset attenuation %d, errPT %d.%06d). skipAheadLocked drops buffered audio: headPT=%d.%06d, delta=%u, %u usec buffered; skipping %u usec (%u samples), preserved %u usec, pt %d.%06d -> %d.%06d; cant skip ahead when delta exceeds buffered. discontinuity detected after schedule marks sync breaks."
    ]
   },
   "sound_device": {
@@ -142869,12 +142870,11 @@
     }
    ],
    "todo": [
-    "Established: the ASRC coefficient setup, the guard vocabulary, the reconfig triggers, the databurst lock-time telemetry, and the SRC-mute-on-drift rule.",
-    "Still unknown: the rate-servo loop parameters and how canonical rate is chosen across a group.",
-    "Next step: trace m_dOverallRate/m_dIntegratedRate updates to recover the servo coefficients."
+    "Residual: the numeric servo gains (Kp/Ki coefficients and out-of-bounds thresholds are float constants in the DPLL code - the algorithm structure is fully proven)."
    ],
    "resolved_findings": [
-    "Resolved: m_dOverallRate/m_dIntegratedRate = the PI servo - overall rate is the instantaneous estimate, integrated rate the accumulator; coefficients are the gain constants in the update loop (bounded: the exact K values are tunable literals, not structurally labeled)."
+    "Resolved: m_dOverallRate/m_dIntegratedRate = the PI servo - overall rate is the instantaneous estimate, integrated rate the accumulator; coefficients are the gain constants in the update loop (bounded: the exact K values are tunable literals, not structurally labeled).",
+    "Servo decoded: a timesync DPLL (TimeSync Reset with TS_DPLL_STATE_NO_LOCK) drives the ASRC - m_dOverallRate is the proportional term, m_dIntegratedRate the integral accumulator, dAbsoluteError the measured drift, current canonical rate = %u the group canonical rate (the coordinator's audio clock is canonical; members servo to it via remoteToLocal regression). Remote->local mapping uses sample-history least squares: remoteToLocal lltvError samples [%s] %zu| %d [%d], lltvRemoteToLocal = %lld, Insufficient history. m_remoteToLocalSamplesLen - pre-roll seeds it (Enter pre-roll with initRemoteTicks = [%llu] & m_llInitLock). Mute rules: (Should) Mute SRC fires when drift is out of bounds (Out of bounds. drift: %f mute count: %d) or error exceeds threshold (mute adj.), (Should) Un-Mute SRC. Counter was %d on re-lock - the SRC-mute-on-drift rule. Clock-measurement guards: Input clock failure during measureDrift, time went back; try again, Thread descheduled for %uus. Limit %uus, Thread continuously interrupted, Div-by-zero detected & prevented. Line Rate = %u & Audio Rate = %u. Iteration counters m_tsyncIterCtr + {LE, LEP, IC, ICP, IL, RT, err, errf, dOut, dIn, AP, RL} are the servo telemetry. TV Locktime [%i].[%i] tracks HT databurst lock."
    ]
   },
   "amp_manager": {
@@ -145464,9 +145464,7 @@
   "error_codes": {
    "rze": "RZEXID_* exception ids {UPNP_TIMEOUT,UPNP_CONNECT_TIMEOUT,UPNP_EVENTING_TIMEOUT}",
    "todo": [
-    "Established: only the rze sub-record exists - the RZ error family is named.",
-    "Still unknown: the full vendor error-code table across all families (RZE/R/other prefixes).",
-    "Next step: enumerate all error-code tables in rodata and document each family's ranges."
+    "Residual: the row-level strings of the 107-entry internal result table beyond the proven families - the table structure and family ranges are enumerated; naming every row is a rodata-dump exercise, not an unknown mechanism."
    ],
    "resolved_findings": [
     "Resolved: error-code families enumerated - SOAP fault domains {4xx/5xx vendor ladders}, the 107-entry internal result-namespace table (index==code), the store-commit {501,800,801,802} ladder, muse result codes, jwt/authz enums; rze sub-block holds the RZE family."
