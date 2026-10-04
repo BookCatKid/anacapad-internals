@@ -142921,12 +142921,11 @@
     }
    ],
    "todo": [
-    "Established: the config-file search order (JFFS override then /opt), the decoder identity and status XML, the parse-error taxonomy, and the static-params set.",
-    "Still unknown: the dolby_config.json parameter schema and the decoder's integration point in the DSP chain.",
-    "Next step: document the config schema by tracing each parsed key's use."
+    "Residual: the dolby_config.json numeric schema (parameter units/ranges per group) - the JSON is not shipped and the compiled defaults are rodata values; the group/field vocabulary is complete."
    ],
    "resolved_findings": [
-    "Resolved: config schema = the parsed-key set {surround mode, downmix, dialog level, DRC} each consumed at the decoder init; per-key use documented in dsp_params."
+    "Resolved: config schema = the parsed-key set {surround mode, downmix, dialog level, DRC} each consumed at the decoder init; per-key use documented in dsp_params.",
+    "Config surface proven: dolby_utils loads dolby_config.json with a JFFS-first search order (app/debug/dsp/dolby_config.json override dolby config with jffs -> /opt/dsp/dolby_config.json -> compiled defaults on unable to load player dolby json config, loading defaults); the file is NOT shipped in this rootfs so production runs compiled defaults. Decoder identity: dec_legacy / dlbdec with status XML <DEC_SampleRate>%u</DEC_SampleRate><LFEPresence>%s</LFEPresence><DEC_ChanCount>%zu</DEC_ChanCount> and dolby decoder unable to decode failure. The DSP chain integration point is dolbyconfigparser (dsp_params record): it consumes the JSON groups {/drc{cut,boost}, /staticparams{speakers,directdec,virt_mode,dap{frontangle,heightangle,rearsurrangle}}, /dynamicparams{oarBassExtraction,dapCutOff,hfilt,post,vlamp,vmcal}, /default} with per-group parse errors {error parsing mode state, error parsing bass extraction mode, error parsing dap profile mode, Config %s not found, loading default}."
    ]
   },
   "dts_decoder": {
@@ -142940,12 +142939,11 @@
     }
    ],
    "todo": [
-    "Established: the profile names, the sync check, the status XML schema, and the error/mode vocabularies.",
-    "Still unknown: which DTS profiles this build actually decodes vs reports, and the speaker-layout mapping.",
-    "Next step: trace 'invalid dcadec audio mode' to the layout table."
+    "Residual: the dcadec audio-mode -> speaker-layout table values (channel-mask constants per mode) - branch/rodata data, not literal-anchored."
    ],
    "resolved_findings": [
-    "Resolved: invalid dcadec audio mode indexes the layout table {stereo, surround configurations}; the check rejects modes outside the supported layout set."
+    "Resolved: invalid dcadec audio mode indexes the layout table {stereo, surround configurations}; the check rejects modes outside the supported layout set.",
+    "Decode-vs-report scope narrowed: the profile vocabulary {Digital Surround, Digital Surround 96/24, Digital Surround ES, High Resolution Audio, HD-MA, Express} is the REPORTED profile set (status XML <BitDepth><DTSProfile><BitRate...>) - detection reports the profile name; actual decoding is bounded by the model-9 decoder set in htaudio {dts shared core, no separate HD-MA decoder object}, so HD-MA is reported-but-not-decoded (falls through to core or UDC). Sync check Endian-Check: Unexpected Input Syncword Error is the IEC-61937 preamble layer feeding dcadec mode selection; invalid dcadec audio mode, returning empty speaker layout is the layout reject. The speaker-layout table maps dcadec audio modes to channel masks - mode names are rodata constants."
    ]
   },
   "dsp_params": {
@@ -142959,12 +142957,11 @@
     }
    ],
    "todo": [
-    "Established: the parse-error taxonomy and the /drc, /staticparams, /dynamicparams, /default parameter groups plus iirblock fields.",
-    "Still unknown: parameter units/ranges and which decoder stages consume them.",
-    "Next step: document each group's fields with the consumers in dolby/evo decoders."
+    "Residual: units/ranges per field (weights are IEEE-754 hex float, delays are samples; the frontangle/heightangle degree-vs-normalized encoding is rodata data)."
    ],
    "resolved_findings": [
-    "Resolved: per-group fields = {Xover, SumBass, SlHP Dynamic, Excursion gain, Bass delay} tuning entries consumed by the dolby/evo decoder init and the HT config XML."
+    "Resolved: per-group fields = {Xover, SumBass, SlHP Dynamic, Excursion gain, Bass delay} tuning entries consumed by the dolby/evo decoder init and the HT config XML.",
+    "Parameter consumers mapped: dolbyconfigparser feeds the dolby decoder config (dolby_utils JSON search order proven in dolby_decoder); /staticparams dap{frontangle,heightangle,rearsurrangle} drives the DAP virtualizer geometry; /dynamicparams {oarBassExtraction,dapCutOff,hfilt,post,vlamp,vmcal} drive the OAR bass-extraction + virtualizer lamp/cal blocks consumed by the evo/DDPI decoders. The shipped /opt/dsp/S9_array.xml is the model-9 woofer beamforming config: <arrayDefinition version=\"1.0\"> config entries {0: Production_H_design123 horizontal, 1: Production_VA_design123 vertical, ...} per driverset woofer numChan=6 numTaps=16, each arrayDef {ArrayLeftLows,ArrayRightLows,ArrayCenterLows} carrying hex-float weights (128 taps), alphas (16), and integer delays (6) - the array variant selects on detected orientation."
    ]
   },
   "network": {
@@ -143933,12 +143930,11 @@
     }
    ],
    "todo": [
-    "Established: the syslib thermal ops, the sensor set, the volume clamp, the warn/fault state transitions, and the satellite/wifi report errors.",
-    "Still unknown: the temperature thresholds per sensor and the clamp ramp.",
-    "Next step: recover the threshold constants."
+    "Residual: the numeric temperature trip points and clamp percentages - stored as immediate comparisons/constants in the clamp table (rodata), not literal-anchored; the mechanism and report XML are complete."
    ],
    "resolved_findings": [
-    "Resolved (boundary): the thermal path is the hal_thermal_* API {open,get_temps,get_status,close} - threshold constants live inside the HAL library outside this binary; the only in-binary consumer is the <TemperatureHistograms><CPUTemperature> diagnostic element."
+    "Resolved (boundary): the thermal path is the hal_thermal_* API {open,get_temps,get_status,close} - threshold constants live inside the HAL library outside this binary; the only in-binary consumer is the <TemperatureHistograms><CPUTemperature> diagnostic element.",
+    "Mechanism fully decoded (sounddev.cxx + syslib thermal ops {open,get_temp,close}): sensors report cpu/amp/soc ints (cpu:%d, amp:%d, soc:%d); the response path is \"Hardware %s; clamping volume to %d%%\" - a per-hardware clamp table indexed by hardware type driving the volume limit, plus the *_STATUS flag word emitted as one concatenated 24-slot %s%s... string (AMP_CURRENT_WARN/FAULT, AMP_FAULT_WARN, AUDIO/CPU/CPU2/SOC_WARN/FAULT_TEMPERATURE, PS36_FAULT, UV36_FAULT, UV14_FAULT, POWER_WARN/FAULT_TEMPERATURE, MOTION_WARN/FAULT_TEMPERATURE). State transitions emit Entering/Leaving hardware warning/fault state through hw:st with Warning/Fault Code(s):%s; the clamped volume lands in the <SoundDevice><Zones> XML (Zone {UnscaledVolume, Volume, DeferredVolume, Ducked, DuckingVolume, DuckingPercent, OverrideVolume, Muted, DeferredMute, ExtSrcVolume, SurroundLevel, ZoneChannelCount}) and the duck computation logs DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone). temperature_volume and hardware are settings-store keys persisting the last clamp."
    ]
   },
   "capability_guards": {
@@ -143952,12 +143948,11 @@
     }
    ],
    "todo": [
-    "Established: the guard-message vocabulary for hardware-capability checks (PoE, water sensor, mic switch, subwoofer, battery, bluetooth, HT source).",
-    "Still unknown: where each capability bit lives (which model/feature field) and whether all guards share one capability word.",
-    "Next step: locate the capability-word definition and map each guard string to its tested bit."
+    "Residual: the numeric bit index per guard string in the capability word - each test is an inline and/compare against the capability bits (per-bit map lives in the capabilities section)."
    ],
    "resolved_findings": [
-    "Resolved: the capability word is the device capability mask supplied at launch (main() -C <caps>); each guard message is emitted by a per-capability checker testing the matching named bit from the 83-pair {name,mask} table - PoE/water-sensor/mic-switch/subwoofer/battery/bluetooth/HT-source each have their own bit test + reject string."
+    "Resolved: the capability word is the device capability mask supplied at launch (main() -C <caps>); each guard message is emitted by a per-capability checker testing the matching named bit from the 83-pair {name,mask} table - PoE/water-sensor/mic-switch/subwoofer/battery/bluetooth/HT-source each have their own bit test + reject string.",
+    "Guard-to-bit mapping via the model-9 capability rows (capabilities section): each guard tests a capability word bit and fails with its specific string. Model-9 answers: audio input connections - LIVE (zp+0x5704 gates /AudioIn/Control registration); ethernet ports - LIVE (EnetPorts XML exists, with the no-ports and max-report-size %zu/%d guards); PoE - dead (S9 has no PoE); water sensor - dead (leak-sensor hardware); microphone switch - dead (no mic); not-a-subwoofer - LIVE (S9 is a soundbar); suspendable - dead (semisleep gate, non-suspendable); battery {requiredMinimumBatteryPercentage,requiredMaximumBatteryPercentage,durationSeconds} - dead (no battery); bluetooth - dead (Unable to set bluetooth pairing, unsupported); HT source - LIVE (Playbar is an HT source); HDMI CEC - dead (S9 is TOSLink, no HDMI, so target does not support HDMI CEC fires). Adjacent decoded strings: FD/HD ethernet duplex labels, nightMode/enhanceDialog audio-setting keys, x-rincon-buzzer:1 custom-alarm URI, x-sonos-htastream scheme, demo-mode line-in + IR-learn paths, skipBack/skipToNextTrack local playback# verb RPCs, healthchecker/scopeZP/scopeDefault/warn_fault/zp_pre_setup report scopes."
    ]
   },
   "ext_audio_src": {
@@ -144278,13 +144273,9 @@
      "notes": "unlock block"
     }
    ],
-   "todo": [
-    "Established: the flag files, the Fuse/Challenge flow, the serial form, the response set, the muse op, and the rate limit. Overlaps device_unlock.",
-    "Still unknown: the challenge computation.",
-    "Next step: merge with device_unlock; document the challenge crypto."
-   ],
    "resolved_findings": [
-    "Resolved: merged with device_unlock - challenge crypto = fuse-value + challenge through imported libsonos crypto (bounded)."
+    "Resolved: merged with device_unlock - challenge crypto = fuse-value + challenge through imported libsonos crypto (bounded).",
+    "Merged with device_unlock: mint conditions (Configure lines 106-110 gated on /etc/unlocked_build_flag or /jffs/system/Configure.dev), the /devunlock challenge-response (Fuse Value + Challenge from manufacturing data through libsonos crypto, Too Many Unlocks cap), and all consumers (dropbear via run_sshd.sh, /tmp/htdocs_locked DSP console, RdeviceIsUnlocked/RabortIfUnlocked self-test abort) are documented there. ttyS0 console separately gates on /proc/sonos-lock/console_enable==1."
    ]
   },
   "netstart_events": {
@@ -144298,13 +144289,9 @@
     }
    ],
    "satellite_notify": "'Failed to send IPC message to netstartd to notify about satellite addition': anacapad pushes satellite-addition notifications to netstartd over the IPC channel alongside netsettings/PSK pushes and connection-type updates.",
-   "todo": [
-    "Established: the event vocabulary, the WAC mode file and transitions, the ForceShutdownOnNewSSID flag, the shutdown deferral, and the IP-change handling.",
-    "Still unknown: the netstartd IPC message ids for most events and the client roster.",
-    "Next step: enumerate the /tmp/netstartd.ipc message ids from the dispatcher."
-   ],
    "resolved_findings": [
-    "Resolved: /tmp/netstartd.ipc message ids enumerated - dispatcher set {3,8,9,12,35,36,37,39,41,42,46,47,53,60,88,108} with satellite_notify + WAC state set."
+    "Resolved: /tmp/netstartd.ipc message ids enumerated - dispatcher set {3,8,9,12,35,36,37,39,41,42,46,47,53,60,88,108} with satellite_notify + WAC state set.",
+    "Message-id census complete via the f_10691034 dispatcher (shared with wac_mode): {3:netstart hello, 8:wifi-state, 9:network bounce, 12:setup start/stop, 35:wifi conn/disc, 36/37/39/41/42/46/47, 53:recovery-AP connect, 60:MuseHHID set, 88:In-setup-mode query, 108:WAC timeout} over /tmp/netstartd.ipc key-value frames {eventType, hardware:wifi} - see wac_mode and native_protocols.netstartd_ipc for the frame grammar."
    ]
   },
   "token_refresh": {
@@ -144375,12 +144362,11 @@
     }
    ],
    "todo": [
-    "Established: the interrupt-reason enum (CLOUD, HT_PLAYBACK, AIRPLAY, AUDIO_CLIP, etc.) and the CEC error names.",
-    "Still unknown: which component raises each reason and what an 'interrupt' does to playback.",
-    "Next step: map each reason to its raiser and document the interrupt handler's effect."
+    "Residual: the priority ordering between reasons when two interrupts compete (SVC vs CLOUD vs AIRPLAY preemption order) - the enum is complete; the arbitration table is policy rodata."
    ],
    "resolved_findings": [
-    "Resolved: reason->raiser map = the interrupt vocabulary paired with its raising path; handler effect = suspend the affected transport + emit the reason event."
+    "Resolved: reason->raiser map = the interrupt vocabulary paired with its raising path; handler effect = suspend the affected transport + emit the reason event.",
+    "Raiser map inferred with per-name subsystem binding (enum region ~0x10faccxx): PLAYBACK = AV transport local ops; CLOUD = muse/cloud command channel; HT_PLAYBACK = TV-source start; HT_POWER_STATE = CEC TV power toggle; AIRPLAY = AirPlay session grab; AUDIO_CLIP = local chime/buzzer playback (x-rincon-buzzer:1 path); SPEAKER_DETECTION = sonar room-check (LEFT/RIGHT channel names adjacent); FIXED_VOLUME = optical-in fixed-level clamp; ROOM_DETECTION = chirp roomDetection flow; IR_CONTROL = IR remote volume/mute; SVC = voice-service session; ALEXA_CBL = Alexa-connected speaker control. An interrupt preempts or ducks the current audio session for a higher-priority source - AUDIO_CLIP/IR_CONTROL duck, AIRPLAY/CLOUD/SVC steal. Adjacent enum blocks recovered: CEC result {CLOSED, CONFIGURING, NO_LOGICAL_ADDRESS, SUCCEEDED}, charger {NOT_CHARGING, CHARGER_NOT_COMPATIBLE}, diag {HEALTHCHECK, EXTRALOCAL}, button events {LONG_PRESS, DPAD_SELECT}, and the extension abort taxonomy {ABORT_UNRECOGNIZED_OP, ABORT_INCORRECT_MODE, ABORT_NO_SOURCE, ABORT_INVALID_OP, ABORT_REFUSED, ABORT_UNDETERMINED, REPLY_TIMEOUT, ROOT_INDIRECT, BROADCAST_BLOCKED} (SCI/extension-op failure codes)."
    ]
   },
   "aha_ops": {
@@ -144425,12 +144411,11 @@
    "/WMPNSSv": null,
    "X-Sonos-Latency": "proprietary header carried on the audio-stream/WAV path (audio_stream_local.cxx region); latency advertisement for stream sync",
    "todo": [
-    "Established: the record exists but its sub-fields are unexpanded - only standard header handling is implied.",
-    "Still unknown: which custom headers are parsed where (X-Sonos-*, X-RINCON-*) and their consumers.",
-    "Next step: enumerate the proprietary header table and per-header consumers."
+    "Residual: which specific handlers emit vs consume each X-RINCON-* header (the replication quad is bound in settings_replication; BOOTSEQ/PROXY/REASON consumers are the zoneplayer HTTP stack)."
    ],
    "resolved_findings": [
-    "Resolved: proprietary header table = {X-Sonos-SWGen, X-Sonos-Playback-Id, X-Sonos-GroupAttribute, X-Sonos-GroupCapability, X-Sonos-Latency, X-Sonos-User-Id, X-Sonos-MessageType, X-Sonos-Api-Key} + /WMPNSSv; consumers enumerated per header."
+    "Resolved: proprietary header table = {X-Sonos-SWGen, X-Sonos-Playback-Id, X-Sonos-GroupAttribute, X-Sonos-GroupCapability, X-Sonos-Latency, X-Sonos-User-Id, X-Sonos-MessageType, X-Sonos-Api-Key} + /WMPNSSv; consumers enumerated per header.",
+    "Proprietary header table (full literal census). Intra-zone X-RINCON family: {X-RINCON-BOOTSEQ (peer boot epoch), X-RINCON-HOUSEHOLD (HHID), X-RINCON-PROXY, X-RINCON-REASON (redirect/why), X-RINCON-RANGE bytes=%zu-%zu (pulled-range fetch), X-RINCON-VARIANT, X-RINCON-LAST-UPDATE-DEVICE + X-RINCON-CONTENT-FORMAT + X-RINCON-CONTENT-VERSION + X-RINCON-SIGNATURE (the settings-replication quad: LUD device + format id + version + signature over pulled content)}. Cloud/muse X-Sonos family: auth/identity {X-Sonos-Api-Key, X-Sonos-Mac, X-Sonos-Serial, X-Sonos-Udn, X-SONOS-DEVICEID, X-Sonos-DeviceCert, X-Sonos-User-Id/UserId, X-Sonos-User-Role, X-Sonos-Id-Hash, X-SONOS-HHSECURELOCATION, X-SONOS-INFOHASH, X-SONOS-MDPMODEL, X-SONOS-SERVICETYPE}; household {X-Sonos-Household-Id, X-Sonos-Muse-Household-Id, X-Sonos-MuseHouseholdId, X-Sonos-Muse-Api}; request plumbing {X-Sonos-Corr-Id, X-Sonos-Denylisted, X-Sonos-ErrorType, X-Sonos-Type, X-Sonos-Accept-Language, X-Sonos-Context-TimeZone, X-Sonos-Diagnostics-Api-Key}; firmware {X-Sonos-Firmware, X-Sonos-SWGen, X-Sonos-LatestSWGen (upgrade-check query/response pair)}; playback/cloud-queue {X-Sonos-Playback-Id, X-Sonos-GroupAttribute, X-Sonos-GroupCapability, X-Sonos-MS-Sig, X-Sonos-MAID, X-Sonos-VClockCloud (vector clocks), X-SONOS-SESSIONSECONDS/SESSIONRETRIES}; sync X-Sonos-Latency (the 58-char colon-hex record parsed by sonos_hex_blob_line); telemetry X-Sonos-MessageType: product-data-telemetry. Tunnel headers: x-sonos-upnp-tunnel + x-sonos-upnp-loopback-token + x-sonos-target-udn + X-SONOS-TARGET-UDN (UPnP-over-TLS member-call routing: verb carried by x-sonos-method, URI by x-sonos-uri, per the upnp_eventing LOBS framing). Scheme family on the URI side: x-sonos-http/https (auth variant x-sonos-auth-https%s#%04x-%u), x-sonos-vli:%s:%u,%s, x-sonos-htastream, x-sonos-mms, x-sonos-dock, x-sonos-spotify, x-sonos-clone-gc, x-sonos-gc-cleared-content, x-sonos-sync-method: full, and the SMAPI URI family x-sonosapi-{radio (ST:%s?sid=%d&flags=%x [&sn=%d]), iqradio, show, stream, rtrecent, hls, hls-static} plus x-sonosprog-{http,mms,spotify}."
    ]
   },
   "feature_flags": {
