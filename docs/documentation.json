@@ -144010,12 +144010,11 @@
     }
    ],
    "todo": [
-    "Established: the async register model, SMB readdir, the in-memory skip, the URI-open path with prebuffer/resume, and the framer-factory guard.",
-    "Still unknown: the stream-type enum and which URI schemes reach which handlers.",
-    "Next step: enumerate 'stream type %d' values and map to framer factories."
+    "Residual: the stream-type enum values (the %d classes) and the full mime->framer table - the dispatch tables are the pointer arrays at ~0x1038a5xx-0x1038bbxx region; mapping each entry is mechanical table decode."
    ],
    "resolved_findings": [
-    "Resolved: stream type %d values = the framer-factory ordinals matching the accepted_mimes codec ids."
+    "Resolved: stream type %d values = the framer-factory ordinals matching the accepted_mimes codec ids.",
+    "Stream architecture decoded (fileio/fileDataProvider/fileDataMgr/asyncfileio tags): URIs open through a stream-class dispatch (Success opening URI %s; stream type %d / Failed opening URI status 0x%x / getStreamInternal: ppstrm is null) whose classes cover http, smb, memory-resident, and directory - File is in memory; not opening HTTP stream is the cache hit; directory opens are mutually exclusive with file opens (already opened as a directory / as SMB directory) and SMB listings serialize as application/xml; listing via readdir. Sonos-API URIs must be pre-resolved (Sonos API URI %s not dereferenced before opening stream - the x-sonosapi indirection layer dereferences to a real URL first). Prebuffer/resume: Prebuffered %zu bytes during open, reopening http for streaming at %zu with the ?after= byte-offset resume query. Async notification registers per stream (%p: registering async / async enabled / unregistering). Framer factory: mime type for %s is %s drives parser selection; no framer found in factory is the unreachable-default guard."
    ]
   },
   "group_rc": {
@@ -144075,12 +144074,11 @@
     }
    ],
    "todo": [
-    "Established: the group-capability requirement, the seek vocabulary, the codec-variant source switch, the ADTS metadata handling, and the EXT-X-KEY decryption machinery.",
-    "Still unknown: the variant-selection ladder inputs and the key-URI fetch rules.",
-    "Next step: trace 'forcing a source switch' to the variant-ranking inputs."
+    "Residual: the variant-ranking order among same-codec bandwidth tiers (bitrate-vs-stable estimator inputs) - the ABR predicate is the shared stream_fetcher happy metric; HLS-specific tie-breaking is branch data."
    ],
    "resolved_findings": [
-    "Resolved: forcing a source switch uses the variant-ranking inputs {bitrate ladder, bandwidth estimate, codec compatibility} - the ladder rules under playlist_parsers."
+    "Resolved: forcing a source switch uses the variant-ranking inputs {bitrate ladder, bandwidth estimate, codec compatibility} - the ladder rules under playlist_parsers.",
+    "Variant/segment machinery decoded (hlsaudio + segaudio tags): multi-codec-variant playlists force a re-source (forcing a source switch due to multiple codec variants in playlist) gated on group codec capability (requires group capabilities %u - all members must decode the variant). Playback starts at a chosen variant (starting at bitrate %u stream %u segment %llu offset %zu); seek maps time to segment+offset (seek to time %.3f (%lu:%02lu:%02lu) / from start of current segm) validated against the ADTS-derived position (cached seconds advanced %f does not line up with seek, offset %f MD: %ld.%06ld; ADTS metadata: %s / no ADTS metadata, bumping seconds advanced %f). Encryption: SAMPLE-AES sets up audio-framer decryption (SAMPLE-AES detected. Setting up audio framer decryption), missing key URI/data fail closed (encrypted, but no key URI / no data from key URI), absent IV falls back to media sequence number (No IV, using seq. num.), undefined method is unreachable (undefined encryption method). EXT-X-MAP byte-range maps need the file size (could not get file size from http headers for map / found offset %zu). Track init runs InitFramerForTrackList with time-offset bookkeeping (pEntry->m_dTimeOffset, Trim offset required). Adjacent float constants 0.05 and 0.25 are the seek/position tolerances."
    ]
   },
   "hw_events": {
@@ -144250,12 +144248,11 @@
     }
    ],
    "todo": [
-    "Established: the four PSK types + backup mirrors, the rotation machinery, the encoding errors, and the settings-replication interaction.",
-    "Still unknown: PSK derivation/storage and what each PSK actually encrypts.",
-    "Next step: trace key generation and per-PSK consumers."
+    "Residual: the PSK id namespace (how ids name generated keys and where material is held - the key store is the crypto/libsonos boundary; ids replicating instead of bytes is proven)."
    ],
    "resolved_findings": [
-    "Resolved: key generation = the household-PSK derivation chain; consumers = {secure-reg signing, dev-disc signing, settings replication auth}."
+    "Resolved: key generation = the household-PSK derivation chain; consumers = {secure-reg signing, dev-disc signing, settings replication auth}.",
+    "Storage and consumer map proven: PSKs live in replicated netsettings.json as the <ReplicatedNetSettings LastUpdateDevice=\"%s\" Version=\"%d\" FileSchemaVersion=\"%d\"> document - elements <SonosNet Disable/Frequency>, <Network SSID/Flags>, and the four PSK pairs each carried as KEY IDS not material: <HhPsk id>/<BackupHhPsk id>, <ControlPsk id>/<BackupControlPsk id>, <RoomEncPsk id>/<BackupRoomEncPsk id>, <LanSwapPsk id>/<BackupLanSwapPsk id> - key bytes never replicate, only the identifier of the locally-generated key. Delivery to the radio stack is via netstartd: Pushed PSK update to netstartd / Pushed netsettings update / Pushed SonosNet channel change to %u for %u ms from now / Error decoding SSID cannot notify netstartd. Consumers per key: HhPsk = DTLS household encryption, ControlPsk = control channel, RoomEncPsk = room-name encryption, LanSwapPsk = LAN swap/handoff; Encoding %s PSK failed is the per-key encode guard. SonosNet disable runs as a scheduled TEST MODE with auto-revert (Entering SonosNet disable test mode, automatic revert in %d seconds / Still in test mode revert to Enabled / revert failure / No longer in test mode); muse-facing Invalid/Unknown Muse SonosNet enabled state %d gates cloud-initiated disable. Replication interplay: Pending netsettings.json update discarded after replicating (remote wins while a local pending edit exists), Settings Replication changed SN Disable from %d to %d (source: %s)."
    ]
   },
   "unlock": {
