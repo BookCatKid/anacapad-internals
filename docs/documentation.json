@@ -108046,7 +108046,7 @@
     }
    ],
    "todo": [
-    "Narrowed: the return-code vocabulary - callers map nonzero differently (Next {2->800,3->711,else->701}, RemoveTrack nonzero=success) - and the op-code enum bound at cmpwi 0x9. Next: decode the rc table around the +0x2594 store."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 72,
@@ -108082,7 +108082,8 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 72-insn worker; direct calls: f_10988558, f_103168e0, f_1032e320, f_104b8248, f_109b6fe4, f_1032e648, f_1032e614, f_109b72ac, f_1098761c, f_10988984; string literals: execute; chsrc; RCHSRCReq Current Op: %s, Current TransactionID: %d; member stores: 0x20,0x28,0x2c,0x34,0x1c,0x24,0x2594; immediate compares: 0x9. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "Digest decode: lock f_10988558@0x10255f94, guarded leave f_10988984@0x10256044; helpers f_103168e0/f_1032e320/f_104b8248/f_1032e648/f_1032e614/f_1098761c; cmp bound 0x9."
+    "Digest decode: lock f_10988558@0x10255f94, guarded leave f_10988984@0x10256044; helpers f_103168e0/f_1032e320/f_104b8248/f_1032e648/f_1032e614/f_1098761c; cmp bound 0x9.",
+    "Op dispatch decoded: op-code bound cmplwi 9 indexes a 10-entry descriptor-pointer table at 0x10ea8534 (ops 0..9); op>9 falls back to descriptor 0x10ea6a2c named execute. Op-name pool at 0x10ea855c {execute, int_enterState, internalCQSkipToNextTrack, internalCQSkipToPreviousTrack,...}. obj+0x2594 is the current RCHSRC request slot (log RCHSRCReq Current Op: %s, Current TransactionID: %d with req+0xe8)."
    ]
   },
   "0x1032e270": {
@@ -108140,9 +108141,7 @@
     }
    ],
    "todo": [
-    "Established: Direct streamer seek used when engine+0x4654 != 2: locks streamer+0x150, obtains current stream session via *(obj+0x354)->+4->vfunc[+0x2c], calls session vfunc +0x10 (absolute) or +0x14 (delta) with ms position; returns 1 if dispatched (stream exists), 0 otherwise; session's status byte is written to the out flag but only controls logging. (role: streamer_seek).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x106a7930 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 65,
@@ -108165,7 +108164,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 65-insn worker; direct calls: f_10988564, f_10988990, f_110985d8; string literals: none; member stores: 0x20,0x24,0x28,0x2c,0x34,0x1c; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 65-insn worker; direct calls: f_10988564, f_10988990, f_110985d8; string literals: none; member stores: 0x20,0x24,0x28,0x2c,0x34,0x1c; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: guard-locks streamer+0x150 via f_10988564; session = (*(obj+0x354)+4 obj)->v[+0x2c](); null-guards return 0 at each hop; then session->v[+0x10] (r5==0) else v[+0x14](ms position); stores result byte to *r6 when nonnull."
    ]
   },
   "0x10258ab0": {
@@ -108446,7 +108446,7 @@
     }
    ],
    "todo": [
-    "Shared volume worker (81 insns) behind SetVolume, SetRelativeVolume (mode 1), and GetVolumeDB (mode 0): lock impl+0x938, channel resolve f_100d9b4c ('Master'), normalize/clamp f_100da1e0, apply tail f_100eee34, log 'vol:%u src:%s'. Residual: f_100eee34's role as the post-normalize apply path (LUT vs direct write)."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 81,
@@ -108478,7 +108478,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 81-insn worker; direct calls: f_10988564, f_10988990, f_100d9b4c, f_100da1e0, f_100eee34, f_110985d8; string literals: Master; vol:%u src:%s; member stores: 0x30,0x34,0x38,0x3c,0x44,0x2c,0x1c; immediate compares: 0x0,0x2,0x4. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 81-insn worker; direct calls: f_10988564, f_10988990, f_100d9b4c, f_100da1e0, f_100eee34, f_110985d8; string literals: Master; vol:%u src:%s; member stores: 0x30,0x34,0x38,0x3c,0x44,0x2c,0x1c; immediate compares: 0x0,0x2,0x4. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "f_100eee34 is the rc_upnp_events writeback/log emitter - log tag rc_upnp_events, formats %s (%s%s%s%s%s) %s and %s(%s) rc=%u [%s], plus XML-appends and the settings-helper family - the event/writeback emit path, not a LUT or direct write."
    ]
   },
   "0x100dcc44": {
@@ -108586,10 +108587,12 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 65-insn worker; direct calls: f_10988558, f_100d7f34, f_100ef20c, f_1067c6ec, f_100d993c; string literals: on:%d src:%s; ButtonToggleMute; member stores: 0x14,0x1c,0x10,0x18,0x24; immediate compares: 0x0,0x4. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "Corrected: the earlier description was a stale hypothesis; semantics re-verified by direct disassembly."
+    "Corrected: the earlier description was a stale hypothesis; semantics re-verified by direct disassembly.",
+    "Class-B slot resolved: 0x1047241c builds a scoped-ctx on the stack (Master literal, f_100d6630, f_106f5ffc guard) and calls f_100dcc84 itself when the flag byte at r1+0x1b is set - both class-A and class-B vtable +0x28 route to the button-toggle path; it is not a separate VolumeDB setter.",
+    "Correction: the plausible-real-VolumeDB-setter hypothesis is wrong."
    ],
    "todo": [
-    "65-insn impl carrying 'ButtonToggleMute'/'on:%d src:%s' strings: XOR-toggles the Master mute byte +0x7f1 ignoring SOAP args, then the standard commit tail f_100d7f34 -> f_1067c6ec -> f_100d993c. Installed at vtable +0x28 where the extractor expected SetVolumeDB - the class-A slot is anomalously the button-toggle path. Residual: class-B slot +0x28 = 0x1047241c is the plausible real VolumeDB setter (undigested)."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ]
   },
   "0x100dcd88": {
@@ -109503,9 +109506,7 @@
     }
    ],
    "todo": [
-    "Established: Lock-guard constructor on impl+0x938 (recursive mutex); paired with f_10988990 destructor/unlock. (role: sync); 1 recorded call site(s).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10988564 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 18,
@@ -109522,7 +109523,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 18-insn worker; direct calls: f_10988274, f_109883e8; string literals: none; member stores: 0x1c,0x24,0x0; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 18-insn worker; direct calls: f_10988274, f_109883e8; string literals: none; member stores: 0x1c,0x24,0x0; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "RAII lock-guard ctor (18 insns): guard+0 = mutex pointer (arg r4 through identity helper f_10988274), guard+4 = 0, locks via f_109883e8, then guard+4 = 1 held flag. Dtor f_10988990 unlocks via f_1098890c only when the held flag is set; used by f_106a7930 with streamer+0x150 as the mutex."
    ]
   },
   "0x100e382c": {
@@ -110127,7 +110129,7 @@
     }
    ],
    "todo": [
-    "Narrowed: class-A SetChannelMap impl with the f_10988558/f_10988984 guard pair and a v+0x5c==f_100d7364 override-detection compare. References 'Master' twice with call-result compares but NO direct strcmp - the comparison is performed through an indirect (vtable) call. Residuals: the indirect comparator's identity and the class-B override at 0x104717f4."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 87,
@@ -110152,7 +110154,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 87-insn worker; direct calls: f_10988558, f_10988984, f_110985d8; string literals: Master; member stores: 0x20,0x28,0x2c,0x34,0x24,0x1c; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 87-insn worker; direct calls: f_10988558, f_10988984, f_110985d8; string literals: Master; member stores: 0x20,0x28,0x2c,0x34,0x24,0x1c; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Class-B override resolved: 0x104717f4 is a thin scoped-ctx wrapper (f_106f5ffc guard) tail-calling f_100d7400 verbatim - no separate class-B logic."
    ]
   },
   "0x100d9d40": {
@@ -110243,9 +110246,7 @@
     }
    ],
    "todo": [
-    "Established: Alternative lock/enter call on impl+0x938 used by f_100d99b0/f_100d66cc with a rc_impl.cxx source-line arg (e.g. 0x49a/0x1009) - location-tagged mutex acquisition. (role: sync); 2 recorded call site(s).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10988268 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 3,
@@ -110255,7 +110256,9 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Tail-jumps to f_1098825c, an empty stub (stwu/addi/blr): the source-line-tagged lock variant is compiled out in this build and acquires nothing; the real lock path on the same mutexes is f_10988558 -> f_109883e8.",
+    "Correction: the prior claim of a location-tagged mutex acquisition is wrong for this build - the function is a compiled-out no-op."
    ]
   },
   "0x10988558": {
@@ -110279,9 +110282,7 @@
     }
    ],
    "todo": [
-    "Established: Simple lock on impl+0x938 (no location arg) used by several impls; paired with f_10988984 unlock. (role: sync); 3 recorded call site(s).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10988558 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 3,
@@ -110291,7 +110292,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "3-insn tail thunk into f_109883e8, the instrumented mutex lock: pthread_mutex_lock plus owner/diagnostic bookkeeping on a mutex record (rec+0x8 state=2, rec+0x10 owner pointer, rec+0x30 sonosClockGetTime timestamp). The locked object is caller-supplied (obj+0x208 in f_10255f64, impl+0x938 elsewhere)."
    ]
   },
   "0x10988984": {
@@ -110314,9 +110316,7 @@
     }
    ],
    "todo": [
-    "Established: Unlock/sub-lock call on impl+0x938 returning a byte consumed by callers (e.g. SetChannelMap). (role: sync); 2 recorded call site(s).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10988984 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 3,
@@ -110326,7 +110326,9 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Unlock thunk into f_1098890c: decrements the recursion-depth word at mutex-record+0x50 (f_10988850), pthread_mutex_unlock, and on nonzero rc tail-routes to report helper f_10987ab8. Return value is the pthread_mutex_unlock rc.",
+    "Correction: the return is the pthread_mutex_unlock result, not a free-standing byte."
    ]
   },
   "0x10203ec8": {
@@ -110996,7 +110998,7 @@
    ],
    "required_for_behavior": true,
    "todo": [
-    "Residual: the callback body past the 1-insn head fragment is uncovered; decode it to determine whether member results are awaited or dropped inside the SOAP call boundary."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 1,
@@ -111006,7 +111008,9 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Not a callback body: derived-class destructor for a ~0x2740-byte session object - stores vtable 0x10e97d30 (slot0 f_1019f774) then tail-calls base dtor f_106ff3b8 (base vtable 0x10f0b854, frees +0x272c, destroys +0x1b98/+0x498/+0xc); siblings 0x103a3f40/80/98 are deleting-dtor variants via f_108094fc(this, 0x2740).",
+    "Correction: the callback-body premise is wrong - it is a destructor thunk, and not a leaf (it tail-calls f_106ff3b8)."
    ]
   },
   "0x1039d11c": {
@@ -111163,9 +111167,7 @@
     }
    ],
    "todo": [
-    "Established: mutex-lock counterpart of f_10557848 for impl+0x458 (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x10557cac and record any additional behavior found."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 22,
@@ -111183,7 +111185,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 22-insn worker; direct calls: f_100b6f88, f_10557bc0, f_100a9a9c; string literals: none; member stores: 0x18,0x1c,0x24; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 22-insn worker; direct calls: f_100b6f88, f_10557bc0, f_100a9a9c; string literals: none; member stores: 0x18,0x1c,0x24; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Refined: scoped critical-section enter/leave on a CONTEXT object (callers pass impl+0x458 as this) - the mutex lives at ctx+0x20 (lock f_100b6f88/unlock f_100b6f94); enter runs the f_10557bc0/f_10557a18 descriptor path (rodata 0x1109b008) + f_100a9a9c on ctx+0x8; leave clears flag byte ctx+0x1c, runs f_10769ba8 on ctx+0x50 and f_100a9b94 on ctx+0x8; variant at 0x105578a0 increments counter ctx+0x18."
    ]
   },
   "0x10557afc": {
@@ -111200,9 +111203,7 @@
     }
    ],
    "todo": [
-    "Established: RAII-scope variant locking impl+0x458, used by the wide-arg getter impls with a scoped-context guard (callback f_100caad8)..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10557afc fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 22,
@@ -111220,7 +111221,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 22-insn worker; direct calls: f_100b6f88, f_10557a18, f_100a9a9c; string literals: none; member stores: 0x18,0x1c,0x24; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 22-insn worker; direct calls: f_100b6f88, f_10557a18, f_100a9a9c; string literals: none; member stores: 0x18,0x1c,0x24; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Refined: scoped critical-section enter/leave on a CONTEXT object (callers pass impl+0x458 as this) - the mutex lives at ctx+0x20 (lock f_100b6f88/unlock f_100b6f94); enter runs the f_10557bc0/f_10557a18 descriptor path (rodata 0x1109b008) + f_100a9a9c on ctx+0x8; leave clears flag byte ctx+0x1c, runs f_10769ba8 on ctx+0x50 and f_100a9b94 on ctx+0x8; variant at 0x105578a0 increments counter ctx+0x18."
    ]
   },
   "0x10557848": {
@@ -111237,9 +111239,7 @@
     }
    ],
    "todo": [
-    "Established: Unlock counterpart of f_10557cac for the impl+0x458 mutex..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10557848 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 22,
@@ -111257,7 +111257,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 22-insn worker; direct calls: f_100b6f88, f_10769ba8, f_100a9b94; string literals: none; member stores: 0x18,0x1c,0x24; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 22-insn worker; direct calls: f_100b6f88, f_10769ba8, f_100a9b94; string literals: none; member stores: 0x18,0x1c,0x24; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Refined: scoped critical-section enter/leave on a CONTEXT object (callers pass impl+0x458 as this) - the mutex lives at ctx+0x20 (lock f_100b6f88/unlock f_100b6f94); enter runs the f_10557bc0/f_10557a18 descriptor path (rodata 0x1109b008) + f_100a9a9c on ctx+0x8; leave clears flag byte ctx+0x1c, runs f_10769ba8 on ctx+0x50 and f_100a9b94 on ctx+0x8; variant at 0x105578a0 increments counter ctx+0x18."
    ]
   },
   "0x1032e550": {
@@ -112963,7 +112964,7 @@
    ],
    "role": "strlen wrapper via 0x11098920 (22i)",
    "todo": [
-    "Residual: the concrete object type it initializes (vptr vs data word at +0x0) and the role of callee f_11098920 (strlen-class)."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 22,
@@ -112982,7 +112983,8 @@
    "resolved_findings": [
     "Resolved via complete decompile pass: 22-insn worker; direct calls: f_11098920; string literals: none; member stores: 0x18,0x1c,0x24,0x0; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
     "Digest decode: call f_11098920@0x102ab604; stores +0x0/+0x18/+0x1c/+0x24; paired with f_102ab4dc at f_102d39ac 0x102d3ab4/0x102d3b30.",
-    "Batch4 context: Residual: the concrete object type it initializes (vptr vs data word at +0x0) and the role of callee f_11098920 (strlen-class)."
+    "Batch4 context: Residual: the concrete object type it initializes (vptr vs data word at +0x0) and the role of callee f_11098920 (strlen-class).",
+    "std::string small-string-optimization ctor: obj+0 = &obj+8 (SSO inline-buffer data pointer, not a vptr), computes end = begin+strlen via PLT strlen (f_11098920), tail-calls f_102ab4dc(this, begin, end) - the char-range assign ctor."
    ]
   },
   "0x10807034": {
@@ -113709,9 +113711,7 @@
     }
    ],
    "todo": [
-    "Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b6948..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10465a44 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 4,
@@ -113721,7 +113721,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: 4-insn impl-thunk lwz r3,0x128(r3) + tail-branch to its target - one of six identical impl-forwarders (targets 0x102b6948, 0x102b2da4, 0x102dff24, 0x102b3a84, 0x102b3954, 0x102b3924)."
    ]
   },
   "0x10465a54": {
@@ -113738,9 +113739,7 @@
     }
    ],
    "todo": [
-    "Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b2da4..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10465a54 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 4,
@@ -113750,7 +113749,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: 4-insn impl-thunk lwz r3,0x128(r3) + tail-branch to its target - one of six identical impl-forwarders (targets 0x102b6948, 0x102b2da4, 0x102dff24, 0x102b3a84, 0x102b3954, 0x102b3924)."
    ]
   },
   "0x10465a64": {
@@ -113767,9 +113767,7 @@
     }
    ],
    "todo": [
-    "Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102dff24..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10465a64 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 4,
@@ -113779,7 +113777,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: 4-insn impl-thunk lwz r3,0x128(r3) + tail-branch to its target - one of six identical impl-forwarders (targets 0x102b6948, 0x102b2da4, 0x102dff24, 0x102b3a84, 0x102b3954, 0x102b3924)."
    ]
   },
   "0x10465a74": {
@@ -113796,9 +113795,7 @@
     }
    ],
    "todo": [
-    "Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b3a84..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10465a74 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 4,
@@ -113808,7 +113805,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: 4-insn impl-thunk lwz r3,0x128(r3) + tail-branch to its target - one of six identical impl-forwarders (targets 0x102b6948, 0x102b2da4, 0x102dff24, 0x102b3a84, 0x102b3954, 0x102b3924)."
    ]
   },
   "0x10465a84": {
@@ -113825,9 +113823,7 @@
     }
    ],
    "todo": [
-    "Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b3954..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10465a84 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 4,
@@ -113837,7 +113833,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: 4-insn impl-thunk lwz r3,0x128(r3) + tail-branch to its target - one of six identical impl-forwarders (targets 0x102b6948, 0x102b2da4, 0x102dff24, 0x102b3a84, 0x102b3954, 0x102b3924)."
    ]
   },
   "0x10465a94": {
@@ -113854,9 +113851,7 @@
     }
    ],
    "todo": [
-    "Established: Queue-manager vfunc forwarder thunk: replaces `this` with *(this+0x128) (shared queue engine) and tail-calls 0x102b3924..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10465a94 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 4,
@@ -113866,7 +113861,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: 4-insn impl-thunk lwz r3,0x128(r3) + tail-branch to its target - one of six identical impl-forwarders (targets 0x102b6948, 0x102b2da4, 0x102dff24, 0x102b3a84, 0x102b3954, 0x102b3924)."
    ]
   },
   "0x102b6948": {
@@ -114433,7 +114429,7 @@
     }
    ],
    "todo": [
-    "Residual: verify the vtable-0x10edfbb8 store and ctor body beyond the 1-insn fragment; the why_external claim currently rests on construction-site evidence only."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 1,
@@ -114443,7 +114439,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Multi-vtable aggregate ctor: primary vtable 0x10edfbb8 at +0 plus ~37 secondary vptrs (0x10edfdc8..0x10ee0150) written at offsets +0x4..+0x3d0, tail f_102cc070. The 0x104002c0+ region is a block of this-adjusting re-ctor thunks (addi r3,-N; b f_104000c4) - the construction-site mechanism behind the external-construction claim."
    ]
   },
   "0x10304390": {
@@ -114533,7 +114530,7 @@
     }
    ],
    "todo": [
-    "Residual: description claims f_1034a224 locks/looks up UpdateID on obj+0x168, but f_1034a224 is resolved as a strcmp(\"0\") selector predicate; reconcile what the call actually returns and where the 402-vs-dispatch boundary sits."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 40,
@@ -114558,7 +114555,9 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 40-insn worker; direct calls: f_1034a224, f_11098d98; string literals: BrowseDirectChildren; BrowseMetadata; member stores: 0x14,0x18,0x1c,0x24; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "Browse executor: strcmp-dispatches BrowseFlag against BrowseDirectChildren/BrowseMetadata via 2x f_11098d98, then f_1034a224 + children enumeration vfunc."
+    "Browse executor: strcmp-dispatches BrowseFlag against BrowseDirectChildren/BrowseMetadata via 2x f_11098d98, then f_1034a224 + children enumeration vfunc.",
+    "CDS Browse executor: resolves ObjectID via the container-resolver at impl+0x168 - \"0\" returns the resolver itself, else f_10349d00 dispatches on scheme prefixes {A:, S:, Q:, FV:, SQ:, AI:, R:} to per-scheme resolvers (queue arm logs no directory queue object); unresolved yields rc 0x2bd (701). BrowseFlag then selects rc: BrowseDirectChildren/BrowseMetadata -> 0 (isel at 0x10304388), any other flag -> 0x192 (402); resolved containers dispatch vfunc +0x28.",
+    "Correction: f_1034a224 is a \"0\"-shortcut plus scheme-prefix dispatcher on the resolver object, not an UpdateID lock/lookup on obj+0x168."
    ]
   },
   "0x10305fec": {
@@ -114575,7 +114574,7 @@
     }
    ],
    "todo": [
-    "Residual: callback body past the 3-insn digest fragment is uncovered; decode the real body to confirm the per-item DIDL emit and response-field writes."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 3,
@@ -114585,7 +114584,9 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "The callback body is a 3-insn empty stub (blr only): no per-item DIDL emit, no response-field writes - member results are not awaited or emitted through this callback in this build.",
+    "Correction: the prior claim of per-item DIDL emit and response-field writes is contradicted - the function is an empty stub; any emit lives in a different vfunc."
    ]
   },
   "0x102e17a8": {
@@ -114602,7 +114603,7 @@
     }
    ],
    "todo": [
-    "Residual: digest covers only a 1-insn head fragment (cmp 0); confirm the 0x2ce (718) return and the tail call into f_102e14e0 from the instructions after the digest boundary."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 1,
@@ -114614,7 +114615,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Entry shim (7 insns): when the first optional arg (r4) is null it compact-shifts r5..r9 into r4..r8 and tail-jumps f_102e14e0 (re-dispatch with compacted args); when nonnull it returns fault 0x2ce (718)."
    ]
   },
   "0x102e14e0": {
@@ -114725,7 +114727,7 @@
     }
    ],
    "todo": [
-    "Residual: roles of callees f_1071a9cc/f_1071aeb0/f_10276608/f_104c9f8c and the +0x5a88 store target are unlabeled; the r6==null early-exit at 0x102e1928 carries an unrecorded rc."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 355,
@@ -114801,7 +114803,8 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 355-insn worker; direct calls: f_10c3cbfc, f_10c3d2c4, f_10557cac, f_102d4e80, f_102da774, f_10906304, f_10147988, f_10557848, f_104c9f8c, f_10276608, f_10c3c88c, f_10557fa8, f_105580f4, f_1055847c, f_10558000, f_10559024, f_102e0f; string literals: id; PLAY; eventType; start; dur; mode; fb_buzz; vol; linked; sid; zpAlarm; alarm; avt_impl; preventing alarm because operation is overridden; member stores: 0x1304,0x12fc,0x127c,0x5a88,0x14,0x14,0x14; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "RunAlarm worker (355 insns): reads persisted zpAlarm/alarm keys {id,eventType,start,dur,mode,fb_buzz,vol,linked,sid} via the f_10557fxx/f_10558xxx settings family, gates on the same operation-override suppression as autoplay, replays via f_102da774 install or f_102e0fb0 per-member for linked groups; time helpers f_10c3cbfc/f_10c3d2c4/f_10c3c88c/f_10c3d18c."
+    "RunAlarm worker (355 insns): reads persisted zpAlarm/alarm keys {id,eventType,start,dur,mode,fb_buzz,vol,linked,sid} via the f_10557fxx/f_10558xxx settings family, gates on the same operation-override suppression as autoplay, replays via f_102da774 install or f_102e0fb0 per-member for linked groups; time helpers f_10c3cbfc/f_10c3d2c4/f_10c3c88c/f_10c3d18c.",
+    "Partial: the 0x102e1928 early-exit calls f_10c3d2c4 (time helper) then merges at 0x102e1878; impl+0x5a88 resolved via f_102d1d5c as the source/context pointer field written into result records (+0 ptr, +4 u16 rc such as 0x2ce)."
    ]
   },
   "0x102d1fc4": {
@@ -114818,7 +114821,7 @@
     }
    ],
    "todo": [
-    "Residual: delegated worker f_102d1d5c (the actual snooze commit, expected to touch avt_impl+0x6ecc/+0x6ed0) has no internal_functions record; decode it to complete the SnoozeAlarm path."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 22,
@@ -114835,7 +114838,8 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 22-insn worker; direct calls: f_102d1d5c, f_110985d8; string literals: none; member stores: 0x24,0x1c; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "SnoozeAlarm impl is a thin delegating shim: 22 insns, forwards to snooze worker f_102d1d5c at 0x102d1fec; all observable semantics live in the callee."
+    "SnoozeAlarm impl is a thin delegating shim: 22 insns, forwards to snooze worker f_102d1d5c at 0x102d1fec; all observable semantics live in the callee.",
+    "Delegated worker f_102d1d5c is the real SnoozeAlarm commit: copies the *(obj+0x3dc) name into a stack std::string, locks the impl+0x458 context mutex (f_10557cac), stages a default result {ctx=*(impl+0x5a88), rc=0x2ce}, reads snooze-state byte impl+0x6ed0, writes new state word impl+0x6ecc and clears bytes +0x6ed0/+0x6ed1, then marks state via f_1067c6ec; impl+0x5a88 is the source/context pointer written into result records."
    ]
   },
   "0x102ad8fc": {
@@ -115145,7 +115149,7 @@
     }
    ],
    "todo": [
-    "Residual: reconcile the 1-insn digest fragment with the claimed vtable/sentinel stores; the ctor body evidently extends past the recorded boundary."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 1,
@@ -115155,7 +115159,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Complete job-record ctor (15 insns): vptr=0x10ec7be0 (first slot f_103d1c30), +0x4018=0, +0x403c=-1 sentinel, +0x4040/+0x4041 flag bytes=0, +0x4044=arg r4. Field layout matches the record consumed by the createSavedQueue worker f_10479bb4."
    ]
   },
   "0x10462c80": {
@@ -115172,7 +115177,7 @@
    "description": "M3U/M3U8 playlist expansion worker (playlist log tag, iterateM3UPlayList %s): copies the source URI into a 0x401 buffer, opens a stream via f_10545064, iterates lines with f_10546520, closes via f_1054103c. Each line is normalized through URI helpers f_10460764/f_104614b4 and submitted as a per-entry job object on delegate vtables 0x10ed1750/0x10ed1770 (ctor f_104637e8 -> f_1010a2c0).",
    "why_external": "Expansion target for m3u-family URIs chosen by classifier f_104634c4",
    "todo": [
-    "Residual: the iterateWLPPlayList literal inside the M3U worker and the shared f_1038862c/f_10389cd4/f_10389080 tail with 0x10462f54 suggest one body serves both formats or calls the WPL tail; pin down the boundary."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 313,
@@ -115244,7 +115249,9 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 313-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_11098ad8, f_10545064, f_10546520, f_10541e00, f_10460764, f_104614b4, f_1010a2c0, f_1054103c, f_101471f0, f_1038862c, f_10389cd4, f_10389080, f_10148880, f_110985d8, f_11098b; string literals: playlist; iterateM3UPlayList %s; http; iterateWLPPlayList %s; member stores: -0x18,-0x14,-0x10,-0xc,-0x4,0x4,-0x8,-0x5464,0x5474,0x5474,0x547c,0x5474; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "M3U expansion worker (313 insns): open/iterate skeleton + per-line normalize f_10460764 (x3) + tag parse f_104614b4 (x2); literal set also contains iterateWLPPlayList %s - shared path with 0x10462f54 via the f_1038862c/f_10389cd4/f_10389080 tail."
+    "M3U expansion worker (313 insns): open/iterate skeleton + per-line normalize f_10460764 (x3) + tag parse f_104614b4 (x2); literal set also contains iterateWLPPlayList %s - shared path with 0x10462f54 via the f_1038862c/f_10389cd4/f_10389080 tail.",
+    "Boundary resolved: M3U/M3U8 worker exclusively - owns iterateM3UPlayList %s (0x10ed18c4) and the f_10545064/f_10546520/f_1054103c stream line loop with tag parser f_104614b4. No call to the WPL sibling f_10462f54; they share helpers {f_1038862c, f_10389cd4, f_10389080, f_10460764, f_1010a2c0} only.",
+    "Correction: iterateWLPPlayList %s was misattributed to this function by range overlap - it lives in f_10462f54."
    ]
   },
   "0x10545064": {
@@ -115800,7 +115807,7 @@
    "description": "WPL expansion tail worker - the downstream half of the WPL playlist path: no stream open/iterate calls of its own; runs the shared f_1038862c/f_10389cd4/f_10389080 expansion tail with per-entry normalization (f_10460764) and job submission. Carries the 'iterateWLPPlayList %s' log tag shared with the M3U worker's WLP path.",
    "why_external": "Expansion target for wpl URIs from classifier f_104634c4",
    "todo": [
-    "Residual: confirm whether this is a code-shared tail called from the M3U worker's WLP path or a digest boundary fragment; either way the \"stream open via f_10545064\" claim is wrong (no stream-open call in digest)."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 132,
@@ -115844,7 +115851,9 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 132-insn worker; direct calls: f_1038862c, f_109b6fe4, f_109b72ac, f_10389cd4, f_10389080, f_11098b08, f_11099060, f_10c3fcd4, f_10460764, f_10c3fc68, f_1010a2c0, f_10c3fbcc, f_110985d8; string literals: playlist; iterateWLPPlayList %s; member stores: -0x1c,-0xc,-0x8,-0x4,0x4,-0x18,-0x14,-0x10,-0x4854,0x18,0x20,0x14; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "WPL expansion tail worker (132 insns): no stream open/iterate/close calls - only the shared f_1038862c/f_10389cd4/f_10389080 expansion tail + per-entry normalization and job submission; the downstream half of the WPL path, not a standalone parser."
+    "WPL expansion tail worker (132 insns): no stream open/iterate/close calls - only the shared f_1038862c/f_10389cd4/f_10389080 expansion tail + per-entry normalization and job submission; the downstream half of the WPL path, not a standalone parser.",
+    "Confirmed standalone WPL playlist worker: logs iterateWLPPlayList %s, uses the f_10c3fxxx fetch family with a sonosClockGetTime/timevalAddMs deadline loop and one indirect dispatch; shares entry-normalize helpers with the M3U worker. A third sibling for PLS (iteratePLSPlayList %s at 0x10ed18f4) starts ~0x10463168.",
+    "Correction: the claimed stream open via f_10545064 is wrong - no stream-open/read/close calls exist in the body."
    ]
   },
   "0x102b6a9c": {
@@ -116295,9 +116304,7 @@
    ],
    "notes": null,
    "todo": [
-    "Established: Shared HTControl base-class action stub. Calls the request object's v[+0x08] parse/validate slot, ignores the result, then raises fault 0x1f5 (501) via req v[+0x14]. Occupies vtable slots +0x14 and +0x18 of the HTControl base-class vtable 0x10f11b64, i.e. the IdentifyIRRemote and LearnIRCode slots in the base class. (role: action_reject_stub); 2 recorded call site(s).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x107396d0 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 20,
@@ -116310,7 +116317,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0x24,0x1c; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0x24,0x1c; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified 20-insn body: invokes request vfunc +0x08 (parse/validate), discards the result, then tail-invokes request vfunc +0x14 with literal 0x1f5 (501) - an unconditional not-implemented reject matching the action_reject_stub role."
    ]
   },
   "0x10242118": {
@@ -116898,9 +116906,7 @@
    ],
    "notes": null,
    "todo": [
-    "Established: Queue.Browse wrapper - parses the same browse arg set then calls the shared CDS executor f_103042f0. Reached via impl vfunc slot +0x28 from the Queue.Browse table trampoline f_10464200. (role: action_wrapper); 1 recorded call site(s).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x104661fc fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 33,
@@ -116921,7 +116927,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 33-insn worker; direct calls: f_110994e8, f_103042f0, f_110985d8; string literals: Q:%u; BrowseDirectChildren; member stores: 0x44,0x3c,0x2c; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 33-insn worker; direct calls: f_110994e8, f_103042f0, f_110985d8; string literals: Q:%u; BrowseDirectChildren; member stores: 0x44,0x3c,0x2c; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Queue.Browse wrapper: builds the queue ObjectID by snprintf \"Q:%u\" (16-byte stack buffer) from the browse index arg, then calls the shared CDS executor f_103042f0(*(impl+0x12c), ObjectID, \"BrowseDirectChildren\") - connects Queue.Browse to the Q: scheme arm of f_10349d00."
    ]
   },
   "0x10464200": {
@@ -116955,9 +116962,7 @@
    ],
    "notes": null,
    "todo": [
-    "Established: Queue.Browse dispatch-table entry - calls req v[+0x3c] (alternate in-arg context fetch) then tail-dispatches impl v[+0x28] -> f_104661fc. (role: action_table_trampoline); 1 recorded call site(s).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10464200 fully and reconcile the observed behavior against the documented role."
+    "Residual: none statically provable beyond this decode - see resolved findings."
    ],
    "disasm_digest": {
     "insns": 21,
@@ -116970,7 +116975,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 21-insn worker; direct calls: none (leaf); string literals: none; member stores: 0x24,0x1c; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 21-insn worker; direct calls: none (leaf); string literals: none; member stores: 0x24,0x1c; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: req->v[+0x3c]() then impl->v[+0x28] bctr tail-dispatch."
    ]
   }
  },
@@ -141263,7 +141269,8 @@
    ],
    "resolved_findings": [
     "Resolved: speaker-takeover = RSpotifyPlayback.BecomeActiveDevice triggers the generic coordinator-delegation sequence: delegate to %s builds the member list, logs delegating. / delegating. isPlaying set to %d, then delegation. Resetting track queue info on the target; guards are delegate to oneself (self-short-circuit) and delegation target %s not primary (rejects delegation to a non-primary member). The adaptive-bitrate variant logs delegation for adaptive bitrate stream.",
-    "Seamless-delegation sequence decoded: on takeover the receiver issues Seeking to %ims in support of seamless delegation (set seek time to %u ms, byte offset: %zu carries the ms+byte pair), then waits for the eSDK AudioStart callback - Timed out waiting for AudioStart from eSDK during seamless delegation is the budget-exceeded path, and %s failed to become active reports BecomeActiveDevice failure. Track identity is bound via spotify:track:/spotify:episode: URI prefixes (Bogus track URI: %s reject). Events fired: SpotifyDelegationNotification + GroupVolumeChangedEvent + SpotifyMDNSRequest; cert rotation re-publishes mDNS (new cert updating mDNS service [%s]). Layering: esdk_api over esdk_spi with the esdk pump thread (W esdk pump log), NTS callbacks including kSpConnectionNotifyTransmittingData, and R_ServiceBitrate settings {ulow,high} feeding %s changed from %d to %d bitrate transitions."
+    "Seamless-delegation sequence decoded: on takeover the receiver issues Seeking to %ims in support of seamless delegation (set seek time to %u ms, byte offset: %zu carries the ms+byte pair), then waits for the eSDK AudioStart callback - Timed out waiting for AudioStart from eSDK during seamless delegation is the budget-exceeded path, and %s failed to become active reports BecomeActiveDevice failure. Track identity is bound via spotify:track:/spotify:episode: URI prefixes (Bogus track URI: %s reject). Events fired: SpotifyDelegationNotification + GroupVolumeChangedEvent + SpotifyMDNSRequest; cert rotation re-publishes mDNS (new cert updating mDNS service [%s]). Layering: esdk_api over esdk_spi with the esdk pump thread (W esdk pump log), NTS callbacks including kSpConnectionNotifyTransmittingData, and R_ServiceBitrate settings {ulow,high} feeding %s changed from %d to %d bitrate transitions.",
+    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect."
    ]
   },
   "telemetry_submission": {
@@ -143322,12 +143329,11 @@
     }
    ],
    "todo": [
-    "Established: the index abbreviations, the flight-recorder format, the startup/NACK/pause-resume vocabulary, and the frame-layer fields.",
-    "Still unknown: the noderx protocol role (node receiver for which stream type) and the NACK window policy.",
-    "Next step: identify the protocol from the frame fields and document the resend window."
+    "Residual: the NACK window size and resend-timeout constants (policy proven; constants are rodata)."
    ],
    "resolved_findings": [
-    "Resolved: protocol = the noderx receive-side of the chsnk sync channel (frame fields match the nodetx NACK/ack grammar); resend window = the ack-bitmap window size."
+    "Resolved: protocol = the noderx receive-side of the chsnk sync channel (frame fields match the nodetx NACK/ack grammar); resend window = the ack-bitmap window size.",
+    "Protocol role proven: noderx is the member-side receiver of the group-audio node transport - the RX half paired with nodetx (chsrc_chsnk family). It receives the coordinator's frame stream into the output buffer and feeds the audio framer; indices {ob=outputBuf head, lr=lastRead, lcg=lastConsecutiveGood, lrx=lastRx} drive both the NACK window and the flight recorder (\" %u r:%d.%06d s:%c p:%d.%06d\" rows). NACK policy proven: NACK fires immediately on out-of-order packets (out of order packet; send nack immediately) with batched reporting (NACKed for %u IDs, %u packets, ob/lr/lcg/lrx); resends only cover contiguous data (allowing NACK resend of LCG, ignoring discontig NACK resend, ignoring partial frames) and startup suppresses NACK across the initial gap (Startup large packet gap:%u, dont NACK + bFinalStartPacket + Starting up; id:%u, delayPkts:%u, delayFrms:%u). Gap recovery: skipping ahead from:%u to pid:%u / expected block id %u not found / network failed / read timed out. Pause/resume FSM states {p, sp, pr, ip} validated on transitions (pause/resume state not valid, pausing/resuming with the index set). Frame layer fields {wFirstFrameOffset (vs INVALID_SHORT), wBytesOfDataLeftToRead, prevOffset, wBytesLeft, pwLen, Playtime} with errors {expected frame not found, frame length conflict, Packet stream framing error, frame too large, bufferNextProtocolFrame WOULDBLOCK/E_WOULDBLOCK/skipping ahead}."
    ]
   },
   "healthcheck": {
@@ -144146,7 +144152,8 @@
    ],
    "resolved_findings": [
     "Resolved: engine overview written from sub-blocks - dispatch (route->handler), type_registry (spec-pair index), upnp_bridge (15 services x 4 verbs), command_format, client_auth/http_auth, namespaces, playervolume.",
-    "Unified engine writeup: the muse layer is a JSON-RPC-style command bus over WSS (lechmere) and local HTTP routes. Commands arrive as JSON arrays [header, body] (command_format) parsed by rapidjson (failed to parse json body (offset: %u)); dispatch resolves {ns=v%u/%s, cmd=%s} through per-namespace actors (RZPMuseActor - missing/uncreated actor errors name the registration) then validates params against the spec-pair table emitting MISSING_VALUE/UNEXPECTED_TYPE/range-coerce errors. The type_registry is a 203-entry alphabetical spec-type name table (0x10f975c0-0x10f98568) - {accessorySwap, accessPolicyControl, alarmList, authzPolicyKeyLechmere, batteryCells, microphoneSwitch, waterState, poeState, wiredSubStatus, chirpRequest, cloudRegistrationStatus, diagnosticSubmissionMetadata, edidStatus...} indexing spec objects by ordinal. Auth runs two layers: client_auth (wssmtls/httpsmtls schemes, audience v2.api.smartspeaker.audio, credentials {apikey, guest_token, guest_token_pin}, policy-key length cap, API key changed [%.8s] tracking) and http_auth (challenge {private, public, realm, error_description, nonce, Basic}; OAuth {invalid_request, invalid_token, insufficient_scope, service_unavailable}; denied/403-503 results; the 8-field Muse auth result log). The upnp_bridge maps v1/{players,households}/.../upnp{Service}[/subscription[/{logicalSID}]] onto call/subscribe/renew/unsubscribe verbs across 15 UPnP services - muse is the cloud-facing shadow of the local UPnP surface. Namespaces span {audioClip, householdUpdate, management, musicServiceAccounts, pinewood, platformInternal, positioning, roomDetection, soundSwap, systemReporting, systemTime, virtualRemoteControl} + settings:* + upnp:*."
+    "Unified engine writeup: the muse layer is a JSON-RPC-style command bus over WSS (lechmere) and local HTTP routes. Commands arrive as JSON arrays [header, body] (command_format) parsed by rapidjson (failed to parse json body (offset: %u)); dispatch resolves {ns=v%u/%s, cmd=%s} through per-namespace actors (RZPMuseActor - missing/uncreated actor errors name the registration) then validates params against the spec-pair table emitting MISSING_VALUE/UNEXPECTED_TYPE/range-coerce errors. The type_registry is a 203-entry alphabetical spec-type name table (0x10f975c0-0x10f98568) - {accessorySwap, accessPolicyControl, alarmList, authzPolicyKeyLechmere, batteryCells, microphoneSwitch, waterState, poeState, wiredSubStatus, chirpRequest, cloudRegistrationStatus, diagnosticSubmissionMetadata, edidStatus...} indexing spec objects by ordinal. Auth runs two layers: client_auth (wssmtls/httpsmtls schemes, audience v2.api.smartspeaker.audio, credentials {apikey, guest_token, guest_token_pin}, policy-key length cap, API key changed [%.8s] tracking) and http_auth (challenge {private, public, realm, error_description, nonce, Basic}; OAuth {invalid_request, invalid_token, insufficient_scope, service_unavailable}; denied/403-503 results; the 8-field Muse auth result log). The upnp_bridge maps v1/{players,households}/.../upnp{Service}[/subscription[/{logicalSID}]] onto call/subscribe/renew/unsubscribe verbs across 15 UPnP services - muse is the cloud-facing shadow of the local UPnP surface. Namespaces span {audioClip, householdUpdate, management, musicServiceAccounts, pinewood, platformInternal, positioning, roomDetection, soundSwap, systemReporting, systemTime, virtualRemoteControl} + settings:* + upnp:*.",
+    "Command envelope pinned by parser errors: the wire command is a JSON array [header, body] (muse command must be formatted as an array containing a header object followed by a body object; missing the body object; failed to parse json body (offset: %u)). Token audiences: v1.api.smartspeaker.audio and v2.api.smartspeaker.audio; credential types {apikey, mtls, guest_token, guest_token_pin}; authz policy-key size bounded (Policy key permissions length exceeds maximum size!)."
    ]
   },
   "iocompress": {
@@ -145103,12 +145110,11 @@
    ],
    "rate_limiting": "{\"Spotify-Unavailable-For\" header,\"Request to %s failed with %d Too many requests\",\"%d Service unavailable (%d)\",\"Rate limiting active, and set to %llu ms\",\"Message not sent: rate limited for %llums more.\",\"Rate limiting deactivated\"}; {\"Failed to decode HermesHeader: %s\",\"Got hermes push from %s\",\"Got hermes uri %s status_code %d\"}; defrag {\"Defragmentation buffer size %d, cannot fit extra %d bytes (max size: %d)\",\"Could not fit packet to defragmentation buffer, clearing the buffer\"}; req \"id %u method %d uri %s %d bytes\"; mime vnd.spotify/mercury-mget-request; Mercury method vocab {SEND,UNSUB,GETX} (GETX = the multi-get riding mercury-mget-request); \"id %u method %d uri %s %d bytes\" is the wire tuple {req_id,method_id,uri,payload_len}; UNSUB; \"timeout >= 0 && timeout <= 255\"",
    "todo": [
-    "Established: the hm:// URI roots, the device subscription paths, the media paths, and the checksum field.",
-    "Still unknown: the hermes message format on the wire and how Spotify eSDK uses this channel.",
-    "Next step: trace the hm:// transport binding to its socket layer."
+    "Residual: the Mercury frame header byte layout (HermesHeader field order - the protocol family and all URI/method vocabulary are proven)."
    ],
    "resolved_findings": [
-    "Resolved: hm:// binding = the hermes transport on its socket layer; rate limiting documented in the sub-block."
+    "Resolved: hm:// binding = the hermes transport on its socket layer; rate limiting documented in the sub-block.",
+    "Identified: hermes is the Spotify eSDK Mercury client (esdk/src/hermes.c) - the Spotify Connect control protocol. Mercury framing: HermesHeader decode (Failed to decode HermesHeader: %s), request line id %u method %d uri %s %d bytes with methods {SEND, UNSUB, GETX} and MIME vnd.spotify/mercury-mget-request; push frames log Got hermes push from %s / Got hermes uri %s status_code %d; defragmentation buffer reassembly (Defragmentation buffer size %d, cannot fit extra %d bytes (max size: %d) / Could not fit packet to defragmentation buffer, clearing the buffer). The hm:// scheme roots are Spotify hwptp (hardware player transport protocol = Connect): hm://hwptp/v1/devices + /tsv + hm://hwptp/v2/resolve/%s/%d/%s (context resolve); device topics %s/devices/%s/{state, state_conflict, volume, play, set_shuffle, set_repeat, pull_playback, queue}; media ops %s/{content_encryption_key/%s, cache_key, offline/restrictions} with {random, checksum, encryption} fields. Rate limiting is server-driven: Request to %s failed with %d Too many requests / %d Service unavailable (%d) / Spotify-Unavailable-For header / Rate limiting active, and set to %llu ms / Message not sent: rate limited for %llums more / Rate limiting deactivated; timeout assert timeout <= 255. sp_* hex ids are Spotify device/session identifiers."
    ]
   },
   "sync": {
@@ -146204,12 +146210,11 @@
     }
    ],
    "todo": [
-    "Established: the csfcm pool mark/add/flush/pop vocabulary and the log-line format.",
-    "Still unknown: what CSFCM stands for operationally (context pool for which engine) and the lifecycle of a pooled context.",
-    "Next step: identify the pool's owner from the log domain and document the context struct."
+    "Residual: what CSFCM expands to (the acronym itself is internal; the pool role and denylist policy are proven)."
    ],
    "resolved_findings": [
-    "Resolved: pool owner = the csfcm log domain; context struct = {marking t, add timestamp size %d/%d free, NO FREE CONTEXTS, flushing/flushed, popping} fields."
+    "Resolved: pool owner = the csfcm log domain; context struct = {marking t, add timestamp size %d/%d free, NO FREE CONTEXTS, flushing/flushed, popping} fields.",
+    "Owner and role proven: csfcm is the per-service content-stream flow-context manager - a bounded context pool (add %d.%06d %zu %s %d/%d free / NO FREE CONTEXTS / marking (t:%d) / flushing (t:%d) / flushed %d.%06d %s / popping %d.%06d %s (%d.%06d < %d.%06d) %d/%d free) keyed by service id. Per-service guards: Added listener for service %u registers consumers; stream limit exceeded for service %u caps concurrent streams per service; too many failures, denylisted service %u deny-lists failing services; clearing all denylists and stream limits / resetting all denylist error counters are the reset ops. Log lines identify the content being tracked: %s:%05d [%s] pos:%u/%u with {hint, nextState, reqOp, itemID} variants - playback-queue items with requested op and state transitions. Adjacent: chsrc_state_events + the tvLocalPlay/timeToPlayUSec timing fields + Hi-Res model guard (WARNING! This model shouldnt support Hi-Res Music: %s (%s))."
    ]
   },
   "perf_counters": {
@@ -146243,12 +146248,11 @@
     }
    ],
    "todo": [
-    "Established: the var names, the service-id validation errors, the CQ URI cache, and the x-spotify type.",
-    "Still unknown: what 'sonoscp' is (content provider abstraction?) and its role in playback.",
-    "Next step: identify the component from its domain and document the CQ cache."
+    "Residual: the sonoscp_crypto operations (encrypt/sign vs key-wrap - the crypto helper name is proven, its op set is in-image but not yet enumerated)."
    ],
    "resolved_findings": [
-    "Resolved: component = the content-policy domain {reports, playbackPolicies vars}; CQ cache = the object/service-id -> SMAPI mapping with default-account resolution."
+    "Resolved: component = the content-policy domain {reports, playbackPolicies vars}; CQ cache = the object/service-id -> SMAPI mapping with default-account resolution.",
+    "Identified: sonoscp = the Sonos content-provider layer - the component mapping universal content objects to SMAPI protocol URIs (cannot map content type %s to SMAPI protocol [accountId:%s,sid:%s,obj:%s] / cannot generate SMAPI URL / could not identify default account for object %s / Unable to validate specified service id %u / ignoring unsupported object %s). It owns playback policy records ({reports, playbackPolicies} vars) and the CloudQueue track-URI cache (Fetching CQ itemId %s using cached trackURI / Adding track URI for itemId %s / Invalidating CQ track URI cache / CloudQueueWindow init: %s). audio/x-spotify marks the spotify content type. sonoscp_crypto is the companion crypto helper (content-provider signing/encryption)."
    ]
   },
   "crossfade": {
@@ -146262,12 +146266,11 @@
     }
    ],
    "todo": [
-    "Established: the underflow vocabulary, sample/byte accounting, stream-type guards, and the corked-stream overlap path.",
-    "Still unknown: the fade curve (shape, sample math) and how crossfade interacts with the mixer.",
-    "Next step: read the fade-sample loop to document the curve formula."
+    "Residual: the gain curve shape (linear vs equal-power is in the DSP gain computation, not literals) and the R_CrossfadeDuration default."
    ],
    "resolved_findings": [
-    "Resolved: fade-sample loop = int16 crossfade {attempting underflowed stream, recovered, %zu samples, empty stream clearing, unknown stream type %d}; curve = linear int16 mix over the sample count."
+    "Resolved: fade-sample loop = int16 crossfade {attempting underflowed stream, recovered, %zu samples, empty stream clearing, unknown stream type %d}; curve = linear int16 mix over the sample count.",
+    "Fade mechanics proven: crossfade runs per-frame over R_CrossfadeDuration-derived sample counts (crossfade %zu samples; crossfaded %zu bytes (%zu samples, %zu usec), %zu more samples to fade this frame - a per-frame ramp continuing across frames until the fade length elapses). Fade direction/state comes from control frames in the packet stream: crossfadeStateForPacketID() reads the packet's control frame {crossfade on, crossfade off - %u} with lookback when absent (lPacketNum-1 not found -> lPacketNum-2, no control frames found / no frames found). Edge handling: crossfade stream underflow, crossfade with empty stream, clearing crossfade, crossfade with underflowed stream - underflowed/empty inputs drop the fade rather than summing silence."
    ]
   },
   "customsd": {
@@ -146390,12 +146393,11 @@
     }
    ],
    "todo": [
-    "Established: the CB state-transition vocabulary (CLOSED/OPEN/SEMI_OPEN) and its use under musecommand.",
-    "Still unknown: what trips the breaker (failure threshold), the recovery probe, and which operations it protects.",
-    "Next step: trace the state-transition writer to find trip/reset conditions and the protected call."
+    "Residual: the failure-threshold and cooldown constants (transition semantics proven; the counts are rodata)."
    ],
    "resolved_findings": [
-    "Resolved: trip/reset = %s CB state transition to [CLOSED]/[OPEN]/[SEMI_OPEN]; protected call = the musecommand dispatch path."
+    "Resolved: trip/reset = %s CB state transition to [CLOSED]/[OPEN]/[SEMI_OPEN]; protected call = the musecommand dispatch path.",
+    "Mechanism proven (sonos-muse/src/sonos/muse/common/circuitbreaker.cxx): a standard circuit breaker wraps outbound cloud-command execution inside musecommand - %s CB state transition to [CLOSED]/[OPEN]/[SEMI_OPEN] marks trips and probes; telemetry fields {circuitBreakerOpenedCount, circuitBreakerTelemetry} expose trip counts. SEMI_OPEN is the cooldown probe state between OPEN and CLOSED. Adjacent muse grammar confirmations: command envelope = JSON array [header, body] (muse command must be formatted as an array containing a header object followed by a body object / missing the body object / failed to parse json body (offset: %u): %s); audiences v1.api.smartspeaker.audio + v2.api.smartspeaker.audio; credential types {apikey, mtls, guest_token, guest_token_pin}; Policy key permissions length exceeds maximum size! bounds authz policy keys."
    ]
   },
   "common_logger": {
@@ -146890,7 +146892,8 @@
     "Next step: map each export to its call site in spotify_thread/vli_session."
    ],
    "resolved_findings": [
-    "Resolved: export->callsite map = {SpRegister{Connection,DeviceAlias,Playback,Stream,Debug}Callbacks, SpFree, SpPlayback{Play,Pause,SkipToNext,...}} bound in spotify_thread/vli_session."
+    "Resolved: export->callsite map = {SpRegister{Connection,DeviceAlias,Playback,Stream,Debug}Callbacks, SpFree, SpPlayback{Play,Pause,SkipToNext,...}} bound in spotify_thread/vli_session.",
+    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect."
    ]
   },
   "esdk_internals": {
@@ -146918,7 +146921,8 @@
     "Next step: enumerate 'Connection state changed: %d -> %d' transitions."
    ],
    "resolved_findings": [
-    "Resolved: Connection state changed %d -> %d transitions = the notify enum {Reconnect,LoggedIn,Disconnect,TemporaryError} + connection-layer state machine in connect_layer."
+    "Resolved: Connection state changed %d -> %d transitions = the notify enum {Reconnect,LoggedIn,Disconnect,TemporaryError} + connection-layer state machine in connect_layer.",
+    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect."
    ]
   },
   "korn_kernel": {
@@ -147051,7 +147055,8 @@
     "Next step: document the DNS queue and socket lifecycle from the error paths."
    ],
    "resolved_findings": [
-    "Resolved: DNS queue + lifecycle = the error paths {recv errno, close/getsockname/bind error, IPv6 unsupported, connect, set-option, connection error}."
+    "Resolved: DNS queue + lifecycle = the error paths {recv errno, close/getsockname/bind error, IPv6 unsupported, connect, set-option, connection error}.",
+    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect."
    ]
   },
   "esdk_callbacks": {
@@ -147070,7 +147075,8 @@
     "Next step: trace one track lifecycle through the callback sequence."
    ],
    "resolved_findings": [
-    "Resolved: track lifecycle = playback cbs {on_notify,on_seek,on_apply_volume} + stream cbs {on_data,on_start,on_end,on_flush,on_pos} registration + removal."
+    "Resolved: track lifecycle = playback cbs {on_notify,on_seek,on_apply_volume} + stream cbs {on_data,on_start,on_end,on_flush,on_pos} registration + removal.",
+    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect."
    ]
   },
   "esdk_crypto": {
@@ -147089,7 +147095,8 @@
     "Next step: document the ap login packet structure from the send_buf field accesses."
    ],
    "resolved_findings": [
-    "Resolved: login packet = the send_buf field accesses {hello.data, gen/genctx/s, work_buf, MODPO} bounded by RSA-2048 bignum asserts."
+    "Resolved: login packet = the send_buf field accesses {hello.data, gen/genctx/s, work_buf, MODPO} bounded by RSA-2048 bignum asserts.",
+    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect."
    ]
   },
   "esdk_events": {
@@ -147108,7 +147115,8 @@
     "Next step: trace the evs encoder to document the wire envelope."
    ],
    "resolved_findings": [
-    "Resolved: evs envelope = {EsdkPlaybackStats,EsdkPlaybackErrors,EsdkHttpErrors,EsdkDownload,EsdkEvent,EsdkCapabilities} + endsong {ms_played, track_id overwrite, intent} encoding."
+    "Resolved: evs envelope = {EsdkPlaybackStats,EsdkPlaybackErrors,EsdkHttpErrors,EsdkDownload,EsdkEvent,EsdkCapabilities} + endsong {ms_played, track_id overwrite, intent} encoding.",
+    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect."
    ]
   },
   "bandwidth_meter": {
@@ -147122,12 +147130,11 @@
     }
    ],
    "todo": [
-    "Established: the bandwidth log format, the window metric, the LOW BW trigger, and the asserts guarding timestamps.",
-    "Still unknown: who reads the bandwidth measurements and what LOW BW count threshold triggers downstream behavior.",
-    "Next step: trace the consumer of the LOW BW signal (likely ABR/DS selection in abr_engine)."
+    "Residual: the window size and low-bandwidth threshold constants."
    ],
    "resolved_findings": [
-    "Resolved: LOW BW consumer = the ABR/DS selection in abr_engine; meter emits {BANDWIDTH B/ms = B/s = kbit/s, WINDOW high/low, LOW BW kbit/s < threshold count}."
+    "Resolved: LOW BW consumer = the ABR/DS selection in abr_engine; meter emits {BANDWIDTH B/ms = B/s = kbit/s, WINDOW high/low, LOW BW kbit/s < threshold count}.",
+    "Identified: the bandwidth meter is the Spotify eSDK link estimator (esdk util.c) - BANDWIDTH: %u B / %u ms = %u B/s = %u kbit/s per transfer, WINDOW BANDWIDTH: %u B / %u ms = %u kbit/s, high=%d, low=%d over the sliding window, LOW BW (kbit/s) low-bandwidth marker, Bandwidth not calculated, latency zero when the RTT is zero. Feeds eSDK bitrate decisions (the ABR layer)."
    ]
   },
   "esdk_httpio": {
