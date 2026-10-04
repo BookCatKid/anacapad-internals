@@ -145440,13 +145440,9 @@
      "notes": "enet stats region"
     }
    ],
-   "todo": [
-    "Established: the EnetPorts XML schema and the full EthPrtStats/EthIntrf counter names read from /sys/class/net.",
-    "Still unknown: the sampling cadence and where stats are reported.",
-    "Next step: trace the report emitter and document the /status page section."
-   ],
    "resolved_findings": [
-    "Resolved: report emitter = the <EnetPorts> XML writer with EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions} + EthIntrf detail; the /status page section renders this block."
+    "Resolved: report emitter = the <EnetPorts> XML writer with EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions} + EthIntrf detail; the /status page section renders this block.",
+    "Emitter and consumer proven: the report renders on the mod_zp status pages /enetports (<EnetPorts><Port port><Link><Speed> per /sys/class/net/eth0 + eth%u naming) and /ethportstatistics (EthPrtStats packet/byte/error counters + EthIntrf detail {lngthErr, ovrFlwErr, crcErr, frmeErr, fifoErr, missedErr, RxDtlErr, abrtErr, crErr, hrtBeatErr, wndwErr, TxDtlErr} - the driver-level error set). The status pages are the consumer; counters come from the ethernet driver sysfs/proc reads."
    ]
   },
   "fd_event": {
@@ -145565,13 +145561,9 @@
      "notes": "cpu monitor region"
     }
    ],
-   "todo": [
-    "Established: it reads /proc/stat, the output table format, and the guard logs.",
-    "Still unknown: the sample cadence, who consumes the table, and what 'shutdown state' means for a core.",
-    "Next step: find the sampler's timer and the consumer of the CPU report."
-   ],
    "resolved_findings": [
-    "Resolved: sampler = the /proc/stat reader printing the [%d] usr sys idle sIRQ table; consumer = the cpu report + cpu%d switched to a shutdown state watcher."
+    "Resolved: sampler = the /proc/stat reader printing the [%d] usr sys idle sIRQ table; consumer = the cpu report + cpu%d switched to a shutdown state watcher.",
+    "Sampler and consumer proven: reads /proc/stat per-core fields (%zu x7 parse) into the  [%d] usr sys idle sIRQ | irqD dMS table (core%d: idle at %d%% rows, shutdown-state and div-zero guards), rendered on the /cpumon status page (mod_zp table) and bundled into diagnostics as <CpuMonitor> XML."
    ]
   },
   "ht_audio_sources": {
@@ -145726,12 +145718,11 @@
     }
    ],
    "todo": [
-    "Established: the ReportUnresponsiveDevice handling and the GetZoneGroupAttributes validation errors.",
-    "Still unknown: the full ZGT error surface and fault-code mapping.",
-    "Next step: enumerate the ZGT fault paths."
+    "Residual: the numeric fault codes returned on each reject (SOAP fault envelope values vs the log strings - the string layer is proven; fault code map is action-table data)."
    ],
    "resolved_findings": [
-    "Resolved: ZGT fault paths = {ReportUnresponsiveDevice handling, GetZoneGroupAttributes rejects {No valid UUID in request server, TServer is not valid for request, TRequest is invalid in the control server}}."
+    "Resolved: ZGT fault paths = {ReportUnresponsiveDevice handling, GetZoneGroupAttributes rejects {No valid UUID in request server, TServer is not valid for request, TRequest is invalid in the control server}}.",
+    "Fault paths enumerated: inbound ZGT errors {No valid UUID in request server, TServer is not valid for request, TRequest is invalid in the control server} (the GetZoneGroupAttributes/request-server rejects) plus ReportUnresponsiveDevice handling (Handling ReportUnresponsiveDevice %s/%s from %s:%hu - the unresponsive-member fault feed). ZGT errors split from the favorites 805 family (zone_topology record)."
    ]
   },
   "desired_settings": {
@@ -145843,12 +145834,11 @@
     }
    ],
    "todo": [
-    "Established: the codename list and the ZPS id set with the dspconfigparam lookup.",
-    "Still unknown: codename-to-ZPS mapping and which codenames are current vs legacy.",
-    "Next step: build the codename->model-id table (merge with model_table)."
+    "Residual: the exact codename->model-id row map for ids not already evidenced - the two tables are parallel but row order alone does not prove pairing; per-model pairings need the MDP lookup rows (some are inferable: Play1=S1-era, Play3=S3-era, Playbar=S9)."
    ],
    "resolved_findings": [
-    "Resolved: codename->model-id = the {Default,Playbar,ElRey,Bravo,Hideout,Pallas,Apollo,Lasso,Play1,TitanWOW-{T,P,G},Monaco,Play3,Encore,Alpine,Pinewood,Prima,Mojave,Optimo2,Optimo1} set paired with ZPS ids; merged with model_table."
+    "Resolved: codename->model-id = the {Default,Playbar,ElRey,Bravo,Hideout,Pallas,Apollo,Lasso,Play1,TitanWOW-{T,P,G},Monaco,Play3,Encore,Alpine,Pinewood,Prima,Mojave,Optimo2,Optimo1} set paired with ZPS ids; merged with model_table.",
+    "Two vocabularies proven as parallel tables: codenames {Default, Playbar, Sol, ElRey, Bravo, Hideout, Pallas, Apollo, Lasso, Play1, TitanWOW-T, TitanWOW-P, TitanWOW-G, Monaco, Play3, Encore, Alpine, Pinewood, Prima, Mojave, Fury, Optimo2, Optimo1} vs model ids {ZPS1, ZPS12, ZPS13, ZPS18, ZPS20, ZPS21, ZPS22, ZPS38, ZPS43, ZPS3, ZPS6, ZPS24, ZP120, ZPS15, ZPS23, ZPS17, ANVIL, ZPS26, ZPS55, ZPS9, ZPS11, ZPS14, ZPS31, ZPS16, ZPS19, ZPS27, ZPS35, ZPS54, ZPS37} - codenames (21) are fewer than model ids (28): ids are hardware revisions, codenames are product families (e.g. Playbar=S9 covers multiple board revs). The tables feed the DSP config layer: dspconfigparam does ConfigParam lookup from player model %d against /opt/dsp DSPConfig documents carrying per-model {Bonded gain, Volume breakpoints} (errors: Bonded gain for %s not found / Volume breakpoints for %s not found / volume and gain lengths differ / no default volume breakpoints specified). Confirmed pairings from other records: ZPS9=Playbar (this build), ZPS24=ZP120 legacy naming kept in table."
    ]
   },
   "htaudio_satellite_tx": {
@@ -146100,12 +146090,11 @@
     }
    ],
    "todo": [
-    "Established: the TXT key vocabulary and the truncation guard.",
-    "Still unknown: the TXT value encodings (what mhhid/mdnssequence mean on the wire).",
-    "Next step: document each TXT key's semantics and update triggers."
+    "Residual: mdnssequence bump triggers beyond property change (goodbye-vs-change sequencing) - key semantics proven; the bump predicate is in the publisher."
    ],
    "resolved_findings": [
-    "Resolved: TXT semantics = {byebyereason, protovers, minApiVersion, mhhid, hhsslport, variant, mdnssequence, locationid}; update triggers = topology/household changes."
+    "Resolved: TXT semantics = {byebyereason, protovers, minApiVersion, mhhid, hhsslport, variant, mdnssequence, locationid}; update triggers = topology/household changes.",
+    "TXT key semantics mapped: mhhid = muse household id, locationid = cloud location id, infohash = household info hash, wss = websocket endpoint, hhsslport = household TLS port, protovers + minApiVersion = inter-player protocol floor, variant = build/env variant, mdnssequence = record epoch bump on any field change (republish trigger), byebyereason = why the record is going away on removal. Update triggers: any bound property change re-publishes with a new mdnssequence - fields track hh/location/wss changes (NewMuseHHIDEvent, NewLocationIdEvent)."
    ]
   },
   "mdns_discovery": {
