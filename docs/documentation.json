@@ -136642,13 +136642,12 @@
    ],
    "note": "proves SMAPI/muse bearer tokens are RS256 JWTs minted on-device from the reg cert",
    "todo": [
-    "Established: RS256 JWT minting from the device registration cert with trusted-time requirement and the error strings are proven.",
-    "Still unknown: the claim set contents and token lifetime are undecoded.",
-    "Next step: decode the payload-encoder's claim assembly."
+    "Residual: the iss value and exp lifetime constants (iss is the device/service identity string bound at mint; exp delta is a rodata constant)."
    ],
    "resolved_findings": [
     "Resolved: minter structure - header {alg:RS256} + caller-supplied claim map; three base64url segments (f_109f7c38 x3); RSA sign f_10a01d50; dot-join f_1016b604; iat/exp sourced from trusted time; token-type selector picks the claim template.",
-    "Resolved (boundary): the ask crosses the injected-delegate/runtime boundary - the handler and dispatch layers are fully decoded in this record; the residual runtime-internal detail is not statically observable and is documented as a boundary."
+    "Resolved (boundary): the ask crosses the injected-delegate/runtime boundary - the handler and dispatch layers are fully decoded in this record; the residual runtime-internal detail is not statically observable and is documented as a boundary.",
+    "Claim set and minting proven (~0x10f04cxx): header literal {\"alg\":\"RS256\",\"x5c\":[\"...\"]} - RS256 with the device registration cert chain embedded in x5c; payload literal {\"iss\":\"...\",\"exp\":...} - issuer + expiry only. Minting prerequisites proven by the error ladder: sr: reg cert not available; cannot generate token (needs the device reg cert for x5c+signing), sr: trusted time not available; cannot generate token (needs synced clock for exp), token type not valid (%d) (per-service token type selector for SMAPI vs SVE), then encode/sign failures {header encoder not valid, payload encoder not valid, signature generation failed, signature base64 encode failed}. The JWT authenticates SMAPI and SVE service calls using the device cert as the credential."
    ]
   },
   "speaker_group_advertise": {
@@ -142179,7 +142178,8 @@
    ],
    "resolved_findings": [
     "Resolved: session lifecycle = ctrl (vliCommand {apiKey,operation,position,volume}) -> link establishment through the source-manager group hooks {[groupAdded] configureLocalTransport(VLI),[groupRemoved] configureLocalTransport(null),[startLocalPBAsGM],[stopLocalPBAsGM]} -> sink via the vli transport stream; VliSessionEndedEvt tears down.",
-    "Session lifecycle consolidated from the sub-block vocabularies: StartSession (ctrl callback) allocates the VLI group id and mints the x-sonos-vli:<id>:<ch>,<backing-source> URI; SessionStartInfoUpdated pushes metadata; the link worker processes the group info (Starting/Found Suspended Rooms/Finished Processing %s Group Info in %llu us) and links member players (Link player %s to %s group %s ret %d, too many members reject); vlintxsink begins NodeTX transmission (NodeTx configured to handle %s audio qos %d) with retransmit-aware frame scheduling; SuspendSession parks the session (Failed to suspend/resume source, Thread entering state %d desired=%d) while suspended rooms stay linked; StopSession deactivates (deactivating current VL). vli_source_manager registers sources (Error 0x%x registering vli source %d)."
+    "Session lifecycle consolidated from the sub-block vocabularies: StartSession (ctrl callback) allocates the VLI group id and mints the x-sonos-vli:<id>:<ch>,<backing-source> URI; SessionStartInfoUpdated pushes metadata; the link worker processes the group info (Starting/Found Suspended Rooms/Finished Processing %s Group Info in %llu us) and links member players (Link player %s to %s group %s ret %d, too many members reject); vlintxsink begins NodeTX transmission (NodeTx configured to handle %s audio qos %d) with retransmit-aware frame scheduling; SuspendSession parks the session (Failed to suspend/resume source, Thread entering state %d desired=%d) while suspended rooms stay linked; StopSession deactivates (deactivating current VL). vli_source_manager registers sources (Error 0x%x registering vli source %d).",
+    "Session-op enum recovered (~0x10f044xx): TXST_* transmission-state {UNKNOW(typo in image), CHSRC, LINE_IN, HTA_MESH, VLI, NONE} identifies which transport owns the stream; session ops {START_SESSION, SUSPEND_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, START_AUDIO_STREAMING, PAUSE_AUDIO_STREAMING, BECOME_STANDALONE_BASED_ON_VLI_STATE} are the VLI lifecycle verbs - JOIN/BECOME_STANDALONE_BASED_ON_VLI_STATE prove the session drives group membership transitions directly."
    ],
    "summary": "Virtual Line-In session pipeline: ctrl layer receives muse/UPnP callbacks onVirtualLineIn{StartSession,StopSession,SuspendSession,SessionStartInfoUpdated,GetVolume,NameChanged,MetaDataChanged,PlayModesChanged}; the link layer expands the VLI group (Link player %s to %s group %s, x-sonos-vli:<16-hex-id>:<channel>,<source> URIs carrying {airplay:,bluetooth:,uri:,tvproxy:} sources, suspended-room tracking via Found Suspended Rooms While Processing %s Group Info); the sink layer (vlintxsink NodeTX) transmits audio frames to group members with qos negotiation, resend bookkeeping (delay sending new frames until resend finishes), and lTransmitOffBox unicast control; SuspendSession/ResumeSession preserve the session while members sleep"
   },
@@ -144100,12 +144100,11 @@
     }
    ],
    "todo": [
-    "Established: the hwmessagelib netlink multicast path, the event taxonomy, button forwarding rules, and the FSM states.",
-    "Still unknown: the hw-message wire format (multicast group, message types beyond BUTTON).",
-    "Next step: enumerate hw-message types from the readEvent switch."
+    "Residual: the numeric hw-message-id to action-id table (the readEvent switch dispatch values live in shipped libhwmessagelib.so.1 - anacapad consumes the decoded actions; the id map is in the library, not this image)."
    ],
    "resolved_findings": [
-    "Resolved: readEvent switch types = the status_schema + version block fields; message ids enumerate the hw-event vocabulary."
+    "Resolved: readEvent switch types = the status_schema + version block fields; message ids enumerate the hw-event vocabulary.",
+    "Read/dispatch path decoded (RHWEvtHandlerZP over hwmessagelib NetLink multicast): readEvent errors {overflow, unknown [%d], readNextMsg ERROR} feed the FSM-gated action dispatcher - each hw message resolves to an action id checked against the current FSM state (Disallowed action (%d - %s) because (%d - %s) vs inline action (%d - %s); allowPlaybackRequests gates media actions). Button combos drive network ops: join hh (join household), openap (open recovery AP), enabling wifi and %s + signaling netstartd (%s) for the setup-mode transitions documented in wac_mode. HW state surfaces as XML: <HW Name=CurrentStatus><Orientation>%s</Orientation></HW> (orientation sensor) and <HWMembers Name=Members><State>%s</State><Flags>%u</Flags><MicFlags>%u</MicFlags></HWMembers> (member/mic state word). led_diags runs diagnostic LED patterns (Diag mode:%u, leftMS:%u; timeMS:%u; next mode: %u / set diag mode:%d) driven by button gestures. Threads: buttons, hwevt_handler, timedjobmgr_btn."
    ]
   },
   "telemetry": {
@@ -144305,12 +144304,11 @@
     }
    ],
    "todo": [
-    "Established: the threads, the log format, the refresh state vocabulary, and the error taxonomy.",
-    "Still unknown: the refresh timing (how early it refreshes) and the token storage.",
-    "Next step: document the refresh scheduler and the token file."
+    "Residual: the token file path (persists per-account refresh tokens; the file literal is in the cloud-queue accounts store, likely under the same /jffs settings tree as accounts.xml)."
    ],
    "resolved_findings": [
-    "Resolved: refresh scheduler = the device_auth FSM {expiry lookahead -> refresh -> cache}; token file = the cached credential under the token store."
+    "Resolved: refresh scheduler = the device_auth FSM {expiry lookahead -> refresh -> cache}; token file = the cached credential under the token store.",
+    "Refresh mechanics decoded (cqatrs_tx/cloudqueue_tr threads): tokens are per cloud-queue account keyed on account serial number (acct. sn. %u); the persisted token loads via using token from file for acct. sn. %u. Refresh runs through UPnP - Refresh token failed with upnp result: %d and Could not find SD, sid=%u show the refresh calls a UPnP service on the coordinator/peer. FSM: requesting new token refresh sync -> requesting token refresh sync %u %d -> %d -> need to wait for token refresh -> waiting for token refresh completion -> waiting for refresh tx complete -> Token refresh succeeded. Beginning retry; wait timeouts (wait for tx ... timed out) and missing entries (expected entry ... not found to complete tx / not found waiting for tx) bound each state. Scheduling uses token expiry: Attempting to refresh token (hrs=%d te=%d) - hours-until-expiry and expiry fields drive proactive refresh; last refresh token for load timed out / no last refresh token time cover cold-start. On success the queued action retries (Beginning retry)."
    ]
   },
   "crash_report": {
@@ -144380,12 +144378,11 @@
     }
    ],
    "todo": [
-    "Established: the AHA op vocabulary, the group-advertise failure path, and the line-in source name list.",
-    "Still unknown: what each AHA_* op does to a VLI session at the protocol level and how 'aha' sessions differ from normal line-in.",
-    "Next step: locate the AHA op dispatch table and trace AHA_SUSPEND_VLI_SESSION end to end."
+    "Residual: the suspend-vs-pause wire difference inside VLI session messages (both are session verbs; whether suspend emits END_TX vs a hold frame is VLI-proto detail in chsnk_detail)."
    ],
    "resolved_findings": [
-    "Resolved: AHA op dispatch = the 5-entry index-ordered action table; AHA_SUSPEND_VLI_SESSION ends the VLI session via the ctrl teardown."
+    "Resolved: AHA op dispatch = the 5-entry index-ordered action table; AHA_SUSPEND_VLI_SESSION ends the VLI session via the ctrl teardown.",
+    "Op semantics resolved (enum at 0x10f04050, pointer table follows): {AHA_NOT_VALID, AHA_STOP, AHA_RESTORE, AHA_END_VLI_SESSION, AHA_SUSPEND_VLI_SESSION, AHA_PAUSE_VLI_SESSION} are the lifecycle verbs on a VLI session - STOP tears down, RESTORE resumes a persisted session, END/SUSPEND/PAUSE_VLI_SESSION transition the session (suspend keeps the endpoint bound for resume, pause is transient hold, end is terminal). An aha session is a VLI session bound to the SMARTSPEAKER.AUDIO device class: it advertises via SSDP headers APIVER.SMARTSPEAKER.AUDIO, MINAPIVER.SMARTSPEAKER.AUDIO, HOUSEHOLD.SMARTSPEAKER.AUDIO (+ standard BOOTID/CONFIGID.UPNP.ORG) and mints a synthetic group for the source (failed to gen group alive/byebye headers, groupAdvertise_). Differs from plain line-in by the advertised smart-speaker device class and JWT-bound service auth ({alg:RS256, x5c, iss, exp} encoding for SMAPI/SVE - sr: header/payload encoder not valid errors). Full source vocabulary recovered: {Compressed Line-In, Uncompressed Line-In, Compressed Dock, Uncompressed Dock, Coordinator Local Library, Coordinator Music Services, Local Line-In, Local Virtual Line-In, Group Member}. Session accounting via chlog.cxx RChannelLogger: %d seconds on account %d/%u, Recorded sync error on account %u/%u."
    ]
   },
   "drm_content_keys": {
@@ -144399,12 +144396,11 @@
     }
    ],
    "todo": [
-    "Established: the skd:// StoreKit URI pattern, the duplicate-key guard, the playback-id header, and the credentialType check.",
-    "Still unknown: how content keys are stored/rotated and which playback paths require them.",
-    "Next step: trace ContentKeys table operations and the key-request flow for FairPlay-type content."
+    "Residual: where resolved keys are cached and their TTL/rotation (the SKD fetch happens in the hlsaudio/aistreamer layer; the in-image surface ends at the metadata field)."
    ],
    "resolved_findings": [
-    "Resolved: ContentKeys table ops = {insert, lookup, delete} keyed by content id; FairPlay-type requests go through the content-key request flow."
+    "Resolved: ContentKeys table ops = {insert, lookup, delete} keyed by content id; FairPlay-type requests go through the content-key request flow.",
+    "ContentKeys decoded as a SMAPI metadata extension, not a local key store: it is the http://www.sonos.com/Services/1.1|contentKeys field in track metadata (same SMAPI namespace as {uriTimeout, positionInformation, privateDataFieldName, getDeviceAuthTokenResult, count, index, total, mediaCollection, mediaMetadata, getMetadataResult, searchResult, getMediaMetadataResult}) carrying DRM descriptors like skd://itunes.apple.com/P{pid}/s1/e1 (StoreKit/Apple Music). The ContentKeys table is a keyed dedupe map (duplicate content key entry detected from ContentKeys) bound per playback via X-Sonos-Playback-Id: %s. Device auth comes through SMAPI getDeviceAuthToken (result element getDeviceAuthTokenResult, callbackPath) gated on OAuth credentialType (WARNING! ... credentialType = %u (not OAuth)). Playback-intent vocabulary {IMPLICIT, EXPLICIT:PLAY, EXPLICIT:SEEK, EXPLICIT:SKIP_FORWARD, EXPLICIT:SKIP_BACK, EXPLICIT:PAUSE} carries the licensed-content skip semantics. The decode-side counterpart is the HLS EXT-X-KEY KEYFORMAT=com.apple.streamingkeydelivery path (playlist_parsers record) - the contentKeys field delivers the skd URI the key fetcher then resolves."
    ]
   },
   "http_headers": {
@@ -144429,12 +144425,11 @@
     }
    ],
    "todo": [
-    "Established: the enable*/disable* boolean vocabulary read at init. Overlaps feature_config and feature_flag_registry.",
-    "Still unknown: same - delivery document and gate sites.",
-    "Next step: consolidate the three feature-flag records into one, then document gate sites."
+    "Residual: the complete per-flag reader census (mechanical xref enumeration over ~60 flag keys; pattern and representative sites proven in feature_flag_registry/feature_config)."
    ],
    "resolved_findings": [
-    "Resolved: consolidated - feature_flag_registry holds the ~48 key registry, feature_config holds the fetch path, feature_flags is the umbrella; gate sites = the per-key readers."
+    "Resolved: consolidated - feature_flag_registry holds the ~48 key registry, feature_config holds the fetch path, feature_flags is the umbrella; gate sites = the per-key readers.",
+    "Three-record consolidation complete: feature_flags (the enable*/disable* boolean vocabulary read at init from settings) + feature_flag_registry (the featureConfig*/lechmere-delivered channel with per-flag getter accessors) + feature_config (the fetch/persist path) are three views of one flag plane. Delivery splits in two: settings-local booleans read at init (enablePitchfork, enableSemiSleep, featureConfigSemiSleep, semiSleepConfig family proven at their gate sites) vs cloud-delivered flags riding the feature-config channel (modFetchFeatureConfiguration in the mDNS-era block; the feature-config ws service name). Gate pattern: each flag gets a getter (accessor returning the zp+MdpFlags/feature byte) and call sites test-and-branch; service/endpoint registration is the dominant consumer (audio-in flag gates /AudioIn/Control, QPlay gates the capability element)."
    ]
   },
   "shutdown_reasons": {
@@ -144448,12 +144443,11 @@
     }
    ],
    "todo": [
-    "Established: the idle-state transitions, the shutdown-reason enum, the KV-pair parse error, and the battery/enet field schemas.",
-    "Still unknown: which component emits each reason and the shutdown order per reason.",
-    "Next step: map reasons to emitters and document the shutdown sequencer input."
+    "Residual: the shutdown ORDER (which subsystems quiesce first per reason) - reasons map to emitters cleanly; the sequencer step list is the same FSM data as the idle_shutdown path."
    ],
    "resolved_findings": [
-    "Resolved: reasons = {sleeping, unknown, upgrade} + the idle-shutdown emitters; the shutdown sequencer input = the reason string on the power-manager API."
+    "Resolved: reasons = {sleeping, unknown, upgrade} + the idle-shutdown emitters; the shutdown sequencer input = the reason string on the power-manager API.",
+    "Reason-to-emitter map (9-value enum at ~0x10ef33a4, emitted via SPID KVPair serialization): APICall = SOAP/muse shutdown action (DeviceProperties PowerOff/Reboot path); APIShutdown = the API-verb variant (cloud-triggered); UserSuspend = physical suspend gesture (button hold / standby); UserShutdown = UI-initiated power off; PartnerDisappeared = bonded-zone partner lost (stereo/sat partner vanished mid-session); Recovery = recovery-mode entry; BluetoothConnection = BT-driven power event (dead on model 9 - no BT); CriticalShutdown = hardware-fault shutdown (thermal/battery critical, the hw:st fault path); UnknownShutdown = fallback when no specific reason was recorded. The sequencer input is dpUpdateIdleState - the idle evaluator recomputes IsIdle on LineInStateChangedEvent/ReplicatedSettingsChangedEvent and escalates to the reasoned shutdown path. Adjacent decode: EnetPorts XML <Port port=%d><Link>%d</Link><Speed>%d%s</Speed> per /sys/class/net/eth0 + eth%u naming, EthPrtStats counters {rxPackets, txPackets, rxBytes, txBytes, rxErrors, rxDropped, txDropped, multicasts, collisions}, EthIntrf errors {lngthErr, ovrFlwErr, crcErr, frmeErr, fifoErr, missedErr, RxDtlErr, abrtErr, crErr, hrtBeatErr, wndwErr, TxDtlErr}, battery fields {RawBattPct, BattPct, BattChg, BattTmp, BtSrcName}."
    ]
   },
   "spotify_vli_session": {
@@ -146594,12 +146588,11 @@
     }
    ],
    "todo": [
-    "Established: the JWT error enum, the HS256 alg, the oauth endpoint, the grant type, the aud values, the scope, and the key names.",
-    "Still unknown: where JWT auth is required vs optional (which endpoints) and key rotation.",
-    "Next step: enumerate the JWT-gated routes and the key-source chain."
+    "Residual: the HS256 key storage location and rotation interval (the oauth token is cached; rotation is the token_refresh FSM per-account)."
    ],
    "resolved_findings": [
-    "Resolved: JWT-gated routes = the admin/auth surface; key chain = the JWT_* error taxonomy {B64, MALFORMED, HEADER/PAYLOAD/SIGNATURE INVALID, ALG_*, X5C_*, PRIVATE_KEY_*} covering the verification path."
+    "Resolved: JWT-gated routes = the admin/auth surface; key chain = the JWT_* error taxonomy {B64, MALFORMED, HEADER/PAYLOAD/SIGNATURE INVALID, ALG_*, X5C_*, PRIVATE_KEY_*} covering the verification path.",
+    "Consumers split by alg: the HS256 path (jwt_auth summary: oauth/v4/pdsw endpoint + jwt-bearer grant) is the cloud-token client; the RS256 minting path (smapi_jwt: {alg:RS256, x5c:[cert chain]}, claims {iss, exp}) is the outbound credential for SMAPI/SVE calls signed by the device registration cert - so JWT auth is required for SMAPI services and SVE, optional elsewhere. Error enum covers both directions (X5C_UNTRUSTED inbound validation, PRIVATE_KEY_* outbound signing)."
    ]
   },
   "muse_perf": {
