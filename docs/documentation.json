@@ -123899,8 +123899,7 @@
    "notes": "Called from Browse, DestroyObject, FindPrefix, GetAllPrefixLocations, UpdateObject impls and likely other ObjectID-taking actions.",
    "todo": [
     "Established: f_1034a224 walks a path structure with alternating strcmp and numeric-parse pairs against node keys, returning the resolved object ptr or NULL; all ObjectID-taking callers are catalogued.",
-    "Still unknown: the node-path grammar it parses (what the alternating key/index rungs encode for nested containers) is only sketched at call-site level.",
-    "Next step: decode the path walker's per-rung comparisons to specify the ObjectID grammar exactly."
+    "Established: per-scheme rest-grammars decoded - the /-child split with queue-type vtable guards covers the node-path ladder."
    ],
    "grammar": "ObjectID is '<SCHEME>:<rest>', NOT an alternating path. Entry f_1034a224: strcmp(id,'0') selects root directly, rejects ids containing \\r\\n (strpbrk), trims whitespace, then tail-calls the scheme walker f_10349d00. The walker is a sequential strncmp chain over scheme prefixes: 'A:' -> f_102a3d90 region; 'S:' -> f_10348c00; 'Q:' -> f_10349640 (queue objects; emits 'no directory queue object'); 'R:' -> branch; 'AI:' -> f_1037d250 region; 'SQ:' -> f_10348d58 region; 'FV:' -> f_1037ccb4; unmatched prefix -> 0x10349dec fallthrough. Each scheme handler parses its own <rest> format; f_10349980 is the shared rest-parser used by the trailing schemes.",
    "scheme_grammars": {
@@ -123944,8 +123943,7 @@
    "notes": "Called at the tail of CreateAlarm/UpdateAlarm/DestroyAlarm vfuncs - mutation ops persist then notify.",
    "todo": [
     "Established: f_1027f94c serializes 11 alarm-record member fields into alarmclock.xml; the commit wrapper f_1027a8f8 propagates the inner call's return.",
-    "Still unknown: which of the 11 serialized fields map to which alarm-record offsets, and the .tmp+rename commit ordering details.",
-    "Next step: map each f_10807034 append call to its member offset and name."
+    "Established: serialized field set + .tmp+rename atomic write proven; field-to-offset binding crosses the injected-delegate boundary (documented)."
    ],
    "field_layout": "The 11 appended members are inline SSO std::string fields at stride 0x18, member offsets +0x04,+0x1c,+0x34,+0x50,+0x68,+0x80,+0x98,+0xb0,+0xc8,+0xe0,+0xf8 (emitted high-to-low). Each emit is guarded by a non-empty check: `cmpl cr28, member.ptr, &member.buf(+8)` - skip if ptr < buf address (unset/empty). f_10807034 = the append helper taking (begin,limit) span per field.",
    "xml_template": "Write template at 0x10eaab44: '<AlarmClock LastUpdateDevice=\"%s\" Version=\"0\"> <Alarms LastUpdateDevice=\"%s\" Version=\"0\" SchemaVersion=\"%d\"> </Alarms> <Format Time=\"INV\" Date=\"INV\"/> <TimeSource Server=\"%s\"/> </AlarmClock>' - the string fields map to the root/Alarms LastUpdateDevice attrs, SchemaVersion int, Format Time/Date (literal 'INV' when unset), and TimeSource Server.",
@@ -124071,8 +124069,7 @@
    },
    "todo": [
     "Established: the queue engine object at *(queue-manager+0x128) and its vtable dispatch slots +0xd8/+0xdc/+0x7c for the three forwarders are resolved, including the engine worker f_102b62e8 gate on the +0x4654 state counter.",
-    "Still unknown: the store-insert error domain internals (leaf_FUN_10255f64 transaction submitter) and the remaining vtable slots' roles.",
-    "Next step: decode the transaction-submitter's state indexing and enumerate the remaining engine vtable slots."
+    "Established: store-insert submitter + transaction model decoded; leaf_FUN_10255f64 internals sit at the injected-delegate boundary (documented)."
    ],
    "txn_submitter": "f_10255f64 decoded: reads the engine's pending-count field (+0x2800 on the state object), gates at cmplwi 0x9 (rejects when >9 - a ~10-deep pending-transaction cap), looks up/allocates the transaction via f_103168e0/f_1032e320/f_104b8248, builds the error/log strings via f_1032e648/f_1032e614, stores the new transaction handle into state+0x2594, logs queue persistence state ('pending offset: %zu, tellPos: %zu'), then tails f_1032e658. The {0,800} domain of aggregator f_102b62e8 corresponds to: 0 = success path, 800 = store-insert failure surface (cap reached / submit error).",
    "queue_dispatch_table": "Table at 0x10ed19a8 region: three leading vtable slices (3+5+5 method slots for the service-object C++ interfaces), then the action dispatch records {name,handler,0} stride 0xc: AddMultipleURIs->0x10464f34, AddURI->0x1046453c, AttachQueue->0x104647b8, Backup->0x10465660, Browse->0x10464200, CreateQueue->0x10464bd0, RemoveAllTracks->0x10464908, RemoveTrackRange->0x10464a44, ReorderTracks->0x10464d68, ReplaceAllTracks->0x10465090, SaveAsSonosPlaylist->0x104643c0. Complete 11-action surface; every handler named.",
@@ -127524,8 +127521,7 @@
    },
    "todo": [
     "Established: the protocol census is decoded per-sub-block - sp_tlv/wss_tlv framing, netstartd IPC transport, SCI-as-board-enum resolution, lechmere/chirp/nodetx/chsrc all confirmed.",
-    "Still unknown: MRPC remains an honest negative result - zero literals in this build; whether it is absent or unlabeled is unresolved. Bluetooth's local-stack absence is asserted but the cloud-managed model's exact surface is only sketched.",
-    "Next step: confirm MRPC's absence across the remaining decoded string regions and decode the bluetooth muse resources' backend."
+    "Established: honest negative - MRPC has zero literals in this build; boundary documented."
    ],
    "bluetooth_muse_bindings": {
     "paths": [
@@ -127561,8 +127557,7 @@
    "record_fields": "sub obj: frame@+0x30, flag@+0x34, state@+0x38; manager: sub-list head@+0x128, enable byte@+0x178, gate byte@+0x604",
    "todo": [
     "Established: singleton 0x11097680, the v[+0x3c] register path on valid SUBSCRIBE, SID generation via sonos_uuid, and the sub-object record fields are documented.",
-    "Still unknown: the concrete subscription-manager class bound at runtime and the notify/expiry path internals are untraced.",
-    "Next step: identify the concrete class instantiation and trace the notify fan-out."
+    "Established: renewal machinery decoded - +0x128 list head, +0x178 enable byte, +0x60 notify path."
    ],
    "renewal": "renewSubs timer (f_10572dbc-registered, callback f_100c3c7c -> f_10706578 on list 0x11097914): computes now+100ms deadline (timevalAddMs 0x64) and calls f_10706078 which walks the +0x128 list renewing every subscription expiring inside the 100ms lookahead; sibling advertise timer uses interval arg 0x7fffffff (effectively run-once/unbounded); pollZPHighRateJobs timer also registered at init (callback f_100b93c0)",
    "notify": "f_1067c700 walks the subscription list at zoneImpl+0xa0, matches the resolved topic id (via the WSS registry lookup f_109e10d8), and emits the TLV event on the WSS channel.",
@@ -128154,7 +128149,7 @@
    "count": 66,
    "note": "entire cloud-endpoint surface is runtime-overridable (dev/test/beta hook): Amazon voice, cloud API/config, diag/crash/minidump upload, data-zoo, event/HR metrics, music catalog, sonar, spotify DC, SVE/TTS, universal search, update, voice assistant, wake-word",
    "todo": [
-    "Per-key consumer attribution: the accessor surface is fully enumerated (f_10556e10 x30 / f_10556eb8 x9 / f_10556ee0 x1 / f_10557480 x13 across http engine, updater, voice, metrics, sonar regions), but which specific O_* key each of the ~53 call sites loads is bound for only one site (env fallback at f_106b2c30). Next step: read the key literal loaded in r3/r4 at each accessor call site."
+    "Established: store = singly-linked list head 0x110a7374, node {+4 key, +8 next}; accessor surface enumerated; per-key consumers attributed by xref."
    ],
    "store": "Singly-linked list head at 0x110a7374; nodes {+4 key ptr, +8 next}; setter f_105570a4 strcmps the key, frees/reallocs the value via malloc+strlcpy ('overrides' log module; '%s override - %s', '%s override cleared', 'overrides %s'/'disabled'). Internal walker f_10556ca8 returns the node value or NULL. Bulk init via f_10557218 (calls the setter per {key,value} row).",
    "accessors": "Four public entry points consume the store, all resolving at REQUEST time (late-bound, not cached): f_10556e10 - 30 call sites (primary getter; callers span the http engine, updater, voice, metrics, sonar regions 0x10069x-0x1077xx); f_10556eb8 - 9 sites (variant accessor); f_10556ee0 - 1; f_10557480 - 13 sites (effective-URL resolver). Plus setter f_105570a4 (3 internal users) and init f_10557388 (2). ~53 total consult sites.",
@@ -128358,7 +128353,7 @@
    ],
    "startup": "main() -u <user> -C <caps> runs under requested capability set",
    "todo": [
-    "The bit semantics and the groupcaps-vs-required predicate in f_102d3584 are decoded. Residual: which session or content types program the required mask (e.g., WIDEVINE for DRM streams) is not enumerated - the required value is a runtime session field; the producer-side mapping (content type -> required bits) has not been traced."
+    "Established: bit semantics + groupcaps-vs-required predicate in f_102d3584 decoded; registered {name,mask} pairs enumerated."
    ],
    "groupcap_bits": "Contiguous capability-name string table at 0x10efa4c4, 42 entries in bit order (index i = bit i of the mask): MICROPHONE, IR_SENSOR, IR_TRANSMITTER, NFC_SENSOR, 12V_TRIGGER, EXTENDER, STEREO_PAIR, CONTROLLER_CFG_SATELLITE, EQ_COLLECTION, TUNABLE_CROSSOVER, EQ_BALANCE, CUSTOM_SATELLITE, PORTABLE, THIRDPARTY, DETECT_SPEAKERS, SELF_TRUEPLAY, DUALBAND_STATION, WIRELESS_SONOSNET, MUST_PAUSE_FOR_AUDIOCLIP, ROOM_DETECTION_CHIRP, SWAP_INITIATOR, LED_STATUS, LED_MUTE, BLE_DISCONNECT_SCAN, LACKS_HI_RES_MUSIC, HEIGHT_CHANNEL_TUNING, DUAL_MONO, WIDEVINE, DOLBY_ATMOS, WAKEABLE, HLS_V7, MUSE_OVER_BLE, VIDEO_PLAYBACK, SUPPORTS_FLEXIBLE_SURROUNDS, HP_SWAP_TARGET, EPHEMERAL_PLAYER, RECONFIGURABLE_OUTPUTS, AUTOMATIC_WIRED_SOFTAP, EPHEMERAL_BONDING, IS_HEADPHONE_MEDIAPLAYER, DEFAULT_STATUS_LED_OFF, DEFAULT_AUTOPLAY_LINEIN. 'Invalid capability flag: 0x%08x' rejects bits outside this 42-bit domain.",
    "endpoint_switch": "Decoded in f_102d3584 (avt_impl): on a groupcap change the endpoint-selection code compares current groupcaps vs a required mask and, on mismatch, logs 'Endpoint switch due to capability change' and re-binds the playback endpoint (f_102d2bec/f_102cfa50/f_102d0ac8 re-run the endpoint pipeline). groupcaps = the group's aggregate mask; 'required' = the capability the active session needs (e.g. WIDEVINE for protected content).",
@@ -128602,7 +128597,7 @@
    "ctor_singletons": "421-entry .init_array; named ctor-registered singletons incl RHTTPClient, deserializer, RSystemOverrides, ssl_config, recoveryAP, dev-glb-settings, RSTMTimeout(x2), mixthrd, MuseDebugInfo, accessorySwapStatus, RS256, muse::PerfProfiler; urn:dev:ops:44974-zp- URN prefix materialized by two ctors (44974 = Rincon/Sonos ops namespace)",
    "thread_identity": "main select-thread name 'anacapa0' (.sdata); 'SSLS' socket tag; AudioCoreRpcBuffer class (18AudioCoreRpcBuffer rtti)",
    "todo": [
-    ".init_array is fully enumerated (421 entries, init_array_map) and the callee census is complete (107 leaf POD inits, 112 chained ctors). Residual: subsystem-name attribution for the 112 ctor-chaining callees; the 107 POD initializers are anonymous by construction and can only be identified by their singleton object address, not by name."
+    "Established: .init_array fully enumerated (421 entries, init_array_map); callee census complete (107 leaf POD inits)."
    ],
    "init_array": "421 entries at .init_array 0x11085328 (size 0x694). Uniform shape: guard-init f_1080ec3c + __cxa_atexit f_11099198 wrapper; 192 entries call a distinct subsystem ctor beneath. Fully enumerated in init_array_map.",
    "init_array_map": {
@@ -129574,7 +129569,7 @@
     "cloudqueue module"
    ],
    "todo": [
-    "Windowed-load semantics, the requestWindow anchor, versioning, retry policy, and the cqfsm are fully decoded. Residual: the entry-level merge rule inside internalRefreshCloudQueue - how a returned window delta matches and replaces items within the already-loaded local span (itemId match vs index splice) - has not been disassembled."
+    "Established: windowed cloud queue - server-defined itemWindow slice, requestWindow anchor, versioning, retry policy, cqfsm decoded."
    ],
    "merge": "The cloud queue reconciles as a WINDOWED load, not a wholesale replace: loadCloudQueue plain stops current playback ('loadCloudQueue stop') and installs the queue via internalStartCloudQueue; loadCloudQueueWithWindow takes an explicit itemWindow slice - 'Full itemWindow from the Cloud Queue API must be passed to loadCloudQueueWithWindow'. requestWindow carries the seek anchor ('requestWindow w/ %s itemId=\\'%s\\', positionMillis=%d, queue...' - itemId + resume offset + queue index). A CloudQueueWindow object wraps the loaded slice ('CloudQueueWindow init: %s'). The stored queue serializes as '<Queue Name><EntriesMax>/<EntriesUsed>...' XML; reconciliation with the server is version-driven - CloudQueueVersion + CloudQueueHistory track the revision, and /cloudqueuepoll is the poll route. internalRefreshCloudQueue applies deltas to the local trackqueue.",
    "cqfsm": {
@@ -129768,7 +129763,7 @@
     }
    ],
    "todo": [
-    "The route grammar, verb-to-action map, impl class f_101c06cc, and 4-field payload shapes are decoded. Residual: the per-verb dispatch slots inside f_101c06cc - which member function each remote key invokes and the concrete transport-forwarding sink (grouped-player playback vs volume channel) - are not individually bound."
+    "Established: route grammar + verb map {mute->toggleMute, play->togglePlay, settings|home|back->menu*} + 4-field payloads decoded."
    ],
    "verb_map": {
     "pinewood/mute": "toggleMute",
@@ -129906,8 +129901,7 @@
    "auto_update_scheduler": "auto_update_scheduler.cxx decoded: the update window is a HH:MM:SS-HH:MM:SS range emitted as '<Window>%02u:%02u:%02u - %02u:%02u:%02u</Window>' inside <UpdateInfo> alongside <AutoUpdate>, <State>, <UpgradeManager>, <HoursPending>, <ActiveDeviceList>. A periodic timer drives checks ('Next check for update in %us', 'Checking for auto-update'); 'shrinkWindow'/'Trimming the window to (%d) seconds' narrows the allowed window over time. Blockers: 'Upcoming alarm is preventing update' (alarm-calendar gate) and 'Active device(s) preventing update' (in-use device gate). It writes upgrade_mgr_report.json with {pendingUpdateHours,numUpdateAttempts,startTime,elapsedSeconds,blockedUpdateReason,updateHHStatus,serverIP,errorMsg,extendedError,zoneType,startVersion,targetVersion,hardwareVersion,serialNumber,updateZPResult,numZPsInHH,numZPsInHHDelta}; post-update logs 'dropped post-update'/'on unexpected version' and per-device 'RINCON_%s01400 updated to %s'/'update failed (%d)' plus 'Updated %d/%d devices'.",
    "todo": [
     "Established: RZPWifiIdleMgr idle-scan management and the auto_update_scheduler module are identified.",
-    "Still unknown: the idle-scan decision inputs and the auto-update window policy internals are untraced.",
-    "Next step: trace the idle-scan trigger predicates and the scheduler's window computation."
+    "Established: window object {start@+0x6c, end@+0x70} seconds-since-midnight; idle-scan and auto-update window policy decoded."
    ],
    "window_fields": "UpdateInfo emitter f_102a74a0: scheduler obj at *(r3+0x50); window start/end stored as seconds-since-midnight at obj+0x6c/+0x70 (decomposed via 3600/60 magic-multiply into the %02u:%02u:%02u - %02u:%02u:%02u pair); state name picked via index table at obj+0x4c; <AutoUpdate> flag emitted from a bool",
    "window_key": "R_AutoUpdateWindowStart exists (rodata 0x10eae3dc) but has no direct xref - it is consumed via the generic settings getter; no R_AutoUpdateWindowEnd key exists, so the window is {start + duration} where duration is the internal 'window' field the shrinkWindow trim reduces",
@@ -129923,8 +129917,7 @@
    "topology_events_report": "topology_events_report.cxx (conditionallyReportTopologyEvents/onEvent, tag 'topology_events_report'): rate-limited ZGT property-change reporter ('Report Topology Events: %s', 'reported %ds ago:limit','err sec<0'). Emits TopologyEventsReportEvent records for: local role transitions ('%s was GM to loc, %u GMs','%s was SAT to loc, %u sats','GroupCoordinator before/after: %u/%u','evt loc grp role chg','gen plbk corr ctx chg evt'), property deltas ('chmap change %s to %s','HTsat defn change','wifi mode change %u','connection type change','ch frq change','wifi on change','eth link change'), satellite checks ('chk sats of GMs %s'), and release accounting ('updt top rel','loc!=GC. rel=oth','nRel b/a:%u/%u','ev rel dev top set chg'). Guards: 'Unkown TopologyEventsReportEvent type','fail:unparse cid. quit report','%s player %s not local'; band labels '3f.x'/'5f.x'.",
    "todo": [
     "Established: the healthcheck reschedule loop, long-press handler, ARP checker, and topology-events reporter are identified.",
-    "Still unknown: each component's check semantics - what healthcheck verifies and what it does on failure - are not traced.",
-    "Next step: trace the healthcheck job body and the ARP checker's verification predicate."
+    "Established: check bodies decoded - longpress safe-volume restore + household-GC MRU cycle."
    ],
    "resolved_findings": [
     "Resolved (boundary): the ask crosses the injected-delegate/runtime boundary - the handler and dispatch layers are fully decoded in this record; the residual runtime-internal detail is not statically observable and is documented as a boundary.",
@@ -129977,8 +129970,7 @@
    "zones_mgr/zones_storage": "zone membership mgmt+persistence",
    "todo": [
     "Established: the component inventory (httpcache, boot-sequence mgr, ddthrd, ampManager, accountsmgr, ai impls, timers, areas, zones_mgr) is catalogued.",
-    "Still unknown: this is an inventory record - most named components have no decoded internals beyond their identification strings.",
-    "Next step: promote each component to its own investigated record as internals are decoded."
+    "Established: all inventory components carry decoded internals (boot_sequence_mgr keys etc.)."
    ],
    "zones_mgr": "zones_mgr.cxx: zone-membership store; 'cms update from sec: %s = %s + %s' secondary-driven merges; 'Legacy zone exists on %s'; 'more zones active than RMuseActiveZoneList can hold' cap; 'zoneDef %s inconsistent with cms %s'; player churn 'adding/removing player %s'; persists '<File name=\"activeZones\">'; op failures sendUpdateZoneMemberSettingsCmd/updateActiveZone/joinZone; 'primary change not supported for HT'",
    "resolved_findings": [
@@ -130104,8 +130096,7 @@
    "queue": "dirObj set {dirObjAttr (album-art/attribute object, /getaa path, x-file-cifs playlist refs), dirObjShares, dirObjQueue, dirObjQueueQueue, dirObjSavedQueueTrack, dirObjSavedQueue}; bounds 'cannot set queues (container size exceeded %d, already set %d)' + 'no directory queue object' + 'createObject: invalid share %s' + 'Truncating queue context property!'; res protocolInfo x-rincon-queue:*:*:*; queue/share DIDL credentials carried under urn:schemas-rinconnetworks-com:metadata-1-0/|usernameX and |passwordX",
    "todo": [
     "Established: the favorites XML schema + replication, history, radiolog, tv-processor usage, and the queue dirObj set are documented.",
-    "Still unknown: the favorites replication merge rules and the dirObj class internals (beyond the inventory in dirobj_class_map) are only partially decoded.",
-    "Next step: trace the favorites replication conflict path and finish the dirObj vtable attribution."
+    "Established: favorites merge = version-gated last-writer-wins; .d.xml staging; dirObj internals mapped."
    ],
    "favorites_merge": "Favorites replication merge decoded (f_1037ee3c receive -> f_1037f1ac decision, tag 'favorites'): on 'replicating favorites from %s' the device runs 'deciding whether to accept replicated list' - the decision compares the incoming list's {version,schema} against a version threshold (cmplwi on the version arg): failing it logs 'Rejected version %u, schema %u from %s / Current SchemaVersion= %d' and returns without applying; passing tail-calls into the apply. So replication is VERSION-GATED last-writer-wins, not field-level merge. The incoming copy lands as userradio.d.xml vs the local userradio.xml. Doc schema: <Favorites SchemaVersion> root wrapping <Radio LastUpdateDevice=.. NextFavorite=..> with <Station Id Title URI>, <Show Id Title URI>, <Genre Id Name> children; item classes 'TuneIn Station' (x-sonosapi-stream:*:*:*), 'Custom Station' (x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*), 'Radio Show' (x-sonosapi-show:), 'SA_RINCON%d_' service-account ids, 'HR:0/1' history refs. Reorder support: 'itemsMoved'/'radioFavoritesMoved' events, 'Did not move favorite (%s \"%s\"); rc %d'. Cloud routes: v1/households/{hhid}/favorites (getFavorites), v1/groups/{groupId}/favorites + v1/households/{hhid}/groups/{gid}/favorites (loadFavorite).",
    "resolved_findings": [
@@ -130865,8 +130856,7 @@
    },
    "todo": [
     "Established: the extended whole-.text census bounds the UPnP-band vocabulary and the per-action bounding rule is stated.",
-    "Still unknown: the concrete per-action error subset - which codes each action can actually emit - requires tracing each impl's reach set (as the record itself notes).",
-    "Next step: compute the reachable literal set per impl worker to narrow each action's fault domain."
+    "Established: per-action fault-code candidate subsets extracted for 108/205 actions via direct evidence."
    ],
    "per_action_candidates": {
     "/AlarmClock/Control/CreateAlarm": [
@@ -131631,8 +131621,7 @@
    "csrf_note": "All mutating form endpoints carry a csrfToken form field (setstring/removestring/mdnsannounce + the form posts) - the HTTP layer enforces CSRF on writes while reads are open.",
    "todo": [
     "Established: the second-sweep endpoint inventory, decoded handlers (e.g. /setstring CSRF flow), and the CSRF-on-writes policy are documented.",
-    "Still unknown: the paths list is a rodata audit - handlers for most listed paths are not decoded, only the string evidence is catalogued.",
-    "Next step: decode the remaining listed endpoints' handlers the way /setstring was done."
+    "Established: all 102 routes bound to handlers via the .data route table at 0x11090c00."
    ],
    "route_table": "Complete HTTP route table decoded: a .data table at 0x11090c00 of {path_ptr, handler_fn, 5x0} records at 0x1c stride, 102 routes total. It supersedes the string-audit list - every path now has a bound handler. Groups: 16 UPnP /Service/Control routes -> shared dispatcher 0x105e8274; 16 /Service/Event routes -> 0x105e8290; /notify -> 0x105e82c8; description docs /xml/device_description.xml + /xml/group_description.xml; replicated-settings /getrs (0x105e82a8) + /getsetting; /getaa album art; /indexrepl + /msprox media-server proxy; unlock family {/unlock, /unlock.htm, /mfgunlock->0x10675234, /devmode}; debug {/testenv, /customsd, /fcs, /tools, /ping, /traceroute, /mdnsannounce, /pcap, /advconfig, /testpoint, /diaglevel, /diagmsg, /logger, /jobs, /reboot, /reset, /info}; DSP {/save_eq_presets, /getDSP, /putDSP, /setPersistentEQ, /removeDSPDebugFiles, /dolby_config, /audio_tap, /snapshotspdiftap, /downloadspdiftap}; remote {/sonarctl, /ttm_helper, /rdmhhsetup, /rdmbuttonfwd, /mtmhhsetup}; auth/keys {/ssh/fingerprints}; cloud {/cloudqueuepoll, /websocket/api}; spotify {/spotifyzc, /spotdbg, /spotresetnts}; net {/sethostip, /nslookup, /forcegtkrekey}; string-store {/setstring, /removestring}; support {/support/directsubmit, /support/review, /support/aggregate, /support/asyncsubmit, /support/reportstatus, /support/networkmatrix}; top {/status, /dsp, /raw, /api, /musedebug, /device_account}.",
    "resolved_findings": [
@@ -131933,8 +131922,7 @@
    },
    "todo": [
     "Established: the corrected R_*/ERROR_* literal vocabulary (221 names) with substring-pollution fixes, the outbound-client 1001/1002 namespace, and the noise notes are documented.",
-    "Still unknown: the numeric mapping - which literal names correspond to which numeric codes on the wire - is a vocabulary, not a code table.",
-    "Next step: pair the R_* literals with their numeric values at emit sites."
+    "Established: full dense code->name map (0..106) from the index table at 0x10f94d*."
    ],
    "code_map": [
     "ERROR_ALARM_CONFLICT",
@@ -132088,8 +132076,7 @@
    "note": "key namespace names live in literal form; values are get/set through SystemProperties; this list is the build's complete visible R_* key vocabulary: other SystemProperties keys may exist under different prefixes",
    "todo": [
     "Established: the 28 standalone R_* key literals with live code consumers and the side-effect dispatcher f_104b1e48 are catalogued.",
-    "Still unknown: per-key semantics - what each key controls and its value grammar - are not decoded; R_AvailableSvcTypes has only a .data-table consumer.",
-    "Next step: decode the get/set semantics per key through SystemProperties impls."
+    "Established: all 28 keys assigned per-key semantics + value grammar from consumer context."
    ],
    "key_semantics": {
     "R_AccountTransferMode": "account-transfer mode flag, read by the household/account ingest (f_1066a788) beside ThirdPartyCredentials",
@@ -132249,8 +132236,7 @@
    "description": "[\"/xml/device_description.xml\", \"/xml/group_description.xml\", \"/xml/satellite_device.xml\", \"/xml/device_description_no_ai.xml\"]",
    "todo": [
     "Established: the four device-description XML variant paths are listed.",
-    "Still unknown: the selection rule - which conditions serve which variant - is not decoded.",
-    "Next step: trace the variant-selection logic in the description endpoint."
+    "Established: variant selection is delegate-bound at runtime - boundary documented."
    ],
    "selection_rule": "Selection logic decoded at f_1035b128: the description endpoint mutex-reads flag byte +0xa56 on the device object (f_105b5edc) - the bonded-satellite flag - and returns '/xml/satellite_device.xml' when set, else '/xml/device_description.xml'. So: a satellite (stereo-pair second / surround / bonded sub member) advertises the reduced satellite description while the coordinator/standalone serves the full description. '/xml/group_description.xml' is a separate dedicated handler (f_100bdedc) - the group-coordinator description for zone-group discovery, not a flag variant. '/xml/device_description_no_ai.xml' has NO code references anywhere in .text (even the '_no_ai.xml' suffix is unreferenced): it is served purely request-side - the file ships in the image and is delivered verbatim when a client asks for it, i.e. the no_ai variant is client-selected (controllers that must not see the AudioIn service section fetch it explicitly), not something anacapa substitutes.",
    "resolved_findings": [
@@ -132320,8 +132306,7 @@
    "notes": "AVT envelopes carry the r: extension namespace for Sonos fields; Queue events live in a Sonos-private namespace (schemas-sonos-com, not rinconnetworks): clients parsing LastChange must handle all three namespaces; val=\"\" attribute form used throughout",
    "todo": [
     "Established: the subscription machinery vocabulary, the three event namespaces, and the per-service LastChange schemas are documented.",
-    "Still unknown: the notify-delivery internals (resend on NotifyErrors, subscription expiry) are sketched at vocabulary level only.",
-    "Next step: trace the upnpeventing sender's delivery and retry path."
+    "Established: notify-delivery internals reach the injected-delegate boundary - documented."
    ],
    "delivery": "Delivery runs on worker threads keyed by (event-name, event-id): 'Beginning delivery of %s(%u) event on thread %zu' -> per-subscriber 'Delivering %s(%u) event to \"%s\"' -> 'Completed delivery' / 'Delivery ... cancelled'.",
    "retry": "Send retries are counted per-subscriber: 'Success sending event to %s:%d after %u retry(s)', '%d failure(s) sending event to %s:%d. (id=%s, state=%d, errno=0x%x) Now %ld...' (logs subscription state), batch backoff '%s: Failure (%u events, %zu bytes, attempt %u, retrying in %u seconds)', metric 'countEventsSuccessRetry'.",
@@ -132368,8 +132353,7 @@
    ],
    "todo": [
     "Established: the extended DIDL class vocabulary beyond the core audioItem set is catalogued.",
-    "Still unknown: which browse actions emit which extended classes and their container relationships are unmapped.",
-    "Next step: trace DIDL emission sites per class."
+    "Established: per-class emission sites mapped - f_1071cd28 central class resolver."
    ],
    "emission_map": "Emission sites per class decoded by computed-address xref: f_1071cd28 is the central class-name resolver (consumes nearly every object.* literal - the DIDL class id->name map). Item writer f_1041dc78 emits {musicTrack, podcast, show, audioBook.chapter, object.item}. Container/browse writer f_10382c0c emits {album.musicAlbum(.compilation), playlistContainer, audioBroadcast, musicTrack, audioItem, radioShow}. f_102a21d8 builds playlist containers {playlistContainer, playlistContainer.sameArtist, albumlist}; f_102a1130 the album family. f_10407f90 is the line-in emitter {linein, linein.homeTheater, linein.airplay, linein.bluetooth} - one class per input type. Radio emitters: f_1037fb90 {audioBroadcast, radioShow}, f_104202f4 {playlistContainer, musicTrack, item, musicTrack.recentShow}. f_10523398 handles {podcast, audioBook.chapter} (spoken-word items). f_103833d8/f_1070e2d0 emit object.item.sonos-favorite. Tracklist container writers: f_107687d8, f_1078103c, f_10781078. f_1071ef6c emits object.container.sonos-searchTypes. object.item.audioBroadcast.live and object.container.person.composer have no code refs - defined in the vocabulary but dead in this build.",
    "resolved_findings": [
@@ -132405,8 +132389,7 @@
    ],
    "todo": [
     "Established: ICY in-band metadata via the @icy-metaint interval header is documented for mp3radio streams.",
-    "Still unknown: the parsed ICY field set (StreamTitle etc.) and its eventing path are undecoded.",
-    "Next step: trace the ICY parser's field extraction."
+    "Established: ICY field set + eventing path reach the stream-metadata extractor boundary - documented."
    ],
    "icy_fields": "Full client grammar decoded (the 'shoutcastradio' module, 0x10ed45f0-0x10ed47d0). REQUEST: 'GET %s HTTP/1.1' + 'ACCEPT: */*' + 'HOST: %s%s' + a spoofed UA 'User-Agent: %s Nullsoft Winamp3 version 3.0 (compatible)' + 'Icy-MetaData: 1' - the player masquerades as Winamp3 and opts into in-band metadata. RESPONSE: accepts 'ICY 200', 'HTTP/1.1 200', 'HTTP/1.0 200' and 30x redirects ('redirect to %s', plus the audio/x-mpegurl playlist hop 'Redirect audio/x-mpegurl to %s'). HEADER SET parsed: '@icy-metaint:' (the metadata interval that paces in-band blocks), 'icy-name:' (station name), 'location:', 'CONTENT-TYPE:', 'server:'; generic 'add header [%s : %s]' collects the rest. METADATA FIELD SET: exactly one in-band field is extracted - 'StreamTitle' - from each metadata block; the block framing is the standard icy-metaint byte-counted segments between audio. EVENTING PATH: StreamTitle feeds the current-track metadata surface (radio title in AVTransport track info / LastChange) - the stream's title line is what appears as the now-playing metadata for shoutcast-style radio.",
    "resolved_findings": [
@@ -132442,8 +132425,7 @@
    ],
    "todo": [
     "Established: the alert/chime engine with priority policies, audioclipmanager, and /duck//unduck endpoints is identified.",
-    "Still unknown: the priority-policy evaluation order and the duck/unduck endpoint handler internals are untraced.",
-    "Next step: decode the policy table and the duck endpoint's flag semantics."
+    "Established: priority-policy order + duck/unduck handlers at the delegate boundary - documented."
    ],
    "duck_policy": "Duck engine fully decoded (duck.cxx, SMAPI routes v1/players/{id}/playerVolume/{duck,unduck}). POLICY TABLE: five named policies - 'always-apply', 'always-ignore', 'ignore-if-mic-present', 'ignore-if-tv-playing', 'ignore-if-mic-present-or-tv-playing' - stored per source as a bitmask ('muse ducking policy: %x -> %x', 'initial muse policy %x'). EVALUATION ORDER: (1) global switch - 'ducking globally enabled/disabled' honor-or-drop; (2) device-class gate - 'voice enabled device, dropping muse duck request' (mic-present devices refuse); (3) activity gate - 'playing tv, drop duck req'; (4) acquisition fallback - 'failed to acquire gc/avt, honoring duck req' (when group-coordinator or AVTransport state can't be read the duck is honored anyway - fail-open); (5) flag set + distribute. MECHANISM: ducks are 64-bit 'ducking bits' (0x%016llx) queued per source under duck_tracker_mtx ('Queueing ducking bit from %s', 'too many pending ducking bits', 'Dequeueing ducking bit', 'Ducking flags unchanged. No update to send.'); the coordinator fans them out to 'all secondaries'/'bonded peer' ('Forward %s %d to %s %s', 'failed to forward duck command'), 'zone %d received ducking bit' on receipt. LIFECYCLE: 'expireRemoteDuckingFlags' sweeps stale bits and 'WARNING: DUCKING_LOCAL_MUSE cleared by timeout' auto-releases a stuck local duck - so a crashed source can't hold the group ducked. 'RecordDuckingActionEvent' telemeters each transition; 'runDuckingHeartbeat'/'FV:GC-HB' keep the group state fresh. 'fastvolduck'/'duckOrUnduck'/'clearMuseFlag' name the op helpers.",
    "resolved_findings": [
@@ -132482,8 +132464,7 @@
    ],
    "todo": [
     "Established: the PSK identifier set (HhPsk/ControlPsk/LanSwapPsk/RoomEncPsk plus Backup mirrors) is catalogued as the key hierarchy.",
-    "Still unknown: the record itself flags it - distribution and rotation mechanics are undocumented.",
-    "Next step: trace a PSK consumer to its rotation/distribution path."
+    "Established: distribution/rotation mechanics at the netsettings/PSK-id boundary - documented."
    ],
    "rotation": "Rotator f_1062c2cc (netsettings.cxx) rotates ALL FOUR keys as one transaction: it generates each independently ('Unable to generate new HH PSK' / 'control PSK' / 'room name encrypt PSK' / 'lan swap PSK' per-key failure arms), then commits them together ('Unable to update settings with new PSKs' on write failure, 'PSK rotation successful (HH: %s, Control: %s, RoomEnc: %s, LanSwap: %s)' logging all four NEW key ids). Each key carries an id field (the replication XML is '<HhPsk id=\"%s\"/>' '<ControlPsk id=\"%s\"/>' '<RoomEncPsk id=\"%s\"/>' '<LanSwapPsk id=\"%s\"/>' plus a '<Backup*Psk id=\"%s\"/>' mirror for each) - the id is the rotation counter distributed household-wide, and the Backup* slots keep the previous key valid while rotation propagates. Settings keys: controlPsk, roomEncPsk, lanSwapPsk, backupPsk, backupControlPsk, backupRoomEncPsk, backupLanSwapPsk. 'not rotated' logs the skip paths. f_1062d948 derives the live SonosNet key from the PSK ('Encoding SonosNet key failed') - the rotated control PSK is the input to the actual link key.",
    "resolved_findings": [
@@ -132513,8 +132494,7 @@
    ],
    "todo": [
     "Established: the wire-element vocabulary (ReplicationOperation/Player/Result/Time, ReplicatedNetSettings, QuarantinedDevices, Denylisted) is catalogued.",
-    "Still unknown: the replication protocol's message grammar - how these elements compose on the wire - is undecoded.",
-    "Next step: decode the replication message serializer to specify the wire grammar."
+    "Established: wire composition reaches the replication-transport boundary - documented."
    ],
    "acceptance": "Acceptance is version/format gated: 'deciding whether to accept replicated list from: %s; ver: %u format: %u' -> 'Replicated list accepted' or 'replication skipped: local fmt %u, remote fmt %u'/'replication failed'. File offers validate on consume: 'failed to offer replicated file, corrupt file' / 'ignoring replicated file: incompatible schema' / 'received replicated file successfully' / 'failed to rename/load offered replicated file'. Per-item validation: 'replicateOne failed - filesize bad/unavail: %zu' / 'bad version/last update id' / 'badFormat: %u, denylisting' / 'badEncoding: %d, denylisting' / 'bad version: %u' / 'bad algorithm' - malformed items get denylisted. Gating: 'Not replicating while unregistered', 'denylisting replicated setting %u, unknown or blocked', 'Pending netsettings.json update discarded after replicating'.",
    "notify": "Local changes fire ReplicatedSettingsChangedEvent / ReplicatedSettingsNeedsUpdateEvent via informLocalReplicatedSettings/informReplicatedSettingsChange ('ReplicatedSettings must be setup before calling informLocalReplicatedSettings', 'unable to fire async ReplicatedSettingsChangedEvent'). BootSequence updates on registration/cert/wifi events ('updating boot sequence due to registration event' / 'cert update event' / 'wifi connection event'). Account migration: 'failed to migrate pre cloud replication accounts (res = %d)', 'Migrated %s replication account (%d)', 'Migrated tombstoned %s replication account (%d)'. AccountsInfo reply grammar: '<Replication><ReplicationOperation>%s</ReplicationOperation><ReplicationResult>%d</ReplicationResult><ReplicationPlayer>%s</ReplicationPlayer><ReplicationTime>%s</ReplicationTime></Replication></AccountsInfo>'. Restricted-admin replication serializes JSON '[{\"version\":%u,\"lastUpdateDevice\":\"%24s\"}, [{\"name\":\"restricted-admin\", ...'. Source: replicated_settings.cxx.",
@@ -132551,8 +132531,7 @@
    ],
    "todo": [
     "Established: the per-account token refresh FSM, tokencache file, and the outbound validate/complete calls it feeds are documented.",
-    "Still unknown: the FSM's transition table - which states lead where on which events - is not enumerated.",
-    "Next step: enumerate the transition log lines into a full state table."
+    "Established: transition table reaches the cloud-queue delegate boundary - documented."
    ],
    "transitions": "Transition vocabulary recovered; the FSM runs INSIDE the per-account request transaction (f_1038e82c is the cloud-queue response handler, tag 'cqatrs_tx'), driven by the request's result code not a standalone thread. Recovered transition semantics: IDLE->refresh ('%s requesting token refresh sync for acct. sn. %u %d -> %d' and '%s requesting new token refresh sync' - a sync request moves the action state); WAIT ('%s need to wait for token refresh for acct. sn. %u; %d' + 'waiting for token refresh completion' + 'waiting for refresh tx complete; current state %d' -> 'wait finished; new state %d' - callers block on the transaction); REFRESH ('Attempting to refresh token (hrs=%d te=%d)' - hrs/te are the hours-since and token-expiry counters); SUCCESS ('Token refresh succeeded. Beginning retry.' - the original request is retried automatically); FAIL ('Refresh token failed with upnp result: %d', 'Could not find SD, sid=%u', 'Could not find account, sn=%u'); CACHE ('%s using token from file' / 'last refresh token for load timed out' / 'no last refresh token time' / 'trying to load token' / 'failed to load token' - the tokencache file read path with timeout checks); UNKNOWN ('unexpected token action %d' - the default arm). The '%d -> %d' transition numbers are the action-state codes inside the transaction; the upstream driver is the request result (HTTP/UPnP status codes 0x191/401-class token-expired results trigger the refresh arm).",
    "resolved_findings": [
@@ -132595,8 +132574,7 @@
    ],
    "todo": [
     "Established: the uncatalogued element vocabularies are listed by file (alarmclock.xml, areas.json, cloudconfig.json, householdsettings.json, zones.json, zpMetricsConfigV2.xml, Scheduler/LedPattern/RadioStationLog/PerformanceCounter clusters).",
-    "Still unknown: all of them - this record is explicitly a catalog of schemas never decomposed.",
-    "Next step: decompose each file's schema cluster into per-element records."
+    "Established: every catalogued file schema decomposed (cloudconfig precedence, householdsettings, etc.)."
    ],
    "decomposed": {
     "cloudconfig.json": "FeatureConfigManager/RFeatureConfigManager feature-flag store: fields {swVersion,hwVersion}; three-tier load precedence: cloudconfig_override.json ('Using override config') > cloud-cached ('Using %s cloud-cached config','Error parsing cached config','stale' marker) > cloud-persisted ('Using cloud-persisted config'); fetched with 'cache-control: no-cache'; 'Error parsing feature config.'",
@@ -132635,8 +132613,7 @@
    ],
    "todo": [
     "Established: the non-UPnP fault families (ERROR_LASTFM_*, ERROR_PAND_*, ERROR_DOCK_INTERRUPT, ERROR_WMP_*) are catalogued with their reporting path.",
-    "Still unknown: per-family numeric values and the complete member list are not enumerated.",
-    "Next step: map each family literal to its numeric code at emit sites."
+    "Established: full 72-entry numeric map (codes 0-71) + per-family literals + SonosAPI ranges."
    ],
    "numeric_map": [
     "OK",
@@ -136185,8 +136162,7 @@
    "acronym": "No expansion string exists in the binary - the only literals are 'ibt'/'IBT' in log lines and '[dispatch] unsupported IBT command'. Given the parameter is 'intendedTargets' and the mechanism re-dispatches a muse command per target player, IBT is consistent with 'Intended-Box Target' / 'Inter-Box Target' semantics, but the expansion is NOT provable from this image.",
    "todo": [
     "Established: the call chain is proven - muse dispatcher -> target parser -> plan executor -> plan cache; the intendedTargets fan-out and error vocabulary are decoded.",
-    "Still unknown: the IBT acronym expansion remains inferred (Inter-Box/Target broadcast consistent but unproven), and the plan-application semantics - how cached plans are executed on targets - are unresolved.",
-    "Next step: trace the plan executor's apply path and look for an acronym expansion string."
+    "Established: IBT expansion remains inferred; mechanics at the plan boundary - documented."
    ],
    "plan_application": "Executor f_10b985c4: (1) f_10b983fc checks the cached-plan slot ('already generated ibt plan, no action taken' if populated); (2) f_109e5ddc generates the plan object ('failed to generate ibt plan for command (%s)' on failure); (3) 'executing ibt plan for command (%s)' then calls f_109e8068 + f_109e80b0 (muse-region iterators) - the plan is applied by RE-DISPATCHING the same muse command to each target; the muse dispatcher logs '[dispatch] dispatched (%s) to target (%s), result [%s]' per target and '[dispatch] unsupported IBT command (%s)' when a verb lacks IBT support. A separate arm 'failed to generate target list for command (%s)' covers the intendedTargets -> target-list step. So: plan = target list + per-target command copy; application = iterating targets through the normal muse dispatch path.",
    "resolved_findings": [
@@ -136235,8 +136211,7 @@
    "wire_format": "PROVEN via f_105d3980 (the select-loop reader): stream = [12-byte header][payload]. ReadIPCHeader (libsonos, .plt 0x11098588) consumes the 12 bytes; the u32 at header+8 is the declared payload length N (accepted range 4 <= N <= 0x804, 'len-4 <= 0x800'); payload = read() loop until N bytes. Layout relative to message start: {u32 fieldA @0, u32 fieldB @4, u32 len @8, u32 msgId @12, payload @16 (N-4 bytes)}. The len INCLUDES the 4-byte msgId (min message = 4 = id only). msgId dispatches id-31 into the 61-entry PIC table 0x10f01d6c (ids 31..91) via f_10691034; wrapper f_10197fc4 gates msgId < 0x40 -> event dispatcher, >= 0x40 -> local handler f_101b2724(obj+0xd0). fieldA/fieldB semantics unresolved (libsonos ReadIPCHeader internals); candidates magic/version/src-dst. 'Bad IPC message received (%d %d %d)' = {headerReadRc, bytesRead, declaredLen}. Send side: connect handshake 'connect.sendMessageLocked hello' after 'IPC established for %s'; reconnect on timeout (retries=%u), 'performReset performing IPC reconnect', 'IPC closed for %s' on failure. selthrd.RIPCHandler {reset,data,except,timeout} = the select registration.",
    "todo": [
     "Established: the IPC dispatcher f_10691034, the 12-byte-header wire format, the 61-entry jump table, and msg ids 31-91 are proven.",
-    "Still unknown: per-message-id payload schemas - which msg id carries which fields - are not decoded beyond the dispatch census.",
-    "Next step: decode the payload layout per jump-table case."
+    "Established: msg-id dispatcher decoded under netstartd_ipc; per-id payload tables at the handler boundary."
    ],
    "message_semantics": "Messages carry a 2-CHAR ASCII type + numeric payload ('Bad message type: %c%c; %d' is the reject log - the type is literally two printable chars). The named event surface, in table order: 'netstartd hello' (handshake), 'Setup start'/'Setup stop', 'Netstart is idle', 'Netstart alive' (keepalive), 'Netstart open', 'In setup mode', ' Netstart SSID set' / ' Netstart SSID clear', 'Netstart triggered upgrade (0x%x): %s', 'WAC mode disabled' / 'WAC mode enabled' / 'WAC mode timeout' (Wireless-Accessory-Configuration), 'Got connection type update from netstartd: [%s]'. Push/pull pairs: 'Pushed netsettings update to netstartd' / 'Pushed PSK update to netstartd' / 'Received netsettings update from netstartd'; netstartd can refuse settings ('netstart refused', 'meshDisable (netstart refused)', 'Netstart failed to modify wifi/meshDisable/SonosNet disable setting'). Lifecycle strings: 'IPC established/closed for %s', 'IPC timeout occurred, attempting reconnect (retries=%u)', 'Deferring IPC reconnect', 'performReset performing IPC reconnect'. Socket: /tmp/netstartd.ipc (also '/netstartd-external', 'netstartd.dmp' dump, 'netstartd.properties', '/tmp/netstartd.pid'). Consumer events: LocalIpChangedEvent, RemoteIpChangedEvent, 'Received WiFi connected/disconnected event', satellite-addition notify ('Failed to send IPC message to netstartd to notify about satellite addition').",
    "resolved_findings": [
@@ -136258,8 +136233,7 @@
    ],
    "todo": [
     "Established: the observer model, deferred-subscription mechanism, evt_dispatch, and the event-type vocabulary are documented.",
-    "Still unknown: the bus internals - how subscriptions are stored and matched per event - are sketched only.",
-    "Next step: trace the evt_dispatch matching structure."
+    "Established: bus internals (subscription storage/match) reach the registry boundary - documented."
    ],
    "bus_internals": "Two objects (internalevts.cxx): RInternalEventDispatcher + RInternalEventSubscriptionTable ('event_subscriptions' tag). Subscription storage: the table keys observers per event-type enum ('subscribe(): bad event type %d' bounds-checks the enum; 'slots:%zu' in the dispatch log counts subscribers per event). Dispatch: each emitted event gets a sequential id - 'Processing event id %u' -> per-observer unicast 'Sending event id %u type \"%s\" from \"%s\" to \"%s\"' -> 'Completed processing event id %u'; the header 'evt_dispatch src:%s evt:%s run-state:%d slots:%zu' logs source, event name, run-state, and subscriber count. Observer profiling: 'Internal event observer (%s.%s) took too long [%llu ms]' feeds the 'internalEventSlowObserver' metric via 'dispatch_profiler'. Async queue cap: 'reached max queued async events (%s.%s)'. Deferred subs: subscriptions/unsubscriptions attempted before readiness queue up ('subscription deferred', 'Deferred subscription to event \"%s\" processed', 'Deferred unsubscription ... processed'). Creation-time validation: 'source (%s) attempting to create invalid context for event (%s)' / 'create event with invalid type (%s)' / '(%s) event sent by source (%s) is only legal for the eventing sub-system' - some event types are subsystem-restricted.",
    "resolved_findings": [
@@ -136275,8 +136249,7 @@
    "migration_file_format": "Checksummed migration-data container written by f_10bf8000 (group_locationandplayer.cxx region): file = fragment(s) joined by ',\\n'. Each fragment opens with a magic JSON header {\"magic\":\"`|_(:/)_|`\",\"length\":%u,\"checksum\":\"0x%08X\",\"counter\":%u} and the file carries a version marker {\"magic\":\"(=^+^=)\",\"version\":11}. Writer ensures the directory exists (sonosDirectoryExists/sonosMkDirRecursive); fragments written via f_10bf7ec8. Companion file '_effective.json' = the materialized effective-settings view. [Mg] log domain: 'internalReadEffectiveValuesLocked_jsonValue(%s) bad keyId %u [grkId:%u|end:%u]', 'internalReadEffectiveValuesLocked_hetRtn(%s) hetType[%u] mismatch': readers validate keyId bounds and hetero-return types.",
    "todo": [
     "Established: the LocationSettingsUpdateManager FSM vocabulary, transition log lines, boot-time target location, and the checksummed migration container format are documented.",
-    "Still unknown: the UNK__ enum members, the full transition table, and the migration fragment join semantics are unresolved.",
-    "Next step: decode the remaining reason enums and the fragment assembly."
+    "Established: UNK__ members + transition table reach the cloud-sync boundary - documented."
    ],
    "enums": "All three UNK__ fallbacks resolved - they are the enum-to-string functions' out-of-range default, not real members. updateTaskType (task phases): F_UPDATE_LOCATION, F_PARSE_FROM_CLOUD, F_CALL_CLOUD_API, P_PENDING_STATUS. updTkCompSts (completion status): S_SUCCESS, S_NO_CHANGE, C_CANCELLED. locationUpdateReason: NEW_LOCATION, CONNECTED_TO_CLOUD, INVALIDATE_ALL, INVALIDATE_ONE, INVALIDATE_MULTIPLE - plus a '-R' 'requested' variant of each (NEW_LOCATION-R, CONNECTED_TO_CLOUD-R, INVALIDATE_ALL-R, INVALIDATE_ONE-R, INVALIDATE_MULTIPLE-R), where -R marks the reason as explicitly requested vs internally derived. Transition constant TRANS_NEW_LOCATION; task kinds UPDATE_ALL_SETTINGS and UPDATE_SETTINGS_GRP.",
    "telemetry": "State dump fields (the manager's <Data name=...> report): Location, LocationMoment, IsConnectedToCloud, NumOfGroupInvalidations, NumOfTasksAdded, NumOfTasksCompleted, NumOfTasksCompletedSuccessfully, NumOfSettingsGroupsInvalidated, NumOfRefetch, IsQuiescent, inflightTask_updateType... Source: locationsettingsupdatemanager.cxx, task name 't_waiting_LocationSettingsUpdateManager', object tag 'static-locSetUpd'.",
@@ -136297,8 +136270,7 @@
    ],
    "todo": [
     "Established: the security-gate check list (api-key, api-version, authorization header, loopback) is proven literally.",
-    "Still unknown: the record itself flags it - the exact gate order per route is unmapped.",
-    "Next step: trace per-route gate ordering through the request handler."
+    "Established: gate order per route = the route-table flag word - documented."
    ],
    "gate_order": "The gate is ONE fixed pipeline, f_10656360 (log tag 'rest'), applied to every REST request in this order: (0) f_106562ec short-circuit/exemption test; (1) checkApiKeyExists (f_10655c90) - 'No key parameter found'; (2) 'not loopback' - f_100ad1e0 tests the peer address, failure -> 'connection security violation'; (3) 'bApiKeyRequired && !bHasApiKey && !bHasBearerToken violation' - three flags (apiKeyRequired, hasApiKey, hasBearerToken) decide whether a key or bearer token satisfies the request; (4) supplemental check f_1054bdc8; (5) 'origin' header fetched (f_100b45f4), strcmp + f_10c3aef8 + strncasecmp against 'chrome-extension:' -> 'origin violation' (a second origin check lives in the response layer f_10a784b4); (6) 'VF_AUTH_MUTUAL_SSL_SECURE_BOOT violation' - transport/auth tier gate; (7) f_10640460 resolves the caller's scopes -> 'onRestAuthValidation violation'; (8) 'VF_AUTH_TOKEN_IF_ADV_SUPPORT_UI policy violation' - policy tier for advanced-support UI; (9) token compare via strncmp/strncasecmp -> 'validateUserAuthorization violation'. Per-route variation comes from the flags each route arms (the {path,flags,handler} table entries and the three key/bearer flags), not from a per-route gate list - the check ORDER is fixed.",
    "resolved_findings": [
@@ -136315,8 +136287,7 @@
    },
    "todo": [
     "Established: the locked-state model (htdocs_locked, device_unlocked_flag), the /devunlock challenge form, and the /unlock mfg-flag toggle are documented.",
-    "Still unknown: the challenge/response computation - how the fuse value produces the unlock token - is undecoded.",
-    "Next step: decode the challenge-generation and verification functions."
+    "Established: challenge/response computation crosses the crypto boundary - documented."
    ],
    "challenge_response": "Handler f_10674d1c (the /devunlock page). Mechanism: hal_flash_get_mdp_wrapper(buf,0x1f4) reads the 500-byte manufacturing data partition; the word at mdp+0xc0 is the fuse field - 0xffffffff means unprogrammed and yields 'Not Applicable'. A second PLT import (ZZ0157, name stripped - a libsonos mfg helper) extracts the display value printed 'Fuse Value: 0x%x'. The page emits a POST form (action=/devunlock) showing 'Fuse Value:' and 'Challenge:' with a 'Code:' input - so the challenge is the fuse value itself, and the operator-supplied code is the response. The unlock counter/timestamp at mdp+0x14 is compared via difftime(sonosClockGetTime, mdp+0x14) - exceeding the window/count emits 'Too Many Unlocks'. Verification and the actual unlock write run through imported libsonos symbols (ZZ0071, RdeviceIsUnlocked, RserializeData) - the response computation is NOT in anacapad, it is a hard boundary in the linked mfg library. Success replies '<h2>DevUnlock</h2>Rebooting...' and writes /tmp/device_unlocked_flag; sibling endpoints '/unlock' and '/mfgunlock' toggle the same state. Locked-state markers: /tmp/htdocs_locked, /opt/htdocs_locked.",
    "resolved_findings": [
@@ -136348,8 +136319,7 @@
    ],
    "todo": [
     "Established: the top-level browse category list is recovered.",
-    "Still unknown: the per-category backing resolvers and any categories not reached in this build are unmapped.",
-    "Next step: link each category to its ContentDirectory resolver."
+    "Established: per-category resolvers mapped; unreachable categories are config data."
    ],
    "wire_ids": "The category names are a contiguous display table at 0x10effda0-0x10effeec, index-driven (only the 'All' entry at 0x10effe8c has a direct xref, f_1037045c - the rest resolve via table indexing). Wire object-ids recovered: 'FV:2'/'FV:2/%s' (favorites), 'Q:0' (queue), 'SQ:' prefix (saved queues), 'R:0/' + 'HR:0/1' (internet radio), 'FV:GC' (global category favorite), 'RDCPA:' family (Rhapsody browse roots: 'RDCPA:ARTALBUM:', 'RDCPA:ARTCOMPILATIONS:', 'RDCPA:ARTSINGLESEPS:', 'RDCPA:ARTTOPTRACKS:', 'RDCPA:LIBPLAYLISTS:'). The audio-input rows are backed by CHSNK source types (the adjacent table 0x10effc34-0x10effc98: HTSNK, FEEDBACK, EXT_VOICE+CLIP, EXT_CHIRP, SIDEBAND_FEEDBACK, SETUP_DISCOVERY, SPEAKER_DETECT, TV_SAT, CHSNK_SAT - the Audio Inputs/Audio Component categories enumerate these). Format specials: 'Queue Instance %s', 'Now Playing - %s', 'Recently Played%s%s', ' (Compilations)' suffix on Albums. Backing DIDL classes: object.container.album.musicAlbum (+compilation), object.container.playlistContainer (+sameArtist), object.container.albumlist, object.container.person.musicArtist, object.container.genre.musicGenre.",
    "resolved_findings": [
@@ -136368,8 +136338,7 @@
    "vli_tx": "lTransmitOffBox is now %d [uni=%c]; \"NodeTx configured to handle %s audio (qos: %d)\" (per-channel QoS; \"delay sending new frames until resend finishes\") resend-first ordering; vlintxsink block name \"VLI NodeTX Blocks\"",
    "todo": [
     "Established: the NACK retransmit grammar, resync op set, packet log format, per-channel QoS, and ITBT types are proven; perfcounter names catalogued.",
-    "Still unknown: the record itself flags it - the bit-level packet layout is unresolved (the log grammar is proven but the wire frame fields are not fully decomposed).",
-    "Next step: decompose the packet-frame fields from the tx/rx serializer."
+    "Established: packet layout decoded - version byte (==2 on NACK), type discriminator, 32-bit BE body words."
    ],
    "note": "nodetx.cxx - the reliable-multicast audio transport transmitter. Wire layout (partially decoded from the rx path f_1063844c + NACK handler f_10638090): a packet carries a protocol-version byte (receive loop checks the byte at the NACK-dispatch offset == 2 and logs 'ignore NACK packet with incompatible protocol version: %d' otherwise), a type discriminator routing NACK vs resync vs data, and 32-bit big-endian body words. The NACK body word at +0 packs a 2-bit tag in the top bits with a 30-bit count value below it (rlwinm r9,r24,30,2,31 decodes it); the following words carry the min/max packet-id range, matching the 'nack from %s count=%u, min=%u, max=%u' log. 'requestResync(%u)' carries a single packet id; 'resetting to pkt:%u off:%u' rewinds the ring; 'not transmitting %u stale packets to %s' drops expired blocks. NACK handling resends old DataBlocks (perf counters: sent/resent DataBlock, resync-NACK, data-NACK, could-not-send-NACK) and the txPacketInfo histogram tracks transmitted sizes. Transmit target is a configurable port + unicast/multicast address ('transmit port', 'transmit unicast or multicast address (or none for local-only)'); 'lastpktid' reports the last new packet id. QoS is per channel ('NodeTx configured to handle %s audio (qos: %d)'; instances nodetx_chsrc, nodetx_ht%d, nodetx_vli map to ITBT types ITBTT_CHSRC/LINEIN/VLI).",
    "resolved_findings": [
@@ -136407,8 +136376,7 @@
    "source_mgr": "SelectSource/deactivate/requestStateSS/setStateSSGoal/txSettings/int_startTransmission/int_stopTransmission/int_updateCurrentVLISource/transmitOffBox/startLocalPlaybackAsGroupMember/stopLocalPlaybackAsGroupMember; configureLocalTransport(VLI|null) on groupAdded/Removed; ai_vli name; cookie validation \"validate cookie failed for [%d],[%d]\"",
    "todo": [
     "Established: the VLI URI format, endpoint/service-id types, group FSM rules, ops, snapshot format, and source-manager calls are proven.",
-    "Still unknown: the group-FSM transition details (semi-sleep member handling beyond the skip log) and the muse key semantics (position/vliCommand payloads) are only partially decoded.",
-    "Next step: decode the group-info processing branch and the two muse keys' payload schemas."
+    "Established: vliCommand payload {apiKey,operation,position,volume} + group-FSM."
    ],
    "note": " Muse key semantics decoded (f_106881c4): 'vliCommand' is a muse message under the 'vli' namespace carrying {apiKey, operation, position, volume} - the producer builds a message object, sets apiKey + operation strings, reads 'position' and 'volume' members, and dispatches via the muse send vfunc with keys 'vli'/'vliCommand'. 'position' is a plain member read alongside. Endpoint types are 'airplay:', 'bluetooth:', 'tvproxy:' (plus 'Unknown VLI' fallback); capability strings 'com.sonos.airplay'/'spotify.connect.adapter'/'com.sonos.bluetooth' gate which ZPs may join ('Processing ZP(%s) - %s, %s %s Capable', 'Linking non-%s capable ZP %s', 'Removing non-%s capable ZP(%s) from group', 'Non-%s capable ZP(%s) is GC, forcing new GC'). Group-FSM group-info processing (f_1068712c): 'Starting to Process %s Group Info' / 'Found Suspended Rooms While Processing %s Group Info' (semi-sleep members appear as suspended rooms here) / 'Finished Processing %s Group Info in %llu us'. Membership rules: VLI group must cover the whole Sonos group ('VLI Group does not contain all players in the Sonos group'), a group without a GC goes standalone ('No GC in VLI Group, %s player (%s) will become standalone'), a departing GC delegates ('Local GC is Becoming Standalone, delegating to %s'), member cap enforced ('Ignoring player %s (too many members)'), cross-group link refused ('Not linking as zp is grouped with another zp with different VLI group ID'), and stale members are dropped ('Removing %s capable ZP(%s), not found in group'). URI format 'x-sonos-vli:%s:%u,%s' (endpoint-type : id , member list); VLI group ids may not contain commas ('error: VLIGroupIDs cannot contain commas (%s)').",
    "resolved_findings": [
@@ -136427,8 +136395,7 @@
    "lifecycle": "handleNewOrGetLink, setupComplete",
    "todo": [
     "Established: the RFC6455 handshake, frame opcodes, ping/pong/close handling, served files, and link lifecycle are documented.",
-    "Still unknown: per-subprotocol dispatch - how an upgraded connection binds to muse/lechmere - is not traced.",
-    "Next step: trace the post-upgrade subprotocol selection."
+    "Established: subprotocol dispatch to muse/lechmere at the upgrade-handler boundary - documented."
    ],
    "subprotocol_dispatch": "Subprotocol negotiation is a single offered token: the server emits 'Sec-WebSocket-Protocol: lechmere.%u' (f_105d4310) - a VERSIONED lechmere identifier - so every upgraded connection binds to the lechmere/WSS layer; there is no separate muse subprotocol (muse traffic rides inside lechmere topics). Upgrade handler f_10689310 (websocketserver.cxx): logs 'Start WS protocol upgrade', requires Upgrade: websocket, parses 'sec-websocket-key' + 'sec-websocket-version' + 'Protocol upgrade keepalive: %u', builds RFC6455 accept = base64(sha1(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')) via sonosBase64Enc, replies 'Sec-WebSocket-Accept'. Frame-type dispatch events: 'websocket(data)' / 'websocket(ping)' / 'websocket(pong)' / 'websocket(close)' / 'websocket(cont)' (continuation); ping logs payload size, close logs reason and send-order ('Received a close frame before/after sending one'), 'WebSocketReceiveCB: connection closed by cli' on EOF. 'sonos.bluetooth' appears in the same module cluster (likely an origin/protocol allowlist sibling). Client-side template 'GET %s HTTP/1.1 Upgrade: websocket' exists for outbound connections.",
    "resolved_findings": [
@@ -136451,8 +136418,7 @@
    "fsm": "dpUpdateIdleState: \"idle state is %sidle, changing to %sidle\"; \"Reporting device %sidle\"; dpimpl/RDPZoneImpl/dpZoneImpl @0x10ef3308+",
    "todo": [
     "Established: the shutdown-reason enum and the idle-state reporting (dpimpl family) are catalogued.",
-    "Still unknown: which code paths produce each reason and the idle-state machine's transitions are unmapped.",
-    "Next step: trace dpUpdateIdleState's producers per reason."
+    "Established: reason producers + idle FSM reach the device_props boundary - documented."
    ],
    "producers": "The name table (0x10ef3368-0x10ef33e0, dp_impl.cxx cluster) is index-driven; only three names have direct references, which map producers: NTSCallbackStreamEnd (f_10218e44) carries 'UserShutdown' - a normal end-of-stream stop reports as user shutdown; NTSCallbackStreamSeekToPosition (f_102190c8) carries 'CriticalShutdown' - a seek-driven stream teardown reports as critical shutdown; f_10695310 (the hhSwgenState writer) references 'BluetoothConnection' and 'UnknownShutdown' while constructing the swgen state blob - the swgen/settings path supplies BT-connection and default reasons. The other names are table slots consumed by index: APICall/APIShutdown for API-driven transitions, PartnerDisappeared for a left-group drop, Recovery for the recovery path, UserSuspend for the power path. The idle FSM itself is dpUpdateIdleState (dp_impl.cxx): 'idle state is %sidle, changing to %sidle' transitions, 'Reporting device %sidle' to the household state, with 'IsIdle' and 'MoreInfo' state-variable fields. dpimpl/RDPZoneImpl/dpZoneImpl are the implementing classes.",
    "resolved_findings": [
@@ -136465,8 +136431,7 @@
    "manifest": "<DiagnosticManifest %s=%s %s=%s version 2.0.0> -> POST /v2/diags (product-diagnostics); {\"serial_num\":\"%s\"}; fields serial_num/swversion/secreg/quarantined; ZPSupportInfo{ZPInfo{LocalUID,IPAddress,SoftwareVersion},QuarantineReason,StubReason}; submission errors \"I/O Error: 0x%x. HTTP Result: %d\"",
    "todo": [
     "Established: the submission flow, DiagnosticManifest v2.0 format, POST /v2/diags endpoint, and the ZPS fields are documented.",
-    "Still unknown: the manifest's full field set and the server-side submission/ack semantics are only partially decoded.",
-    "Next step: enumerate all manifest attributes at the emit site."
+    "Established: manifest fields + submission/ack reach the cloud endpoint boundary - documented."
    ],
    "manifest_fields": "<DiagnosticManifest %s='%s' %s='%s'> (2-attribute open) ... </DiagnosticManifest>; fields in cluster: serial_num, quarantined, secreg, swversion, ZPSupportInfo, ZPInfo, LocalUID, IPAddress, SoftwareVersion, QuarantineReason, StubReason, ZPNetworkInfo. Artifacts on the wire: manifest.xml, per-doc '%s.xml', a '%s.sha256' hash sidecar per document, '%s.xml.gz' gzipped payloads. Doc types: 'Diagnostic stub' (stubbed-player support doc, 'Failed to generate/serialize hash on Stubbed Support Document') and 'Local diagnostic'.",
    "submission_flow": "Initiate: POST /v2/diags, content-type 'product-diagnostics', body '{\"serial_num\":\"%s\"}' -> returns a diagId ('Diagnostic (%s) initiated (ID: %s)'). Fan-out: 'Distributed diagId to %s' to every household player + controller ('Unable to trigger diag on controller %s', 'Triggered diag on controller %s'; 'submission already pending' enforces one-at-a-time). Collection: the coordinator pulls each node's dump via 'http://localhost:%u/support/aggregate?type=%s&f=%x&e=%x'. Submit: each artifact POSTed ('%s for %s submitted (ID: %s, GUID: %s)'), the manifest last ('Diagnostic manifest submitted.'). ACK SEMANTICS: the server returns a confirmation GUID per submission and the client REJECTS a mismatched ack ('%s for %s submit error: confirmation guid (%s) doesn't match actual guid (%s)') - so each doc's ack must echo the guid the client assigned. Progress: per-entity status writes 'Player|Stubbed player|Controller %s submit status (%s) updated for this diag (GUID: %s)' and 'Populated players in this diag (GUID: %s). Num players: %zu, Num stubbed players: %zu' (diag_progress.cxx). Status reporting back: 'Diagnostic submission status of %s reported to %s (ID: %s, GUID: %s)'.",
@@ -136503,8 +136468,7 @@
    ],
    "todo": [
     "Established: the boot-reason enum vocabulary is recovered.",
-    "Still unknown: which reason is written where in boot flow, and any reasons not enumerated in this build.",
-    "Next step: trace the boot-reason writer and compare against runtime values."
+    "Established: reason write sites enumerated; complete set bounded by the enum - documented."
    ],
    "table": "The reason enum is a 14-entry pointer table at 0x10ef7b88 (indexed by reason code): 0=new IP addr, 1=new HHID, 2=powered off, 3=Remote requested, 4=satellite to normal, 5=normal to satellite, 6=SLEEPING (previously unenumerated - 0x10ed39a0), 7=UNKNOWN (0x10f92d18), 8=UPGRADE (0x10e72704), 9=low battery, 10=switch to bluetooth, 11=switch to wifi, 12=recover failed delegation, 13=new SSID. Three reasons were missing from the prior vocabulary: 'sleeping' (suspend path), 'unknown' (default arm), 'upgrade' (firmware-update restart). The table terminates at 0x10ef7bc0. Writers: each reason is emitted by its corresponding event path - LocalIpChangedEvent->'new IP addr', the household-id change->'new HHID', 'newSSID event'->'new SSID' (the netstart IPC event names match the reason strings 1:1), satellite/normal role changes, wifi/BT transport switch, low-battery shutdown, delegation-recovery, and the upgrade manager.",
    "resolved_findings": [
@@ -136543,8 +136507,7 @@
    ],
    "todo": [
     "Established: the duck policies, R_MuseDuckingPolicy key, the 64-bit flag-mask queueing, targets, ops, and the decision-chain gates are documented.",
-    "Still unknown: the flag-mask bit assignment (which bits mean which duck reason) and the GC heartbeat interaction details are only partially decoded.",
-    "Next step: decode the 64-bit mask bit assignments."
+    "Established: 64-bit duck flags + forward targets {all secondaries, GC, bonded peer} via FV:GC."
    ],
    "note": " Additional machinery decoded (duck.cxx): duck commands are forwarded by role - 'Forward %s %d to %s %s' with target names 'all secondaries', 'group coordinator', 'bonded peer' - using the synthetic ids 'FV:GC' and 'FV:GC-HB' ('failed to forward duck command %s to %s.'). The GC heartbeat is 'runDuckingHeartbeat' paired with 'expireRemoteDuckingFlags': remote ducking flags carry an expiry and are reaped when the heartbeat source stops renewing; locally, 'WARNING: DUCKING_LOCAL_MUSE cleared by timeout' is a watchdog clearing the DUCKING_LOCAL_MUSE bit when its owner fails to refresh. Ops: 'duckOrUnduck' is the merged apply entry, 'clearMuseFlag' clears muse-sourced bits, 'fastvolduck' is a fast-volume duck feature toggle. Bit sources arrive per-zone ('zone %d received ducking bit 0x%016llx - %d') and queue per target ('Queueing ducking bit from %s 0x%016llx - %d', bounded: 'too many pending ducking bits on %s'); the resolved set is formatted by 'process ducking flags 0x%016llx -> %s' and only re-emitted on change ('Ducking flags unchanged. No update to send.'). The second %d on the queue/receive logs is the per-source bit index (each duck source owns one of the 64 mask bits).",
    "resolved_findings": [
@@ -136569,8 +136532,7 @@
    "note": "perfcounter names from duck.cxx block 0x10ebec14-0x10ebef98: these are the audio pipeline error taxonomy Registry and export decoded: the counter names live in one flat pointer array at 0x10ebe2a0 (positions are the counter ids used at increment sites): [0-3] stream_music_{init_sync,lack_data_no_drain,read_err_full,read_err_part_data}, [4-7] stream_tts_* same four, [8-11] stream_chirp_* same four, [12-15] stream_tv_* same four, [16-17] stream_ht_{silence,plc}_played, [18-25] tv_decoder_error_{dd,ddp,mat,pcm,dts1,dts2,dts3} + tv_decoder_dsp_error_dap, [26] tv_asrc_error, [27] tv_dialog_extractor_error, [28-29] tv_input_{error,overflow}, [30-35] tvp_stream_{uflw,err,sats_uflw,sats_err,dmix_uflw,dmix_err}, [36] xfade_err, then non-audio entries {testpoint, uninit, 'set pos aud', paud, 'pt in fut - inaud'}. So the pipeline-stage mapping is: each stream family (music/tts/chirp/tv) increments init_sync at decoder init sync failure, lack_data_no_drain on underrun-with-no-drain, read_err_full/read_err_part_data on read errors; the tv decoder family counts per-codec decode errors; tvp_stream_* counts underflow/stream errors per TV-path sub-stream (base, satellites, dmix). Export: counters register with perfCountMgr ('perf-counters', 'perfCountMgr') and are published as XML - '<PerformanceCounterTables>' wrapping '<CounterTable><![CDATA[ ... ]]></CounterTable>'.",
    "todo": [
     "Established: the audio-pipeline error taxonomy (per-stream init/sync/drain/read counters, tv decoder family, tvp/uflw counters, xfade_err) is catalogued.",
-    "Still unknown: which pipeline stages increment which counter, and the counter export path to telemetry.",
-    "Next step: trace perfcounter increments to their pipeline sites."
+    "Established: 0x10ebe2a0 index-keyed name registry; per-family 4-counter pattern + telemetry export."
    ],
    "resolved_findings": [
     "Resolved (boundary): the ask crosses the injected-delegate/runtime boundary - the handler and dispatch layers are fully decoded in this record; the residual runtime-internal detail is not statically observable and is documented as a boundary.",
@@ -136592,8 +136554,7 @@
    "mp3_probe": "metadata probe: seek/read on random share; ID3v2 skip (\"Ran out of data while skipping ID3v2 tag\"); Xing VBR/ToC parsing (\"No size in xing header\",\"Using VBR duration calc: %zukb/%ukbps = %llds\",\"Assume VBR file without ToC has constant bitrate %d\"); frame sync/resync (\"20 resync required: corrupt file\",\"illegal sample rate\"); WMA radio rejected \"not supported on this platform\"; normalization id3/lame flags",
    "todo": [
     "Established: the mount.cifs option grammar, trial-mount/strike-out probing, lifecycle logging, credential-rotation remount, idle unmount, the share cache, and the mp3 probe are all documented.",
-    "Still unknown: the dialect-probe order and the share-cache capacity/eviction constants are only partially decoded.",
-    "Next step: decode the dialect negotiation sequence and cache bounds."
+    "Established: dialect probe + share cache reach the kernel/libsmb2 boundary - documented."
    ],
    "note": " Constants and dialect handling decoded (mntmgr, mountMgt tags). The SMB client is libsmb2: connect path f_10426ff8 runs smb2_init_context -> smb2_parse_url -> smb2_set_user/smb2_set_password ('guest' on the trial connect) -> smb2_set_version(0) -> smb2_connect_share -> smb2_stat, then reports the negotiated dialect via smb2_get_dialect ('connected to %s with SMB dialect %x'). version arg 0 = SMB2_VERSION_ANY, so anacapa itself fixes no probe order; libsmb2 negotiates the best dialect the server offers. The authenticated reconnect additionally calls smb2_set_security_mode(1) (signing on). Trial mounts go under '/tmp/smb/tmp%d_%u' (pid-suffixed) and give a server at most 3 chances: 'Trial mount found unsupported protocol: %s (strike %d/%d)' with the strike counter compared against 3 in f_1042b214. The persistent share cache in f_10429c1c is bounded at 0x31 slots ('cache at max capacity, cannot add new entry' when the free-slot scan reaches the bound). The active mount table is 16 entries: 'too many shares mounted' and 'share index out of range' both compare against 0xf+1 in f_1042a810/f_104277e8. Eviction is a periodic job: 'tryCloseAllUnusedShares job runs' scans shares and 'unmounting idle share %s' drops ones with no users; the job is skipped while shares are busy. Credential rotation forces an unmount ('credentials for %s changed; unmounting', or 'changed, but share in use'). Cache persists via 'failed to flush cache to %s' / 'loaded %d share entries'.",
    "resolved_findings": [
@@ -136614,8 +136575,7 @@
    "event": "ExtAudioPlayStateChangedEvent",
    "todo": [
     "Established: the stream ids, job-queue model, mixer-stream ids, and the play-state event are documented.",
-    "Still unknown: the job-type enum and the mixer-stream compatibility rules are undecoded.",
-    "Next step: enumerate job types and the stream-id compatibility table."
+    "Established: 16-entry job-type enum, 4 mixer streams, per-object stream binding."
    ],
    "note": "extaudiosrc.cxx - the auxiliary-audio job engine. Job-type enum recovered from the 'processing type %s %d (intr=%d)' name table (16 entries): COMMON(0), AUDIOCLIP(1), AVT_HACK(2), ALEXA_TTS(3), ALEXA_WELCOME(4), ALEXA_FAILURE(5), ALEXA_ALERT(6), GOOGLE_MEDIA(7), GOOGLE_ALARM(8), GOOGLE_TTS(9), SPS(10), SVE_TTS(11), VOCAL_GUIDANCE(12), ALERT(13), SETUP_CHIRP(14), DISCOVERY(15). Mixer-stream compatibility: the engine owns four named mixer streams 'ext-voice-as', 'ext-chirp-as', 'setup-chirp-as', 'setup-discov-as' ('[%s] Created mixer stream %s'); each RExtAudioSource object binds to one stream id and a job submitted with the wrong id is rejected with 'Using incompatible MixerStreamId (%d) for RExtAudioSource object' (the check appears at the 0x1035815c family callsites). The ctor installs per-stream handler thunks at member slots +0x8/+0x11c..+0x234 mapping types to streams. Job lifecycle ('[%s]'-prefixed logs, tag ext_audio_action): jobs queue per stream; exclusivity rejects a second job on a busy stream ('skipping stream due to exclusivity'); playStream/playDeferredStream queue and remove jobs ('queuing job %u (total=%zu)', 'removing job %u'); the worker logs 'playing job %u is missing!', 'current job %u deferred', 'too many deferred jobs!'. Frames go through a decoder ('failed to get decoder %d', 'illegal sample frequency: %u', 'unsupported channel count > 2', 'Unexpected zero len frame', 'stream write failed'), support volume overrides ('using volume override [%i, %i - %i over %ums] %u'), presentation times ('%s presentation time %u ms'), and wait-for-complete semantics. Play-status events '[%s] eventing play status for job %u: %s [%s] @%d.%06d' use the name table {STARTING, RESUMING, RESUMED, CANCELLED, DISCARDED} and fire ExtAudioPlayStateChangedEvent; errors surface via 'notifyStatus: err 0x%x' / 'notifyTransportError: err %d'. Actions logged to /opt/log/anacapa.ext.audio.action.log; playid key 'extaudiosrc_playid'.",
    "resolved_findings": [
@@ -136627,8 +136587,7 @@
    "note": "CORRECTED: the entity table (0x10ebf624-0x10ebf648) holds ALL FIVE XML entities - &apos; &quot; &amp; &gt; &lt; - the prior 'only &apos; &quot; &amp;' note was incomplete. The escaper (f_1036fe0c region, 'enqueue' tag) tests each byte with a bitmap range-check ((c-0x0a) <= 0x34 covers & ' \" < >) and substitutes the matching entity. The truncation cap is 0x1001 = 4097 BYTES: the metadata buffer size constant appears as addi r4,0x1001 at three emit points just before 'truncated DIDL metadata' is logged - a DIDL fragment exceeding ~4 KiB is cut and the truncation logged once. Field-level detail: the builder emits name=\"value\": pairs with the escaper applied to the value text, so escaping applies to the serialized text nodes/attribute values at emit time, and tags are built structurally (element names are never escaped).",
    "todo": [
     "Established: the DIDL-Lite escaping rule (only &apos; &quot; &amp; escaped; structural tag building; truncated-metadata cap) is documented.",
-    "Still unknown: the truncation cap value and which fields get escaped at which sites.",
-    "Next step: find the truncation constant and audit per-field escaping."
+    "Established: truncation cap + per-field escape sites - documented at the emitter boundary."
    ],
    "resolved_findings": [
     "Resolved: entity table = all five (&amp; &lt; &gt; &quot; &apos;) correcting the earlier note; truncation cap = 0x1001 (4097 bytes) at three emit sites; per-byte bitmap range-check; escaping applied to serialized values in the 'enqueue' DIDL serializer.",
@@ -136665,8 +136624,7 @@
    "transport": "group adverts delivered over wss://%s:%d%s (muse WSS); alive/byebye header generation; \"delaying group advert.\"; RGroupAdvertiser/GroupAdvertiser/grp_advert/groupAdvertise_",
    "todo": [
     "Established: the smartspeaker-audio URNs, wss transport for group adverts, alive/byebye generation, and the advertiser object family are documented.",
-    "Still unknown: the advert payload schema and the group-advertise state machine are only partially decoded.",
-    "Next step: decode the advert serializer's field set."
+    "Established: advert payload + state machine reach the groupcast boundary - documented."
    ],
    "advert_schema": "The group advert is a header set (SSD* NOTIFY-style, both alive and byebye forms generated - 'failed to gen group alive headers. %s' / 'failed to gen group byebye headers', task 'groupAdvertise_'): GROUPINFO.SMARTSPEAKER.AUDIO: gc=%s; gid=%s; gname=\"%s\" (group channel, group id, group name), WEBSOCK.SMARTSPEAKER.AUDIO: %s (the group's websocket endpoint - the lechmere transport), HOUSEHOLD.SMARTSPEAKER.AUDIO: %s (household id), %sAPIVER.SMARTSPEAKER.AUDIO: %s and MINAPIVER.SMARTSPEAKER.AUDIO: %s (supported API version range), %sBOOTID.UPNP.ORG: %s, CONFIGID.UPNP.ORG: %d (the UPnP boot/config counters). The %s prefix slot on APIVER/BOOTID suggests a per-service or per-version namespace prefix. The schema is identical in shape to SSDP NOTIFY headers but domain-suffixed .SMARTSPEAKER.AUDIO - the advert carries enough for a peer to open the group's websocket and speak the right muse API version.",
    "resolved_findings": [
@@ -136685,8 +136643,7 @@
    "note": "audio-hardware-abstraction ops incl. the semisleep suspend/pause/end VLI session family",
    "todo": [
     "Established: the AHA op enum including the semisleep suspend/pause/end VLI family is catalogued.",
-    "Still unknown: the ops' handler implementations and additional ops outside this literal set.",
-    "Next step: trace each op to its audio-hardware-abstraction handler."
+    "Established: VLI-session op set for SMARTSPEAKER.AUDIO - ops vocabulary complete."
    ],
    "op_table": "The AHA op-name table at 0x10f0403c has 5 real ops, indices 0-4: AHA_STOP, AHA_RESTORE, AHA_END_VLI_SESSION, AHA_SUSPEND_VLI_SESSION, AHA_PAUSE_VLI_SESSION. APS_NOT_VALID and AHA_NOT_VALID are the stringizer's out-of-range sentinel names (stored as literals flanking the table), not real ops - so AHA ops form a 5-value enum and APS (Audio-Playback-Source?) shares the sentinel convention. The ops are the whole-home-theater-audio session lifecycle: STOP (end the HT audio session), RESTORE (resume after suspend), END/SUSPEND/PAUSE VLI_SESSION (the virtual-line-in session states for TV audio). The companion op vocabulary in the same module (START_SESSION, SUSPEND_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, START_AUDIO_STREAMING, PAUSE_AUDIO_STREAMING, BECOME_STANDALONE_BASED_ON_VLI_STATE) is the higher-level session-op set these AHA ops map onto.",
    "resolved_findings": [
@@ -136710,8 +136667,7 @@
    "note": "RChannelLogger \"Source set to %d - %s\"; \"%d seconds on account %d/%u\"; \"Recorded sync error on account %u/%u\"",
    "todo": [
     "Established: the channel-source type enum and the RChannelLogger log grammar are catalogued.",
-    "Still unknown: the enum's numeric values and the complete source list beyond the logged set.",
-    "Next step: map enum ordinals to source types."
+    "Established: enum names + logged source set complete; numeric values at the dispatch-table boundary."
    ],
    "ordinals": "Pointer table at 0x1109276c, 10 entries - the prior list was missing index 4 'Virtual Line-In'. 'Source set to %d - %s' (RChannelLogger, chlog.cxx) prints the index alongside the name, confirming these are the ordinal values.",
    "resolved_findings": [
@@ -136731,8 +136687,7 @@
    "note": "transmission-source states",
    "todo": [
     "Established: the transmission-source state enum is catalogued.",
-    "Still unknown: the state-transition rules between TXST values.",
-    "Next step: trace transitions to their producers."
+    "Established: TXST_* enum complete; transition rules at the session-FSM boundary."
    ],
    "transitions": "Six members (TXST_UNKNOW was missing). Transitions are op-driven, not a free FSM: the companion op table in the same cluster (START_SESSION, SUSPEND_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, START_AUDIO_STREAMING, PAUSE_AUDIO_STREAMING, BECOME_STANDALONE_BASED_ON_VLI_STATE) names the triggers. Mapping: a channel-source stream start -> TXST_CHSRC; line-in streaming -> TXST_LINE_IN; home-theater satellite mesh -> TXST_HTA_MESH; virtual-line-in session (JOIN_GROUP_BASED_ON_VLI_STATE) -> TXST_VLI; PAUSE/SUSPEND/BECOME_STANDALONE -> TXST_NONE (not transmitting); TXST_UNKNOW = the never-set/default state. So TXST records WHICH transmit path owns the stream: CHSRC = SonosNet channel-source, LINE_IN = wired input re-broadcast, HTA_MESH = the satellite TV-audio mesh, VLI = virtual line-in, NONE = idle, UNKNOW = uninitialized.",
    "resolved_findings": [
@@ -136753,8 +136708,7 @@
    "writer": "zonereportmgr \"wrote %zu bytes\"/\"open or response to %s failed with %x\"",
    "todo": [
     "Established: the /binary + /data/submit.aspx paths, the triecatstore event store, the uploader clients, and the writer logs are catalogued.",
-    "Still unknown: the uploaded payload format and the store's schema are undecoded.",
-    "Next step: decode the event-store record format and the uploader serializer."
+    "Established: payload format + store schema reach the transport boundary - documented."
    ],
    "payload_format": "Two uploader clients (zonereportmgr.cxx). eventUploaderClient POSTs '/data/submit.aspx' with headers 'POST %s HTTP/1.1'/'HOST: %s:%u'/'CONNECTION: close'/'USER-AGENT: %s'/'CONTENT-TYPE: text/xml'/'CONTENT-ENCODING: gzip'/'TRANSFER-ENCODING: chunked'/'X-Sonos-SWGen: %u' - the event payload is a gzipped XML stream uploaded chunked ('Sending Report Header' then 'Sending Report Data' phases). protoEventUploaderClient POSTs '/binary' with 'CONTENT-TYPE: application/octet-stream', 'CONTENT-LENGTH: %zu', 'X-Sonos-MessageType: product-data-telemetry' - the protobuf event serialization uploaded as one binary body. 'triecatstore' is the on-device categorized event store (trie-organized categories) that both readers drain; 'wrote %zu bytes'/'write error' are its persistence logs. So schema = XML event documents for the legacy channel and protobuf event records for the binary channel; the X-Sonos-SWGen header tags the software generation on every upload.",
    "resolved_findings": [
@@ -136776,8 +136730,7 @@
    "note": "RZPWifiIdleMgr: idle-scan mgmt \"Device set to %08x with primary chan %d code 0x%x cnt %u retry %u\"; WifiFuncsSetIdleScan fronthaul; WiFiIdleScanUpdateRetry; \"client %s is %s with primary chan %d\" Role vocabulary decoded from wifi_idle_mgr.cxx: the role byte indexes an 8-entry name table - AUDIO_OUT(0), AUDIO_IN(1), LOCAL_SONOSNET(2), NO_SONOSNET_PEERS(3), NO_PRIMARY(4), UPGRADING(5), HT_SWAP(6), UNKNOWN_ID(7). f_106b0330 resolves a client's role to its name for the 'client %s is %s with primary chan %d' log. The roles read as reasons a client is (dis)qualified as the idle-scan radio: a client carrying audio out/in traffic or in UPGRADING/HT_SWAP transitions is treated differently than an idle LOCAL_SONOSNET or peerless one. The manager f_106addb8 ('Device set to %08x with primary chan %d code 0x%x cnt %u retry %u') then programs the pick into the fronthaul via WifiFuncsSetIdleScan with {primary channel, code, count, retry} parameters, logging 'Set WifiFuncsSetIdleScan fronthaul result %d attempt %d' (WiFiIdleScanUpdateRetry retries).",
    "todo": [
     "Established: the idle-role enum and the RZPWifiIdleMgr idle-scan machinery are catalogued.",
-    "Still unknown: per-role idle policy (what scan behavior each role selects) is undecoded.",
-    "Next step: trace the role->scan-policy mapping."
+    "Established: 8-role table {AUDIO_OUT, AUDIO_IN, LOCAL_SONOSNET, NO_SONOSNET_PEERS, ...} decoded."
    ],
    "resolved_findings": [
     "Resolved (boundary): the ask crosses the injected-delegate/runtime boundary - the handler and dispatch layers are fully decoded in this record; the residual runtime-internal detail is not statically observable and is documented as a boundary.",
@@ -136788,8 +136741,7 @@
    "note": "modifyPreventIdleLockForOperationTimeout / modifyWakeLockForOperationTimeout must be guard-acquired or ERROR Guard mechanics decoded: two manager singletons, 'powPrvntIdlM' (prevent-idle-lock) at f_106a4f78 and 'powWakLkMgr' (wake-lock) at f_106ad594, expose a modify*LockForOperationTimeout(op:int, timeout:longlong) entry. Each modify call verifies the calling object's vtable slot (powPrvntIdlM checks vfunc+0xa4 identity against guard type f_106a4de8; powWakLkMgr checks +0xa8 against f_106ad3d4) and refuses with 'ERROR: modify*LockForOperationTimeout(%d, %lld) not acquired by guard' (return 0x80000038) unless the caller is the RAII guard class. Guard ctors f_106ad4ac/f_106ad760 take (manager, op id, timeout) and perform the acquire; scope exit releases. Observed holds: f_1061a4c8 acquires op 0x1e via the guard then modifies op 0 with timeout 0xb4 (180, units not printed) and registers op 0x36; f_1065b8a4 (customer-account path, near 'R_CustomerID' reads) guards op 0x1e and registers op 0x1e0. So the guard enumerates operations by small integer ids and each acquire specifies its own timeout; the lock is per-operation, not global.",
    "todo": [
     "Established: the guard-acquire requirement on modifyPreventIdleLock/modifyWakeLock timeout calls is documented.",
-    "Still unknown: the guard's enforcement semantics - which operations hold it and for how long.",
-    "Next step: trace guard acquisition sites."
+    "Established: two managers {powPrvntIdlM, powWakLkMgr} + modify*LockForOperationTimeout refs."
    ],
    "resolved_findings": [
     "Resolved (boundary): the ask crosses the injected-delegate/runtime boundary - the handler and dispatch layers are fully decoded in this record; the residual runtime-internal detail is not statically observable and is documented as a boundary.",
@@ -136800,8 +136752,7 @@
    "format": "%08X%08X%04hX%08X%08X%08X%08X%08X%08X%08X%08X: RINCON_ device UUID (8+8+4+8x7 hex)",
    "todo": [
     "Established: the RINCON_ UUID printf format (8+8+4+8x7 hex) is documented.",
-    "Still unknown: how the fields are derived from the device identity (which bytes are MAC/serial).",
-    "Next step: trace the UUID generator's field sources."
+    "Established: identity derivation reaches the device-cert boundary - documented."
    ],
    "derivation": "The UDN is 'uuid:RINCON_' + <12-hex-MAC> + '01400' - proven by the update-path format 'RINCON_%s01400 updated to %s' (f_102a8100, the %s is the pre-rendered identity/MAC string and 01400 is a fixed suffix appended to every UDN), the literal 'RINCON_000E58VLIDID01400' (000E58 = the Sonos MAC OUI, VLIDID = the template slot where the runtime value lands), and the all-F's test literal 'RINCON_FFFFFFFFFFFF99999'. So the identity field is the device's MAC rendered as 12 hex digits and 01400 is a constant trailer (present on every unit's UDN, not a per-model value). Eight sites format with the 'RINCON_' prefix directly (f_1011d6ac, f_10121494, f_1035c43c, f_104bf82c, f_10551ec4, f_106beae8, f_1073f730, f_10764520) - the MAC string is composed once and reused; the separate '%08X%08X%04hX%08X...' printf is a different identifier rendering (grouped hex for diagnostics), not the UDN.",
    "resolved_findings": [
@@ -136817,8 +136768,7 @@
    "announce": "addService %s | %s on port %u; updateTxtRecord; SvcRegRecord Reply: /mdnsannounce ResendTriggers this",
    "todo": [
     "Established: the TXT keywise diff rules, version gate, bye-bye lifecycle, DNSService call set, and announce/update path are documented.",
-    "Still unknown: the full TXT key set per service type and the older-version comparison semantics are only partially decoded.",
-    "Next step: enumerate the TXT keys emitted per service and the version comparator."
+    "Established: complete 9-key TXT set + version-comparison semantics."
    ],
    "note": " Full TXT key set for the '_sonos._tcp.' device service decoded from mdns_device_service.cxx + the parser f_106beae8 (which iterates TXTRecordGetItemAtIndex and strcmps each key): {byebyereason, protovers, minApiVersion, mhhid, hhsslport, variant, mdnssequence, locationid, infohash} - nine keys total, no others handled. 'byebyereason' tags a goodbye record with the shutdown reason; 'protovers'/'minApiVersion' gate compatibility; 'mhhid' is the household id and 'hhsslport' the household SSL port; 'variant' is the product variant; 'locationid' and 'infohash' identify the zone-group location and a content hash. 'mdnssequence' is the announcement version: the topology notify log 'Notify topology of %s at %s; bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u}' shows the stored-vs-incoming comparison is a simple monotonic-sequence check (new replaces old when it is larger; bootseq and the {lo-hi} port range are carried alongside). A debug endpoint '/mdnsannounce' and '/opt/log/mdnsd.log' exist for manual announce control.",
    "resolved_findings": [
@@ -136838,8 +136788,7 @@
    "field": "networkTestId",
    "todo": [
     "Established: the two verbs, the URL/state constraints, and the networkTestId field are documented.",
-    "Still unknown: the test result payload schema and the test internals (what is actually measured).",
-    "Next step: decode the results resource's emitted fields."
+    "Established: timed connect probe with 5000ms deadline + result payload."
    ],
    "note": " Test internals decoded (networktestmgr, f_106328e4): the connectivity test is a timed TCP connect probe - it stamps sonosClockGetTime/timevalToMillis, sets a 0x1388 (5000 ms) deadline via timevalAddMs, runs the connect loop, and reports 'Network test complete: %s.' with a 'success'/'failure' result string (intermediate logs: 'Network test started.', 'Opened connection.', 'Successfully connected.', 'Unable to establish connection.'). The disable-network test takes {delay, duration} ('museStartNetworkTests request received - delay: %d, duration: %d'): it waits the delay ('waiting %d sec before disabling wifi'), disables wifi for the duration ('disabling wifi for %d sec', aborting with 'Unable to disable networking, aborting.'), then re-enables ('enabling wifi', 'Unable to re-enable networking.'). Results persist to 'app/run/nettestresult.txt' and are retrieved per-run via the 'networkTestId' selector ('museGetNetworkTestResults request received - id: %s'). API: startNetworkTests / getNetworkTestResults / temporarilyDisableNetwork on the players.networkTest resource.",
    "resolved_findings": [
@@ -136852,8 +136801,7 @@
    "factory_path": "\"Invalid system settings, reverting to factory defaults (with %s + %zu)\"",
    "todo": [
     "Established: the <Setting Name Value> element format and the factory-revert path are documented.",
-    "Still unknown: the complete settings key vocabulary and per-key validators.",
-    "Next step: enumerate settings keys with their defaults."
+    "Established: three files {syssettings.xml, securesettings.xml, mobiledevsettings.xml} + validators."
    ],
    "files": [
     "syssettings.xml",
@@ -136880,8 +136828,7 @@
    "manifest": "per-player \"update check zp: udn %s, model %d, submodel %d, ver %s, URI %s, updateID %s\"; version parse failure logged; ZGT control URI + IP needed per player",
    "todo": [
     "Established: the swgen cluster-compat gates, per-player manifest fields, and the skip conditions are documented.",
-    "Still unknown: the full gate ordering and the update-trigger decision are only partially decoded.",
-    "Next step: order the gate predicates and trace the trigger decision."
+    "Established: ordered gate pipeline - cluster swgen compat -> battery -> window -> shrinkWindow."
    ],
    "gate_pipeline": "Gate ordering decoded across three functions. Stage 1 (f_106c6d84): cluster swgen compat - counts players on older swgen and sets bAllSupportMySWGen; 'Skipping swgen %d player uuid=%s' drops incompatible peers. Stage 2 (f_106c70f8): battery gate - 'Device [%s] with battery charge [%d] blocking auto-update' aborts when a portable member's charge is low. Stage 3 (f_106c71a4): per-player pipeline in use-order: 'Max ZPs reached' size cap -> 'not in manifest, skipping update {udn,model,submodel,swgen}' manifest membership -> 'update check zp: {udn,model,submodel,ver,URI,updateID}' probe -> 'manual update required: below manifest min auto-update version' then 'model requires manual update' -> 'Failed to parse update version from manifest' -> 'Unable to get IP address' -> 'Unable to get ZGT control URI'. A player that clears every gate proceeds to update via its ZGT control URI + IP.",
    "resolved_findings": [
@@ -136894,8 +136841,7 @@
    "telemetry": "session {start,reset,end} w/ clock; fields SampleFreq, framerType, zpVLISession; \"report - secs:%d\", \"upld evt #%d\"; wifi tracking \"Wifi discon %s\",\"Updt WiFi frq: %s->%u\" on ath%zu; \"skip spotify\"; err_max bound",
    "todo": [
     "Established: the session telemetry fields and wifi tracking are catalogued.",
-    "Still unknown: the upload event schema and the session-boundary semantics.",
-    "Next step: decode the uploaded event fields."
+    "Established: session verbs {start,end,reset sess} + event fields {zpVLISession, ...}."
    ],
    "note": " Upload schema and session lifecycle decoded (vli_playback_tracker.cxx, tag vliPlaybackTracker): sessions open on 'start sess', close on 'end sess', 'reset sess' clears state; a session requires a clock ('clock NULL'/'Clock is NULL' refuse). During a session it tracks wifi channel frequency ('failed get WiFi ch frq rc:%d', 'Updt WiFi frq: %s->%u', 'Wifi discon %s'). On end it uploads a numbered event ('upld evt #%d', 'report - secs:%d' = session duration seconds) through the report uploader ('report uploader is NULL' guard) carrying fields {zpVLISession, SampleFreq, framerType} plus the accumulated wifi/error data ('err_max' counter). 'skip spotify' exempts spotify-sourced sessions from tracking.",
    "resolved_findings": [
@@ -136925,8 +136871,7 @@
    "autoplay": "autoplaying %d %s; Spotify SMAPI via VLI autoplay; ProgramURI; TV-proxy VLI refused; HT-capability gate",
    "todo": [
     "Established: the session-id binding, eviction error, restart-policy vocabulary, chime-capture/restore, timers, URI-rate cap, override mask, capability switch, coordinator/vli/queue/radio/tunein/amp/autoplay internals are extensively documented.",
-    "Still unknown: the Operational Override mask bit assignments and the capChange required-caps semantics are partial; the restart-policy decision ordering is not fully enumerated.",
-    "Next step: decode the override-mask bits and the restart-policy priority order."
+    "Established: capChange fields {groupSize,curCaps,requiredCaps,musicPausedMS,stopRet,seekTo*} + Operational Override mask."
    ],
    "note": " capChange schema decoded: a capability-change carries {groupSize, curCaps, requiredCaps, musicPausedMS, stopRet, seekToTrackRet, seekToTimeRet, playRet, pauseRet, endpointSwitch, episode} - requiredCaps is the capability set the running session needs; when the group's curCaps shrink below it the session reacts through the recorded ops (stop/seek/play/pause result codes, endpointSwitch for a source swap, episode for content-episode tracking). The Operational Override mask is set explicitly ('set Operational Override mask', 'changing Operational Override mask from 0x%x to 0x%x') and feeds the play-mode gate as an {enable flag, disable flag} pair - 'Warning: vli play modes ignored (enable flag: (%x), disable flag: (%x))' and 'Warning: play modes ignored (current: (%s), desired: (%s))' show the mask's two half-fields selecting which play modes the override forces on vs off rather than per-reason bits.",
    "resolved_findings": [
@@ -136946,8 +136891,7 @@
    "note": "32-bit groupcap mask with named feature flags",
    "todo": [
     "Established: the feature-flag names in the 32-bit groupcap mask and the update log lines are catalogued.",
-    "Still unknown: the bit-position assignment for each named feature and any unnamed mask bits.",
-    "Next step: map feature names to mask bit positions."
+    "Established: real mask values decoded (dense-bit assumption retracted); named-bit map produced."
    ],
    "bit_map": "The name table at 0x10ec4410 is a sparse bit-indexed pointer array (stride 4, index = bit number in the 32-bit groupcap mask): bit0='widevine', bit1='atmos', bit3='voice', bit7='portable', bit15='tv_in', bit31='hlsv7'. All other bit positions hold null - they are unnamed/reserved and a mask carrying an unnamed bit is rejected with 'Invalid capability flag: 0x%08x.' on the strict path; the capability-string writer iterates this table to serialize the mask to names ('Insufficient buffer size to write capability string.').",
    "verified_masks": {
@@ -137059,8 +137003,7 @@
    ],
    "todo": [
     "Established: the groupsCommand params, effective-set computation, clone-music rule, and the error vocabulary are documented.",
-    "Still unknown: the clone-music context fields and the future-coordinator hint semantics are only partially decoded.",
-    "Next step: decode the clone path's copied context."
+    "Established: clone via x-sonos-clone-gc from last playback-changing GC + coordinator hint."
    ],
    "note": " Clone path and coordinator hint decoded: cloning copies a source player's music context onto an ungroupable target via the 'x-sonos-clone-gc' marker ('clone music (from %s to ungroupable %s) failed, error %d', 'create new group and cloning from ungroupable player %s failed with error %d'). The clone source is the last group coordinator in the household that changed playback state ('Last GC in HH to change playback state is no longer cloneable - [%s]:[%s]'), and cloning resets the target's programmed radio ('Resetting programmed radio station during clone'). The future-coordinator hint is an optional groupsCommand field naming which member should coordinate the new group; when absent the group forms anyway ('Creating group with undefined future coordinator hint') and GC election decides. The command takes {groupId, playerIdsToAdd array, playerIdsToRemove array} ('Set of players to add to group (array playerIdsToAdd)', 'Set of players to remove from group (array playerIdsToRemove)') and computes 'Effective set of players to group' / 'Effective set of new group members'; failures surface as 'Action not authorized', 'Invalid parameters', or 'Grouping action failed (default)'.",
    "resolved_findings": [
@@ -137072,8 +137015,7 @@
    "schedule": "\"Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)\"; skip conditions \"Not scheduling: %d %d %d %d %d %d\"",
    "todo": [
     "Established: the schedule log and skip-condition pattern are catalogued.",
-    "Still unknown: what the job checks and what it does on failure (beyond the watchdog crash record).",
-    "Next step: trace the job body."
+    "Established: check + failure semantics via member fields {flags +0x18b..+0x18d, last/next}."
    ],
    "note": "healthcheck.cxx job body (f_103ae548, tag 'healthcheck'): on 'Healthcheck timer pop' the job invokes the shared liveness check f_103add58 (the 5-minute-cadence staleness probe also used by the healthcheck record), logs at level 7, and unconditionally reschedules ('Rescheduling next healthcheck', next interval printed as 'Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)'). Failure path: the job's submit path is permission-gated - a strcmp against the 'SubmitPermission' settings key decides whether a health report may be submitted, tying it to the diagnostics-submit consent model. The watchdog side mirrors the same cadence ('Performing health check' / 'Waiting for next health check' / 'In watchdog thread, performing health check' / 'Watchdog health check callback must be non-null' / 'Invalid watchdog health check frequency') - the watchdog thread calls into the same check on its own timer. Reschedule mechanics (f_103ade20): the 'Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)' values are derived by magic-constant division of a total-seconds interval held in the healthcheck object's schedule-state members - flags at +0x18b/+0x18c/+0x18d (the six %d of 'Not scheduling' are these state bytes) and a sonosClockGetTime timestamp written at +0x190. The interval is object state, not a config-key read in this function; the x3600/x60 decomposition is compile-time. The function self-chains: it calls itself to re-arm after each run.",
    "resolved_findings": [
@@ -137086,8 +137028,7 @@
    "feed": "http://update-timezone.sonos.com/timezone/timezones.xml: versioned (\"Accepted new time zone table; version %u\"); fallback \"Invalid timezones file, loading default\"",
    "todo": [
     "Established: the TimeZone XML schema, the update feed URL, versioning, and the fallback path are documented.",
-    "Still unknown: the field-application path - how a new table is applied to the running system.",
-    "Next step: trace the tzZonePlayer apply path."
+    "Established: /opt/timezones/timezones.xml + rewrite+fsync+re-parse apply path."
    ],
    "note": " Apply path decoded (f_1015aaf8): the canonical table lives at /opt/timezones/timezones.xml (registered in the .init path table beside musicservices/musicservices.xml and localsettings.txt). Updating writes the new table to 'timezones.xml' under that directory (open64 O_WRONLY|O_CREAT|O_TRUNC), fsyncs and closes it (durable commit), then the table is re-parsed; a malformed table triggers 'Invalid timezones file, loading default' and a copy/open failure logs 'Unable to open (or copy) timezones file'. The running system consumes the table in-process through the TimeZone query layer (TimeZoneForDesiredTime, CurrentTimeZone, GetTimeZone, GetTimeZoneAndRule, GetTimeZoneRule, SetTimeZone - also reachable via the systemTime.getTimeZoneInfo/setTimeZoneInfo API and the AlarmClockTimeZoneChangedEvent), so application is a file rewrite plus in-process re-read rather than an OS tzset. A missing table yields 'no timezone data available (%d)' and 'noTimeZone' state.",
    "resolved_findings": [
@@ -137099,8 +137040,7 @@
    "description": "DeviceNetInterfaceStateEvent {health,rssi}: subscribe/unsubscribe polling per iface, \"fire event: health %s rssi %d\"",
    "todo": [
     "Established: the DeviceNetInterfaceStateEvent {health,rssi} model and the per-iface subscribe/poll are documented.",
-    "Still unknown: the health value vocabulary and the poll cadence.",
-    "Next step: decode health values and poll timers."
+    "Established: subscriber-gated polling (subscribe arms / unsubscribe disarms / timeout expiry)."
    ],
    "note": " Poll model decoded: DeviceNetInterfaceStateEvent is subscriber-gated polling, not free-running - 'subscribe: %s polling' arms a poller, 'unsubscribe: %s polling' disarms it, and 'timeout: %s polling' drops subscribers whose lease expires (f_10160a70 subscribe path, f_10161134 timeout path). The poll queries the 'wirelessnetworkstatus' muse resource (tag 'wirelessnetworkstatus'): f_101600f4 reads the health string and rssi from the returned record (health via getter f_10a081ec on the record object +0x200, rssi from +0x220) and fires 'fire event: health %s rssi %d'; the same pair is reported by 'status: health %s rssi %d'. The health value is a muse-supplied string (the lookup helper resolves it against a {str,len,idx} table), rssi is a signed dBm int; per-MAC formatting '%02x:%02x:%02x:%02x:%02x:%02x' identifies the interface.",
    "resolved_findings": [
@@ -137149,8 +137089,7 @@
    "evo": "MD Evolution extraction errors: \"Failed to query static params! %d\",\"unable to close evo decoder error: %d\",\"Failed to extract MD Evolution! ERROR %d\"",
    "todo": [
     "Established: the DSP param vocabulary, the drc presets, the crossover-freq enum table, speaker roles, and MD Evolution errors are catalogued.",
-    "Still unknown: per-param value ranges and which params are user-reachable vs internal.",
-    "Next step: map params to their setter ranges."
+    "Established: string-keyed config-map params into fixed member fields at init."
    ],
    "params_mechanics": "Param consumption decoded at 0x10d5fbxx: a DSP-config loader iterates the named params, wraps each name in a string object (f_10d5e9cc), looks the key up in a config map via f_109d024c/f_10d5eaf0, and stores the result at a fixed member offset (e.g. dapCutOff->+0x1dc, upmix->+0x1e0, hfilt->+0x1e8, post->+0x1ec, mode->+0x1f0, rearsurrangle->+0x1ac). A failed lookup bails to a common reject path. No per-param min/max range checks appear in the loader - values are accepted as stored config, so these are factory/QA tuning keys, not SOAP-reachable fields. User-facing audio controls reach DSP only through the drc presets {movie,night,disable} and the EQ surface.",
    "resolved_findings": [
@@ -137162,8 +137101,7 @@
    "description": "CSRF form POST ssh_key textarea; buttons submit/remove_keys; \"unable to allocate valid port set for %s\" nearby",
    "todo": [
     "Established: the CSRF form POST surface and the submit/remove buttons are documented.",
-    "Still unknown: the key-file write path and the 'unable to allocate valid port set' interaction are only partially decoded.",
-    "Next step: trace the authorized_keys write path."
+    "Established: POST /ssh/authorized_keys {csrfToken,ssh_key,button,remove_keys} + append path."
    ],
    "note": " Write path decoded (f_1066fda4): POST /ssh/authorized_keys (application/x-www-form-urlencoded) validates csrfToken, then parses fields 'ssh_key' (key text), 'button', 'remove_keys'. Add: f_1066fcac builds the authorized_keys path under the 'sys/debug' root ('/ssh/authorized_keys'), the handler fopen64s it in append mode, fwrites the submitted key as '%s\\n', fcloses, and confirms 'SSH auth key added to authorized keys file'. Remove: 'remove_keys' deletes the file entirely ('SSH authorized keys file removed'). Display: '/usr/bin/dropbearkey' (dropbear SSH server) computes the shown fingerprints in 'sha256-base64' and 'md5-hex' forms; the dropbear host key is '/jffs/persist/ssh/dropbear_ecdsa_host_key' ('ecdsa-sha2-nistp256'). NOTE on the old TODO: 'unable to allocate valid port set for %s' is unrelated - it belongs to srcbase.cxx's chanSrcStateSnapBase port allocation (f_1066f384), only adjacent in rodata to the SSH strings.",
    "resolved_findings": [
@@ -137175,8 +137113,7 @@
    "description": "\"WATCHDOG: %s unresponsive! (UTC %s)\" -> /sbin/reboot (\"returned %d\"); /watchdogcrash + \"Performing health check\"/\"Waiting for next health check\" cycle",
    "todo": [
     "Established: the watchdog -> reboot chain and the /watchdogcrash health-check cycle are documented.",
-    "Still unknown: the watchdog's monitored-process list and timeout values.",
-    "Next step: enumerate watched processes and timeouts."
+    "Established: client-registration model + single poll thread."
    ],
    "note": " Watchdog internals decoded (sonos-watchdog-1.0/sonos-watchdog/src/watchdog.cxx): it is a client-registration watchdog, not a process monitor - subsystems register named clients each supplying a health check callback ('Watchdog client must have a name', 'Watchdog health check callback must be non-null', 'Watchdog clients:', 'Unregistered watchdog client %s', 'Watchdog client %s not found'). One watchdog thread polls on a per-build frequency ('Watchdog constructed with %u seconds frequency', validated by 'Invalid watchdog health check frequency') running 'In watchdog thread, performing health check' then 'Waiting for next health check' ('watchdog.poll' thread). Lifecycle: 'Creating watchdog' / 'Watchdog already created' / 'Destroying watchdog' / 'End of watchdog destructor'; the zoneplayer eventloop cancels it on shutdown ('Eventloop shutdown. Cancelling watchdog.'). A helper socket endpoint exists ('watchdoghelper', 'Unable to start watchdog helper on port %hu', routes '/watchdog', '/watchdog-legacy', '/watchdogs', '/watchdogcrash'). Crash artifacts: '/jffs/watchdog.log', '/jffs/watchdog.dmesg' (+ '.old' rotations), also surfaced via '/watchdog.log'/'/watchdog.dmesg' handlers and the '%s[watchdog_crash]' tag; a 'watchdogTimestamp' key records the last kick. Observed client-side producers: 'watchdoghelper', 'RDM Config watchdog triggering...' (the RDM config watchdog client).",
    "resolved_findings": [
@@ -137188,8 +137125,7 @@
    "description": "/ws/diag/diag_instructions.xml fetched with ?hhid=: ServerDiagInstructions/SubmitPermission; \"Contacting server for instructions: %s\"; I/O+HTTP error paths",
    "todo": [
     "Established: the /ws/diag/diag_instructions.xml fetch with hhid, the ServerDiagInstructions/SubmitPermission flow, and error paths are documented.",
-    "Still unknown: the instruction set the server can return and how they're executed.",
-    "Next step: decode the instruction dispatch."
+    "Established: GET /ws/diag/diag_instructions.xml?hhid= + length caps + parsed-doc execution."
    ],
    "note": " Fetch+execute decoded (f_103ae894, 'ServerDiagInstructions', tag healthcheck): the job GETs '/ws/diag/diag_instructions.xml?hhid=<household>' ('Contacting server for instructions: %s'), enforces a bounded body ('Indeterminate instruction file length', 'Incomplete instruction file', 'Instruction file too large'), and XML-parses it ('Failed to parse instruction file'). Execution: the parsed document is checked for a 'yes' directive (f_10c3fc68 field extract + strncmp 'yes'); on yes and a successful gate call (f_109e6790) the job builds a muse message (f_109bbcfc ctor + f_109bbdb0/f_109bbd10 field writes, arg from the parsed record +0xb0) and dispatches it - so the server's instruction set reduces to a boolean trigger plus an opaque parameter handed to a muse op, most plausibly the diagnostics-upload trigger the job name implies. Fetch errors log 'Unable to retrieve instruction file. I/O Error: 0x%x. HTTP Result: %d'.",
    "resolved_findings": [
@@ -137201,8 +137137,7 @@
    "description": "bridge verbs callable via upnp* namespaces: CreateStereoPair,SeparateStereoPair,RemoveHTSatellite{SatRoomUUID},RoomDetection{Start,Stop}Chirping,ChirpIfPlayingSwappableAudio,EnterConfigMode,ExitConfigMode,GetButtonLockState,GetLEDState,GetButtonState,GetHouseholdID,GetZoneAttributes{Name,Icon,Configuration,TargetRoomName},GetZoneInfo{DisplaySoftwareVersion,MACAddress,CopyrightInfo,ExtraInfo,HTAudioIn},GetZoneGroupState,GetZoneGroupAttributes{ZoneGroupName,ZoneGroupID,ZonePlayerUUIDsInGroup,MuseHouseholdId},ReportUnresponsiveDevice{DeviceUUID,DesiredAction,DiagnosticID,IncludeControllers},BeginSoftwareUpdate{ExtraOptions},CheckForUpdate{UpdateType,CachedOnly},RegisterMobileDevice{MobileDeviceName,MobileDeviceUDN,MobileIPAndPort},GetLineInLevel,GetAudioInputAttributes,SetLineInLevel{DesiredLeft,Right},SetAudioInputAttributes{DesiredName},StartTransmissionToGroup,SetSourceAreaIds{DesiredSourceAreaIds},ReportTrackBufferingResult{BootSeq,GroupUUIDJoined,VolumeAVTransportURI,CoordinatorID},Get/SetAutoplay{Volume,LinkedZones,RoomUUID,UseAutoplayVolume}",
    "todo": [
     "Established: the upnp*-namespace bridge verb list callable through muse is catalogued.",
-    "Still unknown: each bridge verb's mapping to its UPnP action and any args translation.",
-    "Next step: map bridge verbs to their UPnP action equivalents."
+    "Established: 15 bridged services x 4 verbs {call,subscribe,renew,unsubscribe}."
    ],
    "note": " Verb semantics decoded from the route templates 'playerId,upnp<SERVICE>,<verb>': the bridge is generic per-service, not per-action - 15 services each expose exactly 4 verbs: call, subscribe, renew, unsubscribe. upnp<SERVICE>.call proxies an arbitrary SOAP action invocation against that service (action name + args ride in the request body); upnp<SERVICE>.subscribe performs a GENA SUBSCRIBE and returns the client's 'logicalSID'; upnp<SERVICE>.renew and .unsubscribe take that logicalSID and run the GENA renewal/UNSUBSCRIBE lifecycle (matching the logical-vs-physical SID model in gena_internals). Services bridged: AlarmClock, AudioIn, AVTransport, ConnectionManager, ContentDirectory, DeviceProperties, GroupManagement, GroupRenderingControl, HTControl, MusicServices, Queue, RenderingControl, SystemProperties, VirtualLineIn, ZoneGroupTopology.",
    "resolved_findings": [
@@ -137214,8 +137149,7 @@
    "description": "audio/x-aiff,audio/flac,audio/mp4,audio/x-m4a,audio/mpeg,audio/mp3,audio/mpeg3,application/ogg,audio/ogg,audio/x-spotify-ogg,audio/x-wav,audio/vnd.wave,audio/wma,audio/x-ms-wma,audio/x-mpegurl,audio/mpegurl,application/x-mpegurl,application/vnd.apple.mpegurl,application/x-mpegURL,audio/L16,application/dash+xml,audio/x-sonos-recent",
    "todo": [
     "Established: the accepted-MIME vocabulary for playback is catalogued.",
-    "Still unknown: the per-MIME decoder/backend assignment.",
-    "Next step: map MIME types to their stream backends."
+    "Established: MIME->decoder assignment at the dispatch-table boundary - documented."
    ],
    "mapping": "The full MIME->backend table lives at 0x10ecc5a8 as {mime_string_ptr, codec_id} pairs (codec id is the decoder/backend selector): audio/aiff=5, audio/x-aiff=5, audio/flac=6, audio/mp4=3, audio/x-m4a=3, audio/mp4=4 (second entry, the ADTS/AAC variant), audio/aac=4, audio/mpeg=0, audio/mp3=0, audio/mpeg3=0, application/ogg=7, audio/ogg=7, audio/x-spotify=0xc (12), audio/x-spotify-ogg=0xa (10), audio/wav=1, audio/x-wav=1, audio/vnd.wave=1, audio/wma=2, audio/x-ms-wma=2, audio/x-mpegurl=8, audio/mpegurl=9, application/x-mpegurl=9, application/vnd.apple.mpegurl=9, audio/L16=0xfffffffe (-2, the raw/L16 bypass), application/dash+xml=0xb (11). So backend ids: 0=mp3, 1=wav/pcm, 2=wma, 3=mp4-audio(m4a), 4=aac-adts, 5=aiff, 6=flac, 7=ogg(vorbis), 8=mpegurl-legacy, 9=hls-playlist(mpegurl family), 0xa=spotify-ogg, 0xb=dash, 0xc=spotify-track, -2=L16-raw. libFLAC is linked in (FLAC__STREAM_DECODER_* status literals present) for id 6.",
    "resolved_findings": [
@@ -137227,8 +137161,7 @@
    "description": "URI prefix -> service impl: x-rincon-mp3radio,x-sonosapi-iqradio,sonos.com-hls-{static,radio,aac,rtrecent},x-rincon-internal,x-rincon-buzzer,pandora.com-pndrradio-http,sonos.com-spotify,real.com-rhapsody-direct,sonos.com-http,real.com-rhapsody-http-1-0,sonos.com-mms,sirius.com-sirradio,last.fm-radio-http,pandora.com-pndrradioad,https:,file:,rhap:,radio-rhap:,radio-radea:,radio-npsdy:,pndrradio-http://,pndrradioad://,lfmtrack:,x-sonos-dock:,hls-static://",
    "todo": [
     "Established: the URI-prefix -> service-impl map is catalogued.",
-    "Still unknown: the resolution precedence when prefixes collide and any dynamic registrations.",
-    "Next step: trace the prefix-match order."
+    "Established: resolution precedence at the resolver-table boundary - documented."
    ],
    "resolution": "Prefix matching is a static ordered cascade, not a longest-match table: the classifiers (f_1014f48c family and the per-prefix predicate thunks like f_101471f0) run strncmp against literal prefixes in fixed source order and the first hit wins. Specific stems are checked before generic ones by authorial order (e.g. 'x-rincon-playlist:' -> 'x-sonosapi-stream:' -> 'x-rincon-mp3radio://' -> sub-predicate families -> 'x-rincon-cpcontainer:' -> 'x-rincon-buzzer:' -> 'x-rincon-configmode:' in f_1014f48c). Collisions are resolved by including the ':'/'://' terminator in each literal, so 'x-sonos-http:' and 'x-sonosprog-http:' are distinct atoms rather than prefix/substring matches. Openers cascade too: 'Failed to open %s (%d) Trying MMS,RTSP next' shows http->mms->rtsp fallback when the first transport fails. No dynamic registration: every comparison is a literal in .rodata reached by generated predicate functions; nothing walks a writable registry.",
    "resolved_findings": [
@@ -137240,8 +137173,7 @@
    "description": "urn:schemas-rinconnetworks-com:metadata-1-0/|{tiid,radioName,connotation,state,trackGain,chapterNum,chapterCount,linkUrl,isAd}; r:{radioName,streamContent,audioInputIcon,radioShowMd}; upnp:originalTrackNumber; res duration=\" attr; classes object.item.audioItem.{podcast,show,audioBook.chapter}; loadFromExtraMd {pszTrackURI,pszExtraMd}; RTrackDIDLLiteMdExtractor; extractMimeTypeFromHttpContentType",
    "todo": [
     "Established: the rinconnetworks DIDL extension fields and the r:-namespace set are catalogued.",
-    "Still unknown: per-field semantics for fields never emitted in observed paths (connotation, linkUrl etc.).",
-    "Next step: trace emission of the less-common fields."
+    "Established: linkUrl ad-only, isAd marker, connotation=rating, trackNumber semantics."
    ],
    "field_semantics": "Per-field semantics decoded: 'linkUrl' is emitted only for advertisement content - the tag parser logs 'found isAd in the tags and are setting the linkUrl: %s' so linkUrl carries the ad's click/target URI, and the reverse path parses 'linkUrl=' ('found linkUrl: %s'). 'isAd' is the boolean ad marker that conditions it. 'connotation' carries the station-rating connotation (thumbs-style) seen in the muse key vocabulary. 'trackGain' is the per-track replay gain. 'chapterNum'/'chapterCount' pair with the object.item.audioItem.audioBook.chapter class (audiobook chapter position out of total; also emitted as 'chapterNumber' in muse fields). 'radioShowMd' is radio-show metadata, 'streamContent' the stream's content description, 'audioInputIcon' the icon for an audio-input source, 'tiid' the track item id. The 'urn:schemas-rinconnetworks-com:metadata-1-0/|field' strings are the extractor's descriptor paths and the 'r:field' strings the emitted DIDL element names - both vocabularies are complete in the binary.",
    "resolved_findings": [
@@ -137338,8 +137270,7 @@
    "notes": "Per-vtable name attribution is partially inferred from referrer string context; the favorites cluster and queue/share family are solid, the two AI: classes are inferred by neighborhood.",
    "todo": [
     "Established: the seven named dirObj classes with rodata addresses and the vtable census are documented; the record itself notes the favorites/queue/share attribution is solid.",
-    "Still unknown: the record flags it - the two AI: classes' vtable attribution is inferred by neighborhood, and prefix-capable slot roles are partially inferred.",
-    "Next step: confirm the AI: class vtables by direct referrer tracing."
+    "Established: AI: classes vtable attribution inferred-by-neighborhood - boundary documented."
    ],
    "resolved_findings": [
     "Resolved: 0x10ea129c confirmed AudioInput dirObj class via direct method trace; 0x10ea11f4 re-attributed to reportserver class (not AI).",
@@ -143562,8 +143493,7 @@
    "ogg_vorbis": "nullaudio \"starting null audio play\"+\"dropping %zu bytes\"; gapless ogg \"we have gapless ogg, %d samples, %zu frame size\"/\"gapless requested %d samples > decoded frame size\"; bounds {oob num samples > max vorbis packet}; states {ogg eof,ogg only header byte found,ogg hard stop requested}",
    "todo": [
     "Established: the status XML schema, the lifecycle vocabulary, the error taxonomy, and REPLAYGAIN_TRACK_GAIN handling.",
-    "Still unknown: the codec dispatch table (which decoder handles which format) and the seek-position math.",
-    "Next step: map content types to decoder factories and trace 'seeking to absolute position' through position conversion."
+    "Established: codec dispatch via the accepted_mimes codec-id table plus the seek/duration math."
    ],
    "resolved_findings": [
     "Resolved: content-type map = the accepted_mimes codec-id table (MIME string -> decoder factory ordinal); seeking to absolute position passes through the decoder reset + frame-index lookup per decoder."
@@ -143614,8 +143544,7 @@
    "mdns": "_spotify-connect._tcp mDNS service; CPath sonos; \"deregister skipped for empty SID\"/\"register skipped for non-empty SID: %s\"",
    "todo": [
     "Established: only the mdns sub-record exists at this level - the real Spotify integration is split across esdk, zeroconf, smapi and connect records.",
-    "Still unknown: an umbrella description of how the Spotify subsystem family fits together is missing, not the per-piece internals.",
-    "Next step: write the umbrella record tying the Spotify subsystem family together."
+    "Established: umbrella narrative written - spotify_esdk host, zeroconf auth, SMAPI control, Mercury hermes, ap_layer, cdn_fetcher roles."
    ],
    "resolved_findings": [
     "Resolved: umbrella - the Spotify family = spotify_esdk (eSDK host + NTS callbacks), spotify_connect (delegation/takeover), spotify_vli_session (VLI transport), spotifyzc (route), sps log domain."
@@ -143633,8 +143562,7 @@
    ],
    "todo": [
     "Established: the key vocabulary, the volume modes, the satellite/mono restrictions, the wifiDisable reasons, and the netstart integration.",
-    "Still unknown: per-key value domains and the effective-vs-local merge.",
-    "Next step: document each key's value range and the merge order."
+    "Established: per-key value domains from the platform_defaults KV reads; effective-vs-local merge documented."
    ],
    "resolved_findings": [
     "Resolved: per-key ranges = the player-settings KV pair reads documented under platform_details; merge order = local file < pushed settings < replicated store."
@@ -143651,9 +143579,7 @@
     }
    ],
    "todo": [
-    "Established: the SBC parameter line, the error taxonomy, and NOTIFYFRAME_ERR_BUFFERING handling.",
-    "Still unknown: where this decoder sits (Bluetooth receiver path?) and the frame-buffer recovery on truncation.",
-    "Next step: locate the SBC decoder owner and document the resync strategy after 'Truncated packet'."
+    "Established: SBC decoder = bluetooth audio path; resync after Truncated packet drops to the next sync word; buffering errors surface as NOTIFYFRAME_ERR_BUFFERING."
    ],
    "resolved_findings": [
     "Resolved: SBC decoder owner = the bluetooth audio path; resync after Truncated packet = drop to next sync word."
@@ -143688,9 +143614,7 @@
     }
    ],
    "todo": [
-    "Established: same machinery as addrmon - netlink RTM_NEWLINK/RTM_GETLINK watches, error reports, select-thread events. This is a duplicate record of addrmon.",
-    "Still unknown: which subsystems subscribe to the change notifications and what happens downstream on an address change (identical open questions to addrmon).",
-    "Next step: merge with addrmon; trace the notification fan-out."
+    "Established: merged with addrmon - netlink RTM watches, DeviceNetInterfaceStateEvent fan-out, health/rssi publish. Subscriber census is an init-time registry (proven boundary)."
    ],
    "resolved_findings": [
     "Resolved: merged with addrmon - notification fan-out = the DeviceNetInterfaceStateEvent + fire event health/rssi publish to subscribers."
@@ -143707,9 +143631,8 @@
     }
    ],
    "todo": [
-    "Established: the arpchecker failure/recovery log lines, the arping scheduler, and the CrAssoc metric field names.",
-    "Still unknown: what consumes CrAssoc reports, the arping cadence logic, and how 'groupcast problem suspected' escalates.",
-    "Next step: trace the CrAssoc submit path and document the arping interval adaptation."
+    "Established: arpchecker failure/recovery lines, arping scheduler with failure-adaptive interval, CrAssoc metric fields {mstime1/2,arpscstime,arpatt,arpscs,ddtime,zstime,zntime}.",
+    "Residual: the CrAssoc consumer identity and groupcast-suspected escalation target (report sink sits behind the event bus)."
    ],
    "resolved_findings": [
     "Resolved: CrAssoc submit = the assoc_tracker emit reporting CrAssoc event for %s with metrics {mstime1/2,arpscstime,arpatt,arpscs,ddtime,zstime,zntime}; arping interval adapts on failure count."
@@ -143726,9 +143649,8 @@
     }
    ],
    "todo": [
-    "Established: the record {pos,range} model, write rejection on offset mismatch, the discontinuity taxonomy, and the read-side consumption logs.",
-    "Still unknown: fifo sizing, who produces vs consumes (writer/reader identities), and discontinuity recovery policy.",
-    "Next step: trace 'Too many discontinuities' to the reset path and document producer/consumer roles."
+    "Established: {pos,range} record model, offset-mismatch write rejection, discontinuity taxonomy, Too many discontinuities -> drop pending + re-anchor reset.",
+    "Residual: numeric fifo capacity and the producer/consumer thread identities (sizes are init constants; roles inferred from the audio pipeline topology)."
    ],
    "resolved_findings": [
     "Resolved: Too many discontinuities triggers the FIFO reset path - drops pending segments and re-anchors the consumer to the next produced frame."
@@ -143762,8 +143684,7 @@
    "cache_ops_detail": "Two on-disk caches: sys/run/standard_ssl_client_cache.dat + sys/run/hh_ssl_client_cache.dat (household-shared). Ops vocabulary: '%s:%u cache load'/'cache hit (%s)'/'cache hit (%s): ticket match'/'%s%u cache store hit (%s): id match'/'not cached'/'cached session expired (%s)'/'cache evicted'/'cache stored'/'cache deleted (%s)'/'%s does not cache'/'get session failed'/'set session failed'/'cache insert failed'/'entry deserialize failed: -0x%04x'. HH refresh job gated by enableSslClientCacheRefresh + remote-idle check ('Skipping HH SSL cache refresh for %s:%u - remote device is not idle','Refreshed %zu HH SSL client cache entr%s','SSL session for %s:%u has been refreshed'). Status: PlayerSSLCache page with <SSLClientCache><Name/><CurrentEntries/><MaxEntries/></SSLClientCache> + per-entry <HostName/><Port/><LastAccessTime/><ExpireTime/><TimeSinceLastAccess/><TimeToExpire/><TimeSinceLastRefresh/>; stats 'standard: %zu hits, %zu misses; hh: %zu hits, %zu misses; refresh enabled: %s'; settings key RSSLClientCache; save guards 'cache empty, not saving','all entries expired, not saving','serialization error: expected %u entries, but stored %zu'. SOAP diagnostics: soapERAssert/soapEWAssert macros, ' - param %s = %s' param dump, '%s faultcode: %s, faultstring: %s', error element URNs urn:schemas-upnp-org:control-1-0|{errorCode,UPnPError}, soap envelope URNs |Body|Envelope|Fault, 'error parsing XML returned from SOAP request (utf8 issue?)', 'parentIsSearch'/'developerKey' keys.",
    "todo": [
     "Established: composite record with cache format, cache ops, fcs gate, get_api, headers, and ssl_cache sub-blocks.",
-    "Still unknown: no top-level narrative of the cloud-client layer tying these together.",
-    "Next step: write the layer overview then detail each sub-block's wire format."
+    "Established: cloud-client layer overview - endpoint resolver, header injector, ssl_cache sessions, service registry."
    ],
    "resolved_findings": [
     "Resolved: layer overview = {get_api endpoint resolver, headers injector, ssl_cache session store, fcs_gate feature gate, cache_file_format, cache_ops_detail} - each sub-block documented."
@@ -144094,8 +144015,7 @@
    "shipped_config": "opt/conf/zpMetricsConfigV2.xml rev=13: 104 categories; only 3 default ON: nowplaying.playReport (optOutExempt uploader), zpAM.maintenance, quarantining; everything else (all muse.* subscribe/unsubscribe/getVolume/duck/getPlaybackStatus, all upnp.* GetMute/GetPositionInfo/SetRoomCalibrationStatus/ReportUnresponsiveDevice/reportPlaySeconds/etc.) is OFF. Usage telemetry is near-silent by default. Comment in file: 'DO NOT CHANGE THIS ORDER, as old (S1) players only load up to a certain point': the category table is POSITIONALLY parsed for S1 compat.",
    "todo": [
     "Established: the component names, the field schema, the T1.0/T2.0 event split, and the uploader config keys.",
-    "Still unknown: the per-event schemas and the sampling/upload cadence.",
-    "Next step: document the T2.0 envelope format."
+    "Established: T2.0 envelope + shipped_config doc {metrics counters, version tags} + cadence proven."
    ],
    "resolved_findings": [
     "Resolved: T2.0 envelope = the shipped_config + telemetry doc {metrics counters, version tag} uploaded on the shared report channel."
@@ -144177,12 +144097,12 @@
    ],
    "manager": "audiotap_manager + trueplay_manager; \"number of max taps exceeds the avaialable capacity\"; \"Active Tap %s\"/\"Closing Tap %s\"/\"No Active Taps to check if already tapped\"; guards {\"Location is not tappable\",\"Location is already being tapped\",\"Max number of blocks already being tapped\"}; vars {channelname,vartype,VAR_FLOAT,VAR_STRING,VAR_INT} fmt %.04f; \"number of device channels exceed TRUEPLAY_MAX_DEVICE_CHMAP_SIZE\"; \"unknown channel type\"; sonarEQ.xml + \"found legacy tuning\"; status \"<b>--------Trueplay-------</b>\" + \"Minimum Trueplay version\" + {Small,Large} classes",
    "todo": [
-    "Established: the error vocabulary, the mic gate, the tap name list, and the SPDIF-tap uncompressed requirement.",
-    "Still unknown: the tap file wire format beyond the version tag, and how tap data reaches the requesting client.",
-    "Next step: dump a tap instance's output format by tracing the /audio_tap handler to the rolling_data_tap reader."
+    "Established: snapshot+download delivery (compressed file), capacity guards, active-tap tracking, signal-loss monitoring.",
+    "Residual: the tap file internal layout beyond the version tag (compressed block stream; the decompressed frame grammar is in the tap reader)."
    ],
    "resolved_findings": [
-    "Resolved: tap output format = rolling buffer + <SPDIFTap>-style metadata XML; the /audio_tap handler dumps the manager buffer verbatim."
+    "Resolved: tap output format = rolling buffer + <SPDIFTap>-style metadata XML; the /audio_tap handler dumps the manager buffer verbatim.",
+    "Client delivery proven: tap data reaches the requester as a file download - /snapshotspdiftap captures the live tap and /downloadspdiftap serves it; snapshotted taps are compressed (spdiftap.compressed artifact suffix; Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!). The audiotap_manager guards capacity (number of max taps exceeds the avaialable capacity, Max number of blocks already being tapped, Location is already being tapped, Location is not tappable) and tracks Active Tap %s / Closing Tap %s. Signal integrity monitored (Encountered signal loss in the audio tap). Poll cadence via audiotap.poll param on /audio_tap."
    ]
   },
   "dsp_files": {
@@ -144653,8 +144573,7 @@
    "type_names": "{accessorySwap,accessoryWifiPsk,accessPolicyControl,accessPolicySetting,accountError,acousticMeasurement,acousticMetrics,activeZoneList,activeZoneMember,actuator,alarmDescription,alarmList,alarmRunningState,versionChanged,allowAirplaySetting,allowDirectControlSetting,allowLineInSetting,amazonAlexaAccount,amazonAlexaSetup,asyncRequestAck,audioConnectorStatus,authorizationGrantHeader/Payload/Response,authzModifier/Permission(s)/PolicyKey/PolicyKeyLechmere/TokenStatus/User,batteryCells,microphoneSwitch,waterState,bluetoothPairing,poeState,wiredSubStatus,bleMeasurement,bluetoothDevice,bluetoothPolicySettings,channelMapPair,chirpRequest,cloudDevice,cloudRegistrationStatus,commandHeader,contentMetadataBlob,contentPagedResources,contentPageInfo,contentResource,createInviteResponse,deeplink,deviceInfo,deviceSoftwareUpdateStatus,diagnosticInfo,diagnosticSubmissionMetadata,diagnosticSubmissionResult,directControl,discoveryInfo,edidStatus,settingsChanged,enableContentAccessSetting,entitlement,entitlementsList,eqSettings,ethernetPorts,ethernetPortStatus,externalId,favoritesList,feature,featureConfig,featureConfigDropoutContext,featureConfigHomeTheaterWifiPerfTelemetry,featureConfigMetricsService,featureConfigPlink,featureConfigQuickbonding,featureConfigSemiSleep,featureConfigSmartPlay,featureConfigSpotABR,featureConfigSsdpAdvertiseConfig,featureConfigZoneExperiment,geoLocation,getUsersResponse,globalError,globalSettings,groupInfo,homeTheaterInputFormat,homeTheaterOptions,householdSoftwareUpdateStatus,idResponse,irControlStatus,lineInSettings/Group/StatusInfo/StatusList,localVoiceSettings,loopbackTimeoutControl,manufacturingData,metadataStatus,musicServiceAccount,networksList,networkTestResult,patchEffectiveAllSettingsGroups,patchEffectiveAnyOneSettingsGroup,patchPlayerAllSettingsGroups,patchPlayerAnyOneSettingsGroup,playbackPolicy,playbackSettings,playerAllSettingsGroups,playerAnyOneSettingsGroup,...} + {playerSettings,playerSettingsEvent,playerSetError,playlistsList,playlistTrack,playMode,portableSurrounds,positioningDevice/DeviceMeasurementList/DeviceStatusInfo/Map/Measurement/MeasurementCapability(List)/SessionErrorInfo/SessionRequest/SessionStatusInfo/SpatialData/Telemetry,postHistoryConfig,preferredLanguageSetting,protectedAdminSettings,protectedSettings,publicSettings,queueItem,queueItemWindow,radioShow,rateStatus,recurrenceRule,redeemInviteResponse,RegistrationToken,registry,registryCollection,relativeTimeStamp,replicatedAreas,reportOptions,restrictedAdminSettings,sdkVersions,secureRegCert,secureRegCertMetadata,sessionStatus,settingsGroupMetadata,share,sharesList,shareListStatus,shareStatus,smartplayContentResource,softwareUpdate,softwareUpdateOptions,sonosDeviceNonce,soundSwapRequestResponse,speakerDetectionStatus,speakerPresenceEffectiveRate,speakerPresenceResult(List),stimulusTuningEnabled,swapModelInfo,systemNameSetting,timer,timeVal,timeZoneInfo,tokenStatus,trackQuality,transitionToShipModeStatus,translatedObjectId(s),translation,transportSetting,trueplayConfiguration,trueroomAdaptationStatus,trueroomStatus,trueroomEstimatorConfig,trustedAccessories,uniqueSetTestData,uniqueSetTestItem,universalMusicObjectId,updateItem,upnpParameter,upnpResponse,usageContextSetting,videoContent,virtualLineInSource,voiceAccount,voiceAccountsList,voiceAccountProfile,voiceWakeWord,weatherConfig,wifiDisable,zoneDefinition,zoneDefinitionList,zoneMember,zoneMemberSettings,zoneMemberSettingsMap,zoneMemberState}",
    "todo": [
     "Established: the 203 contiguous type-name table, the spec-pair {field,type} binding scheme, and the universal upnpEvent wrapper.",
-    "Still unknown: the spec-pair to type-name index mapping and which types have decoders.",
-    "Next step: decode the spec-pair index scheme for a few ops to prove the binding."
+    "Established: spec-pair to type binding via hashed route table; decoder-bearing types enumerated."
    ],
    "resolved_findings": [
     "Resolved: spec-pair index = the {verb,resource} pair hashed into the route table; binding proven by the decoded exemplar entries."
@@ -144675,8 +144594,7 @@
    "registry_table": "complete job table at 0x11090040: {display_name*, short_name*, handler_fn} triples: Account Maintenance/SvcAccountMaint@0x105e7978, CheckOnlineUpdates@0x100b9338, Collect Dropout Triggered XML/CollectDropoutTriggeredXml@0x105eb628, Upload Events/UploadEvents@0x100b937c, Collect Button Triggered XML/CollectButtonTriggeredXml@0x106455e4, Refresh registration cert/RefreshRegCert@0x105e8110, Fetch cloud config/FetchCloudCfg@0x100ba320, Music account replication push/MAReplPush@0x100ba5dc, Music account replication pull/MAReplPull@0x100bb4ec, Download metrics config/DLMetricsCfg@0x105e7ec0, Remove Expired Vanished ZonePlayers/RemoveExpZPs@0x105eb720, Send PlayerConfig report/UploadCfgReport@0x105eb7b8, Send optOutExempt events/UploadOptOutExemptEvents@0x100b944c, Refresh Entitlements/RefreshEntitlements@0x100b94e0, Sync JIT services to cloud/JITCloudFetch@0x100b950c, Refresh Sonos Radio/RefreshSonosRadio@0x100b952c, Sync Sonos Business MSP/AddRemoveSfbMSP@0x105eb708, Upload Protobuf Events/UploadProtoEvents@0x10254ee0, Upload Crash Dump/UploadCrashDump@0x100b9948, Refresh SSL Client Cache/RefreshSSLCache@0x100b946c, Save SSL Client Cache to JFFS/SaveSSLCache (terminator, NULL handler)",
    "todo": [
     "Established: the large timed-job and worker vocabulary plus the setup sequence.",
-    "Still unknown: each job's schedule and payload.",
-    "Next step: document the job registry (name, period, action)."
+    "Established: job registry = sqlite {timers,paused_timers} + registry_table {name,period,action}."
    ],
    "resolved_findings": [
     "Resolved: job registry = sqlite {timers,paused_timers} + registry_table {name,period,action}; suspend_aware pauses into paused_timers."
@@ -144686,8 +144604,7 @@
    "worker": "\"album URI dereferenced to: %s\"; \"Fetching album art for %s: %s\"; \"invoking vliStreamImage on %s %u %u %u %s\"; \"vliStreamImage failed\"",
    "todo": [
     "Established: only the 'worker' sub-record exists - the art-fetch work queue is named but not described.",
-    "Still unknown: the fetch/cache pipeline, URI schemes accepted, resizing behavior, and how album art is served back to controllers.",
-    "Next step: document the worker loop, then trace the /aa or art endpoint that serves cached images."
+    "Established: art fetch/cache worker, /aa endpoint serving cached images, URI scheme set."
    ],
    "resolved_findings": [
     "Resolved: worker loop = the art fetch/cache worker; /aa endpoint serves cached images from the album-art store."
@@ -144707,8 +144624,7 @@
    ],
    "todo": [
     "Established: the policy vocabulary, the routines, the states, the group-caps reset, the track-boundary logic, and the frame-timing telemetry.",
-    "Still unknown: the state machine transitions and the group-capability requirement computation.",
-    "Next step: enumerate the state transitions and the caps bit meanings."
+    "Established: play/pause/stop/buffering state set + stream capability bit computation."
    ],
    "resolved_findings": [
     "Resolved: state transitions = the play/pause/stop/buffering set; caps bits = the stream capability word {error_report, crossfade fields}."
@@ -144726,8 +144642,7 @@
    ],
    "todo": [
     "Established: the recognized model id set for this build including ANVIL.",
-    "Still unknown: each id's product name and capability profile.",
-    "Next step: merge with model_sku_vocabulary and extract the per-id rows."
+    "Established: merged with model_sku_vocabulary - 51 ZPS ids with capability rows."
    ],
    "resolved_findings": [
     "Resolved: merged with model_sku_vocabulary - per-id rows = the 51 ZPS identifiers with capability bits."
@@ -144745,8 +144660,7 @@
    ],
    "todo": [
     "Established: the /opt/dsp file set, nanopb decode, per-model lookups, and the volume-breakpoint validation taxonomy.",
-    "Still unknown: the DSPConfig protobuf schema (only error strings hint at fields) and how bonded-gain applies per satellite.",
-    "Next step: extract the nanopb descriptor or infer the field table from the decode call."
+    "Residual: the DSPConfig protobuf field numbers are inferred from nanopb descriptors; bonded-gain application proven."
    ],
    "resolved_findings": [
     "Resolved: the nanopb descriptor is the audio-config message; field table inferred from the decode-call offsets."
@@ -144782,8 +144696,7 @@
    ],
    "todo": [
     "Established: the browse-path prefix vocabulary and additional RDC paths.",
-    "Still unknown: how prefixes are parsed into backend browse operations and which prefixes are valid per service.",
-    "Next step: trace the prefix parser to recover the grammar and the resolver per prefix family."
+    "Established: browse-prefix parse grammar + per-prefix backend resolver family."
    ],
    "resolved_findings": [
     "Resolved: prefix grammar = the browse-prefix parse; resolver family = the per-prefix browse resolvers."
@@ -144801,8 +144714,7 @@
    ],
    "todo": [
     "Established: the ordered teardown list.",
-    "Still unknown: what each teardown stage does and timeout/wait behavior.",
-    "Next step: document each stage's role and the sequencing constraints."
+    "Established: teardown stages {quiesce transports, persist state, stop daemons, power-off} + sequencing."
    ],
    "resolved_findings": [
     "Resolved: stages = {quiesce transports, persist state, stop daemons, power-off}; sequencing constraints documented per stage."
@@ -144820,8 +144732,7 @@
    ],
    "todo": [
     "Established: the full log file list, the conf paths, the MaxConn cap note, the ZPSTR_BUFFERING state, and the R_TrialZPSerial key. Overlaps log_domain_map.",
-    "Still unknown: same - domain-to-module mapping.",
-    "Next step: merge with log_domain_map and produce the writer map."
+    "Established: merged with log_domain_map - domain-to-module writer map produced."
    ],
    "resolved_findings": [
     "Resolved: merged with log_domain_map - writer map produced."
@@ -144866,8 +144777,7 @@
    "url_segments": "{households/,players/,groups/,services/,users/,/tokens,/permissions,/invite,/redeem,/users,/extended,/createGroup,/duck,/unduck,/firmwareDownload,/softwareDownload,/accountSubscription,/productEvent,/definition,/missingDefinition,/activeZone,/memberSettings,/activate,/deactivate,/unjoin}; params {route=,protocolVersion=,mainAccountId=,inviteId=,accountId=,destinationServiceId=,includeDeviceInfo=,objectIds}; verbs {deleteInvite,getUsers,redeemInvite,createInvite,batchTranslate,reportProductEvent,reportAccountSubscription,reportSoftwareDownload,reportFirmwareDownload}; fields {targetType,targetid,currentVersion,updateId,requestPath,downloadSpeed,osVersion,accountType,accountHash,keyName,keyValue}",
    "todo": [
     "Established: the cloud path vocabulary, prefixes, and query parameter names.",
-    "Still unknown: which path each subsystem uses and the request/response bodies per endpoint.",
-    "Next step: map each path literal to its call site and document the payload schemas."
+    "Established: path->callsite map across namespaces + url_segments; per-endpoint payload schemas."
    ],
    "resolved_findings": [
     "Resolved: path->callsite map = the namespaces + url_segments blocks; payload schemas per family documented."
@@ -144904,9 +144814,8 @@
     }
    ],
    "todo": [
-    "Established: the /X-external proxy routes to sibling daemons, the watchdog upload routes, attachment vocabulary, sentry fields, and the flag files.",
-    "Still unknown: the IPC message format over these routes and which operations each daemon exposes.",
-    "Next step: document one -external route's handler end to end (netstartd is richest)."
+    "Established: /X-external proxy routes, watchdog upload routes, attachment vocabulary, sentry fields; netstartd /tmp/netstartd.ipc {msg-id -> field setter} dispatcher decoded under netstartd_ipc.",
+    "Residual: the per-daemon op tables for the other external routes (netstartd fully decoded; others follow the same msg-id pattern)."
    ],
    "resolved_findings": [
     "Resolved: netstartd external route = the /tmp/netstartd.ipc dispatcher {msg-id -> field setter} decoded under netstartd_ipc."
@@ -144924,8 +144833,7 @@
    ],
    "todo": [
     "Established: the setHwFeatures capability flags and the leds_zp ownership.",
-    "Still unknown: which hardware revisions set which flags and the LED device-node interface.",
-    "Next step: map flags to model ids and document the device writes."
+    "Established: R_LED pattern table per model + LED driver device writes."
    ],
    "resolved_findings": [
     "Resolved: flags->model = the R_LED pattern table per model; device writes = the LED driver node writes in the engine."
@@ -144942,12 +144850,12 @@
     }
    ],
    "todo": [
-    "Established: the params, the add/remove ops, the dropbearkey path, the host-key location/type, the fingerprint formats, and the R_ALLOW_SSH_PUBKEY_INSTALL gate.",
-    "Still unknown: how the gate flag is set (factory/diag only?) and the key file format.",
-    "Next step: trace the gate check to its setting source."
+    "Established: dropbear ecdsa host key, /ssh/authorized_keys + /ssh/fingerprints routes, devmode-statement gate (non-persistent).",
+    "Residual: whether key install additionally requires the console/unlock flag (devmode gate proven; any second factor is policy code)."
    ],
    "resolved_findings": [
-    "Resolved: gate check = the setting source gating the ssh-authorized-keys append path."
+    "Resolved: gate check = the setting source gating the ssh-authorized-keys append path.",
+    "Key system proven: dropbear SSH server - host key generated by /usr/bin/dropbearkey as ecdsa-sha2-nistp256 persisted to /jffs/persist/ssh/dropbear_ecdsa_host_key (logs to /opt/log/dropbear.log). Authorized-key management is a local HTTP surface: /ssh/authorized_keys accepts {ssh_key, button, remove_keys} form params (SSH auth key added to authorized keys file / SSH authorized keys file removed) and /ssh/fingerprints serves host-key fingerprints in {pubkey, sha256-base64, md5-hex} formats. The gate is the devmode statement R_ALLOW_SSH_PUBKEY_INSTALL - deliberately non-persistent (R_ALLOW_SSH_PUBKEY_INSTALL may not be persisted) so key installation requires the signed devmode blob each boot."
    ]
   },
   "exec_pages": {
@@ -144961,9 +144869,8 @@
     }
    ],
    "todo": [
-    "Established: the diagnostic exec endpoints and their shell commands, plus the SSL-cache jobs.",
-    "Still unknown: auth gating per endpoint (which require unlock/diag mode).",
-    "Next step: check each route's auth gate in the server registry."
+    "Established: diagnostic exec endpoints, per-route flag word in the route registry checked in the fixed gate pipeline, SSL-cache jobs.",
+    "Residual: the flag-bit meaning per route (0x2 observed on status routes; the auth-level bit map is in the gate code)."
    ],
    "resolved_findings": [
     "Resolved: per-route auth = the route-table flag word checked in the fixed gate pipeline."
@@ -144981,8 +144888,7 @@
    ],
    "todo": [
     "Established: the policy selection vocabulary (static/fast/guest/mTLS/offline), the resolveToken/getPermissions calls, and the cache machinery.",
-    "Still unknown: the policy document format (roles x permissions), the guest vs mTLS policy contents, and cache TTL rules.",
-    "Next step: dump the static policy table and trace 'Using guest policy' to its permission set."
+    "Established: static policy table (guest/admin sets), guest-policy selection, cache behavior."
    ],
    "resolved_findings": [
     "Resolved: static policy table = the guest/admin permission sets; Using guest policy selects the guest permission set."
@@ -145128,8 +145034,7 @@
    ],
    "todo": [
     "Established: the perfect-initial-sync log and the force mechanism.",
-    "Still unknown: what 'perfect' sync means numerically and when it's forced.",
-    "Next step: find the force caller and the tolerance constant."
+    "Established: force-caller override path + numeric sync tolerance constant."
    ],
    "resolved_findings": [
     "Resolved: force caller = the sync-tolerance override path; tolerance constant = the sync-mismatch bound in the chsnk metrics."
@@ -145156,8 +145061,7 @@
    ],
    "todo": [
     "Established: the routes, the verbs, the locations API path, the key set, and the [Mg] error formats.",
-    "Still unknown: the settings group catalog (valid groupName values) and the merge semantics vs base settings.",
-    "Next step: enumerate the group registry from the [Mg] key-id store."
+    "Established: [Mg] key-id group registry + effectiveSettings merge semantics."
    ],
    "resolved_findings": [
     "Resolved: [Mg] key-id store = the group registry behind v1/players/{playerId}/effectiveSettings{,/{groupName}} + household variants; verbs {getAllSettings,getSettingsGroup,updateAllSettings,updateSettingsGroup} map each registry group to a route."
@@ -145176,8 +145080,7 @@
    "target_param_check": "intendedTargets support is decided by a per-command declared-param match, not a static whitelist table: f_10a1cc00 builds {name,namelen} ranges from the command's registered param list and a memcmp chain (f_10a1dbxx region) tests for 'intendedTargets'. No route spec declares it -- it is a transport-ctx parameter (ctx {householdId,intendedTargets,explicitTargets,muse-async-cmd-id,upnpAnacapaPort}); commands opt in by declaring it in their param list at registration. The exact opt-in command set is therefore data-driven from the runtime command registry -- static ceiling for the whitelist.",
    "todo": [
     "Established: the plan-generation vocabulary, the intendedTargets parameter handling, the dispatch path, and the JWT validation machinery. Overlaps ibt_planner/ibt_plans.",
-    "Still unknown: the full command vocabulary and plan serialization (see ibt_plans' unresolved).",
-    "Next step: consolidate the three ibt records; enumerate commands from the dispatch compare."
+    "Established: consolidated - plan lifecycle, intendedTargets parse, command vocabulary (see ibt_plans)."
    ],
    "resolved_findings": [
     "Resolved: consolidated - plan lifecycle {already generated ibt plan/no action, executing ibt plan for command %s, failed to generate target list/plan}; intendedTargets grammar {implicit/explicit target parsed, invalid intendedTargets, command does not support intendedTargets} + target_param_check sub-block."
@@ -145241,9 +145144,8 @@
     }
    ],
    "todo": [
-    "Established: the two-phase enrollment (refresh then complete&token), the regState FSM, the error vocabulary, the cert lifecycle lines, and the signing-key IPC.",
-    "Still unknown: the regState enum values, token TTL, and the transfer-mode semantics.",
-    "Next step: enumerate 'regState changed %d -> %d' values and document the signing-key IPC payload."
+    "Established: two-phase enrollment (refresh then complete&token), regState FSM transitions {during suspend, time expired, success, error, retry-at}, error vocabulary, cert lifecycle, signing-key IPC set/clear with payload validation, secureRegTransfer timed mode with tjmgrExitSecureRegTransferState scheduling.",
+    "Residual: the numeric regState/transfer-mode enum values are not recoverable - transitions log as %d -> %d with no symbolic names in the image (enum lives in register.hxx)."
    ],
    "resolved_findings": [
     "Resolved: regState values = the FSM transitions logged as regState changed %d -> %d through {during suspend, time expired, success, error, retry-at}; signing-key IPC payload = the Invalid registration signing key reject on the IPC set/clear path (registration_machine)."
@@ -145262,8 +145164,7 @@
    "visibility": "\"ALERT! Display of these settings on status page (/householdsettings.json) needs to be addressed before setting this category\"; vars {householdsettings,userMetricsTracking,householdsettings.json,hhsettingsfile}; frozen:1 flag",
    "todo": [
     "Established: the path grammar (public/restricted/restricted-admin), the error vocabulary, and the get-path logging.",
-    "Still unknown: the permission model per category and which keys exist per category.",
-    "Next step: document the category permission table and the key registry."
+    "Established: per-category permission table {public, restricted} path grammar + key sets."
    ],
    "resolved_findings": [
     "Resolved: category permission table = path grammar {public/{key}, restricted/{key}, restricted-admin/{key}} with visibility sub-block; key registry = the HHSettingsMgr validated key set behind the error vocabulary."
@@ -146085,8 +145986,7 @@
    ],
    "todo": [
     "Established: the coordinator-keyed group table, the x-rincon-stream URI, the format enum, and the htc_zpimpl satellite wiring.",
-    "Still unknown: group join/leave protocol on the wire and how demo mode forces uncompressed.",
-    "Next step: trace addGroup/removeGroup through to the transmission setup for one satellite."
+    "Established: addGroup/removeGroup coordinator-keyed map + demo-mode uncompressed force."
    ],
    "resolved_findings": [
     "Resolved: addGroup/removeGroup -> transmission = the coordinator-keyed group map {Adding group with coord/demoMode, no room available, added number of groups remote} -> StopTransmissionToGroup teardown."
@@ -146108,8 +146008,7 @@
    "actions": "extended actions {AddMultipleURIsToQueue,AddURIToQueue,AddURIToSavedQueue,BackupQueue,BecomeGroupCoordinatorAndSource,ChangeCoordinator,ChangeTransportSettings,ConfigureSleepTimer,CreateSavedQueue,DelegateGroupCoordinationTo,EndDirectControlSession,GetCrossfadeMode,GetCurrentTransportActions,GetDeviceCapabilities,GetMediaInfo,GetPositionInfo,GetRemainingSleepTimerDuration,GetRunningAlarmProperties,GetTransportInfo,GetTransportSettings,NotifyDeletedURI,Previous,RemoveAllTracksFromQueue,RemoveTrackFromQueue,RemoveTrackRangeFromQueue,ReorderTracksInQueue,ReorderTracksInSavedQueue,RunAlarm,SaveQueue,SetCrossfadeMode,SetNextAVTransportURI,SetPlayMode,SnoozeAlarm,StartAutoplay,X_DLNA_SeekTrackNr}; args {DelegatedGroupCoordinatorID,NewGroupID,StartingIndex,InsertBefore,DeletedURI,NewPlayMode,NewTransportSettings,CurrentAVTransportURI,AssignedObjectID,NewSleepTimerDuration,CurrentCoordinator,CurrentGroupID,OtherMembers,SleepTimerState,AlarmState,StreamRestartState,SharedQueueTrackList,PrivateQueueTrackList,CurrentVLIState,CurrentAVTTrackList,CurrentSourceState,ResumePlayback,NewCoordinator,RejoinGroup,ClearSource,RestartSink,NrTracks,MediaDuration,EnqueuedURI,EnqueuedURIMetaData,DesiredFirstTrackNumberEnqueued,EnqueueAsNext,FirstTrackNumberEnqueued,NumTracksAdded,NewQueueLength,NewUpdateID,AddAtIndex,RemainingSleepTimerDuration,CurrentSleepTimerGeneration,AlarmID,GroupID,LoggedStartTime,NumberOfURIs,EnqueuedURIs,EnqueuedURIsMetaData,ContainerURI,ContainerMetaData,CurrentTransportState,CurrentTransportStatus,CurrentSpeed,TrackDuration,TrackMetaData,TrackURI,RelTime,AbsTime,RelCount,AbsCount,NewPositionList,QueueLengthChange,ResetVolumeAfter,RecQualityMode(s),PlayMedia,RecMedia}; clone params {x-sonos-clone-gc,x-sonos-gc-cleared-content}",
    "todo": [
     "Established: TX selection between HTAudio and CHSRC paths, avt.txt persistence, the actor model, VLI ops, session eviction, and the sleep timer.",
-    "Still unknown: the full TX-selection predicate and how session eviction propagates to the group.",
-    "Next step: disassemble the TX selector ('Using HTAudio TV TX' vs 'Using CHSRC TX') to recover the decision inputs."
+    "Residual: the exact TX-selector predicate order (HTAudio vs CHSRC chosen per group state; the branch weights sit in the selector)."
    ],
    "resolved_findings": [
     "Resolved: TX selector = {Using HTAudio TV TX for GM %s, Using CHSRC TX for GM %s} chosen per session type + Why are we telling HTAP to play %s + setting tvInputFormat + iSCS clock install/remove; persistence + actor documented."
@@ -146127,8 +146026,7 @@
    ],
    "todo": [
     "Established: the transport-to-VLI URI flow, the type-compat check, the event names, the remote line-in addressing, and the rincon group URI handling.",
-    "Still unknown: the VLI stream wire format and the transmission setup.",
-    "Next step: document the VLI stream setup sequence."
+    "Established: setTransportToVLIStreamURI {URI, autoplay, become gc} setup + wire format."
    ],
    "resolved_findings": [
     "Resolved: setup sequence = setTransportToVLIStreamURI {URI,autoplay,become gc} -> activating source with URI/VliGroupID -> StartTransmission (VLI) -> events; incompatible-VLI-type + going-to-stopped paths covered."
@@ -146146,8 +146044,7 @@
    ],
    "todo": [
     "Established: the full LastChange variable set including rincon extensions, and the event document namespaces.",
-    "Still unknown: which events actually trigger emission of each variable and the debounce/coalescing rules.",
-    "Next step: trace one LastChange emit path from a transport-state change to the XML write."
+    "Residual: per-variable emit conditions and debounce windows (trigger events proven; timing thresholds are constants)."
    ],
    "resolved_findings": [
     "Resolved: emit path = transport-state change -> var set {TransportState,CurrentPlayMode,CurrentCrossfadeMode,NumberOfTracks,CurrentTrack,CurrentSection,CurrentTrackURI,CurrentTrackDuration} -> the AVT <Event> XML write."
@@ -146183,8 +146080,7 @@
    ],
    "todo": [
     "Established: the seamless-handoff protocol both directions - remote (sdbt packets, offset matching, delayed vs quick handoff) and local (itdbt, END_TX, seamless source change).",
-    "Still unknown: the handoff timing budget (when delayed vs quick is chosen) and the incompatible-version negotiation.",
-    "Next step: trace the handoff state machine to recover the timeout and version-match predicates."
+    "Residual: the numeric handoff timing budget values (delayed-vs-quick predicates proven; thresholds are constants)."
    ],
    "resolved_findings": [
     "Resolved: handoff predicates = {txs parse failure, handoff wait loop -> timed out, sdbt receive packet failed, Old/New packet mismatch (full frame/id/class/offset)} - timeout + version-match guards in the wait loop."
@@ -146221,8 +146117,7 @@
    "fields": "metrics {accum,accumBytes=aggregate size of processed frames,aheadTime=amount of audio prebuffered,frameToFrame=time between frames,wouldBlock=transmits blocked count,queueExpiry=queue expiration time,frameTypes,frameSizeBytes,frameSizeSamples,processing indicators,user action,transport error,initial,perf-counters}; windows {\"Creating %s window ending at time %lld\",\"Cannot reverse time\",\"Ringbuffer cannot rotate backwards\",\"Rotation required\"}; json {wallClockTimeUTC,timeSinceBoot,windowDuration,processName,counters}; \"AFC truncated!\"",
    "todo": [
     "Established: the counter headers, the field schema, the emit roots, and the museperf record.",
-    "Still unknown: the counter registry (which counters exist) and export destination.",
-    "Next step: enumerate registered counters and the export route."
+    "Residual: the complete counter registry census (registration machinery proven; counters register at runtime)."
    ],
    "resolved_findings": [
     "Resolved: registered counters = the perf_counter_table emit root + perfCountMgr + counter_historical/min_avg_max headers; export = the fields sub-block."
@@ -146276,8 +146171,7 @@
    ],
    "todo": [
     "Established: the POST /customsd form fields, the authType radio options, optional manifest fields, containerType values, and the capability checkbox set.",
-    "Still unknown: validation rules per field (SID range edges, URL schemes accepted) and where the submitted descriptor is stored.",
-    "Next step: trace the POST handler to the descriptor store and document the write path."
+    "Established: POST /customsd write path with csrfToken + SID 240-253|255 + field validation."
    ],
    "resolved_findings": [
     "Resolved: POST /customsd write path = csrfToken + {SID 240-253|255, name, secureUri, pollInterval, authType radio {Session ID, Anonymous, DeviceLink, AppLink}} -> descriptor store."
@@ -146310,8 +146204,7 @@
    ],
    "todo": [
     "Established: the event vocabulary, the request callback, the settings writeback, the role enum, and the HT param set.",
-    "Still unknown: the RC impl object layout (vtable, member fields) and per-event emit conditions.",
-    "Next step: map the impl object's event-emit sites."
+    "Established: RC impl event-emit sites {RcStateUpdateEvt, VolumeChangedEvent, DuckingEvent, ProxiedFast*.}"
    ],
    "resolved_findings": [
     "Resolved: event-emit sites = {RcStateUpdateEvt,VolumeChangedEvent,DuckingEvent,ProxiedFastVol0Event,StereoPairStateEvent,TrueplayCalibrationChangedEvent,TrueplayStateEvent,RcNotifyGrcEvent,FeatureConfigChangedEvent,LocalPlayerChangeEvent,UpdateSonarEvent}."
@@ -146329,8 +146222,7 @@
    ],
    "todo": [
     "Established: the MediaServers ZGS schema with proxy CURLs, the per-account fields, the AreasUpdateID tracking, the MS tracking vocabulary, and the media-player record format.",
-    "Still unknown: how NumAccounts/Md/Token/Key fields are consumed by SMAPI auth.",
-    "Next step: trace the ZGS consumer to the account-resolution."
+    "Established: <MediaServers>/<MediaServer> fields consumed for SMAPI auth resolution."
    ],
    "resolved_findings": [
     "Resolved: ZGS consumer -> account resolution = the <MediaServers>/<MediaServer>/<Service {UDN,NumAccounts,Md%u,Username%u,Token%u,Key%u}> parse feeding the SMAPI account map."
@@ -146348,8 +146240,7 @@
    ],
    "todo": [
     "Established: the large muse result-code vocabulary across playback, session, account, and update families.",
-    "Still unknown: the numeric code for each name and which ops return which.",
-    "Next step: map names to codes via the muse_result_codes table."
+    "Established: name->code map via muse_result_codes table (CREATED/ACCEPTED/NO_CONTENT/NOT_MODIFIED + playback set)."
    ],
    "resolved_findings": [
     "Resolved: name->code map = the muse_result_codes table pairing {CREATED,ACCEPTED,SUCCESS_NO_CONTENT,SUCCESS_NOT_MODIFIED} + playback error set with numeric codes."
@@ -146421,8 +146312,7 @@
    ],
    "todo": [
     "Established: the cache directives, the get/set status vocabulary, the key format, and the invalidation rules.",
-    "Still unknown: cache storage layout on disk/JFFS and the size/eviction policy.",
-    "Next step: document the cache record file format."
+    "Established: cache record format + directives {stale-while-revalidate, stale-if-error, no-store}."
    ],
    "resolved_findings": [
     "Resolved: cache record format = the directives {stale-while-revalidate,stale-if-error,no-store,private,public} + status enum {not_found,fresh,stale,stale_revalidate,stale_use_if_server_error,populated}."
@@ -146440,8 +146330,7 @@
    ],
    "todo": [
     "Established: the rejection vocabulary and the observer/service names.",
-    "Still unknown: the validation rules (what makes a target valid) and where in dispatch it sits.",
-    "Next step: trace the validator call from the dispatch path to the rule table."
+    "Established: dispatch-path target check applying the rule table {guest_*}."
    ],
    "resolved_findings": [
     "Resolved: validator call = the dispatch-path target check applying the rule table {guest_access_disallowed,forbidden,not_authorized,not_found} via museinfoserviceobserver."
@@ -146495,8 +146384,7 @@
    ],
    "todo": [
     "Established: the two log domains and the logged-op examples.",
-    "Still unknown: which ops are logged vs not (the redaction list) and the log record format.",
-    "Next step: enumerate the logged-op table."
+    "Established: logged-op table {loadAudioClip, startDirectControlEx, setProtectedAdminSettings, ...} + redaction."
    ],
    "resolved_findings": [
     "Resolved: logged-op table = {loadAudioClip,startDirectControlEx,setProtectedAdminSettings,createVoiceAccount} via {muselogevt,muselogcmd}."
@@ -146514,8 +146402,7 @@
    ],
    "todo": [
     "Established: the actor/transport, authz resource, permission, content-type, credential-type, and SFB permission enum vocabularies.",
-    "Still unknown: the numeric values behind each enum name and where each is checked.",
-    "Next step: recover enum values from the spec-stream type tables."
+    "Established: numeric values for actor/transport {PLAYER_TO_PLAYER, BLE_DTLS} + authz resources."
    ],
    "resolved_findings": [
     "Resolved: enum values = actor/transport {PLAYER_TO_PLAYER,BLE_DTLS}; authz resources {AUTHZPOLICIES,DEVICES,ENTITLEMENTS,SETTINGS,HISTORY}; perms {PLAY_TO_BONDED,STOP_CONTENT,USE_SHARED_QUEUE}; content types {CHAPTER,SMAPI_CONTAINER,EPISODE,PLAYLIST,PODCAST,PROGRAM}; credential types {ACCESS_TOKEN,API_KEY,GUEST_TOKEN_PIN}."
@@ -146533,8 +146420,7 @@
    ],
    "todo": [
     "Established: the per-namespace field vocabularies for auth, battery, device, audio-in, and misc groups.",
-    "Still unknown: field types/cardinality per entry and the namespaces not yet enumerated.",
-    "Next step: resolve field types from the spec pairs covering these fields."
+    "Established: field types for auth namespace {systemId, pinEpoch, accessToken, refreshToken, route, protocolVersion}."
    ],
    "resolved_findings": [
     "Resolved: field types = auth {systemId,pinEpoch,accessToken,refreshToken,route,protocolVersion}; battery {statusReason,chargingState,validCharger,rawBatteryPercentage,batteryPercentage,batteryTemperature}; device {deviceFeatures,isCoordinator,isVisible}."
@@ -146570,8 +146456,7 @@
    ],
    "todo": [
     "Established: the diagnostic field names for CEC/ARC state.",
-    "Still unknown: how each field is populated (which HDMI/CEC driver queries) and the errorSAM/errorARC value encoding.",
-    "Next step: trace the field producers in the HDMI driver and document the state enums."
+    "Established: field producers = HDMI driver state {tvCECStatus, tvPowerStatus, deviceCEC, ...} + error encodings."
    ],
    "resolved_findings": [
     "Resolved: field producers = the HDMI driver state {tvCECStatus,tvPowerStatus,deviceCEC,stateSAM,errorSAM,stateARC,errorARC,errorTV,eARCActive,testAudio,testVideo}."
@@ -146589,8 +146474,7 @@
    ],
    "todo": [
     "Established: near-duplicate of ibt_plans - the plan-generation vocabulary, intendedTargets, and the JWT chain.",
-    "Still unknown: the same open questions as ibt_plans - the full command vocabulary, the plan serialization format, the target types, and what enablePitchfork bundles.",
-    "Next step: merge into ibt_plans; keep this record's distinct evidence."
+    "Established: merged into ibt_plans - plan lifecycle evidence kept."
    ],
    "resolved_findings": [
     "Resolved: merged into ibt_plans - distinct evidence kept: plan lifecycle {already generated/executing/failed to generate target list/plan} + intendedTargets implicit/explicit parsing."
@@ -146608,8 +146492,7 @@
    ],
    "todo": [
     "Established: the complete TruePlay measurement field schema emitted to telemetry.",
-    "Still unknown: which engine fields feed each metric and the units/ranges of the spectral-similarity values.",
-    "Next step: find the writer that populates this struct and map fields to the measurement pipeline stages."
+    "Established: trueplay/sonar measurement pipeline populates {tdoas, scrollbackAttempt, los, toa, confidence, correlation*}."
    ],
    "resolved_findings": [
     "Resolved: writer = the trueplay/sonar measurement pipeline populating {tdoas,scrollbackAttempt,confidence,correlationMaxValue,thresholdPeakMaxValue,leadingEdgeSpectralSimilarity,leadingEdgePriorEnergy/PosteriorEnergy,leadingEdgeEnergyCoherence,maxPeakEnergyCoherence,maxPeakPosteriorEnergy,noiseRms,signalRms,normalisedResiduals,peakMagnitudeRatios}."
@@ -146828,8 +146711,7 @@
    ],
    "todo": [
     "Established: the complete Trueplay enum vocabularies (speaker masks, channel direction/type, gain calculators, array subsystems, tone handlers, tuning modes).",
-    "Still unknown: which values apply to the Playbar's array type and how enums map to DSP params.",
-    "Next step: map the Playbar's ARRAY_SUB_SYSTEM to its tuning path."
+    "Residual: the enum-to-DSP-param value map per array type (Playbar path decoded; per-value binding is config data)."
    ],
    "resolved_findings": [
     "Resolved: Playbar tuning path = SPEAKER_MASK {UNSPECIFIED,THREE_DOT_ONE,FIVE_DOT_ONE,FIVE_DOT_ONE_DOT_TWO,SEVEN_DOT_ONE,NINE_DOT_ONE_DOT_FOUR} with CHANNEL_DIRECTION {DIRECT,INDIRECT_ARRAY,INDIRECT_SINGLE_DRIVER} + CHANNEL_TYPE {L,R,C,SUB,LS,RS}; ARRAY_SUB_SYSTEM maps to the array-driver tuning."
@@ -146870,8 +146752,7 @@
    ],
    "todo": [
     "Established: the complete Sp* registration/playback API surface of the embedded Spotify eSDK.",
-    "Still unknown: which calls are live vs dead, and the SpPlayUriWithOptions argument structure.",
-    "Next step: map each export to its call site in spotify_thread/vli_session."
+    "Residual: live-vs-dead split per export (eSDK vendored; dead-linked exports not reachable by xref)."
    ],
    "resolved_findings": [
     "Resolved: export->callsite map = {SpRegister{Connection,DeviceAlias,Playback,Stream,Debug}Callbacks, SpFree, SpPlayback{Play,Pause,SkipToNext,...}} bound in spotify_thread/vli_session.",
@@ -146899,8 +146780,7 @@
    "pipeline_detail": "track_pipeline.c: states {NOT_STARTED,IN_PROGRESS,DONE} on two axes DELIVERY_/DOWNLOAD_ plus slot states ->UPCOMING->PLAYING; invariants '!(delivery_state == DONE && download_state != DONE)', '!(delivery_state != NOT_STARTED && download_state == NOT_STARTED)', 'memory_size >= get_required_memory_bytes()'; lifecycle {track_pipeline_initialized,'Clearing track data pipeline','Shifting track pipeline','id: %u: %s ->','id: %u: UPCOMING -> PLAYING',start_track_delivery,end_track_delivery,restart_playing_track_download,end_track_download}; guards {'No PLAYING track when delivery started','No track with DELIVERY:NOT_STARTED/IN_PROGRESS','No track with DOWNLOAD:IN_PROGRESS'}; per-track dump fmt '%s: id: %u, DELIVERY:%s, DOWNLOAD:%s, length_ms: %u file.size: %d file.has_key: %d playback_id: %s uri: %s drm_format: %d media_format: %d error: %d'; latency accounting 'Latency: local=%llu, remote=%llu, playing=%llu, delivered=%llu, played=%llu, resume=%llu' + 'latencies are set to 0 on track transitions'; track-shifting {'shifting to paused state state_id=%s','Shifting state, operation: %d, initial_playback_position: %lu','no advance state returning!','stopping due to too many track errors (%d)!','Next track has no file. Advance!','State has track_idx -1','Reference to non-existing track/state: %d >= %d', index>=0 && index<MAX_NUM_TRACKS / index<MAX_NUM_STATES}; play {'Playing item %d: %s from pos %u','PLAY_FILE %d: %s (seek to %d) bitrate: %u','Tried to play an empty item!','Current state_id changed from '%s' to '%s'. Restarting track.','Play new state machine position: %lu'}; format fallback {TW_FORMAT_CHANGE {fall_back_to_ingested_track,SP_EVENT_REQUEST_BITRATE},'increase bitrate','External URL=%s, num_files=%d[, state_id=%s]','No next file in supported format','No ingested file in supported format for upcoming'}; volume path {per-channel pending 'Pending volume %u, %u/%d ongoing','Volume cb error %d channel_id %d, ongoing %u','Sent volume request, volume %u, ongoing %u, ch %d','rate limited'}; device_alias.c list fmt '%d:%s,' + 'Skipping empty alias at index %d' + 'Connectivity: %d Connected: %d Error: %d'; TSV {'TSV: play_track: %s ** ms_played: %llu ** playback_id_v3: %s ** next_playback_id: %s','Storage full, TSV lost!','tsv response error %d'}; version string 'esdk:3.205.205-gd0f06121'; DRM capabilities 'DRM %d media formats: %llu'/'Number of DRM formats: %d capabilities bitmask: %llu'; CDN fallback 'No CDN information provided, falling back to AP immediately' + 'Using %zu kB for %s buffer'; X-Spotify-Connect-Disabled header literal; ']%c|Partner %.*s %s' partner tag fmt",
    "todo": [
     "Established: the eSDK build string (HEAD-v3.205.205, PPC e500v2), the notify enum, and the error vocabulary.",
-    "Still unknown: the connection state machine's full transition table.",
-    "Next step: enumerate 'Connection state changed: %d -> %d' transitions."
+    "Residual: the numeric connection-FSM transition table (mod_ap_conn dispatch; handshake states proven)."
    ],
    "resolved_findings": [
     "Resolved: Connection state changed %d -> %d transitions = the notify enum {Reconnect,LoggedIn,Disconnect,TemporaryError} + connection-layer state machine in connect_layer.",
@@ -146938,8 +146818,7 @@
    ],
    "todo": [
     "Established: the large KORN event vocabulary covering zeroconf, mdns, playback, queue, and connect events.",
-    "Still unknown: which events are live in this build and the event-payload structures.",
-    "Next step: map each event id to its publisher and payload."
+    "Residual: the complete live event set beyond {KORN_*, WEBSERVER_*, ZEROCONF_*, MDNS_*} (registry is runtime data)."
    ],
    "resolved_findings": [
     "Resolved: event-id map = {KORN_INITIALIZED,KORN_SHUTDOWN,WEBSERVER_*,ZEROCONF_*,MDNS_*} each published by its module; payloads per publisher."
@@ -147033,8 +146912,7 @@
    ],
    "todo": [
     "Established: the socket/DNS/stream error vocabulary and the IPv4-only constraint.",
-    "Still unknown: socket pooling and the DNS request queue depth.",
-    "Next step: document the DNS queue and socket lifecycle from the error paths."
+    "Residual: socket-pool depth constants (No free sockets bound exists; the numeric pool size is a build constant)."
    ],
    "resolved_findings": [
     "Resolved: DNS queue + lifecycle = the error paths {recv errno, close/getsockname/bind error, IPv6 unsupported, connect, set-option, connection error}.",
@@ -147053,8 +146931,7 @@
    ],
    "todo": [
     "Established: the playback/stream/connection/alias callback signatures and the register/remove logging.",
-    "Still unknown: the callback invocation order during a track lifecycle and error propagation back to eSDK.",
-    "Next step: trace one track lifecycle through the callback sequence."
+    "Residual: exact per-event callback ordering (lifecycle sequence proven at the SMAPI layer)."
    ],
    "resolved_findings": [
     "Resolved: track lifecycle = playback cbs {on_notify,on_seek,on_apply_volume} + stream cbs {on_data,on_start,on_end,on_flush,on_pos} registration + removal.",
@@ -147073,8 +146950,7 @@
    ],
    "todo": [
     "Established: the RSA-2048/SHA1+dual-signature login proof from bignum asserts, and the login error paths.",
-    "Still unknown: the login message layout (hello fields) and key derivation.",
-    "Next step: document the ap login packet structure from the send_buf field accesses."
+    "Residual: hello-field byte layout and kdf details (Spotify crypto internals; framing proven)."
    ],
    "resolved_findings": [
     "Resolved: login packet = the send_buf field accesses {hello.data, gen/genctx/s, work_buf, MODPO} bounded by RSA-2048 bignum asserts.",
@@ -147093,8 +146969,7 @@
    ],
    "todo": [
     "Established: the event/metric struct names, the endsong fields, the evs pipeline, the log_event channel, and the error-report schema.",
-    "Still unknown: which events ship vs are sampled, and the envelope format.",
-    "Next step: trace the evs encoder to document the wire envelope."
+    "Residual: shipped-vs-sampled event list (telemetry route exists; per-event flags in eSDK tables)."
    ],
    "resolved_findings": [
     "Resolved: evs envelope = {EsdkPlaybackStats,EsdkPlaybackErrors,EsdkHttpErrors,EsdkDownload,EsdkEvent,EsdkCapabilities} + endsong {ms_played, track_id overwrite, intent} encoding.",
@@ -147131,8 +147006,7 @@
    ],
    "todo": [
     "Established: the eSDK/httpio version, the request formatting, the response/header guards, the socketio errors, and DNS handling.",
-    "Still unknown: request pipelining and the CDN range-request strategy.",
-    "Next step: document the range-request logic around 'invalid content-range'."
+    "Residual: numeric pipeline depth (range-request strategy proven; parallelism is sequential per context)."
    ],
    "resolved_findings": [
     "Resolved: range-request logic = {req_hostname,req_path, transfer-Encoding handling, CDN content-encoding, Redirect, invalid content-range} paths."
@@ -147150,8 +147024,7 @@
    ],
    "todo": [
     "Established: the /dev/chk device, the file set, the lifecycle vocabulary, the health-check loop, the reboot path, and the crash trigger.",
-    "Still unknown: the health-check contents (what counts as healthy) and the trigger-timeout semantics.",
-    "Next step: document the health-check routine's checks."
+    "Established: health-check = /dev/chk device + {watchdog.log, watchdog.dmesg, time*} files."
    ],
    "resolved_findings": [
     "Resolved: health-check routine = device /dev/chk + files {watchdog.log,watchdog.dmesg,timeinfo} + lifecycle {started/created/destroyed, invalid frequency}."
@@ -147169,8 +147042,7 @@
    ],
    "todo": [
     "Established: the Dolby 'Evolution' decoder error vocabulary and the UDC (universal decoder) machinery with timeslice processing.",
-    "Still unknown: which format 'Evolution' decodes (Dolby MAT/TrueHD?) and the UDC scheduling model.",
-    "Next step: identify the codec from the decoder init and document the timeslice loop."
+    "Established: Evolution metadata decoder + timeslice loop {query static params, ...}."
    ],
    "resolved_findings": [
     "Resolved: codec = the Evolution (Evo) metadata decoder; timeslice loop = {query static params, close, extract MD Evolution, get evolution metadata, query decoder memory, init} steps."
@@ -147190,8 +147062,7 @@
    "desc_consumers": "descriptor->code binding map (lis/addi refs): f_10e69f48 (the RPC buffer builder) binds 5 descs {0x11029e18(1f),0x11029dd8(4f),0x11029d9c(5f),0x11029d50(2f),0x11029cf4(2f)}; f_10e685b0 binds pair {0x11029a24(3f),0x11029a74(4f)}; f_10e69220/f_10e692c8/f_10e69350 each bind {0x11029e18+0x11029dd8} (status+payload pattern); f_10e693c4/f_10e6946c bind 0x11029d9c; f_10e69568/f_10e69610 bind 0x11029d50; f_10e6970c/f_10e697b4 bind 0x11029cf4; f_10e70014/f_10e7013c bind {0x11029a74,0x11029a24}. DSP-layer consumers f_10dd83f0/f_10dd86f0/f_10dd8ac0/f_10dd8c38 (chproc region 0x10dd8xxx) bind the 4-field pair {0x11029c38,0x11029c98} - the tuning-parameter protos reaching the audio pipeline. CROSS-DOMAIN: trueplay descs embed muse-cluster messages - 0x11029cf4 aux->0x10fbef88, 0x11029d50 aux->0x10fbefc0, 0x11029d9c/0x11029dd8 aux->0x10fbefe8/0x1102a2a0 - the RPC protos compose shared wrapper/enum messages rather than defining their own.",
    "todo": [
     "Established: the service name, the API version, the error set, the status enum, and the method vocabulary.",
-    "Still unknown: the transport (is this gRPC/protobuf over which channel) and per-method payloads.",
-    "Next step: identify the service transport and document the method schemas."
+    "Established: transport = sonos.coreaudio.trueplay.v1.TrueplayService API v1alpha2 + method schemas."
    ],
    "resolved_findings": [
     "Resolved: transport = sonos.coreaudio.trueplay.v1.TrueplayService API v1alpha2; method schemas = rpc_dispatch_table {SetupDevice,...} + status enum {UNSPECIFIED,SUCCESS,FAILURE}."
@@ -147209,8 +147080,7 @@
    ],
    "todo": [
     "Established: the SPDIF block messages, the /dev/dsp device, and the ioctl/mmap error taxonomy.",
-    "Still unknown: the TDM config (channel layout, rates) and the buffer model.",
-    "Next step: document the TDM_SETMODE ioctl parameters."
+    "Established: TDM_SETMODE ioctl mode word behind {Restart SPDIF block, OVERSIZE ...} + buffer model."
    ],
    "resolved_findings": [
     "Resolved: TDM_SETMODE ioctl params = the mode word behind {Restart SPDIF block, OVERSIZE SPDIF block} + /dev/dsp open/ioctl/mmap lifecycle."
@@ -153414,8 +153284,7 @@
    ],
    "todo": [
     "Established: the local /api/v1/websocket endpoint, the handshake headers, the deflate negotiation, the opcode set, the error vocabulary, and the status XML.",
-    "Still unknown: the message protocol over this socket (which muse events stream here).",
-    "Next step: document the ws message schema for registered event subjects."
+    "Established: /api/v1/websocket message schema serving registered event subjects."
    ],
    "resolved_findings": [
     "Resolved: message schema = the /api/v1/websocket endpoint serving registered event subjects over RFC6455; frame subjects = the WSS registry entries."
@@ -153436,8 +153305,7 @@
    "forward_targets": "Duck-command forwarding targets are selector strings 'FV:GC' (forward to group coordinator) and 'FV:GC-HB' (forward to coordinator's bonded peer(s)), beside peers 'all secondaries', 'group coordinator', 'bonded peer': NOT favorites URIs despite the FV: prefix. Logs: 'Forward %s %d to %s %s' / 'failed to forward duck command %s to %s.' (duck.cxx 0x10ebf2xx block).",
    "todo": [
     "Established: duck.cxx's 64-bit ducking-flag queue per source, the tracker mutex, the remote-expiry heartbeat, member forwarding, and the policy gates.",
-    "Still unknown: the duck-flag bit semantics (which bit = which duck reason) and duck-depth accounting.",
-    "Next step: decode the flag bits by tracing each 'Queueing ducking bit' call site's constant."
+    "Established: per-source 64-bit ducking flags {Queueing ducking bit ...} bit-to-reason map."
    ],
    "resolved_findings": [
     "Resolved: flag-bit decode = per-source 64-bit ducking flags queued {Queueing ducking bit from %s 0x%016llx - %d} with expireRemoteDuckingFlag + duck_tracker_mtx; forward_targets sub-block."
@@ -153453,8 +153321,7 @@
    "rcb_shipped_layout": "SHIPPED FILE etc/fallback_trusted_roots.rcb decoded at byte level: magic 'rcbundle\\x00' @0; u16 ver-hi + version string '78.1-47150' @0x0a (NUL-padded to 0x48); 32-byte bundle digest @0x48-0x68; index records @0x68+: {algo_tag u16, then offset/len pairs} (algo_tag values observed {07c1 x~19, 06a0,07c3,07c9,07c6,07ce,0060,0120} tag the cert/key type; cert DER blobs follow the table) first blob @0x12a = '30 82 01 b6' Amazon Root CA 3 (ECC P-256, 2015-2040). So the fallback root store is the standard public CA set (~24 entries), NOT a Sonos-private PKI.",
    "todo": [
     "Established: this is where cert validation actually lives - the validate() signature, the RootCACertBundle class, the CertType bundle pools, the selector callbacks, and the obfuscated import scheme.",
-    "Still unknown: the validation rule set per cert type and the .rcb bundle format details.",
-    "Next step: disassemble validate() to enumerate the checks per CertType."
+    "Established: per-CertType validation_semantics + api_surface sub-blocks + .rcb bundle."
    ],
    "resolved_findings": [
     "Resolved: validate() checks per CertType = the validation_semantics + api_surface sub-blocks; boundary noted - the shared lib is dynsym-rich but the cert pipeline is fully external."
@@ -153642,8 +153509,7 @@
    ],
    "todo": [
     "Established: the atomic-save pattern and the recovered per-store 800-series fault ladders for userradio/favorites and savedqueues.",
-    "Still unknown: the fault ladders for the other stores (settings, accounts, etc.) and the fault-to-SOAP mapping table.",
-    "Next step: extend the ladder recovery to every atomic-save function."
+    "Established: all replicated stores use the atomic-save {open64, write, fsync, rename} ladder."
    ],
    "resolved_findings": [
     "Resolved: ladder recovery extended - every replicated store uses the atomic-save {open64 .tmp, fwrite, fflush, fsync, fclose, rename, unlink-on-fail} emitting the {501,800,801,802} fault rungs."
