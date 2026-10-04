@@ -142245,13 +142245,13 @@
   "autoplay": {
    "engine": "MpAutoPlay_: airplay {include zones,vol,useVol,includeZones}; AirplayIncludeGroupedEvt; AutoStop on unhandled URI; linein URIs object.item.audioItem.linein.{homeTheater,airplay,bluetooth}; \"lonely local line-in autoplay %s\"; failure modes \"no autoplay target\"/\"couldn't determine coordinator\"/\"couldn't determine AVT control URI of coordinator\"/\"couldn't determine control URI of zone\"; skip \"invisible/node proto incompatible ZP\"; \"for controlURI [%s] for coordinator [%s]. programURI [%s]. %d - %d\"; vliType-driven",
    "todo": [
-    "Established: only the 'engine' sub-record; the autoplay decision engine is named but undescribed at the top level.",
-    "Still unknown: which sources are autoplay-eligible, target-selection order, and interaction with mp_autoplay's params.",
-    "Next step: merge with mp_autoplay knowledge and document the autoplay engine's decision table."
+    "Residual: the room-priority ordering when multiple zones share the line-in source (which room wins autoplay) - selection order proven as room->coordinator->controlURI, the room ranking input is zone-topology state not literal-named."
    ],
    "resolved_findings": [
-    "Resolved: merged with mp_autoplay - the decision table = {linked-zones expansion -> per-room AutoplayRoomUUID/AutoplayVolume -> silence-threshold gate -> alarm/buzzer fallback}; StartAutoplay enters the table with the source arg."
-   ]
+    "Resolved: merged with mp_autoplay - the decision table = {linked-zones expansion -> per-room AutoplayRoomUUID/AutoplayVolume -> silence-threshold gate -> alarm/buzzer fallback}; StartAutoplay enters the table with the source arg.",
+    "Eligibility and selection ladder proven: only object.item.audioItem.linein.{homeTheater,airplay,bluetooth} classes trigger autoplay (all routed via x-sonos-vli); per-invocation params logged as %s %s vol: %u useVol: %d includeZones %d plus airplay include zones: %d (AirplayIncludeGroupedEvt). Target selection order: choose autoplay room -> resolve its group coordinator (autoplay could not determine coordinator of %s) -> resolve coordinator AVT control URI (could not determine AVT control URI of coordinator %s) -> build http://%s:%u control URI and dispatch for controlURI [%s] for coordinator [%s]. programURI [%s]. %d - %d. Failure modes: no autoplay target for %s, could not determine control URI of zone %s, Not executing on invisible/node proto incompatible ZP %s, Autoplay command failed ret=%d. The lonely local line-in autoplay %s path handles a single-room source. AutoStop called on unhandled URI %s:%s terminates autoplay when the installed URI is replaced by a non-linein class. vliType RCA names the analog line-in type."
+   ],
+   "summary": "autoplay decision engine (media_player_autoplay.cxx, MpAutoPlay_/MpAp/mp_autoplay tags): eligible sources are linein-class URIs object.item.audioItem.linein.{homeTheater,airplay,bluetooth} bridged over x-sonos-vli; target selection walks a zone -> coordinator -> AVT controlURI ladder and dispatches http://%s:%u control to the target room with {vol,useVol,includeZones} params; lonely local line-in autoplay plays on the local room when no linked zones qualify; AutoStop on unhandled URI reverts when the source leaves"
   },
   "saved_queues": {
    "name": "SavedQueues .rsq format",
@@ -142271,12 +142271,11 @@
     }
    ],
    "todo": [
-    "Established: the file path, the XML schema, the validation taxonomy, the migration path, the SQ prefix, and the album-art rule.",
-    "Still unknown: the Curated flag semantics and cross-device restore.",
-    "Next step: document the restore path and the curated-queue handling."
+    "Residual: the Curated value enum (which curated states exist beyond the string form) - the flag locations are proven in both stores, the value vocabulary is service-defined data."
    ],
    "resolved_findings": [
-    "Resolved: restore path = savedqueues.rsq documents load via the SavedQueue parser -> per-track <Track URI MD> re-enqueue through the queue engine; curated queues carry Curated=\"1\" flag and are read-only via the playlist browse path."
+    "Resolved: restore path = savedqueues.rsq documents load via the SavedQueue parser -> per-track <Track URI MD> re-enqueue through the queue engine; curated queues carry Curated=\"1\" flag and are read-only via the playlist browse path.",
+    "Curated semantics + restore path decoded: Curated is a queue-level editorial flag surfaced in the Queue LastChange event (<Event xmlns=\"urn:schemas-sonos-com:metadata-1-0/Queue/\"> alongside <QueueOwnerID val>, <QueueID val=\"%.20s\">, <UpdateID val>, <Curated val=\"...\">) and mirrored in the track queue as the curation/curationState fields of playmodelEvent (tqueue.cxx). In savedqueues.rsq it persists as the SavedQueue Curated= attribute; SavedQueue curation string: %s logs its value. Cross-device restore rides settings replication: the file arrives as application/gzip or text/xml, validates against Replicated SavedQueue file is not valid and the version/id rules, promotes through the .tmp rename to file:///jffs/settings/savedqueues.rsq with .d.rsq backup, and runs the SQ:%s object-id + service-id migration (Migrating ObjID=%s SN=%u from SID: %u to %u); the export fn at 0x10478f28 selects gzip vs xml on a flag."
    ]
   },
   "smb": {
@@ -142354,12 +142353,11 @@
     }
    ],
    "todo": [
-    "Established: the devdiscthr/ddthrd.cxx identity, the rx logging vocabulary, the quarantine-recheck message, the SSDP loss counter, the M-SEARCH signature machinery, and the X-RINCON-* header vocabulary.",
-    "Still unknown: the message grammar (which SSDP-derived types exist: ALIVE/BYEBYE/CDALIVE/CDBYEBYE/QUARANTINE_RECHECK and their fields) and signature computation.",
-    "Next step: enumerate the message types from the rx parser and document the signing input."
+    "Residual: the ALIVE/CDALIVE positional field meanings inside the rx format (%s %s %s %d %u %s) - subtype, location, USN, boot/config ids are positional args not separately named."
    ],
    "resolved_findings": [
-    "Resolved: message types from the rx parser = the device-discovery frame set; signing input = the household-PSK signed span documented under household_psk_vocabulary."
+    "Resolved: message types from the rx parser = the device-discovery frame set; signing input = the household-PSK signed span documented under household_psk_vocabulary.",
+    "Discovery message grammar fully enumerated (ddthrd.cxx rx log literals): the RDevDiscThread (devdiscthr) accepts six message types - MSEARCH (rx MSEARCH %s from %s:%d), ALIVE (rx %s ALIVE %s %s %d %u %s), BYEBYE (rx %s BYEBYE %s), CDALIVE (rx CDALIVE %s %s %d - the Sonos change-detected-alive variant), CDBYEBYE, and QUARANTINE_RECHECK (rx QUARANTINE_RECHECK %s). Unknown types log ???? and are dropped (discarding %s type %d); zp byebye marks zone-player departure. Reliability telemetry: %s - %u SSDP messages lost is the drop counter, ddt hint:%d tags worker hints, Finished working on type %d closes each batch. Message-type id is the %d in the per-type logs."
    ]
   },
   "cloud_synchronizer": {
