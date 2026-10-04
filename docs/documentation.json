@@ -141153,11 +141153,12 @@
    ],
    "fields": "metrics {accum,accumBytes=aggregate size of processed frames,aheadTime=amount of audio prebuffered,frameToFrame=time between frames,wouldBlock=transmits blocked count,queueExpiry=queue expiration time,frameTypes,frameSizeBytes,frameSizeSamples,processing indicators,user action,transport error,initial,perf-counters}; windows {\"Creating %s window ending at time %lld\",\"Cannot reverse time\",\"Ringbuffer cannot rotate backwards\",\"Rotation required\"}; json {wallClockTimeUTC,timeSinceBoot,windowDuration,processName,counters}; \"AFC truncated!\"",
    "todo": [
-    "Established: the counter headers, the field schema, the emit roots, and the museperf record.",
-    "Residual: the complete counter registry census (registration machinery proven; counters register at runtime)."
+    "Established: counter headers, field schema, emit roots, museperf record, and the eventloop/circuit-breaker/worker-pool counter families.",
+    "Residual: the exhaustive cross-subsystem census - each module registers its own counters at runtime via perfCountMgr; literal families above are proven but the full registered set is runtime data"
    ],
    "resolved_findings": [
-    "Resolved: registered counters = the perf_counter_table emit root + perfCountMgr + counter_historical/min_avg_max headers; export = the fields sub-block."
+    "Resolved: registered counters = the perf_counter_table emit root + perfCountMgr + counter_historical/min_avg_max headers; export = the fields sub-block.",
+    "Resolved: counter families recovered as literal {name,description} pairs - eventloop: subject \"In-Process Event Subjects\" {queueFail=\"The number of events that failed to queue\", size=\"The event size in bytes\", dispatchDelay=\"The amount of time an event spent waiting to be dispatched\"} + subject \"In-Process Event Observers\" {cbTime=\"The duration of observer handlers. Warn if over threshold (%lldms)\"}; circuit-breaker: museCircuitBreaker {timeInOpenStateMS, circuitBreakerOpenedCount, totalFailures, totalSuccessfulRetries, totalFailedRetries}; worker-pool: {\"The number of tasks actively being processed\"=tasks, \"The time spent in the main loop iteration\"=loopIter} at 0x10f92ad8-0x10f92b1c. Other subsystems register their own counters through the same perfCountMgr path - the schema (thresh attr + subcounters key + wallClockEndTime) is uniform."
    ]
   },
   "sonoscp": {
@@ -141598,13 +141599,14 @@
     }
    ],
    "todo": [
-    "Residual: the numeric threshold constant - the compared value (%lld RHS) is a per-observer field populated at observer registration (counter schema proven); registration args are runtime data"
+    "Residual: the numeric cbTime warn threshold value - bound to the counter's thresh attribute at registration; observers register at runtime"
    ],
    "resolved_findings": [
     "Resolved: export path = the counter registry {Unique identifier for a set of counters, In-Process Event Subjects, number of events}; threshold = the exceeded duration threshold %lldms > %lldms bound.",
     "Export path proven: perf counters are registered objects under the perf-counters category with sections In-Process Event Subjects and In-Process Event Observers; counter kinds {queueFail (events that failed to queue), dispatchDelay (queue wait time), cbTime (handler duration), event size in bytes} plus perf_counter_keyed identity rows (\"Unique identifier for a set of counters\"). The warning compares against a runtime %lld threshold (%s callback in observer %s exceeded duration threshold %lldms > %lldms) - the value is a config/code constant in the observer registration.",
     "Evidence: the '%s callback in observer %s exceeded duration threshold %lldms > %lldms' format string (0x10faf1d0) is referenced through GOT2 slot 0x1108d768 - the emit site is live code reached via r2-relative got2 loads, not an inline lis/addi pair; the threshold operand (%lldms RHS) is compared per-callback.",
-    "Resolved: the event-loop perf-counter schema is literal - subject \"In-Process Event Subjects\" with group key perf_counter_keyed carries counters {queueFail=\"The number of events that failed to queue\", event size=\"The event size in bytes\", dispatchDelay=\"The amount of time an event spent waiting to be dispatched\"} (0x10faf260-0x10faf30c, pointed at by \"Check perf counters for details\" in the threshold log). The loop is named inprocess-events-loop (0x10faf1a8) and logs \"Eventloop %p configured/removed\"."
+    "Resolved: the event-loop perf-counter schema is literal - subject \"In-Process Event Subjects\" with group key perf_counter_keyed carries counters {queueFail=\"The number of events that failed to queue\", event size=\"The event size in bytes\", dispatchDelay=\"The amount of time an event spent waiting to be dispatched\"} (0x10faf260-0x10faf30c, pointed at by \"Check perf counters for details\" in the threshold log). The loop is named inprocess-events-loop (0x10faf1a8) and logs \"Eventloop %p configured/removed\".",
+    "Resolved: the compared threshold belongs to counter cbTime under subject \"In-Process Event Observers\" - description \"The duration of observer handlers. Warn if over threshold (%lldms)\" (0x10faf348-0x10faf36c). So the %lldms RHS in the exceeded-duration log is the cbTime counter's registered warn threshold, a per-registration counter attribute."
    ]
   },
   "upnputil": {
