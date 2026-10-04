@@ -141368,11 +141368,12 @@
     }
    ],
    "todo": [
-    "Residual: the HS256 key storage location and rotation interval (the oauth token is cached; rotation is the token_refresh FSM per-account)."
+    "Residual: HS256 key bytes storage + rotation interval - key material arrives via the oauth client config (endpoint proven); rotation is per-account token_refresh FSM timing, not a literal"
    ],
    "resolved_findings": [
     "Resolved: JWT-gated routes = the admin/auth surface; key chain = the JWT_* error taxonomy {B64, MALFORMED, HEADER/PAYLOAD/SIGNATURE INVALID, ALG_*, X5C_*, PRIVATE_KEY_*} covering the verification path.",
-    "Consumers split by alg: the HS256 path (jwt_auth summary: oauth/v4/pdsw endpoint + jwt-bearer grant) is the cloud-token client; the RS256 minting path (smapi_jwt: {alg:RS256, x5c:[cert chain]}, claims {iss, exp}) is the outbound credential for SMAPI/SVE calls signed by the device registration cert - so JWT auth is required for SMAPI services and SVE, optional elsewhere. Error enum covers both directions (X5C_UNTRUSTED inbound validation, PRIVATE_KEY_* outbound signing)."
+    "Consumers split by alg: the HS256 path (jwt_auth summary: oauth/v4/pdsw endpoint + jwt-bearer grant) is the cloud-token client; the RS256 minting path (smapi_jwt: {alg:RS256, x5c:[cert chain]}, claims {iss, exp}) is the outbound credential for SMAPI/SVE calls signed by the device registration cert - so JWT auth is required for SMAPI services and SVE, optional elsewhere. Error enum covers both directions (X5C_UNTRUSTED inbound validation, PRIVATE_KEY_* outbound signing).",
+    "Resolved: the oauth token endpoint is literal https://oauth.<region>ws.sonos.com/oauth/v4/pdsw (0x10f98cb0/0x10f98cc0) and the JWT error enum is fully compiled in @0x10f988e4+: {JWT_FAILED_TO_B64_ENCODE, JWT_FAILED_TO_B64_DECODE, JWT_MALFORMED, JWT_HEADER_INVALID, JWT_PAYLOAD_INVALID, JWT_SIGNATURE_INVALID, JWT_ALG_UNSUPPORTED, JWT_ALG_MISSING, INPUT_JWT_ALG_MISSING, INPUT_JWT_X5C_MISSING, INPUT_JWT_X5C_INVALID, INPUT_JWT_X5C_UNTRUSTED, INPUT_JWT_PRIVATE_KEY_MISSING, INPUT_JWT_PRIVATE_KEY_INVALID, OUTPUT_JWT_SIGNING_ERROR, OUTPUT_JWT_INVALID_STATE} + alg literal HS256 @0x10f98a78. The muse request path is profiled by muse::PerfProfiler with stage names {AUTH_IS_AUTHORIZED, AUTH_PARSE_DEVICE_TOKEN, AUTH_POLICY_TABLE_CACHE_FETCH, COMMAND_DISPATCH, COMMAND_EXECUTE, COMMAND_LOGGER, COMMAND_PARSE, COMMAND_REPORT, PLAYER_VOLUME_SET_VOLUME} @0x10f98b1c-0x10f98c04 - the muse pipeline stage order is literal."
    ]
   },
   "muse_perf": {
