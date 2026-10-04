@@ -139438,11 +139438,12 @@
     }
    ],
    "todo": [
-    "Residual: the numeric values of the 6-mode enum and IdleState bit meanings (the enum order is proven; the numeric mapping and IdleState bits are rodata/bitfield data)."
+    "Residual: IdleState 0x%08x bit meanings - the hex field is a bitmask whose flag bits live in the wireless-state writer, not the enum path."
    ],
    "resolved_findings": [
     "Resolved: mode FSM = {SONOSNET,INVALID,ETHERNET,STATION_SATELLITE,SONOSNET_SATELLITE_STATION_PRIMARY,STATION}; transitions driven by netconfig + <Wireless><WirelessInfo> dump.",
-    "Mode semantics mapped: SONOSNET_MODE = SonosNet mesh member, ETHERNET_MODE = wired with radio roles reduced, STATION_MODE = plain WiFi STA, STATION_SATELLITE_MODE = satellite over STA link, SONOSNET_SATELLITE_STATION_PRIMARY_MODE = satellite carrying the primary STA uplink, INVALID_MODE = unset. Transitions are config-driven not autonomous: the mode word comes from the wireless config (WirelessInfo reports WifiMode %d + WifiModeString); SonosNetDisabled + IdleState(0x%08x bitmask) + BusyClients + ConnectionType expose the operational state. The setup() in SonosNet disable test mode path schedules an automatic revert in %d seconds - test-mode transitions are self-reverting."
+    "Mode semantics mapped: SONOSNET_MODE = SonosNet mesh member, ETHERNET_MODE = wired with radio roles reduced, STATION_MODE = plain WiFi STA, STATION_SATELLITE_MODE = satellite over STA link, SONOSNET_SATELLITE_STATION_PRIMARY_MODE = satellite carrying the primary STA uplink, INVALID_MODE = unset. Transitions are config-driven not autonomous: the mode word comes from the wireless config (WirelessInfo reports WifiMode %d + WifiModeString); SonosNetDisabled + IdleState(0x%08x bitmask) + BusyClients + ConnectionType expose the operational state. The setup() in SonosNet disable test mode path schedules an automatic revert in %d seconds - test-mode transitions are self-reverting.",
+    "Resolved: the numeric enum mapping - the WifiModeString emit path at 0x1073ff10 computes idx=mode+1, bounds cmplwi 0x5, then dispatches through the self-relative jump table at 0x10f11f7c: -1=INVALID_MODE, 0=SONOSNET_MODE, 1=STATION_MODE, 2=SONOSNET_SATELLITE_STATION_PRIMARY_MODE, 3=STATION_SATELLITE_MODE, 4=ETHERNET_MODE (out-of-range -> 'Unknown'). The companion display ladder maps to human strings {'SonosNet (wireless)', 'SonosNet (Ethernet)', 'Ethernet', 'Ethernet (WiFi Disabled)', 'WiFi', 'Home Theater 2.0', 'Home Theater (Ethernet)'} (0x10f02c60 block)."
    ]
   },
   "audio_decoders": {
@@ -139631,11 +139632,12 @@
     }
    ],
    "todo": [
-    "Residual: the pool size and request timeout constant (scheduling model proven; sizing is config data)."
+    "Residual: the default timeout value callers pass (armed into req+0x48) and the worker-pool thread count - both are ctor/config-supplied fields."
    ],
    "resolved_findings": [
     "Resolved: thread-pool = performAsync scheduling over the pool {not scheduled. No active thread pool available, Client not setup, empty URL, Curl error, Request timed out in %lld ms, curl_multi_perform}.",
-    "Thread-pool scheduling and request state proven: performAsync submits work onto the eventLoop scopeHttpClient thread-pool - if no pool is live the request is cancelled (not scheduled. No active thread pool available. Cancelling.); Client not setup guards uninitialized submission. Requests run on a curl_multi loop (curl_multi_perform/poll/info_read) with per-request curl easy state: Curl error (%d): %s surfaces CURLE codes, Request timed out in %lld ms is the deadline, HTTP request attempted with empty URL is the arg guard. Perf counters taskCount (tasks actively processed) + mainLoopIteration (loop time) drive the metrics. DNS resolution rides asio categories {generic, std:unknown, asio.netdb, asio.addrinfo, asio.misc} with netdb errors {Service not found, Socket type not supported, Host not found authoritative/non-authoritative}. Session state: Session status 0x%x connected %d wantWrite %d wantRead %d is the per-connection readiness word."
+    "Thread-pool scheduling and request state proven: performAsync submits work onto the eventLoop scopeHttpClient thread-pool - if no pool is live the request is cancelled (not scheduled. No active thread pool available. Cancelling.); Client not setup guards uninitialized submission. Requests run on a curl_multi loop (curl_multi_perform/poll/info_read) with per-request curl easy state: Curl error (%d): %s surfaces CURLE codes, Request timed out in %lld ms is the deadline, HTTP request attempted with empty URL is the arg guard. Perf counters taskCount (tasks actively processed) + mainLoopIteration (loop time) drive the metrics. DNS resolution rides asio categories {generic, std:unknown, asio.netdb, asio.addrinfo, asio.misc} with netdb errors {Service not found, Socket type not supported, Host not found authoritative/non-authoritative}. Session state: Session status 0x%x connected %d wantWrite %d wantRead %d is the per-connection readiness word.",
+    "Resolved: the timeout mechanism (async_http_client 0x10995d28) - each request carries a deadline timeval pair at req+0x48/+0x4c; the monitor compares elapsed via sonosClockGetTime and emits 'Request timed out in %lld ms' with the elapsed delta. The deadline is armed per-request at schedule time (caller-supplied timeout), not a global rodata constant."
    ]
   },
   "browse_ids": {
@@ -139885,11 +139887,11 @@
     }
    ],
    "todo": [
-    "Established: the seamless-handoff protocol both directions - remote (sdbt packets, offset matching, delayed vs quick handoff) and local (itdbt, END_TX, seamless source change).",
-    "Residual: the numeric handoff timing budget values (delayed-vs-quick predicates proven; thresholds are constants)."
+    "Residual: per-iteration poll granularity inside the wait loop (the f_1044a59c/f_1044a604 cadence helpers) - the 12 s budget and frame bound are proven."
    ],
    "resolved_findings": [
-    "Resolved: handoff predicates = {txs parse failure, handoff wait loop -> timed out, sdbt receive packet failed, Old/New packet mismatch (full frame/id/class/offset)} - timeout + version-match guards in the wait loop."
+    "Resolved: handoff predicates = {txs parse failure, handoff wait loop -> timed out, sdbt receive packet failed, Old/New packet mismatch (full frame/id/class/offset)} - timeout + version-match guards in the wait loop.",
+    "Resolved: the seamless-handoff timing budget (chsnk 0x10308e48) - the wait loop arms a 0x2ee0 = 12000 ms deadline via timevalAddMs (0x10308ecc), polls the remote-source frame path with a 0x408-byte frame bound (cmplwi 0x407 reject at 0x1030916c), and reports 'Quick handoff success' (early path, 0x10309860) vs 'Delayed handoff success' (waited path, 0x103096f8) with the %-offset float; the loop logs 'Completed seamless handoff wait loop in %dms'."
    ]
   },
   "csfcm": {
@@ -140368,7 +140370,8 @@
    ],
    "resolved_findings": [
     "Resolved: export path = the counter registry {Unique identifier for a set of counters, In-Process Event Subjects, number of events}; threshold = the exceeded duration threshold %lldms > %lldms bound.",
-    "Export path proven: perf counters are registered objects under the perf-counters category with sections In-Process Event Subjects and In-Process Event Observers; counter kinds {queueFail (events that failed to queue), dispatchDelay (queue wait time), cbTime (handler duration), event size in bytes} plus perf_counter_keyed identity rows (\"Unique identifier for a set of counters\"). The warning compares against a runtime %lld threshold (%s callback in observer %s exceeded duration threshold %lldms > %lldms) - the value is a config/code constant in the observer registration."
+    "Export path proven: perf counters are registered objects under the perf-counters category with sections In-Process Event Subjects and In-Process Event Observers; counter kinds {queueFail (events that failed to queue), dispatchDelay (queue wait time), cbTime (handler duration), event size in bytes} plus perf_counter_keyed identity rows (\"Unique identifier for a set of counters\"). The warning compares against a runtime %lld threshold (%s callback in observer %s exceeded duration threshold %lldms > %lldms) - the value is a config/code constant in the observer registration.",
+    "Evidence: the '%s callback in observer %s exceeded duration threshold %lldms > %lldms' format string (0x10faf1d0) is referenced through GOT2 slot 0x1108d768 - the emit site is live code reached via r2-relative got2 loads, not an inline lis/addi pair; the threshold operand (%lldms RHS) is compared per-callback."
    ]
   },
   "upnputil": {
