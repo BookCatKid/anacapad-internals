@@ -141900,13 +141900,9 @@
     "dump_printer": "profile dump: ' - Version: %d',' - Schema version: %d'; protocol dump: ' - Frequency base: %.1fHz',' - Frequency interval: %.1fHz',' - Channels: %d',' - Channel interval: %.1fHz',' - Note duration, header: %.3f'/'body: %.3f',' - Envelope duration, attack: %.3f'/'release: %.3f',' - Portamento: %.3f',' - Silence duration, header: %.3f'/'body: %.3f',' - Polyphony: %d',' - Symbol bits: %d',' - Alphabet bits: %d',' - Message length: %d - %d',' - RS length: %d - %d',' - CRC length: %d'; decoder config dump: ' - Hop size: %d',' - Minimum sample rate: %d',' - FFT size: %d',' - Payload metrics enabled: %d',' - Buffer metrics enabled: %d' + per-voter '   * Reverb cancellation exponent: %f','   * Reverb cancellation magnitude: %f','   * Frame offset: %d','   * Preamble threshold: %f','   * Amplitude threshold: %f','   * Spectral weighting size: %d'.",
     "decoder": "decoder.c: 'Blockbuffer failed to append samples','Cannot initialise decoder with NULL profile','Cannot initialise decoder with zero sample rate','Invalid channel: %d','Invalid profile/sample rate'; cdma_decoder.c: 'chirp_cdma_decoder_process_frame: Call to add_score failed', 'Detected code: [%d, %d, %d, %d ...]' emitted on symbol decode."
    },
-   "todo": [
-    "Established: the sonos-cdma profile, the decode/encode struct family, the FFT init, and the error vocabulary including a TODO comment in the binary.",
-    "Still unknown: the profile's frequency table and symbol alphabet (see chirp_stack's unresolved field), and the payload format.",
-    "Next step: extract the sonos-cdma profile parameters from the chirp_cdma_decoder_t init data."
-   ],
    "resolved_findings": [
-    "Resolved: sonos-cdma profile struct at 0x11094630 - envelope floats {0.2,0.4,0.6,0.8,~0.53}, flag word 0x80000, 4-channel frequency table {16936,18000,18936,19936 Hz} with per-channel offsets {0,12,24,36} (tripled copy). Ultrasonic band confirmed ~17-20kHz."
+    "Resolved: sonos-cdma profile struct at 0x11094630 - envelope floats {0.2,0.4,0.6,0.8,~0.53}, flag word 0x80000, 4-channel frequency table {16936,18000,18936,19936 Hz} with per-channel offsets {0,12,24,36} (tripled copy). Ultrasonic band confirmed ~17-20kHz.",
+    "Profile-table and payload questions answered via chirp_stack: sonos-cdma carries 4-ch frequency table {16936,18000,18936,19936 Hz} with symbol offsets {0,12,24,36}, envelope {0.2,0.4,0.6,0.8,~0.53}, flag word 0x80000 (init struct at 0x11094630); payload-type enum at 0x10faee08 {INAUDIBLE..BLE=7}; SDK chirp-core 4.2.1_7265 with reed-solomon + FFT pipeline documented there."
    ]
   },
   "qplay": {
@@ -141919,13 +141915,9 @@
      "notes": "QPlay:2 capability + #QPLAY_SUPPORT# + QPlayAuth"
     }
    ],
-   "todo": [
-    "Established: the QPlay:2 capability advertisement, the #QPLAY_SUPPORT# flag, the QPlayAuth action, and the honest 'stub-grade support' assessment.",
-    "Still unknown: whether any real QPlay session ever worked on this build (no control channel found).",
-    "Next step: confirm absence of the control channel then mark QPlay as advertisement-only."
-   ],
    "resolved_findings": [
-    "Resolved: QPlayAuth (Seed->{Code,MID,DID}) is the ENTIRE QPlay surface - impl f_104666b4 computes the auth values then returns 0 unconditionally with no session state and no event. No control/listen channel exists. Marking QPlay advertisement+handshake-only."
+    "Resolved: QPlayAuth (Seed->{Code,MID,DID}) is the ENTIRE QPlay surface - impl f_104666b4 computes the auth values then returns 0 unconditionally with no session state and no event. No control/listen channel exists. Marking QPlay advertisement+handshake-only.",
+    "Resolved via qplay_protocol: no dedicated QPlay session wire protocol exists in this image - the entire surface is /QPlay/Control QPlayAuth{Seed->Code,MID,DID} + template-gated QPlay:2 capability (#QPLAY_SUPPORT#) + shared-T mode on the http streamer (updateSharedTQPlayMode). Playback after auth rides ordinary AVTransport/queue; the control channel from public QPlay docs is not implemented in this build."
    ]
   },
   "music_accounts": {
@@ -142135,13 +142127,9 @@
     "accounts": "auth-token expiry detection -> refresh via upnp; \"Login failed with E_SONOS_BAD_ACCOUNT\"; service descriptor lookup {sid,g,sn}; \"Treating auth token as expired\"",
     "telemetry": "ecode mapping \"error: %s ecode=%d (%s), mapped to 0x%08x\"; fatal-error report rate limit (\"restricting excessive fatal error reporting\"/\"spotify telemetry rate limit exceeded!\" spotrl); underrun counter; \"Radio:\" prefix stripped from restart token"
    },
-   "todo": [
-    "Established: only the esdk_host sub-record.",
-    "Still unknown: the Connect feature's end-to-end flow beyond the esdk plumbing.",
-    "Next step: document the esdk_host block and the delegation flow."
-   ],
    "resolved_findings": [
-    "Resolved: esdk_host = the kSp* NTS callback block {ConnectionMessage,ConnectionNewCreds,StreamStart(id,fmt,drm,size,gain),PlaybackNotify,StreamFlush,StreamGetPosition(id),Error} bound to cmds RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeActiveDevice,SetDeviceInactive}; delegation flow documented under spotify_esdk."
+    "Resolved: esdk_host = the kSp* NTS callback block {ConnectionMessage,ConnectionNewCreds,StreamStart(id,fmt,drm,size,gain),PlaybackNotify,StreamFlush,StreamGetPosition(id),Error} bound to cmds RSpotifyPlayback{Play,Pause,Seek,SeekRelative,SkipToNext,SkipToPrev,BecomeActiveDevice,SetDeviceInactive}; delegation flow documented under spotify_esdk.",
+    "End-to-end flow resolved via spotify_esdk: mDNS registration lifecycle, RSpotifyPlayback command set, NTS callbacks, seamless delegation (position seek + AudioStart wait + timeout), SpotifyDelegationNotification events, esdk_api/esdk_spi layering - the Connect feature is the esdk_host plumbing plus the delegated-track takeover documented there."
    ]
   },
   "alarm_clock": {
@@ -142333,13 +142321,9 @@
   },
   "lechmere": {
    "cloudrequest": "cloudrequest.cxx: ws endpoint /api/v1/websocket; per-msg-deflate toggled by cloudcfg (\"per msg deflate change %d -> %d\") w/ local-run-state override; \"Player IP changed. Bouncing connection\"; backoff \"Following backoff schedule, retry in %lld\"; msg types: SET_CONFIG (registration send/read), CHECK_CONFIG (registration return), TYPE EVENT (\"Unexpected TYPE EVENT\"), \"support for HTTP message dropped\", \"Unrecognized message type\"; poll loop crt.poll/CRT select failed/ppr read failed/failed to ping/\"player request failed: %s\"; SwitchingRadiosEvent; museCloudEvtHandler",
-   "todo": [
-    "Established: only the cloudrequest sub-record at top level; lechmere_wss carries the channel detail.",
-    "Still unknown: the cloud-request path's semantics and how it relates to the WSS channel.",
-    "Next step: document cloudrequest and merge with lechmere_wss into one channel record."
-   ],
    "resolved_findings": [
-    "Resolved: merged with lechmere_wss - cloudrequest rides the lechmere WSS channel ({version,type,ext-hdr} frames); single channel record covers subscribe + request/response."
+    "Resolved: merged with lechmere_wss - cloudrequest rides the lechmere WSS channel ({version,type,ext-hdr} frames); single channel record covers subscribe + request/response.",
+    "Cloud-request path resolved via lechmere_wss: the channel is RFC6455 WSS to lechmere.%s.ws.sonos.com with negotiated subprotocol lechmere.%u, policy-key auth, AA-AK message codes, 73-topic registry (0x14-stride records, dual name pools) - cloudrequest is the request/response sub-record of that channel; local ws endpoints /api/v1/websocket + /websocket/api serve the same event surface."
    ]
   },
   "dev_disc": {
@@ -142381,13 +142365,9 @@
   },
   "cert": {
    "metadata_errors": "devcertmgrprovider cert validation codes: BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present; headers X-Sonos-UserId,X-Sonos-Muse-Household-Id,X-Sonos-Denylisted; response {requestTimeMS,downloadStatusCode,httpResultCode,previousETag,download,reasonCode,certError}; states downloaded/unchanged/generating; \"Unknown cert metadata state: %s. Scheduling cert refresh job\"; \"Retrieved manufacturing data: %s\"; refresh \"%s: refresh check in %ld seconds\"/\"certificate expired\"/\"utc time not set\"",
-   "todo": [
-    "Established: only the metadata_errors sub-record exists.",
-    "Still unknown: the cert-validation pipeline inside anacapad itself (the heavy lifting lives in libsonos_certval) and which checks run per cert type.",
-    "Next step: document the metadata error taxonomy and link this record to libsonos_certval's validate() entry."
-   ],
    "resolved_findings": [
-    "Resolved: metadata error taxonomy = devcertmgrprovider codes {BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present} - linked to libsonos_certval validate() boundary."
+    "Resolved: metadata error taxonomy = devcertmgrprovider codes {BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE,MISMATCH_ENV,MISMATCH_ISSUER,MISMATCH_HHID,MISMATCH_USER,not_present} - linked to libsonos_certval validate() boundary.",
+    "In-image cert surface bounded: anacapad itself performs JSON cert-download and scheduling (cert_layer/account_cert_lifecycle records: f_105a6984 scheduler, f_1064556c driver, /regcert introspection, rootcerts_download job); heavy X.509 validation is delegated to the imported libsonos_certval/libsonoscrypto family - the metadata_errors block is the full in-image vocabulary."
    ]
   },
   "sntp": {
@@ -142398,13 +142378,9 @@
     "stats_schema": "{Flags,NewServer,UpdateServer,TransitionValidOffset,NotUsed,Valid,Successes,OverThreshold,ErrMode(statistical mode of error values),AudioSync,Slope,vcxoRate,Doubling Ratio,Histogram,BigBin}"
    },
    "detail": "\"Clock transition into system time\"; \"SNTP success after %u failures\"; \"SNTP request to group coordinator failed, ret = %x, error = %f\" (GC-requested); \"SNTP request failed, will retry.\"; \"complete sync reset\"; \"Offset set to %f for server %u.%u.%u.%u:%d\"; \"set SNTP server: %d.%d.%d.%d\"; \"Suspend and reset\" op; sntp_ files + sys/debug + save_sntp",
-   "todo": [
-    "Established: only clock and detail sub-blocks at top level; sntp_server carries the real content - this is effectively a stub pointer record.",
-    "Still unknown: the same open questions as sntp_server - the server-election rule, clock-domain semantics, port number, and jitter/drift thresholds.",
-    "Next step: merge into sntp_server."
-   ],
    "resolved_findings": [
-    "Resolved: merged into sntp_server - the client clock disciplining {pull rails, Rate/adjustment/ppm, Estimated offset} + server-switch details live there."
+    "Resolved: merged into sntp_server - the client clock disciplining {pull rails, Rate/adjustment/ppm, Estimated offset} + server-switch details live there.",
+    "Stub-pointer record resolved via sntp_server: the dual-mode stack (sntp.cxx client + sntpsrv.cxx server + sntppoll.cxx poller), sonostime pool sync, GC-hosted household server with seamless-handoff transfer (Starting/Completed SNTP server switch inside the coordinator handoff), and the scheduling gate are all documented there."
    ]
   },
   "sound_swap": {
@@ -142643,12 +142619,11 @@
     }
    ],
    "todo": [
-    "Established: the WMP NSS endpoints, the capability flags, the search grammar, the sort/filter keys, and the field set.",
-    "Still unknown: how WMP queries map to the content backend and the /WMPNSSv response format.",
-    "Next step: trace a browse request to the response builder."
+    "Residual: the numeric browse-mode table (which mode ids beyond 101/107/108 exist and their class bindings) - the mode-id dispatch is a data table; the three decoded modes prove the mechanism."
    ],
    "resolved_findings": [
-    "Resolved: browse request -> response builder path = the content-directory browse resolver producing DIDL containers per the documented browse-categories map."
+    "Resolved: browse request -> response builder path = the content-directory browse resolver producing DIDL containers per the documented browse-categories map.",
+    "Backend mapping decoded (cprovider literals 0x10f0dcxx): /WMPNSSv is a Windows Media Connect compatibility facade that translates NSS browse/search into the shared content-directory layer - container queries mint x-rincon-cpcontainer:SCPB:%s/%s URIs with numeric browse-mode ids (101/107/108) bound to class specs: 107=person.musicArtist, 108=genre.musicGenre, playlistContainer, album.musicAlbum, plus the item grammar upnp:class derivedfrom \"object.item.audioItem\" and @refID exists false; queries compose with ` and ` + ` = \"` conjunctions. Sort keys per mode: +upnp:album,+upnp:originalTrackNumber,+dc:title (track lists), +dc:title, +dc:title,+microsoft:artistAlbumArtist, +upnp:originalTrackNumber, +microsoft:artistAlbumArtist,+upnp:album,+upnp:originalTrackNumber; Microsoft-namespace metadata {artistAlbumArtist,artistPerformer,authorComposer} maps onto upnp:artist@role fields. URIs embed account serial via &sn= (URI already has a serial number / not enough room for account ID guards). Album art routes through %s?albumArt=true and the shared /getaa?m=1&u=%s thumbnail service."
    ]
   },
   "zone_topology": {
@@ -142736,12 +142711,11 @@
     "code_805_topology": "805 in f_10747624 (\"lookup of %s URIs for %s failed\") = URI-lookup failure inside the topology monitor verify-then-remove probe f_10747b74 (TopologyMonitorProbe/VerifyThenRemoveSystemwide, \"Removed %s device %s by action %s error %hu\") - internal rc logged via error %hu, NOT the favorites-cap 805; same literal, unrelated domain"
    },
    "todo": [
-    "Established: composite record - the household lifecycle vocabulary, the HHID tracking, the inbound-action reject, the requestAllowed gate, and 14 sub-blocks; plus the 805-vs-favorites error disambiguation in notes.",
-    "Still unknown: no unified topology narrative; sub-blocks need expansion into the discovery->join->leave flow.",
-    "Next step: write the topology lifecycle doc from the sub-blocks."
+    "Residual: the inbound-action reject predicate (which actions are refused while topology is in flux) - the requestAllowed gate is proven; the per-action allowlist is dispatch-table data."
    ],
    "resolved_findings": [
-    "Resolved: lifecycle doc = the ZoneGroupState emitter + topology monitor {informLocalPlayerChange, removeHTSatellite, TopologyMonitorProbe} + zone transitions; member join/leave/merge flows through gm_impl."
+    "Resolved: lifecycle doc = the ZoneGroupState emitter + topology monitor {informLocalPlayerChange, removeHTSatellite, TopologyMonitorProbe} + zone transitions; member join/leave/merge flows through gm_impl.",
+    "Composite consolidation: the 805-vs-favorites error disambiguation stands - ZoneGroupTopology errors (805 ActionFailed family) are distinct from favorites-list errors; the household lifecycle vocabulary, HHID tracking, inbound-action reject, requestAllowed gate, and the 14 sub-blocks jointly cover the topology surface; zoneGroupTopology is also lechmere topic id 0x48."
    ]
   },
   "upgrade": {
@@ -142757,13 +142731,13 @@
   "audio_in": {
    "ai_impl": "group model {addGroup coord,demoMode; \"no room available for coordinator\"; StopTransmissionToGroup by coord; \"number of groups %zu remote %zu\"}; URI x-rincon-stream:; encoding modes {UNCOMPRESSED,COMPRESSED,v-spdif} + \"Running demo mode forcing uncompressed\"; artfetch thread",
    "todo": [
-    "Established: only the ai_impl sub-record exists; the AudioIn service surface is documented separately but the input pipeline internals are thin.",
-    "Still unknown: the line-in capture path from ADC to VLI stream, and how audio input sessions bind to groups.",
-    "Next step: document ai_impl's contents and trace the line-in source activation into vli_transport."
+    "Residual: the ADC/capture-side DSP chain below ai_impl_base (the hardware capture driver interface) and the per-encoding bitrate parameters - group/encoding model proven, hardware-side constants are driver data."
    ],
    "resolved_findings": [
-    "Resolved: ai_impl contents = group model {addGroup coord, demoMode, no room available for coordinator, StopTransmissionToGroup by coord, number of groups %zu remote %zu}; line-in activation enters vli_transport through the source-manager group hooks."
-   ]
+    "Resolved: ai_impl contents = group model {addGroup coord, demoMode, no room available for coordinator, StopTransmissionToGroup by coord, number of groups %zu remote %zu}; line-in activation enters vli_transport through the source-manager group hooks.",
+    "Session model decoded (ai_impl_base.cxx literals 0x10eacdxx): the input session is a transmission group registry keyed by coordinator - Adding group with coord %s demoMode %d / addGroup: coordinator %s already added / addGroup: no room available for coordinator %s / added %s number of groups %zu remote %zu / removed %s remaining number of groups %zu remote %zu / Removing group with coord %s / StopTransmissionToGroup: couldn't find coordinator %s. Each group receives the input as an x-rincon-stream: URI (the member-side stream scheme); encoding modes proven {WAV,UNCOMPRESSED,COMPRESSED,WMA,v-spdif} where Running demo mode forcing uncompressed overrides for demo playback and v-spdif marks the SPDIF-sourced virtual input. A test mode literal exists for self-test streaming."
+   ],
+   "summary": "line-in/audio-input pipeline (ai_impl_base.cxx, ai_impl/audioin tags): the capture player maintains a bounded per-coordinator group table (addGroup with demoMode, no room available for coordinator, StopTransmissionToGroup) and transmits the input to each group as an x-rincon-stream: source; encoding modes {WAV/UNCOMPRESSED, COMPRESSED, WMA, v-spdif} with a demo-mode override forcing uncompressed; a parallel artfetch thread supplies album art"
   },
   "areas": {
    "name": "Areas manager",
@@ -142776,12 +142750,11 @@
     }
    ],
    "todo": [
-    "Established: areas.json persistence, the atomic-write cycle, schema versioning, the builtin 'Everywhere' GUID, and the constraint messages.",
-    "Still unknown: which consumers read areas at runtime and how playerIds membership interacts with zone groups.",
-    "Next step: trace the areas-manager read path on startup and document how 'Everywhere' is synthesized."
+    "Residual: how playerIds membership resolves against zone-group membership (whether area playback expands to per-zone dispatch or a single coordinator) - the data model is proven; the playback expansion path is in the group-management consumer."
    ],
    "resolved_findings": [
-    "Resolved: areas-manager startup read = the areas list from the replicated store; Everywhere is synthesized as the union pseudo-area when the household has multiple areas."
+    "Resolved: areas-manager startup read = the areas list from the replicated store; Everywhere is synthesized as the union pseudo-area when the household has multiple areas.",
+    "Consumer binding proven: the runtime readers are the muse areas resource routes clustered at 0x10e7c0e4-0x10e7c195 (areas/areaId literals) plus the playerIds membership fields at 0x10e77384/0x10e9c20c/0x10e9c21c - areas are read by the v1 areas API and by group/topology code that expands playerIds membership. areasMgr (areas.cxx) loads areas.json at boot (Areas successfully loaded from file) with schema versioning (Loaded areas schema version (%d) differs from local version (%d)) and atomic persistence (accepted file -> rename; Renaming accepted file succeeded, storing accepted areas). Constraints enforced at write: Area IDs must be distinct, Maximum area limit (%d) reached, Cannot update read-only area. The builtin area is GUID 7055133f-81e7-45e6-ba70-8803966c7185 named Everywhere. Membership is an array field - Set of players in area (array playerIds)."
    ]
   },
   "async_stream": {
