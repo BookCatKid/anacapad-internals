@@ -108099,9 +108099,7 @@
     }
    ],
    "todo": [
-    "Established: Initializes the transport request record that impls fill and pass to f_10255f64/f_102aff9c..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x1032e270 fully and reconcile the observed behavior against the documented role."
+    "Residual: semantics of +0x120/+0x124 and the division of labor between f_10989174 and f_109874dc (alloc vs base-init) are unmapped; correlate with the fill records' +0xe4/+0xec/+0x114 writes to finish the record layout."
    ],
    "disasm_digest": {
     "insns": 26,
@@ -110647,11 +110645,6 @@
     }
    ],
    "required_for_behavior": true,
-   "todo": [
-    "Established: group member fan-out worker (SetGroupMute path): builds per-member {service:'urn:schemas-upnp-org:service:RenderingControl:1',action:'SetMute'} request records (stride 0x2740, callback f_103a3f28), sets the local zone directly, issues remote member ops, and runs a completion loop over request objects via vfunc +0x00 (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x103a1b8c and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 373,
     "calls": [
@@ -110714,11 +110707,12 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 373-insn worker; direct calls: f_106fcf30, f_106fe45c, f_10744d1c, f_109bbd10, f_10743a60, f_10562388, f_1055fcbc, f_1055fc08, f_106fe8c0, f_106fcf50, f_11098b08, f_11099060, f_106fb998, f_10988558, f_109b6fe4, f_109b72ac, f_109889; string literals: SetMute; urn:schemas-upnp-org:service:RenderingControl:1; Master; InstanceID; Channel; DesiredMute; grc; SetGroupMute: local set to %d rc=%d; SetGroupMute: %s set to %d rc=%d; member stores: 0x4,-0x4,-0x1474,-0x10,-0xc,-0x8,-0x2740,0x0; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 373-insn worker; direct calls: f_106fcf30, f_106fe45c, f_10744d1c, f_109bbd10, f_10743a60, f_10562388, f_1055fcbc, f_1055fc08, f_106fe8c0, f_106fcf50, f_11098b08, f_11099060, f_106fb998, f_10988558, f_109b6fe4, f_109b72ac, f_109889; string literals: SetMute; urn:schemas-upnp-org:service:RenderingControl:1; Master; InstanceID; Channel; DesiredMute; grc; SetGroupMute: local set to %d rc=%d; SetGroupMute: %s set to %d rc=%d; member stores: 0x4,-0x4,-0x1474,-0x10,-0xc,-0x8,-0x2740,0x0; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "SetGroupMute fan-out verified: per-member records stride -0x2740 with {RenderingControl:1,SetMute,InstanceID,Channel,DesiredMute}, direct local write + remote ops + completion loop; literals \"SetGroupMute: local set to %d rc=%d\" / \"%s set to %d rc=%d\"."
    ]
   },
   "0x103a2430": {
-   "description": "SetGroupVolume impl-side worker logging 'SetGroupVolume: local:%d netops:%u zones:%u' - counts local writes, outstanding network ops, and zone count during fan-out.",
+   "description": "SetGroupVolume member fan-out worker (519 insns): builds per-member DesiredVolume request records at -0x2740 stride, performs the local zone write, issues remote member ops, and invokes the mute fan-out f_103a1b8c twice (mute component or shared skeleton); enforces a 0x1f bound; logs 'SetGroupVolume: local:%d netops:%u zones:%u'.",
    "why_external": "Defines the group-volume fan-out accounting: local vs remote member handling and how many network ops a call creates.",
    "evidence": [
     {
@@ -110731,9 +110725,7 @@
    ],
    "required_for_behavior": true,
    "todo": [
-    "Established: setGroupVolume impl-side worker logging 'SetGroupVolume: local:%d netops:%u zones:%u' - counts local writes, outstanding network ops, and zone count during fan-out (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x103a2430 and record any additional behavior found."
+    "Residual: what the two f_103a1b8c invocations contribute to the volume path (mute component vs shared skeleton) and what the 0x1f bound counts."
    ],
    "disasm_digest": {
     "insns": 519,
@@ -110823,7 +110815,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 519-insn worker; direct calls: f_1039c5f0, f_10988558, f_10988984, f_106fcf30, f_106fe45c, f_1039deb4, f_11098d98, f_10743a60, f_10562388, f_1055fcbc, f_1055fc4c, f_106fcf50, f_109b6fe4, f_109b72ac, f_1067c6ec, f_103a6d74, f_106ff3; string literals: SetVolume; urn:schemas-upnp-org:service:RenderingControl:1; InstanceID; Channel; Master; DesiredVolume; grc; SetGroupVolume: local:%d netops:%u zones:%u; SetGroupVolume: local set to %d rc=%d; SetGroupVolume: %s set to %d rc=%d; member stores: 0x4,-0x4,-0x17c4,-0x10,-0xc,-0x8,-0x2740,0x0,0x260; immediate compares: 0x0,0x1f,0x1. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 519-insn worker; direct calls: f_1039c5f0, f_10988558, f_10988984, f_106fcf30, f_106fe45c, f_1039deb4, f_11098d98, f_10743a60, f_10562388, f_1055fcbc, f_1055fc4c, f_106fcf50, f_109b6fe4, f_109b72ac, f_1067c6ec, f_103a6d74, f_106ff3; string literals: SetVolume; urn:schemas-upnp-org:service:RenderingControl:1; InstanceID; Channel; Master; DesiredVolume; grc; SetGroupVolume: local:%d netops:%u zones:%u; SetGroupVolume: local set to %d rc=%d; SetGroupVolume: %s set to %d rc=%d; member stores: 0x4,-0x4,-0x17c4,-0x10,-0xc,-0x8,-0x2740,0x0,0x260; immediate compares: 0x0,0x1f,0x1. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "SetGroupVolume fan-out (519 insns): DesiredVolume member records at -0x2740 stride, calls the mute fan-out f_103a1b8c twice (mute component or shared skeleton), 0x1f bound, \"SetGroupVolume: local:%d netops:%u zones:%u\"."
    ]
   },
   "0x1039fbd4": {
@@ -110840,9 +110833,7 @@
    ],
    "required_for_behavior": true,
    "todo": [
-    "Established: 'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x1039fbd4 fully and reconcile the observed behavior against the documented role."
+    "Residual: meaning of the two event args (%u,%d) and which downstream objects each of the three f_10809f0c notifications targets."
    ],
    "disasm_digest": {
     "insns": 344,
@@ -110903,11 +110894,12 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 344-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_10809f0c, f_100efd2c, f_1099b054, f_1099b0e4, f_101a473c, f_100eb990, f_101a29d0, f_103a5020, f_100e7754, f_100c5050, f_101a2abc, f_110985d8; string literals: grc; onEvent; ../anacapa-1.0/oc/zone/zoneplayer/grc_zpimpl.cxx; %s:%s:%d  process GroupVolumeSetActionEvent (%u,%d); member stores: 0x214,0x1ec,0x8,0x18,0x1c,0x68,0x6c,0x78,0x7c,0x28,0x2c,0x38; immediate compares: 0x0,0x3. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 344-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_10809f0c, f_100efd2c, f_1099b054, f_1099b0e4, f_101a473c, f_100eb990, f_101a29d0, f_103a5020, f_100e7754, f_100c5050, f_101a2abc, f_110985d8; string literals: grc; onEvent; ../anacapa-1.0/oc/zone/zoneplayer/grc_zpimpl.cxx; %s:%s:%d  process GroupVolumeSetActionEvent (%u,%d); member stores: 0x214,0x1ec,0x8,0x18,0x1c,0x68,0x6c,0x78,0x7c,0x28,0x2c,0x38; immediate compares: 0x0,0x3. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "GroupVolumeSetActionEvent processor: 344 insns in grc_zpimpl.cxx (\"process GroupVolumeSetActionEvent (%u,%d)\"), 3x f_10809f0c notifications, emits downstream onEvent/grc-scoped notifications."
    ]
   },
   "0x104164e4": {
-   "description": "'firing GroupVolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,vligrouping:%d)' - posts the group-volume event.",
+   "description": "Blocking group-volume commit (238 insns): posts 'firing GroupVolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,vligrouping:%d)' plus the local 'firing VolumeSetActionEvent' under lock triplets, then waits on a completion signal with an explicit timeout path ('timed out!!!!!!!','completion signal %s','waiting for tx flags failed %#x') - the synchronous accepted-vs-completed boundary for group volume changes (mpvlictrl/processSetVolume).",
    "why_external": "Identifies the event emission point that links SOAP-side group changes to downstream processing.",
    "evidence": [
     {
@@ -110920,9 +110912,7 @@
    ],
    "required_for_behavior": true,
    "todo": [
-    "Established: 'firing GroupVolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,vligrouping:%d)' - posts the group-volume event..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x104164e4 fully and reconcile the observed behavior against the documented role."
+    "Residual: identity of the +0x218 wait object/tx-flags and which event queue the post lands on; the timeout return path's rc is unrecorded."
    ],
    "disasm_digest": {
     "insns": 238,
@@ -110988,7 +110978,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 238-insn worker; direct calls: f_10988558, f_10988984, f_109b6fe4, f_109b72ac, f_1041a890, f_10122f88, f_10413184, f_1041a36c, f_110985d8; string literals: mpvlictrl; onVirtualLineInStopSession; processSetVolume; %s:%d firing GroupVolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,v; timed out!!!!!!!; %s:%d  completion signal %s; %s:%d firing VolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,; member stores: 0x58,0x5c,0x60,0x64,0x68,0x6c,0x4c,0x74,0x50,0x54,0x3c,0x8; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 238-insn worker; direct calls: f_10988558, f_10988984, f_109b6fe4, f_109b72ac, f_1041a890, f_10122f88, f_10413184, f_1041a36c, f_110985d8; string literals: mpvlictrl; onVirtualLineInStopSession; processSetVolume; %s:%d firing GroupVolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,v; timed out!!!!!!!; %s:%d  completion signal %s; %s:%d firing VolumeSetActionEvent (vol:%u,mute:%d,from_sonos:%d,; member stores: 0x58,0x5c,0x60,0x64,0x68,0x6c,0x4c,0x74,0x50,0x54,0x3c,0x8; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Blocking event commit (238 insns): posts GroupVolumeSetActionEvent + local VolumeSetActionEvent under lock triplets then waits on a completion signal with timeout path (\"timed out!!!!!!!\",\"completion signal %s\",\"waiting for tx flags failed %#x\") - the synchronous accepted-vs-completed boundary for group volume."
    ]
   },
   "0x103a3f28": {
@@ -111005,9 +110996,7 @@
    ],
    "required_for_behavior": true,
    "todo": [
-    "Established: Per-member request callback installed in the 0x2740-byte member records built by f_103a1b8c..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x103a3f28 fully and reconcile the observed behavior against the documented role."
+    "Residual: the callback body past the 1-insn head fragment is uncovered; decode it to determine whether member results are awaited or dropped inside the SOAP call boundary."
    ],
    "disasm_digest": {
     "insns": 1,
@@ -111021,7 +111010,7 @@
    ]
   },
   "0x1039d11c": {
-   "description": "Builds the 'GroupMute' and 'GroupVolumeChangeable' evented state-variable names.",
+   "description": "GRC evented-variable registrar (197 insns): constructs and registers the GroupVolume, GroupMute, and GroupVolumeChangeable state variables through the f_10676xxx object family (ctors f_1067693c/f_10676968/f_10676994, registrars f_10676af4/f_10676a44/f_10676cb0/f_10677b94), storing the registered objects at consecutive slots +0x94c..+0x974.",
    "why_external": "Proves which state variables the group-rendering subsystem exposes to eventing.",
    "evidence": [
     {
@@ -111034,9 +111023,7 @@
    ],
    "required_for_behavior": true,
    "todo": [
-    "Established: Builds the 'GroupMute' and 'GroupVolumeChangeable' evented state-variable names..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x1039d11c fully and reconcile the observed behavior against the documented role."
+    "Residual: the registration targets at +0x94c..+0x974 (which object receives the three variables) and the f_10676xxx family roles are unmapped."
    ],
    "disasm_digest": {
     "insns": 197,
@@ -111084,7 +111071,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 197-insn worker; direct calls: f_1067693c, f_10676968, f_10676994, f_10676af4, f_10676a44, f_10676cb0, f_103a44e0, f_107491d8, f_10ae7e04, f_109dbdec, f_10677b94, f_10807034, f_110985d8; string literals: GroupVolume; GroupMute; GroupVolumeChangeable; member stores: 0x960,0x968,0x96c,0x974,0x964,0x95c,0x94c,0x24,0x24; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 197-insn worker; direct calls: f_1067693c, f_10676968, f_10676994, f_10676af4, f_10676a44, f_10676cb0, f_103a44e0, f_107491d8, f_10ae7e04, f_109dbdec, f_10677b94, f_10807034, f_110985d8; string literals: GroupVolume; GroupMute; GroupVolumeChangeable; member stores: 0x960,0x968,0x96c,0x974,0x964,0x95c,0x94c,0x24,0x24; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Not merely a name builder: 197-insn construction+registration of the GroupVolume/GroupMute/GroupVolumeChangeable evented variables through the f_10676xxx object family, registered objects stored at consecutive +0x94c..+0x974."
    ]
   },
   "0x10214790": {
@@ -111286,9 +111274,7 @@
     }
    ],
    "todo": [
-    "Established: Fills a request record for a mode/flag operation (e.g. crossfade value)..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x1032e550 fully and reconcile the observed behavior against the documented role."
+    "Residual: which submitting ops (SetCrossfadeMode vs SetPlayMode family) use this single-field variant, and whether +0xe4 is the mode word; confirm against the callers' fill selection."
    ],
    "disasm_digest": {
     "insns": 7,
@@ -111317,9 +111303,7 @@
     }
    ],
    "todo": [
-    "Established: Fills a request record from impl+0x5dc state plus a u16 target (track advance ops)..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x1032e494 fully and reconcile the observed behavior against the documented role."
+    "Residual: which of +0xe4/+0xec/+0x114 carries the u16 track index vs the op flags/source pointer; map the three fields against the f_10255f64 executor's record reads."
    ],
    "disasm_digest": {
     "insns": 7,
@@ -111349,11 +111333,6 @@
      "notes": "Destroys/releases a request record (called on both success and failure paths)."
     }
    ],
-   "todo": [
-    "Established: Destroys/releases a request record (called on both success and failure paths)..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x1032e2d8 fully and reconcile the observed behavior against the documented role."
-   ],
    "disasm_digest": {
     "insns": 18,
     "calls": [
@@ -111368,7 +111347,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 18-insn worker; direct calls: f_10807034, f_109874e8; string literals: none; member stores: 0x1c,0x24; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 18-insn worker; direct calls: f_10807034, f_109874e8; string literals: none; member stores: 0x1c,0x24; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: two-call request-record teardown f_10807034 + release f_109874e8 on both paths."
    ]
   },
   "0x102b8c44": {
@@ -112787,11 +112767,6 @@
     }
    ],
    "role": "string copy via strlcpy(0x11098ad8) (85i)",
-   "todo": [
-    "Established: default-path transport-state filler: f(impl+0x5d4,&outs...) used when mode is neither 1 nor 2 (role: string copy via strlcpy(0x11098ad8) (85i)).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x10308aec and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 85,
     "calls": [
@@ -112818,7 +112793,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 85-insn worker; direct calls: f_11098ad8; string literals: NOT_IMPLEMENTED; member stores: 0x30,0x34,0x38,0x3c,0x44,0x0,0x0,0x0; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 85-insn worker; direct calls: f_11098ad8; string literals: NOT_IMPLEMENTED; member stores: 0x30,0x34,0x38,0x3c,0x44,0x0,0x0,0x0; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: default-path transport-state responder - 4x strlcpy (f_11098ad8) copies incl the literal \"NOT_IMPLEMENTED\", three zeroed fields."
    ]
   },
   "0x102587b4": {
@@ -114457,9 +114433,7 @@
     }
    ],
    "todo": [
-    "Established: class-B (group-capable) engine ctor storing vtable 0x10edfbb8; sibling of the standalone ctor f_102cc070 (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x104000c4 and record any additional behavior found."
+    "Residual: verify the vtable-0x10edfbb8 store and ctor body beyond the 1-insn fragment; the why_external claim currently rests on construction-site evidence only."
    ],
    "disasm_digest": {
     "insns": 1,
@@ -114484,11 +114458,6 @@
      "address": "0x10304390",
      "notes": "handler body with all six parses"
     }
-   ],
-   "todo": [
-    "Established: Real ContentDirectory.Browse handler: parses ObjectID, BrowseFlag, Filter, StartingIndex, RequestedCount, SortCriteria (0x400-capped strings, int helpers), acquires a browse object via req->v[+0x34], builds the {f_10305fec callback, counts, 4 string ptrs, vtable 0x10f11cec} record and calls executor f_103042f0; success emits via per-item DIDL callbacks, failure faults req->v[+0x14]..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10304390 fully and reconcile the observed behavior against the documented role."
    ],
    "disasm_digest": {
     "insns": 219,
@@ -114546,11 +114515,12 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 219-insn worker; direct calls: f_1056157c, f_105614e0, f_103042f0, f_1073a044, f_10560608, f_110985d8; string literals: ObjectID; BrowseFlag; Filter; StartingIndex; RequestedCount; SortCriteria; Result; NumberReturned; TotalMatches; UpdateID; member stores: 0x20c4,0x208c,0x1088,0x1080,0x1084,0x78,0x50,0x60,0x4c,0x54,0x48,0x58; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 219-insn worker; direct calls: f_1056157c, f_105614e0, f_103042f0, f_1073a044, f_10560608, f_110985d8; string literals: ObjectID; BrowseFlag; Filter; StartingIndex; RequestedCount; SortCriteria; Result; NumberReturned; TotalMatches; UpdateID; member stores: 0x20c4,0x208c,0x1088,0x1080,0x1084,0x78,0x50,0x60,0x4c,0x54,0x48,0x58; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Real CD.Browse handler verified: 4x f_1056157c string parses (ObjectID/BrowseFlag/Filter/SortCriteria) + 2x f_105614e0 int parses (StartingIndex/RequestedCount), browse object via f_1073a044, request record with callback f_10305fec, executor f_103042f0, 4x f_10560608 out-arg writes."
    ]
   },
   "0x103042f0": {
-   "description": "Browse executor: locks/looks up UpdateID via f_1034a224 on browse obj+0x168 (selector 0x2bd), strcmp-dispatches BrowseFlag - BrowseDirectChildren -> children enumeration vfunc v[+0x28], BrowseMetadata -> metadata path, other -> 402.",
+   "description": "Browse executor: strcmp-dispatches BrowseFlag against 'BrowseDirectChildren' and 'BrowseMetadata' (2x f_11098d98), passes the selector/result through f_1034a224 (a strcmp(\"0\") predicate, not an UpdateID lookup), then invokes the children-enumeration vfunc.",
    "why_external": "Determines Browse mode and its 402 taxonomy",
    "required_for_behavior": true,
    "evidence": [
@@ -114563,9 +114533,7 @@
     }
    ],
    "todo": [
-    "Established: Browse executor: locks/looks up UpdateID via f_1034a224 on browse obj+0x168 (selector 0x2bd), strcmp-dispatches BrowseFlag - BrowseDirectChildren -> children enumeration vfunc v[+0x28], BrowseMetadata -> metadata path, other -> 402..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x103042f0 fully and reconcile the observed behavior against the documented role."
+    "Residual: description claims f_1034a224 locks/looks up UpdateID on obj+0x168, but f_1034a224 is resolved as a strcmp(\"0\") selector predicate; reconcile what the call actually returns and where the 402-vs-dispatch boundary sits."
    ],
    "disasm_digest": {
     "insns": 40,
@@ -114589,7 +114557,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 40-insn worker; direct calls: f_1034a224, f_11098d98; string literals: BrowseDirectChildren; BrowseMetadata; member stores: 0x14,0x18,0x1c,0x24; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 40-insn worker; direct calls: f_1034a224, f_11098d98; string literals: BrowseDirectChildren; BrowseMetadata; member stores: 0x14,0x18,0x1c,0x24; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Browse executor: strcmp-dispatches BrowseFlag against BrowseDirectChildren/BrowseMetadata via 2x f_11098d98, then f_1034a224 + children enumeration vfunc."
    ]
   },
   "0x10305fec": {
@@ -114606,9 +114575,7 @@
     }
    ],
    "todo": [
-    "Established: browse result-record callback (2-ins stub at its head - real body follows); stored at +0x48 of the browse request record (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x10305fec and record any additional behavior found."
+    "Residual: callback body past the 3-insn digest fragment is uncovered; decode the real body to confirm the per-item DIDL emit and response-field writes."
    ],
    "disasm_digest": {
     "insns": 3,
@@ -114635,9 +114602,7 @@
     }
    ],
    "todo": [
-    "Established: startAutoplay impl (engine v+0x9c): null arg-vector gate returns 0x2ce (718), then tail-calls the autoplay installer f_102e14e0 (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x102e17a8 and record any additional behavior found."
+    "Residual: digest covers only a 1-insn head fragment (cmp 0); confirm the 0x2ce (718) return and the tail call into f_102e14e0 from the instructions after the digest boundary."
    ],
    "disasm_digest": {
     "insns": 1,
@@ -114664,11 +114629,6 @@
      "address": "0x102e14e0",
      "notes": "function body / vtable slot decoded"
     }
-   ],
-   "todo": [
-    "Established: autoplay-install worker (engine mutex +0x458). Reads suppression flag engine+0x465c: set -> logs \"preventing autoplay because operation is overridden\" (avt_impl) and returns 0x32a (810). Builds the stored autoplay URI into a 0x1000 buffer via f_10424ac4, then if mode(engine+0x4654)==0 does a full session reset (f_102d4e80 zero-arg + f_10688070) before installing the URI via f_102da774 with descriptor 0x10ea6a2c; nonzero mode installs through per-member path f_102e0fb0 (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x102e14e0 and record any additional behavior found."
    ],
    "disasm_digest": {
     "insns": 178,
@@ -114718,7 +114678,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 178-insn worker; direct calls: f_10557cac, f_109b6fe4, f_109b72ac, f_10557848, f_10687e54, f_11098e38, f_10424ac4, f_102d4e80, f_10688070, f_102e0fb0, f_102da774, f_1039561c, f_102c3a34, f_10392644, f_110985d8; string literals: avt_impl; preventing autoplay because operation is overridden; : BCOSG; Found %zu linked rooms during StartAutoplay%s; member stores: 0x105c,0x1060,0x1068,0x106c,0x1070,0x1074,0x1078,0x107c,0x1084,0x1064,0x1058,0x104c; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 178-insn worker; direct calls: f_10557cac, f_109b6fe4, f_109b72ac, f_10557848, f_10687e54, f_11098e38, f_10424ac4, f_102d4e80, f_10688070, f_102e0fb0, f_102da774, f_1039561c, f_102c3a34, f_10392644, f_110985d8; string literals: avt_impl; preventing autoplay because operation is overridden; : BCOSG; Found %zu linked rooms during StartAutoplay%s; member stores: 0x105c,0x1060,0x1068,0x106c,0x1070,0x1074,0x1078,0x107c,0x1084,0x1064,0x1058,0x104c; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Autoplay-install worker verified: mutex pair f_10557cac/f_10557848, suppression-flag -> 0x32a reject with \"preventing autoplay because operation is overridden\", stored-URI format via f_10424ac4, install via f_102da774 (single) or f_102e0fb0 (per-member linked), \"Found %zu linked rooms during StartAutoplay%s\"."
    ]
   },
   "0x102e1d68": {
@@ -114734,11 +114695,6 @@
      "notes": "function body / vtable slot decoded"
     }
    ],
-   "todo": [
-    "Established: runAlarm impl (engine v+0x98): null arg-vector gate returns 0x2ce (718), then tail-calls alarm worker f_102e17dc (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x102e1d68 and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 17,
     "calls": [],
@@ -114751,7 +114707,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0x18; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0x18; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "RunAlarm impl gate verified in raw disasm: vararg-shifting shim - null arg-vector -> 0x2ce (718), else shifts r4..r10 forward, stores frame arg at +0x18, tail-branches (b, not bl) to worker f_102e17dc."
    ]
   },
   "0x102e17dc": {
@@ -114768,9 +114725,7 @@
     }
    ],
    "todo": [
-    "Established: alarm-run worker (0x1300 frame): requires r6 non-null else 0x102e1928 path; uses time/duration helper table 0x1108b284 (f_10c3eb60) to resolve the pending alarm into a URI/mode install similar to the autoplay path (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x102e17dc and record any additional behavior found."
+    "Residual: roles of callees f_1071a9cc/f_1071aeb0/f_10276608/f_104c9f8c and the +0x5a88 store target are unlabeled; the r6==null early-exit at 0x102e1928 carries an unrecorded rc."
    ],
    "disasm_digest": {
     "insns": 355,
@@ -114845,7 +114800,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 355-insn worker; direct calls: f_10c3cbfc, f_10c3d2c4, f_10557cac, f_102d4e80, f_102da774, f_10906304, f_10147988, f_10557848, f_104c9f8c, f_10276608, f_10c3c88c, f_10557fa8, f_105580f4, f_1055847c, f_10558000, f_10559024, f_102e0f; string literals: id; PLAY; eventType; start; dur; mode; fb_buzz; vol; linked; sid; zpAlarm; alarm; avt_impl; preventing alarm because operation is overridden; member stores: 0x1304,0x12fc,0x127c,0x5a88,0x14,0x14,0x14; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 355-insn worker; direct calls: f_10c3cbfc, f_10c3d2c4, f_10557cac, f_102d4e80, f_102da774, f_10906304, f_10147988, f_10557848, f_104c9f8c, f_10276608, f_10c3c88c, f_10557fa8, f_105580f4, f_1055847c, f_10558000, f_10559024, f_102e0f; string literals: id; PLAY; eventType; start; dur; mode; fb_buzz; vol; linked; sid; zpAlarm; alarm; avt_impl; preventing alarm because operation is overridden; member stores: 0x1304,0x12fc,0x127c,0x5a88,0x14,0x14,0x14; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "RunAlarm worker (355 insns): reads persisted zpAlarm/alarm keys {id,eventType,start,dur,mode,fb_buzz,vol,linked,sid} via the f_10557fxx/f_10558xxx settings family, gates on the same operation-override suppression as autoplay, replays via f_102da774 install or f_102e0fb0 per-member for linked groups; time helpers f_10c3cbfc/f_10c3d2c4/f_10c3c88c/f_10c3d18c."
    ]
   },
   "0x102d1fc4": {
@@ -114862,9 +114818,7 @@
     }
    ],
    "todo": [
-    "Established: snoozeAlarm impl (engine v+0xa4) (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x102d1fc4 and record any additional behavior found."
+    "Residual: delegated worker f_102d1d5c (the actual snooze commit, expected to touch avt_impl+0x6ecc/+0x6ed0) has no internal_functions record; decode it to complete the SnoozeAlarm path."
    ],
    "disasm_digest": {
     "insns": 22,
@@ -114880,7 +114834,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 22-insn worker; direct calls: f_102d1d5c, f_110985d8; string literals: none; member stores: 0x24,0x1c; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 22-insn worker; direct calls: f_102d1d5c, f_110985d8; string literals: none; member stores: 0x24,0x1c; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "SnoozeAlarm impl is a thin delegating shim: 22 insns, forwards to snooze worker f_102d1d5c at 0x102d1fec; all observable semantics live in the callee."
    ]
   },
   "0x102ad8fc": {
@@ -115048,9 +115003,7 @@
     }
    ],
    "todo": [
-    "Established: stored-URI/path formatter: fills a 0x1000-byte destination with the autoplay/alarm source spec read from saved state (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x10424ac4 and record any additional behavior found."
+    "Residual: which settings keys the f_106f9xxx accessors read (digest has no literals) and the exact URI format the spec produces."
    ],
    "disasm_digest": {
     "insns": 155,
@@ -115089,7 +115042,8 @@
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 155-insn worker; direct calls: f_106f9d54, f_106f9da8, f_11098920, f_10c3fc68, f_106f9c14, f_106f9bf8, f_110985d8; string literals: none; member stores: 0x1364,0x134c,0x1350,0x1354,0x1358,0x135c,0x133c,0x1c,0x24,0x28,0x30,0x34; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 155-insn worker; direct calls: f_106f9d54, f_106f9da8, f_11098920, f_10c3fc68, f_106f9c14, f_106f9bf8, f_110985d8; string literals: none; member stores: 0x1364,0x134c,0x1350,0x1354,0x1358,0x135c,0x133c,0x1c,0x24,0x28,0x30,0x34; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Stored-source-spec formatter (155 insns): saved state via f_106f9xxx accessors, dest init f_11098920, copy f_10c3fc68; no literals - spec built from stored state."
    ]
   },
   "0x102da774": {
@@ -115106,9 +115060,7 @@
     }
    ],
    "todo": [
-    "Established: uRI-install helper shared with the class-B SetAVTransportURI path (same descriptor 0x10ea6a2c); applies a URI+metadata to the engine session (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x102da774 and record any additional behavior found."
+    "Residual: the +0xeb8..+0xf04 contiguous store block (likely the install request/job record) is unmapped, and the callee chain into the buzzer-fallback path is unidentified."
    ],
    "disasm_digest": {
     "insns": 299,
@@ -115175,7 +115127,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 299-insn worker; direct calls: f_101477e4, f_1056fb1c, f_10554350, f_10553c6c, f_1056eed4, f_109b6fe4, f_109b72ac, f_102b8c44, f_102d0ac8, f_10392428, f_10688070, f_100f642c, f_10148308, f_102ceb40, f_10292f78, f_10688090, f_102931; string literals: alarm; %s; job; avt_impl; autoplaying %d %s (%d %d); autoplay; Failure loading autoplay %s (alarm: %d, buzzer fallback: %d)... not pl; AUTOPLAY_RAMP_TYPE; Master; ALARM_RAMP_TYPE; topology; member stores: 0xecc,0xef0,0xeb8,0x48,0xf04,0xebc,0xec0,0xec4,0xec8,0xed0,0xed4,0xed8; immediate compares: 0x0,0x1. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 299-insn worker; direct calls: f_101477e4, f_1056fb1c, f_10554350, f_10553c6c, f_1056eed4, f_109b6fe4, f_109b72ac, f_102b8c44, f_102d0ac8, f_10392428, f_10688070, f_100f642c, f_10148308, f_102ceb40, f_10292f78, f_10688090, f_102931; string literals: alarm; %s; job; avt_impl; autoplaying %d %s (%d %d); autoplay; Failure loading autoplay %s (alarm: %d, buzzer fallback: %d)... not pl; AUTOPLAY_RAMP_TYPE; Master; ALARM_RAMP_TYPE; topology; member stores: 0xecc,0xef0,0xeb8,0x48,0xf04,0xebc,0xec0,0xec4,0xec8,0xed0,0xed4,0xed8; immediate compares: 0x0,0x1. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Shared URI-install worker (autoplay/alarm + class-B SetAVTransportURI): reads AUTOPLAY_RAMP_TYPE/ALARM_RAMP_TYPE, source-classifies via f_10148308, logs \"autoplaying %d %s (%d %d)\" via f_102b8c44, buzzer-fallback error path + f_102d0ac8 pause-fallback + f_102931f0 stoppable check."
    ]
   },
   "0x103d1aec": {
@@ -115192,9 +115145,7 @@
     }
    ],
    "todo": [
-    "Established: Job-record constructor for queue mutations: stores job vtable 0x10ec7be0 at record+0, +0x403c=-1, +0x4018=0, +0x4044=flags arg..",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x103d1aec fully and reconcile the observed behavior against the documented role."
+    "Residual: reconcile the 1-insn digest fragment with the claimed vtable/sentinel stores; the ctor body evidently extends past the recorded boundary."
    ],
    "disasm_digest": {
     "insns": 1,
@@ -115221,9 +115172,7 @@
    "description": "M3U/M3U8 playlist expansion worker (playlist log tag, iterateM3UPlayList %s): copies the source URI into a 0x401 buffer, opens a stream via f_10545064, iterates lines with f_10546520, closes via f_1054103c. Each line is normalized through URI helpers f_10460764/f_104614b4 and submitted as a per-entry job object on delegate vtables 0x10ed1750/0x10ed1770 (ctor f_104637e8 -> f_1010a2c0).",
    "why_external": "Expansion target for m3u-family URIs chosen by classifier f_104634c4",
    "todo": [
-    "Established: m3U/M3U8 playlist expansion worker (playlist log tag, iterateM3UPlayList %s): copies the source URI into a 0x401 buffer, opens a stream via f_10545064, iterates lines with f_10546520, closes via f_1054103c. Each line is normalized through URI helpers f_10460764/f_104614b4 and submitted as a per-entry job object on delegate vtables 0x10ed1750/0x10ed1770 (ctor f_104637e8 -> f_1010a2c0) (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x10462c80 and record any additional behavior found."
+    "Residual: the iterateWLPPlayList literal inside the M3U worker and the shared f_1038862c/f_10389cd4/f_10389080 tail with 0x10462f54 suggest one body serves both formats or calls the WPL tail; pin down the boundary."
    ],
    "disasm_digest": {
     "insns": 313,
@@ -115294,7 +115243,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 313-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_11098ad8, f_10545064, f_10546520, f_10541e00, f_10460764, f_104614b4, f_1010a2c0, f_1054103c, f_101471f0, f_1038862c, f_10389cd4, f_10389080, f_10148880, f_110985d8, f_11098b; string literals: playlist; iterateM3UPlayList %s; http; iterateWLPPlayList %s; member stores: -0x18,-0x14,-0x10,-0xc,-0x4,0x4,-0x8,-0x5464,0x5474,0x5474,0x547c,0x5474; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 313-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_11098ad8, f_10545064, f_10546520, f_10541e00, f_10460764, f_104614b4, f_1010a2c0, f_1054103c, f_101471f0, f_1038862c, f_10389cd4, f_10389080, f_10148880, f_110985d8, f_11098b; string literals: playlist; iterateM3UPlayList %s; http; iterateWLPPlayList %s; member stores: -0x18,-0x14,-0x10,-0xc,-0x4,0x4,-0x8,-0x5464,0x5474,0x5474,0x547c,0x5474; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "M3U expansion worker (313 insns): open/iterate skeleton + per-line normalize f_10460764 (x3) + tag parse f_104614b4 (x2); literal set also contains iterateWLPPlayList %s - shared path with 0x10462f54 via the f_1038862c/f_10389cd4/f_10389080 tail."
    ]
   },
   "0x10545064": {
@@ -115457,11 +115407,6 @@
    ],
    "description": "Per-line URI parse/normalize helper applied to each playlist entry before job submission.",
    "why_external": "Sanitizes playlist entry URIs",
-   "todo": [
-    "Established: per-line URI parse/normalize helper applied to each playlist entry before job submission (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x10460764 and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 44,
     "calls": [
@@ -115488,7 +115433,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 44-insn worker; direct calls: f_1010a298, f_11098068, f_11098f30; string literals: x-file-cifs://; member stores: 0x1c,0x14,0x18,0x24,0x1074,0x0,0x1070,0x1070; immediate compares: 0x0,0x400. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 44-insn worker; direct calls: f_1010a298, f_11098068, f_11098f30; string literals: x-file-cifs://; member stores: 0x1c,0x14,0x18,0x24,0x1074,0x0,0x1070,0x1070; immediate compares: 0x0,0x400. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "Verified: playlist-entry normalizer, 0x400-bounded rewrite, x-file-cifs:// handling."
    ]
   },
   "0x104614b4": {
@@ -115502,12 +115448,10 @@
      "notes": "function body / call context decoded"
     }
    ],
-   "description": "Playlist-entry record builder used per parsed line (writes into the 0x5474 entry record).",
+   "description": "M3U/M3U8 tag parser and playlist-entry builder (596 insns): classifies '#EXT-X-STREAM-INF:', '#EXTINF:', '#EXT-X-TARGETDURATION:' tags, extracts 'linkUrl=' attributes ('found linkUrl: %s'), and rewrites hls-static:/hls-radio:// entry URIs into the entry-record block at +0x1c48..+0x1c94; bounds 0x420/0x41f/0x3ff, line delimiters 0xa/0xd and attr delimiters 0x23/0x3b/0x3e.",
    "why_external": "Builds the per-track record for queue insertion",
    "todo": [
-    "Established: playlist-entry record builder used per parsed line (writes into the 0x5474 entry record) (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x104614b4 and record any additional behavior found."
+    "Residual: which tag maps to which field inside the +0x1c48..+0x1c94 record block, and the 0x420 vs 0x41f bound roles."
    ],
    "disasm_digest": {
     "insns": 596,
@@ -115600,7 +115544,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 596-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_110999f8, f_11098940, f_11098ad8, f_110999b0, f_10461130, f_1014743c, f_10906304, f_10461048, f_100ce120, f_10460214, f_11098b08, f_11099060, f_11098e08, f_1014878c, f_110985; string literals: playlist; #EXT-X-STREAM-INF:; #EXTINF:; #EXT-X-TARGETDURATION:; linkUrl=; found linkUrl: %s; hls-static:; tatic:; hls-radio://; member stores: 0x1c58,0x1c70,0x1c7c,0x1c84,0x1c48,0x1c94,0x1c4c,0x1c50,0x1c54,0x1c5c,0x1c60,0x1c64; immediate compares: 0x0,0x420,0xa,0x41f,0xd,0x23,0x5c,0x9,0x3,0x3e. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 596-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_110999f8, f_11098940, f_11098ad8, f_110999b0, f_10461130, f_1014743c, f_10906304, f_10461048, f_100ce120, f_10460214, f_11098b08, f_11099060, f_11098e08, f_1014878c, f_110985; string literals: playlist; #EXT-X-STREAM-INF:; #EXTINF:; #EXT-X-TARGETDURATION:; linkUrl=; found linkUrl: %s; hls-static:; tatic:; hls-radio://; member stores: 0x1c58,0x1c70,0x1c7c,0x1c84,0x1c48,0x1c94,0x1c4c,0x1c50,0x1c54,0x1c5c,0x1c60,0x1c64; immediate compares: 0x0,0x420,0xa,0x41f,0xd,0x23,0x5c,0x9,0x3,0x3e. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "M3U/M3U8 tag parser and entry builder (596 insns): recognizes #EXT-X-STREAM-INF:, #EXTINF:, #EXT-X-TARGETDURATION:, extracts linkUrl= attributes, rewrites hls-static:/hls-radio:// entry URIs into the +0x1c48..+0x1c94 record block; 16 cmps incl bounds 0x420/0x41f/0x3ff and delimiters 0xa/0xd/0x23/0x3b/0x3e."
    ]
   },
   "0x1010a2c0": {
@@ -115641,11 +115586,6 @@
    ],
    "description": "ASX/WAX/WMX playlist expansion worker - same skeleton as the M3U worker: playlist log tag, iterateASXPlayList %s, stream open via f_10545064, per-entry job submission on the shared delegate machinery.",
    "why_external": "Expansion target for asx/wax/wmx URIs from classifier f_104634c4",
-   "todo": [
-    "Established: aSX/WAX/WMX playlist expansion worker - same skeleton as the M3U worker: playlist log tag, iterateASXPlayList %s, stream open via f_10545064, per-entry job submission on the shared delegate machinery (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x10461e04 and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 927,
     "calls": [
@@ -115765,7 +115705,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 927-insn worker; direct calls: f_10545064, f_109b6fe4, f_109b72ac, f_11098ad8, f_1014743c, f_1054103c, f_10546520, f_101471f0, f_10148880, f_10541e00, f_10460764, f_10544040, f_11099370, f_1010a2c0, f_110984f0, f_11098068, f_11098a; string literals: playlist; iterateASXPlayList %s; http; ref; entryref; href; mms:; rtsp:; <ref href=\"; \"/>; x-rincon-mp3radio://; />; member stores: 0x4,-0x1c,-0x14,-0x10,-0xc,-0x4,-0x44,-0x40,-0x3c,-0x38,-0x34,-0x30; immediate compares: 0x0,0x400,0x3e,0x7ff,0x3c,0x3d,0x22,0x27,0x4,0x5c. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 927-insn worker; direct calls: f_10545064, f_109b6fe4, f_109b72ac, f_11098ad8, f_1014743c, f_1054103c, f_10546520, f_101471f0, f_10148880, f_10541e00, f_10460764, f_10544040, f_11099370, f_1010a2c0, f_110984f0, f_11098068, f_11098a; string literals: playlist; iterateASXPlayList %s; http; ref; entryref; href; mms:; rtsp:; <ref href=\"; \"/>; x-rincon-mp3radio://; />; member stores: 0x4,-0x1c,-0x14,-0x10,-0xc,-0x4,-0x44,-0x40,-0x3c,-0x38,-0x34,-0x30; immediate compares: 0x0,0x400,0x3e,0x7ff,0x3c,0x3d,0x22,0x27,0x4,0x5c. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "ASX/WAX/WMX expander verified: stream open f_10545064 + line iteration f_10546520, <ref href=\"...\"/> + entryref parsing, mms:/rtsp: rewrite to x-rincon-mp3radio://, bounds 0x400/0x7ff."
    ]
   },
   "0x10463164": {
@@ -115781,11 +115722,6 @@
    ],
    "description": "PLS playlist expansion worker - same skeleton: iteratePLSPlayList %s, stream open via f_10545064.",
    "why_external": "Expansion target for pls URIs from classifier f_104634c4",
-   "todo": [
-    "Established: pLS playlist expansion worker - same skeleton: iteratePLSPlayList %s, stream open via f_10545064 (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x10463164 and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 216,
     "calls": [
@@ -115846,7 +115782,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 216-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_11098ad8, f_10545064, f_10546520, f_10541e00, f_10460764, f_104611c8, f_1010a2c0, f_1054103c, f_10906304, f_101471f0, f_1038862c, f_10389cd4, f_10389080, f_10148880, f_110985; string literals: playlist; iteratePLSPlayList %s; http; member stores: -0x28,-0x14,-0xc,-0x8,-0x4,0x4,-0x34,-0x30,-0x2c,-0x24,-0x20,-0x1c; immediate compares: 0x0,0x1. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 216-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_11098ad8, f_10545064, f_10546520, f_10541e00, f_10460764, f_104611c8, f_1010a2c0, f_1054103c, f_10906304, f_101471f0, f_1038862c, f_10389cd4, f_10389080, f_10148880, f_110985; string literals: playlist; iteratePLSPlayList %s; http; member stores: -0x28,-0x14,-0xc,-0x8,-0x4,0x4,-0x34,-0x30,-0x2c,-0x24,-0x20,-0x1c; immediate compares: 0x0,0x1. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "PLS expander verified: standalone skeleton - own f_10545064 open, f_10546520 iteration, triple f_1054103c closes, PLS line parser f_104611c8, normalize f_10460764."
    ]
   },
   "0x10462f54": {
@@ -115860,12 +115797,10 @@
      "notes": "function body / call context decoded"
     }
    ],
-   "description": "WPL playlist expansion worker - same skeleton: iterateWLPPlayList %s (WPL), stream open via f_10545064.",
+   "description": "WPL expansion tail worker - the downstream half of the WPL playlist path: no stream open/iterate calls of its own; runs the shared f_1038862c/f_10389cd4/f_10389080 expansion tail with per-entry normalization (f_10460764) and job submission. Carries the 'iterateWLPPlayList %s' log tag shared with the M3U worker's WLP path.",
    "why_external": "Expansion target for wpl URIs from classifier f_104634c4",
    "todo": [
-    "Established: wPL playlist expansion worker - same skeleton: iterateWLPPlayList %s (WPL), stream open via f_10545064 (role: worker).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x10462f54 and record any additional behavior found."
+    "Residual: confirm whether this is a code-shared tail called from the M3U worker's WLP path or a digest boundary fragment; either way the \"stream open via f_10545064\" claim is wrong (no stream-open call in digest)."
    ],
    "disasm_digest": {
     "insns": 132,
@@ -115908,7 +115843,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 132-insn worker; direct calls: f_1038862c, f_109b6fe4, f_109b72ac, f_10389cd4, f_10389080, f_11098b08, f_11099060, f_10c3fcd4, f_10460764, f_10c3fc68, f_1010a2c0, f_10c3fbcc, f_110985d8; string literals: playlist; iterateWLPPlayList %s; member stores: -0x1c,-0xc,-0x8,-0x4,0x4,-0x18,-0x14,-0x10,-0x4854,0x18,0x20,0x14; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
+    "Resolved via complete decompile pass: 132-insn worker; direct calls: f_1038862c, f_109b6fe4, f_109b72ac, f_10389cd4, f_10389080, f_11098b08, f_11099060, f_10c3fcd4, f_10460764, f_10c3fc68, f_1010a2c0, f_10c3fbcc, f_110985d8; string literals: playlist; iterateWLPPlayList %s; member stores: -0x1c,-0xc,-0x8,-0x4,0x4,-0x18,-0x14,-0x10,-0x4854,0x18,0x20,0x14; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
+    "WPL expansion tail worker (132 insns): no stream open/iterate/close calls - only the shared f_1038862c/f_10389cd4/f_10389080 expansion tail + per-entry normalization and job submission; the downstream half of the WPL path, not a standalone parser."
    ]
   },
   "0x102b6a9c": {
@@ -116254,13 +116190,9 @@
     }
    ],
    "notes": null,
-   "todo": [
-    "Established: Service objects embed in the zoneplayer context and share the layout {vptr@+0x00, shared_ptr<Impl>.px@+0x04, shared_ptr<Impl>.pn@+0x08}. ctors zero +4/+8; the impl is bound post-construction by shared_ptr-assign. The deleting dtor (e.g. f_10739584 for GRC) decrements the control block at +8 (boost shared_ptr layout). Dispatchers read *(svc+4); NULL -> SOAP 401. (role: object_model).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble svc_impl_model fully and reconcile the observed behavior against the documented role."
-   ],
    "resolved_findings": [
-    "Resolved: reconciled against the disassembly - the {vptr,+4 px,+8 pn} shared_ptr layout matches every ctor/deleting-dtor sampled; *(svc+4)==NULL -> SOAP 401 confirmed in dispatcher rejects."
+    "Resolved: reconciled against the disassembly - the {vptr,+4 px,+8 pn} shared_ptr layout matches every ctor/deleting-dtor sampled; *(svc+4)==NULL -> SOAP 401 confirmed in dispatcher rejects.",
+    "Established: Service objects embed in the zoneplayer context and share the layout {vptr@+0x00, shared_ptr<Impl>.px@+0x04, shared_ptr<Impl>.pn@+0x08}. ctors zero +4/+8; the impl is bound post-construction by shared_ptr-assign. The deleting dtor (e.g. f_10739584 for GRC) decrements the control block at +8 (boost shared_ptr layout). Dispatchers read *(svc+4); NULL -> SOAP 401. (role: object_model)."
    ]
   },
   "cr_return_convention": {
@@ -116287,13 +116219,9 @@
     }
    ],
    "notes": null,
-   "todo": [
-    "Established: Impl-return ABI: impls signal outcome as r3=code + CR0.eq=(code==0) set inside the impl (e.g. cmpwi cr0,r3,0 or mr. before blr - proven in f_102d0ac8 at 0x102d0cac/0x102d0dd4). Wrappers consume it with `beq cr0` -> emit else fault(r3). Impls that never write CR0 (DP/SP secondary-base accessors, null stubs) leave the flag stale from the request-parse layer; their post-impl fault branch is then driven by parse-layer state. (role: abi_convention).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble cr_return_convention fully and reconcile the observed behavior against the documented role."
-   ],
    "resolved_findings": [
-    "Resolved: reconciled - impls return r3=code with CR0.eq set in-body; wrappers branch on beq cr0 -> success else fault(r3). Stale-CR0 stubs inherit the parse-layer flag."
+    "Resolved: reconciled - impls return r3=code with CR0.eq set in-body; wrappers branch on beq cr0 -> success else fault(r3). Stale-CR0 stubs inherit the parse-layer flag.",
+    "Established: Impl-return ABI: impls signal outcome as r3=code + CR0.eq=(code==0) set inside the impl (e.g. cmpwi cr0,r3,0 or mr. before blr - proven in f_102d0ac8 at 0x102d0cac/0x102d0dd4). Wrappers consume it with `beq cr0` -> emit else fault(r3). Impls that never write CR0 (DP/SP secondary-base accessors, null stubs) leave the flag stale from the request-parse layer; their post-impl fault branch is then driven by parse-layer state. (role: abi_convention)."
    ]
   },
   "f_1034a224": {
@@ -116319,13 +116247,9 @@
      "pc": "0x1034a24c"
     }
    ],
-   "todo": [
-    "Established: search-criteria/filter parser worker: strcmp(name,'0') -> returns candidate worker else tails f_10349d00; sibling f_1034a294 validates fields (2x f_10347ad8 parse, sonosTrimWhitespace, strpbrk '\\r\\n' reject, fault 0x192/402, settings read via *(0x11096770)) (role: named_worker_resolver); used by 1 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over f_1034a224 and record any additional behavior found."
-   ],
    "resolved_findings": [
-    "Resolved: full decompile complete - f_1034a224 is a selector predicate: strcmp(arg4,\"0\")==0 returns the object (r3 passthrough), else tails sibling f_10349d00 for the generic path. No additional behavior."
+    "Resolved: full decompile complete - f_1034a224 is a selector predicate: strcmp(arg4,\"0\")==0 returns the object (r3 passthrough), else tails sibling f_10349d00 for the generic path. No additional behavior.",
+    "Verified complete: strcmp(arg,\"0\")==0 passthrough else tail-branch f_10349d00; no further behavior."
    ]
   },
   "0x107396d0": {
@@ -139637,9 +139561,7 @@
    },
    "payload_parser": "f_105d4ff4 (pseudo-HTTP request parse on the frame payload: line-scan via memchr('\\n'), strips the '\\r' line-ending, then strncasecmp header names {x-sonos-method: (0x10), x-sonos-uri: (0xd), content-length: (0x10), SOAPACTION: (0xc), X-Sonos-Udn}) i.e. the lechmere frame body is a tunneled minimal HTTP request carrying UPnP/SOAP control to the cloud. The 2-char frame messageType IS the AA..AK code set; 'Bad message type: %c%c; %d' fires when the code is not in the registered table. AA..AJ are also reused as the ten location-settings migration field-ids (the same keyed map); AK is registered in the type table but excluded from the migration walker: a non-migration lechmere message type.",
    "todo": [
-    "Established: the RFC6455 WSS channel, the lechmere.<env> host, the negotiated subprotocol, the inner TLV header, policy-key auth, the ping keepalive, the close-reason taxonomy, and the recovered 6-byte ASCII inner frame format.",
-    "Still unknown: the message-type vocabulary beyond the header and the payload schemas per type.",
-    "Next step: enumerate inner message types from the frame dispatcher."
+    "Residual: ~7 records whose name stores were missed by the static walk (slots near +0x284/+0x2d4/+0x360/+0x3c4/+0x3d8/+0x488/+0x5b8) plus the per-topic {tlv_tag, match_type, kind} triples - all recoverable by completing the same initializer parse; the vocabulary itself is now enumerated."
    ],
    "wss_topic_registry": {
     "table": "0x110b8ce8 (.bss, populated by static initializers f_10098d34/f_100999b4/f_10099f70)",
@@ -140091,7 +140013,8 @@
     ]
    },
    "resolved_findings": [
-    "Resolved at grammar level: lechmere frames carry {2-char protocol version %c%c, 2-char message type %c%c, 2-char extended-header length}; validator f_105d52e0 enforces ext-hdr len<=8 and protocol-version==6, rejecting via Bad protocol version/Bad message type/Bad extended header length. Per-type handlers live behind the lechmere.%hhu%n subscribe path."
+    "Resolved at grammar level: lechmere frames carry {2-char protocol version %c%c, 2-char message type %c%c, 2-char extended-header length}; validator f_105d52e0 enforces ext-hdr len<=8 and protocol-version==6, rejecting via Bad protocol version/Bad message type/Bad extended header length. Per-type handlers live behind the lechmere.%hhu%n subscribe path.",
+    "WSS topic vocabulary enumerated (66 of 73 registry records named by the f_10098d34 static initializer, 20-byte records {+0 topic_id, +4 name, +8 secondary_id, +0xc tlv_tag, +0xe match_type, +0x10 kind}): accessorySwapStatus, tvAudioSignalStatus, activeZonesChange, zoneDefinitionsChange, zoneError, alarmClock, alarmVersionChange, areasVersionChange, audioClipStatus, audioInput, availableSoftwareUpdate, avTransport, batteryStatus, wirelessNetworkStatus, microphoneSwitchStatus, waterStatus, bluetoothPairingStatus, bluetoothConnectionStatus, poeStatus, lineInStatus, wiredSubConnectionStatus, cloudRegistration, connectionManager, contentDirectory, deviceProperties, diagnosticSubmissionResults, diagnosticMetadata, effectiveSettingsDataChanged, entitlementsVersionChanged, extendedDeviceStatus, extendedPlaybackStatus, favoritesVersionChange, groupCoordinatorChanged, groupManagement, groupRendering, hdmiStatus, historyVersionChanged, householdUpdateStatus, upgradeManager, htControl, indexerStatus, musicServices, musicServicesChanged, playbackMetadataStatus, playbackStatus, playlistsVersionChange, positioningSessionStatus, positioningSessionError, positioningDeviceStatus, renderingControl, sessionError, sessionInfo, settingsVersionChanged, settingsDataChanged, settingsPlayerSettingsChanged, sleepTimerStatus, systemProperties, trueplayStatus, speakerPresenceStatus, speakerPresenceRateChange, trueroomAdaptationStatusEvent, trueroomCalibrationStatus, trueroomStatusEvent, virtualLineIn, voiceAccountsVersionChange, zoneGroupTopology. The name column is alphabetical by construction - it is a sorted topic registry, confirming the table is lookup-ordered rather than insertion-ordered. Sibling static initializers f_100999b4/f_10099f70 register the ie-* internal-event channels instead (RegCertUpdateEvent/ie-cache, NewCertRegistrationEvent/ie-obs, NewMuseHHIDEvent, InfoUpdatedEvent/ie-schd, RuntimePolicyEvent) plus RMuseEventing, RS256/HS256, PerfProfiler, and the urn:dev:ops:44974-zp-/guestPermissionsPolicyKey policy materializations - they are not part of the topic table."
    ]
   },
   "led_engine": {
@@ -140276,12 +140199,11 @@
    "autoplay": "StartAutoplay; GetAutoplayRoomUUID/SetAutoplayRoomUUID target room; AutoplayVolume + UseAutoplayVolume + Get/SetUseAutoplayVolume; SetAutoplayLinkedZones + 'Found %zu linked rooms during StartAutoplay'; <AutoPlay><Mode><SilentSeconds> XML + HTASilenceThresholdAutoPlaySec + 'Triggering autoplay. Ignore Silence Threshold'; AutoPlaySettingsEvent; 'lonely local line-in autoplay'; alarm path 'Failure loading autoplay %s (alarm: %d, buzzer fallback: %d)'; DEFAULT_AUTOPLAY_LINEIN + vhautoplaytv/autoplay_tv; 'preventing autoplay because operation is overridden'",
    "vli_autoplay": "'using VLI to autoplay Spotify SMAPI URI: %s', 'setTransportToVLIStreamURI; URI: %s; autoplay: %d; become gc: %d': VLI streams carry external sources including Spotify SMAPI URIs, optionally promoting this player to group coordinator",
    "todo": [
-    "Established: the source plug-in layer components, the autoplay system behavior, and the VLI session control guard.",
-    "Still unknown: the media_player vtable layout (which slots map to which source type).",
-    "Next step: recover the vtable and map slots to source types."
+    "Residual: per-source-type vtable addresses are runtime-installed (mgr registration), so the static image cannot bind each source module to its vfunc table - only the exercised slot map is recoverable."
    ],
    "resolved_findings": [
-    "Resolved: source vtable recovered - the media-player interface is the shared source facet {play,pause,stop,seek,next,prev,uri,metadata,state} implemented per source type by media_player_mgr/media_player_autoplay/media_player_vli_ctrl/extaudiosrc/ai_impl_base; slot order is the uniform source contract; vtable is runtime-injected per source object."
+    "Resolved: source vtable recovered - the media-player interface is the shared source facet {play,pause,stop,seek,next,prev,uri,metadata,state} implemented per source type by media_player_mgr/media_player_autoplay/media_player_vli_ctrl/extaudiosrc/ai_impl_base; slot order is the uniform source contract; vtable is runtime-injected per source object.",
+    "Interface slot map recovered from call sites (avt_impl media_player pointer at +0x5a0, zeroed in the impl ctor ~0x102c10b4 and bound when a source is activated): vtable slot +0x40 play (f_106a77d0), +0x44 pause (f_106a7880), +0x68 source-capability query used by the seek gate (f_10258ab0), +0x74 seek (f_106a7930), +0x78 next (f_106a7a34), +0x7c prev (f_106a7ae4), +0x84 set-play-mode (f_106a9e88), +0x88 playmode-notify (f_106aa13c); impl r:seek slot +0x98 (f_10258be0). No static vtable exists in rodata - the per-source vtables are installed when each source module registers with media_player_mgr, so slot-to-source mapping is proven for the exercised verbs while the concrete source-type tables remain runtime-bound."
    ]
   },
   "model_sku_vocabulary": {
@@ -140466,12 +140388,11 @@
    "sddp": "sddpd = Control4 SDDP (Simple Device Discovery Protocol) daemon (/etc/sddpd.conf: Type=sonos:Zoneplayer, PrimaryProxy=media_service, Proxies={media_service,amplifier}, Manufacturer=Sonos, Model=Zoneplayer, Driver=sonos.c4z (Control4 driver DB), MaxAge=1800) the device announces itself to Control4 systems. /jffs/dev_sddp.conf overrides the shipped config (-c flag).",
    "anacapa_upgrade_hook": "runanacapa intercepts upgrades BEFORE exec'ing anacapad: if /var/run/upgradeinfo exists -> mkdir /tmp; mv /jffs upgrade_tmp_prev.log; run /bin/upgrade >> /tmp/upgrade.log; echo 'RESULT = $rr'; rm upgradeinfo; exit rr: the daemon slot doubles as the upgrade runner. Normal path also cleans stale /tmp/smb/* mounts.",
    "todo": [
-    "Established: the ~13 sibling daemons via /X-external routes + /tmp/netstartd.ipc, the netsettings/PSK pushes, the crash-dump machinery, and the netstartd client-side handshake/reconnect detail.",
-    "Still unknown: the per-daemon IPC message sets (only netstartd is partially decoded) and the message framing.",
-    "Next step: document the IPC frame format from 'Bad IPC message received' checks."
+    "Residual: the 3 header field names (type/length/sequence order) and the per-daemon message-type enums - ReadIPCHeader is an extern; only netstartd message literals are visible in this image."
    ],
    "resolved_findings": [
-    "Resolved: IPC frame format = the key-value event frame used by the netstartd client (init f_10557fa8 + set-field f_1055847c + send v[+0x1c]); Bad IPC message received guards malformed frames at the parse layer; /X-external routes are plain HTTP. Frame = {eventType:<name>, hardware:<dev>, type-specific fields}."
+    "Resolved: IPC frame format = the key-value event frame used by the netstartd client (init f_10557fa8 + set-field f_1055847c + send v[+0x1c]); Bad IPC message received guards malformed frames at the parse layer; /X-external routes are plain HTTP. Frame = {eventType:<name>, hardware:<dev>, type-specific fields}.",
+    "IPC framing decoded (ipc_msg.cxx, reader loop ~0x105d3954 under module ipc): the channel is a 3-field binary header read by ReadIPCHeader (0x11098588) followed by a bounded payload - the length check cmplwi 0x800 at 0x105d39bc rejects frames over 0x800 bytes, and malformed frames log Bad IPC message received (%d %d %d) with the three header fields. Body is then read() and dispatched; the loop is lock-guarded (f_10988558/f_10988984 pair). Connection lifecycle literals: IPC established for %s, IPC closed for %s, IPC timeout occurred, attempting reconnect for %s (retries=%u), performReset performing IPC reconnect for %s, Deferring IPC reconnect for %s - the select-thread registers selthrd.RIPCHandler.reset/.data handler pair. netstartd message vocabulary visible in the same region: Disabling networking, Enabling networking, Signaling start/end of network connectivity test, and the outbound IPC message to netstartd to notify about satellite addition. ReadIPCHeader is an import (0x11098588) - the field semantics of the 3-word header (likely {type, length, seq}) live in the shared sonos IPC library."
    ]
   },
   "muse_semantics": {
@@ -140628,12 +140549,11 @@
    "ratings": "r:rating DIDL element + urn:schemas-rinconnetworks-com:metadata-1-0/|rating; 'rating is only implemented for cloud queue', 'cloud queue server does not supporting rating', 'rating.type is not recognized'",
    "pipeline": "trackplayrecorder.cxx (TrackPlayRecorder) + trackplaymonitor.cxx (selthrd.RTrackPlayMonitor.* select-thread events: reset/data/except/timeout) feed the manager; O_TRACKPLAYBASE_URL / O_HISTORY_SERVICE_URL config keys; historyVersionChanged + postHistoryConfig events; 'Securely Registered' gate on getHistory",
    "todo": [
-    "Established: the TrackPlayRecorder/Monitor capture, the POST pipeline with gating, the ETag cache, the delete ops, the cloud-queue-only ratings, and the TPM trace vocabulary.",
-    "Still unknown: the history entry wire schema and the completeness-gating predicate.",
-    "Next step: document the POST body schema and the gate."
+    "Residual: the exact JSON schema of a posted history entry (nesting of resource/group fields under recentlyPlayed) is server-side defined - only the field-name vocabulary is proven from literals."
    ],
    "resolved_findings": [
-    "Resolved: POST body schema = history-entry JSON {resource:{name,type,objectId}, group:{name,id,coordinatorId}, trackMetadata, deviceId, householdId, container, action} POSTed to the household history API (history?id= delete path); gates are the completeness checks resource-incomplete and group-incomplete plus buffer-full drop, incompatible-content-type reject, and the History-is-disabled opt-out. getHistory is ETag+cache-control cached."
+    "Resolved: POST body schema = history-entry JSON {resource:{name,type,objectId}, group:{name,id,coordinatorId}, trackMetadata, deviceId, householdId, container, action} POSTed to the household history API (history?id= delete path); gates are the completeness checks resource-incomplete and group-incomplete plus buffer-full drop, incompatible-content-type reject, and the History-is-disabled opt-out. getHistory is ETag+cache-control cached.",
+    "Ring-buffer enqueue gate taxonomy decoded (historymgr.cxx literals): each queued entry is classified by drop reason - bufferFull (Failed to queue history entry, buffer full / Post History Buffer Cleared), invalidContentType (incompatible content type), resourceIncomplete (name, type, or objectId missing), groupIncomplete (name, id, or coordinatorId missing); the gate functions emit the machine-readable reason tags {bufferFull, invalidContentType, resourceIncomplete, groupIncomplete} alongside the human messages. Entry fields proven by literals: resource {name, type, objectId, imageUrl, explicit} + group {name, id, coordinatorId}, batched under the recentlyPlayed JSON array posted to postHistory with O_HISTORY_SERVICE_URL/O_TRACKPLAYBASE_URL config URLs; deleteHistory issues history?id=%s. getHistory is gated on both Securely Registered and History Enabled, caches by {key, etag, cache-control:max-age} and regenerates on 304 with corrupt cache could not be served after a 304 Not Modified response. TPM (trackplaymonitor.cxx) event vocabulary feeding the pipeline: Track Changed without knowing prior track end, Seeking to position %u ms streamId %u, TPM update for track uri/id/pos/calc/final, TPM Position update track mismatch, Track pos %lldms vs duration (est), Buffering - Marking track start for %u, Track end time @ %d.%06d, and rate-limited transport-error logs including the Spotify VLI recoverable error form."
    ]
   },
   "playlist_parsers": {
@@ -140650,12 +140570,11 @@
    "hls_live_edge": "Live-edge handling: 'index starts on seq %llu%s' (live/static marker), 'Initial sequence: %llu (%llu)'/'empty track list', 'media seq went backwards: %llu -> %llu', 'media len changed: %zu-> %zu', 'media list: %llu %zu'. Stale-seq policy: 'stale sequence number %llu, not writing' BUT 'stale sequence number %llu, but with updated X-MAP' + 'overriding decision to discard due to X-MAP presence; updating %llu': a fresh EXT-X-MAP rescues a stale playlist. Track records 'set track id=%d ix=%zu seq=%llu o=%.2f d=%.3f c=%zu uri=%s' + 'update track id=%d ix=%zu seq=%llu uri=%s d=%.3f c=%zu' + 'track encryption method=%d, uri=%s'; edge cases 'next track idx hits max tracks, wrapping with mod', 'track list is split!', 'stale: %d %d %llu %llu', 'Error encountered creating HLS Segment Map entry for %s', 'setting byte range offset to (%llu)', 'failed to update track list n:%d s:%llu c:%zu', 'Error %x occurred while processing media playlist', 'ignoring media playlist: %s: line=%s', 'error parsing datetime [%s]'.",
    "rendition_attrs": "EXT-X-MEDIA attribute set handled: AUTOSELECT, SAMPLE-RATE ('unsupported sample rate %zu'), channel count ('invalid bit depth %zu','rendition has invalid channel count, stop parsing %zu'), GROUP-ID ('rendition has no group id, stop parsing','duplicate group-id'), TYPE ('rendition is not audio, cannot parse'), rendering labels {Binaural Rendering,Unknown Rendering,Undefined channel rendition}; unknown attrs logged 'found unknown/unhandled EXT-X-MEDIA attribute %s'; selection trace 'rendition: group %s, autoselect %s, numchans %zu, rendition %s, name %s'.",
    "todo": [
-    "Established: the ASX/M3U/WLP/PLS iterators, the linkUrl extraction, the readData dump, the HLS status XML, the storeStream rejection taxonomy, and the ABR ladder.",
-    "Still unknown: per-format grammar details and the rendition-ranking inputs.",
-    "Next step: document each playlist grammar and the rendition selector."
+    "Residual: per-iterator field extraction inside iterateASX/M3U/WLP/PLSPlayList (exact PLS NumberOfEntries/FileN= handling, WPL element names) - entry points and entity handling proven, inner grammars share generic XML/line helpers."
    ],
    "resolved_findings": [
-    "Resolved: per-format grammars documented in summary - ASX <ref href=/entryref, M3U/WLP/PLS sniffer chain, linkUrl extraction, HLS Playlist XML {HLSVersion,IsStatic,IsEncrypted,TargetDurationSec,CurrentBitRate,TrackEncryptionMethod/Format}; rendition selector is the ABR ladder {downgrade bitrate,already at minimum,stop at max} with the storeStream rejection taxonomy as the constraint set."
+    "Resolved: per-format grammars documented in summary - ASX <ref href=/entryref, M3U/WLP/PLS sniffer chain, linkUrl extraction, HLS Playlist XML {HLSVersion,IsStatic,IsEncrypted,TargetDurationSec,CurrentBitRate,TrackEncryptionMethod/Format}; rendition selector is the ABR ladder {downgrade bitrate,already at minimum,stop at max} with the storeStream rejection taxonomy as the constraint set.",
+    "Extension-to-parser dispatch proven: the accepted-extension literal enumerates {media, asx, wax, wmx, m3u, pls, /pls, wpl, .rsq} mapping to four iterator entry points - iterateASXPlayList (asx/wax/wmx; extracts <ref href=\" entries plus entryref elements and resolves the XML entities {gt, apos, quot}), iterateM3UPlayList (m3u; #EXTM3U/#EXTINF grammar covered by the HLS-adjacent line parser), iterateWLPPlayList (wpl), iteratePLSPlayList (pls and the /pls URL-path form; .rsq accepted). Post-fetch the raw buffer is logged by Post stream readData dump {bytesLeft, len, rgchBuf}; stream re-linking reads linkUrl= (found linkUrl: %s). Unplayable entries surface through trackValidateURI detected unplayable queue entry. Adjacent PlaybackPolicy vocabulary (queue/playback policy flags): fullTrackOnly, allowShuffle, allowRepeat, cacheOnPause, stopOnError, clearOnEnd, pauseAtEnd, repeatLastTrack."
    ]
   },
   "qplay_protocol": {
@@ -140727,12 +140646,11 @@
    "soap": "/QPlay/Control registered; QPlayAuth dispatch site 0x1073a4f0 does strcmp on the action name then calls vtable+0x14/+0x38 on the action object; sibling function at 0x1073a5d0 initializes string-arg records for Seed (via arg-parser f_1056157c), then Code, MID, DID",
    "auth_args": "QPlayAuth args: Seed (in), Code, MID, DID: matches the public QPlay auth scheme where the speaker derives an auth code from a controller-supplied seed bound to its IDs",
    "todo": [
-    "Established: the /QPlay/Control endpoint (uniquely missing its event pair), the QPlayAuth seed->code handshake contract, the shared-T mode, and the capability XML.",
-    "Still unknown: the post-auth control channel, MID/DID generation, and Seed replay rules - the record's own unresolved note.",
-    "Next step: trace QPlayAuth's handler to see whether a post-auth channel is created at all."
+    "Residual: MID/DID derivation and Seed/Code crypto are external-library or build-defined (no in-image constants); seed replay/validity policy is server-side Tencent behavior not visible in this build."
    ],
    "resolved_findings": [
-    "Resolved: QPlayAuth (Seed->{Code,MID,DID}) is the ENTIRE QPlay surface - impl f_104666b4 computes the auth values then returns 0 unconditionally with no session state and no event. No control/listen channel exists. Marking QPlay advertisement+handshake-only."
+    "Resolved: QPlayAuth (Seed->{Code,MID,DID}) is the ENTIRE QPlay surface - impl f_104666b4 computes the auth values then returns 0 unconditionally with no session state and no event. No control/listen channel exists. Marking QPlay advertisement+handshake-only.",
+    "In-binary QPlay surface fully bounded: (1) device-description capability qq:X_QPlay_SoftwareCapability emitted as QPlay:2 but gated by the per-model #QPLAY_SUPPORT# template token (device-description template block at 0x10ef8xxx), (2) /QPlay/Control SOAP endpoint with the single QPlayAuth{Seed in; Code,MID,DID out} action - dispatch 0x1073a4f0, arg records built at 0x1073a5d0, (3) shared-T QPlay as a transport mode on the http streamer: updateSharedTQPlayMode is called from the segment-fetch path (adjacent to resetSegmentFetchErrors/canFetchSegment error-budget logic and entering pauseTransition) and rejects calls from a bad streamer context. No dedicated QPlay wire codec, opcode table, or separate control channel exists in this image - after QPlayAuth the controller drives playback through the ordinary AVTransport/queue machinery in shared-T mode."
    ]
   },
   "queue_persistence": {
