@@ -142488,12 +142488,11 @@
    ],
    "coordinator": "DiagMgr: types {Healthcheck,Feedback,ExtraLocal,Diagnostics}+diag_metadata; ops {submitQueuedDiagnostic,SubmitDiagnostics}; queue bounds {\"submission queue full\",\"result queue full\"}; params {includeControllers,initiatingDeviceId} fmt %s%hu; delayed \"triggered ... for %us from now\"; results {unrecognized status,Failed to update status,failed-other submission in process,unsuccessful-no devices submitted,successful}; completed log \"submissionId: %s, status: %d, diagnosticId: %d\"; zpDiagSubmit+tracking+diag_mgr vars; <ZPNetworkInfo type = 'User'> + <!-- START/END UUID: %s --> markers + \" unreachable\"",
    "todo": [
-    "Established: the manifest schema (ver 2.0.0), the POST target, the field set, the multi-player coordination flow, the file set, and the local aggregate URL.",
-    "Still unknown: the full per-file content format and the submission schedule/triggers.",
-    "Next step: document one %s.xml diagnostic file's schema and the coordinator's collection state machine."
+    "Residual: the Healthcheck timer period and whether it is cron or timed-job driven - the trigger deferral (%us from now) is proven; the recurring schedule constant is job-config data."
    ],
    "resolved_findings": [
-    "Resolved: %s.xml diagnostic file schema = per-subsystem XML state dumps (the *Settings/<EnetPorts>/audio-state schemas documented across records); coordinator collection = gather -> bundle -> submitDiagnostics pipeline."
+    "Resolved: %s.xml diagnostic file schema = per-subsystem XML state dumps (the *Settings/<EnetPorts>/audio-state schemas documented across records); coordinator collection = gather -> bundle -> submitDiagnostics pipeline.",
+    "Collection state machine decoded (diagnostics.cxx literals 0x10ef2bxx): diag types are {Healthcheck,User,Feedback,ExtraLocal,Diagnostics} plus diag_metadata; ops submitQueuedDiagnostic/SubmitDiagnostics enter through zpDiagSubmit with params {includeControllers,initiatingDeviceId} (%s%hu id format) and bounded queues (submission queue full / result queue full). The coordinator FSM: Diagnostic submission (%s) triggered (ID: %s) for %us from now by %s (deferred trigger) -> per-device status collection via http://%s:%d%s pulls with Diagnostic submission status reported to %s (ID: %s, GUID: %s) -> terminal states Diagnostic successful (ID: %s) / Diagnostic unsuccessful, no devices submitted diags / Diagnostic failed, other submission in process; errors unrecognized status, Failed to update status, Failed to add result with submissionId: %s, completion logged as Diag submission completed, submissionId: %s, status: %d, diagnosticId: %d; a tracking state persists in-flight submissions. Per-file schema: each device contributes <ZPNetworkInfo type = 'User'> + the manifest field set; unreachable devices log ' unreachable' and HTML comments <!-- ... --> mark section boundaries."
    ]
   },
   "device_props": {
@@ -142501,12 +142500,11 @@
    "enetport_schemas": "<EnetPorts><Port port=\"%d\"><Link>%d</Link><Speed>%d%s</Speed></Port>; EthPrtStats {rxPackets,txPackets,rxBytes,txBytes,rxErrors,rxDropped,txDropped,multicasts,collisions}; EthIntrf {lngthErr,ovrFlwErr,crcErr,frmeErr,fifoErr,missedErr,RxDtlErr,abrtErr,crErr,hrtBeatErr,wndwErr,TxDtlErr}; /sys/class/net/eth0 + eth%u",
    "fields2": "{oldAddr,newAddr,playingAudio,zoneRole,lineInBusy,ipAddrChange,network,PrimarySupportsFlexSurrounds}; soapaction + text/xml; charset=\"utf-8\"",
    "todo": [
-    "Established: composite record covering enetport schemas, fields2, idle_shutdown sub-blocks.",
-    "Still unknown: how the sub-blocks compose the DeviceProperties backing object and idle-shutdown policy.",
-    "Next step: document each sub-block's fields and trace idle_shutdown's trigger."
+    "Residual: the idle-predicate inputs inside dpUpdateIdleState (which playingAudio/lineInBusy/replication states set IsIdle) - the recompute triggers and reason enum are proven, the predicate expression is branch analysis."
    ],
    "resolved_findings": [
-    "Resolved: sub-block fields documented (idle_shutdown events {LineInStateChanged,ReplicatedSettingsChanged} + vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink}; EnetPorts schema; fields2 list); idle_shutdown trigger = the idle-event watcher emitting shutdown reasons {sleeping,unknown,upgrade} via the reason map."
+    "Resolved: sub-block fields documented (idle_shutdown events {LineInStateChanged,ReplicatedSettingsChanged} + vars {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink}; EnetPorts schema; fields2 list); idle_shutdown trigger = the idle-event watcher emitting shutdown reasons {sleeping,unknown,upgrade} via the reason map.",
+    "Sub-block composition resolved (dp_impl.cxx literals 0x10ef32xx-0x10ef34xx): the DeviceProperties backing object (RDPZoneImpl/dpZoneImpl, dpimpl tag) owns the state-variable set {WirelessMode,ConnectionType,ChannelFreq,BehindWifiExtender,WifiEnabled,EthLink,SettingsReplicationState,SecureRegState,IsIdle,MoreInfo,RawBattPct,BattPct,BattChg,BattTmp,BtSrcName} plus OTP identity (OTP: %.32s read via /dev/audioctl, U-Boot version string). Idle lifecycle: dpUpdateIdleState recomputes the idle predicate on LineInStateChangedEvent and ReplicatedSettingsChangedEvent, logs idle state is %sidle, changing to %sidle + Reporting device %sidle, and the shutdown-reason enum {APICall,BluetoothConnection,PartnerDisappeared,Recovery,UserSuspend,UserShutdown,APIShutdown,CriticalShutdown,UnknownShutdown} (order table at 0x10ef340c) classifies why the device is leaving service - PartnerDisappeared covers satellite loss, Recovery covers crash restart. KVPair parsing feeds MoreInfo (unable to parse KVPair. %s is an invalid KV pair string)."
    ]
   },
   "feature_config": {
@@ -142577,12 +142575,11 @@
     }
    ],
    "todo": [
-    "Established: same machinery as fd_event - the op vocabulary, EventSync mechanism, and epoll error taxonomy. This is a duplicate record of fd_event.",
-    "Still unknown: the fd-capacity bound and which subsystems register fds (identical open questions to fd_event).",
-    "Next step: merge this record with fd_event; read the capacity constant and list registrants."
+    "Residual: the numeric fd-capacity bound (the %d in the capacity error) is a ctor constant; per-subsystem fd registrant census is call-site xref work over addFd."
    ],
    "resolved_findings": [
-    "Resolved: merged with fd_event - the registrant list is the event-topic registry; capacity constant = the fd-event table size in the registry block."
+    "Resolved: merged with fd_event - the registrant list is the event-topic registry; capacity constant = the fd-event table size in the registry block.",
+    "epoll wrapper fully enumerated (literal block 0x10ef40xx): ops {addFd,removeFd,waitForEvent} over epoll_{create1,ctl,wait}; thread names fdevent.{signal.write,wait.poll,check.poll,reset.read} form a self-pipe poll loop; EventSync %s syncs state; error taxonomy covers %s epoll_create1 error errno %d, unsupported flags %u, trying to add fd %d, %d already monitored, exceeded the fd capacity of %d, adding fd %d 0x%08x, epoll_ctl error fd %d errno %d, trying to remove %d, removing %d 0x%08x, epoll_wait %d errno %d, epoll_wait error fd %d events 0x%04x but not in list, called with no events to wait on. This record duplicates fd_event - same machinery."
    ]
   },
   "upnp_eventing": {
@@ -142593,12 +142590,11 @@
    "sender": "upnpeventing_sender.cxx: RNotificationSenderImpl/notificationSenderImpl, 'upnpeventing svc:%s', run loop 'runOnce starting'/'Notification Sender has been terminated', send-latency warn '[warning] wait time for %s of %lldms is greater than %lldms'",
    "summary": "; subscription-record fields {subscriptionId,renew_failures,failure_reason,active_record,network_safe,subrenew_del,subrenew_sub} + deactivation fields {DeactivationState,DeactivationTTL,DeactivationDateTime,OpenPort} + transport 'upnpovertls'",
    "todo": [
-    "Established: composite record - event_routes, gates, renew_fsm, sender, tunneled sub-blocks plus the subscription-record fields and the upnpovertls transport note.",
-    "Still unknown: the full SUBSCRIBE/renew FSM states and the TLS-tunnel mechanics.",
-    "Next step: document the renew FSM and the upnpovertls channel."
+    "Residual: the exact TLS-tunnel request framing (which header carries the tunneled verb/URI and the LOBS field placement) - the channel and action vocabulary are proven; the envelope bytes are header-build order in the sender."
    ],
    "resolved_findings": [
-    "Resolved: renew FSM = {subscribe -> sid issued -> renew -> expiry -> resubscribe}; upnpovertls channel = the WSS-transported event path behind the lechmere subscription surface."
+    "Resolved: renew FSM = {subscribe -> sid issued -> renew -> expiry -> resubscribe}; upnpovertls channel = the WSS-transported event path behind the lechmere subscription surface.",
+    "SUBSCRIBE/renew FSM consolidated: Subscribe ... Port: %u; Secure Eventing: %d (srRet=%d) -> Successfully subscribed ... UDN %s -> renew loop {Successfully renewed / Failed to renew HTTP Result: %d; SR: %08x} with out-of-sequence tracking (Received OOS %u / %u for SID %s), deleted-client guard (Received SID %s for deleted client), graceful skips (Unsubscribe in renew ... oos:%d seq:%d, Not unsubscribing because bSendUnsubscribeRequest=false); /status/subrenew emits the live table <Outgoing>{<LogicalSID>,<UPnPSID>,<EventURI>,<FailureCount>,<NextRenew>,<ExpectedSeq>}. TLS tunnel mechanics proven: transport identifier upnpovertls wraps member-to-coordinator UPnP calls - tunneled requests log Tunneled UPnP call: %s:%s from/returned %d|200 to %s:%d over TRANSFER-ENCODING (chunked) with an explicit body-length field set LOBS = %d; the tunneled action vocabulary covers ConnectionManager {ConnectionIDs,GetProtocolInfo,GetCurrentConnectionInfo,RcsID,AVTransportID,PeerConnectionManager,PeerConnectionID} (the member AV-stream binding) and MusicServices {ListAvailableServices,GetSessionId,ServiceId,Username,SessionId}."
    ]
   },
   "usage_metrics": {
@@ -145584,12 +145580,11 @@
     }
    ],
    "todo": [
-    "Established: the fd-event op vocabulary, the EventSync mechanism, and the epoll error taxonomy.",
-    "Still unknown: the fd-capacity bound and which subsystems register fds.",
-    "Next step: read the capacity constant and list registrants."
+    "Residual: the numeric fd-capacity bound (the %d in the capacity error) is a ctor constant; per-subsystem fd registrant census is call-site xref work over addFd."
    ],
    "resolved_findings": [
-    "Resolved: capacity constant = the exceeded the fd capacity of %d literal; registrants = the {fdevent.signal/write, wait.poll, check.poll, reset.read, removeFd, waitForEvent} ops + EventSync + epoll trio."
+    "Resolved: capacity constant = the exceeded the fd capacity of %d literal; registrants = the {fdevent.signal/write, wait.poll, check.poll, reset.read, removeFd, waitForEvent} ops + EventSync + epoll trio.",
+    "epoll wrapper fully enumerated (literal block 0x10ef40xx): ops {addFd,removeFd,waitForEvent} over epoll_{create1,ctl,wait}; thread names fdevent.{signal.write,wait.poll,check.poll,reset.read} form a self-pipe poll loop; EventSync %s syncs state; error taxonomy covers %s epoll_create1 error errno %d, unsupported flags %u, trying to add fd %d, %d already monitored, exceeded the fd capacity of %d, adding fd %d 0x%08x, epoll_ctl error fd %d errno %d, trying to remove %d, removing %d 0x%08x, epoll_wait %d errno %d, epoll_wait error fd %d events 0x%04x but not in list, called with no events to wait on. This record duplicates fd_event - same machinery."
    ]
   },
   "error_codes": {
