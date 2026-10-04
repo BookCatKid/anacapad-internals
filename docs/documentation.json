@@ -143793,12 +143793,11 @@
     }
    ],
    "todo": [
-    "Established: the musicservices.xml store, the state vars, the setting keys, the replication machinery, and the service-type list handling.",
-    "Still unknown: the service descriptor schema and how new services are introduced.",
-    "Next step: document the descriptor XML schema."
+    "Residual: the accept ordering rule (higher Version wins vs LUD tiebreak) inside the deciding predicate - inputs {ver, format, LUD, ETag} proven; the comparison is branch data shared with settings_replication."
    ],
    "resolved_findings": [
-    "Resolved: descriptor XML = the service-descriptor schema {name,id,uri-prefix map,capability list}."
+    "Resolved: descriptor XML = the service-descriptor schema {name,id,uri-prefix map,capability list}.",
+    "ServiceList grammar proven: replicated document <Services LastUpdateDevice=\"%s\" Version=\"%u\" SchemaVersion=\"%u\" [ETag=\"%s\"]> wrapping per-service elements {ServiceIds, Presentation, BuiltInService, ServiceTypeList, SecureUri, ContainerType, PollInterval, Manifest, Strings, Auth} with lowercase config attrs {secureUri, containerType, pollInterval, authType, stringsVersion+stringsUri, presentationMapVersion+presentationMapUri, manifestVersion+manifestUri, caps} each with an Unable to load %s URI failure. Version bookkeeping splits local vs replicated {zpETag, rsETag, zpLUD, rsLUD, zpVer, rsVer} - the accept predicate logs deciding whether to accept replicated list from: %s; ver: %u format: %u then Replicated list accepted or reject. Catalog fetch: GET /catalog/services?sonosId=%s&installedIds=%s with If-None-Match ETag -> 304 short-circuits (Music service list is unmodified - download aborted), missing ETag warns (Server did not return an ETag!); content type application/sonos_service_catalog.v1.xml. Diagnostics via Could not submit Available Services DIAG. Service count is: %zu + AvailableSvcsSummary; state vars ZPMusicServicesList etc. derive from the same document. Loading musicservices backstop is the shipped fallback list."
    ]
   },
   "radiolog": {
@@ -143987,12 +143986,11 @@
     }
    ],
    "todo": [
-    "Established: the replication flow, the DIDL namespaces, the migration paths, the error taxonomy, and the field set.",
-    "Still unknown: the favorites XML store schema details and ordering semantics.",
-    "Next step: document the store schema and the accept/deny predicate in 'deciding whether to accept'."
+    "Residual: the NextFavorite counter semantics (monotonic id allocator vs edit epoch) - LastUpdateDevice+NextFavorite are proven wrapper attrs; whether NextFavorite mints ids or tracks edits is a writer detail."
    ],
    "resolved_findings": [
-    "Resolved: store schema = the favorites replicated-store doc; accept/deny predicate = the version-gated merge (reject stale incoming versions) under content_managers."
+    "Resolved: store schema = the favorites replicated-store doc; accept/deny predicate = the version-gated merge (reject stale incoming versions) under content_managers.",
+    "Store schema proven (favorites.cxx): userradio.d.xml holds <Favorites SchemaVersion> under a <Radio LastUpdateDevice NextFavorite> wrapper with entry elements <Station Id Title URI>, <Show Id>, <Genre Id Name>; favorite id spaces {F%s, FV:%s, FV:%s/%s, R:%s/%s/%s} distinguish item kinds. DIDL emit uses upnp:class object.item.sonos-favorite (plus audioBook subclass) with res protocolInfo + r:resMD; type-specific URIs {TuneIn Station -> x-sonosapi-stream:*:*:*, Custom Station -> x-rincon-mp3radio:*:audio/x-rincon-mp3radio:*, Radio Show -> x-sonosapi-show:, instantPlay, SA_RINCON%d_ prefix}. Ordering is meaningful: move ops log Did not move favorite (%s %s); rc %d and emit itemsMoved + radioFavoritesMoved counters. initContentResource validates URIs into typed resources {Unable to parse URI, Unable to extract item ID from metadata, Invalid item ID, No valid mapping for item type %d}; replication runs the deciding whether to accept predicate then informReplicationAndNotify{,ForDestroy} + offerRemoteSetting. Browse metadata carries {cdudn, nameSpace, restricted, parentID} under the DIDL namespaces already listed."
    ]
   },
   "fileio": {
@@ -144174,12 +144172,11 @@
     }
    ],
    "todo": [
-    "Established: the RCompressBuffer/RDecompressBuffer zlib wrappers, the socket-opt line, and the deflate error taxonomy.",
-    "Still unknown: which sockets/protocols use compression and the buffer watermarks.",
-    "Next step: trace the compressors' call sites to the protocols that enable them."
+    "Residual: whether any non-WS path uses the compressors (the only proven consumer is permessage-deflate on cloudrequest; UPnP/HTTP bodies are uncompressed in-image)."
    ],
    "resolved_findings": [
-    "Resolved: compressor call sites = the protocols enabling the compressors per negotiated capability."
+    "Resolved: compressor call sites = the protocols enabling the compressors per negotiated capability.",
+    "Consumer proven: vendored zlib 1.2.11 wrapped by RCompressBuffer/RDecompressBuffer feeds the websocket per-message deflate extension (cloudrequest.cxx: could not initialize per message deflate on ws client) on the lechmere/cloud channel - cloudcfg can toggle it live (cloudcfg per msg deflate change %d -> %d; local run state override present (%d); not applying cloudcfg change / cloudcfg disable per msg deflate change %d -> %d%s). So compression applies to WSS cloud traffic only; local-zone sockets use the smwb/cmwb send/recv mbuf watermark tuning separately. Connection lifecycle: Player IP changed. Bouncing connection / restarting connection plus the Following backoff schedule, retry in %lld loop sit in the same cloudrequest layer."
    ]
   },
   "audio_tap": {
@@ -144225,12 +144222,11 @@
   "mod_zp": {
    "detail": "mod_zp + mod_zp_aa album-art queue \"queueing album art request %s %u %u %u\"; timeout states {timeoutplaying,timeoutpaused}; headers {x-rincon-last-update-device,x-rincon-content-version,x-rincon-range}; \"%s.tmp\" staging + \"Unable To File %s\"/\"Unable To Rename Temp EQ File\"; \"Forced GTK rekey\"; button-forward errors {no handler,invalid method,No button handler unable to forward buttons,Feature not supported.}; build props {build.date,build.scm.version,/build.properties,legacyanacapad,hhSwgenState}",
    "todo": [
-    "Established: only the 'detail' sub-record; the ZonePlayer module boundary is named.",
-    "Still unknown: what mod_zp actually is (the ZP module object?) and its responsibilities.",
-    "Next step: read the detail sub-block and identify the module's role in startup."
+    "Residual: the exact /status route path(s) the module registers under (the page content is proven; the URL binding is the route-table entry)."
    ],
    "resolved_findings": [
-    "Resolved: detail = the zp module role - zone-player session/identity glue in startup."
+    "Resolved: detail = the zp module role - zone-player session/identity glue in startup.",
+    "Role resolved: mod_zp is the zone-player /status page module (the ZP diagnostic section of the embedded web status site), with mod_zp_aa as its album-art sub-page (queueing album art request %s %u %u %u). It renders ZP state {timeoutplaying/timeoutpaused session timers, <TemperatureHistograms><CPUTemperature>, CpuMonitor, mDNS state dump (Failed to dump mDNS state into diagnostic, /status/opt/log/mdnsd.log)} and owns the EQ file staging path (%s.tmp write -> Unable To Rename Temp EQ File), the replicated-content headers it emits {x-rincon-last-update-device, x-rincon-content-version, x-rincon-range}, button-forward errors on the hw_events path, Forced GTK rekey, and build identity {build.date, build.scm.version, /build.properties, legacyanacapad, hhSwgenState}. Startup role: the module registers its page handlers during http route init - it is a diagnostics view, not a control engine."
    ]
   },
   "psk_hierarchy": {
@@ -144908,12 +144904,11 @@
    "testpoint_dispatch": "Testpoint handler: URL form 'testpoint?name=<name>.<method>' ('<h2>Bad Testpoint Request</h2>Usage: <pre>testpoint?name=&lt;name&gt;.&lt;method&gt;</pre>'); errors '<h2>Testpoint Dispatch Failed</h2>Check query params','<h2>Unknown Testpoint Name</h2>'.",
    "support_forms": "Support-form surface: hidden csrfToken + FirstZP select (option 0 disabled/1 enabled) + PriorityBridge field; /support/directsubmit POST '<h2>%s</h2><form action=\"/support/directsubmit\" method=\"POST\"><input type=\"hidden\" name=\"csrfToken\" value=\"%s\" ...'; confirmation 'Your confirmation number is: <strong>%u</strong>.'",
    "todo": [
-    "Established: the route path vocabulary sharing a PIC-formed path-matcher (no pointer table).",
-    "Still unknown: each route's handler, method, and auth - the matcher was located but handlers not traced.",
-    "Next step: trace each matched path to its handler function via the matcher dispatch."
+    "Residual: per-route auth flags (which of these require the device-unlock or local-only predicate vs open on LAN) - the route flag bit is the http_engine residual."
    ],
    "resolved_findings": [
-    "Resolved: matched paths = testpoint_dispatch + support_forms blocks with handler bindings."
+    "Resolved: matched paths = testpoint_dispatch + support_forms blocks with handler bindings.",
+    "Engineering/diagnostic route census (literal cluster ~0x10e764xx): device config {/testenv (env switch), /customsd[.htm] (custom service descriptor), /advconfig[.htm], /setstring, /removestring, /sethostip, /info}; DSP/test {/getDSP, /putDSP, /save_eq_presets, /setPersistentEQ, /removeDSPDebugFiles, /dolby_config, /audio_tap, /snapshotspdiftap, /downloadspdiftap, /testpoint, /sonarctl, /audiotest family via diag image}; logging/diag {/diaglevel, /diagmsg, /logger, /jobs, /pcap, /mdnsannounce, /ping, /nslookup, /ttm_helper}; reset/lifecycle {/reset, /forcegtkrekey, /spotifyzc, /spotdbg, /spotresetnts}; setup/hh {/rdmhhsetup, /rdmbuttonfwd, /mtmhhsetup, /fcs, /tools[.htm]}; support suite {/support/directsubmit, review, aggregate, asyncsubmit, reportstatus, networkmatrix}; misc {/ssh/fingerprints, /cloudqueuepoll, /websocket/api}. POST forms carry the csrfToken hidden field. These are the gated engineering surfaces - /testenv, /getDSP//putDSP, /audio_tap, /pcap, /sonarctl, /spotdbg are not consumer-app routes."
    ]
   },
   "daemon_ipc": {
