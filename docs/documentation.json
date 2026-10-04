@@ -124448,13 +124448,14 @@
    "logs": "/opt/log/anacapa.hdmi.log",
    "arch": "'Arch: limelight' platform identifier",
    "todo": [
-    "Established: the HDMI ops and cable-detect HAL are identified.",
-    "Residual: the powercycle handler's hardware path (which GPIO/CEC frame it emits) and the edid read mechanism (sysfs vs i2c) are behind the hdmi module's hardware driver calls - not yet traced to /dev or ioctl sites."
+    "Established: HDMI ops behind a registered ioctl-callback driver interface; hdmi.log diagnostics; no sysfs/i2c literals.",
+    "Residual: which ioctl command numbers and CEC frame content - driver-call boundary, kernel module side"
    ],
    "hal_boundary": "The HDMI hardware boundary is now pinned: hal_detect_open, hal_detect_close and hal_detect_get_cable_states resolve to .dynstr IMPORTS (0x1006216f/21eb/2223), i.e. anacapa calls an external HAL shared library for cable detection - the .text never builds CEC frames or EDID transactions itself (no 'cec'/CEC_* opcode literals exist in the binary). The SMAPI routes v1/players/{playerId}/hdmi/{status,edid,powercycle} (+household variants) therefore terminate in thin wrappers: status -> hal_detect_get_cable_states, edid -> the 'edidStatus' property surface (0x10f97a08), powercycle -> a HAL call. The only in-binary HDMI driver evidence is DDPI user-space completion plumbing ('ddpi_udc_timeslicecomplete returned %d'), i.e. anacapa waits on the display-driver's timeslice completions while the actual CEC/EDID I2C traffic is generated inside the HAL lib/DDPI driver stack. So: CEC commands ARE sent for powercycle, but from the external HAL, not from anacapa code.",
    "resolved_findings": [
     "Resolved: all three ops terminate in imported hal_detect_* dynsyms - CEC/EDID generation lives in the external HAL lib + DDPI driver; anacapa only polls cable states, surfaces edidStatus, and waits on ddpi timeslice completions. No CEC frame construction exists in-binary.",
-    "Resolved (partial): HDMI surface = ARC/eARC audio-in (HDMI_ARC/HDMI_EARC modes) + status telemetry {edidStatus, stateCEC, tvCECStatus, deviceCEC} + capability bit HdmiCecAvailable emitted in status XML (' HdmiCecAvailable='). Cloud API exposes v1 hdmi endpoints {status, edid, powercycle} per player and household. CEC command sending is conditional - 'target does not support HDMI CEC' reject path exists; powercycle IS an exposed cloud action. EDID is read and reported via the edid endpoint. Product log /opt/log/anacapa.hdmi.log."
+    "Resolved (partial): HDMI surface = ARC/eARC audio-in (HDMI_ARC/HDMI_EARC modes) + status telemetry {edidStatus, stateCEC, tvCECStatus, deviceCEC} + capability bit HdmiCecAvailable emitted in status XML (' HdmiCecAvailable='). Cloud API exposes v1 hdmi endpoints {status, edid, powercycle} per player and household. CEC command sending is conditional - 'target does not support HDMI CEC' reject path exists; powercycle IS an exposed cloud action. EDID is read and reported via the edid endpoint. Product log /opt/log/anacapa.hdmi.log.",
+    "Resolved (partial): no sysfs/i2c device path literals exist for HDMI - the only /sys path in the image is /sys/class/net/eth0 (ethernet stats). HDMI edid read and powercycle ride the generic driver dispatch: literal \"ioctl_func -> %d\" / \"ioctl callback returned error %d\" (0x10f7eee2/0x10f7eef4) show a registered ioctl-callback interface, plus hdmi.log diagnostics output. So the mechanism is a driver ioctl callback, not userspace i2c/sysfs."
    ]
   },
   "toml_config": {
