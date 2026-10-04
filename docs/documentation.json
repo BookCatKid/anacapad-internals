@@ -123926,7 +123926,7 @@
    "oauth": "int_addAccountWithOAuthToken/addAccountWithOAuthToken/SpConnectionLoginOauthToken: OAuth-token SMAPI account linking; deviceCerts capability lets services request device certs",
    "ssl": "/ssl_client_cache status endpoint: TLS session cache",
    "todo": [
-    "Established: the cert/token/regcert surface is catalogued.",
+    "Established: sr: RS256 signing pipeline (header/payload encode -> sign -> b64) gated on {reg cert, trusted time}; token types {RS256, SMAPI}.",
     "Residual: token lifecycle internals - issue, cache, refresh timing, and revocation handling are untraced."
    ],
    "token_lifecycle": "Token lifecycle decoded: 'getDeviceAuthToken' is the SMAPI per-service path - it warns 'getDeviceAuthToken was called for %s (%u), which has credentialType = %u (not OAuth)' so tokens are only issued for credentialType==OAuth accounts, returns via the SMAPI result namespace 'http://www.sonos.com/Services/1.1|getDeviceAuthTokenResult' with a 'callbackPath' field, failures as 'getDeviceAuthToken failed (res = %d)'. The household-side API family resolves via muse routes: 'v1/households/{householdId}/authorization/tokens' (verb resolveToken - 'Request to resolveToken successful [token=******%s]' masks the token in logs), '.../authorization/policy/{policyKey}' (getPolicyKey), '.../authorization/permissions/{role}' (getPermissions), '.../authorization/invite' (createInvite - note the 'none' target placeholder route 'v1/[error: \\'none\\' is not a valid target]/authorization/invite').",
@@ -123939,7 +123939,8 @@
    },
    "resolved_findings": [
     "Established: token cache + refresh internals decoded - file store per acct, last-refresh timing, action-int FSM, waiter queue, JWT/expiration validity checks, revocation events.",
-    "Established: the device-token inspector (muse_token_inspector, 'jwt' domain) has the complete status vocabulary: {'Device token not minted in this HH.','Token is expired, security settings have changed since the token was issued.','Device token expired.','Device token missing expiration time.','Device token has invalid expiration time.','Device token not minted by this device.','Device token is valid.'}; token mint requires trusted time + reg cert, exp = now+3600, iss prefixes urn:sonos:hhid:/urn:sonos:unit-hhid:; settings keys 'guest_token','guest_token_pin','authzTokenStatus','tokenStatus' exist."
+    "Established: the device-token inspector (muse_token_inspector, 'jwt' domain) has the complete status vocabulary: {'Device token not minted in this HH.','Token is expired, security settings have changed since the token was issued.','Device token expired.','Device token missing expiration time.','Device token has invalid expiration time.','Device token not minted by this device.','Device token is valid.'}; token mint requires trusted time + reg cert, exp = now+3600, iss prefixes urn:sonos:hhid:/urn:sonos:unit-hhid:; settings keys 'guest_token','guest_token_pin','authzTokenStatus','tokenStatus' exist.",
+    "Resolved: the device signing-request (sr:) pipeline is literal (0x10f04288-0x10f043a4): token alg RS256 (distinct from the muse HS256 JWT path), token-type names {RS256, SMAPI}; the pipeline is header-encode -> payload-encode -> signature-generate -> base64 with hard gates \"sr: trusted time not available; cannot generate token\" and \"sr: reg cert not available; cannot generate token\" - signed requests require both trusted time and the registration cert, and \"token type not valid (%d)\" rejects unknown types. So SR tokens are RS256 signatures over header+payload, gated on reg cert + trusted clock."
    ]
   },
   "media_player_mgr": {
