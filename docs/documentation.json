@@ -140844,12 +140844,13 @@
     }
    ],
    "todo": [
-    "Residual: the ctor-supplied numeric capacity for mgr+0x240."
+    "Established: capacity=2 hardcoded in ctor; setter bound <3; 3 tap blocks stride 0xc0."
    ],
    "resolved_findings": [
     "Resolved: max-taps guard comparand = the available-capacity constant; debug parameter protocol = {Active Tap %s, Closing Tap %s} ops under raudiotapMutex with async-request + poll errors.",
     "Guards and debug protocol proven (audiotap_manager.cxx, audiotapmanager domain): capacity enforced at open - number of max taps exceeds the avaialable capacity (the comparand is the tap-table bound); per-location exclusivity - Location is not tappable / Location is already being tapped / Max number of blocks already being tapped; lifecycle logs Active Tap %s / Closing Tap %s / No Active Taps to check if already tapped. Debug parameter protocol: a debugParameters array exposes per-channel typed params {channelname, vartype} with types {VAR_FLOAT, VAR_STRING, VAR_INT} and float formatting %.04f/%.*f - the machinery the /audio_tap route queries for tap inspection. Adjacent: the /getDSP status page renders the volume tables (Breakpoint %zu volume/gain, Volume Table Sub-bonded, Full gain SPL dB, Loudness offset dB, Trueplay section, Minimum Trueplay version, Small/Large speaker rows).",
-    "Resolved: the tap-block bounds (audiotap_manager 0x10d92300) - 'Max number of blocks already being tapped' fires when *(mgr+0x244) used-count reaches *(mgr+0x240) capacity; both are runtime-initialized fields. The block array is 0xc0-stride at mgr+0x178, per-block busy word at block+0. 'Location is not tappable' gates on *(mgr+0xb8). The capacity is set at manager construction, not a literal."
+    "Resolved: the tap-block bounds (audiotap_manager 0x10d92300) - 'Max number of blocks already being tapped' fires when *(mgr+0x244) used-count reaches *(mgr+0x240) capacity; both are runtime-initialized fields. The block array is 0xc0-stride at mgr+0x178, per-block busy word at block+0. 'Location is not tappable' gates on *(mgr+0xb8). The capacity is set at manager construction, not a literal.",
+    "Resolved: mgr+0x240 capacity proven - ctor f_10d91ea8 writes literal 2 (li r9,2; stw r9,0x240) alongside used=0 at +0x244, 3 tap blocks at +0x0/+0xc0/+0x180 (stride 0xc0), and \"audiotapmanager\" name at +0x248. Setter f_10d91f74 rejects values >=3 (cmplwi 3 -> error). Capacity is fixed at 2 simultaneous taps."
    ]
   },
   "cloud_services": {
