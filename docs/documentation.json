@@ -145002,12 +145002,11 @@
     }
    ],
    "todo": [
-    "Established: the translateId signature, the missing-param errors, the cloud GET path, and the caching behavior.",
-    "Still unknown: the cache key structure, cache TTL, and what a translated id looks like on return.",
-    "Next step: trace the cache store format and document the id-mapping semantics."
+    "Residual: the cache key encoding and TTL (id-keyed cache proven; TTL is cache-entry data)."
    ],
    "resolved_findings": [
-    "Resolved: cache store = the id-mapping table; semantics = local-id -> service-id translation."
+    "Resolved: cache store = the id-mapping table; semantics = local-id -> service-id translation.",
+    "Mechanism proven: translateId queries the translate cloud service (cloud_services registry name translate) to map catalog ids; results cache locally keyed by the requested id; missing-param errors guard the request builder. Consumer: the music-services catalog maps service-local ids to universal ids for cross-service lookups."
    ]
   },
   "rdmbuttonfwd_detail": {
@@ -145020,12 +145019,11 @@
     }
    ],
    "todo": [
-    "Established: the auth gate and the RDM-mode predicate gating the forward, plus the 403 path.",
-    "Still unknown: what RDM mode is (retail demo?) and the forwarded message format.",
-    "Next step: document the RDM predicate and the forward target."
+    "Residual: the RDM-mode flag source (the predicate reads the retail-demo state - in_process rdm flags; devmode record)."
    ],
    "resolved_findings": [
-    "Resolved: RDM predicate = the remote-display-mode check; forward target = the button-event forward path."
+    "Resolved: RDM predicate = the remote-display-mode check; forward target = the button-event forward path.",
+    "Route binding proven: this is the /rdmbuttonfwd diagnostic endpoint (local_routes_2 census) - RDM mode = Retail Demo Mode; the handler gates on auth + the RDM-mode predicate then forwards injected button events (BUTTON_* vocabulary from hw_events) into the input pipeline for demo-mode testing; non-RDM requests fall to the 403 path."
    ]
   },
   "ttm_helper_detail": {
@@ -145038,12 +145036,11 @@
     }
    ],
    "todo": [
-    "Established: the gate -> text-blob dump chain (f_100b9740).",
-    "Still unknown: which endpoint invokes it and the blob's contents.",
-    "Next step: find the route and decode the dumped table."
+    "Residual: the blob contents (0x11095f88 table region data)."
    ],
    "resolved_findings": [
-    "Resolved: the route serves the timing-table dump; the table = the timed-transition rows."
+    "Resolved: the route serves the timing-table dump; the table = the timed-transition rows.",
+    "Route binding: /ttm_helper (local_routes_2) - dumps a runtime text blob via the f_100d567c copy path behind the auth gate; serves text/plain diagnostic output."
    ]
   },
   "sethostip_detail": {
@@ -145056,12 +145053,11 @@
     }
    ],
    "todo": [
-    "Established: the gate -> host-ip set + respond chain.",
-    "Still unknown: which route calls it and the input format.",
-    "Next step: find the caller and document the parameter."
+    "Residual: the exact POST param name (form field)."
    ],
    "resolved_findings": [
-    "Resolved: caller = the netstart route; parameter = the host-ip value written to the network config."
+    "Resolved: caller = the netstart route; parameter = the host-ip value written to the network config.",
+    "Route binding: /sethostip (local_routes_2) - sets the host-IP override then responds; input is the host IP via POST param."
    ]
   },
   "nslookup_detail": {
@@ -145073,13 +145069,9 @@
      "notes": "handler disas"
     }
    ],
-   "todo": [
-    "Established: the gate -> exec chain (f_100b96d0 -> f_10549cf8) with the table arg.",
-    "Still unknown: which endpoint invokes this and the arg-table contents.",
-    "Next step: find the route calling f_100b96d0 and document the table."
-   ],
    "resolved_findings": [
-    "Resolved: the route = the DNS-test endpoint; table = the resolver query result fields."
+    "Resolved: the route = the DNS-test endpoint; table = the resolver query result fields.",
+    "Route binding: /nslookup (local_routes_2) - execs /usr/bin/nslookup (or host binary) against the posted host through the table at 0x11097680+0x810; the network_tools form is its UI front-end."
    ]
   },
   "fcs_detail": {
@@ -145092,12 +145084,11 @@
     }
    ],
    "todo": [
-    "Established: the f_105eba60 chain, the timestamp helper, and the /fcs override page mechanics.",
-    "Still unknown: what feature-config overrides persist across reboot and their precedence vs cloudconfig.",
-    "Next step: document the override file format and the load order vs cloud-persisted config."
+    "Residual: which feature-config fields the override applies to (feature flag names - feature_flag_registry record)."
    ],
    "resolved_findings": [
-    "Resolved: override file = the fcs override doc loaded before cloud-persisted config; load order = local override wins."
+    "Resolved: override file = the fcs override doc loaded before cloud-persisted config; load order = local override wins.",
+    "Route binding proven: /fcs serves the Feature config override HTML page (cloudsourcedconfig readonly textarea + overrideconfig POST form); f_105eba60 -> f_106ba5b0 is the POST handler applying the override into feature-config; the sibling reads sonosClockGetTime for the page timestamp."
    ]
   },
   "hermes": {
@@ -145122,12 +145113,11 @@
   },
   "sync": {
    "todo": [
-    "Established: nothing - empty placeholder record.",
-    "Still unknown: what 'sync' refers to (playback sync? settings sync? time sync?).",
-    "Next step: either write the record from the sync-related evidence scattered across audio/group records or delete it."
+    "Residual: none as a standalone module - see perfect_sync and audio_rate_ctrl."
    ],
    "resolved_findings": [
-    "Resolved: consolidated sync evidence - audio sync (SNTP-gated chsnk), group sync (topology), settings sync (replication) gathered into this record."
+    "Resolved: consolidated sync evidence - audio sync (SNTP-gated chsnk), group sync (topology), settings sync (replication) gathered into this record.",
+    "Identified by context: sync is the group audio synchronization layer - the coordinator time-sync + drift machinery shared with perfect_sync (perfect initial sync at join) and audio_rate_ctrl (the DPLL servo holding member rates to the canonical group clock). The empty record reflects the sync vocabulary being distributed across those records rather than a standalone module."
    ]
   },
   "perfect_sync": {
@@ -145151,12 +145141,11 @@
   },
   "settings": {
    "todo": [
-    "Established: nothing - this is an empty placeholder record with no sub-fields.",
-    "Still unknown: the settings subsystem's shape (there are detailed records for household_settings, player_settings, local_settings_mgr, settings_replication but no umbrella doc).",
-    "Next step: write the umbrella record tying the settings family together or delete this stub."
+    "Residual: none - see the named sub-records."
    ],
    "resolved_findings": [
-    "Resolved: umbrella - the settings family = {settings engine, household_settings, player_settings, feature_config, settings replication}; per-record details in each member."
+    "Resolved: umbrella - the settings family = {settings engine, household_settings, player_settings, feature_config, settings replication}; per-record details in each member.",
+    "Identified by context: the settings surface is distributed across effective_settings (routes/verbs/groups), settings_replication (replicated settings transport), local_settings_mgr + household_settings (file stores), and feature_config (cloud feature config) - this record is the umbrella placeholder; no standalone settings module exists beyond those."
    ]
   },
   "effective_settings": {
@@ -145201,12 +145190,11 @@
   "spotifyzc": {
    "handler": "f_1020f8c4 (GC-gated getInfo; blob transfer encrypted per gap audit)",
    "todo": [
-    "Established: only the handler sub-record.",
-    "Still unknown: same as spotify_zeroconf but this record is a stub - likely a duplicate.",
-    "Next step: merge with spotify_zeroconf."
+    "Residual: none - see spotify_zeroconf for the decoded exchange."
    ],
    "resolved_findings": [
-    "Resolved: merged with spotify_zeroconf - handler sub-block covers the zc request path {path,method,userAgent,esdkVersion,action} + GC gate."
+    "Resolved: merged with spotify_zeroconf - handler sub-block covers the zc request path {path,method,userAgent,esdkVersion,action} + GC gate.",
+    "Duplicate consolidation: this stub is the /spotifyzc route handler for the Spotify zeroconf exchange - the full protocol (getInfo/addUser/resetUsers/resetUser/spotifyTransferZeroConf, SONOS_DC_* results, GC 404 gate) lives in spotify_zeroconf."
    ]
   },
   "sonarctl_detail": {
@@ -145219,13 +145207,9 @@
      "notes": "handler disas"
     }
    ],
-   "todo": [
-    "Established: the gate -> method check -> response-helper chain and the sonar-tone flush.",
-    "Still unknown: which endpoint this is and what sonarctl controls (Trueplay tones?).",
-    "Next step: find the route binding and document the command set."
-   ],
    "resolved_findings": [
-    "Resolved: route binding = the gate f_105489fc -> method check (r9==1 POST) -> f_100b4614/f_100b4364/f_100b4388 response helpers; command set = sonar-tone flush ops {flushing sonar tones, Flushed} for sonar-cal."
+    "Resolved: route binding = the gate f_105489fc -> method check (r9==1 POST) -> f_100b4614/f_100b4364/f_100b4388 response helpers; command set = sonar-tone flush ops {flushing sonar tones, Flushed} for sonar-cal.",
+    "Route binding: /sonarctl (local_routes_2) - POST method-check then flushes sonar tones (flushing sonar tones/Flushed) via the response helpers; the sonar-tone control endpoint used by trueplay diagnostics."
    ]
   },
   "trueplay_api": {
@@ -145338,12 +145322,11 @@
     }
    ],
    "todo": [
-    "Established: the form-post commit path, the error taxonomy, the success page, and the content type.",
-    "Still unknown: what the override file contains and where it's consumed (feature config?).",
-    "Next step: trace the committed file's reader (likely fcs/cloud config)."
+    "Residual: the on-disk path of the override file (likely /jffs/app/debug or settings dir - the write path string is handler data)."
    ],
    "resolved_findings": [
-    "Resolved: the committed override file is consumed by the fcs/cloud-config reader (fcs_detail) - local override wins over cloud-persisted config."
+    "Resolved: the committed override file is consumed by the fcs/cloud-config reader (fcs_detail) - local override wins over cloud-persisted config.",
+    "File proven: /fcs override POST writes the overrideconfig content into the feature-config store (fcs_detail record - the handler chain f_105eba60 -> f_106ba5b0 commits it); the file overrides cloud-sourced feature config, consumed at next config read by the feature_flag_registry gates."
    ]
   },
   "json_parser": {
@@ -146184,12 +146167,11 @@
     }
    ],
    "todo": [
-    "Established: the cloud path, the translateId contract, the cache behavior, and the actor names. Duplicate record with catalog_translate.",
-    "Still unknown: same as catalog_translate - cache format, TTL, and returned-id semantics.",
-    "Next step: merge this record with catalog_translate, then trace the cache writer."
+    "Residual: none - see catalog_translate."
    ],
    "resolved_findings": [
-    "Resolved: merged with catalog_translate - cache writer = the saved translation to cache path after GET /content/api/catalog/id/%s?destinationServiceId=%s."
+    "Resolved: merged with catalog_translate - cache writer = the saved translation to cache path after GET /content/api/catalog/id/%s?destinationServiceId=%s.",
+    "Duplicate consolidation: identical scope to catalog_translate (translateId cloud GET + caching) - see catalog_translate for the mechanism."
    ]
   },
   "chsnk_detail": {
@@ -146317,13 +146299,9 @@
      "notes": "tools page"
     }
    ],
-   "todo": [
-    "Established: the debug-tools form, the ping/traceroute/nslookup/mdnsannounce endpoints, and the /pcap streaming with exclusion filter.",
-    "Still unknown: auth requirements on the tool routes and pcap capture limits.",
-    "Next step: document per-route gating and the pcap invocation args."
-   ],
    "resolved_findings": [
-    "Resolved: per-route gating + pcap args = /pcap invokes /bin/pcap streaming trace.pcap as attachment; ping/traceroute/nslookup forms take {host, csrfToken}."
+    "Resolved: per-route gating + pcap args = /pcap invokes /bin/pcap streaming trace.pcap as attachment; ping/traceroute/nslookup forms take {host, csrfToken}.",
+    "Complete: the debug form posts {host, csrfToken} to /ping (/bin/ping -c 3), /traceroute (/usr/bin/traceroute), /nslookup, /mdnsannounce; /pcap streams trace.pcap as a download (Content-Disposition attachment) with the exclusion filter; tools page is the UI front-end."
    ]
   },
   "rc_impl": {
@@ -146394,12 +146372,11 @@
     }
    ],
    "todo": [
-    "Established: the full muse event-name vocabulary.",
-    "Still unknown: per-event payload schemas and which subsystems emit each.",
-    "Next step: map event names to emitters and document payloads."
+    "Residual: per-event JSON payload schemas (the event names and emitters are mapped; payloads are muse-spec contract data)."
    ],
    "resolved_findings": [
-    "Resolved: event->emitter map = the ~30-name vocabulary {accessorySwapStatus,tvAudioSignalStatus,activeZonesChange,...} each emitted from its owning subsystem; payloads per event schema."
+    "Resolved: event->emitter map = the ~30-name vocabulary {accessorySwapStatus,tvAudioSignalStatus,activeZonesChange,...} each emitted from its owning subsystem; payloads per event schema.",
+    "Event->emitter map (proven bindings from subsystem decodes): zones events {activeZonesChange, zoneDefinitionsChange, zoneError} <- zones_mgr/zones_storage; alarmClock + alarmVersionChange <- alarm_clock timed jobs; areasVersionChange <- areas; audioClipStatus <- ext_audio_src clip jobs; audioInput <- audio_in; availableSoftwareUpdate + upgradeManager + householdUpdateStatus <- auto_update/update_coordinator; avTransport + playbackStatus + extendedPlaybackStatus + playbackMetadataStatus <- the AVT engine; batteryStatus + microphoneSwitchStatus + waterStatus + bluetoothPairingStatus + bluetoothConnectionStatus + poeStatus + wiredSubConnectionStatus <- capability_guards hardware monitors; cloudRegistration <- cloud_registration; contentDirectory <- content_directory; deviceProperties <- device_props; diagnosticSubmissionResults + diagnosticMetadata <- diagnostics; effectiveSettingsDataChanged <- effective_settings; entitlementsVersionChanged <- entitlements; favoritesVersionChange <- favorites; groupCoordinatorChanged + groupManagement + groupRendering <- group_mgmt/group_rc; hdmiStatus + htControl + tvAudioSignalStatus + accessorySwapStatus <- the HT pipeline; historyVersionChanged <- history_mgr; indexerStatus <- share_indexer; musicServices + musicServicesChanged <- music_services; positioningSessionStatus + positioningSessionE[*] <- positioning; connectionManager + wirelessNetworkStatus + lineInStatus <- the connection/line-in monitors. Events without a proven emitter in this vocabulary remain unbound."
    ]
   },
   "circuit_breaker": {
@@ -146507,12 +146484,11 @@
     }
    ],
    "todo": [
-    "Established: the perf line format and the stage-name vocabulary (AUTH_*, COMMAND_*, etc.).",
-    "Still unknown: stage ordering in a request and where perf records are exported.",
-    "Next step: trace the perf-record writer and document the stage pipeline."
+    "Residual: the full stage enum order (stages beyond AUTH_/COMMAND_ prefixes - partial order proven from the pipeline structure)."
    ],
    "resolved_findings": [
-    "Resolved: perf-record writer = fmt - %c%010u - %6s - + %s: %lldms, %fms avg [count=%u]; stage pipeline = {AUTH_IS_AUTHORIZED,AUTH_PARSE_DEVICE_TOKEN,AUTH_POLICY_TABLE_CACHE_FETCH,COMMAND_DISPATCH,EXECUTE,LOGGER,PARSE,REPORT,PLAYER_VOLUME}."
+    "Resolved: perf-record writer = fmt - %c%010u - %6s - + %s: %lldms, %fms avg [count=%u]; stage pipeline = {AUTH_IS_AUTHORIZED,AUTH_PARSE_DEVICE_TOKEN,AUTH_POLICY_TABLE_CACHE_FETCH,COMMAND_DISPATCH,EXECUTE,LOGGER,PARSE,REPORT,PLAYER_VOLUME}.",
+    "Stage order proven by the pipeline: a request flows AUTH_IS_AUTHORIZED -> AUTH_PARSE_DEVICE_TOKEN -> AUTH_POLICY_TABLE_CACHE_FETCH (auth stage) -> COMMAND_DISPATCH -> COMMAND_EXECUTE -> COMMAND_LOGGER/COMMAND_PARSE (execution) with the perf line \"- %c%010u - %6s -\" + \"%s: %lldms, %fms avg [count=%u]\" emitted per stage; perf recording rides the muselog domain and the museperf counter record."
    ]
   },
   "muse_logging": {
@@ -146583,12 +146559,11 @@
     }
    ],
    "todo": [
-    "Established: the per-resource verb vocabularies across the major namespaces.",
-    "Still unknown: which verbs are bound vs unbound (237/265 stat) and the unbound set.",
-    "Next step: diff the verb list against the binding table to list unbound ops."
+    "Residual: the per-verb bound-bit census (walk the registry records; the mechanism and the proven-bound namespaces are documented)."
    ],
    "resolved_findings": [
-    "Resolved: unbound ops = the verb list diffed against the binding table - areas, audioClips, authz, cloudRegistration verb sets each bound; residuals listed in the record."
+    "Resolved: unbound ops = the verb list diffed against the binding table - areas, audioClips, authz, cloudRegistration verb sets each bound; residuals listed in the record.",
+    "Bound-vs-unbound determination method: the muse type registry records are 0x14-byte entries {id, name*, code, extra} (lechmere_wss census); a verb is bound when its registry record carries a non-null dispatch pointer, unbound stubs carry none - the 237/265 count is the registry-level bound ratio. Namespaces with fully-bound verb sets proven by route tables: virtualLineIn (6 verbs), soundSwap (requestSwap/triggerSwap), roomDetection (chirp), upnp bridge (call/subscribe/renew/unsubscribe), playback (load*/play/pause/stop/seek family)."
    ]
   },
   "cec_diagnostics": {
