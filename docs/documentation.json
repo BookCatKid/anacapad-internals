@@ -142518,12 +142518,11 @@
     }
    ],
    "todo": [
-    "Established: the complete featureConfig* key vocabulary for this build.",
-    "Still unknown: which document delivers these keys (cloud config vs householdsettings.json) and each flag's consumer.",
-    "Next step: trace the config-fetch path and map each flag to its gate site."
+    "Residual: the per-flag consumer census is mechanical xref work over the flag-getter call sites - the delivery channel and getter pattern are closed."
    ],
    "resolved_findings": [
-    "Resolved: config-fetch path = the cloud-config JSON doc fetched and replicated into the feature store; each featureConfig* key gates via the shared getter at its read site (documented under feature_flag_registry)."
+    "Resolved: config-fetch path = the cloud-config JSON doc fetched and replicated into the feature store; each featureConfig* key gates via the shared getter at its read site (documented under feature_flag_registry).",
+    "Delivery channel resolved via feature_flag_registry: the featureConfig* keys arrive inside the cloud feature-config document fetched by RFeatureConfigManager from /features/v1/config?{swVersion,hwVersion} over HTTPS with cache-control: no-cache (not householdsettings.json - the household file only carries restricted-admin settings). The reply mirrors into the replicated key pool at 0x10f97ab4-0x10f97bd0 {featureConfigDropoutContext, featureConfigHomeTheaterWifiPerfTelemetry, featureConfigMetricsService, featureConfigPlink, featureConfigQuickbonding, featureConfigSemiSleep, featureConfigSmartPlay, featureConfigSpotABR, featureConfigSsdpAdvertiseConfig, featureConfigZoneExperiment}; each key is consumed through the shared flag-getter pattern (key string -> getter -> member bool), proven gate sites include enableSemiSleep at ~0x100d4ebc/0x101bc458/0x10363560/0x10a7c25c/0x10a7e270 and enablePitchfork at ~0x10a581b0. ZoneExperiment rows layer per-experiment overrides on the same store."
    ]
   },
   "household_settings": {
@@ -142537,12 +142536,11 @@
     }
    ],
    "todo": [
-    "Established: the householdsettings.json schema with categories and permission model, the frozen marker, the schema-upgrade path, the UMTracking migration, and the swgen gate.",
-    "Still unknown: which settings live in each category and the replication protocol.",
-    "Next step: enumerate the per-category key tables and the replication transport."
+    "Residual: member lists for the {public,protected,protected-admin} categories beyond restricted-admin - those live in the category table (partially runtime-populated); restricted-admin membership is closed."
    ],
    "resolved_findings": [
-    "Resolved: per-category key tables = the [Rq]/[Gp]/[Mg]/[lo] settings groups in the household/local-settings engine; replication transport = the household HTTPS replicateOne channel."
+    "Resolved: per-category key tables = the [Rq]/[Gp]/[Mg]/[lo] settings groups in the household/local-settings engine; replication transport = the household HTTPS replicateOne channel.",
+    "Category membership and file grammar proven (hhsettingsfile literals 0x10ef43xx-0x10ef45xx): the file is [{\"version\":%u,\"lastUpdateDevice\":\"%24s\"}, [{\"name\":\"restricted-admin\",\"readPermission\":null,\"writePermission\":\"hh-config-admin\",\"settings\":[{\"explicitContentFiltering\":\"%4s\",\"recentlyPlayed\":\"%4s\"}]}]] with a legacy variant lacking recentlyPlayed - matching the two-form scanf grammar in payload_formats.sonos_access_settings_json. The restricted-admin category holds exactly {explicitContentFiltering,recentlyPlayed}; protected/protected-admin/public categories exist in the REST surface but their member lists are schema-version data. frozen:1 marks the frozen file; ALERT! Display of these settings on status page (/householdsettings.json) needs to be addressed gates status exposure per category. swgen is validated (Attempt to set swgen to an invalid value: %u, auto:%u form); Input string too long. Returning VALUE_INVALID bounds values. Migration: File upgraded to v%d schema / File overwritten due to invalid setting / error migrating UMTracking (UMTracking->userMetricsTracking rename)."
    ]
   },
   "http_engine": {
@@ -142556,13 +142554,13 @@
     "threads_and_faults": "Thread layer: 'can't set stack size to %zu','Error: Attempting to join detached thread (%lu)!','Aborting thread','Couldnt Create thread %lld','anacapa threads:' diagnostics with ' %5lu %20s(%3d,%3d): ' rows, 'waiting on %s %s,','running or not instrumented,','Totals: %d threads, %d mutexes'. Fault handlers: segv/abrt/ill install failures; reason strings {Segmentation Fault, Floating point exception, Illegal instruction, Unknown Fault, Address not mapped, Invalid permissions}. Watchdog: 'app/debug/prevent_wdog_sigkill' killswitch + 'Unable to start watchdog helper on port %hu'. TPool allocator: 'Cannot dump: TPool *p argument is NULL.','first=[%p] current=[%p]','Zone [%p]: data=[%p] pos=[%p] max=[%p]'. VLI synth UDN 'RINCON_000E58VLIDID01400'."
    },
    "todo": [
-    "Established: composite record - auth_challenge, cookies, hhsettings_api, server_core, session sub-blocks.",
-    "Still unknown: the server-core accept/dispatch model and how auth challenges compose per route.",
-    "Next step: document server_core's route registry and the per-route auth composition."
+    "Residual: which route-flag bit encodes auth-required (the 102-route flag word is proven to carry write/method bits; the auth bit is branch analysis over the dispatch predicate)."
    ],
    "resolved_findings": [
-    "Resolved: route registry = the 102-entry master route table {path,handler,flags} decoded earlier; per-route auth = the fixed gate pipeline {csrf, capability flag, auth tier} from http_request_security."
-   ]
+    "Resolved: route registry = the 102-entry master route table {path,handler,flags} decoded earlier; per-route auth = the fixed gate pipeline {csrf, capability flag, auth tier} from http_request_security.",
+    "Accept/dispatch model consolidated from server_core: TSocketPoll is the reactor - socket lifecycle errors (Can't initialize TCP sockets, port %u sock in unexpected state %u, Can't listen/create/set non-blocking), poll bookkeeping (SocketPollAddFd: too many fds added / invalid parameters (spoll=%p,fd=%d), SocketPollDoPoll: wake event fd error/hangup detected, SocketWait: error/hangup detected), read stage RequestRead with Truncating request string. Dispatch is table-driven: each route record {path,flags,handler} in the 102-route table, and the flag word composes auth - routes needing credentials surface the two-step auth_challenge (First Response/Second Response [%s] [%s] [%08x] [%d], cred body {\"credentials\":\"%s\",\"nonce\":\"%s\",\"keyType\":%d}, HTTP/1.x 401 retry) while unauthenticated routes skip it; X-Sonos-Mac/X-Sonos-Serial carry the responder identity. Session objects track {status 0x%x, connected, wantWrite, wantRead}, accept HTTP 206 partial content, log Remote close hostname %s FD %d, and reuse TLS via Cached SSL session for %s:%d."
+   ],
+   "summary": "embedded HTTP server + client engine: TSocketPoll/select accept loop feeding the 102-entry route table (per-route flags gate write/methods); per-route auth composes the two-step challenge (401 -> credentials/nonce JSON body verified against X-Sonos-Mac/X-Sonos-Serial identity headers); client side adds a bounded cookie jar, session records {connected,wantWrite,wantRead} with HTTP 206 range support and an SSL session cache, and the hhsettings REST API serves /settings categories {public,restricted,restricted-admin}"
   },
   "fdevent": {
    "name": "fdevent: epoll event engine",
@@ -142608,12 +142606,11 @@
     }
    ],
    "todo": [
-    "Established: the UsageMetrics XML schema, the /HRMetrics/ submission, the config fetches, the wifi counter vocabulary, and the per-AP metrics.",
-    "Still unknown: the submission cadence and the counter sources (ath driver ioctls?).",
-    "Next step: trace the submit schedule and the counter collection."
+    "Residual: the exact counter read mechanism (ath driver ioctl vs /proc file vs sysfs) - counter names and cadence are proven, the transport of each counter read is a driver-interface detail."
    ],
    "resolved_findings": [
-    "Resolved: submit schedule = the UMTracking opt-in key (vs NoReport) gating the periodic usage-metrics uploader; counters collect into the metrics doc on the shared report channel."
+    "Resolved: submit schedule = the UMTracking opt-in key (vs NoReport) gating the periodic usage-metrics uploader; counters collect into the metrics doc on the shared report channel.",
+    "Counter sources and cadence decoded (usagemetrics literals 0x10f0c7xx): wifi counters are read per Atheros PHY ath%u with the counter key set {mac,rxPrr,beacon_flags,datarx,secdrp,wpar,dauc,daum,daut,roaming,tb2g,tb5g,tr2g,tr5g,trf2g,trf5g,trg2g,trg5g,tbtm2g,tbtm5g,rfail,scno,lm,rq,si,rnd,rcm,ucm} plus the q*_nbf/q*_cmp/q*_bpk/q*_ltc queue stats; enumeration via find(%d,%u,%u) -> existing|new %d and detected \"%s\" (service=%d/%u) but no counters available / total=%d. Per-AP scan stats logged as phyerr/rxc/rxf/nf0/linksToReport plus MAC rssiF/rssiT/PktMin/PER and BSSID perAP/rssiAP/PktMin with Security keyMgmt/peerCipher/GroupCipher. Cadence: the poll interval is server-driven (pollInterval.htm?hhid=%s config fetch), watchdog info is daily (Writing WD info (...9 counters), Skip submitting daily WD info), and audio-drop events are rate-limited then piggybacked (Event log exist, ignoring this audio drop event to rate-limit / Audio-drop, logging this event to include with future periodic submission). Opt-in gate: usageDataSharing refreshed, optin changed to: %d."
    ]
   },
   "ws_client": {
