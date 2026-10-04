@@ -124290,12 +124290,13 @@
    "semantics": "raudiotapMutex; 'Datatap snapshot failed after %zu': SPDIF/audio tap sessions",
    "todo": [
     "Established: the datatap/audiotap manager and error vocabulary are identified.",
-    "Residual: max-tap count and per-tap block caps are literal compares inside audiotap_manager not yet disassembled; SPDIF compression format (codec of spdiftap.compressed) likewise."
+    "Residual: the numeric capacity written to mgr+0x240 at construction (a ctor arg or config field) and the SPDIF compression-mode details."
    ],
    "tap_internals": "Tap model decoded from audiotap_manager.cxx + datatap.cxx strings. WHO CAN TAP: eligibility is per-source-location - 'Location is not tappable' rejects ineligible sources, 'Location is already being tapped' dedups, and 'Max number of blocks already being tapped' / 'number of max taps exceeds the avaialable capacity' bound total taps. Tap lifecycle verbs: 'Active Tap %s' on attach, 'Closing Tap %s' on detach, 'No Active Taps to check if already tapped' on lookup. The SPDIF input is the canonical tappable source ('audiotap.spdif', '<SPDIFTap>' metadata element); the manager serializes access through 'audiotapMutex' and exposes 'audiotap.poll'. DATA PATH: datatap.cxx implements a 'rolling_data_tap' - a ring buffer holding the most recent tapped audio plus extracted metadata ('Error: failed to read metadata from buffer!'); a 'Datatap snapshot' serializes the rolling window plus '<SPDIFTap>...</SPDIFTap>' metadata XML, failing with 'Datatap snapshot failed after %zu' - i.e. taps feed a bounded rolling capture used for diagnostic audio snapshots, not a live stream-out.",
    "resolved_findings": [
     "Resolved: taps are location-gated (tappable check, no-dup, block cap), SPDIF is the canonical source via audiotap.spdif; data lands in a rolling_data_tap ring and 'Datatap snapshot' exports the window + <SPDIFTap> metadata for diagnostics.",
-    "Resolved: audiotap_manager.cxx. Taps attach to named DSP locations ({audiotap.poll, audiotap.spdif} + per-location names); guards: 'Location is not tappable', 'Location is already being tapped', 'Max number of blocks already being tapped', 'number of max taps exceeds the avaialable capacity' - a bounded active-tap table ('Active Tap %s'/'Closing Tap %s'). Access = 'AudioTap: permission denied' via capability-gated route; request errors {no tap specified, syntax error, invalid request}. Output: tap data described by debugParameters {channelname, vartype in {VAR_FLOAT,VAR_STRING,VAR_INT}, value formats %.04f/%.*f}; SPDIF path produces spdiftap.compressed retrievable via /snapshotspdiftap and /downloadspdiftap with <SPDIFTap> status XML."
+    "Resolved: audiotap_manager.cxx. Taps attach to named DSP locations ({audiotap.poll, audiotap.spdif} + per-location names); guards: 'Location is not tappable', 'Location is already being tapped', 'Max number of blocks already being tapped', 'number of max taps exceeds the avaialable capacity' - a bounded active-tap table ('Active Tap %s'/'Closing Tap %s'). Access = 'AudioTap: permission denied' via capability-gated route; request errors {no tap specified, syntax error, invalid request}. Output: tap data described by debugParameters {channelname, vartype in {VAR_FLOAT,VAR_STRING,VAR_INT}, value formats %.04f/%.*f}; SPDIF path produces spdiftap.compressed retrievable via /snapshotspdiftap and /downloadspdiftap with <SPDIFTap> status XML.",
+    "Resolved: the tap-block bounds (audiotap_manager 0x10d92300) - 'Max number of blocks already being tapped' fires when *(mgr+0x244) used-count reaches *(mgr+0x240) capacity; both are runtime-initialized fields. The block array is 0xc0-stride at mgr+0x178, per-block busy word at block+0. 'Location is not tappable' gates on *(mgr+0xb8). The capacity is set at manager construction, not a literal."
    ]
   },
   "dropout_logging": {
@@ -127123,7 +127124,7 @@
   },
   "enum_tables": {
    "name": "Static enum name->integer registration tables",
-   "note": "48 {name*, strlen, enumval} record arrays in .data.rel.ro: the binary's own enum registration tables, giving proven integer values for the name vocabularies elsewhere catalogued as unordered literals (muse roles/auth-types/playModes, SMAPI capability bitmask, CHSRC source classes, alarm/timer/power/replication FSM states, remote buttons, speaker orientation, netmodes, trueroom data types, content-object classes, ratings, update-FSM results, vanish reasons). Values are sequential (enum) or power-of-two (bitmask) as marked.",
+   "note": "The 0x10fac7d4-0x10faddxx block plus .data.rel.ro arrays hold the binary's enum registration tables, giving proven integer values for the name vocabularies elsewhere catalogued as unordered literals (muse roles/auth-types/playModes, SMAPI capability bitmask, CHSRC source classes, alarm/timer/power/replication FSM states, remote buttons, speaker orientation, netmodes, trueroom data types, content-object classes, ratings, update-FSM results, vanish reasons). Values are sequential (enum) or power-of-two (bitmask) as marked.",
    "tables": {
     "10ea5b08": [
      [
@@ -130020,7 +130021,347 @@
      },
      "provenance": "{char* name, u32 id} pair table @0x10fe6bb8, 18 entries",
      "note": "channel/speaker-position name map: lfe=2, lrs=3, lrrs=4, lrw=5, lrtm=6, lrtf=7, lrtr=8, lre=9, lrrh=10, lrfh=11, lrse=12, lrrse=13, lrs1=14, lrrs1=15, lrs2=16, lrrs2=17, lrcs=18, cs=19"
-    }
+    },
+    "10fac7d4": [
+     [
+      "INSECURE",
+      1
+     ],
+     [
+      "SECURE",
+      2
+     ]
+    ],
+    "10fac80c": [
+     [
+      "ACTIVE",
+      1
+     ],
+     [
+      "PENDING",
+      2
+     ],
+     [
+      "INACTIVE",
+      3
+     ]
+    ],
+    "10fac8b8": [
+     [
+      "PLAYER",
+      1
+     ],
+     [
+      "PLAYER_WITHIN_GROUP",
+      2
+     ],
+     [
+      "AREA",
+      3
+     ]
+    ],
+    "10fac970": [
+     [
+      "LAN",
+      1
+     ]
+    ],
+    "10fac988": [
+     [
+      "NORMAL",
+      1
+     ],
+     [
+      "BATTERY_SAVER",
+      2
+     ]
+    ],
+    "10facaa0": [
+     [
+      "NONE",
+      1
+     ],
+     [
+      "LONG_PRESS",
+      2
+     ]
+    ],
+    "10facc30": [
+     [
+      "CHARGING",
+      1
+     ],
+     [
+      "NOT_CHARGING",
+      2
+     ],
+     [
+      "CHARGER_NOT_COMPATIBLE",
+      3
+     ]
+    ],
+    "10facd10": [
+     [
+      "SUCCEEDED",
+      1
+     ],
+     [
+      "FAILED",
+      2
+     ],
+     [
+      "PENDING",
+      3
+     ]
+    ],
+    "10facf64": [
+     [
+      "UP",
+      1
+     ],
+     [
+      "DOWN",
+      2
+     ]
+    ],
+    "10fad010": [
+     [
+      "GROUP_STATUS_GONE",
+      1
+     ],
+     [
+      "GROUP_STATUS_MOVED",
+      2
+     ],
+     [
+      "GROUP_STATUS_UPDATED",
+      3
+     ]
+    ],
+    "10fad20c": [
+     [
+      "BLUETOOTH",
+      1
+     ],
+     [
+      "WIFI",
+      2
+     ]
+    ],
+    "10fad318": [
+     [
+      "AUTO_HT_CONFIGURATION",
+      1
+     ],
+     [
+      "FLEXIBLE_SURROUNDS",
+      2
+     ],
+     [
+      "PORTABLE_SURROUNDS",
+      3
+     ]
+    ],
+    "10fad388": [
+     [
+      "STAY_AWAKE",
+      1
+     ]
+    ],
+    "10fad484": [
+     [
+      "ONCE",
+      1
+     ],
+     [
+      "DAILY",
+      2
+     ],
+     [
+      "WEEKLY",
+      3
+     ]
+    ],
+    "10fad4bc": [
+     [
+      "SESSION_STATE_CONNECTED",
+      1
+     ]
+    ],
+    "10fad4ec": [
+     [
+      "QUICK",
+      1
+     ],
+     [
+      "DEEP",
+      2
+     ]
+    ],
+    "10fad7c4": [
+     [
+      "SONOSNET_ENABLED",
+      1
+     ],
+     [
+      "SONOSNET_DISABLED",
+      2
+     ],
+     [
+      "SONOSNET_DISABLE_TEST",
+      3
+     ]
+    ],
+    "10fad978": [
+     [
+      "PLAY_TO_BONDED",
+      1
+     ],
+     [
+      "PLAY_REPEATED",
+      2
+     ]
+    ],
+    "10fad9ac": [
+     [
+      "INAUDIBLE",
+      1
+     ],
+     [
+      "AUDIBLE",
+      2
+     ],
+     [
+      "INAUDIBLE_WIDE",
+      3
+     ]
+    ],
+    "10fad9f8": [
+     [
+      "PUSH",
+      1
+     ],
+     [
+      "PULL",
+      2
+     ]
+    ],
+    "10fada2c": [
+     [
+      "MUSIC_ACCOUNTS",
+      1
+     ]
+    ],
+    "10fada54": [
+     [
+      "TAG_EXPLICIT",
+      1
+     ]
+    ],
+    "10fada7c": [
+     [
+      "TIMER_IN_PROGRESS",
+      1
+     ],
+     [
+      "TIMER_PAUSED",
+      2
+     ],
+     [
+      "TIMER_RINGING",
+      3
+     ]
+    ],
+    "10fadae0": [
+     [
+      "UNKNOWN",
+      1
+     ],
+     [
+      "ENABLED",
+      2
+     ],
+     [
+      "DISABLED",
+      3
+     ]
+    ],
+    "10fadb10": [
+     [
+      "OK",
+      1
+     ],
+     [
+      "ERROR",
+      2
+     ],
+     [
+      "SUPPRESSED",
+      3
+     ]
+    ],
+    "10fadba8": [
+     [
+      "SOFTWARE",
+      1
+     ],
+     [
+      "RADIOLIST",
+      2
+     ],
+     [
+      "UNKNOWN",
+      3
+     ]
+    ],
+    "10fadbf0": [
+     [
+      "VALID",
+      1
+     ],
+     [
+      "INVALID",
+      2
+     ],
+     [
+      "NOT_APPLICABLE",
+      3
+     ]
+    ],
+    "10fadcb4": [
+     [
+      "AIRPLAY",
+      1
+     ]
+    ],
+    "10fadd08": [
+     [
+      "AIRPLAY",
+      1
+     ],
+     [
+      "SPOTIFY",
+      2
+     ],
+     [
+      "BLUETOOTH",
+      3
+     ]
+    ],
+    "10fadd40": [
+     [
+      "VARIABLE",
+      1
+     ],
+     [
+      "FIXED",
+      2
+     ],
+     [
+      "PASS_THROUGH",
+      3
+     ]
+    ]
    },
    "evidence": [
     {
@@ -132193,7 +132534,8 @@
    ],
    "resolved_findings": [
     "Resolved: IR learn flow - learn FSM captures pulses, rejects over-ten-codes as non-repeat-style, succeeds via Successful long code learn; local store keys {vol_up_codes,vol_down_codes,vol_mute_codes} by remote id; on miss the code is POSTed to http://ir.ws.sonos.com/IRCode/ as <IRCode><value>..</value></IRCode> with a guid, then polled until Requested code not found resolves; failure surfaces UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND.",
-    "Three layers separated: (1) hardware messages arrive as protobuf events on the libhwmessagelib BUTTON multicast group ({HT,LED,BUTTON,TEMP,SENSOR,BATTERY,CAPZONE,SWITCH,AUDIO} over hwmessagelib_connection_* APIs), pumped by selthrd.RHWEvtHandlerZP; lib shipped at reference/public/files/lib/libhwmessagelib.so.1. (2) vocabulary complete in hw_input_events: BUTTON_{PLAYPAUSE,VOL_UP,VOL_DN,JOIN}_PRESSED, PLAYPAUSE_HELD, STATE_BUTTON_MICMUTE_PRESSED, VOLUME_{UP,UP_REPEAT,DOWN,DOWN_REPEAT,DOWN_FAST_RAMP,SLIDE_UP,SLIDE_DOWN}, SWIPED, actions JOIN_{HH,HH_CHIME,HH_CANCEL}, OPEN_AP, NEXT_TRACK, PREV_TRACK, PLAY_RECENT, BECOME_STANDALONE, PREPARE_SWAP, PERFORM_SWAP, ENTER_SETUP_READY. (3) FSM semantics: play/pause falls back to un-mute; long-press cycles the household GC MRU list; coordinator forward Forwarding button events / No button handler with (cid:%s) correlation. IR learn: irdecoder.cxx histogram decode, two-pass long-code learn, three learnable groups; persistence proven by shipped reference/public/files/opt/ir/irconfig.txt (:vol_up_codes: style sections + repeat-code line), writable copy /jffs/irconfig.txt; cloud submit GET/POST ir.ws.sonos.com/IRCode/ with <IRCode><code/><value/><guid/></IRCode>. SOAP: LearnIRCode{IRCode cap 0x20, Timeout} + CommitLearnedIRCodes; IdentifyIRRemote carries an undocumented IRCode arg."
+    "Three layers separated: (1) hardware messages arrive as protobuf events on the libhwmessagelib BUTTON multicast group ({HT,LED,BUTTON,TEMP,SENSOR,BATTERY,CAPZONE,SWITCH,AUDIO} over hwmessagelib_connection_* APIs), pumped by selthrd.RHWEvtHandlerZP; lib shipped at reference/public/files/lib/libhwmessagelib.so.1. (2) vocabulary complete in hw_input_events: BUTTON_{PLAYPAUSE,VOL_UP,VOL_DN,JOIN}_PRESSED, PLAYPAUSE_HELD, STATE_BUTTON_MICMUTE_PRESSED, VOLUME_{UP,UP_REPEAT,DOWN,DOWN_REPEAT,DOWN_FAST_RAMP,SLIDE_UP,SLIDE_DOWN}, SWIPED, actions JOIN_{HH,HH_CHIME,HH_CANCEL}, OPEN_AP, NEXT_TRACK, PREV_TRACK, PLAY_RECENT, BECOME_STANDALONE, PREPARE_SWAP, PERFORM_SWAP, ENTER_SETUP_READY. (3) FSM semantics: play/pause falls back to un-mute; long-press cycles the household GC MRU list; coordinator forward Forwarding button events / No button handler with (cid:%s) correlation. IR learn: irdecoder.cxx histogram decode, two-pass long-code learn, three learnable groups; persistence proven by shipped reference/public/files/opt/ir/irconfig.txt (:vol_up_codes: style sections + repeat-code line), writable copy /jffs/irconfig.txt; cloud submit GET/POST ir.ws.sonos.com/IRCode/ with <IRCode><code/><value/><guid/></IRCode>. SOAP: LearnIRCode{IRCode cap 0x20, Timeout} + CommitLearnedIRCodes; IdentifyIRRemote carries an undocumented IRCode arg.",
+    "Resolved: the internal remote-button enum is proven in enum_tables.10fac9bc (POWER=1, BACK=2, HOME=3, MENU=4, PLAY_PAUSE=5, MUSIC=6, DPAD_UP=7, DPAD_DOWN=8, DPAD_LEFT=9, DPAD_RIGHT=10, DPAD_SELECT=11) plus press-type {NONE=1, LONG_PRESS=2} at 0x10facaa0 - these are the internal ids; the hw-message field numbers remain in libhwmessagelib."
    ]
   },
   "chirp_stack": {
@@ -135914,14 +136256,14 @@
    },
    "link": "\"Link helper created with empty VLI group ID\"; \"Starting to Process %s Group Info\"; \"Found Suspended Rooms While Processing %s Group Info\"; \"Finished Processing %s Group Info in %llu us\"; \"Ignoring player %s (too many members)\"; \"Link player %s to %s group %s: (ret %d)\"; URI x-sonos-vli:%s:%u,%s; sources {airplay:,bluetooth:}; 16-byte hex id fmt",
    "todo": [
-    "Residual: the symbolic name of each numeric VLI thread state {1,2,3} (stored) / {2,3,4} (requested) - the bounds and field are proven but no name table exists; names must be inferred from which ops write each value.",
-    "Residual: suspend/resume interplay with semisleep wake remains bound to the power-service delegate."
+    "Residual: which proven RESET/OFFLINE/ONLINE FSM family the VLI thread states {1,2,3}/{2,3,4} index - the enum vocabularies are decoded; the field-to-family binding is not a static ref."
    ],
    "resolved_findings": [
     "Resolved: session lifecycle = ctrl (vliCommand {apiKey,operation,position,volume}) -> link establishment through the source-manager group hooks {[groupAdded] configureLocalTransport(VLI),[groupRemoved] configureLocalTransport(null),[startLocalPBAsGM],[stopLocalPBAsGM]} -> sink via the vli transport stream; VliSessionEndedEvt tears down.",
     "Session lifecycle consolidated from the sub-block vocabularies: StartSession (ctrl callback) allocates the VLI group id and mints the x-sonos-vli:<id>:<ch>,<backing-source> URI; SessionStartInfoUpdated pushes metadata; the link worker processes the group info (Starting/Found Suspended Rooms/Finished Processing %s Group Info in %llu us) and links member players (Link player %s to %s group %s ret %d, too many members reject); vlintxsink begins NodeTX transmission (NodeTx configured to handle %s audio qos %d) with retransmit-aware frame scheduling; SuspendSession parks the session (Failed to suspend/resume source, Thread entering state %d desired=%d) while suspended rooms stay linked; StopSession deactivates (deactivating current VL). vli_source_manager registers sources (Error 0x%x registering vli source %d).",
     "Session-op enum recovered (~0x10f044xx): TXST_* transmission-state {UNKNOW(typo in image), CHSRC, LINE_IN, HTA_MESH, VLI, NONE} identifies which transport owns the stream; session ops {START_SESSION, SUSPEND_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, START_AUDIO_STREAMING, PAUSE_AUDIO_STREAMING, BECOME_STANDALONE_BASED_ON_VLI_STATE} are the VLI lifecycle verbs - JOIN/BECOME_STANDALONE_BASED_ON_VLI_STATE prove the session drives group membership transitions directly.",
-    "Resolved: the VLI source-manager thread state field is *(mgr+0x2e0) guarded by mutex +0x150 (vli_source_manager.cxx ~0x106a81d4). Valid stored states {1,2,3} (bound r9=cur-1<=2); requested transitions {2,3,4} (bound r31-2<=2). 'Thread entering state %d (desired=%d)' logs current vs requested; the setter returns (requested==stored). There is no state-name rodata table - the enum values map positionally to the source ops {activate=2, suspend=3, deactivate/stop=4} by call-site order rather than named literals."
+    "Resolved: the VLI source-manager thread state field is *(mgr+0x2e0) guarded by mutex +0x150 (vli_source_manager.cxx ~0x106a81d4). Valid stored states {1,2,3} (bound r9=cur-1<=2); requested transitions {2,3,4} (bound r31-2<=2). 'Thread entering state %d (desired=%d)' logs current vs requested; the setter returns (requested==stored). There is no state-name rodata table - the enum values map positionally to the source ops {activate=2, suspend=3, deactivate/stop=4} by call-site order rather than named literals.",
+    "Narrowed: the {1,2,3}/{2,3,4} VLI thread-state set plausibly indexes one of the proven RESET/OFFLINE/ONLINE FSM families in enum_tables (0x10fad874, 0x10fad8e8 or 0x10fad930) - the family binding is not statically referenced."
    ],
    "summary": "Virtual Line-In session pipeline: ctrl layer receives muse/UPnP callbacks onVirtualLineIn{StartSession,StopSession,SuspendSession,SessionStartInfoUpdated,GetVolume,NameChanged,MetaDataChanged,PlayModesChanged}; the link layer expands the VLI group (Link player %s to %s group %s, x-sonos-vli:<16-hex-id>:<channel>,<source> URIs carrying {airplay:,bluetooth:,uri:,tvproxy:} sources, suspended-room tracking via Found Suspended Rooms While Processing %s Group Info); the sink layer (vlintxsink NodeTX) transmits audio frames to group members with qos negotiation, resend bookkeeping (delay sending new frames until resend finishes), and lTransmitOffBox unicast control; SuspendSession/ResumeSession preserve the session while members sleep"
   },
@@ -137623,7 +137965,8 @@
     "Persistence proven: zone defs live in a JSON file parsed by the custom in-house JSON parser (the verbatim ParseErrorCode strings: root is not an object, incorrect schema [%d != %d], parsing error (offset: %u), missing value (%s), error in the zones data array). Record fields {name, id, channelMapSet} plus per-zone gain trim (Updating GainTrimdB of/on %s: %.2lf dB). Capacity: max definitions guard (too many zones defined in the config file [max=%d]) with eviction (zone def full: %s removed). CRUD logs: failed to create zone def (already exists), updating zone definition, failed to update zone id, removing zone definition guarded by zone currently active, matching zone def found, new zone def created. Replication is the standard accept-or-reject cycle: received replicated file successfully / failed to rename offered replicated file / failed to load offered replicated file / ignoring replicated file: incompatible schema - identical to the areas.json flow.",
     "Correction: the JSON engine is Sonos's custom parser (json_parser record - its error enum {Exceeded max depth, Unexpected token, Missing required value, ...} is the parse API); no rapidjson identifiers exist in the image.",
     "Correction: RapidJSON is statically linked (its GetParseError_En strings are in the image), so the zone-definition parser may indeed be RapidJSON as first recorded; the custom parser coexists for other consumers (json_parser record).",
-    "Resolved: zones.json schema pinned from the loader literal reads - top-level REQUIRED keys {schemaVersion, counter, lastUpdateDevice, data} (each emits 'load failed: missing value (%s)' when absent); data = zone array iterated by f_1016f2a4. Per-zone object members evidenced: {name, id, channelMap} (create path validates 'invalid zone name'/'invalid channel map', logs 'created new zone: name [%s], id [%s], channelMap [%s]'), gainTrimDB (remote apply 'Updating GainTrimdB on %s: %.2lf'), playerIds (member-id list). Events posted: ZoneMemberSettingsChangedEvt + ZonesDefinitionsChangedEvent via inprocess-events. Save writes zones.json + .tmp rename."
+    "Resolved: zones.json schema pinned from the loader literal reads - top-level REQUIRED keys {schemaVersion, counter, lastUpdateDevice, data} (each emits 'load failed: missing value (%s)' when absent); data = zone array iterated by f_1016f2a4. Per-zone object members evidenced: {name, id, channelMap} (create path validates 'invalid zone name'/'invalid channel map', logs 'created new zone: name [%s], id [%s], channelMap [%s]'), gainTrimDB (remote apply 'Updating GainTrimdB on %s: %.2lf'), playerIds (member-id list). Events posted: ZoneMemberSettingsChangedEvt + ZonesDefinitionsChangedEvent via inprocess-events. Save writes zones.json + .tmp rename.",
+    "Resolved: the orientation value vocabulary is enum_tables.10fad230 (15 values: UNDEFINED, HORIZONTAL, VERTICAL_WALL_ABOVE, VERTICAL_WALL_BELOW, VERTICAL_TAG_LEFT, VERTICAL_TAG_RIGHT, HORIZONTAL_WALL_MOUNTED, HORIZONTAL_LEFT, HORIZONTAL_RIGHT, VERTICAL_WALL_MOUNTED, VERTICAL_WALL_LEFT, VERTICAL_WALL_RIGHT, FACEDOWN, INVERTED, INVALID); whether zones.json serializes it per-zone is the open key question."
    ]
   },
   "thermal": {
@@ -138071,7 +138414,8 @@
    ],
    "resolved_findings": [
     "Resolved: reason->raiser map = the interrupt vocabulary paired with its raising path; handler effect = suspend the affected transport + emit the reason event.",
-    "Raiser map inferred with per-name subsystem binding (enum region ~0x10faccxx): PLAYBACK = AV transport local ops; CLOUD = muse/cloud command channel; HT_PLAYBACK = TV-source start; HT_POWER_STATE = CEC TV power toggle; AIRPLAY = AirPlay session grab; AUDIO_CLIP = local chime/buzzer playback (x-rincon-buzzer:1 path); SPEAKER_DETECTION = sonar room-check (LEFT/RIGHT channel names adjacent); FIXED_VOLUME = optical-in fixed-level clamp; ROOM_DETECTION = chirp roomDetection flow; IR_CONTROL = IR remote volume/mute; SVC = voice-service session; ALEXA_CBL = Alexa-connected speaker control. An interrupt preempts or ducks the current audio session for a higher-priority source - AUDIO_CLIP/IR_CONTROL duck, AIRPLAY/CLOUD/SVC steal. Adjacent enum blocks recovered: CEC result {CLOSED, CONFIGURING, NO_LOGICAL_ADDRESS, SUCCEEDED}, charger {NOT_CHARGING, CHARGER_NOT_COMPATIBLE}, diag {HEALTHCHECK, EXTRALOCAL}, button events {LONG_PRESS, DPAD_SELECT}, and the extension abort taxonomy {ABORT_UNRECOGNIZED_OP, ABORT_INCORRECT_MODE, ABORT_NO_SOURCE, ABORT_INVALID_OP, ABORT_REFUSED, ABORT_UNDETERMINED, REPLY_TIMEOUT, ROOT_INDIRECT, BROADCAST_BLOCKED} (SCI/extension-op failure codes)."
+    "Raiser map inferred with per-name subsystem binding (enum region ~0x10faccxx): PLAYBACK = AV transport local ops; CLOUD = muse/cloud command channel; HT_PLAYBACK = TV-source start; HT_POWER_STATE = CEC TV power toggle; AIRPLAY = AirPlay session grab; AUDIO_CLIP = local chime/buzzer playback (x-rincon-buzzer:1 path); SPEAKER_DETECTION = sonar room-check (LEFT/RIGHT channel names adjacent); FIXED_VOLUME = optical-in fixed-level clamp; ROOM_DETECTION = chirp roomDetection flow; IR_CONTROL = IR remote volume/mute; SVC = voice-service session; ALEXA_CBL = Alexa-connected speaker control. An interrupt preempts or ducks the current audio session for a higher-priority source - AUDIO_CLIP/IR_CONTROL duck, AIRPLAY/CLOUD/SVC steal. Adjacent enum blocks recovered: CEC result {CLOSED, CONFIGURING, NO_LOGICAL_ADDRESS, SUCCEEDED}, charger {NOT_CHARGING, CHARGER_NOT_COMPATIBLE}, diag {HEALTHCHECK, EXTRALOCAL}, button events {LONG_PRESS, DPAD_SELECT}, and the extension abort taxonomy {ABORT_UNRECOGNIZED_OP, ABORT_INCORRECT_MODE, ABORT_NO_SOURCE, ABORT_INVALID_OP, ABORT_REFUSED, ABORT_UNDETERMINED, REPLY_TIMEOUT, ROOT_INDIRECT, BROADCAST_BLOCKED} (SCI/extension-op failure codes).",
+    "Resolved: the reason enum is proven, not inferred - enum_tables.10facad0 is a {name,strlen,code} triple table: PLAYBACK=1, CLOUD=2, HT_PLAYBACK=3, HT_POWER_STATE=4, AIRPLAY=5, LINE_IN=6, AUDIO_CLIP=7, VOICE=8, SPEAKER_DETECTION=9, FIXED_VOLUME=10, ROOM_DETECTION=11, MICROPHONE_SWITCH=12, HDMI=13, IR_CONTROL=14, SVC=15, ALEXA_CBL=16."
    ]
   },
   "aha_ops": {
@@ -138934,11 +139278,11 @@
     }
    ],
    "todo": [
-    "Established: two-phase enrollment (refresh then complete&token), regState FSM transitions {during suspend, time expired, success, error, retry-at}, error vocabulary, cert lifecycle, signing-key IPC set/clear with payload validation, secureRegTransfer timed mode with tjmgrExitSecureRegTransferState scheduling.",
-    "Residual: the numeric regState/transfer-mode enum values are not recoverable - transitions log as %d -> %d with no symbolic names in the image (enum lives in register.hxx)."
+    "Residual: which decoded enum family (enum_tables 0x10fad874 or 0x10fad930) regState indexes - transitions emit %d->%d with no family binding in the image."
    ],
    "resolved_findings": [
-    "Resolved: regState values = the FSM transitions logged as regState changed %d -> %d through {during suspend, time expired, success, error, retry-at}; signing-key IPC payload = the Invalid registration signing key reject on the IPC set/clear path (registration_machine)."
+    "Resolved: regState values = the FSM transitions logged as regState changed %d -> %d through {during suspend, time expired, success, error, retry-at}; signing-key IPC payload = the Invalid registration signing key reject on the IPC set/clear path (registration_machine).",
+    "Narrowed: candidate regState vocabularies are proven in enum_tables - {RESET,OFFLINE,INITIATING,ONLINE,TERMINATING,ERROR} at 0x10fad874 and {RESET,OFFLINE,INITIATING,ONLINE,ERROR} at 0x10fad930 fit the %d->%d transition logs; which family regState indexes is not statically referenced."
    ]
   },
   "hhsettings_rest": {
@@ -139143,11 +139487,10 @@
   },
   "error_codes": {
    "rze": "RZEXID_* exception ids {UPNP_TIMEOUT,UPNP_CONNECT_TIMEOUT,UPNP_EVENTING_TIMEOUT}",
-   "todo": [
-    "Residual: the row-level strings of the 107-entry internal result table beyond the proven families - the table structure and family ranges are enumerated; naming every row is a rodata-dump exercise, not an unknown mechanism."
-   ],
+   "todo": [],
    "resolved_findings": [
-    "Resolved: error-code families enumerated - SOAP fault domains {4xx/5xx vendor ladders}, the 107-entry internal result-namespace table (index==code), the store-commit {501,800,801,802} ladder, muse result codes, jwt/authz enums; rze sub-block holds the RZE family."
+    "Resolved: error-code families enumerated - SOAP fault domains {4xx/5xx vendor ladders}, the 107-entry internal result-namespace table (index==code), the store-commit {501,800,801,802} ladder, muse result codes, jwt/authz enums; rze sub-block holds the RZE family.",
+    "Resolved: the 107-entry internal result-namespace table is a flat pointer array at 0x10f94d14 (index==code). Full row set: 0=ERROR_ALARM_CONFLICT, 1=ERROR_ALARM_NO_SPACE, 2=ERROR_ALARM_BAD_TIME_SERVER, 3=ERROR_AREAS_READ_ONLY, 4=ERROR_AUDIO_CLIP_ID_NOT_FOUND, 5=ERROR_AUDIO_CLIP_MEDIA_ERROR, 6=ERROR_AUDIO_CLIP_PAUSE_CONTENT_FAILED, 7=ERROR_AUDIO_CLIP_VOICE_ASSISTANT_PLAYING, 8=ERROR_CACHE_NOT_FOUND, 9=ERROR_CACHE_RECORD_NOT_FOUND, 10=ERROR_CANT_CONNECT_REMOTE, 11=ERROR_NO_UPDATE_AVAILABLE, 12=ERROR_INVALID_UPM_FORMAT, 13=ERROR_INSUFFICIENT_POWER_FOR_UPDATE, 14=ERROR_DEVICE_ALREADY_REGISTERED, 15=ERROR_DEVICE_UNAVAILABLE, 16=ERROR_INVALID_ACTION, 17=ERROR_DOWNSTREAM_CONNECT_FAILED, 18=ERROR_CANT_CONNECT, 19=ERROR_PLAYBACK_FAILED, 20=ERROR_PLAYBACK_NO_CONTENT, 21=ERROR_PLAYBACK_NO_PLAYABLE_CONTENT, 22=ERROR_PLAYBACK_EXPLICIT_NOT_ALLOWED, 23=ERROR_PLAYBACK_EXPIRED_TOKEN, 24=ERROR_NOT_PLAYABLE, 25=ERROR_SPOTIFY_CONNECT, 26=ERROR_FAILURE_TO_ENQUEUE, 27=ERROR_CLOUD_QUEUE_SERVER, 28=ERROR_SKIP_LIMIT_REACHED, 29=ERROR_PLAYBACK_STREAM_LIMIT, 30=ERROR_PLAYERS_HAVE_INCOMPATIBLE_FIRMWARE, 31=ERROR_PREFERRED_ACCOUNT_NOT_SET, 32=ERROR_PREFERRED_ACCOUNT_NOT_FOUND, 33=ERROR_ROOM_DETECTION_SIGNALLING_FAILED, 34=ERROR_ROOM_DETECTION_SIGNALLING_BUSY, 35=ERROR_SESSION_IN_PROGRESS, 36=ERROR_SESSION_JOIN_FAILED, 37=ERROR_SESSION_EVICTED, 38=ERROR_SHARES_CONFLICT, 39=ERROR_SHARES_NO_SUCH_SHARE, 40=ERROR_SHARES_NO_SPACE, 41=ERROR_SHARES_REQUEST_FAILED, 42=ERROR_STIMULUS_ALREADY_PLAYING, 43=ERROR_MICROPHONE_NOT_ENABLED, 44=ERROR_INVALID_SESSION_ID, 45=ERROR_NO_POSITIONING_RESULTS, 46=ERROR_UNSUPPORTED_POSITIONING_REQUEST, 47=ERROR_SVC_DISABLED, 48=ERROR_TIMER_NOT_FOUND, 49=ERROR_UNSUPPORTED_VOLUME_MODE, 50=ERROR_INVALID_RESOURCE, 51=ERROR_UPDATE_IN_PROGRESS, 52=OK, 53=CREATED, 54=ACCEPTED, 55=SUCCESS_NO_CONTENT, 56=SUCCESS_NOT_MODIFIED, 57=ERROR_ACCOUNT_FULL, 58=ERROR_ACCOUNT_INVALID_ID, 59=ERROR_ACCOUNT_NO_DEFAULT_FOUND, 60=ERROR_ACCOUNT_REAUTH_REQUIRED, 61=ERROR_ACCOUNT_UPGRADE_REQUIRED, 62=ERROR_ACCOUNT_WRONG_SERVICE, 63=ERROR_COMMAND_FAILED, 64=ERROR_CONTENT_TYPE_NOT_SUPPORTED, 65=ERROR_DISALLOWED_BY_POLICY, 66=ERROR_GROUP_CHANGED, 67=ERROR_INTERNAL, 68=ERROR_COMMAND_TIMEOUT, 69=ERROR_INVALID_AUTH_HEADER, 70=ERROR_INVALID_CERT, 71=ERROR_INVALID_OBJECT_ID, 72=ERROR_INVALID_PARAMETER, 73=ERROR_INVALID_SYNTAX, 74=ERROR_TARGET_ID_NOT_FOUND, 75=ERROR_LOAD_COMMAND_FAILED, 76=ERROR_MISSING_PARAMETERS, 77=ERROR_NO_CONTENT, 78=ERROR_NO_PERMISSION, 79=ERROR_NOT_AUTHORIZED, 80=ERROR_NOT_CAPABLE, 81=ERROR_PRECONDITION_FAILED, 82=ERROR_QUEUE_FULL, 83=ERROR_RESOURCE_GONE, 84=ERROR_RESOURCE_CONFLICT, 85=ERROR_REQUIRES_GROUP_COORDINATOR, 86=ERROR_SERVICE_NOT_AVAILABLE, 87=ERROR_SERVICE_NOT_CONFIGURED, 88=ERROR_SERVICE_NOT_SUPPORTED, 89=ERROR_UNSUPPORTED_NAMESPACE, 90=ERROR_UNSUPPORTED_COMMAND, 91=ERROR_UNSUPPORTED_REQUEST, 92=ERROR_UNSUPPORTED_REQUEST_METHOD, 93=ERROR_API_KEY_VALIDATION_FAILED, 94=ERROR_SERVICE_UNAVAILABLE, 95=ERROR_NYI, 96=ERROR_CMD_FUTURE, 97=ERROR_CMD_REMOVED, 98=ERROR_INSUFFICIENT_RESOURCES, 99=ERROR_INCORRECT_STATE, 100=ERROR_INVALID_HEADER, 101=ERROR_INVALID_LENGTH, 102=ERROR_INVALID_TRANSPORT, 103=ERROR_EXPECTATION_FAILED, 104=ERROR_INCOMPATIBLE_API_VERSION, 105=ERROR_INCOMPATIBLE_CLIENT_VERSION, 106=ERROR_NOT_DESIGNATED_DEVICE."
    ]
   },
   "spotify_zeroconf": {
@@ -139443,7 +139786,8 @@
    "resolved_findings": [
     "Resolved: mode FSM = {SONOSNET,INVALID,ETHERNET,STATION_SATELLITE,SONOSNET_SATELLITE_STATION_PRIMARY,STATION}; transitions driven by netconfig + <Wireless><WirelessInfo> dump.",
     "Mode semantics mapped: SONOSNET_MODE = SonosNet mesh member, ETHERNET_MODE = wired with radio roles reduced, STATION_MODE = plain WiFi STA, STATION_SATELLITE_MODE = satellite over STA link, SONOSNET_SATELLITE_STATION_PRIMARY_MODE = satellite carrying the primary STA uplink, INVALID_MODE = unset. Transitions are config-driven not autonomous: the mode word comes from the wireless config (WirelessInfo reports WifiMode %d + WifiModeString); SonosNetDisabled + IdleState(0x%08x bitmask) + BusyClients + ConnectionType expose the operational state. The setup() in SonosNet disable test mode path schedules an automatic revert in %d seconds - test-mode transitions are self-reverting.",
-    "Resolved: the numeric enum mapping - the WifiModeString emit path at 0x1073ff10 computes idx=mode+1, bounds cmplwi 0x5, then dispatches through the self-relative jump table at 0x10f11f7c: -1=INVALID_MODE, 0=SONOSNET_MODE, 1=STATION_MODE, 2=SONOSNET_SATELLITE_STATION_PRIMARY_MODE, 3=STATION_SATELLITE_MODE, 4=ETHERNET_MODE (out-of-range -> 'Unknown'). The companion display ladder maps to human strings {'SonosNet (wireless)', 'SonosNet (Ethernet)', 'Ethernet', 'Ethernet (WiFi Disabled)', 'WiFi', 'Home Theater 2.0', 'Home Theater (Ethernet)'} (0x10f02c60 block)."
+    "Resolved: the numeric enum mapping - the WifiModeString emit path at 0x1073ff10 computes idx=mode+1, bounds cmplwi 0x5, then dispatches through the self-relative jump table at 0x10f11f7c: -1=INVALID_MODE, 0=SONOSNET_MODE, 1=STATION_MODE, 2=SONOSNET_SATELLITE_STATION_PRIMARY_MODE, 3=STATION_SATELLITE_MODE, 4=ETHERNET_MODE (out-of-range -> 'Unknown'). The companion display ladder maps to human strings {'SonosNet (wireless)', 'SonosNet (Ethernet)', 'Ethernet', 'Ethernet (WiFi Disabled)', 'WiFi', 'Home Theater 2.0', 'Home Theater (Ethernet)'} (0x10f02c60 block).",
+    "Resolved: the wifi-enabled FSM vocabulary is proven in enum_tables.10fadd94: INACTIVE=1, WIFI_ENABLING=2, ACK_AWAIT=3, WIFI_DISABLING=4, WIFI_DISABLED=5, ACK_NOT_RECEIVED=6."
    ]
   },
   "audio_decoders": {
@@ -139577,11 +139921,12 @@
     }
    ],
    "todo": [
-    "Residual: the numeric tap capacity (the guard comparand is a rodata constant; protocol+guards proven)."
+    "Residual: the ctor-supplied numeric capacity for mgr+0x240."
    ],
    "resolved_findings": [
     "Resolved: max-taps guard comparand = the available-capacity constant; debug parameter protocol = {Active Tap %s, Closing Tap %s} ops under raudiotapMutex with async-request + poll errors.",
-    "Guards and debug protocol proven (audiotap_manager.cxx, audiotapmanager domain): capacity enforced at open - number of max taps exceeds the avaialable capacity (the comparand is the tap-table bound); per-location exclusivity - Location is not tappable / Location is already being tapped / Max number of blocks already being tapped; lifecycle logs Active Tap %s / Closing Tap %s / No Active Taps to check if already tapped. Debug parameter protocol: a debugParameters array exposes per-channel typed params {channelname, vartype} with types {VAR_FLOAT, VAR_STRING, VAR_INT} and float formatting %.04f/%.*f - the machinery the /audio_tap route queries for tap inspection. Adjacent: the /getDSP status page renders the volume tables (Breakpoint %zu volume/gain, Volume Table Sub-bonded, Full gain SPL dB, Loudness offset dB, Trueplay section, Minimum Trueplay version, Small/Large speaker rows)."
+    "Guards and debug protocol proven (audiotap_manager.cxx, audiotapmanager domain): capacity enforced at open - number of max taps exceeds the avaialable capacity (the comparand is the tap-table bound); per-location exclusivity - Location is not tappable / Location is already being tapped / Max number of blocks already being tapped; lifecycle logs Active Tap %s / Closing Tap %s / No Active Taps to check if already tapped. Debug parameter protocol: a debugParameters array exposes per-channel typed params {channelname, vartype} with types {VAR_FLOAT, VAR_STRING, VAR_INT} and float formatting %.04f/%.*f - the machinery the /audio_tap route queries for tap inspection. Adjacent: the /getDSP status page renders the volume tables (Breakpoint %zu volume/gain, Volume Table Sub-bonded, Full gain SPL dB, Loudness offset dB, Trueplay section, Minimum Trueplay version, Small/Large speaker rows).",
+    "Resolved: the tap-block bounds (audiotap_manager 0x10d92300) - 'Max number of blocks already being tapped' fires when *(mgr+0x244) used-count reaches *(mgr+0x240) capacity; both are runtime-initialized fields. The block array is 0xc0-stride at mgr+0x178, per-block busy word at block+0. 'Location is not tappable' gates on *(mgr+0xb8). The capacity is set at manager construction, not a literal."
    ]
   },
   "cloud_services": {
@@ -139687,11 +140032,12 @@
     }
    ],
    "todo": [
-    "Residual: which state codes the chk exchange compares (the remote/my %d states are enum values in the ht-impl state vocabulary)."
+    "Residual: which proven enum family (enum_tables 0x10fad520/0x10fad660/0x10fad6d8) the chk remote/my state fields index - the vocabularies are decoded; the binding is via a descriptor record, not a static ref."
    ],
    "resolved_findings": [
     "Resolved: upd/chk exchange = the sync protocol {upd [%zu] error stored uuid, chk [%zu] remote uuid/state} + validator {Initializer List too large truncating, Duplicate entry}.",
-    "upd/chk exchange decoded (dp_zpimpl_ht.cxx): chk [%zu], remote uuid: %s, remote state: %d, my state %d compares each indexed entry - remote uuid + remote state vs local state; upd [%zu] error, stored uuid: %s applies the remote state and records which uuid supplied it (last-writer tracking per index). The set enforces a fixed initializer bound (List is too large: %d > %d, truncating) and role dedup (Duplicate entry: %s at index %zu and %zu). The channel-role vocabulary: {NA, CC, SW, LR, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2} - no-assignment, center, subwoofer, left/right rear, left/right top-front, left/right top-rear, left/right wide, left/right top-middle, aux1/aux2 - the full surround+height role set a bonded group can carry. awThreadWDCheck watchdogs the thread."
+    "upd/chk exchange decoded (dp_zpimpl_ht.cxx): chk [%zu], remote uuid: %s, remote state: %d, my state %d compares each indexed entry - remote uuid + remote state vs local state; upd [%zu] error, stored uuid: %s applies the remote state and records which uuid supplied it (last-writer tracking per index). The set enforces a fixed initializer bound (List is too large: %d > %d, truncating) and role dedup (Duplicate entry: %s at index %zu and %zu). The channel-role vocabulary: {NA, CC, SW, LR, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2} - no-assignment, center, subwoofer, left/right rear, left/right top-front, left/right top-rear, left/right wide, left/right top-middle, aux1/aux2 - the full surround+height role set a bonded group can carry. awThreadWDCheck watchdogs the thread.",
+    "Resolved: the ht-impl state vocabularies are decoded in enum_tables - the satellite-sync FSMs {UNDEFINED,CONNECT,HELLO,DOWNLOAD,FLASHWRITE,WAIT,REBOOT,ERROR,FINISHED} (0x10fad660) and {INIT,HELLO,HELLO_DONE,DOWNLOAD,DOWNLOAD_DONE,FLASHWRITE,FLASHWRITE_DONE,REBOOT,REBOOTING_DONE} (0x10fad6d8) and the generic sync-state family {PENDING_ADD,...,DELETE_COMPLETE} (0x10fad520); the chk-compared %d values index one of these families but the family-to-field binding has no static reference."
    ]
   },
   "httpcache": {
