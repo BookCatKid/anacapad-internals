@@ -122007,12 +122007,13 @@
     "note": "AP (access point) packet layer: reads TLV headers (\"Failed reading TLV header %d %d/7 oserr %d\": 7-byte header), enforces ap->packet_size <= 16384, validates a MAC on each packet (\"Corrupted packet, invalid MAC\"), skips oversize packets (\"Skipped %s(%d) (%d > %d)\"). Assert domain sp_a5335660d494963ab7b783a270417bb8."
    },
    "todo": [
-    "Established: the esdk module inventory, io backends, and notification vocabulary are recovered.",
-    "Residual: per-module internals - how mod_zp binds esdk playback into the zone-player pipeline and the apio/cdnio/streamio fetch semantics are not decompiled."
+    "Established: apresolve/ap.spotify.com bootstrap order, memcache key slots, resumable CDN parts + avg_bw accounting, pinned sp_ AP identity table.",
+    "Residual: mod_zp glue into the zone-player pipeline remains untraced (callback registration data)"
    ],
    "zp_binding": "mod_zp binds esdk through ai_spotify.cxx (0x1022xxxx region, 'spot' log module). The esdk session object is reached through accessor f_10cf6834 (called at the head and tail of every session op). Playback control uses the classic libspotify Sp* surface: SpPlayUriWithOptions (session start), SpPlaybackPlay/Pause, SpPlaybackSetBitrate, SpPlaybackEnableShuffle/EnableRepeat, SpPlaybackIncreaseUnderrunCount, SpGetMetadata, SpConnectionLoginOauthToken/Logout, SpEnableConnect, SpZeroConfGetVars. Inbound metadata flows through f_1022c1b0 (MetadataChanged handler: logs track, track_uri, artist, album, playback_source_uri, bitrate, Next Metadata - the esdk->zoneplayer event pump that feeds the queue's now-playing state).",
    "resolved_findings": [
-    "Established: full io-backend semantics - apio=AP channel, cdnio=chunk fetcher with multi-CDN failover + bw stats, streamio=stream abstraction, async_streamio_mgr.cxx=anacapad async adapter; upstream source provenance pinned."
+    "Established: full io-backend semantics - apio=AP channel, cdnio=chunk fetcher with multi-CDN failover + bw stats, streamio=stream abstraction, async_streamio_mgr.cxx=anacapad async adapter; upstream source provenance pinned.",
+    "Resolved: fetch-path internals decoded from embedded eSDK sources (mod_streamer.c/streamio.c/apio.c/cdnio.c). AP channel (apio.c): bootstrap order \"local apresolve\" -> \"fallback\" -> HTTPS GET apresolve.spotify.com -> connect ap.spotify.com (\"Connecting (%s) %s:%d timeout: %d sec\", \"Sending Hello message to AP\", \"Failed to decode ApWelcome\"); pacing watchdog \"SpPumpEvents() is called too slowly: %d ms for 100 calls\"; connectivity churn \"went from one type to another (%d -> %d), populating disconnected sockets array\". Streaming (mod_streamer.c/streamio.c): per-track AES keys cached in a slotted memcache (\"Track key exists in memcache at slot: %zu\", \"Storing key in memcache slot: %u\", \"Track key capped, Playback paused. error_code:%d\"); CDN download is resumable per-file-part (\"will download next missing part of file %s from:%u size:%u\", \"CDN download failed%s\") with bandwidth accounting (\"Download finished. size:%u cdn_offset:%u total_time:%u, avg_bw:%ukbps\"). A compiled-in table of sp_<32hex> entries (0x10fd7ed8+) is the pinned AP identity set."
    ]
   },
   "component_map": {
