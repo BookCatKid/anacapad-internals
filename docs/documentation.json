@@ -145779,12 +145779,11 @@
     }
    ],
    "todo": [
-    "Established: the wireless-mode enum, the WirelessInfo XML schema, the SonosNet-disable test mode with auto-revert, and the muse/JWT errors.",
-    "Still unknown: which modes this Playbar can enter and the mode-transition logic.",
-    "Next step: document the mode FSM and valid transitions."
+    "Residual: the numeric values of the 6-mode enum and IdleState bit meanings (the enum order is proven; the numeric mapping and IdleState bits are rodata/bitfield data)."
    ],
    "resolved_findings": [
-    "Resolved: mode FSM = {SONOSNET,INVALID,ETHERNET,STATION_SATELLITE,SONOSNET_SATELLITE_STATION_PRIMARY,STATION}; transitions driven by netconfig + <Wireless><WirelessInfo> dump."
+    "Resolved: mode FSM = {SONOSNET,INVALID,ETHERNET,STATION_SATELLITE,SONOSNET_SATELLITE_STATION_PRIMARY,STATION}; transitions driven by netconfig + <Wireless><WirelessInfo> dump.",
+    "Mode semantics mapped: SONOSNET_MODE = SonosNet mesh member, ETHERNET_MODE = wired with radio roles reduced, STATION_MODE = plain WiFi STA, STATION_SATELLITE_MODE = satellite over STA link, SONOSNET_SATELLITE_STATION_PRIMARY_MODE = satellite carrying the primary STA uplink, INVALID_MODE = unset. Transitions are config-driven not autonomous: the mode word comes from the wireless config (WirelessInfo reports WifiMode %d + WifiModeString); SonosNetDisabled + IdleState(0x%08x bitmask) + BusyClients + ConnectionType expose the operational state. The setup() in SonosNet disable test mode path schedules an automatic revert in %d seconds - test-mode transitions are self-reverting."
    ]
   },
   "audio_decoders": {
@@ -145800,12 +145799,11 @@
    "detail": "ogg/vorbis {nullaudio \"starting null audio play\"+\"dropping %zu bytes\",\"oob, num samples larger than max vorbis packet size\",\"we have gapless ogg, %d samples, %zu frame size\",\"gapless requested %d samples > decoded frame size\",\"ogg eof\",\"ogg only header byte found\",\"ogg hard stop requested\"}; SBC {\"Invalid packet header\",\"params: freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%zu frames=%zu\",\"Truncated packet. Lost %zu of %zu frames\",\"frame size changed %zu->%zu\",\"decoder error %zd on frame %zu\",\"Bad SBC frame %zu. read %zd/%zd, decoded %zu/%zu\",\"unexpected NOTIFYFRAME_ERR_BUFFERING\",\"unknown frame status %d\"}; WMA {\"oob, num samples larger than max wma packet size (%zu * %zu == %zu) > %zu\",\"wma player end of file\",\"notify frame stop/do not decode\",\"skipping wma frame\",\"wma decoder error, resetting/no reset/hard stopping\",\"number of channels encoded %d, will not decode > stereo\"}; ALAC {\"alac decoder status: %d\",\"producing zeros only\",\"alac out-of-bounds read prevented\",\"error initializing ALAC\",\"created alac for %u-bit samples, %d sample freq, %d-channel\",\"unexpected sample bit depth: %u\"}",
    "adts_aiff_framer": "ADTS framer (domain suffix formats '%sadts-?'/'%sadts-%s'): sync scan 'found sync'/'skipped %zu', 'unexpected layer %d', 'incomplete header r:%zu'/'(missing CRC r:%zu)', 'unsupported sampling frequency %u', 'unexpected change of format: prev %d', 'Number of audio channels is too high: %u', 'buffer size too small, need %zu bytes', 'incomplete audio data r:%zu l:%zu', 'At Offset:%zu want:%zu dropping frame', 'buffering error, goto cleanup'. AIFF checks: 'exceeded max AIFF audio channels (%d) found %d channels', 'less than min AIFF audio channels (%d) found %d channels', 'File bit-depth unsupported. Found %d', emitted labels '%u-channels'/'%u-bit'. Audiotap record framing: 'j,%zu:%s' tagged-length records and 'i0'-prefixed integer fields on the audiotap.poll stream.",
    "todo": [
-    "Established: the vorbis and AAC error vocabularies and the decoder status XML.",
-    "Still unknown: the AAC profile support matrix and how decoder selection interacts with stream metadata.",
-    "Next step: find the decoder-selection routine and document the AAC parameter parsing behind 'DisableAacPlus'."
+    "Residual: the non-AAC codec parameter tables (mp3/flac/alac init strings live in their own decoder modules - AAC+Vorbis proven here)."
    ],
    "resolved_findings": [
-    "Resolved: decoder-selection = the codec factory keyed by accepted_mimes id; AAC param parsing = the adts_aiff_framer path; vorbis error set + detail sub-block documented."
+    "Resolved: decoder-selection = the codec factory keyed by accepted_mimes id; AAC param parsing = the adts_aiff_framer path; vorbis error set + detail sub-block documented.",
+    "AAC layer proven (AOSP-AAC): DisableAacPlus gates SBR - [SUCCESS] DisableAacPlus StreamType=%d, aacPlusUpsamplingFactor=%d sets the AAC+ upsampling factor (SBR off = factor reset). Status XML <DEC_AACDecoder> exposes {DEC_InputChanCount, DEC_OutputChanCount, DEC_BitRate, DEC_FrameSize, DEC_AudioObjectType} with the AOT name set {AAC-LC, HE-AAC, ER-AAC-LC, ER-AAC-SCAL - Decoding base layer only, ER-BSAC, ER-AAC-LD, HE-AAC v2, ER_AAC_ELD, xHE-AAC}. mp4_header_parser feeds init: Invalid sample rate idx, Frame Paddling Len = %d numChannels = %d sampleRateIx %d obj %d, Explicitly expressed samplerate not supported, Failed to get the extension sampling freq idx. Decode errors: cant initialize decoder library, Unable to decode init frame, unknown AAC format, ERROR DECODE %d, (%d) only used %d bytes from a buffer containing %d. Adjacent Vorbis decoder emits {no samples produced, insufficient bytes, decoding failed, vorbis_synthesis_read failed} with <SampleRate>/<FrameSize>/<NumChannels>/<ChanMap %s (%s)> status XML. Decoder selection itself rides the per-codec init frames plus the tv_processor ActiveDecoder ladder for SPDIF sources."
    ]
   },
   "product_models": {
@@ -145940,12 +145938,11 @@
     }
    ],
    "todo": [
-    "Established: the host patterns, the service-name vocabulary, the CSRFToken var, and the ucsTelemetry metadata client.",
-    "Still unknown: per-service request formats and which env prefix each host pattern resolves to.",
-    "Next step: map service names to their client wrappers and document the env-resolution."
+    "Residual: which template+env each service resolves to per deployment (the registry and templates are proven; per-service env binding is config data)."
    ],
    "resolved_findings": [
-    "Resolved: service->wrapper map = host patterns {sslauth.sonos.com, lower-sslauth host, generic %s.%s%s, lechmere.%s.ws.sonos.com, /firmware/swgen/%u/latest/} with service names {clientdata,crash-upload,feature-config,music-history,lechmere-v1,...}; env-resolution via the env prefix."
+    "Resolved: service->wrapper map = host patterns {sslauth.sonos.com, lower-sslauth host, generic %s.%s%s, lechmere.%s.ws.sonos.com, /firmware/swgen/%u/latest/} with service names {clientdata,crash-upload,feature-config,music-history,lechmere-v1,...}; env-resolution via the env prefix.",
+    "Complete service-name census: {thor, iap, clientdata, crash-upload, feature-config, music-history, lechmere-v1, music-accounts, myaccount, oauth, player-device-files-ab, sve, product-settings, recommendation, registration, service-catalog, smart-play, system-api, system-api-diagnostics, transfer, translate, universal-search, msmetrics} + CSRFToken credential label. Env resolution: hosts build from templates https://%s.%s%s, https://%s-%s.lower-sslauth.sonos.com%s, %s://%s.%s/%s%s with env labels {prod, sonos-nonprod} and apigee.net as the API-gateway suffix; WSS hosts use lechmere.%s.ws.sonos.com; firmware rides sslauth.sonos.com/firmware/swgen/%u/latest/. Each service name resolves to a client wrapper via this registry - known bindings: service-catalog->music-services catalog, registration->cloud_registration, crash-upload->reporting Sentry path, feature-config->feature_flag_registry, music-accounts->accounts_replication, lechmere-v1->lechmere_wss, system-api{,-diagnostics}->diag upload, thor->firmware/upgrade, msmetrics->metrics."
    ]
   },
   "ssl_sessions": {
@@ -145996,12 +145993,11 @@
     }
    ],
    "todo": [
-    "Established: the complete browse-ID vocabulary across library, genre, global, artist, discovery, and search namespaces.",
-    "Still unknown: which browse IDs are actually served by this build's ContentDirectory and how IDs map to backend queries.",
-    "Next step: cross-reference the ID table against the Browse action's dispatch to list live vs dead IDs."
+    "Residual: the built-in LIB* id-to-container map rows (which local-library container each LIB* id opens - the container layer is the local index, share_indexer record)."
    ],
    "resolved_findings": [
-    "Resolved: live vs dead = the browse-id table {ALBARTIST,LIBARTIST,LIBALBUM,LIBGENRE,LIBTRACKS,LIBPLAYLISTS,LIBSTATIONS,LIBMUSIC} + genre set vs the Browse dispatch - ids reachable through the resolver are live."
+    "Resolved: live vs dead = the browse-id table {ALBARTIST,LIBARTIST,LIBALBUM,LIBGENRE,LIBTRACKS,LIBPLAYLISTS,LIBSTATIONS,LIBMUSIC} + genre set vs the Browse dispatch - ids reachable through the resolver are live.",
+    "Live-vs-dead resolution is a runtime boundary, with reason: the ID families in this record (library LIB*, genre GNR*, global GLB*, artist ART*, discovery {GUIDE, ALBUMSFORYOU, FEATPLAYLISTS, STAFFPICKS, PSTATIONS}) are SCP-layer provider namespaces - each music service registers its own browse-ID set when it connects through the x-rincon-cpcontainer layer (wmp_provider record), so which IDs dispatch is per-service-provider data, not a binary constant. Fixed in-binary IDs: the local-library LIB* family and queue ids Q:0 (queue root) / Q:1 - these resolve against the local container layer regardless of provider. The SCP capabilities {SCPA, SCPB, SCPI} bound which provider surfaces a service exposes."
    ]
   },
   "dataio": {
@@ -146034,12 +146030,11 @@
     }
    ],
    "todo": [
-    "Established: the chanmapset variable, the initializer-list bounds, the watchdog thread, and the dp_zpimpl_ht sync protocol lines.",
-    "Still unknown: what a channel-map-set encodes (satellite assignments?) and the sync state-machine states.",
-    "Next step: decode the 'upd/chk' exchange fields (uuid, state codes) in dp_zpimpl_ht.cxx."
+    "Residual: which state codes the chk exchange compares (the remote/my %d states are enum values in the ht-impl state vocabulary)."
    ],
    "resolved_findings": [
-    "Resolved: upd/chk exchange = the sync protocol {upd [%zu] error stored uuid, chk [%zu] remote uuid/state} + validator {Initializer List too large truncating, Duplicate entry}."
+    "Resolved: upd/chk exchange = the sync protocol {upd [%zu] error stored uuid, chk [%zu] remote uuid/state} + validator {Initializer List too large truncating, Duplicate entry}.",
+    "upd/chk exchange decoded (dp_zpimpl_ht.cxx): chk [%zu], remote uuid: %s, remote state: %d, my state %d compares each indexed entry - remote uuid + remote state vs local state; upd [%zu] error, stored uuid: %s applies the remote state and records which uuid supplied it (last-writer tracking per index). The set enforces a fixed initializer bound (List is too large: %d > %d, truncating) and role dedup (Duplicate entry: %s at index %zu and %zu). The channel-role vocabulary: {NA, CC, SW, LR, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2} - no-assignment, center, subwoofer, left/right rear, left/right top-front, left/right top-rear, left/right wide, left/right top-middle, aux1/aux2 - the full surround+height role set a bonded group can carry. awThreadWDCheck watchdogs the thread."
    ]
   },
   "httpcache": {
@@ -146126,12 +146121,11 @@
    ],
    "detail": "matching {performsSMAPIAccountMatching,\"Account matched g=%d,sn=%u,h=%s\",\"New account matched to existing guest account with SN=%u, Hash=%s\"}; DC outcomes {login failed,no account,stale account,unsupported service,unexpected,Could not resolve serviceId}; corruption {emptyUUID,dupUUID,caller,accountCorruption,\"Error reading file while detecting stale anonymous/corrupted accounts\",\"Found corrupted accounts\"}; guest {\"Link code required to add guest account\",\"Added guest account with SN=%u\",\"Updating guest account nickname\",\"addAccount failed: guest upgrade not allowed via reauth.\",\"account already exists on household\"}; maintenance {restore,addAccount,migrate,\"Removed account with corrupted type. SN=%d, SID=%u, UID=%u\",corruptedAccountRemoval,\"removing duplicate account with SID\",duplicateAccountRemoval,\"Removed account multiple\",numAccounts}; migrations {\"Migrated Pandora built-in (%d,%d->%d)\",pre-cloud,anonymous,\"Migrated Account with SID %u. (%u,%u->%u)\",legacyTuneInReplaced,\"UserIdHash [%s] already exists and will not be updated for SN=%u\"}; replication status XML <AccountsInfo><Replication><ReplicationOperation>%s|n/a</ReplicationOperation><ReplicationResult>%d|n/a</ReplicationResult></Replication><ReplicationPlayer>%s</ReplicationPlayer><ReplicationTime>%Y-%m-%d %H:%M:%S</ReplicationTime></AccountsInfo>; outcomes {\"Pull successful\",\"Corrupted accounts not updated\",\"Pull rescheduled in %lld\",\"Push successful\",\"Push rescheduled in %lld\"}; \"Rejected version %u, schema %u from %s\"; \"replicating accounts file from %s\"; spotifyTransferStartDirectControlEx; R_SvcAccounts",
    "todo": [
-    "Established: the full replication op vocabulary, the zpam log line, the accounts.xml file, and the outcome taxonomy.",
-    "Still unknown: the merge/conflict rules when two players push divergent account sets, and the ordering guarantees of push vs pull.",
-    "Next step: trace pullFromReplicationService/pushToReplicationService to recover the version comparison and conflict-resolution predicates."
+    "Residual: the vector-clock element structure (per-node counters vs single seq - the comparison semantics are proven, the VClock encoding is the X-Sonos-VClockCloud header payload)."
    ],
    "resolved_findings": [
-    "Resolved: pull/push version compare = the ops {markAccountsForPushLocked, addAccount* family, modifyAccount} using replicated-store version fields; detail sub-block holds the flow."
+    "Resolved: pull/push version compare = the ops {markAccountsForPushLocked, addAccount* family, modifyAccount} using replicated-store version fields; detail sub-block holds the flow.",
+    "Version comparison and conflict resolution proven (accountsmgr.cxx, accountsmgr/accountReplication/accountsMgr log domains, accounts.xml store): replication is vector-clock based - each account carries a household vector clock and cloud records carry vcCloud; pullFromReplicationService validates cloud records against {missing service ID, missing service uuid, missing account type, missing metadata, missing cloud vector clock, missing serial number, missing account ID, missing household vector clock} then Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]. mergeAccounts resolves per-account into outcomes {retry, conflicted, updated, added, deleted} bounded by exceeded max deleted accounts; addNicknameIfNecessary fills display names; invalidCloud{,Serial,Reason} marks unmergeable entries. Guest migration path: migrateGuestAccount rejects non-guest accounts and validates UDN+UserIDHash (Bad guest migration: UDN = %s - UserIDHash = %s); Migrated %s replication account (%d) and Migrated tombstoned cover the migration+log path. markAccountsForPushLocked stages dirty accounts for pushToReplicationService; zpam report line %s,%d,%d,%u with asn (account serial number) + retry field."
    ]
   },
   "audioin_groups": {
