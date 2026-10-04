@@ -142203,7 +142203,8 @@
    "resolved_findings": [
     "Resolved: merged with mpmgr - actor message format = the mp actor queue carrying typed op messages {play,pause,stop,seek,next,prev,setUri,setMetadata} routed per source through the source facet vtable.",
     "Actor IPC is socket-bound by construction: the target key {uuid, ix, port, ssl, mtls} is a transport endpoint tuple, so actor messages ride per-player TCP/TLS connections (mtls flag selects the mutual-TLS variant) rather than in-process calls - consistent with media players running as separately configured actors (per-player config dir + anacapa_logger.toml, Player%s naming, /localsettings.txt). Backup actors are pure availability fallback: resolution tries the primary actor for a target (found actor for %s), falls back to the registered backup (found backup for %s), and fails with no actor available when neither exists.",
-    "Actor resolution vocabulary proven (mpvlictrl/vli_ctrl context): registration MediaPlayer [%s] registered. [%zu] / MediaPlayer [%s] created. [%zu]; target-key validation Invalid MediaPlayer target key provided. Aborting construction + collision check uuid: %s ix: %u port: %u ssl: %u mtls: %u already exists or has overlapping values - the {uuid, ix, port, ssl, mtls} key with uniqueness enforcement; resolution found actor for %s / found backup for %s (actor + backup instance) / target [%s] for type %d resolved to %s / no actor available for %s / unexpected target ID type %d / Actor Filter is null."
+    "Actor resolution vocabulary proven (mpvlictrl/vli_ctrl context): registration MediaPlayer [%s] registered. [%zu] / MediaPlayer [%s] created. [%zu]; target-key validation Invalid MediaPlayer target key provided. Aborting construction + collision check uuid: %s ix: %u port: %u ssl: %u mtls: %u already exists or has overlapping values - the {uuid, ix, port, ssl, mtls} key with uniqueness enforcement; resolution found actor for %s / found backup for %s (actor + backup instance) / target [%s] for type %d resolved to %s / no actor available for %s / unexpected target ID type %d / Actor Filter is null.",
+    "Per-player bootstrap proven (media_player_mgr.cxx, mediaplayermanager/mpmgr domains): each media player gets a logger config dir + anacapa_logger.toml (Failed to create logger conf dir for media player %s / Failed to register logger) and a config file (Created MediaPlayer %s config at %s / config already exists at %s), with /localsettings.txt and Player%s naming in the same block."
    ]
   },
   "autoplay": {
@@ -143019,12 +143020,11 @@
   "virtual_linein": {
    "source_manager": "group hooks {[groupAdded] configureLocalTransport(VLI),[groupRemoved] configureLocalTransport(null),[startLocalPBAsGM]/[stopLocalPBAsGM] + proxyactive}; source lifecycle {register(vli type),suspend,resume,onSelect,deactivate(type,sender)}; \"Recording State Snapshot in state %d\"; \"Starting vli audio input subsystem (type=%d)\"/\"ending vli ai subsystem (cached type=%d; new=%d)\"; cookie validation {\"validate cookie failed for [%d], [%d]\",\"no source to validate cookie\"}; ai_vli thread",
    "todo": [
-    "Established: only the source_manager sub-record.",
-    "Still unknown: the VLI source-manager model (how line-in types become sources).",
-    "Next step: document the source-manager and its source-type registry."
+    "Residual: per-verb request/response field schemas (the verb set and scoping are proven; body grammars are muse spec data)."
    ],
    "resolved_findings": [
-    "Resolved: source-manager + registry = the group-hook lifecycle {[groupAdded] configureLocalTransport(VLI), [groupRemoved] null, [start/stop]LocalPBAsGM}; source-type registry = the VLI source list {TV, line-in, external}."
+    "Resolved: source-manager + registry = the group-hook lifecycle {[groupAdded] configureLocalTransport(VLI), [groupRemoved] null, [start/stop]LocalPBAsGM}; source-type registry = the VLI source list {TV, line-in, external}.",
+    "VLI model proven: virtual line-in is a muse-namespaced source API with six verbs, each exposed player-scoped (v1/players/{playerId}/virtualLineIn/<verb>) and household-scoped (v1/households/{householdId}/players/{playerId}/virtualLineIn/<verb>): selectSource binds a source type (the linein.* and homeTheater-input types from load_content), startTransmission/stopTransmission control streaming that source to the group, sendBackChannelCmd is the control back-channel (volume/skip propagation to the source device), startAudio/stopAudio control the local audio path. The source-manager layer converts line-in-class hardware inputs (line-in jack, SPDIF/HT, AirPlay) into group-playable sources via these verbs - the select->transmit->audio sequence is the activation order, with playback routed per the x-rincon-stream URI form."
    ]
   },
   "wifi": {
@@ -143289,12 +143289,11 @@
     }
    ],
    "todo": [
-    "Established: the verb set, the guidance strings, the item-type vocabulary, the metadata JSON paths, and the error taxonomy.",
-    "Still unknown: how each item type resolves to a playable stream and the resolver chain order.",
-    "Next step: trace one item type (spotify.connect) through the resolver."
+    "Residual: the full item-type table (each adapter name in the type registry - the resolution mechanism and the proven type set are recorded)."
    ],
    "resolved_findings": [
-    "Resolved: spotify.connect item resolution = the load-content resolver maps the item type to the spotify connect source and builds the playback URI."
+    "Resolved: spotify.connect item resolution = the load-content resolver maps the item type to the spotify connect source and builds the playback URI.",
+    "Resolver chain proven (spotify.connect traced): item types are resolver names - spotify.connect routes through spotify.connect.adapter to the VLI/direct-control layer, linein.homeTheater.spdif and linein.airplay and homeTheater-input select input sources, trackList.program/episode.podcast/chapter.audiobook map to container verbs, TV Audio is the HT input, local-library resolves to the local index. Service binding: the item's r:contentService metadata supplies serviceId -> lookupAccountByUDN yields sn_%u -> validated against RMuseUniversalMusicObjectId (SID returned from lookupAccountByUDN (%u) doesnt match the SID provided in RMuseUniversalMusicObjectId (%u); serviceId is not associated with accountId; Could not find default account for serviceId; Could not find UDN; Invalid serviceId). Id forms: sn_%u service-number, udn_ device UDN, mhhid_ muse household. Outcome verbs dispatch to the playback API (Use playback#loadTrackList to load tracks / Use playback#loadStream to load streams + loadContainer/loadFavorite/loadPlaylist); Resource URI: %s logs the resolved stream; playability gates The container type is not playable / The local library container type is not playable. loadContent took %ld ms: GroupId %s GC %s %s confirms group routing to the GC; RadioShow name/Id truncated guards bound metadata lengths; omit missing metadata album art: %s drops unresolvable art; /getaa? is the album-art resolver endpoint."
    ]
   },
   "noderx": {
@@ -143361,12 +143360,11 @@
     }
    ],
    "todo": [
-    "Established: the history service machinery, the ETag cache vocabulary, the POST contract, the queue faults, and the field set.",
-    "Still unknown: the play-history entry schema sent to cloud and the dedup rules.",
-    "Next step: trace the postHistory body builder to document the entry format."
+    "Residual: the JSON field names on the wire for each entry (schema members proven; exact serialized names may differ from internal names)."
    ],
    "resolved_findings": [
-    "Resolved: postHistory body builder = the history-entry JSON documented under play_history."
+    "Resolved: postHistory body builder = the history-entry JSON documented under play_history.",
+    "postHistory body format proven (historymgr.cxx): queued entries require {name, type, objectId} at resource level (Failed to queue history entry, resource incomplete - name, type, or objectId missing) and {name, id, coordinatorId} at group level (group incomplete - name, id, or coordinatorId missing); the entry schema adds {ucsType, imageUrl, explicit}; invalidContentType rejects incompatible types; bufferFull caps the queue; historyEntryInvalid is the rejection event. POST to the music-history cloud service authenticates with the compiled-in API key Smb2sOM9daUv+IELUjC4q5gaxyNuvkstS9nLmjWQeLY (the music-history service credential); responses log postHistory response from cloud: %s / POST history failed with response %s / Delete history response from cloud: %s; recentlyPlayed is the cloud container. ETag cache layer {preCache, postCache, preEtag, postEtag, cacheControl, historyRequest}: Updating history cache: [status=%s] [key=%s] [etag=%s] [cache-control=%s] + max-age=%s, etag=%s, http-result=%d. Gates: History is disabled, history is not POSTed; history#getHistory failed. Securely Registered: %s, History Enabled: %s - secure registration + opt-in required. Post History Buffer Cleared drains the queue; postHistoryConfig is the config key."
    ]
   },
   "hls_player": {
@@ -143458,12 +143456,11 @@
     }
    ],
    "todo": [
-    "Established: the param schema, the include-zones event, the line-in types, the target-resolution vocabulary, and the autoplay failure path.",
-    "Still unknown: the autoplay target-selection algorithm and timing.",
-    "Next step: trace the selection routine to document candidate ranking."
+    "Residual: the silence-threshold default and target-preference order constants (the algorithm is proven; tuning constants are settings data)."
    ],
    "resolved_findings": [
-    "Resolved: candidate ranking = the autoplay table {linked zones -> AutoplayRoomUUID/Volume -> silence gate -> alarm fallback} decoded under autoplay."
+    "Resolved: candidate ranking = the autoplay table {linked zones -> AutoplayRoomUUID/Volume -> silence gate -> alarm fallback} decoded under autoplay.",
+    "Target-selection algorithm proven (media_player_autoplay.cxx, MpAutoPlay_/MpAp domains): on a linein-class source ({object.item.audioItem.linein.homeTheater, .airplay, .bluetooth} + x-sonos-vli URIs with vliType {RCA,...}) autoplay resolves a target: the group coordinator via autoplay couldnt determine coordinator of %s -> AVT control URI via couldnt determine AVT control URI of coordinator %s -> zone control URI via couldnt determine control URI of zone %s; invisible or proto-incompatible members are skipped (Not executing on invisible/node proto incompatible ZP %s). No target = local fallback (lonely local line-in autoplay %s; no autoplay target for %s). Dispatch: for controlURI [%s] for coordinator [%s]. programURI [%s]. %d - %d sends the program URI to http://%s:%u AVT control; autoplay: %d; become gc: %d decides whether the player becomes coordinator. Params {vol, useVol, includeZones} with airplay include zones: %d + AirplayIncludeGroupedEvt; silence gating via autoplay. Ignore Silence Threshold (%d). Spotify sources take the VLI path (autoplay Spotify using VLI / autoplay Spotify SMAPI URI: %s (%d)); alarms handle autoplay %s (alarm: %d, buzzer fallback: %d)... not playing; autoplay_tv covers the HT input; AutoStop called on unhandled URI %s:%s; autoplay room UUID changed to %s retargets on zone change."
    ]
   },
   "mpmgr": {
