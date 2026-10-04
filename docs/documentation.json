@@ -144201,14 +144201,11 @@
    "auth_errors": "auth helper errors {\"Player is not securely registered\",\"Access token's user does not match registered user\",\"Access token does not have adequate permissions\",\"Command scopes could not be determined\",\"Invalid user\",\"Scope is insufficient\",\"Error reading scopes\",\"Error matching scopes\"}; scopes {hh-config,hh-config-admin}; token fields {access_token,resource_owner,expires_in,time_since_created}; response {\"Response code: %d, Access token is invalid\"/\"Scope is insufficient\"}",
    "service_bindings": "musezpactor UPnP service URIs {AlarmClock:1,AudioIn:1,ConnectionManager:1,MusicServices:1,SystemProperties:1,ZoneGroupTopology:1,HTControl:1,GroupManagement:1,GroupRenderingControl:1(urn:schemas-upnp-org) + Queue:1(urn:schemas-sonos-com),VirtualLineIn:1}; \"zp already set\"/\"zp not set\"",
    "summary": "; explicitTargets guards 'explicitTargets: invalid target id in list','explicitTargets: too many targets'; validator 'when primitive type was expected','number of entries below minimum of'; log redaction '{\"reason\": \"MESSAGE REDACTED\"}' (muselogrsp); authz 'unauthenticated_control_disallowed'; enum names {INSECURE,PLAYER_WITHIN_GROUP,BATTERY_SAVER,LONG_PRESS,NOT_CHARGING,GROUP_STATUS_GONE,AUTO_HT_CONFIGURATION,SESSION_STATE_CONNECTED,SONOSNET_ENABLED,PLAY_REPEATED,MUSIC_ACCOUNTS,TAG_EXPLICIT,CONNECTED_UNALLOCATED}",
-   "todo": [
-    "Established: composite record - explicitTargets guards, the validator vocabulary, the redaction mechanism, authz errors, and enum names in sub-blocks.",
-    "Still unknown: the op-dispatch table layout and how validators bind to ops.",
-    "Next step: trace the route registry to the op-descriptor table."
-   ],
    "resolved_findings": [
     "Resolved: route registry -> op-descriptor table = the 525-entry route table mapping each spec pair to a handler descriptor {namespace, verb, handler fn, flags}."
-   ]
+   ],
+   "op_dispatch_table": "the op-dispatch table is the muse route table: a single 604-record array of 24-byte entries {path_template*, flags, 0, handler*, 0, csv_descriptor*} spanning 0x10e783f8..0x10e7bc94. The 'householdId primary' pointer 0x10e7a68c is a mid-table offset marking the householdId-dialect tail (235 records); the {HHID}-dialect records occupy the head. (Corrects the earlier '525-entry' shorthand: the full table is 604 records, matching the documented 603 route records plus the boundary entry.) Route handlers are the two stubs f_100d36c0 (r8=0) and f_100d36e4 (r8=1) tail-calling normalizer/dispatcher f_100d2e18.",
+   "validator_binding": "validators bind to ops through the op-descriptor spec-pair stream: each op descriptor carries a per-param {u32 tag, u32 name_table_index} run (terminated by ffffffff/ffffffff) where the name-table index keys the per-member LAYOUT/validator switch rooted at 0x10927d24 (decodes packed member descriptors into {count,byte-size} pairs at runtime-object slots). The 'when primitive type was expected' / 'number of entries below minimum' messages are that switch's rejection paths; per-op param names and defaults sit in the verb/param literal run following each descriptor block."
   },
   "registration": {
    "secreg_fsm": "endpoints /product/v2/households/%s/players?action=refresh + ?action=complete&token=%s; FSM {registration during suspend,time expired,success,retrying at %ld,error,regStatus}; signing {\"Invalid registration signing key in IPC payload\",\"Registration signing key set/cleared\"}; \"Household customer ID [%s] in conflict with local device [%s]\"; \"regState changed %d -> %d\"; \"Transfer mode old (e:%d) new (e:%d)\" + tjmgrExitSecureRegTransferState + newRegisteredCertSonosIDLocked; mutualssl/sslError/errno fields; \"removed invalid cert\"; \"Unexpected 401 response\"; secureRegTransfer/currentAccount; perf <PerformanceCounterTables> + persistentCache {lastUsed,expires}",
@@ -619571,13 +619568,15 @@
     },
     "notes": "STRUCTURE + SEMANTICS REFINED: per-op {a,b} at descriptor+0 via generated accessors; a=0xae = local REST op / a=unique id = numbered dispatch op; b=0x34 schema marker. CONSUMER: no tag-compare dispatch exists anywhere in .text (0x82/0x86/0xae/0x93/0x94 compares absent) - the entries are opaque field descriptors walked generically by the f_109dxxxx TLV serialization family (stride-8 {tag,val} pairs, FFFFFFFF terminator), the same helper class used by the WSS registry. Tag semantics are therefore data-model, not code-branch, defined.",
     "todo": [
-     "Established: the per-op {a,b} spec-pair structure at descriptor+0 is decoded - a=0xae marks local REST ops while a unique id marks numbered dispatch ops (the lechmere cmd-id hypothesis); b=0x34 is a schema marker.",
-     "Still unknown: the full tag enum and the consumer - the vfunc that reads each entry - remain unresolved (per the record's own notes).",
-     "Next step: identify the consumer vfunc and enumerate the complete tag set."
+     "Established: consumer identified - the member-layout switch at 0x10927c84 keyed by the b-field name-table type index; tag census documented (0x82 type-ref x577, 0xae local-op x191, unique-id field space, b=type-name indices dominated by 0x34 upnpEvent); entries declare {field_id, type} members.",
+     "Still unknown: field-name bindings per entry index - which declared member corresponds to which op param name (the a-field ids are build-time numbers with no in-binary names; names must be joined from the verb/param literal run following each block by position).",
+     "Next step: correlate spec-stream entry order to param names in the literal run (positional join) for one well-instrumented block to validate the mapping, then annotate."
     ],
     "resolved_findings": [
      "Established: {a,b} structure, accessor mechanism, a-field namespace split (0xae local / unique-id numbered), b=0x34 schema marker, and the consumer class (generic stride-8 TLV walkers in f_109dxxxx - no per-tag code dispatch exists). Still unknown: the per-entry field-name bindings (which op param each entry declares). Next step: correlate entry index -> param name via the verb/param literal run following each block (literals are already catalogued in literal_extras)."
-    ]
+    ],
+    "consumer": "CONSUMER FOUND: the layout/validator switch rooted at 0x10927c84 (epilogue tail 0x10927c70) dispatches on the b-field type index (r4): explicit cases 0x4e/0x62/0x70/0x71/0x72/0x120/0x144/0x146 with a default branch for indices < 0x13a that bitfield-decodes a packed member descriptor (rlwinm/slwi/or chains) into {count, byte-size} pairs stored at consecutive state slots (0x348/0x34c here, parallel slots 0x190/0x194, 0x330/0x334, 0x340/0x344, 0x380/0x384). So each spec entry {a=field_id, b=name_table_index} declares one member; the switch resolves the declared type into the member runtime layout.",
+    "tag_enumeration": "census across all ffffffff/ffffffff-terminated pair runs in .rodata: dominant a-tags 0x82 (577x, the type-ref/member-descriptor tag), 0xae (191x, local-REST-op field), 0x86 (57x), 0x12e/0x131 (60x each, paired count fields), 0xb9 (44x), plus the unique-id field space (0x13-0x141 ascending, one per op/field). Dominant b-values are name-table type indices: 0x34 (380x, upnpEvent wrapper), 0x3f (204x), 0x47 (95x), 0x48 (81x), 0x66 (45x), 0x59 (44x), 0x42 (57x), 0x5a (28x), 0x41 (26x), 0x50 (19x), 0x4c (11x) - each resolves to a member type name in the 331-entry name table."
    }
   },
   "dispatch_mechanism": {
@@ -619599,13 +619598,15 @@
    "grammar_decoded": "full alarms-block decode proves the pair stream IS {member_name_idx, type_name_idx}: {ok,upnpEvent} {ok,upnpEvent} {alarmList,upnpEvent} {alarm,upnpEvent} then {globalError,T}-runs where T cycles through the allowed member payload types (channelMapPair, chirpRequest, accessoryId, none, wiredSubStatus, bluetoothDevice). So: the SECOND slot is the declared payload type (a name-table index of a TYPE entry), the FIRST slot is the member/field name index. 'globalError' is a polymorphic member whose permitted type-set is enumerated as consecutive rows. 'upnpEvent' is the dominant wrapper type for evented members. ffffffff/ffffffff terminates the stream. The per-member applier f_10927c1c(r3=state, r4=member_idx, r5=value, r7=aux) is one slot in the 7-entry object vtable at 0x10f7f724, invoked via vfunc from the stream driver.",
    "extracted": "51 spec-pair streams extracted to reference/muse_spec_streams.md (every muse resource's member\u2192type map. Grammar confirmed: first slot = member/field name index, second slot = declared payload type index (both into the 0x10f97094 table); ffffffff/ffffffff terminates. Verbs/params follow the stream. 'ok' members always carry upnpEvent; 'globalError' rows enumerate the error/variant payload types; named members (alarmList, entitlementsList, zoneDefinition...) carry their typed payload. The 0x10ffca08 stream is a DIFFERENT table (none/accessoryId pairs) likely an enum/identity map, not the member:type grammar).",
    "todo": [
-    "Established: the spec-pair record structure (the v2 decode that maps op descriptors to verb/handler pairs) is decoded at the container level.",
-    "Still unknown: field-level semantics for descriptor fields that never resolve to a named verb, and the boundary between decoded spec pairs and the opaque tail of the descriptor stream.",
-    "Next step: enumerate descriptor fields that fail verb resolution and trace where the opaque tail is consumed."
+    "Established: opaque tail fully decoded (zero pad + u32 count + verb-name pool + default literals + next block); spec stream shows per-op {marker, member*} grouping; consumer = layout switch at 0x10927c84; type indices resolve via the 327-entry name table at 0x10f97094.",
+    "Still unknown: the u32 count field semantic after the terminator (2 for alarms - variant vs subfield count unproven), and the exact marker-word semantics (0xae vs 0x13 vs 0x16 vs 0x86 as op-variant/dispatch selectors) plus the definitive positional join of member-groups to verb names.",
+    "Next step: diff two blocks with different verb arities to pin the count field, and map one marker value to its op through the generated accessor pair (accessor_i returns &entry_i)."
    ],
    "resolved_findings": [
     "Established: {a,b} bimodal grammar, block structure (0x80-byte op records, 23-slot vtable spine, FFFFFFFF terminator), the accessor + serializer-exec consumers, and that tag dispatch is data-driven (no code compares on tag values). Still unknown: field-name bindings per entry index and the boundary between decoded spec pairs and the opaque descriptor tail. Next step: join entry indices to the verb/param literal run order to name each declared field."
-   ]
+   ],
+   "tail_decode": "OPAQUE TAIL DECODED on the alarms block (0x10f9fc74): after the ffffffff/ffffffff terminator comes a zero pad, a u32 count field (alarms: 2 - its semantic is ambiguous, channel/variant count vs subfield count), then the verb-name string pool as consecutive NUL strings ('getAlarms','fetchAlarm','createAlarm','updateAlarm','snoozeAlarm','removeAlarm') followed by param default literals ('PT0H5M0S' for snoozeAlarm), then the next descriptor block's pointer records (0x10f9fdac). The tail is the verb+default literal pool, not opaque data.",
+   "per_op_grouping": "the 22 spec entries in the alarms block group per-op: marker entries {0xae,0x34}/{0x13,0x34}/{0x16,0x34} alternate with member runs {0x82,type_index}, yielding ~5 member-groups for 6 verbs (e.g. {0x13,0x34}+{0x82:0x47} vs {0x13,0x34}+{0x82:0x48,0x1,0x0,0x3f} vs {0x86,0x42}+{0x82:0x48,0x3f}). The marker word selects the op variant/dispatch id while the 0x82 run declares that op's typed members - consistent with {field/marker, name_table_type} pairs consumed by the layout switch at 0x10927c84."
   },
   "mount_routes": {
    "/device_account": "f_1065bd70 - muse-engine-mounted REST namespace (same mount pattern as /api f_100d2cf8); flag 0x100",
@@ -622183,15 +622184,45 @@
    "aliasing": "entries are NOT unique: 'upnpEvent' occupies 16 slots (0x14,0x28,0x34,0x4d,0x50,0x5a,0x88,0x89,0x95,0xa6,0xdf,0xed,0x112,0x12f,0x135,0x142): the table is a flat member/event-name registry where many distinct spec slots share the upnpEvent payload type; the index is the member identity, the string is its declared name."
   },
   "opaque_payloads": "RESOLVED at spec level: the streams give field names + payload types per resource. Remaining unknown: the wire encoding of the upnpEvent wrapper itself and the byte-level layout of nested objects (the member offsets computed by f_10927c1c are runtime-internal, not wire format). The member name registry (331 entries incl. aliased upnpEvent/upnpResponse/versionChanged) is the authoritative vocabulary.",
-  "todo": [
-   "Established: the full 603-record route table, 67 resources / 332 operations, the op-descriptor decode (spec streams), the dispatch mechanism, event channels, and the authz/lechmere verb registry are decoded and documented.",
-   "Still unknown: roughly a fifth of muse verbs (verbs_bound 237 of verbs_total 265) have no resolved op binding; several payload families remain opaque (opaque_payloads, loadcontent variants), and a set of route records have unrecovered verb names.",
-   "Next step: extend the spec-pair decode to the remaining unbound verbs, decode the opaque payload schemas, and trace the ~28 unbound verbs to their handlers."
-  ],
   "resolved_findings": [
    "Resolved (boundary): residual unknown - 28 of 265 verbs have no resolved local op binding - these are the ops whose exec vtable slot keeps the f_109ec9e0 null stub (dispatch returns ERROR_UNSUPPORTED_COMMAND 90), i.e. lechmere/cloud-only verbs without a local REST implementation on this build; several payload families remain opaque (opaque_payloads).",
    "Resolved (boundary): the ask crosses the injected-delegate/runtime boundary - the handler and dispatch layers are fully decoded in this record; the residual runtime-internal detail is not statically observable and is documented as a boundary."
-  ]
+  ],
+  "unbound_verbs": {
+   "count": "28 distinct verbs across 45 route records lack impl vtables (verbs_bound 237 of 265; routes_with_impl 558 of 603)",
+   "verbs": [
+    "batchTranslate",
+    "completeDeviceRegistration",
+    "createInvite",
+    "deleteInvite",
+    "deregisterDevice",
+    "getContent",
+    "getDeviceRegistrations",
+    "getDevices",
+    "getHousehold",
+    "getHouseholdLocation",
+    "getHouseholds",
+    "getInfo",
+    "getRelativeTime",
+    "getUserDeviceRegistrations",
+    "getUsers",
+    "initDeviceRegistration",
+    "redeemInvite",
+    "refreshDeviceRegistration",
+    "removeDevice",
+    "reportAccountSubscription",
+    "reportFirmwareDownload",
+    "reportProductEvent",
+    "reportSoftwareDownload",
+    "sendButtonCommand",
+    "setLocation",
+    "setName",
+    "setPowerPolicy",
+    "translate"
+   ],
+   "explanation": "every unbound verb belongs to an outbound-registry namespace (authorization, catalog/translate, device-registration, household, invites, systemReporting, smartplay getContent, virtualRemoteControl sendButtonCommand, power, time) - the player is the CLIENT for these ops and forwards them to the cloud over lechmere/WSS, so no local impl vtable exists by design",
+   "registry_lechmere_delta": "12 route-table verbs absent from the lechmere_verb_registry entirely (beginHouseholdSoftwareUpdate, getHouseholdUpdateStatus, leaveSession, rejoinSession, suspend, loadCloudQueue, loadCloudQueueWithWindow, refreshCloudQueue, loadStreamUrl, loadStreamUrlWithContext, skipToItem, skipToItemWithWindow) - session/queue/cloud-queue ops served locally but not lechmere-registered"
+  }
  },
  "cert_layer": {
   "keycert_ids": {
