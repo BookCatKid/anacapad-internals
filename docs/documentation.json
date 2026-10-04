@@ -140537,7 +140537,8 @@
    ],
    "resolved_findings": [
     "Resolved: POST body schema = history-entry JSON {resource:{name,type,objectId}, group:{name,id,coordinatorId}, trackMetadata, deviceId, householdId, container, action} POSTed to the household history API (history?id= delete path); gates are the completeness checks resource-incomplete and group-incomplete plus buffer-full drop, incompatible-content-type reject, and the History-is-disabled opt-out. getHistory is ETag+cache-control cached.",
-    "Ring-buffer enqueue gate taxonomy decoded (historymgr.cxx literals): each queued entry is classified by drop reason - bufferFull (Failed to queue history entry, buffer full / Post History Buffer Cleared), invalidContentType (incompatible content type), resourceIncomplete (name, type, or objectId missing), groupIncomplete (name, id, or coordinatorId missing); the gate functions emit the machine-readable reason tags {bufferFull, invalidContentType, resourceIncomplete, groupIncomplete} alongside the human messages. Entry fields proven by literals: resource {name, type, objectId, imageUrl, explicit} + group {name, id, coordinatorId}, batched under the recentlyPlayed JSON array posted to postHistory with O_HISTORY_SERVICE_URL/O_TRACKPLAYBASE_URL config URLs; deleteHistory issues history?id=%s. getHistory is gated on both Securely Registered and History Enabled, caches by {key, etag, cache-control:max-age} and regenerates on 304 with corrupt cache could not be served after a 304 Not Modified response. TPM (trackplaymonitor.cxx) event vocabulary feeding the pipeline: Track Changed without knowing prior track end, Seeking to position %u ms streamId %u, TPM update for track uri/id/pos/calc/final, TPM Position update track mismatch, Track pos %lldms vs duration (est), Buffering - Marking track start for %u, Track end time @ %d.%06d, and rate-limited transport-error logs including the Spotify VLI recoverable error form."
+    "Ring-buffer enqueue gate taxonomy decoded (historymgr.cxx literals): each queued entry is classified by drop reason - bufferFull (Failed to queue history entry, buffer full / Post History Buffer Cleared), invalidContentType (incompatible content type), resourceIncomplete (name, type, or objectId missing), groupIncomplete (name, id, or coordinatorId missing); the gate functions emit the machine-readable reason tags {bufferFull, invalidContentType, resourceIncomplete, groupIncomplete} alongside the human messages. Entry fields proven by literals: resource {name, type, objectId, imageUrl, explicit} + group {name, id, coordinatorId}, batched under the recentlyPlayed JSON array posted to postHistory with O_HISTORY_SERVICE_URL/O_TRACKPLAYBASE_URL config URLs; deleteHistory issues history?id=%s. getHistory is gated on both Securely Registered and History Enabled, caches by {key, etag, cache-control:max-age} and regenerates on 304 with corrupt cache could not be served after a 304 Not Modified response. TPM (trackplaymonitor.cxx) event vocabulary feeding the pipeline: Track Changed without knowing prior track end, Seeking to position %u ms streamId %u, TPM update for track uri/id/pos/calc/final, TPM Position update track mismatch, Track pos %lldms vs duration (est), Buffering - Marking track start for %u, Track end time @ %d.%06d, and rate-limited transport-error logs including the Spotify VLI recoverable error form.",
+    "Cache lifecycle literals recovered (historymgr.cxx): per-request state {preCache, postCache, preEtag, postEtag, cacheControl, historyRequest} with Updating history cache: [status=%s] [key=%s] [etag=%s] [cache-control=%s] and max-age=%s, etag=%s, http-result=%d on the cloud reply; Post History Buffer Cleared on flush; historyEntryInvalid event reports (coordinatorId/ucsType/rphistory/historyService fields, Failed to report historyEntryInvalid event); History is disabled, history is not POSTed is the disable gate."
    ]
   },
   "playlist_parsers": {
@@ -143342,12 +143343,11 @@
     }
    ],
    "todo": [
-    "Established: the scheduling vocabulary, the 6-gate check, the field names, the instruction-file URL, and the fetch error taxonomy. Overlaps healthcheck_contact.",
-    "Still unknown: what a fetched instruction file can make the player do and the schedule's jitter.",
-    "Next step: merge with healthcheck_contact and document the instruction-file schema."
+    "Residual (shared with healthcheck_contact): the instruction XML element grammar (which instruction types/args the file carries) - the fetch and error paths are proven; the doc schema is server-side data."
    ],
    "resolved_findings": [
-    "Resolved: merged with healthcheck_contact - instruction-file schema = the yes-flag directive doc executed via muse message dispatch."
+    "Resolved: merged with healthcheck_contact - instruction-file schema = the yes-flag directive doc executed via muse message dispatch.",
+    "Merged duplicate pair (healthcheck.cxx): the healthcheck timer pops on a server-learned cadence (Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s) / Rescheduling next healthcheck; the 6-int Not scheduling gate is the enable/shutdown/quiet condition set). On pop it GETs /ws/diag/diag_instructions.xml?hhid= (Contacting server for instructions: %s) - the instruction file is an XML doc listing which diagnostic bundles to submit; fetch/parse taxonomy {I/O Error 0x%x + HTTP Result %d, Indeterminate instruction file length, Incomplete instruction file, Failed to parse instruction file, Instruction file too large}; parsed instructions fill SubmitPermission + ServerDiagInstructions fields consumed by the diagnostics submitQueuedDiagnostic path."
    ]
   },
   "history_mgr": {
@@ -143824,12 +143824,11 @@
     }
    ],
    "todo": [
-    "Established: the ctor deps, the P2P encryption note, the flag set, and the policy dimensions including the RuntimePolicyEvent re-eval loop.",
-    "Still unknown: how each policy dimension combines into allow/deny decisions per operation.",
-    "Next step: trace one control operation's policy check end to end."
+    "Residual: the per-action policy table (which action ids map to which dimension) - the check pattern is proven; the action->policy map is dispatch-table data."
    ],
    "resolved_findings": [
-    "Resolved: control-op policy check = the authz guest/admin permission test on the route+verb."
+    "Resolved: control-op policy check = the authz guest/admin permission test on the route+verb.",
+    "Policy surface proven (runtime_zppolicy.cxx, RRuntimeZPPolicy ctor over {localSettingsMgr, entitlementsMgr}): entitlements refresh first (LisEntitlementOn + processEntitlements, Failed to fetch latest entitlements in %s [ec=%s]), then the effective policy renders as <Policies> XML rows {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout} each No/Yes - this is the /status policy block. Re-eval triggers: isBusinessSubscriber has changed, Line In policy has changed, Business Cloud Schedule has changed -> RuntimePolicyEvent -> Reevaluating runtime policies. Enforcement composes with the hw_events action gate: inbound ops resolve to action ids checked against allowPlaybackRequests + these dims, disallowed ops log Disallowed action (%d - %s) because (%d - %s) where the because pair is the policy reason. isBusinessSystem/usageContextCloudSetting feed the schedule gate (business systems constrain control to configured windows)."
    ]
   },
   "share_indexer": {
@@ -144030,23 +144029,21 @@
     }
    ],
    "todo": [
-    "Established: the snapshot machinery, the calculateVolume formula log, the tracking states, the fault taxonomy, the event names, and the member model.",
-    "Still unknown: the group-volume normalization algorithm's exact math and the fault-codes mapping to SOAP errors.",
-    "Next step: disassemble the calculateVolume routine to recover the formula."
+    "Residual: the exact calculateVolume arithmetic (the sg/ng coefficients are float immediates in the formula; the log fields prove inputs/outputs, the weighting constants are rodata)."
    ],
    "resolved_findings": [
-    "Resolved: calculateVolume formula = {sg group scale factor, ng new group volume, sv per-member source volume, nv resulting member volume} - group volume distributes as member-relative scaling; snapshot/gvd {t,c,f,m,cv,sv} carry the operands."
+    "Resolved: calculateVolume formula = {sg group scale factor, ng new group volume, sv per-member source volume, nv resulting member volume} - group volume distributes as member-relative scaling; snapshot/gvd {t,c,f,m,cv,sv} carry the operands.",
+    "Set-group-volume pipeline decoded (grc_zpimpl.cxx, grc/grcMediaRenderer/scopeGrc tags): a GroupVolumeSetActionEvent runs the async processGroupSetVolEvt task - snapshot members (snapshot %s: %u (was %u), snapshot sum for %u (of %u) zones), compute per-zone target via calculateVolume (log: sg:%.4f ng:%u sv:%u nv:%.4f - scaled gain + group snapshot + source vol -> new vol) with the delta context gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d (total, count, fixed, muted, current vol, set vol), then apply local first (localRC vol:%u mute:%d fixed:%d) and fan out net ops to remote RCs (SetGroupVolume: local:%d netops:%u zones:%u / remoteRC (%s) %s: vol:%d/mute:%d/fixed:%d). Fault taxonomy: {total failure, partial failure, all members use fixed volume, operation in progress, unexpected upnp fault %d}. Member tracking logs addZone/removeZone/transitionValid with c/m/f counts; completion fires VliVolumeProcessingCompleteEvt so VLI sources can react to group volume changes. DesiredVolume/DesiredMute/GroupMute/OutputFixed/GroupVolumeChangeable are the group-var surfaces."
    ]
   },
   "group_mgmt": {
    "ops": "{SetSourceAreaIds,pause,play,copyMusic(%s to %s),becomeStandalone(retry),joinGroup(%s to %s,retry),groupsCommand} + upnpError; topology guards {invalid topology state empty pid/gid,inconsistent topology state invalid gc or pid count}; music context {cannot be copied,cannot be swapped}; faults {Grouping action failed,Invalid grouping action,Invalid args,Action not authorized,Grouping action failed (default)} + groupId; cloning {clone music from %s to ungroupable %s,create new group and cloning from ungroupable player}; params {Effective set of players to group,Creating group with undefined future coordinator hint,playerIdsToRemove array,playerIdsToAdd array,Effective set of new group members}; retry FSM: 'becomeStandalone(%s) failed with error %d, attempting retry'/'without retry','joinGroup(%s to %s) failed with error %d, attempting retry'/'final'; topology consistency: 'invalid topology state, empty field(s): pid: %s, gid: %s','inconsistent topology state, invalid gc or pid count: pid: %s, gid: %s, pid count: %d, gc count: %d'",
    "todo": [
-    "Established: only the 'ops' sub-record; group management ops are named but the engine is undescribed at top level.",
-    "Still unknown: how AddMember/RemoveMember propagate through topology and what the gm_impl object model looks like in full.",
-    "Next step: consolidate with group_object_model and document the op table."
+    "Residual: the invisibility/node-proto compatibility bit semantics (which capability bits make a member incompatible - the check is proven, the bit pair is capabilities-table data)."
    ],
    "resolved_findings": [
-    "Resolved: consolidated with group_object_model - op table = the gm ops dispatcher decoded under GroupManagement records."
+    "Resolved: consolidated with group_object_model - op table = the gm ops dispatcher decoded under GroupManagement records.",
+    "Engine decoded (RGMZonePlayer in gm_impl, scopeGm tag): AddMember validates before touching topology - Rejecting AddMember: GC or new member is an ungroupable player (gcUUID/memberID), invalid argument, Adding member to satellite is not supported, incompatible member, Unable to retrieve invisibility/node proto compatibility, bootseq-mismatch failure. On accept the member joins via SetAVTransportURI to the group stream (SetAVTransportURI for %s failed %d), the member list regenerates (member list generated: [%s]), and ops propagate through the coordinator verbs {ChangeTransport (failed notifying %s of changed transport), ChangeCoordinator (ChangeCoordinator for %s failed %d), GroupResize (mcount), NewGC/oldgc/gid tracking under zpGrouping}. Coordinator health runs through monitorCoordinator/gmMonitorGC - linkage broken for %s: Local gID: %s; Other gID: %s fires when group ids diverge and drives deschedule topology monitor + unlinked teardown. Command acceptance is gated (stopAcceptingGroupCommands/startAcceptingGroupCommands) during transitions. Object model: the impl carries {LocalGroupUUID @+0x139, VirtualLineInGroupID @+0x5c1 (setVirtualLineInGroupID[Locked] writers), SourceAreaIds @+0x5fc (SetSourceAreaIds), GroupCoordinatorIsLocal (strcmp against the local uuid @+0x210/+0x120), coordination gate @+0x164} - same object as the GM state-var emitters."
    ]
   },
   "healthcheck_contact": {
@@ -144060,12 +144057,11 @@
     }
    ],
    "todo": [
-    "Established: same machinery as healthcheck - schedule, server URL, fields, fetch errors. Duplicate record.",
-    "Still unknown: same gaps - instruction-file semantics.",
-    "Next step: merge with healthcheck; document instruction schema and executor."
+    "Residual (shared with healthcheck): the instruction XML element grammar (which instruction types/args the file carries) - the fetch and error paths are proven; the doc schema is server-side data."
    ],
    "resolved_findings": [
-    "Resolved: merged with healthcheck - instruction schema = the yes-flag directive doc; executor = the muse message dispatch path."
+    "Resolved: merged with healthcheck - instruction schema = the yes-flag directive doc; executor = the muse message dispatch path.",
+    "Merged duplicate pair (healthcheck.cxx): the healthcheck timer pops on a server-learned cadence (Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s) / Rescheduling next healthcheck; the 6-int Not scheduling gate is the enable/shutdown/quiet condition set). On pop it GETs /ws/diag/diag_instructions.xml?hhid= (Contacting server for instructions: %s) - the instruction file is an XML doc listing which diagnostic bundles to submit; fetch/parse taxonomy {I/O Error 0x%x + HTTP Result %d, Indeterminate instruction file length, Incomplete instruction file, Failed to parse instruction file, Instruction file too large}; parsed instructions fill SubmitPermission + ServerDiagInstructions fields consumed by the diagnostics submitQueuedDiagnostic path."
    ]
   },
   "hls_audio": {
