@@ -103972,7 +103972,7 @@
  "capabilities": {
   "0x3a8": {
    "description": "Implementation-capability field read at 24 load site(s); gates action behavior paths",
-   "effect": "On the audio-settings class (dominant load cluster f_100d7f34/f_100d8204/f_100dd650): a u8 selector byte broadcast as a common argument into the f_102a5xxx DSP-parameter setter family, which forwards it through f_107f5xxx wrappers to f_10d8d93c (dspStateManager.h, oc/zone/audio/dsplib) - it is a propagated value (DSP source/channel selector), not a boolean predicate. Stw stores at shared offset +0x3a8 (0x10e98278/0x10e985e4/0x10ef9e9c) are unrelated vptr slots on other classes.",
+   "effect": "On rc_impl, +0x3a8 holds this zone member own DSP channel-position byte (assigned from bonded-config byte 0). It is a data value propagated into dspStateManager::setParam as the per-channel record index, not a capability predicate. The name-keyed channel slots +0x7f1..+0x7f4 {Master,LF,RF,FocusMode} hold per-channel byte values for the WithoutProxy volume/mute setters.",
    "loads": [
     {
      "pc": "0x100c28c4",
@@ -104250,17 +104250,23 @@
    ],
    "notes": null,
    "todo": [
-    "Established: all static load/store sites for this capability field are catalogued with the affected-service list.",
-    "Still unknown: the field's exact predicate remains unproven - reads are catalogued but the condition it gates is inferred from site context, not decoded.",
-    "Next step: trace the field's writer to recover what condition it encodes."
+    "Established: +0x3a8 on rc_impl is the member own DSP channel-position byte (ctor arg blob[0], f_100df3fc), consumed as record-index*0x20c by dspStateManager::setParam f_10d8d93c with observer notify f_10d8d8a8; name-keyed channel slots +0x7f1..+0x7f4 map {Master,LF,RF,FocusMode}.",
+    "Still unknown: the concrete index values assigned to each physical channel position (master-left/right/sub/surround) - they come from the bonded-config blob byte 0 whose producer sits in the bonded-group setup path.",
+    "Next step: trace the rc_impl ctor caller that supplies the bonded-config record (arg at stack+0xf8 in f_100df3fc) to enumerate the channel-position byte values per bonded layout."
    ],
    "resolved_findings": [
     "Established: +0x3a8 resolves per class - on the audio-settings object it is a u8 selector byte propagated into DSP state setters (leaf f_10d8d93c writes the halfword arg into a 0x20c-stride record); the stw catalogue entries are vptr slots on unrelated classes at the shared offset. Still unknown: the byte's exact enumeration (which DSP source/channel each value selects) - the setter leaf shifts it into a record index. Next step: enumerate values written by the stb stores to name the selector vocabulary."
-   ]
+   ],
+   "owning_class": "rc_impl (RenderingControl impl object, ctor f_100df3fc in rc_impl.cxx) - the +0x3a8 field is this zone member DSP channel-position byte",
+   "value": {
+    "writer": "f_100df3fc stores lbz(*(stack arg)) at 0x100dfa30 = byte 0 of the bonded-config record passed to the rc_impl ctor (the mislabeled 'srwi' at 0x100df4a4 is rlwinm r26,r26,0,24,31, a no-op low-byte mask); secondary stb stores (0x100ff138, 0x1034a824) write 0 as init/clear; the 0x1041xxxx/0x1042xxxx stb cluster is a memset sweep on a DIFFERENT class (codec-profile init, same shared offset)",
+    "consumer": "read by the f_102a5xxx setter thunks and forwarded through f_107f5e38 into f_10d8d93c = dspStateManager::setParam(selector,value): the byte multiplies by 0x20c to index a per-channel DSP record array in the dsp manager (this+0x34+0xe0), writes the halfword at record+0x2ec, then f_10d8d8a8 walks the observer list (+0x8c..+0xe4) calling vptr+0x30",
+    "vocabulary": "the byte is a runtime DSP-channel index, not a literal enum: channel-name->slot helpers f_100d99b0/f_100d9d40 key {Master,LF,RF,FocusMode} to per-channel value bytes at +0x7f1..+0x7f4 (written by SetMuteWithoutProxy 0x100db3fc and SetVolumeAndMuteWithoutProxy 0x100db5bc, read by channelName lookup f_100d71e0); index values are assigned from the bonded layout ('BONDED_STEREOPAIR_AND_SUB' family literals) so the concrete enumeration is config-dependent"
+   }
   },
   "0x934": {
-   "description": "Implementation-capability field read at 13 load site(s); gates action behavior paths",
-   "effect": "Shared-offset record; per-site decode: 0x1068bde8 = zoneImpl service-capability mask (proven: mask AND against route cap_flags, gates the four fallback services); 0x101f330c + 0x107962f4 = container begin/end pointer pairs (+0x934 begin vs +0x93c end, delete'd); 0x104492dc = flag-byte cluster +0x934/+0x935/+0x936 (three consecutive bools); 0x10ad1398 + 0x10ad1da0 = flag byte guarding a container (+0x938 ptr, +0x940 end, +0x958 second); 0x10d017c0 = 0x21-byte char field (addi +0x934, len 0x21 - a name/id string); 0x1026329c = lazily-created object pointer (null-check before pthread setup). Some catalogue entries recorded adjacent offsets (+0x8d8, +0x964) via different base registers.",
+   "description": "Shared layout offset used by unrelated classes plus stack-frame canary slots; NOT a single capability field",
+   "effect": "No single capability field exists at +0x934. The only proven gate is the zoneImpl service-capability mask (0x1068bde8, ANDed with route cap_flags). Every other site is a different class member: two container begin pointers, a lazy-init ptr, DIDL flag bytes, bonded-layout u32, chproc audio-state field, a 0x21-char name buffer, curl members, topology_base member, zp field, and stack-canary frame slots.",
    "loads": [
     {
      "pc": "0x101f330c",
@@ -104414,19 +104420,81 @@
      "notes": "load site inside function 0x1035c43c"
     }
    ],
-   "notes": null,
+   "notes": "CORRECTION: catalogue entries whose src mentions r2+0xffff8ff8 (e.g. the stw at 0x103619b8 in f_10360ea4) are stack-protector canary slots at sp+0x934 inside large frames, not object members. The 0x10aacb34 store (*(*(arg)+0x68)+1) is a refcount or index increment on another class.",
    "todo": [
-    "Established: all static load/store sites for this capability field are catalogued with the affected-service list.",
-    "Still unknown: the gating predicate is unresolved; the affected-service pattern suggests a feature flag but the semantic is unproven.",
-    "Next step: trace the field's writer to recover what condition it encodes."
+    "Established: every catalogued +0x934 site is owner-classified (see per_class); the only proven gate is the zoneImpl mask at 0x1068bde8; canary frame-slot stores separated from object members.",
+    "Still unknown: per-member semantics for the flag-byte clusters (what each bool enables in the DIDL object and the f_10ad container guard), the chproc u32 value written from const 0x10ec9ed0, the lazy-init object class at f_10262ed8, and the un-named owners at f_10262ed8/f_103625a8/f_10aacb34/f_1062727c.",
+    "Next step: name each member via its consumer branch target; identify f_10262ed8, f_103625a8, f_10aacb34, f_1062727c owners from their vtables."
    ],
    "resolved_findings": [
     "Established: every catalogued +0x934 site is classified - zoneImpl capability mask (fully proven), two container begin/end pointer fields, a three-byte flag cluster, two flag-byte-guarded containers, a 0x21-byte char field, and a lazy-init pointer; no single shared field exists at this offset. Still unknown: the exact flag semantics inside each cluster (what each bool enables) - the fields themselves are typed and located. Next step: name each flag via its consumer's branch target (done per-site as needed)."
+   ],
+   "per_class": [
+    {
+     "owner": "zoneImpl (zone service impl)",
+     "evidence": "load at 0x1068bde8 in f_1068bc0c: mask AND against route cap_flags in the SOAP router",
+     "field": "u32 service-capability mask gating the four fallback services - fully proven"
+    },
+    {
+     "owner": "SMAPI subscription/playback object (vtable 0x10e9f6e8)",
+     "evidence": "loads at 0x101f330c (f_101f2328) and 0x101f4a64 (f_101f3a80) - same class as the 0xcdc cluster",
+     "field": "container begin pointer (+0x934 begin vs +0x93c end; delete-d pair)"
+    },
+    {
+     "owner": "a second container object (f_10796080)",
+     "evidence": "load 0x107962f4 + store src sraw(*(r3+0x938-4)) is a vector size() computation",
+     "field": "begin/end pointer pair, end at +0x93c"
+    },
+    {
+     "owner": "lazily-created object (f_10262ed8)",
+     "evidence": "load 0x1026329c null-checks before pthread setup",
+     "field": "pointer, created on first use"
+    },
+    {
+     "owner": "DIDL/metadata object",
+     "evidence": "f_10448f38: 'upnp:class', 'dc:creator', 'res' literals",
+     "field": "flag-byte cluster +0x934/+0x935/+0x936 - three consecutive bools"
+    },
+    {
+     "owner": "zone-configuration/bonded-layout object",
+     "evidence": "f_1035c43c: 'Stereo pair', 'Solo ZP', ' + SUB', 'nothing' literals",
+     "field": "u32 read while formatting the bonded-layout name"
+    },
+    {
+     "owner": "chproc / RC audio-state object",
+     "evidence": "f_107dbe3c: 'chproc' log + 'RCStates: dspZone=%d, bNightMode=%d, dialogEnhancementLevel=%d, speechExtraction=%d'",
+     "field": "u32 in the audio-state record; f_107dcba8 stores the r2-relative const at 0x10ec9ed0 (0x04050607-byte table) into it"
+    },
+    {
+     "owner": "music-service state object",
+     "evidence": "f_10d01674: 'UNAVAILABLE', 'NONE', 'WMP', 'default' literals",
+     "field": "0x21-byte inline char field at +0x934 - a short name/id string (max 32 chars)"
+    },
+    {
+     "owner": "flag-byte-guarded container (f_10ad1198/f_10ad1ba0)",
+     "evidence": "loads 0x10ad1398/0x10ad1da0 gate access to a ptr at +0x938 with end at +0x940",
+     "field": "bool byte guarding lazily-built container"
+    },
+    {
+     "owner": "bundled libcurl structs",
+     "evidence": "f_109530f4/f_109547e4: 'User-Agent', 'HTTP/', 'Lying server, not serving HTTP/2'",
+     "field": "curl-internal member; the stb rlwimi(0x1) store at 0x10955630 sets one bit in a byte flag word"
+    },
+    {
+     "owner": "topology_base (topology_base.cxx)",
+     "evidence": "f_10748f7c: '../anacapa-1.0/oc/zone/common/topology/topology_base.cxx' + getGroupProperties log",
+     "field": "u32 member initialized from a stack arg at 0x107491c0"
+    },
+    {
+     "owner": "zp object (MAC-format path)",
+     "evidence": "f_10691e00: 'zp' log + 'format MAC address from event'",
+     "field": "u32 init 0 at 0x10692420 then written at 0x10692bb8/0x10692cc8"
+    }
    ]
   },
   "0xcdc": {
-   "description": "Implementation-capability field read at 17 load site(s); gates action behavior paths",
-   "effect": "On the spot_q (Spotify-queue) class (load cluster f_1021fbd0-f_10220914, 'spot_q' log + setPositionInfo/setTrackStreamId/notifyDownloadComplete literals): a u32 track/stream id stored at obj+0x8a0+0x43c, written by the setter at f_10220878 (stw r4-in) and compared against incoming ids (f_102203a0 compares arg vs +0x88c vs +0xcdc vs +0x43c to detect which stream a completion refers to). Not a capability predicate. Other sites (0x101fxxxx, 0x1033xxxx, 0x109xxxxx) are unrelated classes at the shared offset - e.g. the 0x2000 store at 0x10199ac8 is a flag word on another type.",
+   "description": "Shared member offset coincidentally used by at least 9 unrelated classes; NOT a capability gate",
+   "effect": "+0xcdc is a shared layout offset, not a capability predicate: nine unrelated classes place different members here (stream id, curl struct member, flag word, pointers, bytes). Each site must be interpreted against its owning class, not as one gate.",
    "loads": [
     {
      "pc": "0x101f3024",
@@ -104610,17 +104678,64 @@
    ],
    "notes": null,
    "todo": [
-    "Established: all static load/store sites for this capability field are catalogued with the affected-service list.",
-    "Still unknown: the gate's meaning is undecoded; load sites are catalogued but the condition is not.",
-    "Next step: trace the field's writer to recover what condition it encodes."
+    "Established: +0xcdc is a shared offset across >=9 unrelated classes; per-class owner map documented in per_class (spot_q stream id, chsnk crossfade field, gm_impl subobject ptr, curl struct member, settings flag word, loadContainer const ptr, irdecoder byte, SMAPI subscription field, lastUpdateDevice byte). It is not a capability gate.",
+    "Still unknown: exact per-class member semantics for the chsnk crossfade field, the curl struct member, the settings flag-word bits (0x2000 + runtime value), the loadContainer pointer target 0x10f9a6c4, and the SMAPI subscription field.",
+    "Next step: for each owner, disassemble one read context to name the member (e.g. curl upstream source maps +0xcdc to a struct field; settings object: which flag bit 0x2000 is)."
    ],
    "resolved_findings": [
     "Established: +0xcdc resolves per class - on spot_q it is a u32 track/stream id (setter f_10220878, compared in f_102203a0); the 0x101f/0x1033/0x109 load sites belong to unrelated objects at the shared offset. Still unknown: the field meanings at those other classes' +0xcdc. Next step: identify the owning class at each remaining site (as done for 0x934)."
+   ],
+   "per_class": [
+    {
+     "owner": "spot_q (Spotify queue impl)",
+     "evidence": "load cluster f_1021fbd0-f_10220914 ('spot_q' log, setPositionInfo/setTrackStreamId/notifyDownloadComplete literals)",
+     "field": "u32 track/stream id; setter f_10220878 stores arg at 0x102208c8; f_102203a0 compares an incoming id vs +0x88c/+0xcdc/+0x43c to identify which stream a completion refers to; ctor/dtor clear it (f_1021f854, f_102210e8, f_10221828)"
+    },
+    {
+     "owner": "chsnk crossfade engine",
+     "evidence": "f_1033e00c/f_1033e640: 'chsnk' log + 'crossfade %zu samples'/'crossfaded %zu bytes' literals",
+     "field": "u32 read during crossfade bookkeeping"
+    },
+    {
+     "owner": "gm_impl (GroupManagement impl)",
+     "evidence": "f_103938f0: 'gm_impl'/'nGroupID'/'scopeGm' literals",
+     "field": "pointer to an allocd subobject - three stw of f_10809f0c/f_1039be20 return values at 0x10393ef4/0x10394360/0x10394444"
+    },
+    {
+     "owner": "bundled libcurl connection structs",
+     "evidence": "0x10917bac ('multi_getsock: unexpected multi state', pollset[] logs), 0x10922990 ('abort upload after having sent %lld bytes'), 0x1093ef84 ('adjust_pollset','cf_socket_shutdown'), 0x10952258 ('Authorization: Bearer %s'), 0x10958458 ('http/2: on_stream_close')",
+     "field": "libcurl-internal struct member at +0xcdc read across multi/easy/http2 paths (upstream curl layout, not a Sonos field)"
+    },
+    {
+     "owner": "device settings/persistence object",
+     "evidence": "f_101981f0: 'netsettings.txt', '/var/run/systemtimeoffset', 'removeTrueplayFetchedAssets'",
+     "field": "u32 flag word; init stores 0x2000 at 0x10199ac8 then a return value at 0x10199b0c"
+    },
+    {
+     "owner": "loadContainer-bearing object",
+     "evidence": "f_104437ec: 'loadContainer' literal",
+     "field": "stores const data pointer 0x10f9a6c4 at 0x104454dc"
+    },
+    {
+     "owner": "irdecoder object",
+     "evidence": "f_102473fc: 'irdecoder' literal",
+     "field": "byte field cleared at 0x1024777c (stb 0)"
+    },
+    {
+     "owner": "SMAPI subscription/playback object",
+     "evidence": "f_101f2328 and f_101f3a80 are adjacent vtable slots at 0x10e9f6e8/0x10e9f6ec; sibling vfuncs reference 'subscription/{logicalSID}', 'subscribe'/'unsubscribe', 'playbackError', 'playbackExtended', 'metadata', '_objectType'",
+     "field": "u32 read inside two subscription-path vfuncs"
+    },
+    {
+     "owner": "lastUpdateDevice-related object",
+     "evidence": "f_1062eac8: 'lastUpdateDevice' + basic_string::append literals",
+     "field": "byte field cleared at 0x1062f078 (stb 0)"
+    }
    ]
   },
   "0x5704": {
    "description": "Implementation-capability field read at 24 load site(s); gates action behavior paths",
-   "effect": "zp-aa member byte at zp+0x5704: set in the zp-aa ctor (f_1018d27c) from the low byte of a ctor-arg word (lwz 0xc4(r1) -> stb at 0x1018dc70), sitting in a cluster of per-device config fields (+0x56fc id byte, +0x56fe/+0x5700/+0x5702 computed halfwords, +0x5708 = f_1058edd0 fn ptr, +0x570c/+0x5710 worker ptrs). The main SOAP router copies it into the per-request record at stack+0x3c (lbz at 0x101955b0) - a device-config flag propagated into request context.",
+   "effect": "zp+0x5704 is the low byte of the device-model feature-flags word (+0xd0) on the product descriptor singleton, taken at zp-aa construction from the singleton getter and propagated into per-request SOAP context. It is a device-model capability byte, not a per-request computed predicate.",
    "loads": [
     {
      "pc": "0x100bcf20",
@@ -104756,17 +104871,23 @@
    ],
    "notes": null,
    "todo": [
-    "Established: all static load/store sites for this capability field are catalogued with the affected-service list.",
-    "Still unknown: the field's role is unproven; reads cluster around update/registration paths but the predicate is not decoded.",
-    "Next step: trace the field's writer to recover what condition it encodes."
+    "Established: +0x5704 = low byte (+0xd3) of the product-descriptor flags word (singleton 0x110b8150, MDP-populated via S43 model match); copied into request context at 0x101955b0; sibling fields are service ports +0x56fe..+0x5702 and worker ptrs +0x570c/+0x5710.",
+    "Still unknown: the per-bit capability names inside the flags word low byte - the 0x109085xx accessors test bits of +0xd0 but their call-site semantics (which feature each bit gates) are not named.",
+    "Next step: name each +0xd0 flag bit by tracing the callers of the 0x1090855c/0x10908578/0x10908594/0x109085a8 accessors to the feature they gate."
    ],
    "resolved_findings": [
     "Established: zp+0x5704 is a ctor-arg-derived config byte propagated into the SOAP per-request record. Still unknown: which config dimension it encodes (the +0x56fc..+0x5702 cluster suggests device/capability id fields). Next step: trace the ctor-arg source word (callers of f_1018d27c, arg slot 0xc4) to name the flag."
-   ]
+   ],
+   "owning_object": "zp-aa (zoneplayer aggregate object); +0x5704 sits in the per-device config cluster +0x56fc..+0x5710",
+   "value": {
+    "source": "low byte of the device-model feature-flags word: zp-aa ctor f_1018d27c stores lbz caller-arg byte (caller stack +0xb) at 0x1018dc70 -> zp+0x5704; the caller f_100c1478 supplies r15 = f_10908540(f_1090ad44()) = booleanized byte at +0xd3 of the product-descriptor singleton 0x110b8150 (vtable 0x10f7c888, model-code table A100/A200/A101/A102/B100/D100/C201/C100/X999/C200)",
+    "descriptor": "the singleton is populated in lazy-init ctor f_10909fcc from MDP flash (hal_flash_get_mdp_wrapper / hal_flash_get_mdp2_wrapper) matching the product name against {S43,ZP120,ZP90,BR200,S1,Sub,S3}; +0xd0 is a 4-byte feature-flags word with bitfield accessors f_1090855c(andi. 0xff00)/f_10908578(andis. 0xffff)/f_10908594(lhz>>1)/f_109085a8(andis. 0x1) and granular setter f_10908c50 (writes byte +0xd0 via rlwinm mask); +0xd3 = the word's low byte",
+    "consumer": "main SOAP router copies zp+0x5704 into the per-request record at 0x101955b0 (lbz); adjacent cluster fields +0x56fc=another arg byte, +0x56fe/+0x5700/+0x5702=halfword service ports (r8 + r2-relative port bases 0x110a5000/0x110a4fd8), +0x5708=f_1058edd0 handler ptr, +0x570c/+0x5710=worker ptrs"
+   }
   },
   "0x571c": {
    "description": "Implementation-capability field read at 16 load site(s); gates action behavior paths",
-   "effect": "zp-aa member bool at zp+0x571c: ctor stores (arg==1) computed via xori/cntlzw/rlwinm at 0x1018dd60-0x1018dd6c (arg word from stack+0x240). Read by the main SOAP router at 0x101955a0 into the per-request record. A boolean config flag adjacent to the SystemProperties object at zp+0x5724.",
+   "effect": "zp+0x571c is a bonded/home-theater role flag: bool(ret==1) of the role query f_101b4e50, which is stubbed to 0 on this Playbar model-9 build so the flag is constant-false here (the gate code is shared with builds where the query returns the real role).",
    "loads": [
     {
      "pc": "0x1017f73c",
@@ -104865,17 +104986,23 @@
    ],
    "notes": null,
    "todo": [
-    "Established: all static load/store sites for this capability field are catalogued with the affected-service list.",
-    "Still unknown: the gating predicate remains undecoded despite catalogued load sites.",
-    "Next step: trace the field's writer to recover what condition it encodes."
+    "Established: zp+0x571c = (f_101b4e50()==1); the helper is a return-0 stub on model-9 so the flag is false on Playbar; twin (ret==1)->byte pattern in f_103fa434 confirms a role/count query; affected services are the HT+media set.",
+    "Still unknown: what the role value 1 semantically names (satellite-right, subwoofer, bonded-member-role id) - the stub carries no literal and the query body is empty on this build.",
+    "Next step: cross-build - check f_101b4e50 equivalent in a satellite-capable build (limelight/ht) where the query returns a real role id."
    ],
    "resolved_findings": [
     "Established: zp+0x571c is a booleanized ctor-arg flag (arg==1) read by the main router into request context. Still unknown: which config boolean it encodes. Next step: trace the arg at stack+0x240 in f_1018d27c's caller to name it."
-   ]
+   ],
+   "value": {
+    "source": "zp-aa ctor f_1018d27c computes (stack-arg-word == 1) via xori/cntlzw/rlwinm at 0x1018dd60-0x1018dd6c and stb's it to zp+0x571c; the stack arg (caller +0x10, callee +0x240) is r21 in f_100c1478 = return value of f_101b4e50 called at 0x100c168c",
+    "stub": "f_101b4e50 is an unconditional `return 0` leaf (addi r3,0; blr) - on this model-9 build the query is stubbed out, so zp+0x571c is compile-time FALSE here; its only other caller f_103fa434 does the identical (ret==1)->flag-byte pattern storing *(r31+0x110), confirming the helper is a role/count query where 1 is the meaningful value",
+    "affected_services": "HTControl, AVTransport, ConnectionManager, GroupRenderingControl, Queue, VirtualLineIn, MusicServices, QPlay - the home-theater + media service set, consistent with a bonded/satellite-role flag",
+    "consumer": "read by the main SOAP router at 0x101955a0 into the per-request record; adjacent to the SystemProperties object at zp+0x5724"
+   }
   },
   "0xaa6c": {
-   "description": "Implementation-capability field read at 9 load site(s); gates action behavior paths",
-   "effect": "u32 member inside the GroupManagement impl object at zp+0xaa40 (field +0x2c): init 0 in the zp-aa ctor (0x1018e7e8), cleared in the dtor (0x10192434), written from a stack arg at 0x102c14fc, read by the main router at 0x101955a8 (lwz r12,-0xc via +0xaa78-based r7). A GroupManagement state/impl pointer propagated into request context.",
+   "description": "ZonesMonitor shared-handle pointer propagated into per-request context; lets service handlers invoke the zone-membership monitor",
+   "effect": "zp+0xaa6c holds a pointer to the refcounted ZonesMonitor shared_ptr pair (container+0x191c). Request handlers dereference it to reach the zone-membership monitor object (class name RZonesMonitor) and invoke its virtual methods for group/membership state.",
    "loads": [
     {
      "pc": "0x10192404",
@@ -104965,15 +105092,17 @@
      "notes": "load site inside function 0x102be7e4"
     }
    ],
-   "notes": null,
-   "todo": [
-    "Established: all static load/store sites for this capability field are catalogued with the affected-service list.",
-    "Still unknown: the capability semantic is unresolved; affected services suggest a feature gate but the tested condition is unknown.",
-    "Next step: trace the field's writer to recover what condition it encodes."
-   ],
+   "notes": "CORRECTION: an earlier version of this record labelled the field +0x2c inside a GroupManagement object at zp+0xaa40. Disassembly of the writer chain shows +0xaa6c is a flat zp field holding a pointer to a shared_ptr pair whose managed object is the RZonesMonitor (ctor f_104d832c, 0x198 bytes, deleter vptr f_103ff8f8). The GroupManagement attribution was wrong; zp+0xaa40 is a separate {ptr,ctrl} handle in the same dependency block.",
    "resolved_findings": [
     "Established: +0xaa6c is a u32 field at +0x2c inside the GroupManagement object embedded at zp+0xaa40, router-read via the +0xaa78 base. Still unknown: the field's role (a second write at 0x102c14fc suggests a set-once pointer). Next step: identify the object written at 0x102c14fc to name the field."
-   ]
+   ],
+   "owning_object": "zp-aa (zoneplayer aggregate); +0xaa6c sits in a block of shared_ptr service-dependency handles at zp+0xaa40..zp+0xaac8 stored by the AVT/service registration epilogue",
+   "value": {
+    "type": "shared_ptr<ZonesMonitor>* (address of a {ptr,ctrl} pair)",
+    "source": "zp-aa ctor chain: f_103fa434 allocates a 0x198-byte object at 0x103fb164-0x103fb178, ctors it via f_104d832c (logs 'RZonesMonitor' at 0x104d8374), wraps it in a refcounted shared_ptr stored at container+0x191c/+0x1920 (ctrl block vptr f_103ff8f8, counts=1), then passes &pair as stack arg through f_10511f34 -> f_102c05d8 which stores the pair pointer at zp+0xaa6c (0x102c14fc, via the r30=zp+0x10000 anchor, offset -0x5594)",
+    "consumers": "main SOAP router copies it into the request record at 0x101955a8 (lwz r12, -0xc(r7-0x5588) = zp+0xaa6c); service impls deref it as a pair and call the object through its vtable, e.g. f_102be528 at 0x102be5bc-0x102be5f0: lwz r4,zp+0xaa6c -> lwz r10,0(r4) (ZonesMonitor*) -> lwz r10,8(r10) (vfunc slot 2) -> mtctr/bctrl",
+    "lifecycle": "init 0 in zp-aa ctor at 0x1018e7e8, cleared in dtor at 0x10192434"
+   }
   },
   "0xffff8ff8": {
    "description": "stack-protector canary global (r2-relative TOC slot); mis-catalogued as a capability field",
@@ -117408,7 +117537,7 @@
   "0x1068ec54": {
    "func": "0x1068ec54",
    "li_401_at": "0x1068f004",
-   "kind": "unknown",
+   "kind": "wss-frame-handler",
    "compares": [],
    "vptr_candidates": [],
    "assessment": "RESOLVED: shared WSS event-delivery/UNSUBSCRIBE worker. ~10 per-service wrappers at stride ~0x2cc (0x1060d5a8,0x1060d874,...) call it. Operates on subscription message object fields +0xec/+0xf0/+0xf4/+0x108/+0x10c; span copies via f_1068c040.",
@@ -117428,11 +117557,23 @@
    "resolved_as": "WSS TLV frame processor: calls f_109e10d8 (WSS registry tag/type lookup); handles {u16 tag,u8 type,u32 len} websocket-event frames",
    "detail": "subscription-message object field map now established: +0xec = u32 scalar passed by-ref (spilled 0xc4(r1), stwu into the output span); +0xf0/+0xf4 = {char* ptr, u32 len} string copied via f_1068c040 (libstdc++ string assign, len>0xf heap path) feeding the 'http://'+host+':%d' CALLBACK URL build; +0x108/+0x10c = {begin,end} pointer span copied by a second f_1068c040 (callback path/URI tail). Fields are populated upstream by the GENA/HTTP request parser - the ~10 per-service wrappers (0x1060d5a8 family) are tail-call thunks that pass the object through unmodified.",
    "todo": [
-    "Established: shared WSS UNSUBSCRIBE/delivery worker - subscription object fields +0xec through +0x10c and the callback-URL build are decoded. Still unknown: the semantics of each subscription-object field it touches. Next step: map fields +0xec..+0x10c against the subscription record layout."
+    "Established: field types proven - +0xec u32 target id (broadcast sentinel 4, 'unexpected target id' log), +0xf0/+0xf4 target-name {ptr,len} passed to f_1067e4d8, +0x108/+0x10c a second {ptr,len} string, +0x98 session ptr via f_109daae0. The r4 object is the per-service WSS frame-handler impl instance (getArg 'durationSecs' vfunc), not a subscription record.",
+    "Still unknown: the semantic name of the +0x108/+0x10c string (copied at entry but consumed by no path in this worker; adjacent to the target name it is probably the target's UDN/uuid string, unproven).",
+    "Next step: find the impl object's constructor/producer (the WSS subscribe handler that allocates the instance behind *(request+0x4c) via the service dispatcher that tail-branches into the 0x1060d4b0 wrapper family) and name the +0x108 field from its init source."
    ],
    "resolved_findings": [
     "Established: field types mapped (+0xec u32 scalar, +0xf0/+0xf4 host string, +0x108/+0x10c path span) and the upstream-parser provenance identified. Still unknown: exact semantic names of the three fields (which is host vs path vs SID). Next step: trace the GENA request-parser stores that populate +0xec..+0x10c in the message-object constructor path."
-   ]
+   ],
+   "arg_object": "r4-in = the service-impl instance object (vptr+8 = getArg string virtual, invoked with 'durationSecs' by wrapper f_1060d4b0); fields below are impl-instance state for the subscribed-zone target",
+   "field_map": {
+    "+0xec": "u32 target id - compared against 4 (broadcast sentinel) at 0x1068ef40; logged by 'unexpected target id %d %s; overriding to: %s' (0x10f02a0c) when it mismatches the local manager's id",
+    "+0xf0": "char* target name ptr - re-copied into a local std::string (0x88(r1)) and passed as the name arg (r10) into delivery call f_1067e4d8; the %s beside the target id in the override log",
+    "+0xf4": "u32 target name length (paired with +0xf0)",
+    "+0x108": "char* ptr of a second {ptr,len} string field - copied defensively into a local std::string at entry (0xe0(r1)) but the copy is consumed on no reachable path of this worker (all 0xe0(r1) uses are the SSO dispose check)",
+    "+0x10c": "u32 length paired with +0x108",
+    "+0x98": "channel/session pointer returned by getter f_109daae0, passed as stack arg into the delivery call f_1067e4d8"
+   },
+   "delivery": "On type-1 WSS frames it builds 'http://'+f_109dcb6c(conn)+':'+vsnprintf('%d',f_109dcce8(conn)) from the connection object (r8-in), then f_1067e4d8(r3=*(req+0x4c) state obj, url, 0, mgr-singleton f_10550ffc(0x110a4ba4), *(r7-in), stack-ctx, 0x41, target-name) delivers; failure -> f_109db5c4(0x3f,0x191) 401-fault. If target id != 4 it overrides the incoming {id,name} with the manager's own (*(r25+0x124)). Rejects: non-WSS transport 'Invalid transport: WSS is required', 'Invalid namespace: UPnP subscribe not supported'."
   },
   "0x106bb20c": {
    "func": "0x106bb20c",
