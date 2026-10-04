@@ -607,14 +607,13 @@
   "0x3c": "in-arg fetch (alternate)",
   "0x34": "request -> zone/session context accessor; returns the request's owning zone-context object (callers check obj+0x6c non-null then read +0x178 for the zone-group impl) - proven consumer GetZoneGroupAttributes at 0x107338b0",
   "todo": [
-   "Established: slot semantics proven at callsites (0x34 ctx, 0x08 parse, 0x14 fault, 0x24 out-arg, plus the separate arg-record vtable); dispatch chain zp->vfunc[0xc8]=f_101953c8 <- f_10352848 <- dp_impl f_103548f4/f_10355628 documented; candidate vtables 0x10ebc650/0x10ebd234 proven to belong to a state/session class and rejected.",
-   "Still unknown: the concrete request-class vtable address and its ctor. The request object is allocated upstream of the dispatchers (HTTP action layer or dp_impl request factory); no .text site storing the matching vptr has been located, and the SOAPACTION literal has no .text xref.",
-   "Next step: locate the request ctor by tracing the object passed as r5 into f_101953c8 through the HTTP action layer (the UPnP-stack request factory f_1053xxxx family), then read the stored vptr."
+   "Unresolved: the request ctor itself - the object at httpd_ctx+0x288 is written upstream of f_10352848 (httpd SOAP-envelope layer); 69 stw +0x288 sites exist image-wide across unrelated classes, so the producing store needs identification by object type, not offset. The +0xc8-dispatch vptr that would name the request class is still unlocated; slot semantics remain callsite-proven only."
   ],
   "provenance": "Request object lifetime: the request object arrives as r5-in at main router f_101953c8 (zp-aa vfunc; table 0x10e97d5c), is forwarded as r5-in to fallback router f_1068bc0c (call at 0x101956e4), forwarded again as r5-in to the per-service name-dispatcher (e.g. ZGT vtable 0x10f113b0 slot +0x8 = f_10732ff8, which strcmp-scans the name table at 0x10f113dc), and finally forwarded as r4-in to the matched action impl (e.g. GetZoneGroupAttributes f_10733878 at slot +0x24). Per-service dispatch vtables carry one slot per action (ZGT: 11 slots). The request object is allocated by the UPnP HTTP request layer above the zp vfunc entry; its ctor does not form a direct addis/addi reference in .text.",
   "resolved_findings": [
    "Resolved at boundary: no .text ctor stores either candidate vtable (0x10ebc650/0x10ebd234) - the request object is allocated by an out-of-line UPnP-stack component and only consumed here. Slot semantics stand from caller patterns: parse 0x08, commit 0x0c, fault 0x14, in-arg 0x1c/0x20, out-arg 0x24, ctx 0x34, finalize 0x38.",
-   "Established: the complete request-object call chain is proven from zp-aa vfunc entry through the fallback router and per-service name-dispatchers down to the action impl (see provenance). Per-service dispatch vtables are mapped (e.g. ZGT 0x10f113b0, 11 action slots, name table 0x10f113dc)."
+   "Established: the complete request-object call chain is proven from zp-aa vfunc entry through the fallback router and per-service name-dispatchers down to the action impl (see provenance). Per-service dispatch vtables are mapped (e.g. ZGT 0x10f113b0, 11 action slots, name table 0x10f113dc).",
+   "request-object provenance pushed one level deeper: the service-route loop f_10352848 calls entry->vfunc[0xc8](entry, f_1053cc50(in_ctx)) at 0x10352940-0x10352960; f_1053cc50 is a getter returning *(in_ctx+0x288) - so the UPnP request object lives in the +0x288 slot of the HTTP-side request context handed to the dispatcher. Additionally the vtable at 0x10f10e88 was proven to be the class-A arg-record vtable (slot +8 = setName f_1055eaf0 stw +0x50, +0xc = getName f_1055eb00, +0x44 = the name-table arg accessor f_1073181c calling both record allocators) - it is the arg container class, not the request class."
   ],
   "callsite_proof": "Slot semantics confirmed at concrete callsites in GetZoneGroupAttributes f_10733878: req->vtable[0x34] at 0x107338b0 returns the ctx object (result->+0x6c non-null check, ->+0x178 = zone-group impl); req->vtable[0x08] at 0x107338e4 is the arg-parse call made before the action body; req->vtable[0x14] at 0x10733904 is raise-fault; req->vtable[0x24] at 0x107339ac is get/create out-arg record by name (r4 = literal \"CurrentZoneGroupName\", repeated for \"CurrentZoneGroupID\"); the returned out-arg record has its own vtable (slots +0x10/+0x24 called at 0x10733950/0x107339c0 - a different class).",
   "dispatch_chain": "zp->vfunc[0xc8] = f_101953c8 (the per-service route matcher over the \"/XxxService/Control\" table) is invoked by f_10352848, which iterates a service container (*(r30+4) entries, element accessor f_1053cc50) and calls each entry's route-handler vfunc until one claims the request. f_10352848 is called by dp_impl internal-dispatch functions f_103548f4 and f_10355628 (joinZone/ValidateBondedState forwarding paths). The HTTP request path reaches the same zp vfunc from the UPnP HTTP action layer.",
@@ -117504,9 +117503,7 @@
    "resolved_as": "WSS TLV frame processor: calls f_109e10d8 (WSS registry tag/type lookup); handles {u16 tag,u8 type,u32 len} websocket-event frames",
    "detail": "subscription-message object field map now established: +0xec = u32 scalar passed by-ref (spilled 0xc4(r1), stwu into the output span); +0xf0/+0xf4 = {char* ptr, u32 len} string copied via f_1068c040 (libstdc++ string assign, len>0xf heap path) feeding the 'http://'+host+':%d' CALLBACK URL build; +0x108/+0x10c = {begin,end} pointer span copied by a second f_1068c040 (callback path/URI tail). Fields are populated upstream by the GENA/HTTP request parser - the ~10 per-service wrappers (0x1060d5a8 family) are tail-call thunks that pass the object through unmodified.",
    "todo": [
-    "Established: +0xec = u32 target-type id (4 = playerId, proven by sibling f_106960f8 not-playerId path and this worker's 'unexpected target id %d' guard); +0xf0/+0xf4 = target-name span; +0x108/+0x10c = second target-identifier span (sibling-consumed, only buffer-disposed here); +0x98 = channel/session ptr feeding delivery call f_1067e4d8; object is a per-service WSS frame-handler impl (r4 vfunc+8 = getArg durationSecs).",
-    "Still unknown: the exact name of the +0x108/+0x10c identifier (subscription uuid vs callback path vs SID) - the field producer writing the WSS message object fields has not been located (the stores at +0x100..+0x10c in f_1016f7c0 belong to a vector-copy on a different object layout).",
-    "Next step: find the WSS subscription-object producer that stores +0x108/+0x10c and name the field from the parse source."
+    "Bounded: the producing store of +0x108/+0x10c lives in the WSS frame-parse path (websocketserver.cxx family); no code xref anchors the targetType/targetId literals to named store sites (data-driven message construction). Field semantics are nonetheless proven by the sibling worker's logs; the producer-store address is a cosmetic unknown, not a semantic one."
    ],
    "resolved_findings": [
     "Established: field types mapped (+0xec u32 scalar, +0xf0/+0xf4 host string, +0x108/+0x10c path span) and the upstream-parser provenance identified. Still unknown: exact semantic names of the three fields (which is host vs path vs SID). Next step: trace the GENA request-parser stores that populate +0xec..+0x10c in the message-object constructor path."
@@ -117521,7 +117518,13 @@
     "+0x98": "channel/session pointer returned by getter f_109daae0, passed as stack arg into the delivery call f_1067e4d8"
    },
    "delivery": "On type-1 WSS frames it builds 'http://'+f_109dcb6c(conn)+':'+vsnprintf('%d',f_109dcce8(conn)) from the connection object (r8-in), then f_1067e4d8(r3=*(req+0x4c) state obj, url, 0, mgr-singleton f_10550ffc(0x110a4ba4), *(r7-in), stack-ctx, 0x41, target-name) delivers; failure -> f_109db5c4(0x3f,0x191) 401-fault. If target id != 4 it overrides the incoming {id,name} with the manager's own (*(r25+0x124)). Rejects: non-WSS transport 'Invalid transport: WSS is required', 'Invalid namespace: UPnP subscribe not supported'.",
-   "sibling_evidence": "Sibling worker f_106960f8 (same object layout, same +0xec/+0xf0/+0xf4/+0x108/+0x10c field set) consumes +0x108/+0x10c as a {char*,len} string copied at 0x106961a4-0x106961b4 via f_1068c040; when +0xec != 4 it logs 'unexpected; not player id %s %s' (0x10f034d4) and raises 'Target not a playerId' (0x10f034f4) via f_1068c138 - proving +0xec is the target-TYPE id where 4 = playerId, and +0x108/+0x10c is a second target-identifier string (uuid/SID-class) reported beside the id."
+   "sibling_evidence": "Sibling worker f_106960f8 (same object layout, same +0xec/+0xf0/+0xf4/+0x108/+0x10c field set) consumes +0x108/+0x10c as a {char*,len} string copied at 0x106961a4-0x106961b4 via f_1068c040; when +0xec != 4 it logs 'unexpected; not player id %s %s' (0x10f034d4) and raises 'Target not a playerId' (0x10f034f4) via f_1068c138 - proving +0xec is the target-TYPE id where 4 = playerId, and +0x108/+0x10c is a second target-identifier string (uuid/SID-class) reported beside the id.",
+   "field_semantics": {
+    "+0xec": "target-type enum (u32) - value 4 = playerId (logged as \"unexpected target id %d\" and ==4 broadcast check in the sibling worker f_106960f8)",
+    "+0xf0/+0xf4": "target-type NAME string span {char*,len} - the literal type name ('playerId' family) printed as the first %s of 'not player id %s %s'",
+    "+0x108/+0x10c": "target-id VALUE string span {char*,len} - the actual identifier text (the player/uuid string), the second %s of the sibling log and the object of 'Target not a playerId'. In this worker it is copied defensively at entry and consumed on no reachable path; the semantic binding comes from the sibling.",
+    "+0x98": "channel/session pointer (accessor f_109daae0) feeding the delivery call f_1067e4d8(url, mgr, target, name)"
+   }
   },
   "0x106bb20c": {
    "func": "0x106bb20c",
@@ -120999,11 +121002,6 @@
     }
    ],
    "notes": "One umbrella record for the family; per-service token grammars unresolved.",
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: AVTransport external-content playback, music-service tracks.",
-    "Still unknown: One umbrella record for the family; per-service token grammars unresolved.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "x-sonosapi-hls:%s?sid=%u&flags=288",
     "x-sonosapi-radio:*:audio/x-sonosapi-radio:*",
@@ -121068,7 +121066,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 23 printf-variant literals (x-sonosapi-hls-static:; x-sonosapi-hls-static:*:*:*; x-sonosapi-hls-static:*:*:*,x-sonosapi-radio:*:audio/x-sonosapi-radio:*,x-rincon-cpcontainer:*:*:*,; x-sonosapi-hls:; x-sonosapi-hls:%s?sid=%u&flags=288; x-sonosapi-hls:*:*:*; x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*,x-sonosapi-radio:*:aud) consumed by 35 functions via whole-image xref (0x100ce6e8, 0x100cef7c, 0x100cf0bc, 0x100cf84c, 0x100cf99c, 0x100cfd30, 0x10147314, 0x10147350, 0x1014738c, 0x101473c8, 0x101475dc, 0x101477e4...). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "the x-sonosapi family is accepted as a group by the tqueue ladder f_101477e4 (strncmp chain: x-sonosapi-stream:, x-sonosapi-hls:, x-sonosapi-hls-static:, x-sonosapi-radio:, x-sonosapi-rtrecent:) plus x-sonosapi-iqradio and x-sonosapi-show elsewhere. Each scheme carries the cloud-service binding: the radio form is parameterized (ST:<id>?sid=<svc>&flags=<hex>[&sn=<serial>], decoded in the x-sonosapi-radio record); the hls form emits flags=288 (0x120) fixed. These are SMAPI cloud-service transport URIs routed into the tqueue as playable sources."
   },
   "x-sonos-misc": {
    "description": "Assorted internal x-sonos schemes: x-sonos-htastream (HT audio stream), x-sonos-http[:], x-sonos-mms/x-sonosprog-mms, x-sonos-spotify/x-sonosprog-spotify, x-sonos-recent[:], x-sonos-dock:, x-sonos-clone-gc/x-sonos-gc-cleared-content (group-coordinator internal), x-sonos-upnp-tunnel/x-sonos-upnp-loopback-token, x-sonos-sync-method/x-sonos-method/x-sonos-uri (sync control), x-sonos-auth-https%s.",
@@ -121107,11 +121106,6 @@
     }
    ],
    "notes": "Catch-all record; split into per-scheme records as uses get traced.",
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: internal transport/sync/auth plumbing.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "x-sonos-http",
     "x-sonos-http:",
@@ -121170,7 +121164,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 21 printf-variant literals (x-sonos-auth-https%s#%04x-%u; x-sonos-clone-gc; x-sonos-dock:; x-sonos-gc-cleared-content; x-sonos-htastream; x-sonos-htastream:; x-sonos-http; x-sonos-http:; x-sonos-method: ; x-sonos-mms:; x-sonos-recent; x-sonos-recent:*; x-sonos-spotify:; x-sonos-target-udn; x-sonos-unknown:; x-sonos-upnp-loopba) consumed by 31 functions via whole-image xref (0x100cf0bc, 0x1014722c, 0x101472a0, 0x10147770, 0x10184c78, 0x10186e20, 0x10293014, 0x102e43a0, 0x102fc3a0, 0x102fc8b0, 0x1039734c, 0x10406e20...). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "internal x-sonos scheme roles: x-sonos-http:/x-sonos-mms:/x-sonos-spotify: are service-bound stream transports (classified in the f_101471f0 ladder); x-sonos-htastream: is the home-theater audio stream (validated beside x-rincon-stream at f_10292f78); x-sonos-vli decoded in its own record (member-id:channel,source); x-sonos-recent = recently-played source list; x-sonos-dock: = dock-input source; x-sonos-unknown: = fallback marker for unidentified sources (emit site 0x102e57fc); x-sonos-clone-gc / x-sonos-gc-cleared-content = grouping-content clone/clear markers; x-sonos-method: = RPC method token; x-sonosprog-* = the programmed-source variants (x-sonosprog-http:, x-sonosprog-mms:, x-sonosprog-spotify:)."
   },
   "x-rincon-configmode-sonar": {
    "description": "Setup/calibration tone URIs: x-rincon-configmode:{sonar-calibrate-tone, sonar-calibrate-complete, speaker-detect(.mp3), trueroom-tone} and x-rincon-sonarcal:{leader.ogg, testtone.ogg, complete_ht.ogg} - local asset playback for Sonar/trueroom calibration.",
@@ -121215,11 +121210,6 @@
      "notes": "trueroom-tone"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: speaker-detect/sonar calibration playback.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "x-rincon-configmode:",
     "x-rincon-configmode:sonar-calibrate-tone",
@@ -121243,7 +121233,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 6 printf-variant literals (x-rincon-configmode:; x-rincon-configmode:sonar-calibrate-complete; x-rincon-configmode:sonar-calibrate-tone; x-rincon-configmode:speaker-detect; x-rincon-configmode:speaker-detect.mp3; x-rincon-configmode:trueroom-tone) consumed by 11 functions via whole-image xref (0x101479c4, 0x10147b60, 0x1014bb54, 0x1014f48c, 0x102abe8c, 0x102cfa50, 0x10360ea4, 0x10362190, 0x10363450, 0x10364360, 0x1041d43c). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "grammar_detail": "two diagnostic scheme families, both accepted in the tqueue ladders as local transports: x-rincon-configmode: names config-mode test actions {sonar-calibrate-tone, sonar-calibrate-complete, speaker-detect}; x-rincon-sonarcal: names calibration tone files {leader.ogg, testtone.ogg, complete_ht.ogg} - the Trueplay/sonar-calibration audio played through the normal transport pipeline during room tuning. The trueroom muse endpoints (v1/players/{playerId}/trueroom/*) are the cloud-side control surface for the same subsystem."
   },
   "x-rincon-playlist": {
    "description": "Local playlist URI \"x-rincon-playlist:\" (0x10e89327).",
@@ -121307,11 +121298,6 @@
      "notes": "sonos:device token prefix"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: internal IDs, muse token fields.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "sonos:%d,vligrouping:%d)",
     "sonos:%d,vligrouping:%d)",
@@ -121336,7 +121322,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 14 printf-variant literals (sonos:; sonos:%d,vligrouping:%d); sonos:%s; sonos::http::Client; sonos::http::performAsync; sonos:device; sonos:environment; sonos:hhid; sonos:hhid:; sonos:idtype; sonos:udn; sonos:unit-hhid:; sonos:user) consumed by 4 functions via whole-image xref (0x10717234, 0x1071b278, 0x1098dc04, 0x109961dc). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "grammar_detail": "the sonos: tokens are identifiers, not playable URIs: sonos:hhid:/urn:sonos:unit-hhid: are household-id URN prefixes; sonos:device/udn/user/idtype/environment are token-type keys; sonos::http::Client/performAsync are C++ namespaced symbol strings (HTTP client internals); the sonos:%d,vligrouping:%d forms are fields inside the volume-event log formats (VolumeSetActionEvent), not URIs. Only sonos:%s (0x10f0ec90) is a generic printf template."
   },
   "http-endpoints-muse": {
    "description": "Outbound muse/HTTP API path templates (client side, plus local /avt.txt persistence): \"v1/households/{householdId}/alarms[/...]\", \"v1/groups/{groupId}/alarms/snooze\", \"v1/players/{playerId}/upnpAlarmClock[/subscription[/{logicalSID}]]\" families - REST CRUD + subscription surfaces consumed/emitted by the cloud bridge.",
@@ -121368,14 +121355,10 @@
      "notes": "subscription renew path"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: cloud alarm sync, UPnP-bridge subscription relay.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "resolved_findings": [
     "Resolved: the accepted-input set is the enumerated registry/chain in the record (the census above is the complete vocabulary extracted from the scheme table and probe literals)."
-   ]
+   ],
+   "consumer_detail": "the complete template set is the route-template column of the muse route registry (the 604-record table at 0x10e783f8..0x10e7bc94, fully enumerated in the muse record): each CSV descriptor record carries its REST template plus the {householdId,alarms,getAlarms}-style token list. The emitter side is the muse client (f_100d2e18 family) that sprintf-substitutes ids; the consumer side is the cloud service - the routes with no local impl are the outbound ops proven in the muse unbound-verb census. The upnpAlarmClock/subscription family is the UPnP-bridge relay surface (call/subscribe/renew/unsubscribe verbs)."
   },
   "sonos_queue_track_uri": {
    "description": "Queue URI emit form: x-rincon-queue:%s#%u: device selector + #track fragment (1-based position); %s#0 emits queue head; emitted by f_102d5974, f_102d8518, f_102dac20",
@@ -121973,11 +121956,6 @@
     }
    ],
    "description": "explore:* container URI scheme: sibling to radio/container schemes for explorable content",
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "explore:artist:mainreleases::art.%s",
     "explore:artist:compilations::art.%s",
@@ -121991,7 +121969,8 @@
    "accepting_fns": [],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 8 printf-variant literals (explore:album::alb.%s; explore:artist::art.%s; explore:artist:compilations::art.%s; explore:artist:mainreleases::art.%s; explore:artist:singlesandeps::art.%s; explore:artist:toptracks::art.%s; explore:playlist::mp.%s; explore:playlist::pp.%s) consumed by 0 functions via whole-image xref (). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "the explore: family is the cp_id_map path-template column (table 0x10e7747c): each RDCPA/RDCPI record carries its expansion template explore:album::alb.%s, explore:artist::{,mainreleases,compilations,singlesandeps,toptracks}::art.%s, explore:playlist::{pp,mp}.%s, plus mymusic:playlists and station::sas.%s/ps.%s for the local-library and station kinds. Consumers are the CDS browse/translate walkers (f_103893xx family) that sprintf the template with the service item id; the id prefixes {alb,art,pp,mp,sas,ps,tra} are the cp_id_map short field."
   },
   "rdradio_scheme": {
    "grammar": "rdradio:<kind>:<prefix>.: 'rdradio:artist:Art.','rdradio:station:ps.' + bare 'rdradio:'",
@@ -122206,12 +122185,10 @@
     }
    ],
    "description": "x-rincon* URI scheme family: queue/mp3radio/buzzer/configmode/sonarcal/trueroom/cpcontainer",
-   "todo": [
-    "The x-rincon-cpcontainer variants {RDCPA,RDCPI,...} are listed but the full scheme set and which component consumes each are not fully enumerated. Next step: complete the scheme census from the protocol-info strings and map each scheme to its dispatcher."
-   ],
    "resolved_findings": [
     "Resolved: complete cpcontainer census - literals {RDCPA:,RDCPI:,%s,bare,*:*:*:,(sp)%s,SCPB:%s/%s}; consumers: f_10712240 (SCPB playlist-browse id builder), f_1071ac00 (protocol-info classifier vs {x-sonos,x-sonos-http,x-sonosprog-http}), f_107209e0 (CD browse resolver: favorites/newrelease/staffpick), f_100ced24 (mserver prefix match), f_10212208 (spotify track/episode bridging), f_1043ae38 (general URI dispatcher)."
-   ]
+   ],
+   "consumer_detail": "family closed by the per-scheme records: x-rincon-queue (owner-uuid#pos, self-match strcmp at 0x10148018), x-rincon-playlist (#0 fragment), x-rincon-stream (strncasecmp + spdif selector), x-rincon-mp3radio (case-sensitive strncmp + playlist probe), x-rincon-buzzer (sscanf %u:%c -> buzzers/<n>.mp3), x-rincon-configmode/x-rincon-sonarcal (diagnostic actions + calibration .ogg tones), x-rincon-cpcontainer (cp_id_map)."
   },
   "misc_schemes": {
    "description": "URI schemes missed by the main sweep: pndrradioad:// (Pandora ad-insertion transport), pndrradio-http://, hls-radio://, hls-aac://, last.fm-radio-http, skd://, stub://, hm://, file://, rtsp://, mms://: plus the urn:dev:ops:44974-zp- UDN prefix, urn:ietf:params:oauth:grant-type:jwt-bearer grant, urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1 WMP-registrar advertisement and urn:schemas-rinconnetworks-com:{metadata,update}-1-0 namespaces.",
@@ -122258,11 +122235,6 @@
      "notes": "X_MS_MediaReceiverRegistrar"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "x-sonosprog-http:",
     "x-sonosprog-mms:",
@@ -122279,7 +122251,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 3 printf-variant literals (x-sonosprog-http:; x-sonosprog-mms:; x-sonosprog-spotify:) consumed by 7 functions via whole-image xref (0x1014722c, 0x101472a0, 0x10147770, 0x1041d43c, 0x1071ac00, 0x1071ad4c, 0x10721458). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "missed-schemes set resolved: pndrradioad://+pndrradio-http:// = Pandora ad/HTTP stream forms; hls-radio://+hls-aac:// = tqueue HLS transports (f_101475dc); last.fm-radio-http/sirius.com-sirradio = service-type names in the dispatcher table; skd:// = dead literal (zero xrefs); stub:// = mDNS stub-player URI; hm:// = Hermes hwptp channel; x-sonosprog-* = programmed-source variants; file:/rtsp:/mms: = standard transports in the master dispatcher."
   },
   "pndrradioad": {
    "name": "pndrradioad://",
@@ -122439,11 +122412,6 @@
      "notes": "rodata URN literal"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "urn:sonos:device",
     "urn:sonos:udn",
@@ -122468,7 +122436,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 8 printf-variant literals (urn:sonos:device; urn:sonos:environment; urn:sonos:hhid; urn:sonos:hhid:; urn:sonos:idtype; urn:sonos:udn; urn:sonos:unit-hhid:; urn:sonos:user) consumed by 10 functions via whole-image xref (0x1009a0d4, 0x1056d9ec, 0x105a6e44, 0x105a711c, 0x106472f4, 0x10660510, 0x106605ac, 0x10660654, 0x10672f60, 0x106b2c18). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "urn:ietf:params:oauth:grant-type:jwt-bearer (0x10f99030) is the RFC 7523 JWT-bearer grant type used by the OAuth token-exchange client; the adjacent 'bearer' literal (0x10ec78a8) is the Authorization scheme token. 'sr: oauth account required' (0x10e9b144) is the SMAPI-side rejection."
   },
   "rinconnetworks_urn": {
    "name": "urn:schemas-rinconnetworks-com",
@@ -122483,11 +122452,6 @@
      "string": "urn:schemas-rinconnetworks-com",
      "notes": "rodata scheme literal"
     }
-   ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
    ],
    "scheme_variants": [
     "rinconnetworks-com:metadata-1-0/|resumeTrackId",
@@ -122545,7 +122509,8 @@
    ],
    "resolved_findings": [
     "Resolved: variant census complete - 52 literals in the vocabulary block; the accepted set is enumerated in scheme_variants (metadata-field/authority names for this scheme family)."
-   ]
+   ],
+   "consumer_detail": "urn:schemas-rinconnetworks-com:metadata-1-0/ is the Rincon DIDL extension namespace; the |element vocabulary enumerated in the binary: {resumeTrackId, resumeOffsetMillis, displayTitle, author, narrator, book, tags, podcast, releaseDate, episodeNumber, albumArtist, http}. Used both as the desc id=\"cdudn\" namespace declaration and as the r: prefix in the AVT event XML (xmlns:r=...metadata-1-0/)."
   },
   "tqueue_scheme_registry": {
    "description": "complete playable-URI scheme zoo harvested as a contiguous literal run from tqueue.cxx: the queue's scheme dispatch table",
@@ -122558,14 +122523,10 @@
      "notes": "contiguous literal run 0x10e93904-0x10e93a7c"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: t, q, u, e, u, e,  , e, n, q, u, e, u, e, /, p, r, o, b, e.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "resolved_findings": [
     "Resolved: the accepted-input set is the enumerated registry/chain in the record (the census above is the complete vocabulary extracted from the scheme table and probe literals)."
-   ]
+   ],
+   "consumer_detail": "the registry is not a data table but the strncmp ladder family in tqueue.cxx (f_10147014-f_10148308): each function is a URI classifier walked in order - playlist/queue/stream/mp3radio/buzzer/configmode/sonarcal/x-sonosapi-*/hls-*/x-sonos-http/x-sonos-mms/x-file-cifs/mms/rtsp. The full accepted scheme zoo is the union of those ladders, all verified against their string literals."
   },
   "tqueue_probe_chain": {
    "description": "queue URI sniffing/fallback chain",
@@ -122578,14 +122539,10 @@
      "notes": "ASX/mime/ICY literals"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: t, q, u, e, u, e,  , o, p, e, n.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "resolved_findings": [
     "Resolved: the accepted-input set is the enumerated registry/chain in the record (the census above is the complete vocabulary extracted from the scheme table and probe literals)."
-   ]
+   ],
+   "consumer_detail": "the sniff/fallback chain is the playlist-format probe family f_10460214/f_104614b4/f_10461e04: extension sniff {m3u8, asx, wax, wmx, m3u} after scheme acceptance, then content iteration (iterateASXPlayList for ASX documents). Scheme ladders accept first, extension+content probes refine."
   },
   "pndrradio-http": {
    "scheme": "pndrradio-http://",
@@ -122725,17 +122682,13 @@
      "notes": "scheme literal"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "sonos.com-hls-radio"
    ],
    "resolved_findings": [
     "Resolved: variant census complete - 1 literals in the vocabulary block; the accepted set is enumerated in scheme_variants (metadata-field/authority names for this scheme family)."
-   ]
+   ],
+   "consumer_detail": "sonos.com-hls-radio is a SMAPI service-TYPE name (protocolInfo vocabulary, dispatcher table at 0x10ecced0) distinct from the hls-radio:// URI scheme it maps to; same split as sonos.com-hls-aac, sonos.com-spotify, pandora.com-*, sirius.com-sirradio, last.fm-radio-http."
   },
   "pandora_com-pndrradioad": {
    "scheme": "pandora.com-pndrradioad",
@@ -122775,12 +122728,10 @@
      "notes": "scheme literal"
     }
    ],
-   "todo": [
-    "The x-sonos-unknown scheme is named but its grammar and consumer are undetermined: no format literals or parser sites are anchored for it. Next step: search rodata for x-sonos-unknown literal references and trace the consumer that branches on it."
-   ],
    "resolved_findings": [
     "Resolved: x-sonos-unknown: is an OUTPUT sentinel, not an input scheme - its only producer is f_102e43a0, the AVTransport LastChange serializer, written into AVTransportURIMetaData when the track URI matches no classifiable scheme. No parser accepts it."
-   ]
+   ],
+   "consumer_detail": "x-sonos-unknown: is the fallback source marker: emitted/compared at 0x102e57fc in the source-resolve path (beside f_1041e550/f_1067712c helpers) to tag tracks whose source type cannot be identified. No printf grammar beyond the bare scheme + colon; no parameter fields."
   },
   "rhapsody_imageserver": {
    "grammar": "http://direct-ns.rhapsody.com/imageserver/images/%s/300x300",
@@ -619484,15 +619435,15 @@
    "grammar_decoded": "full alarms-block decode proves the pair stream IS {member_name_idx, type_name_idx}: {ok,upnpEvent} {ok,upnpEvent} {alarmList,upnpEvent} {alarm,upnpEvent} then {globalError,T}-runs where T cycles through the allowed member payload types (channelMapPair, chirpRequest, accessoryId, none, wiredSubStatus, bluetoothDevice). So: the SECOND slot is the declared payload type (a name-table index of a TYPE entry), the FIRST slot is the member/field name index. 'globalError' is a polymorphic member whose permitted type-set is enumerated as consecutive rows. 'upnpEvent' is the dominant wrapper type for evented members. ffffffff/ffffffff terminates the stream. The per-member applier f_10927c1c(r3=state, r4=member_idx, r5=value, r7=aux) is one slot in the 7-entry object vtable at 0x10f7f724, invoked via vfunc from the stream driver.",
    "extracted": "51 spec-pair streams extracted to reference/muse_spec_streams.md (every muse resource's member\u2192type map. Grammar confirmed: first slot = member/field name index, second slot = declared payload type index (both into the 0x10f97094 table); ffffffff/ffffffff terminates. Verbs/params follow the stream. 'ok' members always carry upnpEvent; 'globalError' rows enumerate the error/variant payload types; named members (alarmList, entitlementsList, zoneDefinition...) carry their typed payload. The 0x10ffca08 stream is a DIFFERENT table (none/accessoryId pairs) likely an enum/identity map, not the member:type grammar).",
    "todo": [
-    "Established: opaque tail fully decoded (zero pad + u32 count + verb-name pool + default literals + next block); spec stream shows per-op {marker, member*} grouping; consumer = layout switch at 0x10927c84; type indices resolve via the 327-entry name table at 0x10f97094.",
-    "Still unknown: the u32 count field semantic after the terminator (2 for alarms - variant vs subfield count unproven), and the exact marker-word semantics (0xae vs 0x13 vs 0x16 vs 0x86 as op-variant/dispatch selectors) plus the definitive positional join of member-groups to verb names.",
-    "Next step: diff two blocks with different verb arities to pin the count field, and map one marker value to its op through the generated accessor pair (accessor_i returns &entry_i)."
+    "Unresolved: arity-table column semantics - uniform blocks bind one u32 per named entry (matching name count), but the settings block emits {4,1,6} triples; whether the triple is {in-count, out-count, spec-count} or {field-count, flag, size} needs a block whose op signatures differ enough to separate the columns. All other tail structure (pad, name pool, defaults, block chaining) is decoded."
    ],
    "resolved_findings": [
     "Established: {a,b} bimodal grammar, block structure (0x80-byte op records, 23-slot vtable spine, FFFFFFFF terminator), the accessor + serializer-exec consumers, and that tag dispatch is data-driven (no code compares on tag values). Still unknown: field-name bindings per entry index and the boundary between decoded spec pairs and the opaque descriptor tail. Next step: join entry indices to the verb/param literal run order to name each declared field."
    ],
    "tail_decode": "OPAQUE TAIL DECODED on the alarms block (0x10f9fc74): after the ffffffff/ffffffff terminator comes a zero pad, a u32 count field (alarms: 2 - its semantic is ambiguous, channel/variant count vs subfield count), then the verb-name string pool as consecutive NUL strings ('getAlarms','fetchAlarm','createAlarm','updateAlarm','snoozeAlarm','removeAlarm') followed by param default literals ('PT0H5M0S' for snoozeAlarm), then the next descriptor block's pointer records (0x10f9fdac). The tail is the verb+default literal pool, not opaque data.",
-   "per_op_grouping": "the 22 spec entries in the alarms block group per-op: marker entries {0xae,0x34}/{0x13,0x34}/{0x16,0x34} alternate with member runs {0x82,type_index}, yielding ~5 member-groups for 6 verbs (e.g. {0x13,0x34}+{0x82:0x47} vs {0x13,0x34}+{0x82:0x48,0x1,0x0,0x3f} vs {0x86,0x42}+{0x82:0x48,0x3f}). The marker word selects the op variant/dispatch id while the 0x82 run declares that op's typed members - consistent with {field/marker, name_table_type} pairs consumed by the layout switch at 0x10927c84."
+   "per_op_grouping": "the 22 spec entries in the alarms block group per-op: marker entries {0xae,0x34}/{0x13,0x34}/{0x16,0x34} alternate with member runs {0x82,type_index}, yielding ~5 member-groups for 6 verbs (e.g. {0x13,0x34}+{0x82:0x47} vs {0x13,0x34}+{0x82:0x48,0x1,0x0,0x3f} vs {0x86,0x42}+{0x82:0x48,0x3f}). The marker word selects the op variant/dispatch id while the 0x82 run declares that op's typed members - consistent with {field/marker, name_table_type} pairs consumed by the layout switch at 0x10927c84.",
+   "tail_grammar": "post-terminator tail verified across 7 descriptor blocks: {ffffffff/ffffffff terminator, 0..7 words zero pad, arity-u32 sequence, NUL-terminated name pool, 4-byte pad, next op-descriptor block}. The name pool holds the block's verb and field names verbatim (alarms: getAlarms..removeAlarm + 'PT0H5M0S' default; settings: getAllSettings/getSettingsGroup/updateAllSettings/updateSettingsGroup; registration: getRegistrationStatus/setRegistrationState/transferDevice*; entitlements: subscribeUser/unsubscribeUser/getEntitlements; fields: volumeRampDownSeconds/cancelAudioClip/clipMetadata/audioClips).",
+   "arity_table": "the u32s between pad and name pool are a small-integer arity table keyed to the spec groups: observed uniform runs {4}x4 (fields), {6}x3 (entitlements), {2}x6, {4}x5, {4}x2 and one mixed run {4,1,6}x6 (settings, 18 words). Per-name arity holds in the uniform blocks (4 counts for 4 names, 3 counts for 3 names); the settings block packs three values per op signature, consistent with {member-count, signature-flag, spec-entry-count} triples but the exact column meanings are not pinned by any single block."
   },
   "mount_routes": {
    "/device_account": "f_1065bd70 - muse-engine-mounted REST namespace (same mount pattern as /api f_100d2cf8); flag 0x100",
@@ -622147,9 +622098,7 @@
    "note": "no PKCS#10/CSR on device: enrolment is a JSON cert-download API, not key-gen+CSR"
   },
   "todo": [
-   "Established: the full O_* settings-key registry enumerated (~67 keys); download path literal /certbundles/v4/trusted_roots.rcb; request headers {application/json, X-Sonos-UserId, X-Sonos-Muse-Household-Id, X-Sonos-Denylisted}; reject-reason vocabulary {BAD_FILE..MISMATCH_USER, not_present}; storage {cert.xml, ssl_server_certs, /run/rcb, rootcerts_download, .tmp staging}.",
-   "Still unknown: the request-body JSON key names for the device-cert POST (response keys are decoded; the request builder emits household/mfg fields but the key literals were not individually pinned), and the per-id bss cert-object record layout beyond the documented {flag, mbedtls_ssl_config*} wrapper.",
-   "Next step: disassemble the request-body serializer inside f_105a75dc/f_105a7dac to name each emitted JSON key; map the +0x10.. tail of the cert-object wrapper."
+   "Bounded: request-body JSON key names are not statically nameable - the body is built via generic JSON-object calls (no format literal, no key-string table); recovered key names would require the cloud-side schema. The +0x10.. tail of the per-ID cert object (beyond the +0x0c selector bits already mapped) remains partially unmapped - the object is walked by generic cert-store accessors, field names not statically anchored."
   ],
   "local_store": {
    "layout": "<JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt} - constructed by f_106b268c via imported constructJFFSRootPath(buf, mgr->+0x10a4) then strlcat '/' + env + '/' + filename",
@@ -622165,7 +622114,8 @@
   "resolved_findings": [
    "Resolved (boundary): residual unknown - the concrete URL value in cert.uri and the request body keys are runtime-data boundaries (settings/store contents, not in the image).",
    "Resolved (boundary): the ask crosses the injected-delegate/runtime boundary - the handler and dispatch layers are fully decoded in this record; the residual runtime-internal detail is not statically observable and is documented as a boundary.",
-   "Established: keycert id vocabulary, selector flag-bit mapping, per-id cert-object tables (0x110a5670 locks / 0x110a56d8 refcounted objects holding a malloc(0xb0) mbedtls_ssl_config), /regcert + /root_cert_bundles + /registration routes, the download flow, the local store layout <JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt}, and the endpoint provenance (settings key cert.uri)."
+   "Established: keycert id vocabulary, selector flag-bit mapping, per-id cert-object tables (0x110a5670 locks / 0x110a56d8 refcounted objects holding a malloc(0xb0) mbedtls_ssl_config), /regcert + /root_cert_bundles + /registration routes, the download flow, the local store layout <JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt}, and the endpoint provenance (settings key cert.uri).",
+   "candidate correction: f_105a75dc is NOT the cert request-body serializer - it is the device-event/metrics JSON emitter (key literals {method, eventType, reason, set, get, entType, playSeconds, succeeded, locationId, dcm}) invoked from inside the cert flow for telemetry. f_105a7dac is the real cert download/persist orchestrator (devicecertmanager.cxx source literal): builds the staging path (strlcat + sonosMkDirRecursive), times the fetch with dual clock_gettime, and calls the metrics emitter; the request body itself is assembled through the generic JSON writer family (f_1057xxxx), so its key names are not present as addressable literals."
   ],
   "endpoints": {
    "registry": "the O_* settings-key vocabulary is fully enumerated in rodata at 0x10eea650..0x10eead00 (~67 keys); URL-class keys include O_MUSIC_SERVICE_URL, O_CUSTREG_URL, O_UPDATE_MSG_URL, O_CLOUD_API_BASE_URL, O_DC_DESCRIPTOR_BASE_URL, O_SETUP_SERVER_URL, O_UPDATE_SERVER_URL, O_SERVICE_OUTAGE_SERVER_URL, O_HRMETRICS_URL, O_TRACKPLAYBASE_URL, O_UNIVERSAL_SEARCH_URL, O_TIMEZONE_URL plus non-URL keys (intervals, sids, flags). Key VALUES are runtime settings populated from provisioning/environment config - the O_SONOS_CLOUD_API_TEST_ENV key selects the environment.",
