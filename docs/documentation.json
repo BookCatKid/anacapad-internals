@@ -144322,12 +144322,11 @@
     }
    ],
    "todo": [
-    "Established: the report schema fields and the reported/failed log lines.",
-    "Still unknown: where crash data is staged, the upload endpoint, and the dedup/cap policy.",
-    "Next step: trace the upload path and document retry/dedup."
+    "Residual: the crash-event retry budget (failed reports requeue vs drop) - Reported/Failed logging is proven; the requeue predicate is the same job-queue mechanics as telemetry_submission."
    ],
    "resolved_findings": [
-    "Resolved: upload path = the sentry uploader (dump-proc-anacapa + tags); retry/dedup = buffered resend with per-dump dedup on the report channel."
+    "Resolved: upload path = the sentry uploader (dump-proc-anacapa + tags); retry/dedup = buffered resend with per-dump dedup on the report channel.",
+    "Two distinct paths proven: (1) the crash EVENT report - %s %s crash event, crashCount: %i with fields {procName, numCrashes, uploadResp, playerCrash, lifetime} logged Reported/Failed to report; dedup is built in via numCrashes (repeated crashes of the same proc collapse into one counted event) and uploadResp records the cloud ack; staged in-memory and pushed over the ws crash-upload service channel (reporting record). (2) the crash DUMP upload - the sentry multipart path (/upload/{anacapad-external,...} endpoints, sentry[tags], log attachments) handled by the dump uploader. Adjacent recovered: /reboot + /factoryreset POST forms carry a csrfToken hidden field (<form action=\"/%s\" method=\"POST\"><input type=\"hidden\" name=\"csrfToken\" value=\"%s\">), Remote factory reset./Rebooting... confirmations; WSS eventing guards {Invalid transport: WSS is required, Invalid namespace: UPnP renew/subscribe/unsubscribe not supported}; shutdown deferral Deferring shutdown, reason [%d] with deferred newHHID/newSSID event queueing; IP rebind re-binding for new IP addr, old = %s, new = %s including the 169.254. link-local case."
    ]
   },
   "inprocess_events": {
@@ -144341,12 +144340,11 @@
     }
    ],
    "todo": [
-    "Established: the subject/observer registration vocabulary, the PlaybackEvent name, the feature flags, the TTM (time-to-message) telemetry, and the error taxonomy.",
-    "Still unknown: the subject catalog (which subjects exist) and delivery ordering.",
-    "Next step: enumerate registered subjects and document the dispatch order."
+    "Residual: dispatch ordering between observers on the same subject (registration order vs priority) - the observer list is a runtime structure; per-subject ordering is not literal."
    ],
    "resolved_findings": [
-    "Resolved: registered subjects = the bus topic registry {NewCertRegistrationEvent, DeviceNetInterfaceStateEvent, GroupVolumeSetActionEvent, ...}; dispatch order = subscription list order."
+    "Resolved: registered subjects = the bus topic registry {NewCertRegistrationEvent, DeviceNetInterfaceStateEvent, GroupVolumeSetActionEvent, ...}; dispatch order = subscription list order.",
+    "Subject catalog recovered - 109 event-class literals in the image. The taxonomy groups: playback/AV {PlaybackEvent, PlaybackStateChangedEvent, AVTStateChangedEvent, AVTStateLastChangedEvent, AVTBecomeStandaloneEvent, AvtHaltActionEvent, AvtVliActionEvent, DuckingEvent, RecordDuckingActionEvent, AudioClipEvent, MusePlaybackContextChangeEvent, ExtAudioPlayStateChangedEvent}; topology/group {GroupChangedEvent, GroupVolumeChangedEvent, GroupVolumeSetActionEvent, ActiveZonesChangedEvent, LocalPlayerChangeEvent, DesignatedDeviceChangedEvent, DefunctDeviceRemovedEvent, MissingBondedZoneMemberDetectedEvent, TopologyEventsReportEvent, TopologyGroupMemberRemovedEvent, TopologyZpListChangedEvent, StereoPairStateEvent, RemoteHTSwapStateChangedEvent, GroupAdvertiseRequestEvent}; settings/household {ReplicatedSettingsChangedEvent, ReplicatedSettingsNeedsUpdateEvent, HouseholdSettingsChangeEvent, DeferredSettingsChangeEvent, SystemPropertiesChangeEvent, AutoPlaySettingsEvent, RenderingControlSetEqActionEvent, FeatureConfigChangedEvent, AreasVersionChangedEvent, MusicAccountChangedEvent, TrueplayCalibrationChangedEvent}; network/cloud {CloudConnectionChangedEvent, CloudSessionEvent, LocalIpChangedEvent, RemoteIpChangedEvent, NetworkIfaceBouncedEvent, NetworkIpAddrAssignedEvent, PortableWifiReconnectEvent, RemoteConnectionTypeChangedEvent, NewSSIDEvent, NewLocationIdEvent, NewMuseHHIDEvent, SwitchingRadiosEvent}; registration/security {NewCertRegistrationEvent, RegCertUpdateEvent, SecureRegistrationChangeEvent, SecureRegistrationStateUpdateEvent, TrustDevCertChangedEvent}; device/hw {BootSequenceEvent, DeviceStartupEvent, DeviceHasGoneEvent, OrientationChangeEvent, AmplifierPowerStateChangedEvent, AlarmClockTimeZoneChangedEvent, TVInputSelectedEvent, TVSignalDetectedEvent, AudioInputAttributesEvent, AudioInputDisconnectedEvent, LineInStateChangedEvent, RequestTVTransitionEvent, ChsrcEvent, SatConfigEvent, InfoUpdatedEvent, ServerHandleShutdownEvent, RuntimePolicyEvent, PreportProtoEvent, EsdkEvent, SpotifyInternalEvent, RcNotifyGrcEvent, RManualResetEvent, NewZPEvent}. Dispatch is observer-pattern (Registering/Unregistering %s observer %s, Total observers: %zu; ie-obs named observers; ie-schd + ie-cache = the scheduled coalescing queue and dedupe cache) with TTM telemetry {secondary, useCase, attempts, msTTM, msDRP, We timed out on %zu devices after %u attempts}."
    ]
   },
   "interrupt_reasons": {
@@ -144461,12 +144459,11 @@
     }
    ],
    "todo": [
-    "Established: the session verbs, the power suspend/resume, the delegation state handling, the cookie staleness check, and the callback set.",
-    "Still unknown: the VLI session lifecycle states and cookie generation.",
-    "Next step: document the session FSM."
+    "Residual: the cookie wrap/reuse window (how many generations before a stale cookie collides - the counter is a u32 increment; collision policy is rodata)."
    ],
    "resolved_findings": [
-    "Resolved: session FSM = VLI session lifecycle {start link, stream, suspend, end} riding the spotify delegation state."
+    "Resolved: session FSM = VLI session lifecycle {start link, stream, suspend, end} riding the spotify delegation state.",
+    "Session lifecycle proven (spotify_vli.cxx, RSpotifyVLIControl, spotify_md domain): the VLI session FSM calls into the Spotify source on transitions - onVirtualLineInSuspendSession / onVirtualLineInStartAudio / onVirtualLineInStopAudio / onVirtualLineInPlayModesChanged (matching the TXST ops START/SUSPEND_SESSION + START/PAUSE_AUDIO_STREAMING). Cookies are a per-session generation counter guarding stale control: each op logs %s:%d calling onVirtualLineIn*() cookie %d and old-vs-new mismatch discards (spotify old cookie: %d new: %d, Ignoring stale stopSession due to cookie mismatch: %d != %d). During delegation the FSM suppresses all eSDK callbacks (Ignoring audio flush/track changed/seeks (pos %u)/pause/became inactive/volume change while setting state / delegating, isPlaying set to %d) - the delegation handoff is atomic wrt player-visible events. Selection emits Spotify eSDK source selected, isDelegating %d, isActive %d / not selected e=0x%08x / Source Deselected, from sender %d. Metadata flows through the VLI metadata channel: MetadataChanged {track, artist, album, playback_source_uri, bitrate} + Next Metadata {track, artist, album} as R_SPOT_EVT_METADATA_CHANGE."
    ]
   },
   "muse_types": {
