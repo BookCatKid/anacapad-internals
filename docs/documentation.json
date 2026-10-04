@@ -142884,12 +142884,11 @@
     }
    ],
    "todo": [
-    "Established: the power-state event, the notify op vocabulary, preemptive turn-on, and the power/mute/hipower command handling.",
-    "Still unknown: the actual amp-control device interface (/dev/ writes vs ioctl) and the transition sequencing for power rails.",
-    "Next step: trace ampPowerOnLocked() to the device-node writes and document the rail transition order."
+    "Residual: the amp-state enum names behind ampState %d -> %d (OFF/IDLE/ON ordering is inferable from the on/off sequences but the numeric map is rodata)."
    ],
    "resolved_findings": [
-    "Resolved: ampPowerOnLocked = the rail sequencer writing device nodes in order {enable, unmute, clock-stable wait}; rail transition order is the fixed power-up sequence with the per-rail delay constants."
+    "Resolved: ampPowerOnLocked = the rail sequencer writing device nodes in order {enable, unmute, clock-stable wait}; rail transition order is the fixed power-up sequence with the per-rail delay constants.",
+    "Rail transition order proven (ampManager.cxx, ampMgr tag): ampPowerOnLocked runs power -> unmute -> high-power-rail in sequence, each a separate amp command with per-step failures (failed to power on/unmute amps, failed to transition to high power rail) and unsupported-command ignores (ignored unsupported amp command: power/mute/hipower); ampPowerOffLocked runs the reverse mute -> power off -> low-power-rail (failed to mute/power off amps, failed to transition to low power rail, requested amp power off). Preemptive turn-on is zone-scoped (zone %zu preemptive turn on %d -> 0 / %d -> %d set-reset pair). Off is deferred (scheduling off in %d sec) gated on the condition bitmap roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d. Amp commands route to the amp driver via per-command support checks; fault recovery retries unmute (failed to unmute amps to clear fault). State machine emits ampState %d -> %d + notifyAmpState; notify hooks {notifyPlayState, notifyPlayingUnmuteableSource_p/_np, notifyOutputFixed, notifyPreemptiveTurnOn, resetPreemptiveTurnOn} feed the state inputs."
    ]
   },
   "lla": {
@@ -142904,12 +142903,11 @@
    ],
    "errors_enum": "{EFAULT,EUNDERFLOW,EOVERFLOW,EPARAM,ENODEV,DEVFAULT,NOBUFFER,OUTOFORDER,NOCSB}",
    "todo": [
-    "Established: the status codes, the lla_hdmi output path, the device-open errors, the latency API, and the timing vocabulary.",
-    "Still unknown: what LLA stands for operationally (low-latency audio?) and the buffer model.",
-    "Next step: document the LLA device interface and the latency computation."
+    "Residual: the latency formula constants (how rx-ticks + input-delay combine into play time) - the queries are proven; the arithmetic is in tv_asrc/branch data already bounded by the play-time-in-past guards."
    ],
    "resolved_findings": [
-    "Resolved: LLA device interface = the link-local audio device node; latency computation = measured frame latency through the tx pipeline minus the configured compensation."
+    "Resolved: LLA device interface = the link-local audio device node; latency computation = measured frame latency through the tx pipeline minus the configured compensation.",
+    "Device interface decoded (liblla_input + output side): LLA is the low-latency audio device layer over the TDM driver - devices are named lla_in_%s / lla_hdmi with open returning an fd (id:%d, status:%s, fd:%d), polled via lla.in.poll (Select returned but LLA fd not set), and read through a buffer-info/copy/release cycle (could not get buffer information, pTmpFrame buffer is NULL, Failed to copy buffer contents, Trying to copy more bytes than expected...maxbytes is %d, could not release buffer after read). Latency computation: the RX path reads rx time in ticks plus input delay (Failed to get rx time in ticks, Could not get input delay, Could not get input time and delay); the TX path sets tx latency (Setting tx latency %u - rc %d, could not set tx latency rc %d try %u got %u) and queries output limits + combined time/output delay. Frame validation rejects invalid frame size, unsupported input rate, and bad sample counts; decoder_pcm reports <DEC_SampleRate>. Status codes {WOULD_BLOCK, UNDERFLOW_OVERFLOW, NO_CSB, INVALID_DATA, SUSPENDED}."
    ]
   },
   "dolby_decoder": {
@@ -142986,12 +142984,11 @@
    "ops_counters": "ops {schedResyncX,immedResync,schedResync,endTX}; ITBTT types {ITBTT_UNKNOWN,ITBTT_CHSRC,ITBTT_LINEIN,ITBTT_VLI}; crossfade state for packetId {lPacketNum-1/lPacketNum-2 fallback,no frames,crossfade on/off}; \"checkAndMarkFrameDiscontinuity: %lldus\"; \"getLocationAtTime earlier than oldest valid packet\"; NACK {\"nack from %s count=%u, min=%u, max=%u\",\"not transmitting %u stale packets\",\"ignore NACK packet with incompatible protocol version\"}; perf-counters {rsend=DataBlock sends,nackr=resync NACK,nackd=data NACK,nacku=unsendable NACK} + \"Histogram of transmitted packet info\"; params {transmit port,dstaddr unicast/multicast,lastpktid}",
    "summary": "; control-frame type names {boundaryX,schedResyncX,immedResync,schedResync,endTX} + debug line '// %3u %d.%06d %u:%s'; ITBTT_UNKNOWN",
    "todo": [
-    "Established: the control-frame type names and the debug line format; ops_counters sub-block exists.",
-    "Still unknown: the TX-side frame format and how nodetx pairs with noderx.",
-    "Next step: document the control-frame grammar and the ops counters."
+    "Residual: the on-wire header byte layout (field order/sizes of {id, class, offset, timestamp}) - the identity triple and control-frame vocabulary are proven; byte layout is parse-branch data (shared boundary with chsrc_chsnk/chsnk)."
    ],
    "resolved_findings": [
-    "Resolved: control-frame grammar = the nodetx NACK frame fields decomposed earlier {seq, ack-bitmap, window}; ops counters = the tx/rx stat names in the nodetx block."
+    "Resolved: control-frame grammar = the nodetx NACK frame fields decomposed earlier {seq, ack-bitmap, window}; ops counters = the tx/rx stat names in the nodetx block.",
+    "Consolidated with the chsrc_chsnk bus decode: nodetx is the TX half of the node transport - the control-frame type names {boundaryX, schedResyncX, immedResync, schedResync, endTX, ITBTT_UNKNOWN} mark the frame classes that ride beside audio frames; reliability is NACK-based retransmit (nack from %s count=%u, min=%u, max=%u covering packet-id ranges; requestResync(%u); protocol-version reject on NACKs) with late-joiner support (resendToLateJoiner: starting send at %u). noderx is the mirror RX half carrying bookkeeping {pid, ob, lr, lcg, lrx, slrx} plus skip-ahead entries and the rx histogram taxonomy; the frame-identity triple {id, class, offset} is shared between them. ops_counters track the resend/nack/drop tallies feeding the stats debug line // %3u %d.%06d %u:%s."
    ]
   },
   "muse": {
@@ -143095,12 +143092,11 @@
   "datatap": {
    "detail": "\"Datatap snapshot failed after %zu\" (snapshot bound); ZoneDevDiscThread",
    "todo": [
-    "Established: only the 'detail' sub-record; the datatap mechanism is named but undescribed at top level.",
-    "Still unknown: the datatap object model and how it differs from rolling_data_tap used by audio_taps.",
-    "Next step: read the detail sub-block, then reconcile with audio_taps' tap format."
+    "Residual: the metadata XML schema inside <SPDIFTap> (which session/format fields) - the wrapper tag is proven; inner elements are written by the audiotap_manager serializer already covered in audio_taps."
    ],
    "resolved_findings": [
-    "Resolved: reconciled with audio_taps - the tap is a rolling buffer whose snapshot serializes the buffer verbatim with <SPDIFTap> metadata XML."
+    "Resolved: reconciled with audio_taps - the tap is a rolling buffer whose snapshot serializes the buffer verbatim with <SPDIFTap> metadata XML.",
+    "Object model resolved (datatap.cxx, datatap tag): RDataTap is the generic capture object - instances are typed by name (rolling_data_tap for the audio taps) and serialize a metadata XML wrapper into the buffer ahead of payload (<SPDIFTap>...</SPDIFTap> for the SPDIF tap; Error: failed to read metadata from buffer! on the parse side). Snapshot dumps the rolling buffer to the versioned file (Datatap snapshot failed after %zu bytes) consumed by the /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap routes documented in audio_taps. Difference from rolling_data_tap: datatap is the base object (metadata + snapshot); rolling_data_tap is the subtype that keeps the circular audio buffer the snapshot drains."
    ]
   },
   "trueplay": {
