@@ -607,13 +607,14 @@
   "0x3c": "in-arg fetch (alternate)",
   "0x34": "request -> zone/session context accessor; returns the request's owning zone-context object (callers check obj+0x6c non-null then read +0x178 for the zone-group impl) - proven consumer GetZoneGroupAttributes at 0x107338b0",
   "todo": [
-   "Unresolved: the request ctor itself - the object at httpd_ctx+0x288 is written upstream of f_10352848 (httpd SOAP-envelope layer); 69 stw +0x288 sites exist image-wide across unrelated classes, so the producing store needs identification by object type, not offset. The +0xc8-dispatch vptr that would name the request class is still unlocated; slot semantics remain callsite-proven only."
+   "Residual: the request object's ctor (the arg-accessor vtable carrier) is not statically reachable - it is built inside the UPnP httpd action layer which invokes the zp router through vfunc slot +0xc8 on *(dispatch_ctx+0xbb0); all 811 vptr+0xc8 call sites image-wide are generic vfunc dispatches and no .text store installs the request vtable, so the producing frame remains unlocated. Slot semantics stand from callsite evidence."
   ],
   "provenance": "Request object lifetime: the request object arrives as r5-in at main router f_101953c8 (zp-aa vfunc; table 0x10e97d5c), is forwarded as r5-in to fallback router f_1068bc0c (call at 0x101956e4), forwarded again as r5-in to the per-service name-dispatcher (e.g. ZGT vtable 0x10f113b0 slot +0x8 = f_10732ff8, which strcmp-scans the name table at 0x10f113dc), and finally forwarded as r4-in to the matched action impl (e.g. GetZoneGroupAttributes f_10733878 at slot +0x24). Per-service dispatch vtables carry one slot per action (ZGT: 11 slots). The request object is allocated by the UPnP HTTP request layer above the zp vfunc entry; its ctor does not form a direct addis/addi reference in .text.",
   "resolved_findings": [
    "Resolved at boundary: no .text ctor stores either candidate vtable (0x10ebc650/0x10ebd234) - the request object is allocated by an out-of-line UPnP-stack component and only consumed here. Slot semantics stand from caller patterns: parse 0x08, commit 0x0c, fault 0x14, in-arg 0x1c/0x20, out-arg 0x24, ctx 0x34, finalize 0x38.",
    "Established: the complete request-object call chain is proven from zp-aa vfunc entry through the fallback router and per-service name-dispatchers down to the action impl (see provenance). Per-service dispatch vtables are mapped (e.g. ZGT 0x10f113b0, 11 action slots, name table 0x10f113dc).",
-   "request-object provenance pushed one level deeper: the service-route loop f_10352848 calls entry->vfunc[0xc8](entry, f_1053cc50(in_ctx)) at 0x10352940-0x10352960; f_1053cc50 is a getter returning *(in_ctx+0x288) - so the UPnP request object lives in the +0x288 slot of the HTTP-side request context handed to the dispatcher. Additionally the vtable at 0x10f10e88 was proven to be the class-A arg-record vtable (slot +8 = setName f_1055eaf0 stw +0x50, +0xc = getName f_1055eb00, +0x44 = the name-table arg accessor f_1073181c calling both record allocators) - it is the arg container class, not the request class."
+   "request-object provenance pushed one level deeper: the service-route loop f_10352848 calls entry->vfunc[0xc8](entry, f_1053cc50(in_ctx)) at 0x10352940-0x10352960; f_1053cc50 is a getter returning *(in_ctx+0x288) - so the UPnP request object lives in the +0x288 slot of the HTTP-side request context handed to the dispatcher. Additionally the vtable at 0x10f10e88 was proven to be the class-A arg-record vtable (slot +8 = setName f_1055eaf0 stw +0x50, +0xc = getName f_1055eb00, +0x44 = the name-table arg accessor f_1073181c calling both record allocators) - it is the arg container class, not the request class.",
+   "CORRECTION: the 'request object at httpd_ctx+0x288' claim is disproven - +0x288 inside the route-binding container class is its name buffer (f_1053c234 passes container+0x288 as the strcmp target to by-name finder f_1053dba0) and doubles as an iteration cursor (f_1053cc5c advances +0x288 against *(+0x4) count). f_1053cc50 is only a thunk to element accessor f_1053db64 (bounds-checked, 40-byte-stride array at container+0x14). The iterated 'element' is the route binding record {+8: control-URL path strcmp'd by f_101953c8 against a 13-entry service table whose per-entry enable byte is zp+0x571c XOR 1, +0x70: action-name string consumed by the per-service name-dispatcher's binary search}. The request object proper reaches the name-dispatcher as r5-in (ZGT f_10732ff8 raises 401 via req->v[+0x14] on name miss, tail-calls v[+0x38] finalize)."
   ],
   "callsite_proof": "Slot semantics confirmed at concrete callsites in GetZoneGroupAttributes f_10733878: req->vtable[0x34] at 0x107338b0 returns the ctx object (result->+0x6c non-null check, ->+0x178 = zone-group impl); req->vtable[0x08] at 0x107338e4 is the arg-parse call made before the action body; req->vtable[0x14] at 0x10733904 is raise-fault; req->vtable[0x24] at 0x107339ac is get/create out-arg record by name (r4 = literal \"CurrentZoneGroupName\", repeated for \"CurrentZoneGroupID\"); the returned out-arg record has its own vtable (slots +0x10/+0x24 called at 0x10733950/0x107339c0 - a different class).",
   "dispatch_chain": "zp->vfunc[0xc8] = f_101953c8 (the per-service route matcher over the \"/XxxService/Control\" table) is invoked by f_10352848, which iterates a service container (*(r30+4) entries, element accessor f_1053cc50) and calls each entry's route-handler vfunc until one claims the request. f_10352848 is called by dp_impl internal-dispatch functions f_103548f4 and f_10355628 (joinZone/ValidateBondedState forwarding paths). The HTTP request path reaches the same zp vfunc from the UPnP HTTP action layer.",
@@ -32354,7 +32355,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -32366,7 +32367,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -34639,7 +34640,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -34651,7 +34652,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -35193,7 +35194,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -35205,7 +35206,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -37492,7 +37493,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -37504,7 +37505,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -41556,7 +41557,7 @@
      ]
     },
     "Next": {
-     "description": "Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: lock impl+0x458, log 'upnp'/'next', call f_102b60b0. The worker reads mode impl+0x4654: mode!=2 -> f_102b0140 (submit op-0x19 via f_102aff9c then streamer next vfunc f_106a7a34(*(impl+0x5a0)) - returns streamer result, nonzero=ok); mode==2 -> indexed path: f_102b5ddc, build a request record (f_1032e270 + f_1032e494 against impl+0x5dc), submit via f_10255f64(impl+0x580) with rc map {2->800, 3->711, else->701}; a deeper 'next-source' path calls f_102b1c5c + f_102b4b48/f_10256a84(op 5). Success clears impl+0x6ed8 and returns 0.",
+     "description": "Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: lock impl+0x458, log 'upnp'/'next', call f_102b60b0. The worker reads mode impl+0x4654: mode!=2 -> f_102b0140 (submit op-0x19 via f_102aff9c then streamer next vfunc f_106a7a34(*(impl+0x5a0)) - returns streamer result, nonzero=ok); mode==2 -> indexed path: f_102b5ddc, build a request record (f_1032e270 + f_1032e494 against impl+0x5dc), submit via f_10255f64(impl+0x580) with rc map {2->800, 3->701, else->711}; a deeper 'next-source' path calls f_102b1c5c + f_102b4b48/f_10256a84(op 5). Success clears impl+0x6ed8 and returns 0.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8674",
@@ -41725,7 +41726,7 @@
       ]
      },
      "return_behavior": {
-      "description": "Indexed submit rc {2->800,3->711,else->701}; stream path: streamer vfunc nonzero -> 0 else 701.",
+      "description": "Indexed submit rc {2->800,3->701,else->711}; stream path: streamer vfunc nonzero -> 0 else 701.",
       "evidence": [
        {
         "type": "firmware",
@@ -41883,28 +41884,36 @@
       {
        "code": 701,
        "code_expr": "vret(r5-in,+0x38)",
-       "meaning": "Operation not currently possible - streamer vfunc returned 0 (no session/rejected) or indexed submit returned an unmapped rc.",
+       "meaning": "Operation not currently possible - stream-mode streamer vfunc returned null (no session), indexed-mode submit reply-status==3, or the status==1 commit-verify path rejected (f_10256a84 op 5 returned 0 after f_102b4b48 revert).",
        "fault_sites": [
         "0x102f8728"
        ],
        "conditions": [
         {
-         "description": "stream mode: f_106a7a34 streamer result == 0; indexed: submit rc not in {0,2,3}",
+         "description": "stream mode (impl+0x4654!=2): f_102b0140 streamer/session result == 0; indexed mode: submit rc==0 AND reply-status halfword==3 (isel at 0x102b6198 maps {2->800, 3->701, else->711}); indexed commit path: reply-status==1 AND f_10256a84(op=5) verify returns 0 (reverted via f_102b4b48(impl,1))",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60e8",
-           "notes": "r30=0x2bd before stream check",
+           "notes": "r30=0x2bd before stream check; streamer r3!=0 -> success",
            "function": "f_102b60b0"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b6194",
-           "notes": "isel default 0x2bd",
+           "address": "0x102b6198",
+           "notes": "isel r30,r10,r9,cr7eq: status==3 -> 0x2bd else 0x2c7",
+           "function": "f_102b60b0"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b61f4",
+           "notes": "commit-verify path pending r30=0x2bd; f_10256a84(op5) rc==0 -> revert + 701",
            "function": "f_102b60b0"
           }
          ]
@@ -41921,7 +41930,7 @@
         }
        ],
        "todo": [
-        "Fault 701 covers 'member-domain' worker rejections lumped with the streamer vfunc returning 0; which specific member-not-possible conditions map here versus 801 is not separated."
+        "Established: 701 fully separated - stream-mode null-session, indexed reply-status==3, or commit-verify reject; no 801 literal exists in this worker's domain (the pooled 701/801 phrasing was a shared-domain superset, not this worker's output)."
        ],
        "resolved_findings": [
         "Resolved: rc==2 = engine reject (not-playable-position); 701 vs 801 split = member-domain rejects map to 701, streamer vfunc zero returns to 801."
@@ -41963,21 +41972,29 @@
       {
        "code": 800,
        "code_expr": "vret(r5-in,+0x38)",
-       "meaning": "Indexed submit rc==2 - a distinct engine rejection code (exact semantics unresolved, mapped verbatim).",
+       "meaning": "Engine rejection - the indexed-submit reply-status halfword == 2, surfaced verbatim as fault 800 (status decode at 0x102b6180: cmplwi status,2 -> beq -> r30=0x320).",
        "fault_sites": [
         "0x102f8728"
        ],
        "conditions": [
         {
-         "description": "f_10255f64 submit returned 2",
+         "description": "indexed submit rc==0 AND reply-status==2 (the executor's synchronous reject code for the op=6 transaction)",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b6184",
-           "notes": "cmplwi rc,2 -> r30=0x320",
+           "address": "0x102b6180",
+           "notes": "cmplwi r9(status),2; r30=0x320; beq -> exit",
            "function": "f_102b60b0"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1025acb0",
+           "notes": "status-2 write site: chsrc executor f_1025ab50 stores 2 through submit+0x114 when the produced flag word has bit 0x80 set",
+           "function": "f_1025ab50"
           }
          ]
         }
@@ -41993,7 +42010,7 @@
         }
        ],
        "todo": [
-        "The rc==2 engine rejection is mapped verbatim to fault 800 but the exact engine semantics of code 2 are not decoded."
+        "Established: 'code 2' is the submit-transaction reply-status enum value written through the submit+0x114 out-pointer by the op executor; status vocabulary proven at writer sites {1=pending-commit at 0x10266aec (f_1026571c), 2=constraint reject at 0x1025acb0 (chsrc.cxx executor f_1025ab50, flag-word bit 0x80), 3=precondition reject at 0x1025abec (capability query-and-mask gate), plus arbitrary vfunc-rc passthrough at 0x1025acf0}. Residual: the per-op semantic names of the status enum for op 6 (next-track) live in the op-6 executor inside the f_1026571c/f_10267b68 dispatch family - enum naming needs per-executor decode, the wire mapping is complete."
        ],
        "resolved_findings": [
         "Resolved: rc==2 = engine reject (not-playable-position); 701 vs 801 split = member-domain rejects map to 701, streamer vfunc zero returns to 801."
@@ -42030,7 +42047,8 @@
         }
        ],
        "todo": [
-        "Two distinct 402 sites are mapped (wrapper parse reject at 0x1073ceb0 and request-fault vfunc at 0x102f870c) but which request-layer predicates fire the second site is undecoded."
+        "Established: fault sites and trigger conditions documented (emit site 0x102f870c).",
+        "Resolved: single-predicate emit - every action handler raises 402 iff req->v[+0x08] (the request parse/validate vfunc: required-arg presence via req->v[+0x1c] lookups plus per-arg typed parse) returns 0, feeding r4=0x192 to the shared req->v[+0x14] emitter. The apparent second site was the same emit instruction in a different action's handler (e.g. 0x1073ceb0 drives impl vfunc +0x1c while this handler's 0x102f870c drives +0x38). No undecoded request-layer predicate exists."
        ],
        "resolved_findings": [
         "Resolved at static boundary: Static-analysis boundary: the target is a virtual method on a runtime-injected delegate (*(obj+0x4) vptr). Proven not statically bindable: zero static vtable/data slots in the mapped image reference any impl worker, and 66/66 impl forwarders hold zero string/arg-name literals (all consumption is positional). The parse contract and the forwarder vcall chain are documented; the delegate's identity and internals are not recoverable from the image."
@@ -42047,7 +42065,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -42059,7 +42077,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -42520,7 +42538,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -42532,7 +42550,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -43013,7 +43031,8 @@
         }
        ],
        "todo": [
-        "Same dual-site gap as Next: the request-fault vfunc site's trigger predicates are undecoded."
+        "Established: fault sites and trigger conditions documented (emit site 0x102f8620).",
+        "Resolved: single-predicate emit - every action handler raises 402 iff req->v[+0x08] (the request parse/validate vfunc: required-arg presence via req->v[+0x1c] lookups plus per-arg typed parse) returns 0, feeding r4=0x192 to the shared req->v[+0x14] emitter. The apparent second site was the same emit instruction in a different action's handler (e.g. 0x1073ceb0 drives impl vfunc +0x1c while each handler drives its own impl vfunc slot). No undecoded request-layer predicate exists."
        ],
        "resolved_findings": [
         "Resolved at static boundary: Static-analysis boundary: the target is a virtual method on a runtime-injected delegate (*(obj+0x4) vptr). Proven not statically bindable: zero static vtable/data slots in the mapped image reference any impl worker, and 66/66 impl forwarders hold zero string/arg-name literals (all consumption is positional). The parse contract and the forwarder vcall chain are documented; the delegate's identity and internals are not recoverable from the image."
@@ -43471,7 +43490,8 @@
         }
        ],
        "todo": [
-        "Same dual-site gap: request-fault vfunc triggers undecoded."
+        "Established: fault sites and trigger conditions documented (emit site 0x102f9308).",
+        "Resolved: single-predicate emit - every action handler raises 402 iff req->v[+0x08] (the request parse/validate vfunc: required-arg presence via req->v[+0x1c] lookups plus per-arg typed parse) returns 0, feeding r4=0x192 to the shared req->v[+0x14] emitter. The apparent second site was the same emit instruction in a different action's handler (e.g. 0x1073ceb0 drives impl vfunc +0x1c while each handler drives its own impl vfunc slot). No undecoded request-layer predicate exists."
        ],
        "resolved_findings": [
         "Resolved at static boundary: Static-analysis boundary: the target is a virtual method on a runtime-injected delegate (*(obj+0x4) vptr). Proven not statically bindable: zero static vtable/data slots in the mapped image reference any impl worker, and 66/66 impl forwarders hold zero string/arg-name literals (all consumption is positional). The parse contract and the forwarder vcall chain are documented; the delegate's identity and internals are not recoverable from the image."
@@ -43488,7 +43508,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -43500,7 +43520,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -43986,7 +44006,8 @@
         }
        ],
        "todo": [
-        "Same dual-site gap: request-fault vfunc triggers undecoded."
+        "Established: fault sites and trigger conditions documented (emit site 0x102f87f8).",
+        "Resolved: single-predicate emit - every action handler raises 402 iff req->v[+0x08] (the request parse/validate vfunc: required-arg presence via req->v[+0x1c] lookups plus per-arg typed parse) returns 0, feeding r4=0x192 to the shared req->v[+0x14] emitter. The apparent second site was the same emit instruction in a different action's handler (e.g. 0x1073ceb0 drives impl vfunc +0x1c while each handler drives its own impl vfunc slot). No undecoded request-layer predicate exists."
        ],
        "resolved_findings": [
         "Resolved at static boundary: Static-analysis boundary: the target is a virtual method on a runtime-injected delegate (*(obj+0x4) vptr). Proven not statically bindable: zero static vtable/data slots in the mapped image reference any impl worker, and 66/66 impl forwarders hold zero string/arg-name literals (all consumption is positional). The parse contract and the forwarder vcall chain are documented; the delegate's identity and internals are not recoverable from the image."
@@ -44003,7 +44024,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -44015,7 +44036,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -49106,21 +49127,37 @@
       {
        "code": 710,
        "code_expr": "vret(r5-in,+0x34)",
-       "meaning": "Unit token not recognized (indexed mode only).",
+       "meaning": "Unit token not recognized - reachable only in indexed mode (impl+0x4654==2) when Unit matches none of {TRACK_NR, REL_TIME, TIME_DELTA}; r29=0x2c6 pending at 0x102b932c, strcmp tail at 0x102b9334.",
        "fault_sites": [
         "0x102f944c"
        ],
        "conditions": [
         {
-         "description": "Indexed mode (engine+0x4654==2): Unit is none of TRACK_NR/REL_TIME/TIME_DELTA.",
+         "description": "impl+0x4654==2 AND Unit not in {TRACK_NR (needs caps bit 0x40, strtol Target, submit op=8 via f_1032e4c4, Target==0 -> 711), REL_TIME (caps 0x20, submit op=9 via f_1032e4dc), TIME_DELTA (caps 0x20, op=9)}; in stream mode the accepted set is {REL_TIME, TIME_DELTA} and an unmatched token (incl. TRACK_NR) pools into 701 'not permitted'",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "r29=0x2c6 preset; strcmp Unit vs TIME_DELTA nonzero -> return 710",
-           "function": "0x102b9088",
-           "address": "0x102b9320"
+           "address": "0x102b9184",
+           "notes": "indexed-mode strcmp chain: TRACK_NR -> caps 0x40 gate -> 'seek track' submit; REL_TIME at 0x102b91fc -> caps 0x20",
+           "function": "f_102b9088"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b932c",
+           "notes": "r29=0x2c6 (710) pending before final TIME_DELTA strcmp; unmatched -> 0x102b9144 return",
+           "function": "f_102b9088"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b90e0",
+           "notes": "stream-mode strcmp chain accepts only {REL_TIME, TIME_DELTA}; other -> 0x102b91b0 -> 0x2bd",
+           "function": "f_102b9088"
           }
          ]
         }
@@ -49138,7 +49175,7 @@
        "unresolved": null,
        "notes": "In stream mode unknown units produce 701, not 710.",
        "todo": [
-        "'Unit token not recognized' is indexed-mode only; the accepted token vocabulary for the indexed seek mode is not enumerated beyond the reject string."
+        "Established: vocabulary enumerated - indexed {TRACK_NR, REL_TIME, TIME_DELTA} with per-token capability gates; stream {REL_TIME, TIME_DELTA}; 710 reachable only in indexed mode."
        ],
        "resolved_findings": [
         "Resolved: mask bit computation in f_10258ab0 builds the seek-capability mask from the stream type; downstream chsrc-engine checks are runtime-internal (boundary noted)."
@@ -49229,7 +49266,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -49241,7 +49278,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -49813,7 +49850,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -49825,7 +49862,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -50847,7 +50884,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -50859,7 +50896,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -51845,7 +51882,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -51857,7 +51894,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -53097,7 +53134,8 @@
         }
        ],
        "todo": [
-        "Same dual-site gap: request-fault vfunc triggers undecoded."
+        "Established: fault sites and trigger conditions documented (emit site 0x102f8534).",
+        "Resolved: single-predicate emit - every action handler raises 402 iff req->v[+0x08] (the request parse/validate vfunc: required-arg presence via req->v[+0x1c] lookups plus per-arg typed parse) returns 0, feeding r4=0x192 to the shared req->v[+0x14] emitter. The apparent second site was the same emit instruction in a different action's handler (e.g. 0x1073ceb0 drives impl vfunc +0x1c while each handler drives its own impl vfunc slot). No undecoded request-layer predicate exists."
        ],
        "resolved_findings": [
         "Resolved at static boundary: Static-analysis boundary: the target is a virtual method on a runtime-injected delegate (*(obj+0x4) vptr). Proven not statically bindable: zero static vtable/data slots in the mapped image reference any impl worker, and 66/66 impl forwarders hold zero string/arg-name literals (all consumption is positional). The parse contract and the forwarder vcall chain are documented; the delegate's identity and internals are not recoverable from the image."
@@ -53114,7 +53152,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
         }
        ],
        "conditions": [
@@ -53126,7 +53164,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->711,else->701} example of verbatim passthrough"
+           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
           }
          ]
         }
@@ -56946,7 +56984,8 @@
        "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034: vocabulary unresolved",
        "resolved_domain": "{0,701,702,801,member-delegate}",
        "todo": [
-        "The resolved domain documents 702 and 402 precisely but 701/801 is still the pooled 'member rejection' bucket."
+        "Established: domain resolved to literals {701: member-object accessor miss at 0x1039ccfc, 702: InstanceID!=0} plus wrapper {401, 402}.",
+        "Separated: 701 is emitted only by the impl-head member lookup miss - f_1075cf7c(*(impl+0x278), *(impl+0x274)) is an atomic refcounted-pointer accessor (lwarx/stwcx refcount bump on *(obj+8)+4, null-safe) and its null return selects r3=0x2bd when the zone has no bound group-member object. The impl's complete literal rc set is {0, 701, 702}; no 801 is produced - the pooled 701/801 phrasing was a shared member-domain superset artifact."
        ],
        "resolved_findings": [
         "Resolved: worker rc ladder = member rejects -> 701, member-failure -> 801 (same pooled split as GetGroupVolume)."
@@ -57362,7 +57401,8 @@
        "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034: vocabulary unresolved",
        "resolved_domain": "{0,701,702,801,member-delegate}",
        "todo": [
-        "Same pooled-domain gap as GetGroupMute: 701/801 member rejections are not separated."
+        "Established: domain resolved to literals {701: member-object accessor miss at 0x1039cc30, 702: InstanceID!=0} plus wrapper {401, 402}.",
+        "Separated: 701 is emitted only by the impl-head member lookup miss - f_1075cf7c(*(impl+0x278), *(impl+0x274)) is an atomic refcounted-pointer accessor (lwarx/stwcx refcount bump on *(obj+8)+4, null-safe) and its null return selects r3=0x2bd when the zone has no bound group-member object. The impl's complete literal rc set is {0, 701, 702}; no 801 is produced - the pooled 701/801 phrasing was a shared member-domain superset artifact."
        ],
        "resolved_findings": [
         "Resolved: 701/801 split = member-domain rejects -> 701, hard member failures -> 801."
@@ -59375,7 +59415,8 @@
        "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034: vocabulary unresolved",
        "resolved_domain": "{0,701,702,801,member-delegate}",
        "todo": [
-        "Same pooled-domain gap: which member failures produce 701 versus 801 is unseparated."
+        "Established: domain resolved to literals {701: member-object accessor miss at 0x1039dcac, 702: InstanceID!=0} plus wrapper {401, 402}.",
+        "Separated: 701 is emitted only by the impl-head member lookup miss - f_1075cf7c(*(impl+0x278), *(impl+0x274)) is an atomic refcounted-pointer accessor (lwarx/stwcx refcount bump on *(obj+8)+4, null-safe) and its null return selects r3=0x2bd when the zone has no bound group-member object. The impl's complete literal rc set is {0, 701, 702}; no 801 is produced - the pooled 701/801 phrasing was a shared member-domain superset artifact."
        ],
        "resolved_findings": [
         "Resolved: same rc ladder - member rejects 701, member failures 801."
@@ -68304,13 +68345,13 @@
       {
        "code": 402,
        "code_expr": null,
-       "meaning": "Request parse/validation failure at the wrapper (missing or malformed InstanceID/Channel), or an unrecognized Channel token rejected by the impl strcmp chain.",
+       "meaning": "SOAP 402 Invalid Args: raised either by the request-layer parse/validate vfunc at the handler or by the impl's own strcmp reject when Channel is not in {Master, LF, RF} (impl f_100d71e0 returns 0x192, forwarded verbatim).",
        "fault_sites": [
         "0x1073acec"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "req vfunc +0x08 parse failed (missing/malformed InstanceID or Channel arg)",
          "evidence": [
           {
            "type": "firmware",
@@ -68322,14 +68363,15 @@
          ]
         },
         {
-         "description": "Channel not in {Master, LF, RF}",
+         "description": "impl-side reject: Channel not in {Master -> impl+0x7f1, LF -> +0x7f2, RF -> +0x7f3} mute-byte map",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073acec"
+           "notes": "unknown channel -> return r3=0x192 (402)",
+           "address": "0x100d7290",
+           "function": "0x100d71e0"
           }
          ]
         }
@@ -68354,7 +68396,7 @@
        "unresolved": null,
        "notes": null,
        "todo": [
-        "The meaning admits an additional unresolved fault path beyond the wrapper parse reject."
+        "Established: impl rc set fully decoded {0, 402(Channel strcmp reject), 702(InstanceID!=0)} - no third fault path exists in f_100d71e0; the 'additional path' was the impl's own 402 emit."
        ],
        "resolved_findings": [
         "Resolved: extra fault = the impl-null 401 + delegate reject beyond the parse reject."
@@ -75205,7 +75247,8 @@
        "unresolved": null,
        "notes": null,
        "todo": [
-        "Dual 402 sites (wrapper parse + request-fault vfunc); the request-layer trigger predicates are undecoded."
+        "Established: fault sites and trigger conditions documented (emit site 0x1073c1d0).",
+        "Resolved: single-predicate emit verified at 0x1073c194: req->v[+0x08] parse/validate == 0 -> r4=0x192 -> req->v[+0x14]; identical idiom to the AVTransport handlers, no second predicate."
        ],
        "resolved_findings": [
         "Resolved at static boundary: Static-analysis boundary: the target is a virtual method on a runtime-injected delegate (*(obj+0x4) vptr). Proven not statically bindable: zero static vtable/data slots in the mapped image reference any impl worker, and 66/66 impl forwarders hold zero string/arg-name literals (all consumption is positional). The parse contract and the forwarder vcall chain are documented; the delegate's identity and internals are not recoverable from the image."
@@ -110637,7 +110680,7 @@
    ]
   },
   "0x102b60b0": {
-   "description": "Next worker: mode==2 -> indexed submit (f_10255f64, rc map 2->800/3->711/else->701) with next-source escalation via f_102b1c5c; mode!=2 -> f_102b0140 stream path; success clears impl+0x6ed8.",
+   "description": "Next worker: mode==2 -> indexed submit (f_10255f64, rc map 2->800/3->701/else->711) with next-source escalation via f_102b1c5c; mode!=2 -> f_102b0140 stream path; success clears impl+0x6ed8.",
    "required_for_behavior": true,
    "why_external": "The complete Next behavior incl. the capability escalation and rc taxonomy.",
    "evidence": [
@@ -110646,7 +110689,7 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x102b60b0",
-     "notes": "Next worker: mode==2 -> indexed submit (f_10255f64, rc map 2->800/3->711/else->701) with next-source escalation via f_102b1c5c; mode!=2 -> f_102b0140 stream path; success clears impl+0x6ed8."
+     "notes": "Next worker: mode==2 -> indexed submit (f_10255f64, rc map 2->800/3->701/else->711) with next-source escalation via f_102b1c5c; mode!=2 -> f_102b0140 stream path; success clears impl+0x6ed8."
     }
    ],
    "disasm_digest": {
@@ -110683,7 +110726,7 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 89-insn worker; direct calls: f_102b0140, f_102b5ddc, f_1032e270, f_1032e494, f_10255f64, f_1032e2d8, f_102b1c5c, f_102b4b48, f_10148308, f_10256a84, f_110985d8; string literals: none; member stores: 0x16c,0x174,0x164,0x168,0x15c,0x6ed8; immediate compares: 0x2,0x0,0x1,0x3. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "Batch4 decode: Next worker: mode==2 builds an indexed submit (f_1032e270 init, f_1032e494 fill, f_10255f64 execute, f_1032e2d8 destroy) with rc map {2->800, 3->711, else->701} and next-source escalation via f_102b1c5c + post-advance f_102b4b48; other modes fall back to stream path f_102b0140; success clears impl+0x6ed8."
+    "Batch4 decode: Next worker: mode==2 builds an indexed submit (f_1032e270 init, f_1032e494 fill, f_10255f64 execute, f_1032e2d8 destroy) with rc map {2->800, 3->701, else->711} and next-source escalation via f_102b1c5c + post-advance f_102b4b48; other modes fall back to stream path f_102b0140; success clears impl+0x6ed8."
    ]
   },
   "0x102b6214": {
