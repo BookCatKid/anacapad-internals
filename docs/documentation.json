@@ -149002,6 +149002,31 @@
     "Sonos-built set: libsonosutils.so.1 (IPC helpers incl. ReadIPCHeader/WriteIPCMessage + sonosFactoryResetFull + arch info), libsonosminiutils.so.1 (file/int helpers, syslog glue), libsonos-mdp.so.1 (MDP serial/series/cert-variant accessors), libsonoscrypto.so.3 (mbedtls-wrapped crypto incl. sonosRcbVerifySig for .upd/rcb), libsonos-certval.so.2 + libsonos-root-cert-bundle.so.2 (cert validation + bundled roots), libsonos-time-c.so.1 (timeval math + sonosClockGetTime), libsonoseventreporter.so.1 (report_event telemetry), libsonossbcpacket.so.1 (satellite SBC packet codec), libsonossyslog.so.1 (syslog extension used by wpa_supplicant), libflash.so.1 (hal_flash_* mtd/MDP/FSN access), libsyslib_hal.so.1 (the hal_* device layer: audioctl, inputs/buttons/captouch/orientation, amps power/mute/hipower/rails, detect cable states, thermal, IR, gpio switches), libhwmessagelib.so.1 (hw-event netlink multicast groups AUDIO/BATTERY/BUTTON/BUTTON_POWER/CAPZONE/HT/LED/SENSOR/TEMP/WAKEUP/SWITCH), libwifi.so.1 (the 72-export WifiFuncs* API consumed by netstartd/wacd).",
     "Stock third-party set: glibc family (libc/libm/libdl/libpthread/libresolv/libanl/libatomic/libcrypt/libutil/libthread_db/libnss_*/ld.so.1), libgcc_s, libz 1.2.11, mbedtls 2.x trio (mbedcrypto.16/mbedtls.21/mbedx509.7), ffmpeg libavcodec.59/libavformat.59/libavutil.57 (WMA etc.), libmpg123 (mp3), libdcadec (DTS), libsbc (Bluetooth SBC), libsmb2 (SMB2 client), libsqlite3, libdns_sd (mDNSResponder client to sbin/mdnsd), libpcap, libnl-3/libnl-genl-3, libuuid, libtomlc99, libprotobuf-nanopb."
    ]
+  },
+  "bin_udhcpc": {
+   "name": "udhcpc (Sonos-patched DHCP client)",
+   "summary": "sbin/udhcpc = a Sonos-modified udhcpc 0.9.8 (banner 'udhcpcd, version %s'). Beyond stock busybox DHCP it adds: a file-based renew IPC (/tmp/udhcpc_renew_option carrying a renew-type integer {confirm/extend, init-reboot, deconfig}), IP-mode sentinels (/var/run/{specialIP,normalIP}), responder bookkeeping (/tmp/udhcpc_resp_mac_addr records the DHCP server MAC for diagnostics + cloud-reg dhcpMac input), IPv4LL fallback ('Force Zeroconf'/'Starting zeroconf process' with address-conflict detect 'Address duplication detected, INITIATING NEW DHCP'), startup gating on a netstartd signal ('Waiting up to 60s for a signal to start'/'Timed out waiting for a signal to start, starting anyway!!!'), and netif readiness waits ('Bridge is %s ready','Driver is %s ready').",
+   "artifacts": [
+    "sbin/udhcpc"
+   ],
+   "resolved_findings": [
+    "Decoded: renew-IPC contract - the renewer writes an integer type to /tmp/udhcpc_renew_option; udhcpc reads it ('Renew type: %d', 'Error: invalid renew type %d from file %s: Using %d instead' default fallback) and deletes it after consumption ('Error: unable to delete the file %s'). perform_renew() maps types to {confirm/extend-lease renew, init-reboot renew, deconfig-then-SELECTING}; 'Already requested a renew, now deconfig' collapses a second request.",
+    "Decoded: result counter line 'rna:%d rns:%d rnn:%d rqa:%d rqs:%d rqn:%d zc:%d dup:%d %s %s %s %s %s' plus named event literals {DHCP_RN_FAIL, DHCP_RQ_FAIL, DHCP_RN_NAK, DHCP_RQ_NAK, DHCP_DUP} - renew/request ack/nak counters, zeroconf count, duplicate-address count.",
+    "Decoded: lease lifecycle - 'No lease, forking to background'/'No lease, failing' (daemonize policy), 'Lease lost, entering init state', 'Received DHCP NAK' -> init, 'No lease time with ACK, using 1 hour lease' fallback, 'Sending gratuitous ARP' after bind, lease/renewal/bound/deconfig state names.",
+    "Decoded: monitoring - an 'address monitor' socket watches the assigned address, an ARP socket watches for conflicts, and an SSID-change listener triggers re-DHCP ('FATAL: couldn't listen for SSID change'). Reads /jffs/netsettings.txt for static-net config."
+   ],
+   "todo": [
+    "Established: full renew-IPC/state machine/sentinel/zeroconf contract from sibling strings.",
+    "Residual: the exact renew-type integer enumeration (which int = confirm vs init-reboot vs deconfig) requires mapping the file-reader's switch arms; 'Using %d instead' shows a numeric default. Who writes /tmp/udhcpc_renew_option (netstartd? anacapad? /status handler) is unresolved - the writer site was not traced."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "sbin/udhcpc",
+     "build": "86.10-80260",
+     "notes": "string-table decode of the stripped PPC binary"
+    }
+   ]
   }
  },
  "muse": {
