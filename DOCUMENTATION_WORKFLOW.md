@@ -34,7 +34,7 @@ tools/extract_artifacts.py     copies manifest files from an unpacked rootfs
                                size/sha256/kind in the manifest
 tools/gensite.py               VitePress site build wrapper
 reference/.vitepress/config.mts  site config (title, sidebar, search,
-                               markdown rules) — evaluated by VitePress
+                               markdown rules); VitePress evaluates it
                                at build time
 reference/                     generated Markdown reference tree
 site/                          generated static HTML site
@@ -67,7 +67,8 @@ A first semantic pass produces a *candidate*, not a finished entry. Before
 calling a claim proven, re-inspect the instruction/dataflow level for
 the boundary assumptions that are easy to get wrong on this target:
 
-- **PPC decode traps**: disassembler mnemonics can mislead — `rlwinm rX,rY,0,16,31`
+- **PPC decode traps**: disassembler mnemonics can mislead; for example,
+  `rlwinm rX,rY,0,16,31`
   renders as a shift-like op but is `rY & 0xffff`; `cmplwi` immediates are
   *zero*-extended (`0xFFFD`, not a negative); `bc bo=4/5` vs `bo=12/13` flip
   branch polarity on the same CR bit. Decode raw words at every validation
@@ -81,7 +82,7 @@ the boundary assumptions that are easy to get wrong on this target:
 - **Return-convention splits**: a callee's byte/int result may go to an
   out-param while the return register carries only "dispatched" status
   (Seek's stream path: the session vfunc's result byte is logged, not
-  propagated — SOAP success does not mean the streamer accepted the seek).
+  propagated, so SOAP success does not mean the streamer accepted the seek).
   Distinguish *request accepted* / *operation submitted* / *operation
   actually succeeded*.
 - **Branch-order quirks**: the order of sign checks, zero checks, and
@@ -98,13 +99,13 @@ both the validator and the linter.
 
 **Null means unassessed.** To mark a field as checked-but-empty use an
 explicit sentinel: `"none"`, `"n/a"`, `"unconstrained"`, `"any"`,
-`"unbounded"`. An empty list `[]` counts as unassessed — write `"none"`.
+`"unbounded"`. An empty list `[]` counts as unassessed; write `"none"`.
 
 ### Field requirements per object
 
 These are the fields each object must populate (the validator and linter
 enforce them). They describe what a record must *contain*, not whether it
-is *finished* — see the completeness rule below.
+is *finished*; see the completeness rule below.
 
 | Object | Required fields |
 |---|---|
@@ -186,7 +187,7 @@ the raw JSON directly: `genmodel.normalize()` first maps every object into a
 stable typed IR (`Service`, `Action`, `Argument`, `Error`, `StateVariable`,
 `Event`, `Availability`, `FirmwareDifference`, `Format`, `Evidence`,
 `Dispatch`, `Implementation`, `SemanticBlock`). Uncertainty survives
-normalization — `unresolved` blocks, bounded unknowns, `removed/stale`
+normalization: `unresolved` blocks, bounded unknowns, `removed/stale`
 records, hidden-callable reachability, runtime-bound error domains and
 firmware/model diffs are all first-class IR state and must be visible in the
 output.
@@ -204,7 +205,7 @@ never delete technical detail to make prose read better.
 Generation doubles as a consistency QA pass (`genmodel.qa()`):
 
 - declared `meta.counts` vs normalized-record counts (the declared totals
-  may legitimately include non-canonical SCPD advertisements — see
+  may legitimately include non-canonical SCPD advertisements; see
   `meta.counts.removed_stale.undispatched` and `meta.terminology`)
 - extractor action totals vs documented implemented records
 - duplicated or conflicting action definitions across same-named services
@@ -215,7 +216,7 @@ Generation doubles as a consistency QA pass (`genmodel.qa()`):
   cross-links
 
 Errors abort generation; warnings (e.g. SystemProperties state variables
-whose SCPD `related_action` names a removed action) print but do not fail —
+whose SCPD `related_action` names a removed action) print but do not fail:
 they preserve real staleness rather than hiding it.
 
 ```
@@ -234,7 +235,7 @@ pages are picked up automatically. Requires a one-time Node setup:
 npm install
 ```
 
-The site build is a second QA layer on the generated Markdown — broken
+The site build is a second QA layer on the generated Markdown: broken
 links and other doc defects fail the build.
 
 Terminology for counts lives in `meta.terminology`/`meta.counts`:
@@ -254,21 +255,21 @@ checkers, queue mutators. Allocators, thunks, logging, libc wrappers: mark
 ### Shared primitives
 
 Some internals are worth characterizing *once, globally* because many
-actions converge on them — document them in `internal_functions` /
+actions converge on them: document them in `internal_functions` /
 `payload_formats` and reference rather than re-derive per action:
 
-- `f_102ab830` — the `SonosSeekTime` parser (declared in `payload_formats`).
-- `f_102587b4` / `f_10258ab0` — media-item capability mask derivation
+- `f_102ab830`: the `SonosSeekTime` parser (declared in `payload_formats`).
+- `f_102587b4` / `f_10258ab0`: media-item capability mask derivation
   (Seek tests bits `0x400000`/`0x200000`); bit semantics reused across
   transport actions.
-- `engine+0x4654` — source-mode enum `{0,1,2}` selecting indexed vs stream
+- `engine+0x4654`: source-mode enum `{0,1,2}` selecting indexed vs stream
   behavior; several actions likely branch on it. If two or more actions
   prove to depend on it, pause and reverse the enum's writers once rather
   than rediscovering it per action.
 
 ## Example
 
-`docs/worksheet-AVTransport-Seek.txt` is a real generated worksheet — all
+`docs/worksheet-AVTransport-Seek.txt` is a real generated worksheet: all
 structure from the binary, semantics left unresolved.
 
 ## Testing
