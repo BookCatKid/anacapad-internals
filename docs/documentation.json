@@ -131255,11 +131255,11 @@
     "silence": "'silen: %zu' stuffing/null runs"
    },
    "todo": [
-    "Established: the payload-type dispatcher is found with cases 0 and 1 observed.",
-    "Residual: the rest of the payload-type space - what other types exist and which producer emits each."
+    "Residual: none on the type space - accepted stypes {3,4,10-13}=audio PID, {0x15}=timed-ID3 PID, rest rejected; remaining open is only which upstream producer muxes each (encoder-side, not demuxer state)"
    ],
    "resolved_findings": [
-    "Resolved: tsclient is an MPEG-TS demuxer - 4-byte header parse, PID dispatch (PAT 0 / PMT / audio this+0x10 / timed-ID3 this+0x30), PSI section+descriptor+ES walk, stream_type dispatch, adaptation-field handling, in-band ID3v2, deadline-bounded batch pump."
+    "Resolved: tsclient is an MPEG-TS demuxer - 4-byte header parse, PID dispatch (PAT 0 / PMT / audio this+0x10 / timed-ID3 this+0x30), PSI section+descriptor+ES walk, stream_type dispatch, adaptation-field handling, in-band ID3v2, deadline-bounded batch pump.",
+    "Resolved: the ES stream_type acceptance set is a bitmask test @0x104cdb20-0x104cdb44 - stype>0x15 skips; otherwise (1<<stype)&0x3c18 nonzero accepts {0x03 MPEG-1 audio, 0x04 MPEG-2 audio, 0x0a/0x0b/0x0c/0x0d DSM-CC multiprotocol/U-N/stream-descriptors/sections} as the audio PID; the 0x20<<16 bit (stype==0x15, metadata-in-PES) registers the timed-ID3 PID via \"srwi r26,13; stw r26,+0x30\" (PID = ES pid field >>13 mask); all other stypes log \"Unsupported stream type: %x\"."
    ]
   },
   "ibt_engine": {
