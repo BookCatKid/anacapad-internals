@@ -148638,6 +148638,7 @@
    "name": "mdputil",
    "summary": "Manufacturing-data partition utility (/bin/mdputil) over libsonos-mdp + libflash. Prints keyval-parseable identity lines, validates and writes signed MDP pages on /dev/mtd/0.",
    "todo": [
+    "Established: anacapad-side MDP write = hal_flash_{info_init,get_mdp,get_mdp2} + clear bits30-31 + set bit0x20 + write-back; gated on caps bit0x20.",
     "Residual: the MDP page field layout (index namespace for -fwn) and the signature algorithm variant (v1 vs v2 paths) - field ids are numeric ioctls into libflash and the key format lives in libsonos-mdp, not in strings."
    ],
    "artifacts": [
@@ -148648,7 +148649,8 @@
     "Verbs recovered from usage/error strings: bare invocation prints HW manifest ('%sHW manifest entries:') plus SERIAL=, SERIES_ID=, COPYRIGHT=, UNITSIG=, SERIALSIG= keyval lines; -B is the boot manifest print used by /etc/Configure; '-fwn <index>=<value>' writes fields; '-wf' forces a write past the 'There is already a valid MDP in place' guard; '-k keyfile' selects a signing key ('-k option not available' on unsigned builds).",
     "Crypto/integrity surface: keyfile open/read, 'Unrecognised key length', 'Public key error', 'Decrypt error', 'Signature no match error', 'v2 signature no match error', 'Key rejected' - MDP pages carry a public-key signature verified on read/write.",
     "Flash plumbing: opens /dev/mtd/0 via libflash hal_flash_get_mdp/hal_flash_get_mdp2/hal_flash_read_fsn + crc32; errors 'Flash MDP1 error', 'MDP2 error', 'Flash SN error', 'GETFSN failed deviceID %x err %x', 'Manifest parse failed'; exports sonosGetSeriesID/sonosSetSeriesID/sonosGetCertColorVariant from libsonos-mdp.",
-    "Consumers: /etc/Configure runs 'mdputil -B' then 'mdputil | keyval ^SERIAL | cut -c1-12' to set hostname Sonos-<serial12>; wacd reads MDP page1/page2 (model + cert-color variant) to build its WAC AppleDeviceIE."
+    "Consumers: /etc/Configure runs 'mdputil -B' then 'mdputil | keyval ^SERIAL | cut -c1-12' to set hostname Sonos-<serial12>; wacd reads MDP page1/page2 (model + cert-color variant) to build its WAC AppleDeviceIE.",
+    "Resolved: the in-anacapad MDP flag-write path is proven (f_105e64fc..0x105e6644, tag mod_zp): gated on a capability word from f_10909620 (requires bit 0x20 set, low bits &0x3 clear); opens the flash info context via hal_flash_info_init, reads the MDP flags word via hal_flash_get_mdp (also hal_flash_get_mdp2 into a 0x200 buffer), then writes back flags with bits 30-31 cleared and bit 0x20 OR'd in via f_10d54658, logging \"MDP flag update: new flags %x\". So anacapad sets persistent MDP flag 0x20 (a post-boot/upgraded marker) after its capability check passes."
    ]
   },
   "bin_frcheck": {
