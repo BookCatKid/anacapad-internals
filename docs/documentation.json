@@ -136575,11 +136575,12 @@
     }
    ],
    "todo": [
-    "Residual: fade-slot count and mixer output format constants (fade mechanism and arbitration proven; slot bound is a table size)."
+    "Residual: mixer output format constants (sample width/rate selection) - fade capacity is now proven; the format words are separate config."
    ],
    "resolved_findings": [
     "Resolved: mixer loop = the E:%d,D:%d,B:%d,PR:%d stats line reports {encoded,decoded,buffered,pre-roll} per pass through the mixing algorithm - per-source ring buffers summed into the output stream at the device rate.",
-    "Mixing model proven: each input stream carries presentation time (pt); writes are fixed-stride interleaved frames (attempted to write %zu channels, max %zu channels; %zd samples > %zu stride; unexpected sample size %zu). Arbitration is pt-ordered initial sync: underflow during initial sync: diff %d | opt %d.%06d npt %d.%06d, perfect initial sync %d.%06d, @initial sync required %d, sutUsec %d >= diffUsec %d - streams align on the scheduled-uptime vs presentation-time delta; resyncStreamLocked re-anchors pt. The mixer stats E:%d, D:%d, B:%d, PR:%d count errors, drains, buffered, presentation-ready. Drain FSM: set for drain during write / changing drain flag %d->%d / calling drain on stream w/o pt / dont have enough data available, !draining, underflow [%u,%u]. Gain staging is fade-slot based: fade added: %i.%i sample_len(%u) current_gain(%f) target_gain(%f) rate(%.08f) - a bounded fade table applies per-sample linear ramps toward target gain (reached max/min fade gain, fade complete, no fade slots available: %s), with stream attenuation on reset (reset stream - contained %uus. reset attenuation %d, errPT %d.%06d). skipAheadLocked drops buffered audio: headPT=%d.%06d, delta=%u, %u usec buffered; skipping %u usec (%u samples), preserved %u usec, pt %d.%06d -> %d.%06d; cant skip ahead when delta exceeds buffered. discontinuity detected after schedule marks sync breaks."
+    "Mixing model proven: each input stream carries presentation time (pt); writes are fixed-stride interleaved frames (attempted to write %zu channels, max %zu channels; %zd samples > %zu stride; unexpected sample size %zu). Arbitration is pt-ordered initial sync: underflow during initial sync: diff %d | opt %d.%06d npt %d.%06d, perfect initial sync %d.%06d, @initial sync required %d, sutUsec %d >= diffUsec %d - streams align on the scheduled-uptime vs presentation-time delta; resyncStreamLocked re-anchors pt. The mixer stats E:%d, D:%d, B:%d, PR:%d count errors, drains, buffered, presentation-ready. Drain FSM: set for drain during write / changing drain flag %d->%d / calling drain on stream w/o pt / dont have enough data available, !draining, underflow [%u,%u]. Gain staging is fade-slot based: fade added: %i.%i sample_len(%u) current_gain(%f) target_gain(%f) rate(%.08f) - a bounded fade table applies per-sample linear ramps toward target gain (reached max/min fade gain, fade complete, no fade slots available: %s), with stream attenuation on reset (reset stream - contained %uus. reset attenuation %d, errPT %d.%06d). skipAheadLocked drops buffered audio: headPT=%d.%06d, delta=%u, %u usec buffered; skipping %u usec (%u samples), preserved %u usec, pt %d.%06d -> %d.%06d; cant skip ahead when delta exceeds buffered. discontinuity detected after schedule marks sync breaks.",
+    "Resolved: fade-slot capacity = 10 - the mixer init loop (0x107ef3b8-0x107ef418) does li r10,0xa / mtctr then writes 10 zeroed 0x28-byte slot records, and the allocator (0x107ef490+) wraps slot selection with the 0xcccccccd div-by-10 reciprocal. Slots live inline from mixer+0x0c; the used count is at +0x190, secondary index +0x194; the dump path logs each as '[%s%zu: %d.%d (%d)%s] ' under domain 'attenuation' and emits 'no fade slots available: %s' when all 10 are in use."
    ]
   },
   "sound_device": {
@@ -139611,11 +139612,12 @@
     }
    ],
    "todo": [
-    "Residual: the expiry TTL constant and capacity bound (the %zu thresholds are rodata constants; mechanics complete)."
+    "Residual: the concrete values the cache config member (+0x28 cap) and per-entry expire times hold - both are config/server-populated fields, no in-image literal."
    ],
    "resolved_findings": [
     "Resolved: cache record = Cached SSL session for %s:%d entries + client-cache file guards + new-session-ticket handling during mbedtls ops.",
-    "Cache record format proven (mbedtls): entries keyed host:port (%s:%u) holding serialized mbedtls sessions (entry deserialize failed: -0x%04x on bad blobs); resumption matches by ticket OR id (cache store hit: ticket match / id match). The persisted client cache file (ssl_client_cache status page serves it) enforces a total size cap (too large %zu > %zu), skips expired and duplicate entries on load (skipping expired/duplicate entry for %s:%u), bounds in-memory entries (no space), and reports parsed-vs-stored counts. Live ops: Cached SSL session for %s:%d / Failed to cache SSL session / cache evicted [%s:%u] / SSL session refreshed on new tickets (Received new session ticket during mbedtls_ssl_*). Refresh is idle-gated: Skipping HH SSL cache refresh - device is not idle / next run in %ld seconds."
+    "Cache record format proven (mbedtls): entries keyed host:port (%s:%u) holding serialized mbedtls sessions (entry deserialize failed: -0x%04x on bad blobs); resumption matches by ticket OR id (cache store hit: ticket match / id match). The persisted client cache file (ssl_client_cache status page serves it) enforces a total size cap (too large %zu > %zu), skips expired and duplicate entries on load (skipping expired/duplicate entry for %s:%u), bounds in-memory entries (no space), and reports parsed-vs-stored counts. Live ops: Cached SSL session for %s:%d / Failed to cache SSL session / cache evicted [%s:%u] / SSL session refreshed on new tickets (Received new session ticket during mbedtls_ssl_*). Refresh is idle-gated: Skipping HH SSL cache refresh - device is not idle / next run in %ld seconds.",
+    "Resolved: the 'too large (%zu > %zu)' compare at 0x10568e40 - the cap is *(cacheobj+0x28) vs the serialized entry count at file-blob+8; the limit is a config-populated object member, not a rodata literal. The on-disk grammar is proven by the parse-error vocabulary: {magic number, format version, entry count} header + per-entry fields {port, hostname len+data, access time, expire time, sdxf flags, sdxf id, sdxf hhid, sdxf sonosId, session len+data} with pointer-range validation, plus refresh triggers 'per FCS' and 'after UTC time became available'."
    ]
   },
   "http_client": {
@@ -139755,11 +139757,12 @@
     }
    ],
    "todo": [
-    "Residual: the numeric EntriesMax constant and StringTableSize bound (rodata constants; the schema and overflow behavior are proven)."
+    "Residual: StringTableSize cap and where each queue's EntriesMax (+0x10) field is initialized - per-queue config, not a rodata bound."
    ],
    "resolved_findings": [
     "Resolved: string-table dedup = <Queue> dump fields {EntriesMax/Used/HighWater, StringTableSize/Used/HighWater}; capacity = EntriesMax constant.",
-    "Structure proven: the <Queue> status XML exposes the internal bookkeeping - {EntriesMax, EntriesUsed, EntriesHighWater} for the item array and {StringTableSize, StringTableUsed, StringTableHighWater} for the dedup string pool (queue item URIs/metadata share one string table; high-water marks track peak usage). Policy field is the shared/private enum (protocolInfo http-get:*:%s:* with shared/private items). Enqueue bounds: cannot enqueue item; %s queue is full (%zu items added, %zu items enqueued) at EntriesMax, plus a separate item.id tracking bound (item.id tracking is out of memory). UpdateID/ObjectID/OwnerID/CloudQueueHost carry ownership and the cloud-queue endpoint. Adjacent: the enqueue metadata parser consumes /containerType, /containerName, /name, /explicit, /durationMs, /artist, /imageUrl, /releaseDate, /mimetype paths (Unable to parse metadata: guard)."
+    "Structure proven: the <Queue> status XML exposes the internal bookkeeping - {EntriesMax, EntriesUsed, EntriesHighWater} for the item array and {StringTableSize, StringTableUsed, StringTableHighWater} for the dedup string pool (queue item URIs/metadata share one string table; high-water marks track peak usage). Policy field is the shared/private enum (protocolInfo http-get:*:%s:* with shared/private items). Enqueue bounds: cannot enqueue item; %s queue is full (%zu items added, %zu items enqueued) at EntriesMax, plus a separate item.id tracking bound (item.id tracking is out of memory). UpdateID/ObjectID/OwnerID/CloudQueueHost carry ownership and the cloud-queue endpoint. Adjacent: the enqueue metadata parser consumes /containerType, /containerName, /name, /explicit, /durationMs, /artist, /imageUrl, /releaseDate, /mimetype paths (Unable to parse metadata: guard).",
+    "Resolved: the enqueue bounds (0x104488b0, muse domain) - the item.id-tracking cap is a literal bound cmplwi 0x13 at 0x1044891c: item.id tracking is out of memory fires when the tracking count exceeds 0x13 (20 entries). The 'queue is full' predicate compares live fields *(q+0x10) vs *(q+0xc) - EntriesMax is a per-queue runtime field set at queue construction, not a global constant. A type field *(q+4) is checked (0,1,2 branches) before the bounds."
    ]
   },
   "accounts_replication": {
@@ -140690,13 +140693,11 @@
      "notes": "sockets"
     }
    ],
-   "todo": [
-    "Established: the socket/DNS/stream error vocabulary and the IPv4-only constraint.",
-    "Residual: socket-pool depth constants (No free sockets bound exists; the numeric pool size is a build constant)."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: DNS queue + lifecycle = the error paths {recv errno, close/getsockname/bind error, IPv6 unsupported, connect, set-option, connection error}.",
-    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect."
+    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect.",
+    "Resolved: socket-pool bound - 'No free sockets available' (0x10d351b0) is emitted after an unrolled first-free-slot scan of ~11 socket slots (11 sequential cmpwi-0 state blocks at 0x10d35070-0x10d35170 each diverging to a per-slot success tail), so the pool depth is ~11 entries."
    ]
   },
   "esdk_callbacks": {
@@ -140766,12 +140767,11 @@
      "notes": "bandwidth"
     }
    ],
-   "todo": [
-    "Residual: the window size and low-bandwidth threshold constants."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: LOW BW consumer = the ABR/DS selection in abr_engine; meter emits {BANDWIDTH B/ms = B/s = kbit/s, WINDOW high/low, LOW BW kbit/s < threshold count}.",
-    "Identified: the bandwidth meter is the Spotify eSDK link estimator (esdk util.c) - BANDWIDTH: %u B / %u ms = %u B/s = %u kbit/s per transfer, WINDOW BANDWIDTH: %u B / %u ms = %u kbit/s, high=%d, low=%d over the sliding window, LOW BW (kbit/s) low-bandwidth marker, Bandwidth not calculated, latency zero when the RTT is zero. Feeds eSDK bitrate decisions (the ABR layer)."
+    "Identified: the bandwidth meter is the Spotify eSDK link estimator (esdk util.c) - BANDWIDTH: %u B / %u ms = %u B/s = %u kbit/s per transfer, WINDOW BANDWIDTH: %u B / %u ms = %u kbit/s, high=%d, low=%d over the sliding window, LOW BW (kbit/s) low-bandwidth marker, Bandwidth not calculated, latency zero when the RTT is zero. Feeds eSDK bitrate decisions (the ABR layer).",
+    "Resolved: the numeric constants in the window estimator (0x10d4b410, esdk util) - LOW BW threshold is 0xa00 = 2560 kbit/s (cmplwi r27,0xa00 at 0x10d4b8cc gates the 'LOW BW (kbit/s): %u < %u, count = %u' emit); the latency-zero/1000 guards use 0x3e8; the sliding window is bounded ~10 samples (cmplwi 0x9/0xa trip checks) and the kbit/s conversion multiplies by 0x3e8; the low-mark fires after ~5 window hits (cmplwi 0x5 chains at 0x10d4b7b8)."
    ]
   },
   "esdk_httpio": {
