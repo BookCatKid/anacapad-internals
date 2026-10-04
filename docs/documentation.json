@@ -137350,11 +137350,13 @@
     }
    ],
    "todo": [
-    "Residual: the requestSwap request body fields (which satellites/channels are requested to swap) - the verb map is proven; the argument schema is muse-service metadata."
+    "Established: full swap field set, PUSH/PULL/DO_NOTHING behavior enum, disqualifier gates, muse routes.",
+    "Residual: the numeric swapType/swapResult codes - value vocabulary is wire-level, not name-bound in this TU"
    ],
    "resolved_findings": [
     "Resolved: PUSH_SWAP flow = SWAP_INITIATOR builds the swap set, PUSH_SWAP carries it through the group channel, each member applies the swap via the sound_swap worker and acks via the member-response path.",
-    "Swap protocol decoded: it is a two-step muse API - v1/players/{playerId}/soundSwap/request (verb requestSwap) negotiates the swap, v1/players/{playerId}/soundSwap (verb triggerSwap) executes it; both verbs also have household-scoped variants v1/households/{householdId}/players/{playerId}/soundSwap[/request]. The swap targets HT satellite roles - the HTSatelliteChecker gates verify the zone is an HT-bonded config before the request/commit FSM runs; the local event queue carries push/pull semantics with the behavior enum and result fields already documented."
+    "Swap protocol decoded: it is a two-step muse API - v1/players/{playerId}/soundSwap/request (verb requestSwap) negotiates the swap, v1/players/{playerId}/soundSwap (verb triggerSwap) executes it; both verbs also have household-scoped variants v1/households/{householdId}/players/{playerId}/soundSwap[/request]. The swap targets HT satellite roles - the HTSatelliteChecker gates verify the zone is an HT-bonded config before the request/commit FSM runs; the local event queue carries push/pull semantics with the behavior enum and result fields already documented.",
+    "Resolved: the swap payload/vocabulary is literal @0x10ed705c+ (audio_swap): request/result fields {swapResult, swapType, swapTarget, swapGC, initAction, candCount, respCount, zpSwap}; behavior enum {SWAP_BEHAVIOR_DO_NOTHING, SWAP_BEHAVIOR_PUSH_SWAP, SWAP_BEHAVIOR_PULL_SWAP, SWAP_BEHAVIOR_UNDEFINED} where PUSH/PULL carry {Target, GroupUUID(size), WM} args; gates \"Swap is disabled as this player is in a bonded zone\" / \"an HT Satellite\" / \"local player is in unknown state\" and \"Initiator is playing non-swappable content\"; SwapStateChangedEvent carries {source, swap active, are we satellite}; muse routes Swap,triggerSwap and Swap,requestSwap over Swap/request endpoint; museInitiated flag tracked in \"Swap initiated target=%s museInitiated=%d\"."
    ]
   },
   "stream_metadata": {
