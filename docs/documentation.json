@@ -105246,8 +105246,8 @@
  "internal_functions": {
   "0x1056157c": {
    "address": "0x1056157c",
-   "role": "input_arg_parser",
-   "description": "String input-argument record initializer/parser (type tag 7, caller-supplied capacity 0x400); produces the C string consumed by the impl for Unit and Target.",
+   "role": "arg_binder",
+   "description": "string in-arg binder (tag 7) - tag 7; value buffer IS the caller string: +8=+0xc=r4 buf, +0x10=r5 caller capacity (observed 0x20 and doc-strings like 25; the \"cap 0x400\" label is corrected - no 0x400 constant exists in the body); 313 call sites",
    "why_external": "Determines that Unit and Target reach the implementation as plain C strings; missing/oversized values fail request validation (402).",
    "required_for_behavior": true,
    "used_by": [
@@ -106092,11 +106092,6 @@
     }
    ],
    "notes": null,
-   "todo": [
-    "Established: string input-argument record initializer/parser (type tag 7, caller-supplied capacity 0x400); produces the C string consumed by the impl for Unit and Target (role: input_arg_parser); used by 166 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x1056157c and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 11,
     "calls": [],
@@ -106112,10 +106107,11 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0xc,0x10,0x4,0x8,0x14; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "13-instruction leaf binder; writes the shared arg-record header {+4 tag, +8 value-or-ptr, +0xc raw-text-buf ptr (rec+0x18), +0x10 capacity, +0x14 len=0, +0x31 flag=0}; record is 0x58 bytes (class-A, name +0x50, arrays ctx+0x1180 max16 / ctx+0x28 max24) or 0x38 (class-B, name +0x34, ctx+0x2e8 max15). the helper does no parsing itself: vfunc+0x1c(name) returns the slot, the binder wires it to a caller local, vfunc+0x8 runs the real lexical->binary conversion, and ret==0 raises fault 402 via vfunc+0x14."
   },
   "0x10561444": {
-   "description": "Byte-width numeric argument parser used for DesiredMute.",
+   "description": "u8/bool in-arg binder (tag 1) - tag 1; dest consumed as lbz (DesiredMute/Enabled/IncludeLinkedZones); 49 call sites",
    "why_external": "Defines the lexical acceptance and width of the DesiredMute argument.",
    "evidence": [
     {
@@ -106127,7 +106123,7 @@
     }
    ],
    "required_for_behavior": true,
-   "role": "input_arg_parser",
+   "role": "arg_binder",
    "used_by": [
     {
      "arg": "Enabled",
@@ -106270,11 +106266,6 @@
      "site": "0x107336b4"
     }
    ],
-   "todo": [
-    "Established: Byte-width numeric argument parser used for DesiredMute. (role: input_arg_parser); 28 recorded call site(s).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10561444 fully and reconcile the observed behavior against the documented role."
-   ],
    "disasm_digest": {
     "insns": 13,
     "calls": [],
@@ -106290,10 +106281,11 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0xc,0x10,0x8,0x4,0x14; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "13-instruction leaf binder; writes the shared arg-record header {+4 tag, +8 value-or-ptr, +0xc raw-text-buf ptr (rec+0x18), +0x10 capacity, +0x14 len=0, +0x31 flag=0}; record is 0x58 bytes (class-A, name +0x50, arrays ctx+0x1180 max16 / ctx+0x28 max24) or 0x38 (class-B, name +0x34, ctx+0x2e8 max15). the helper does no parsing itself: vfunc+0x1c(name) returns the slot, the binder wires it to a caller local, vfunc+0x8 runs the real lexical->binary conversion, and ret==0 raises fault 402 via vfunc+0x14."
   },
   "0x10561478": {
-   "description": "u16-width numeric argument parser used for DesiredVolume.",
+   "description": "u16 in-arg binder (tag 2) - tag 2; dest consumed as lhz (Volume/DesiredVolume); 16 call sites",
    "why_external": "Defines the lexical acceptance and width of DesiredVolume.",
    "evidence": [
     {
@@ -106305,7 +106297,7 @@
     }
    ],
    "required_for_behavior": true,
-   "role": "input_arg_parser",
+   "role": "arg_binder",
    "used_by": [
     {
      "arg": "Volume",
@@ -106353,11 +106345,6 @@
      "site": "0x1073c170"
     }
    ],
-   "todo": [
-    "Established: u16-width numeric argument parser used for DesiredVolume. (role: input_arg_parser); 9 recorded call site(s).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10561478 fully and reconcile the observed behavior against the documented role."
-   ],
    "disasm_digest": {
     "insns": 13,
     "calls": [],
@@ -106373,12 +106360,13 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0xc,0x10,0x8,0x4,0x14; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "13-instruction leaf binder; writes the shared arg-record header {+4 tag, +8 value-or-ptr, +0xc raw-text-buf ptr (rec+0x18), +0x10 capacity, +0x14 len=0, +0x31 flag=0}; record is 0x58 bytes (class-A, name +0x50, arrays ctx+0x1180 max16 / ctx+0x28 max24) or 0x38 (class-B, name +0x34, ctx+0x2e8 max15). the helper does no parsing itself: vfunc+0x1c(name) returns the slot, the binder wires it to a caller local, vfunc+0x8 runs the real lexical->binary conversion, and ret==0 raises fault 402 via vfunc+0x14."
   },
   "0x1055fcbc": {
    "address": "0x1055fcbc",
-   "role": "output_formatter",
-   "description": "Response-serializer printf writer: %-family formatter supporting %u/%d/%lld; contains literal 'BC3000 & LT-19E610': a TV-model device-name edge case (XML-escape test fixture)",
+   "role": "out_value_setter",
+   "description": "u32 out-arg setter (tag 3) - tag 3; stw v,+8 then __snprintf_chk '%u' into rec+0x30 (cap 0x18); u32-only - the earlier '%u/%d/%lld multi-format' label is corrected; 223 call sites",
    "why_external": "Reached from SOAP action call chains; affects observable request/response behavior",
    "required_for_behavior": true,
    "used_by": [
@@ -106615,11 +106603,6 @@
     }
    ],
    "notes": null,
-   "todo": [
-    "Established: response-serializer printf writer: %-family formatter supporting %u/%d/%lld; contains literal 'BC3000 & LT-19E610': a TV-model device-name edge case (XML-escape test fixture) (role: output_formatter); used by 43 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x1055fcbc and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 14,
     "calls": [],
@@ -106634,12 +106617,13 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: %u; member stores: 0x8,0x4; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "single-type immediate setter: stores the C value at rec+8 (rec+8/+0xc for i64 sibling f_1055fd2c) and pre-formats the lexical form into the +0x30 buffer with an 0x18 cap; setter tag enum {0:bool,1:u16,2:i16,3:u32,4:i32,5:i64} DIFFERS from the binder enum {1:u8,2:u16,3:i16,4:u32,5:i32,6:i64,7:string,8/9:ptr} on the same +4 field - interpretation is direction-dependent."
   },
   "0x105614e0": {
    "address": "0x105614e0",
-   "role": "input_arg_parser",
-   "description": "Numeric input-argument record initializer/parser (type tag 4, 24-byte record); produces the integer value the wrapper forwards as InstanceID.",
+   "role": "arg_binder",
+   "description": "u32 in-arg binder (tag 4) - tag 4; the most common numeric binding (InstanceID etc.); 212 call sites",
    "why_external": "Determines that InstanceID is delivered to the implementation as a parsed integer rather than a string; malformed input fails request validation (402).",
    "required_for_behavior": true,
    "used_by": [
@@ -107269,11 +107253,6 @@
     }
    ],
    "notes": null,
-   "todo": [
-    "Established: numeric input-argument record initializer/parser (type tag 4, 24-byte record); produces the integer value the wrapper forwards as InstanceID (role: input_arg_parser); used by 123 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x105614e0 and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 13,
     "calls": [],
@@ -107289,12 +107268,13 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0xc,0x10,0x8,0x4,0x14; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "13-instruction leaf binder; writes the shared arg-record header {+4 tag, +8 value-or-ptr, +0xc raw-text-buf ptr (rec+0x18), +0x10 capacity, +0x14 len=0, +0x31 flag=0}; record is 0x58 bytes (class-A, name +0x50, arrays ctx+0x1180 max16 / ctx+0x28 max24) or 0x38 (class-B, name +0x34, ctx+0x2e8 max15). the helper does no parsing itself: vfunc+0x1c(name) returns the slot, the binder wires it to a caller local, vfunc+0x8 runs the real lexical->binary conversion, and ret==0 raises fault 402 via vfunc+0x14."
   },
   "0x1055fcf4": {
    "address": "0x1055fcf4",
-   "role": "output_formatter",
-   "description": "Signed integer (%d/%lld) response-format variant",
+   "role": "out_value_setter",
+   "description": "i32 out-arg setter (tag 4) - tag 4; stw v,+8 then snprintf '%d' into rec+0x30; i32-only; 18 call sites",
    "why_external": "Reached from SOAP action call chains; affects observable request/response behavior",
    "required_for_behavior": true,
    "used_by": [
@@ -107381,11 +107361,6 @@
     }
    ],
    "notes": null,
-   "todo": [
-    "Established: signed integer (%d/%lld) response-format variant (role: output_formatter); used by 13 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x1055fcf4 and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 14,
     "calls": [],
@@ -107400,12 +107375,13 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: %d; member stores: 0x8,0x4; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "single-type immediate setter: stores the C value at rec+8 (rec+8/+0xc for i64 sibling f_1055fd2c) and pre-formats the lexical form into the +0x30 buffer with an 0x18 cap; setter tag enum {0:bool,1:u16,2:i16,3:u32,4:i32,5:i64} DIFFERS from the binder enum {1:u8,2:u16,3:i16,4:u32,5:i32,6:i64,7:string,8/9:ptr} on the same +4 field - interpretation is direction-dependent."
   },
   "0x1055fc08": {
    "address": "0x1055fc08",
-   "role": "output_formatter",
-   "description": "Boolean+numeric response formatter: serializes bools as '0'/'1' then %u/%d: the boolean-as-int wire encoding",
+   "role": "out_value_setter",
+   "description": "bool out-arg setter (tag 0) - tag 0; stb v,+8 then strlcpy '0' or '1' into rec+0x30 (cap 0x18) - bool-only, the earlier 'bool+numeric' label is corrected; 55 call sites",
    "why_external": "Reached from SOAP action call chains; affects observable request/response behavior",
    "required_for_behavior": true,
    "used_by": [
@@ -107507,11 +107483,6 @@
     }
    ],
    "notes": null,
-   "todo": [
-    "Established: boolean+numeric response formatter: serializes bools as '0'/'1' then %u/%d: the boolean-as-int wire encoding (role: output_formatter); used by 16 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x1055fc08 and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 2,
     "calls": [],
@@ -107523,10 +107494,11 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "single-type immediate setter: stores the C value at rec+8 (rec+8/+0xc for i64 sibling f_1055fd2c) and pre-formats the lexical form into the +0x30 buffer with an 0x18 cap; setter tag enum {0:bool,1:u16,2:i16,3:u32,4:i32,5:i64} DIFFERS from the binder enum {1:u8,2:u16,3:i16,4:u32,5:i32,6:i64,7:string,8/9:ptr} on the same +4 field - interpretation is direction-dependent."
   },
   "0x10561514": {
-   "description": "Arg-descriptor ctor, type-5 enum: embedded 24B buffer at +0x18 (+0xc=self-ptr,+0x10=cap 0x18), +0x8=name arg, +0x4=type5, +0x14=0,+0x31=0: used by scalar/enum args (Index,ResultCode)",
+   "description": "i32 in-arg binder (tag 5) - tag 5 allocs 4 bytes per the generic-binder size table (f_10561630) and the dtor free table - bound args ConnectionID/RcsID/AVTransportID/Result are consumed as 32-bit ints; the earlier \"type-5 enum\" reading is corrected: no enum table exists, +0x18 is raw-text scratch; 6 call sites",
    "why_external": "Defines the lexical acceptance and width of the signed Adjustment argument.",
    "evidence": [
     {
@@ -107539,7 +107511,7 @@
    ],
    "required_for_behavior": true,
    "type": "arg-descriptor-ctor",
-   "role": "input_arg_parser",
+   "role": "arg_binder",
    "used_by": [
     {
      "arg": "Index",
@@ -107572,11 +107544,6 @@
      "site": "0x10307464"
     }
    ],
-   "todo": [
-    "Established: Arg-descriptor ctor, type-5 enum: embedded 24B buffer at +0x18 (+0xc=self-ptr,+0x10=cap 0x18), +0x8=name arg, +0x4=type5, +0x14=0,+0x31=0: used by scalar/enum args (Index,ResultCode) (role: input_arg_parser); 6 recorded call site(s).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x10561514 fully and reconcile the observed behavior against the documented role."
-   ],
    "disasm_digest": {
     "insns": 13,
     "calls": [],
@@ -107592,12 +107559,13 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0xc,0x10,0x8,0x4,0x14; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "13-instruction leaf binder; writes the shared arg-record header {+4 tag, +8 value-or-ptr, +0xc raw-text-buf ptr (rec+0x18), +0x10 capacity, +0x14 len=0, +0x31 flag=0}; record is 0x58 bytes (class-A, name +0x50, arrays ctx+0x1180 max16 / ctx+0x28 max24) or 0x38 (class-B, name +0x34, ctx+0x2e8 max15). the helper does no parsing itself: vfunc+0x1c(name) returns the slot, the binder wires it to a caller local, vfunc+0x8 runs the real lexical->binary conversion, and ret==0 raises fault 402 via vfunc+0x14."
   },
   "0x1055fc4c": {
    "address": "0x1055fc4c",
-   "role": "output_formatter",
-   "description": "Unsigned (%u)/signed (%d) numeric response formatter",
+   "role": "out_value_setter",
+   "description": "u16 out-arg setter (tag 1) - tag 1; sth v,+8 then snprintf '%u' into rec+0x30; unsigned 16-bit only; 22 call sites",
    "why_external": "Reached from SOAP action call chains; affects observable request/response behavior",
    "required_for_behavior": true,
    "used_by": [
@@ -107654,11 +107622,6 @@
     }
    ],
    "notes": null,
-   "todo": [
-    "Established: unsigned (%u)/signed (%d) numeric response formatter (role: output_formatter); used by 7 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x1055fc4c and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 14,
     "calls": [],
@@ -107672,12 +107635,13 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: %u; member stores: 0x4; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "single-type immediate setter: stores the C value at rec+8 (rec+8/+0xc for i64 sibling f_1055fd2c) and pre-formats the lexical form into the +0x30 buffer with an 0x18 cap; setter tag enum {0:bool,1:u16,2:i16,3:u32,4:i32,5:i64} DIFFERS from the binder enum {1:u8,2:u16,3:i16,4:u32,5:i32,6:i64,7:string,8/9:ptr} on the same +4 field - interpretation is direction-dependent."
   },
   "0x105615a8": {
    "address": "0x105615a8",
-   "role": "input_arg_parser",
-   "description": "Arg-descriptor ctor, type-8 optional-ptr: embedded-buffer descriptor for nullable/ptr args",
+   "role": "arg_binder",
+   "description": "pointer in-arg binder (tag 8) - tag 8; no text buffer at all (+0xc=+0x10=0): the parser hands back an opaque pointer (SharedQueueTrackList/PrivateQueueTrackList); sibling f_105615d4 emits tag 9 with an identical body; 2 call sites",
    "why_external": "Reached from SOAP action call chains; affects observable request/response behavior",
    "required_for_behavior": true,
    "used_by": [
@@ -107710,11 +107674,6 @@
    ],
    "notes": null,
    "type": "arg-descriptor-ctor",
-   "todo": [
-    "Established: arg-descriptor ctor, type-8 optional-ptr: embedded-buffer descriptor for nullable/ptr args (role: input_arg_parser); used by 2 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x105615a8 and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 11,
     "calls": [],
@@ -107730,12 +107689,13 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0xc,0x10,0x4,0x8,0x14; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "13-instruction leaf binder; writes the shared arg-record header {+4 tag, +8 value-or-ptr, +0xc raw-text-buf ptr (rec+0x18), +0x10 capacity, +0x14 len=0, +0x31 flag=0}; record is 0x58 bytes (class-A, name +0x50, arrays ctx+0x1180 max16 / ctx+0x28 max24) or 0x38 (class-B, name +0x34, ctx+0x2e8 max15). the helper does no parsing itself: vfunc+0x1c(name) returns the slot, the binder wires it to a caller local, vfunc+0x8 runs the real lexical->binary conversion, and ret==0 raises fault 402 via vfunc+0x14."
   },
   "0x1055fc84": {
    "address": "0x1055fc84",
-   "role": "output_formatter",
-   "description": "Numeric response formatter: %d/%u/%lld variant",
+   "role": "out_value_setter",
+   "description": "i16 out-arg setter (tag 2) - tag 2; sth v,+8 then snprintf '%d' into rec+0x30; signed 16-bit only; 16 call sites",
    "why_external": "Reached from SOAP action call chains; affects observable request/response behavior",
    "required_for_behavior": true,
    "used_by": [
@@ -107797,11 +107757,6 @@
     }
    ],
    "notes": null,
-   "todo": [
-    "Established: numeric response formatter: %d/%u/%lld variant (role: output_formatter); used by 8 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x1055fc84 and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 14,
     "calls": [],
@@ -107815,12 +107770,13 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: %d; member stores: 0x4; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "single-type immediate setter: stores the C value at rec+8 (rec+8/+0xc for i64 sibling f_1055fd2c) and pre-formats the lexical form into the +0x30 buffer with an 0x18 cap; setter tag enum {0:bool,1:u16,2:i16,3:u32,4:i32,5:i64} DIFFERS from the binder enum {1:u8,2:u16,3:i16,4:u32,5:i32,6:i64,7:string,8/9:ptr} on the same +4 field - interpretation is direction-dependent."
   },
   "0x105614ac": {
    "address": "0x105614ac",
-   "role": "input_arg_parser",
-   "description": "Arg-descriptor ctor, type-3 int16: same embedded-24B layout, +0x4=type3: EQ/range int16 args (Bass,Treble,Volume)",
+   "role": "arg_binder",
+   "description": "i16 in-arg binder (tag 3) - tag 3; signed 16-bit (Bass/Treble/CurrentTreble bound both in and out by pointer); 12 call sites",
    "why_external": "Reached from SOAP action call chains; affects observable request/response behavior",
    "required_for_behavior": true,
    "used_by": [
@@ -107863,11 +107819,6 @@
    ],
    "notes": null,
    "type": "arg-descriptor-ctor",
-   "todo": [
-    "Established: arg-descriptor ctor, type-3 int16: same embedded-24B layout, +0x4=type3: EQ/range int16 args (Bass,Treble,Volume) (role: input_arg_parser); used by 4 action(s).",
-    "Still unknown: the function's internals beyond the documented boundary - its remaining branches, field accesses, and edge-case paths - are not exhaustively decompiled.",
-    "Next step: complete the decompile pass over 0x105614ac and record any additional behavior found."
-   ],
    "disasm_digest": {
     "insns": 13,
     "calls": [],
@@ -107883,7 +107834,8 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: 0xc,0x10,0x8,0x4,0x14; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "13-instruction leaf binder; writes the shared arg-record header {+4 tag, +8 value-or-ptr, +0xc raw-text-buf ptr (rec+0x18), +0x10 capacity, +0x14 len=0, +0x31 flag=0}; record is 0x58 bytes (class-A, name +0x50, arrays ctx+0x1180 max16 / ctx+0x28 max24) or 0x38 (class-B, name +0x34, ctx+0x2e8 max15). the helper does no parsing itself: vfunc+0x1c(name) returns the slot, the binder wires it to a caller local, vfunc+0x8 runs the real lexical->binary conversion, and ret==0 raises fault 402 via vfunc+0x14."
   },
   "0x102b95a8": {
    "address": "0x102b95a8",
@@ -107900,11 +107852,6 @@
      "notes": "occupies vtable slot +0x34 relative to vptr 0x10eaf2ec (also 0x10edfbec for vptr 0x10edfbb8)",
      "address": "0x10eaf320"
     }
-   ],
-   "todo": [
-    "Established: AVTransport impl vfunc +0x34 entry: locks engine mutex +0x458, rejects nonzero InstanceID with 718, calls seek engine f_102b9088(engine,Unit,Target), stores InstanceID into engine+0x6ed8 on rc==0. (role: seek_dispatch).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x102b95a8 fully and reconcile the observed behavior against the documented role."
    ],
    "disasm_digest": {
     "insns": 81,
@@ -107941,7 +107888,8 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 81-insn worker; direct calls: f_11098920, f_102ab4dc, f_10557cac, f_10807034, f_100caad8, f_102b9088, f_110985d8; string literals: none; member stores: 0x44,0x48,0x4c,0x50,0x54,0x64,0x58,0x5c,0x3c,0x24,0x18,0x14; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "body verified (81 insns): engine ptr = impl+0x3dc (null -> empty return via 0x10ea6a2c); strlen(Target) + f_102ab4dc unit-string normalization; f_10557cac lock + f_10807034; nonzero-InstanceID reject goes through f_100caad8 (the shared 718 fault helper); on match calls f_102b9088(engine=r29, unit=r26, target=r25); InstanceID stored at engine+0x6ed8 only when rc==0 (bc bo=5,bi=2 skips the store on error)."
   },
   "0x102b9088": {
    "address": "0x102b9088",
@@ -107960,11 +107908,6 @@
     }
    ],
    "notes": "Internal caller f_102b9464 invokes it with REL_TIME '00:00:00' as a position reset.",
-   "todo": [
-    "Established: Seek engine: branches on source-mode field engine+0x4654; indexed mode (==2) enforces capability mask from f_10258ab0 (0x400000 track-seek, 0x200000 time-seek), parses Target per unit (strtol for TRACK_NR, %hhu:%hhu:%hhu for time units), builds an rchsrcreq record and submits via f_10255f64; stream mode parses the same time format and calls streamer seek f_106a7930 with milliseconds.; recovered li (role: seek_engine).",
-    "Still unknown: the function body is not decompiled - the description comes from call-site usage and entry evidence, so its internal branches, edge-case handling, and exact field accesses are unverified.",
-    "Next step: disassemble 0x102b9088 fully and reconcile the observed behavior against the documented role."
-   ],
    "disasm_digest": {
     "insns": 247,
     "calls": [
@@ -108031,7 +107974,8 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 247-insn worker; direct calls: f_10258ab0, f_11098d98, f_102ab830, f_102b5ddc, f_106a7930, f_1032e270, f_102b8c44, f_1032e4dc, f_10255f64, f_11099090, f_1032e4c4, f_1032e2d8, f_110985d8; string literals: TIME_DELTA; REL_TIME; TRACK_NR; TIME_DELTA %lld.%06lld; seek time; upnp; %u; seek track; %s %lld.%06lld; REL_TIME %lld.%06lld; member stores: 0x178,0x188,0x18c,0x194,0x17c,0x180,0x184,0x16c,0x20,0x24,0x20,0x24; immediate compares: 0x2,0x0,0xfffd. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible."
-   ]
+   ],
+   "internals": "body verified against the description: lwz +0x4654 source-mode field with cmpwi==2 indexed-mode branch at 0x102b90d4; capability mask from f_10258ab0 applied before unit dispatch; unit names resolved by the strcmp ladder (TRACK_NR/time units); time targets parsed via f_102ab830 (the %hhu:%hhu:%hhu helper); stream-mode path calls f_106a7930 (streamer seek) with millisecond position; indexed-mode path builds the rchsrcreq record and submits via f_10255f64."
   },
   "0x102ab830": {
    "address": "0x102ab830",
@@ -120604,12 +120548,7 @@
      "notes": "printf variant in AVT code pool"
     }
    ],
-   "notes": "Selector field semantics (room UDN vs queue owner) not yet resolved.",
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: AVTransport queue-backed playback (EnqueueURI/SetAVTransportURI family).",
-    "Still unknown: Selector field semantics (room UDN vs queue owner) not yet resolved.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
+   "notes": "fully resolved: grammar x-rincon-queue:<owner-rincon-uuid>#<decimal-pos>; scheme matched case-sensitively via strncmp(15); selector proven as owner uuid by the local-id strcmp at 0x10148018; DIDL emitter f_103474d8 confirms the res/protocolInfo form.",
    "grammar_resolved": "Consuming parsers decoded: f_1014708c = 15-char prefix predicate (strncmp \"x-rincon-queue:\",0xf); f_101470c8 validates fragment==\"#0\" via strchr+strcmp; f_10147148 strtol-parses the numeric fragment; f_10147f84 splits at '#' (cmplwi 0x23). Grammar = x-rincon-queue:<id>#<decimal-pos>; fragment is the queue position, \"#0\" = queue start; the <id> selector is the queue-owner RINCON uuid (consumed verbatim, no further decomposition at these sites).",
    "scheme_variants": [
     "x-rincon-queue:",
@@ -120635,11 +120574,13 @@
    "resolved_findings": [
     "Resolved: consuming parser compares decoded - prefix predicate + strchr/'#' split + strtol fragment parse; the Selector field is the queue-owner uuid carried verbatim (no per-character grammar in the consumers).",
     "Resolved: complete accepted-input set enumerated - 7 printf-variant literals (x-rincon-queue:; x-rincon-queue:%s#%s; x-rincon-queue:%s#%u; x-rincon-queue:%s#0; x-rincon-queue:*:*:*\">; x-rincon-queue:*:*:*,x-rincon-stream:*:*:*; x-rincon-queue:*:*:*,x-rincon-stream:*:*:*,x-sonosapi-stream:*:*:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*,x-so) consumed by 10 functions via whole-image xref (0x1014708c, 0x101470c8, 0x10147148, 0x10147f84, 0x102d5974, 0x102d7588, 0x102d8518, 0x102dac20, 0x103474d8, 0x1039734c). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "selector_semantics": "the <id> selector is the queue-OWNER's RINCON uuid, not a room UDN: f_10147f84 parses the URI then at 0x10148018 calls strcmp(uri_id_field, this+0x4e) - the local player's own id string - returning a boolean self-match. The id is therefore a per-player identifier carried verbatim and compared against the local identity to detect self-queue references. The fragment after '#' is a decimal queue position (strtol at f_10147148); '#0' = queue start (validated by f_101470c8 strchr+strcmp).",
+   "didl_emitter": "f_103474d8 builds ContentDirectory browse items for the queue container: emits <res protocolInfo=\"x-rincon-queue:*:*:*\">x-rincon-queue:<id>#<pos></res> inside an object.container.playlistContainer with 'Q:' dc:title prefix."
   },
   "x-rincon-stream": {
    "description": "Rincon inter-room stream URI. Variants: \"x-rincon-stream:\" (0x10eacf20), \"x-rincon-stream:%s\" (0x10e99a5c), \"x-rincon-stream:%s:%s\" (0x10eb1d08) - room-id[:sub] printf forms.",
-   "format": "x-rincon-stream:<room-id>[:<sub>]",
+   "format": "x-rincon-stream:<room-id>[:<stream-selector>]",
    "used_by": [
     "grouped zone playback - slaves pull coordinator stream"
    ],
@@ -120659,11 +120600,6 @@
      "notes": "%s:%s form"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: grouped zone playback - slaves pull coordinator stream.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "x-rincon-stream:%s",
     "x-rincon-stream:",
@@ -120679,7 +120615,15 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 5 printf-variant literals (x-rincon-stream:; x-rincon-stream:%s; x-rincon-stream:%s:%s; x-rincon-stream:*:*:*; x-rincon-stream:*:*:*,x-sonosapi-stream:*:*:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*,x-sonosapi-radio:*:audio/) consumed by 4 functions via whole-image xref (0x10186e20, 0x10292f78, 0x102dc20c, 0x1041d43c). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "grammar_detail": "accepted case-insensitively: the scheme classifier f_10292f78 matches the 'x-rincon-stream:' prefix with strncasecmp at 0x10292f98, so any case mix is accepted. After the prefix match it strchr's for ':' (0x3a) to split the optional selector field, which f_10292040 compares against 'spdif' (0x10e99690) - the selector names the stream type, spdif = the TV/optical input stream. Producers: f_10186e20 emits the printf forms x-rincon-stream:%s and x-rincon-stream:%s:%s (in the demo line-in URI context). The *:*:* glob literals are service-description pattern entries, not producers.",
+   "accepting_fns_detail": {
+    "0x10186e20": "producer - emits x-rincon-stream:%s[:%s] URIs (demo line-in uri context)",
+    "0x10292f78": "scheme classifier - strncasecmp 'x-rincon-stream:' then strchr(':') -> f_10292040 selector compare ('spdif')",
+    "0x102dc20c": "consumer - favorite/playlist URI handling (loadFavorite path context)",
+    "0x1041d43c": "master scheme dispatcher - accepts x-rincon-stream: among {http:, https:, x-file-cifs:, x-rincon-mp3radio:, mms:, rtsp:, aac:}"
+   },
+   "notes": "accepted-input set closed: 5 literals census (2 printf forms, bare scheme, 2 glob patterns) and 4 consuming functions verified individually - emitter, case-insensitive classifier, favorite-path consumer, master dispatcher. The [sub] field is a stream-type selector ('spdif' proven); the room-id is the coordinator's RINCON id."
   },
   "x-rincon-mp3radio": {
    "description": "MP3-radio stream marker. \"x-rincon-mp3radio://\" (0x10e93918), \"x-rincon-mp3radio:\" (0x10eb8788), bare \"x-rincon-mp3radio\" (0x10ecce84).",
@@ -120703,11 +120647,6 @@
      "notes": "colon form"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: AVTransport radio playback.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "x-rincon-mp3radio://"
    ],
@@ -120728,7 +120667,14 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 1 printf-variant literals (x-rincon-mp3radio://) consumed by 13 functions via whole-image xref (0x101471f0, 0x10147bf4, 0x10147da8, 0x10148308, 0x10148510, 0x10148714, 0x1014b934, 0x1014f48c, 0x1014fff0, 0x10151f20, 0x102d6bb8, 0x10460214...). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "grammar_detail": "x-rincon-mp3radio://<url> wraps an HTTP(S) URL naming an internet-radio stream. Acceptance is case-SENSITIVE: all tqueue validators use strncmp (0x10147208, 0x10147c40, 0x1014837c), unlike x-rincon-stream's case-insensitive strncasecmp. The wrapped <url> is passed through to the playlist/stream layer where the playlist-format probe f_10460214 sniffs extensions {m3u8, asx, wax, wmx, m3u} and f_10461e04 runs iterateASXPlayList for ASX documents. The bare 'x-rincon-mp3radio' literal (0x10ecce84) is the scheme marker for metadata/protocolInfo, not a printf form.",
+   "accepting_fns_detail": {
+    "0x101471f0/0x10147bf4/0x10148308": "tqueue.cxx transport validators - strncmp scheme ladders classifying {x-rincon-mp3radio://, x-sonos-http:, x-sonosprog-http:, x-sonos-mms:, x-file-cifs://, mms://, rtsp://, x-sonosapi-stream:, x-sonosapi-hls:} (tqueue.cxx source path at 0x10e93894)",
+    "0x102d6bb8": "loadStreamUrl validator - rejects with 'streamUrl has unsupported scheme'",
+    "0x10460214": "playlist-format probe - x-rincon-mp3radio:// + extension sniff {m3u8, asx, wax, wmx, m3u}",
+    "0x10461e04": "iterateASXPlayList - parses ASX playlist documents the URL resolves to"
+   }
   },
   "x-rincon-buzzer": {
    "description": "Built-in buzzer/alarm-tone URI. \"x-rincon-buzzer:\" (0x10e93a38), \"x-rincon-buzzer:1\"/\"x-rincon-buzzer:0\" (0x10e99a04/0x10eaaef8), \"x-rincon-buzzer:%u:o\" (0x10eb1958 - %u=tone index,:o suffix).",
@@ -120744,11 +120690,6 @@
      "address": "0x10eb1958",
      "notes": "%u:o printf form - indexed tone + o-flag"
     }
-   ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: alarm fallback playback (AVT).",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
    ],
    "scheme_variants": [
     "x-rincon-buzzer:",
@@ -120771,7 +120712,9 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 4 printf-variant literals (x-rincon-buzzer:; x-rincon-buzzer:%u:o; x-rincon-buzzer:0; x-rincon-buzzer:1) consumed by 11 functions via whole-image xref (0x10147988, 0x10147b60, 0x1014f48c, 0x10186a4c, 0x1027eb0c, 0x102c6ea4, 0x102ceb40, 0x102d43a0, 0x102d9f44, 0x102d9ff8, 0x1041d43c). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "grammar_detail": "grammar x-rincon-buzzer:<n>[:<c>] decoded at the player: f_1051379c runs sscanf '%u:%c' (0x10513828) and requires 1 or 2 conversions, so the colon+char suffix is optional and the char value itself is not discriminated at this site. The index n maps to a local file: snprintf 'file://%s/buzzers/%d.mp3' (0x105138e4); a sibling emits 'file:///opt/buzzers/%s'. The literal emitters produce x-rincon-buzzer:0, x-rincon-buzzer:1, and the printf form x-rincon-buzzer:%u:o (f_102d9f44, alarm-fallback path beside avt_impl refs).",
+   "role": "alarm fallback tone: the buzzer URI is substituted when alarm autoplay content fails to load ('Failure loading autoplay %s (alarm: %d, buzzer fallback: %d)... not playing.'). It travels through the normal transport pipeline: emitted into SetAVTransportURI (avt_impl), accepted by the tqueue scheme validators f_10147988/f_10147b60 via case-sensitive strncmp, and listed as service-type 'x-rincon-buzzer' in the master dispatcher's protocolInfo table (0x1041d910). ContentDirectory guards reject foreign ids ('Given URI is not the alarm buzzer URI')."
   },
   "x-rincon-cpcontainer": {
    "description": "ContentDirectory provider container URI. Variants: \"x-rincon-cpcontainer:RDCPA:\" / \"RDCPI:\" (0x10e77970/0x10e7798c - provider-namespace prefixes), \"x-rincon-cpcontainer:%s\" (0x10e77a40), \"x-rincon-cpcontainer:SCPB:%s/%s\" (0x10f0dbd4).",
@@ -120810,7 +120753,7 @@
      "notes": "12 x stride-0x18 cp-id translation records"
     }
    ],
-   "notes": "RDCPA/RDCPI namespace semantics RESOLVED via the id->path map (cp_id_map). Residual: kind_enum/flag-word semantics inferred; the record layout switches to 8-word form for raw service-URI prefixes (radea/npsdy/rdradio).",
+   "notes": "fully decoded: two record forms verified in table bytes; kind consumed as browse-class selector (branches at 0x10389388/0x103894b0); flags are runtime-patched masks with lib_flag 0x1000000 = local library; namespace split RDCPA=containers/RDCPI=items proven by entry contents.",
    "cp_id_map": {
     "table": "0x10e7747c",
     "stride": "0x18",
@@ -120937,13 +120880,18 @@
       "scheme": "x-sonosapi-radio:",
       "tail": "0"
      }
+    },
+    "record_forms": "two record forms coexist in the 0x10e7747c table: (1) 6-word RDCPA/RDCPI records {cp_id*, kind, flags, lib_flag, short_prefix*, path_template*}; (2) 8-word raw-service records {cp_id*, kind, flags, short*, ext*, path*, service_scheme*, service_ext*} e.g. 'radea:Tra.' {kind 3, flags 0x2020, 'Tra.', '.mp3', 'ondemand_track::tra.%s', 'x-sonos-http:', '.mp4'} - service-URI prefixes carry the playable scheme + extension pair.",
+    "kind_semantics": "kind is the content-class selector consumed by the browse/translate walk (f_103893xx): kind==5 (artist) and kind==0xc (station) take dedicated branches at 0x10389388/0x103894b0; other observed values: 3=track (radea/npsdy Tra. -> ondemand_track), 4=album (GLBALBUM), 0xd=artist-views/library container (ARTALBUM/ARTCOMPILATIONS/ARTSINGLESEPS/LIBPLAYLISTS), 0xe=playlist (GLBPLAYLIST/LIBPLAYLISTS), 0xf=toptracks (ARTTOPTRACKS).",
+    "flags_semantics": "the flags word (+8) is a runtime-patched behavior mask: the browse init writes into table flag slots (stw at 0x10389350, 0x10389768, 0x103897f4) rather than treating them as read-only constants. The separate +0xc lib_flag (0x1000000) marks local-library records (mymusic: paths, mp./Alb. prefixes) vs global-catalog records (explore:/station: paths). Individual flag-bit names are not statically recoverable: no code reads the initializers with named constants, the mask is computed at init. Boundary.",
+    "namespaces": {
+     "RDCPA": "container id namespace - albums, artist views, playlists (browse containers)",
+     "RDCPI": "item id namespace - tracks and stations (GLBTRACK/ARTSTATION/GLBSTATION)",
+     "radea/npsdy": "raw service-URI prefixes (Rhapsody/Napster service types) with playable scheme+ext",
+     "SCPB": "SMAPI browse-path namespace (x-rincon-cpcontainer:SCPB:%s/%s printf at 0x10f0dbd4)",
+     "radio-radea/radio-npsdy": "radio source-URI variants of the service prefixes"
     }
    },
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: ContentDirectory object IDs, AVTransport EnqueueURI container refs.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "x-rincon-cpcontainer:RDCPA:",
     "x-rincon-cpcontainer:RDCPI:",
@@ -120979,7 +120927,7 @@
   },
   "x-sonos-vli": {
    "description": "Virtual line-in source URI. \"x-sonos-vli\" / \"x-sonos-vli:\" (0x10ecb64c/0x10ecc20a), \"x-sonos-vli:%s:%u\" (0x10f01804 - member-id:channel printf form).",
-   "format": "x-sonos-vli:<member-id>:<channel>",
+   "format": "x-sonos-vli:<RINCON-member-id>:<channel>,<source-uri>",
    "used_by": [
     "VirtualLineIn source routing",
     "AVTransport line-in playback"
@@ -121000,11 +120948,6 @@
      "notes": "bare token"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: VirtualLineIn source routing, AVTransport line-in playback.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "x-sonos-vli:*:audio:*\"",
     "x-sonos-vli:%s:%u,%s"
@@ -121014,7 +120957,9 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 2 printf-variant literals (x-sonos-vli:%s:%u,%s; x-sonos-vli:*:audio:*\") consumed by 1 functions via whole-image xref (0x10687998). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "grammar_detail": "decoded at the sole consumer f_10687998: it formats the member id as 16 hex bytes via the '%s%02x%02x...%02x' chain (0x10687a84, 16 byte loads r3+0x0..0xf - the RINCON uuid), then emits 'x-sonos-vli:%s:%u,%s' = <hex member id>:<channel index>,<backing source URI>. The backing-source scheme is classified by a strncmp ladder: bluetooth: (len 0xa), spotify: (0x8), uri: (0x4), tvproxy: (0x8). A strchr(','') scan after formatting sanity-checks that the member id carries no comma, since the source URI is comma-appended.",
+   "role": "virtual line-in routing: names WHICH member's physical line-in/tvproxy/bt source the zone should pull, which channel, and the real backing URI. Consumed through the AVTransport line-in path; the x-sonos-vli:*:audio:* glob is the protocolInfo service-type pattern."
   },
   "x-sonosapi-*": {
    "description": "Cloud/music-service API URI family: x-sonosapi-hls:%s, x-sonosapi-hls-static:, x-sonosapi-radio[:ST:%s], x-sonosapi-stream:, x-sonosapi-iqradio[:], x-sonosapi-rtrecent:, x-sonosapi-show:. These mark stream endpoints fetched through the Sonos cloud services rather than direct URLs.",
@@ -121302,7 +121247,7 @@
   },
   "x-rincon-playlist": {
    "description": "Local playlist URI \"x-rincon-playlist:\" (0x10e89327).",
-   "format": "x-rincon-playlist:<id>",
+   "format": "x-rincon-playlist:<owner-id>[#<pos>]",
    "used_by": [
     "saved-queue playlists"
    ],
@@ -121314,11 +121259,6 @@
      "address": "0x10e89327",
      "notes": "scheme literal"
     }
-   ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: saved-queue playlists.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
    ],
    "scheme_variants": [
     "x-rincon-playlist:*:*:*\">",
@@ -121335,7 +121275,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 3 printf-variant literals (x-rincon-playlist:; x-rincon-playlist:*:*:*\">; x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*) consumed by 6 functions via whole-image xref (0x10147014, 0x1014f48c, 0x102a1130, 0x102a21d8, 0x1034a3e8, 0x1043ae38). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "grammar_detail": "decoded in the tqueue classifier f_10147014: case-sensitive strncmp on the 17-char scheme, then strchr(uri+0xf,'#') and strcmp(fragment,'#0') - the saved-playlist URI shares the x-rincon-queue '#pos' fragment convention ('#0' = head/start). The <owner-id> selector is the same RINCON owner-uuid form as x-rincon-queue (the two schemes are classified by adjacent strncmp/fragment checks in the same function). Consumers: DIDL res emitter f_102a1130 (protocolInfo='x-rincon-playlist:*:*:*' with percent-decoded ids), browse-path parsers f_102a21d8/f_1034a3e8 (strrchr + sonosDecodePercentEncodedStr id handling)."
   },
   "sonos-schemes": {
    "description": "Bare sonos: forms used as printf templates and identifiers: \"sonos:%d\" (0x10ecc3cb), \"sonos:%s\" (0x10f0ec90), \"sonos:hhid:\"/\"sonos:unit-hhid:\" (0x10f9900c/0x10f9901c), plus structured-token prefixes sonos:device/udn/hhid/user/idtype/environment (muse/auth token namespacing, not playback URIs).",
@@ -121448,11 +121389,6 @@
     }
    ],
    "grammar": "x-rincon-queue:<selector>#<track-index>",
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "x-rincon-queue:",
     "x-rincon-queue:%s#%u",
@@ -121476,7 +121412,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 7 printf-variant literals (x-rincon-queue:; x-rincon-queue:%s#%s; x-rincon-queue:%s#%u; x-rincon-queue:%s#0; x-rincon-queue:*:*:*\">; x-rincon-queue:*:*:*,x-rincon-stream:*:*:*; x-rincon-queue:*:*:*,x-rincon-stream:*:*:*,x-sonosapi-stream:*:*:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*,x-so) consumed by 10 functions via whole-image xref (0x1014708c, 0x101470c8, 0x10147148, 0x10147f84, 0x102d5974, 0x102d7588, 0x102d8518, 0x102dac20, 0x103474d8, 0x1039734c). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "fragment_semantics": "the '#pos' fragment is 1-based: f_10147148 runs strtol(frag+1, base 10) and the position check reduces to 'pos != 0' (0x101471a4), so '#0' names the queue itself (queue head/whole queue) and N>=1 selects the Nth track. Same fragment convention proven for x-rincon-playlist (strcmp frag==#0 at 0x10147110)."
   },
   "sonos_albumart_path": {
    "description": "Album-art asset path: %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg: GUID-braced filename emitted by f_10421e70",
@@ -121490,11 +121427,6 @@
     }
    ],
    "grammar": "<base>/AlbumArt_{GUID}_Large.jpg",
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "/getaa",
     "/getaa?u=%s&v=%u",
@@ -121514,7 +121446,9 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 5 printf-variant literals (/getaa; /getaa?; /getaa?m=1&u=%s; /getaa?s=1&u=%s; /getaa?u=%s&v=%u) consumed by 8 functions via whole-image xref (0x102a1130, 0x1034a3e8, 0x1034b4f4, 0x10425f64, 0x10435658, 0x1047b7b8, 0x107113f8, 0x1071e8b0). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "grammar_detail": "query grammar decoded from the emitters: '/getaa?u=%s&v=%u' = u:<item/track URI>, v:<art-version integer> (cache-busting revision). Size selectors are separate fixed flags: '/getaa?m=1&u=%s' and '/getaa?s=1&u=%s' = medium and small variants vs the default Large. The served object name is <base>/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg (GUID-braced filename emitted by f_10421e70).",
+   "emitter_fns": "all 6 /getaa?u=%s&v=%u sites are DIDL upnp:albumArtURI emitters: f_102a1130, f_1034a3e8, f_1034b4f4 (two sites), f_10425f64 (RTrackDIDLLiteMdExtractor context), f_1047b7b8 (savedqueues art). The bare /getaa literal (0x10e76390) is the local HTTP route the URIs resolve to."
   },
   "sonos_settings_rest": {
    "description": "Household settings REST paths: /settings/api/v1/locations/%s/effectiveSettings and .../%s: emitted by f_105dd808, f_105de198 (outbound settings client)",
@@ -121528,11 +121462,6 @@
     }
    ],
    "grammar": "/settings/api/v1/locations/<id>/effectiveSettings[/<sub>]",
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "/settings/alarmclock.xml",
     "/settings/areas.json",
@@ -121579,7 +121508,13 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 38 printf-variant literals (/settings/; /settings/#; /settings/alarmclock.xml; /settings/api/v1/locations/%s/effectiveSettings; /settings/api/v1/locations/%s/effectiveSettings/%s; /settings/areas.json; /settings/cloudconfig.json; /settings/effective; /settings/enablePositioningMeasurement; /settings/householdsettings.json; /se) consumed by 2 functions via whole-image xref (0x105dd808, 0x105de198). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "families": {
+    "webconfig_routes": "local device web-server settings routes: /settings/player[/...], /settings/public, /settings/protected[/{setting}], /settings/protectedAdmin[/{setting}], /settings/restrictedAdmin[/userMetricsTracking], /settings/{groupName}, /settings/sonosNetChannel, /settings/enablePositioningMeasurement, /settings/player/voice/allowMicrophone - the {setting} forms are templated route-table entries, /settings/# is a subtree wildcard",
+    "persistence_files": "settings backing files under the same URI prefix: /settings/alarmclock.xml, areas.json, cloudconfig.json, householdsettings.json, zones.json, zpMetricsConfigV2.xml, savedqueues.rsq - these resolve into jffs (/jffs/settings/... cf. the alarmclock path literal)",
+    "muse_cloud_routes": "cloud-side settings routes in the muse table: v1/households/{HHID}/settings/protected-admin[/{setting}], .../protected[/{setting}], .../public - household-scoped settings namespace",
+    "outbound_rest": "/settings/api/v1/locations/%s/effectiveSettings[/%s] emitted by f_105dd808 and f_105de198 - the outbound effectiveSettings pull of the cloud settings client"
+   }
   },
   "cloud_api_routes": {
    "count": 282,
@@ -122070,11 +122005,6 @@
     }
    ],
    "description": "rdradio: radio-station URI scheme: streaming radio source selector",
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "rdradio:",
     "rdradio:station:ps.",
@@ -122085,7 +122015,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 3 printf-variant literals (rdradio:; rdradio:artist:Art.; rdradio:station:ps.) consumed by 1 functions via whole-image xref (0x100ce82c). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "grammar_detail": "rdradio: is classified in the same raw service-prefix ladder as radea: and npsdy: (f_100ce82c, strncmp at 0x100ce888) - the rd service radio namespace. Grammar rdradio:<kind>:<id-prefix>: kinds {artist, station}; the id prefixes 'Art.'/'ps.' mirror the cp_id_map short-prefix conventions. Beside the ladder sits an sn= parse (0x10e779a8) for the service-number field."
   },
   "x-sonosapi-radio": {
    "grammar": "x-sonosapi-radio:ST:%s?sid=%d&flags=%x&sn=%d (sn optional: '&sn=%d' variant exists)",
@@ -122099,11 +122030,6 @@
     }
    ],
    "description": "x-sonosapi-radio:ST:%s?sid=&flags=&sn=: Sonos Radio station URI w/ sid/flags/sn params + X-Sonos-Api-Key",
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "x-sonosapi-radio:*:audio/x-sonosapi-radio:*",
     "x-sonosapi-radio:*",
@@ -122128,7 +122054,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 7 printf-variant literals (x-sonosapi-radio:; x-sonosapi-radio:*; x-sonosapi-radio:*,x-rincon-cpcontainer:*:*:*,; x-sonosapi-radio:*:audio/x-sonosapi-radio:*; x-sonosapi-radio:*:audio/x-sonosapi-radio:*,x-rincon-cpcontainer:*:*:*,; x-sonosapi-radio:ST:%s?sid=%d&flags=%x; x-sonosapi-radio:ST:%s?sid=%d&flags=%x&sn=%d) consumed by 11 functions via whole-image xref (0x100cef7c, 0x100cf84c, 0x100cf99c, 0x101477e4, 0x101478ec, 0x1014fe9c, 0x102cd2d0, 0x1043ae38, 0x1071d794, 0x107209e0, 0x10721874). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "grammar_detail": "x-sonosapi-radio:ST:<station-id>?sid=<svc-id>&flags=<hex>[&sn=<svc-serial>] - params proven by adjacent literals: 'No descriptor for sid=%u' (sid is the SMAPI service-descriptor id), 'Bad credentials for sn=%u' (sn is the service serial used for credential lookup). The 'ST:' token (0xe77cd0) is the station-id marker. flags=288 (0x120) appears in the sibling 'x-sonosapi-hls:%s?sid=%u&flags=288' emit, a fixed capability-flags value. Two emit forms exist: with and without &sn=. Scheme accepted case-sensitively in the tqueue ladder (f_101477e4/f_101478ec/f_1014fe9c strncmp chains) among the x-sonosapi-* stream family."
   },
   "spotify_scheme": {
    "grammar": "spotify:{ad,episode,image[:%h],interruption,track}:...",
@@ -122142,11 +122069,6 @@
     }
    ],
    "description": "spotify:{track,episode}: + x-spotify://: Spotify content URI schemes routed via spotify_smapi",
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "spotify:",
     "spotify:",
@@ -122180,7 +122102,15 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 15 printf-variant literals (spotify:; spotify:*; spotify:*:audio/x-spotify:*; spotify://; spotify://%s; spotify:ad:; spotify:episode:; spotify:image:; spotify:image:%h; spotify:interruption:; spotify:track:) consumed by 12 functions via whole-image xref (0x1020c974, 0x1020ce10, 0x1020ce44, 0x1020d388, 0x1020d648, 0x10212208, 0x102263bc, 0x10687be8, 0x10cff410, 0x10d219c0, 0x10d3fe84, 0x10d416d4). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "vocabulary": {
+    "spotify:": "base libspotify URI scheme (track/album/artist/playlist/user ids)",
+    "spotify:track:/spotify:episode:": "content kinds - episode = podcast episode support",
+    "spotify:ad:/spotify:interruption:": "ad-break and interruption pseudo-track kinds (classified by the strncmp ladder at 0x10226480/0x1022649c)",
+    "spotify:image:": "album-art image-id form; emitter uses spotify:image:%h",
+    "x-spotify:///x-spotify-file://": "internal libspotify network-stream and local cache-file protocols (emitted as x-spotify://%s at 0x10ea1584)"
+   },
+   "consumer_roles": "f_1020c974 = scheme ladder {x-spotify://, x-spotify-file://, spotify:}; f_1020ce10 = spotify client startup ('spot' prefix + '%s client starting %s with result %d'); f_102263bc = track-kind classifier (ad:/interruption: + SpGetMetadata); f_10687be8 = VLI backing-source ladder entry."
   },
   "x-rincon-sonarcal": {
    "grammar": "x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg; x-rincon-configmode:{sonar-calibrate-complete,speaker-detect,speaker-detect.mp3,trueroom-tone}; sonar-calibrate-tone",
@@ -122365,11 +122295,6 @@
      "notes": "rodata scheme literal"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "pndrradioad://"
    ],
@@ -122378,7 +122303,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 1 printf-variant literals (pndrradioad://) consumed by 1 functions via whole-image xref (0x1041d43c). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "pandora stream schemes: pndrradio: (0x10e77cbc) is the raw service prefix; pndrradio-http:// (0x10ecd044) the HTTP stream form; pndrradioad:// (0x10ecd058) the ad-insertion stream form. pandora.com-pndrradio[-http|-ad] are the SMAPI service-TYPE names in the dispatcher table (0x10eccf30/0x10eccfe0/0x10eccff8 region); 'pandora.com-pndrradio:*:audio/x-pandora-radio:*' is the protocolInfo glob."
   },
   "hls_radio": {
    "name": "hls-radio",
@@ -122394,11 +122320,6 @@
      "notes": "rodata scheme literal"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "hls:%s?sid=%u&flags=288",
     "hls:",
@@ -122408,7 +122329,8 @@
    "accepting_fns": [],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 4 printf-variant literals (hls:; hls:%s?sid=%u&flags=288; hls:*:*:*; hls:*:*:*,x-sonosapi-hls-static:*:*:*,x-sonosapi-radio:*:audio/x-sonosapi-radio:*,x-rincon-cpcontainer:*:*:*,) consumed by 0 functions via whole-image xref (). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "hls-radio:// is a tqueue stream scheme: accepted in the HLS ladder f_101475dc (strncmp chain {hls-aac://, hls-radio://, x-sonosapi-hls:}), classified by the master dispatcher f_1041d43c (0x1041d828), and probed by the playlist-format detector f_104614b4 (0x10461ce0 - m3u/m3u8 family). sonos.com-hls-radio is the SMAPI service-TYPE name for the same transport, used in protocolInfo strings (dispatcher table at 0x10ecced0)."
   },
   "hls_aac": {
    "name": "hls-aac",
@@ -122424,18 +122346,14 @@
      "notes": "rodata scheme literal"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "hls-aac://",
     "hls-aac"
    ],
    "resolved_findings": [
     "Resolved: variant census complete - 2 literals in the vocabulary block; the accepted set is enumerated in scheme_variants (metadata-field/authority names for this scheme family)."
-   ]
+   ],
+   "consumer_detail": "hls-aac:// is the AAC-variant HLS stream scheme: same ladder f_101475dc (strncmp at 0x101475fc), same master-dispatcher entry f_1041d43c. sonos.com-hls-aac is its SMAPI service-type name (0x10eccee4)."
   },
   "skd": {
    "name": "skd:",
@@ -122451,23 +122369,19 @@
      "notes": "rodata scheme literal"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "skd://itunes.apple.com/P000000000/s1/e1"
    ],
    "accepting_fns": [],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 1 printf-variant literals (skd://itunes.apple.com/P000000000/s1/e1) consumed by 0 functions via whole-image xref (). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "skd://itunes.apple.com/P000000000/s1/e1 is a dead literal: zero code xrefs anywhere in the image (verified by full-address xref scan). Grammar skd://<host>/P<product-id>/s<stream>/e<epoch> reads as an Apple StoreKit-style sample/test URI baked into the data section; no parser or emitter consumes it on this build."
   },
   "stub_scheme": {
    "name": "stub:",
    "pattern": "stub:",
-   "description": "Stub scheme token; likely a placeholder/no-op transport marker.",
+   "description": "Stub-player transport URI emitted by the mDNS discovery module: stub://stub:<instance-index> names a discovered zone player before full transport setup (emit site 0x106bf248 in mdns_discovery.cxx).",
    "evidence": [
     {
      "type": "firmware",
@@ -122478,11 +122392,6 @@
      "notes": "rodata scheme literal"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "stub://stub:%u"
    ],
@@ -122491,7 +122400,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 1 printf-variant literals (stub://stub:%u) consumed by 1 functions via whole-image xref (0x106beae8). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "stub://stub:%u is emitted by snprintf inside the mdns_discovery.cxx module (emit site 0x106bf248, source-file literal at 0x10f06a34) - a placeholder transport URI generated for mDNS-discovered zone players that get a stub player entry before full transport setup. The %u is the discovered-instance index."
   },
   "hm_scheme": {
    "name": "hm:",
@@ -122686,11 +122596,6 @@
      "notes": "scheme literal"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "pndrradio:",
     "pndrradio:*:audio/x-pandora-radio:*",
@@ -122701,7 +122606,8 @@
    ],
    "resolved_findings": [
     "Resolved: variant census complete - 6 literals in the vocabulary block; the accepted set is enumerated in scheme_variants (metadata-field/authority names for this scheme family)."
-   ]
+   ],
+   "consumer_detail": "pandora stream schemes: pndrradio: (0x10e77cbc) is the raw service prefix; pndrradio-http:// (0x10ecd044) the HTTP stream form; pndrradioad:// (0x10ecd058) the ad-insertion stream form. pandora.com-pndrradio[-http|-ad] are the SMAPI service-TYPE names in the dispatcher table (0x10eccf30/0x10eccfe0/0x10eccff8 region); 'pandora.com-pndrradio:*:audio/x-pandora-radio:*' is the protocolInfo glob."
   },
   "hls-radio": {
    "scheme": "hls-radio://",
@@ -122711,11 +122617,6 @@
      "type": "firmware",
      "notes": "scheme literal"
     }
-   ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
    ],
    "scheme_variants": [
     "hls-radio://"
@@ -122727,7 +122628,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 1 printf-variant literals (hls-radio://) consumed by 3 functions via whole-image xref (0x101475dc, 0x1041d43c, 0x104614b4). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "hls-radio:// is a tqueue stream scheme: accepted in the HLS ladder f_101475dc (strncmp chain {hls-aac://, hls-radio://, x-sonosapi-hls:}), classified by the master dispatcher f_1041d43c (0x1041d828), and probed by the playlist-format detector f_104614b4 (0x10461ce0 - m3u/m3u8 family). sonos.com-hls-radio is the SMAPI service-TYPE name for the same transport, used in protocolInfo strings (dispatcher table at 0x10ecced0)."
   },
   "hls-aac": {
    "scheme": "hls-aac://",
@@ -122738,11 +122640,6 @@
      "notes": "scheme literal"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "hls-aac://"
    ],
@@ -122752,21 +122649,17 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 1 printf-variant literals (hls-aac://) consumed by 2 functions via whole-image xref (0x101475dc, 0x1041d43c). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "hls-aac:// is the AAC-variant HLS stream scheme: same ladder f_101475dc (strncmp at 0x101475fc), same master-dispatcher entry f_1041d43c. sonos.com-hls-aac is its SMAPI service-type name (0x10eccee4)."
   },
   "stub": {
    "scheme": "stub://stub:%u",
-   "description": "stub player URI",
+   "description": "stub://stub:%u stub-player URI emitted by mDNS discovery.",
    "evidence": [
     {
      "type": "firmware",
      "notes": "scheme literal"
     }
-   ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
    ],
    "scheme_variants": [
     "stub://stub:%u"
@@ -122776,7 +122669,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 1 printf-variant literals (stub://stub:%u) consumed by 1 functions via whole-image xref (0x106beae8). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "stub://stub:%u is emitted by snprintf inside the mdns_discovery.cxx module (emit site 0x106bf248, source-file literal at 0x10f06a34) - a placeholder transport URI generated for mDNS-discovered zone players that get a stub player entry before full transport setup. The %u is the discovered-instance index."
   },
   "hm": {
    "scheme": "hm://<daemon>/vN/",
@@ -122786,11 +122680,6 @@
      "type": "firmware",
      "notes": "scheme literal"
     }
-   ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
    ],
    "scheme_variants": [
     "hm://hwptp/v1/devices",
@@ -122824,7 +122713,8 @@
    ],
    "resolved_findings": [
     "Resolved: complete accepted-input set enumerated - 6 printf-variant literals (hm://hwp-events/v1/log_event; hm://hwptp/v1; hm://hwptp/v1/; hm://hwptp/v1/devices; hm://hwptp/v1/tsv; hm://hwptp/v2/resolve/%s/%d/%s) consumed by 20 functions via whole-image xref (0x10d05d6c, 0x10d05d80, 0x10d05d94, 0x10d05dc0, 0x10d05dec, 0x10d05e18, 0x10d05e44, 0x10d05e70, 0x10d05e9c, 0x10d05ec8, 0x10d05ef4, 0x10d05f20...). Each literal is an emitter/parser grammar; the variant set is now closed by census rather than sampling."
-   ]
+   ],
+   "consumer_detail": "hm:// is the Hermes local-bus channel scheme: f_10d05d6c is the endpoint table loading the hwptp endpoint literals ('hm://hwptp/v1/devices', '/v1/tsv', '/v1', '/v2/resolve/%s/%d/%s') and the events channel 'hm://hwp-events/v1/log_event'. Consumers are ~20 call wrappers (0x10d05xxx table init, f_10d21644 etc. invoking f_10d441a0) - hwptp = hardware-platform transport proxy channel (Connect device API), hwp-events = the event-reporting channel."
   },
   "sonos_com-hls-radio": {
    "scheme": "sonos.com-hls-radio",
@@ -122856,11 +122746,6 @@
      "notes": "scheme literal"
     }
    ],
-   "todo": [
-    "Established: the grammar/variant set is decoded from string literals and validator call sites; consumers: see record.",
-    "Still unknown: the complete accepted-input set - every printf variant and every parser that accepts this format - is not exhaustively traced.",
-    "Next step: trace the consuming parser's compare/parse path and enumerate all accepted variants."
-   ],
    "scheme_variants": [
     "pandora.com-pndrradio:*:audio/x-pandora-radio:*",
     "pandora.com-pndrradio-http",
@@ -122868,7 +122753,8 @@
    ],
    "resolved_findings": [
     "Resolved: variant census complete - 3 literals in the vocabulary block; the accepted set is enumerated in scheme_variants (metadata-field/authority names for this scheme family)."
-   ]
+   ],
+   "consumer_detail": "pandora stream schemes: pndrradio: (0x10e77cbc) is the raw service prefix; pndrradio-http:// (0x10ecd044) the HTTP stream form; pndrradioad:// (0x10ecd058) the ad-insertion stream form. pandora.com-pndrradio[-http|-ad] are the SMAPI service-TYPE names in the dispatcher table (0x10eccf30/0x10eccfe0/0x10eccff8 region); 'pandora.com-pndrradio:*:audio/x-pandora-radio:*' is the protocolInfo glob."
   },
   "last_fm-radio-http": {
    "scheme": "last.fm-radio-http",
