@@ -142202,7 +142202,8 @@
    ],
    "resolved_findings": [
     "Resolved: merged with mpmgr - actor message format = the mp actor queue carrying typed op messages {play,pause,stop,seek,next,prev,setUri,setMetadata} routed per source through the source facet vtable.",
-    "Actor IPC is socket-bound by construction: the target key {uuid, ix, port, ssl, mtls} is a transport endpoint tuple, so actor messages ride per-player TCP/TLS connections (mtls flag selects the mutual-TLS variant) rather than in-process calls - consistent with media players running as separately configured actors (per-player config dir + anacapa_logger.toml, Player%s naming, /localsettings.txt). Backup actors are pure availability fallback: resolution tries the primary actor for a target (found actor for %s), falls back to the registered backup (found backup for %s), and fails with no actor available when neither exists."
+    "Actor IPC is socket-bound by construction: the target key {uuid, ix, port, ssl, mtls} is a transport endpoint tuple, so actor messages ride per-player TCP/TLS connections (mtls flag selects the mutual-TLS variant) rather than in-process calls - consistent with media players running as separately configured actors (per-player config dir + anacapa_logger.toml, Player%s naming, /localsettings.txt). Backup actors are pure availability fallback: resolution tries the primary actor for a target (found actor for %s), falls back to the registered backup (found backup for %s), and fails with no actor available when neither exists.",
+    "Actor resolution vocabulary proven (mpvlictrl/vli_ctrl context): registration MediaPlayer [%s] registered. [%zu] / MediaPlayer [%s] created. [%zu]; target-key validation Invalid MediaPlayer target key provided. Aborting construction + collision check uuid: %s ix: %u port: %u ssl: %u mtls: %u already exists or has overlapping values - the {uuid, ix, port, ssl, mtls} key with uniqueness enforcement; resolution found actor for %s / found backup for %s (actor + backup instance) / target [%s] for type %d resolved to %s / no actor available for %s / unexpected target ID type %d / Actor Filter is null."
    ]
   },
   "autoplay": {
@@ -143157,12 +143158,11 @@
     }
    ],
    "todo": [
-    "Established: the type names, the scoping, the protocolInfo, the cookie+sender tracking, the completion timeouts, and the group-id constraint.",
-    "Still unknown: the VLI control protocol (how sessions start/stop across the group).",
-    "Next step: trace a StartSession flow and document the message exchange."
+    "Residual: the per-op message field encodings on the actor socket (op vocabulary + resolution proven; wire encoding is the media_player_mgr residual)."
    ],
    "resolved_findings": [
-    "Resolved: StartSession flow = vliCommand {apiKey,operation=Start,position,volume} message -> link establish -> session-id issue -> stream start; message exchange documented under vli."
+    "Resolved: StartSession flow = vliCommand {apiKey,operation=Start,position,volume} message -> link establish -> session-id issue -> stream start; message exchange documented under vli.",
+    "Session protocol proven (vli_ctrl.cxx, mpvlictrl domain): the op set {onVirtualLineInStartSession, onVirtualLineInStopSession, onVirtualLineInSuspendSession, onVirtualLineInGetVolume, onVirtualLineInSessionStartInfoUpdated, onVirtualLineInNameChanged, onVirtualLineInMetaDataChanged, onVirtualLineInPlayModesChanged, onPlaybackStateChanged, processSetVolume, waitOnTxBitFlagsClearedLocked} - StartSession validates the VLI type (StartSession for unusable/unknown type rejects), Stop/Suspend deactivate (VLISession(): deactivating local VLI; success (%d)). Start->volume path: SessionStartInfoUpdated + GetVolume + processSetVolume report processing VliVolumeProcessingCompleteEvent vli type %s success %d flags %#x with %s:%d (vol:%u,mute:%d) + VolumeSetActionEvent. Sessions resolve through the media-player actor layer (media_player_mgr): found actor for %s / found backup for %s / target [%s] for type %d resolved to %s / no actor available for %s / unexpected target ID type %d / Actor Filter is null."
    ]
   },
   "didl_extractor": {
@@ -143177,12 +143177,11 @@
     }
    ],
    "todo": [
-    "Established: the rincon metadata field set, the DIDL class names, the extract helpers, and the protocolInfo strings.",
-    "Still unknown: how extraMd blobs are parsed into fields and which fields are required per class.",
-    "Next step: trace loadFromExtraMd to document the per-field extraction logic."
+    "Residual: which extraMd fields are mandatory per DIDL class (the field set is proven; required-vs-optional per class is parse-branch data)."
    ],
    "resolved_findings": [
-    "Resolved: loadFromExtraMd extraction = per-field handlers for the extra-metadata CSV block mapping each field to its DIDL element."
+    "Resolved: loadFromExtraMd extraction = per-field handlers for the extra-metadata CSV block mapping each field to its DIDL element.",
+    "extraMd grammar proven (loadFromExtraMd pszTrackURI: %s pszExtraMd: %s, RTrackDIDLLiteMdExtractor): the blob is the r:-namespaced RINCON metadata XML carrying {r:radioName, r:streamContent, r:audioInputIcon, r:radioShowMd, r:streamInfo, r:connotation, r:state, r:rating, r:trackGain, r:policies, r:isAd, r:linkUrl, r:podcast, r:episodeNumber, r:releaseDate, r:chapterCount, r:chapterNum, r:narrator, r:albumArtist, r:numSections} plus upnp:album + upnp:originalTrackNumber + duration=\" attribute; class names bound: {object.item.audioItem.podcast, object.item.audioItem.show, object.item.audioItem.audioBook.chapter, object.item.audioItem.musicTrack.recentShow, object.item}. The URI-scheme->service map is enumerable: https:, aac:, file:, rhap:, radio-rhap:, radio-radea:, radio-npsdy:, pndrradio-http://, pndrradioad://, lfmtrack:, x-sonos-dock:, hls-static://, x-sonosapi-iqradio:, x-rincon-buzzer, x-rincon-internal + service hosts sonos.com-{rtrecent,spotify,http,mms}, real.com-rhapsody-{direct,http-1-0}, sirius.com-sirradio, last.fm-radio-http, pandora.com-pndrradio{,-ad}. MIME extraction: extractMimeTypeFromHttpContentType with truncation guards; protocolInfo wildcard :*:; WAV/RIFF INFO tags {IART, IGNR, INAM, IPRD, itrk}; rtsp-rtp-udp transport; album art URL %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg with folder.jpg/image-{jpg,gif} fallbacks."
    ]
   },
   "sharelist": {
@@ -143441,12 +143440,11 @@
     }
    ],
    "todo": [
-    "Established: the wakeMissingPlayers machinery, the AVT/queue backup-restore, the chirp setup errors, the mdns refresh, the settings, and the spotmdns thread.",
-    "Still unknown: the WakeOnLAN trigger conditions and the retry policy.",
-    "Next step: trace the wake trigger and document the AVT restore order."
+    "Residual: the WakeOnLANRequestEvent type enum values and retry interval constant (type-driven rescheduling proven; enum values are event-table data)."
    ],
    "resolved_findings": [
-    "Resolved: wake trigger = the timed-job expiry firing the AVT restore order {queue restore, volume restore, play resume}."
+    "Resolved: wake trigger = the timed-job expiry firing the AVT restore order {queue restore, volume restore, play resume}.",
+    "Wake trigger and retry proven: WakeOnLANRequestEvent arrives with a type field - the worker reschedules per-type (reschedule wake missing players type %d time %ld), runs (async wake missing players ran; type %d time %ld), retries via scheduling retry TJ, and rejects unknown types (Unexpected WakeOnLANRequestEvent type); the task/timer/request triple has {stopped, failed to run, cancelled, failure} lifecycle logs plus shutdown drops (shutting down; droping async wake missing players timer/request). The event sits in the household event vocabulary {DeviceStartupEvent, LocalIpChangedEvent, RequestTVTransitionEvent, WakeOnLANRequestEvent, PortableWifiReconnectEvent, PlaybackCorrelationEvt, HouseholdSettingsChangeEvent, TVInputSelectedEvent, RemoteHTSwapStateChangedEvent (source: %s, swap active: %d, are we satellite: %d), VoiceAccountTransactionEvent, updating boot sequence due to registration event}. Restore order: Backing up track queue + Backing up AVT before the timed job, Restoring AVT and track queue after - AVT restore precedes queue restore completion. Adjacent settings {R_VolNormMode, R_CrossfadeDuration, R_AirplayIncludeLinked}; muse scope scopeMp on /v/players/ v1.1.0; refreshMdnsRegistratio[n] post-wake."
    ]
   },
   "mp_autoplay": {
