@@ -895,7 +895,7 @@
   "usr/sbin/secure_console.sh": {
    "category": "scripts",
    "friendly": "The secure console gate: the script that decides whether the device will expose a debug console, checking the unlock state before offering a shell.",
-   "technical": "Gates console access on the device-unlock flag (/tmp/device_unlocked_flag family); part of the engineering surfaces documented under dev_unlock.",
+   "technical": "Gates console access on the /proc/sonos-lock kernel lock bit: it waits until console_enable reads 1 (file absent means enabled, for pre-secure-boot players), then starts getty on the tty; NOT gated on /tmp/device_unlocked_flag - that flag gates dropbear SSH and the locked htdocs tree. See dev_unlock.",
    "status": "shipped",
    "size": 236,
    "sha256": "fa1827c45a7048097e57a0660942022f10ef4420b0e53d50fb35e68078f4f30b",
@@ -904,7 +904,7 @@
   "usr/sbin/secure_console_login.sh": {
    "category": "scripts",
    "friendly": "The login half of the secure console: how a permitted console session is actually opened once the gate allows it.",
-   "technical": "Companion to secure_console.sh; performs the session setup after the gate check.",
+   "technical": "Companion to secure_console.sh; performs the session setup after the gate check - execs login -f root so a permitted console session opens straight into a root shell.",
    "status": "shipped",
    "size": 1048,
    "sha256": "69e775c702e96d1688c33ab498e286f88bbf682d503eef70a1223ed8b1ce59de",

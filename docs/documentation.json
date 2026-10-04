@@ -141338,12 +141338,11 @@
    },
    "sdata_category_registry": ".sdata registry @0x11095d88: three fn-table ptrs (0x10fce6d8/0x10fce65c/0x10fce638 - callback blocks in the eSDK code region) followed by {name_ptr, u32=4} pairs naming channels {api, zc, download, audio, esdk}. 'esdk' is referenced by 10 fns in the eSDK region (0x10cf8-0x10d4c); 'api'->f_10331f34; 'download'->f_105a7e78/f_1068baa4; 'audio'->f_107d5b0c. Consistent with the libsonoseventreporter init_event_ctx/report_event channel registry; priority/weight word constant 4.",
    "todo": [
-    "Established: the T1.0 field format, the product-data-telemetry header, the zone reports, the submitDiagnostics pipeline, the positioning route, the opt-out flag, and the RCB cache.",
-    "Still unknown: the submission endpoints and the event schema versions.",
-    "Next step: document the upload request format."
+    "Residual: the concrete upload endpoint URL - resolved at runtime from {metricsConfigURL, metricsConfigV2URL, metricsService} settings/featureConfig keys; no literal in the image. Healthcheck period is job-config data."
    ],
    "resolved_findings": [
-    "Resolved: upload request = Telemetry 1.0 Event field format over the shared report channel tagged X-Sonos-MessageType: product-data-telemetry; submission rides submitDiagnostics/submitQueuedDiagnostic with manifest bundling; opt-out flag optOutExempt exempts mandatory diagnostics; positioning telemetry level is route-controlled; RCB cache lives under sys."
+    "Resolved: upload request = Telemetry 1.0 Event field format over the shared report channel tagged X-Sonos-MessageType: product-data-telemetry; submission rides submitDiagnostics/submitQueuedDiagnostic with manifest bundling; opt-out flag optOutExempt exempts mandatory diagnostics; positioning telemetry level is route-controlled; RCB cache lives under sys.",
+    "Submission layer proven via shipped /opt/conf/zpMetricsConfigV2.xml: MetricsConfig version 1.0 rev 13, positionally-parsed ~104-category table {name, uploader-ref, level} - only nowplaying.playReport (optOutExempt uploader), zpAM.maintenance, quarantining ship ON. Envelope X-Sonos-MessageType: product-data-telemetry with Telemetry 1.0 Event field %s = %s fields and %[^/]/%[^/] event names. Cadence is event-driven per category: submitQueuedDiagnostic/SubmitDiagnostics with deferred triggers, bounded queues (submission queue full, result queue full), preserved buffers (/tmp/event_preserve length-prefixed + SHA256-verified, restoreEvents on boot), retry loop attempt %u, retrying in %u seconds; Healthcheck family is server-driven via /ws/diag/diag_instructions.xml?hhid=."
    ]
   },
   "trueplay_tuning": {
@@ -141504,12 +141503,11 @@
    "channel_config": "trueplay_channel_config_handler: channel-map assembly 'adding channel type: %zu, dir %zu, samplerate %u', 'num channels Device: %zu, Satellite: %zu', per-channel 'device channel: %i %s'/'satellite channel: %i %s'; direction enum {Direct,Indirect Array,Indirect Single Driver}; 'Populated Channel %s with direction %s'; guards 'unsupported paired multi channel device map channel', 'device setup in mono mode', clamp 'tuning_channel-count > max-channel-count, trueplay will operate with max-channel-count %zu'. trueplay_device_calibration/trueplay_device_properties (tpdpMutex) bounds: 'addGain: channel limit reached','addBiquadCoeffs: channel limit reached','addDelay: channel limit reached','calibration ID was truncated','Device UDN is larger than Trueplay Device Properties can store'",
    "apply_validation": "tuning-apply validation ladder (trueplay_tuning_handler + trueplay_manager): per-mode results '{Satellite ,}Spectral Tuning successfully applied','{Satellite ,}Spatial Tuning successfully applied','Spectral Tuning successfully applied'; per-mode failures '{Spatial|Spectral|Satellite Spatial|Satellite Spectral} Tuning: {device has %s|request has %s|request exceeds max channels|Not enough channels in sonar subsystem for channels on system|all device channels not tuned}'; sonar spatial guards 'Sonar Spatial does not contain enough channels to support post crossover {gain,delay}'; per-channel 'failed/successfully set coeffs for channel type %zu', 'failed/successfully set gain for channel type %zu', 'satellite: failed/successfully set gain for channel type %s to %f', 'satellite: failed/successfully set delay for channel type %zu', 'setCoeffs: request exceeds max biquad sections'; trueplay_utils calibration-id parse 'error while parsing trueplay version from calibration ID %s' + 'Trueplay Version %d.%d.%d.%d' + fmt '%d.%d.%d.%d_%4d-%2d-%2d_%2d-%2d-%2d' + 'Calibration ID is not valid %s with length %zu'; trueplay_manager legacy path: 'sonarEQ.xml' legacy tuning file, {'found legacy tuning','found existing tunings, ignoring legacy tuning','did not find legacy tuning file','failed to parse legacy tuning','loading calibrations after legacy conversion','successfully loaded calibrations','no channels in spatial/spectral tuning','number of device channels exceed TRUEPLAY_MAX_DEVICE_CHMAP_SIZE','unknown channel type','happ/settings/'}; trueplay_calibration_manager write path: 'trueplay_spatial_tuning.bin','Adding channel %s with delay %u','failed to write to %s: wrote %zu bytes of %zu'",
    "todo": [
-    "Established: the muse routes, the sonarcal OGG URIs, the versioned SDK with fallback, the etag-synced assets, the RoomCalDelay params, satellite propagation, and SelfTrueplay.",
-    "Still unknown: the measurement mic flow, the tuning FSM states, and RoomCal* units - the record's own unresolved note.",
-    "Next step: trace the mic capture path during a tuning session."
+    "Residual: tuning FSM state names (emitted only as %d transitions) and RoomCal* parameter units (unlabeled branch data) - both need per-instruction decode, not literals."
    ],
    "resolved_findings": [
-    "Resolved: mic capture path during tuning = the sonar-cal session plays x-rincon-sonarcal: test-tone URIs (leader/testtone/complete_ht) through the streamer while the mic feed is captured through the AS-tap (as-dspin-* stream taps) into the Trueplay SDK; discovery/presence/config/status ride the muse routes incl. setSelfTruePlay/resetDetectedSpeaker; per-driver RoomCalDelay params hold the applied delays."
+    "Resolved: mic capture path during tuning = the sonar-cal session plays x-rincon-sonarcal: test-tone URIs (leader/testtone/complete_ht) through the streamer while the mic feed is captured through the AS-tap (as-dspin-* stream taps) into the Trueplay SDK; discovery/presence/config/status ride the muse routes incl. setSelfTruePlay/resetDetectedSpeaker; per-driver RoomCalDelay params hold the applied delays.",
+    "Param set proven: TrueplayService v1alpha2 verbs {SetupDevice, ApplySpatialTuning, ApplySpectralTuning, ApplySatelliteTuning, ClearAllTunings} land as per-channel {gain (addGain), biquad coeffs (addBiquadCoeffs, setCoeffs: request exceeds max biquad sections), delay (addDelay, cannot apply negative delay)} persisted to trueplay_spatial_tuning.bin + the spectral calibration file (Adding channel %s with delay %u) + satellite save + legacy sonarEQ.xml. Reads {GetSpatialTuning, GetSpectralTuning, GetDeviceConfig} with the load/validate ladder {calibration ID %d.%d.%d.%d_%4d-%2d-%2d_%2d-%2d-%2d, Orientation, ChannelID, per-UDN binding, Found matching UDN in calibration}. All eight verbs are compile-time stubbed Unimplemented Method %s on model 9 (no mic). DSP consumers f_10dd83f0/86f0/8ac0/8c38 bind 4-field tuning protos; tp_enums carries {SPEAKER_MASK, CHANNEL_DIRECTION, CHANNEL_TYPE, TUNING_MODE, MEASUREMENT_MODE{SPATIAL,SPECTRAL}, DEVICE_ORIENTATION, ARRAY_SUB_SYSTEM}."
    ]
   },
   "update_machinery": {
@@ -141583,12 +141581,11 @@
    "sibling_binaries": "/bin/upgrade (the low-level upgrader): /dev/chk checksum-device verification; runs \"/bin/sh %s postinst\" on the package; preserves across upgrade: /jffs/netsettings.txt, /jffs/persist/deactivated_state(.json), settings/musicservices.xml, settings/savedqueues.rsq, /jffs/shadow/{abstract,strings,trackinfo} (play-history store!), /jffs/sys/run/rcb/*.rcb + upd_cert_bundle.rcb (cert-bundle update delivery path), watchdog logs, app/install, debug/devmode.bin; writes /var/run/upgrade_report.txt; /var/upgradescript hook; download via /usr/bin/wget; -e option multi-use; ends /sbin/reboot. /bin/upgrade_mgr (orchestrator): emits JSON status {Serial,CurrentVersion,HardwareVersion,State,TargetVersion,UpdateID,ServerIP,Result,ExtendedError,ErrorMsg,DownloadDuration,Type,Duration,NumUpdateZPs,SystemResult,SystemVersion,Timestamp,Version}; progress CBs \"<url> COMPLETE?phase=%s\", \"ERROR?phase=%s;error-code=%d\", \"STATUS?phase=%s;percent-complete=%d\"; update-check URL query ?Version=%s.%s-%s&Auto=%s&Client=%s; pid /tmp/upgrade_mgr.pid; guards bad hw version/bad version. /sbin/frcheck: reads /dev/audioctl + hal_inputs_get_buttons_state (button-combo check) AND /jffs/app/run/factoryReset.txt sentinel (factory reset is triggered by EITHER held-buttons-at-boot OR the sentinel file. /usr/sbin/keyval: KV reader \"keyval [-l<len>] [-d<chr>] [-s] <key> [file]\") the ^KEY convention used by every script. /bin/mdputil: manufacturing-data util: manifest show/clear, GETFSN serial fetch per deviceID, -B init, -fwe write (used by upgrade umountnone region fix).",
    "upd_sections": ".upd container section map (from decrypted receipt 86.10-80260-1-9): section_type 3=preinstall.sh (postinst hooks), 6=kernel uImage, 4=rootfs.squashfs, 13=device-payload NCD image: all encrypted to recipient 12e82a182af27801eba0ff3c94e8e649ed962dbb. Kernel = Linux-2.6.35-yocto-standard (uImage magic 27051956, gzip vmlinux).",
    "todo": [
-    "Established: the manifest-driven pipeline, the update_manifest row schema, the min auto-update version, the policy gates, and the timezone-table lifecycle.",
-    "Still unknown: the manifest document schema beyond log strings, the image format/verification, and the upgrade_mgr hand-off - the record's own unresolved note.",
-    "Next step: recover the manifest schema from the downloader/parser."
+    "Residual: image-verification internals (/dev/chk checksum verification and .upd section writes inside /bin/upgrade) and the UPM manifest document grammar live in the sibling /bin/upgrade + /bin/upgrade_mgr binaries - outside the anacapad static-analysis scope."
    ],
    "resolved_findings": [
-    "Resolved: manifest schema = update_manifest {base update URL, per-device rows {udn,model,submodel,swgen,ver,URI,updateID}, min auto-update version}; flow manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update gated by R_AutoUpdatePolicy+R_CheckUpdateInterval+R_AutoUpdateWindowSeconds keys (window start/end seconds-since-midnight at obj+0x6c/+0x70); the anacapad side hands off to the external upgrade_mgr daemon."
+    "Resolved: manifest schema = update_manifest {base update URL, per-device rows {udn,model,submodel,swgen,ver,URI,updateID}, min auto-update version}; flow manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update gated by R_AutoUpdatePolicy+R_CheckUpdateInterval+R_AutoUpdateWindowSeconds keys (window start/end seconds-since-midnight at obj+0x6c/+0x70); the anacapad side hands off to the external upgrade_mgr daemon.",
+    "Hand-off chain proven end to end via extracted files: upgrade_mgr states {ST_UNDEFINED, ST_INIT, ST_REFRESH, ST_SCHEDULED, ST_SCHEDULED_POST_WOW, ST_SESSION_MONITOR, ST_SESSION_REPORT, ST_SESSION_ACTIVE} gated by {R_AutoUpdatePolicy, R_CheckUpdateInterval, R_AutoUpdateWindowStart} with blockers {Upcoming alarm, Active device(s)} and retry FSM Retrying upgrade (%d/%d)/Giving up after max upgrade attempts; /etc/runanacapa runs /bin/upgrade instead of anacapad when /var/run/upgradeinfo exists (log /tmp/upgrade.log, remove sentinel, propagate rc); .upd preinstall.sh is two-phase (warn if /jffs >=98%, abort if anacapad running, else kill udhcpc/inetd/netstartd + touch /var/run/{stopnetstartd,upgradeflag} + reboot), postinst does upgrade.log juggling, umountnone does REGION 5->2 fixup. Downgrade policy keys {downgradeMinVersion, downgradeRestrictions, allowDowngradeToPrevSWGen, denyDowngradeToPrevSwGenList} + manual update required: below manifest min auto-update version."
    ]
   },
   "wac_mode": {
@@ -141655,13 +141652,9 @@
    ],
    "netstart_ipc": "netstartd events consumed: 'netstartd hello', 'Setup start/stop', 'Netstart is idle/alive/open', 'In setup mode', ' Netstart SSID set/clear', 'Netstart triggered upgrade (0x%x)', 'Got connection type update from netstartd: [%s]', recovery AP connection: %02X*6: a recovery-AP fallback exists",
    "conn_types": "connection-type vocabulary reported by netstartd: 'SonosNet (Ethernet)', 'SonosNet (wireless)', 'Home Theater 2.0', 'Home Theater (Ethernet)', 'Home Theater', 'WiFi', 'Ethernet (WiFi Disabled)', 'Ethernet'",
-   "todo": [
-    "Established: the WAC state file, the transitions, the netstartd IPC driver, the LED mode, and the decoded IPC message ids (35/36/37/39/41/42/46/47).",
-    "Still unknown: the remaining IPC message ids and the WAC setup UX flow.",
-    "Next step: enumerate the remaining ipc message ids from the dispatcher."
-   ],
    "resolved_findings": [
-    "Resolved: full dispatcher id census from f_10691034 - sequential r9-compare gates at ids {60:MuseHHID set, 53:recovery-AP connect, 9:network bounce, 3:netstart hello, 8:wifi-state event, 35:wifi conn/disc, 12:setup start/stop, 88:In-setup-mode query, 108:WAC timeout} plus previously decoded {36,37,39,41,42,46,47}. UX flow: button-triggered WAC enter writes /var/run/wac_mode -> netstartd drives SSID set + recovery AP -> device joins In-setup-mode until WAC timeout or completion."
+    "Resolved: full dispatcher id census from f_10691034 - sequential r9-compare gates at ids {60:MuseHHID set, 53:recovery-AP connect, 9:network bounce, 3:netstart hello, 8:wifi-state event, 35:wifi conn/disc, 12:setup start/stop, 88:In-setup-mode query, 108:WAC timeout} plus previously decoded {36,37,39,41,42,46,47}. UX flow: button-triggered WAC enter writes /var/run/wac_mode -> netstartd drives SSID set + recovery AP -> device joins In-setup-mode until WAC timeout or completion.",
+    "Flow proven end to end: button-triggered entry (hw_events DAT_IN_BUTTONLESS_SETUP_MODE/DAT_IN_SETUP_DISCOVERY states, VOL_DN|VOL_UP combo) writes /var/run/wac_mode (parsed int, Unknown WAC mode %d); the netstartd IPC dispatcher f_10691034 carries the message census {3:netstart hello, 8:wifi-state, 9:network bounce, 12:setup start/stop, 35:wifi conn/disc, 36/37/39/41/42/46/47, 53:recovery-AP connect, 60:MuseHHID set, 88:In-setup-mode query, 108:WAC timeout} over /tmp/netstartd.ipc key-value frames {eventType, hardware:wifi}. Exit: WAC timeout (msg 108 -> R_LED_WAC_TIMEOUT), setup stop (msg 12), ForceShutdownOnNewSSID, or completion; recovery-AP connection fallback exists. Correction: the WAC UX state machine runs in the sibling /wifi/wacd ELF - anacapad consumes only the IPC contract; netstartd is the conduit, not the engine."
    ]
   },
   "device_unlock": {
@@ -141712,13 +141705,9 @@
     }
    ],
    "ssh_console_gates": "run_sshd.sh: dropbear (-R -F, ecdsa host key at /jffs/persist/ssh/dropbear_ecdsa_host_key, client keys /jffs/sys/debug/ssh/authorized_keys (the /ssh/authorized_keys form target) is init-respawned BUT blocks on 'waitwhiletrue [ ! -f /tmp/device_unlocked_flag ]') SSH only serves after device unlock. secure_console_login.sh similarly gates the ttyS0 getty on /proc/sonos-lock/console_enable == '1' (secure-boot console lock), then secure_console.sh does 'login -f root' auto-login: serial console is root with no password once the proc lock is lifted; absent on pre-secure-boot players (console disabled by other methods).",
-   "todo": [
-    "Established: the unlock endpoints, the flag file, rate limiting, DevUnlock reboot, and the R_deviceIsUnlocked/R_abortIfUnlocked self-test guards.",
-    "Still unknown: the fuse/challenge computation (what unlock proves) and how production units differ.",
-    "Next step: trace the unlock validation to the fuse-value check."
-   ],
    "resolved_findings": [
-    "Resolved: fuse check = the /devunlock page renders Fuse Value + Challenge read from the manufacturing-data partition via hal flash (failed to retrieve pub key/hal flash init failed/get_mdp failed/mdp_write failed error chain); the operator submits the response Code via the confirm form; validation computes the expected response through imported libsonos crypto (bounded); success writes /tmp/device_unlocked_flag + htdocs_locked unlock and reboots; rate limiting returns the Too Many Unlocks page."
+    "Resolved: fuse check = the /devunlock page renders Fuse Value + Challenge read from the manufacturing-data partition via hal flash (failed to retrieve pub key/hal flash init failed/get_mdp failed/mdp_write failed error chain); the operator submits the response Code via the confirm form; validation computes the expected response through imported libsonos crypto (bounded); success writes /tmp/device_unlocked_flag + htdocs_locked unlock and reboots; rate limiting returns the Too Many Unlocks page.",
+    "Mint conditions proven from /etc/Configure lines 106-110: if /etc/unlocked_build_flag or /jffs/system/Configure.dev exists the boot script symlinks /tmp/htdocs_locked and touches /tmp/device_unlocked_flag; unlocked_build_flag is absent in this image so production units unlock only via the /devunlock challenge-response (Fuse Value + Challenge from the manufacturing partition, response through imported libsonos crypto, Too Many Unlocks server cap). Flag consumers proven: dropbear via run_sshd.sh waitwhiletrue on the flag; the locked DSP console (getDSP?audioSystemsTuning/putDSP posting {id,debug,mode,parameters} XML with custom biquad {b0,b1,b2,a1,a2}); diagnostic self-test abort via RdeviceIsUnlocked/RabortIfUnlocked. Separate-but-adjacent: ttyS0 root console gates on /proc/sonos-lock/console_enable==1 then login -f root (secure_console.sh/secure_console_login.sh) - a kernel lock bit, NOT the unlock flag; authorized_keys install gates on R_ALLOW_SSH_PUBKEY_INSTALL."
    ]
   },
   "testenv_environment": {
@@ -141753,13 +141742,9 @@
      "notes": "'Setting cloud env to %s' log"
     }
    ],
-   "todo": [
-    "Established: the POST /testenv env switch (PROD/PERF/STAGE/TEST/INT), the displayed API bases, the household replication, and the log line.",
-    "Still unknown: the per-env endpoint table and whether prod builds honor this.",
-    "Next step: enumerate the resolved API bases per env."
-   ],
    "resolved_findings": [
-    "Resolved: only the PROD API bases are baked in (the ws.sonos.com family: cloud/services/oauth); no per-env host literals exist for PERF/STAGE/TEST/INT - the env switch substitutes the env name into the resolved bases or pulls them from the environment doc replicated household-wide, with OnlineUpdateBaseURL as the explicit override. Bounded: per-env bases are runtime-resolved, not static."
+    "Resolved: only the PROD API bases are baked in (the ws.sonos.com family: cloud/services/oauth); no per-env host literals exist for PERF/STAGE/TEST/INT - the env switch substitutes the env name into the resolved bases or pulls them from the environment doc replicated household-wide, with OnlineUpdateBaseURL as the explicit override. Bounded: per-env bases are runtime-resolved, not static.",
+    "Detection mechanism proven: env is a runtime replicated-settings key, not a build gate - urn:sonos:environment (read at f_106b2c30+, prod fallback via f_10556e10), O_SONOS_CLOUD_API_TEST_ENV selecting across the ~67-key O_* URL settings family; the cert local store embeds env in its path (<JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt}). The POST /testenv route writes the env through settings replication (may take up to 120 seconds to replicate; Setting cloud env to %s) with OnlineUpdateBaseURL as explicit per-base override. Only PROD bases are baked into this image - per-env bases are env-doc data, so prod builds do honor the switch."
    ]
   },
   "chsrc_chsnk": {
@@ -141846,12 +141831,11 @@
     "rx_histogram": "'Histogram of received packet info' bucket labels: 'Number of times there was a DataBlock to put data into','Number of times there was no DataBlock available','Number of times an expired packet was received','Number of times a duplicate packet ID was received','Number of times a packet too far into the future was received','Number of times a NACK request was transmitted','Number of times a packet was ignored on startup','Oldest buffered packet ID number','Last read packet ID number','Last good consecutive packet ID number','Last received packet ID number' (key lastReceivedPkt); guards 'histogram callback not defined','histogram labels not defined','index is out of bounds','number of labels not equal to number of buckets','invalid file size'."
    },
    "todo": [
-    "Established: the core decode - chsrc.cxx = channel source (group playback engine), chsnk.cxx = channel sink (receiver decode path) - with address ranges.",
-    "Still unknown: per-function documentation inside both regions; only the module roles and ranges are nailed.",
-    "Next step: walk the chsrc.cxx region top-down documenting each major routine and its role in frame production."
+    "Residual: the on-wire noderx/sdbt packet header byte layout (field order/sizes of {pid, class, offset, timestamp}) and complete per-type payload grammars - the {id,class,offset} frame-identity triple and dispatch offsets {+0x2a,+0x38,+0x39,+0x40} are proven; full layouts are parse-code branch data."
    ],
    "resolved_findings": [
-    "Resolved: chsrc.cxx major routines are documented in the sub-blocks - frame production runs {chsrc state machine (TRAN_* states, ChsrcEvent), the itbt frame pump, op_enum dispatcher, chsnk_control_frame_dispatch}; chsnk side: noderx I/O + SNTP-gated sync + seamless handoff worker f_10308e48; nodetx carries the transport; each block names its routine set and role."
+    "Resolved: chsrc.cxx major routines are documented in the sub-blocks - frame production runs {chsrc state machine (TRAN_* states, ChsrcEvent), the itbt frame pump, op_enum dispatcher, chsnk_control_frame_dispatch}; chsnk side: noderx I/O + SNTP-gated sync + seamless handoff worker f_10308e48; nodetx carries the transport; each block names its routine set and role.",
+    "Bus message format decoded at dispatch level: the CHSNK request-frame dispatcher (f_1030c8xx-0x1030cd00, chsnk domain) cmpwi-chains frame types {0->payload {u16@+0x2a, u8@+0x39}, 1/2/8->generic control frame, 5->audio type changed, 0xc->{u16@+0x2a,ptr@+0x40}, 0x80000040->f_1030c338; r3==0->stop detected; flag byte @+0x38->underflow detected + LSE recovery; request frame pbe %X playback-boundary event; logical track boundary at %u; default->group coordinator uuid: %s, network I/O error 0x%x}. nodetx is NACK-based retransmit (nack from %s count=%u, min=%u, max=%u packet-id ranges, requestResync(%u), protocol-version reject) with rx bookkeeping {pid, ob, lr, lcg, lrx, slrx} + resendToLateJoiner. HT satellite control frame carries {ctrl 0x%x, unscV %d, curV %d, extV %d, extVM %d, B %d, T %d, led %d, SPL %d, SC %d} beside the pkt: %zu channels, %zu samples, payload:%zu audio frame."
    ]
   },
   "registration_machine": {
@@ -141864,24 +141848,22 @@
    "signing": "Registration signing key set/cleared via IPC payload (\"Invalid registration signing key in IPC payload\")",
    "events": "NewCertRegistrationEvent inprocess-event {SonosID}; newRegisteredCertSonosIDLocked; RegisteredCertSonosID/RegisteredCustomerID keys; Household customer ID conflict/changed detection",
    "todo": [
-    "Established: composite record - cloud_api, events, fsm, name, signing sub-blocks.",
-    "Still unknown: the consolidated registration FSM and the signing flow end to end.",
-    "Next step: document the FSM table and the signing-key usage."
+    "Residual: the numeric regState value-to-name map - states emit only as %d->%d and SecureRegState is ui4; no state-name literals exist in this image (source-enum data)."
    ],
    "resolved_findings": [
-    "Resolved: FSM = {regStatus + regState %d->%d transitions} driven by events {registration during suspend, time expired, success, error, retrying registration at time %ld}; cloud API = refresh + complete&token endpoints; signing = the registration signing key arrives via IPC payload (Invalid registration signing key in IPC payload reject) feeding secureRegTransfer; NewCertRegistrationEvent carries {SonosID}; RegisteredCertSonosID/RegisteredCustomerID keys persist the result."
+    "Resolved: FSM = {regStatus + regState %d->%d transitions} driven by events {registration during suspend, time expired, success, error, retrying registration at time %ld}; cloud API = refresh + complete&token endpoints; signing = the registration signing key arrives via IPC payload (Invalid registration signing key in IPC payload reject) feeding secureRegTransfer; NewCertRegistrationEvent carries {SonosID}; RegisteredCertSonosID/RegisteredCustomerID keys persist the result.",
+    "Consolidated FSM proven: cloud paths /product/v2/households/%s/players?action={refresh,complete&token} with 401 terminal (device_registration); transitions log regStatus + regState %d->%d on events {registration during suspend, time expired, success, error, retrying registration at time %ld}; secureRegTransfer runs via tjmgr (tjmgrExitSecureRegTransferState scheduled/de-scheduled/run); the signing key arrives via IPC payload (Invalid registration signing key in IPC payload). State surface: SecureRegState evented ui4 + /registration page <RegState>%d</RegState><CustomerID>%s</CustomerID> + muse Registration fields {haveCert, refreshTJ, eventType, refreshed, certType, deviceCert, secureReg} + NewCertRegistrationEvent{SonosID} + RegisteredCertSonosID/RegisteredCustomerID keys. Cloud verbs {initDeviceRegistration, completeDeviceRegistration, refreshDeviceRegistration, getDeviceRegistrations, getUserDeviceRegistrations, deregisterDevice} are outbound lechmere-forwarded registry calls."
    ]
   },
   "chsnk": {
    "crossfade": "sample-level xfade: \"attempting to crossfade with underflowed stream\"/\"recovered crossfade stream underflow\"; int16 crossfade; \"xfade corked stream: replace buffered data via non-xfade overlap\"; \"xfade timestamp too far in past, nst %d.%06d\"; \"xfadeable timestamp\"; \"set xfade lfnf\"; volume-norm ramp insert \"%d @time %d.%06d\"; \"xfade for %zu samples, %f seconds\"; gap tracking \"xfade gap, samples %zd\"",
    "metrics": "gauges {chsnkFillLevel=\"Amount of audio in stream buffer\",largeSyncErrors=\"Playback (see sync) and downstream errors\",\"Maximum sync mismatch with group coordinator\",\"Amount of output committed to driver\"} + {fillCodec,fillTimeMs,chsnkFill,chsnk-full}; window {windowPlayhead,includesBeginningOfQueue,includesEndOfQueue}; stream fmt {\"header magic mismatch\",\"md block loc\",\"md header len mismatch\",\"si pos mismatch\",\"si read failed\",fsAvail}",
    "todo": [
-    "Established: composite record covering crossfade and metrics sub-blocks; the sink pipeline is mostly in chsnk_detail.",
-    "Still unknown: crossfade mechanics on the sink side and the metrics schema.",
-    "Next step: document the crossfade sub-block fields and the metric counters' emission path."
+    "Residual: the sdbt/noderx wire header byte layout and per-type payload grammars (shared boundary with chsrc_chsnk) - {id,class,offset} identity proven, byte layout is branch data."
    ],
    "resolved_findings": [
-    "Resolved: crossfade sub-block = int16 sample-level crossfade with underflow handling (attempting to crossfade with underflowed stream/recovered/xfade corked stream); metrics emission = the gauges {chsnkFillLevel, largeSyncErrors, max sync mismatch} emitted through the status-report channel alongside the frame stats."
+    "Resolved: crossfade sub-block = int16 sample-level crossfade with underflow handling (attempting to crossfade with underflowed stream/recovered/xfade corked stream); metrics emission = the gauges {chsnkFillLevel, largeSyncErrors, max sync mismatch} emitted through the status-report channel alongside the frame stats.",
+    "Sink protocol proven via chsnk_detail: seamless handoff in both directions - remote source {sdbt packet rx, Old/New packet mismatch (no full frame/id:%u class:%u/%u offset:%u/%u/%u), delayed vs quick handoff, wait loop timed out, incompatible protocol version} and local source {itdbt, END_TX abort, no packets from old source?, Completed seamless transition to local src (id=%u)}; SNTP-validity gate (SNTP waiting for valid) precedes scheduled starts; LSE recovery recomputes play time from {tvPlay, tvLocalPlay, tvLocalNow, timeToPlayUSec}; source modes {local chsrc, local AI, local VLI, remote chsrc, stopped}; rx bookkeeping {pid, ob, lr, lcg, lrx} + skip-ahead + 11-bucket rx histogram; decoder control starts/stops %s audio decoder with {m_bCompressed, lNumChannels/lSampleFreq guards, WARNING! This model should not support Hi-Res Music}."
    ]
   },
   "chirp": {
@@ -141987,12 +141969,11 @@
     "validation": "cloud record requirements {service ID,service uuid,account type,metadata,cloud vector clock,serial number,account ID,household vector clock}: \"Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]\"; accounts.xml + vcCloud vector clock; zpam log fmt"
    },
    "todo": [
-    "Established: composite record - accountsmgr, replication_ops, sp_impl, stereo_pair_rc sub-blocks.",
-    "Still unknown: the account record schema and how stereo-pair RC shares accounts.",
-    "Next step: document the account struct and the replication merge rules."
+    "Residual: the verbatim <Account> element grammar inside accounts.xml (attribute order, defaults, auth field encoding) - the field set is proven; the on-disk schema literal is not captured verbatim."
    ],
    "resolved_findings": [
-    "Resolved: account struct = {guest g, serialNum sn, hash h, serviceId, nickname, tombstone, auth{Token,OAuthDevID,OAuthToken,OAuthCode}, linkCode}; matching key is the {g,sn,h} triple; merge is version-gated replication rejecting {version,schema} mismatches; tombstones migrate; corruption detectors {emptyUUID,dupUUID,serial} route to corrupted/duplicate removal; preferred = serialNum from accountId."
+    "Resolved: account struct = {guest g, serialNum sn, hash h, serviceId, nickname, tombstone, auth{Token,OAuthDevID,OAuthToken,OAuthCode}, linkCode}; matching key is the {g,sn,h} triple; merge is version-gated replication rejecting {version,schema} mismatches; tombstones migrate; corruption detectors {emptyUUID,dupUUID,serial} route to corrupted/duplicate removal; preferred = serialNum from accountId.",
+    "Credential store proven: accounts.xml replicated file (replicating accounts file from %s, <AccountsInfo><Replication> status XML) with ops {markAccountsForPushLocked, pullFromReplicationService, pushToReplicationService} and outcome taxonomy {retry, conflicted, updated, added, deleted, invalidCloud, invalidCloudSerial, invalidCloudReason, vcCloud}. Account record fields {serviceId, serialNum sn, hash h, guest g, nickname, tombstone, auth{Token, OAuthDevID, OAuthToken, OAuthCode}, linkCode, UDN, UserIDHash} keyed on {g,sn,h} (Account matched g=%d,sn=%u,h=%s); cloud records must carry {service ID, service uuid, account type, metadata, cloud vector clock, serial number, account ID, household vector clock} else Discarding invalid cloud record; guest upgrade not allowed via reauth; tombstones migrate (Migrated tombstoned %s replication account); corruption detectors {emptyUUID, dupUUID, serial}. Stereo-pair RC shares accounts implicitly - stereo_pair_rc propagates SetRoomCalibrationStatus + EQ/volume to {SUB, second SUB, SURROUND} over UPnP."
    ]
   },
   "htaudio": {
@@ -142024,15 +142005,11 @@
    "surround": "per-channel \"%s delay: %uus, gain: %f\"; surrounds/sub/group member down mix %s; \"changing surround mode. old %d new %d\" + \"changing tv surround lvl\" + \"changing music surround lvl\" + \"changing height channel lvl\" + \"sub changing %zu to %zu\"; \"Set %s signal rate: %zu\"; SatConfigEvent; \"TV signal %s\"; htcZonePlayer; Orientation %s; TOSLinkConnected; IRRepeaterState; TVSignalDetectedEvent",
    "config_schema": "<HTConfig><General>{Version,SurroundState,SubState,GMDownMixState,DialogEnhancementLevel,AISEDynamicLatency,AISpeechEnhance,MusicSurroundLevel,TVSurroundLevel,HeightChannelLevel,AutoPlay,AutoPlaySilenceThresh(%us),AutoStop,AutoStopSilenceThresh(%us),NightMode,SurroundMode,Tweaks(0x%08X),PrimaryEthernet,WirelessEnabled,StartupLatency(%uus),DialogDelay(%ums),FrontSatDelay(%uus),TVGroupMemberDelay(%uus),SatelliteVersion,SatelliteTotal,SatelliteSubs,SatelliteTxMixerRate(%2.1fms)}</General><Satellites><Satellite>{Channel,Delay(%uus),Gain,IP,Eth,WiEna}</Satellite></Satellites></HTConfig>",
    "latency": "delays {\"HT audio base latency %uus\",\"Invalid dialog delay value %u > %u\",\"Dialog delay %ums\",\"Front sat delay %uus\",\"HT audio group latency %uus\",\"Invalid surround delay %d for %s\",\"%s surround delay %u gain %f\"}; origin-time formula \"New origin time: %u.%u, read time: %u.%u, delay: %uus (startup: %u + lipsync: %u + frontSat: %u), tvp delay: %lluus\"; \"Satellite origin time %d.%d\"; \"Group member origin time: %i.%i was extended by %uus\"; tweaks \"HT tweaks updated %08x\"; sat pkt \"%zu channels, %zu samples ea.\"",
-   "name": "; dsp_mixer block params: WeightedSum_%zu mixing node, Alpha_/Alpha_%d gain params, Tap_%d_ch%d FIR taps, NumChans, NumTaps, WarpedFIR; invariant 'nOutputs %zu != nScratch %zu'; bed naming {main_bed,asso_bed,bed_d0} + generic_float32 sample class (Atmos bed/side-render objects)",
-   "summary": "; satellite channel-id strings {satLF,satRF,satSUB,satLS,satRS,satLR,satRR} + downmix channels {downmixL,downmixR}",
-   "todo": [
-    "Established: composite record - satellite channel-id strings, downmix channels, config schema, core, latency, satellite_tx, surround, tv_session_fields, tx_stats sub-blocks.",
-    "Still unknown: no unified htaudio pipeline narrative; each sub-block needs expansion into the audio path.",
-    "Next step: write the pipeline overview then document each sub-block's role in the TX path."
-   ],
+   "name": "htaudio: home-theater audio input/decode/satellite-TX pipeline",
+   "summary": "SPDIF/TOSLink capture (tdm_driver /dev/dsp + spdif_detect format taxonomy) -> IEC-61937 preamble parse (SPDIFParser FSM) -> Dolby/DTS/UDC decode (tv_processor) -> channel processing {htain,htaoutl,htaoutr,htaouts,remote,downmix} with DRC {bNightMode,dialogEnhancementLevel,speechExtraction} + dsp_mixer {WeightedSum,Alpha,Tap FIR} -> {mixgm,mixsat} -> satellite_tx control+audio frames over nodetx to {satLF,satRF,satSUB,satLS,satRS,satLR,satRR}; config <HTConfig>; telemetry zpHTInputSession",
    "resolved_findings": [
-    "Resolved: TX path = chsrc TV session (tv_session_fields) -> satellite_tx formatter -> nodetx transport -> tx_stats counters; sub-blocks {core, satellite_tx, tx_stats, surround, config_schema, latency} each named with their fields; latency tracked per the latency sub-block."
+    "Resolved: TX path = chsrc TV session (tv_session_fields) -> satellite_tx formatter -> nodetx transport -> tx_stats counters; sub-blocks {core, satellite_tx, tx_stats, surround, config_schema, latency} each named with their fields; latency tracked per the latency sub-block.",
+    "TX pipeline proven end to end: SPDIF/TOSLink in via tdm_driver (/dev/dsp, TDM_SETMODE ioctl, mmap) + spdif_detect taxonomy {Dolby Digital, DD+, TrueHD, MAT, DTS Type1-3, NULL/Pause Burst} -> SPDIFParser IEC-61937 preamble FSM {UNKNOWN_BITSTREAM, BITSTREAM_CONFIRMATION, ALIGN_TO_BURST, LOCAL_FADE_OUT, CHANNEL_NUM_CHANGE, INPUT_RATE_CHANGE, BITSTREAM_DISCONTINUITY, DECODER_DSP_ERROR, DIALOG_EXTRACTOR_ERROR} -> tv_processor states {READING, PARSING, DECODING, DECODER_DSP, NOISE_SILENCE_DETECTION, WRITING, WAITING, INPUT_ERROR, RECORDING, MONITOR_IDLING, MONITORING} with ActiveDecoder {None,PCM,Dolby,DTS,UDC} and decoder set {dlbdec, dts, dolbyOAR, dlbdmx, udcdecoder, evo/DDPI} -> tv_asrc + NSD silence FSD + htaudio_chproc streams {htain, htaoutl, htaoutr, htaouts, remote, downmix} with DRC {bNightMode, dialogEnhancementLevel, speechExtraction} + dsp_mixer {WeightedSum, Alpha, Tap FIR} -> {mixgm, mixsat} -> satellite_tx control+audio frames -> nodetx -> satellites {satLF, satRF, satSUB, satLS, satRS, satLR, satRR}; sources {tv-sat-as, tv-gm-dm-as, tv-proc-as, AIHomeTheater, chsnk-sat-as}; config <HTConfig>; telemetry zpHTInputSession. anacapa.conf HT log domains {tv_proc, spdif, lla_in_tv, htaudio, mixsat, htsat_tx, mixgm, htmesh_tx, dlbdec, dts, tv_asrc, tv-proc-as, tv-sat-as, tv-dm-as, tv-hp-as} name every stage."
    ]
   },
   "ir_decoder": {
@@ -142046,13 +142023,9 @@
     }
    ],
    "mechanics": "debounce FSM {\"debouncer: recent becomes true\",\"debouncer: bIsRepeat = true\",\"currently playing/not playing\",\"handling debounced mute/input/volume up/volume Down\",\"will try auto play\",\"handling raw generic repeat/volume up/volume down/volume mute/input code\",\"Handling IR decoder testpoint press action\"}; cmds {vol_up,vol_down,IR Volume Up,IR Volume Down,IR Mute,IR Input}; histogram decode {\"Histogram contains no peaks at all. decode fails\",\"Histogram contains no second peak.\",avgA/avgB,threshold,\"biphase pulse too long %d\",\"too many raw bits!\",\"pulse width coding with threshold of [%f]\",\"pulse distance coding with threshold of [%f]\"}; {\"*****  unrecognized/recognized %d  *****\"}; \"Could not read IR data. (%d, read: %zd)\" + \"IR Event read: %zd, msgcount: %u\"; select events selthrd.RIRDecoder.{reset,data,except,timeout}",
-   "todo": [
-    "Established: the encoding format, the code-list bounds, the config file, the device access errors, the learn FSM, and the shipped NEC codes.",
-    "Still unknown: the learned-code persistence format and the dispatch from code to action.",
-    "Next step: document irconfig.txt's schema and the code-to-action mapping."
-   ],
    "resolved_findings": [
-    "Resolved: irconfig.txt schema = per-remote key sets {vol_up_codes, vol_down_codes, vol_mute_codes} storing raw IR pulse codes; code-to-action mapping = vol codes drive debounced {volume up, volume down, mute, input} handlers (handling debounced %s); unrecognized codes submit to ir.ws.sonos.com/IRCode and time out to UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND."
+    "Resolved: irconfig.txt schema = per-remote key sets {vol_up_codes, vol_down_codes, vol_mute_codes} storing raw IR pulse codes; code-to-action mapping = vol codes drive debounced {volume up, volume down, mute, input} handlers (handling debounced %s); unrecognized codes submit to ir.ws.sonos.com/IRCode and time out to UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND.",
+    "Decode algorithm proven: histogram peak detection (Histogram contains no peaks at all, avgA/avgB, threshold) feeding NEC-family biphase decode (biphase pulse too long %d, too many raw bits) choosing pulse width vs pulse distance coding (threshold of [%f]); selthrd.RIRDecoder.{reset,data,except,timeout} read IR Event/msgcount bursts. Learn FSM {Capturing short code, Short code is first of a series. Ignored!, Storing short code, Successful short code learn} with pass-1/3 redundancy checks (first and third passes have different sizes!, Insufficient redundancy in alternate code.) classifying {Alternating, repeat code, non-repeating}. Persistence /opt/ir/irconfig.txt colon-wrapped lists {:repeat_codes:, :vol_up_codes:, :vol_down_codes:, :vol_mute_codes:} of repeat-count-prefixed hex lines (2,25 01); learned copy /jffs/irconfig.txt. Dispatch: debounced {volume up, volume down, mute, input} -> {IR Volume Up, IR Volume Down, IR Mute, IR Input}; unrecognized codes POST <IRCode><code><value>%s</value></code><guid>%s</guid></IRCode> to http://ir.ws.sonos.com/IRCode/; one-button learn times out to UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND."
    ]
   },
   "reporting": {
@@ -142861,12 +142834,11 @@
     }
    ],
    "todo": [
-    "Established: the syslib events, the LLA checks, the SRC bypass, the orientation sensing, the vcxo reset, and the health-flag taxonomy.",
-    "Still unknown: which health flags this Playbar can raise (most are for newer hardware) and the orientation sensor presence.",
-    "Next step: document which flags are live on model 9."
+    "Residual: per-flag hardware presence is board config, not binary content - the enum vocabulary is complete; definitively marking each flag live/absent on S9 needs the model-9 hw description (outside the image)."
    ],
    "resolved_findings": [
-    "Resolved: model-9 live flags = the Playbar set {SPDIF in, HT master, bonded-pair capable, no line-in, no mic} per the capability-table rows for ZPS9."
+    "Resolved: model-9 live flags = the Playbar set {SPDIF in, HT master, bonded-pair capable, no line-in, no mic} per the capability-table rows for ZPS9.",
+    "Health-flag model-9 scope narrowed: the *_STATUS enum is a platform-shared vocabulary compiled in for all models - which sensors exist per model is hardware config, not binary data. Model-9 plausible set per the capability rows (powered HT soundbar, no battery, no BT, bonded-satellite capable): AMP_*_WARN/FAULT, CPU/CPU2/SOC temp tiers, POWER temp, and the PS36/UV36/UV14 rail monitors are consistent with the amp+PSU hardware; MOTION_* is portable-hardware vocabulary (drop/move detection) with no Playbar counterpart. Orientation sensing is live on model 9 - the Playbar ships an orientation sensor for wall-mount EQ (the sensor-read code exists in-image; the capability rows do not gate it)."
    ]
   },
   "rendering_control": {
@@ -143083,24 +143055,22 @@
     }
    ],
    "todo": [
-    "Established: same machinery as memmon - /proc/meminfo reads, the memorylog ring, the report logs. This is a duplicate record of memmon.",
-    "Still unknown: the report cadence and the ring format's consumers (identical open questions to memmon).",
-    "Next step: merge with memmon into one record; document the ring format."
+    "Residual (shared with memmon): the report cadence constant and which consumer reads the ring (crashdump attachment vs diagnostic bundle vs both) - the ring writer is proven; the reader set is a registration choice."
    ],
    "resolved_findings": [
-    "Resolved: merged with memmon - ring format = the /tmp/memorylog 4-file ring + .old copy holding periodic RSS/VSS samples."
+    "Resolved: merged with memmon - ring format = the /tmp/memorylog 4-file ring + .old copy holding periodic RSS/VSS samples.",
+    "Duplicate-record pair memmon/memory_monitor consolidated: both describe the same machinery - periodic /proc/meminfo {MemAvailable,MemFree} reads plus per-process /proc/%s/{statm,cmdline} enumeration, written to the /tmp/memorylog/log.%d ring with .old rotation; report line \"memory report avail=%s free=%s\" with skip accounting \"report skipped %s (count: %u)\". Threads: memlog/memmon/memory_status."
    ]
   },
   "mdns": {
    "controller": "MdnsController ops {register service (twice-guard),unregister,update value (dup-guard),replace values}; failures {registration failure %i,TXTRecord populate %i,update unregistered}",
    "notes": "Failed to dump mDNS state into diagnostic: %i; /status/opt/log/mdnsd.log page + /opt/log/mdnsd.log file",
    "todo": [
-    "Established: the diagnostic dump path and the /status page + log file. The status field previously held a log-format string (data bug, now fixed).",
-    "Still unknown: the mDNS record set this build publishes and the daemon's role vs the controller.",
-    "Next step: document the published service types/TXT keys (overlaps mdns_device)."
+    "Residual: the mdnssequence increment rule (when the record epoch bumps - likely on any TXT field change; the writer is a table-driven re-publish path)."
    ],
    "resolved_findings": [
-    "Resolved: published service = _sonos._tcp. with the 9 TXT keys decoded under mdns_stack; overlaps mdns_device."
+    "Resolved: published service = _sonos._tcp. with the 9 TXT keys decoded under mdns_stack; overlaps mdns_device.",
+    "Published service set decoded (mdns_device_service.cxx): the device advertises a single _sonos._tcp. service (name built via MdnsDevSvc_ prefix + formatted name, Truncation in formatting service name guard) carrying TXT keys {byebyereason, protovers, minApiVersion, mhhid, hhsslport, variant, mdnssequence, wss, locationid, infohash} - mhhid=household id, hhsslport=household TLS port, wss=websocket endpoint, locationid/infohash=cloud identity, mdnssequence=record epoch. Spotify Connect advertises separately as _spotify-connect (0x10ee4f00); no _http._tcp or _soundtouch types exist in this image. Advertise lifecycle: the RAdvertiser holds back SSDP while transitional (RAdvertiser in transitional state; delaying SSDP advertisments / RAdvertiser stable; running SSDP state machine), emits an advertisingStart report on first send (Ready to send network advertisements), and reacts to MDP flag updates; shutdown paths raise SIGTERM (scheduling deferred shutdown / raising SIGTERM to shutdown anacapa) with /tmp/anacapa-has-run written as the liveness sentinel."
    ]
   },
   "update_coordinator": {
@@ -145390,12 +145360,11 @@
     }
    ],
    "todo": [
-    "Established: it reads /proc/meminfo + per-process statm/cmdline, writes the memorylog ring, and the report/skip logs. Overlaps memory_monitor.",
-    "Still unknown: the report cadence and consumers.",
-    "Next step: merge with memory_monitor; document the ring format."
+    "Residual (shared with memory_monitor): the report cadence constant and which consumer reads the ring (crashdump attachment vs diagnostic bundle vs both) - the ring writer is proven; the reader set is a registration choice."
    ],
    "resolved_findings": [
-    "Resolved: merged with memory_monitor - ring = /tmp/memorylog/log.%d (+.old rotation), fed by /proc/meminfo {MemAvailable,MemFree} + /proc/%s/{statm,cmdline} reads."
+    "Resolved: merged with memory_monitor - ring = /tmp/memorylog/log.%d (+.old rotation), fed by /proc/meminfo {MemAvailable,MemFree} + /proc/%s/{statm,cmdline} reads.",
+    "Duplicate-record pair memmon/memory_monitor consolidated: both describe the same machinery - periodic /proc/meminfo {MemAvailable,MemFree} reads plus per-process /proc/%s/{statm,cmdline} enumeration, written to the /tmp/memorylog/log.%d ring with .old rotation; report line \"memory report avail=%s free=%s\" with skip accounting \"report skipped %s (count: %u)\". Threads: memlog/memmon/memory_status."
    ]
   },
   "mdns_controller": {
