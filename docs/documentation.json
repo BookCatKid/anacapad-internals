@@ -607,15 +607,18 @@
   "0x3c": "in-arg fetch (alternate)",
   "0x34": "request -> zone/session context accessor; returns the request's owning zone-context object (callers check obj+0x6c non-null then read +0x178 for the zone-group impl) - proven consumer GetZoneGroupAttributes at 0x107338b0",
   "todo": [
-   "Established: the slot map itself - every vfunc offset's role in parse/commit/fault/arg-access/finalize - is documented with a proven consumer for the zone-context accessor (GetZoneGroupAttributes at 0x107338b0).",
-   "Still unknown: several slot semantics come from caller patterns rather than tracing inside the vfunc implementations themselves.",
-   "Next step: trace the vfunc implementations behind the remaining inferred slots to promote each to proven."
+   "Established: slot semantics proven at callsites (0x34 ctx, 0x08 parse, 0x14 fault, 0x24 out-arg, plus the separate arg-record vtable); dispatch chain zp->vfunc[0xc8]=f_101953c8 <- f_10352848 <- dp_impl f_103548f4/f_10355628 documented; candidate vtables 0x10ebc650/0x10ebd234 proven to belong to a state/session class and rejected.",
+   "Still unknown: the concrete request-class vtable address and its ctor. The request object is allocated upstream of the dispatchers (HTTP action layer or dp_impl request factory); no .text site storing the matching vptr has been located, and the SOAPACTION literal has no .text xref.",
+   "Next step: locate the request ctor by tracing the object passed as r5 into f_101953c8 through the HTTP action layer (the UPnP-stack request factory f_1053xxxx family), then read the stored vptr."
   ],
   "provenance": "Request object lifetime: the request object arrives as r5-in at main router f_101953c8 (zp-aa vfunc; table 0x10e97d5c), is forwarded as r5-in to fallback router f_1068bc0c (call at 0x101956e4), forwarded again as r5-in to the per-service name-dispatcher (e.g. ZGT vtable 0x10f113b0 slot +0x8 = f_10732ff8, which strcmp-scans the name table at 0x10f113dc), and finally forwarded as r4-in to the matched action impl (e.g. GetZoneGroupAttributes f_10733878 at slot +0x24). Per-service dispatch vtables carry one slot per action (ZGT: 11 slots). The request object is allocated by the UPnP HTTP request layer above the zp vfunc entry; its ctor does not form a direct addis/addi reference in .text.",
   "resolved_findings": [
    "Resolved at boundary: no .text ctor stores either candidate vtable (0x10ebc650/0x10ebd234) - the request object is allocated by an out-of-line UPnP-stack component and only consumed here. Slot semantics stand from caller patterns: parse 0x08, commit 0x0c, fault 0x14, in-arg 0x1c/0x20, out-arg 0x24, ctx 0x34, finalize 0x38.",
    "Established: the complete request-object call chain is proven from zp-aa vfunc entry through the fallback router and per-service name-dispatchers down to the action impl (see provenance). Per-service dispatch vtables are mapped (e.g. ZGT 0x10f113b0, 11 action slots, name table 0x10f113dc)."
-  ]
+  ],
+  "callsite_proof": "Slot semantics confirmed at concrete callsites in GetZoneGroupAttributes f_10733878: req->vtable[0x34] at 0x107338b0 returns the ctx object (result->+0x6c non-null check, ->+0x178 = zone-group impl); req->vtable[0x08] at 0x107338e4 is the arg-parse call made before the action body; req->vtable[0x14] at 0x10733904 is raise-fault; req->vtable[0x24] at 0x107339ac is get/create out-arg record by name (r4 = literal \"CurrentZoneGroupName\", repeated for \"CurrentZoneGroupID\"); the returned out-arg record has its own vtable (slots +0x10/+0x24 called at 0x10733950/0x107339c0 - a different class).",
+  "dispatch_chain": "zp->vfunc[0xc8] = f_101953c8 (the per-service route matcher over the \"/XxxService/Control\" table) is invoked by f_10352848, which iterates a service container (*(r30+4) entries, element accessor f_1053cc50) and calls each entry's route-handler vfunc until one claims the request. f_10352848 is called by dp_impl internal-dispatch functions f_103548f4 and f_10355628 (joinZone/ValidateBondedState forwarding paths). The HTTP request path reaches the same zp vfunc from the UPnP HTTP action layer.",
+  "disproven": "CORRECTION: the previously-listed candidate vtables 0x10ebc650 and 0x10ebd234 are NOT the request vtable. Their slot+0x34 impl f_1035a760 reads this+0x1ac0 and returns an enum code (0x41a/0), not a ctx object; slots +0x0c/+0x14/+0x1c/+0x24 are lock-guarded field getters (mutex at this+0x268 via f_10988558/f_10988984) copying +0x1aa1(byte)/+0x1aa2(strlcpy string)/+0x1abc(halfword)/+0x1abe(byte). They are sibling vtables of a state/session class in the UPnP-stack family, not the request interface."
  },
  "services": {
   "/AlarmClock/Control": {
@@ -117557,9 +117560,9 @@
    "resolved_as": "WSS TLV frame processor: calls f_109e10d8 (WSS registry tag/type lookup); handles {u16 tag,u8 type,u32 len} websocket-event frames",
    "detail": "subscription-message object field map now established: +0xec = u32 scalar passed by-ref (spilled 0xc4(r1), stwu into the output span); +0xf0/+0xf4 = {char* ptr, u32 len} string copied via f_1068c040 (libstdc++ string assign, len>0xf heap path) feeding the 'http://'+host+':%d' CALLBACK URL build; +0x108/+0x10c = {begin,end} pointer span copied by a second f_1068c040 (callback path/URI tail). Fields are populated upstream by the GENA/HTTP request parser - the ~10 per-service wrappers (0x1060d5a8 family) are tail-call thunks that pass the object through unmodified.",
    "todo": [
-    "Established: field types proven - +0xec u32 target id (broadcast sentinel 4, 'unexpected target id' log), +0xf0/+0xf4 target-name {ptr,len} passed to f_1067e4d8, +0x108/+0x10c a second {ptr,len} string, +0x98 session ptr via f_109daae0. The r4 object is the per-service WSS frame-handler impl instance (getArg 'durationSecs' vfunc), not a subscription record.",
-    "Still unknown: the semantic name of the +0x108/+0x10c string (copied at entry but consumed by no path in this worker; adjacent to the target name it is probably the target's UDN/uuid string, unproven).",
-    "Next step: find the impl object's constructor/producer (the WSS subscribe handler that allocates the instance behind *(request+0x4c) via the service dispatcher that tail-branches into the 0x1060d4b0 wrapper family) and name the +0x108 field from its init source."
+    "Established: +0xec = u32 target-type id (4 = playerId, proven by sibling f_106960f8 not-playerId path and this worker's 'unexpected target id %d' guard); +0xf0/+0xf4 = target-name span; +0x108/+0x10c = second target-identifier span (sibling-consumed, only buffer-disposed here); +0x98 = channel/session ptr feeding delivery call f_1067e4d8; object is a per-service WSS frame-handler impl (r4 vfunc+8 = getArg durationSecs).",
+    "Still unknown: the exact name of the +0x108/+0x10c identifier (subscription uuid vs callback path vs SID) - the field producer writing the WSS message object fields has not been located (the stores at +0x100..+0x10c in f_1016f7c0 belong to a vector-copy on a different object layout).",
+    "Next step: find the WSS subscription-object producer that stores +0x108/+0x10c and name the field from the parse source."
    ],
    "resolved_findings": [
     "Established: field types mapped (+0xec u32 scalar, +0xf0/+0xf4 host string, +0x108/+0x10c path span) and the upstream-parser provenance identified. Still unknown: exact semantic names of the three fields (which is host vs path vs SID). Next step: trace the GENA request-parser stores that populate +0xec..+0x10c in the message-object constructor path."
@@ -117573,7 +117576,8 @@
     "+0x10c": "u32 length paired with +0x108",
     "+0x98": "channel/session pointer returned by getter f_109daae0, passed as stack arg into the delivery call f_1067e4d8"
    },
-   "delivery": "On type-1 WSS frames it builds 'http://'+f_109dcb6c(conn)+':'+vsnprintf('%d',f_109dcce8(conn)) from the connection object (r8-in), then f_1067e4d8(r3=*(req+0x4c) state obj, url, 0, mgr-singleton f_10550ffc(0x110a4ba4), *(r7-in), stack-ctx, 0x41, target-name) delivers; failure -> f_109db5c4(0x3f,0x191) 401-fault. If target id != 4 it overrides the incoming {id,name} with the manager's own (*(r25+0x124)). Rejects: non-WSS transport 'Invalid transport: WSS is required', 'Invalid namespace: UPnP subscribe not supported'."
+   "delivery": "On type-1 WSS frames it builds 'http://'+f_109dcb6c(conn)+':'+vsnprintf('%d',f_109dcce8(conn)) from the connection object (r8-in), then f_1067e4d8(r3=*(req+0x4c) state obj, url, 0, mgr-singleton f_10550ffc(0x110a4ba4), *(r7-in), stack-ctx, 0x41, target-name) delivers; failure -> f_109db5c4(0x3f,0x191) 401-fault. If target id != 4 it overrides the incoming {id,name} with the manager's own (*(r25+0x124)). Rejects: non-WSS transport 'Invalid transport: WSS is required', 'Invalid namespace: UPnP subscribe not supported'.",
+   "sibling_evidence": "Sibling worker f_106960f8 (same object layout, same +0xec/+0xf0/+0xf4/+0x108/+0x10c field set) consumes +0x108/+0x10c as a {char*,len} string copied at 0x106961a4-0x106961b4 via f_1068c040; when +0xec != 4 it logs 'unexpected; not player id %s %s' (0x10f034d4) and raises 'Target not a playerId' (0x10f034f4) via f_1068c138 - proving +0xec is the target-TYPE id where 4 = playerId, and +0x108/+0x10c is a second target-identifier string (uuid/SID-class) reported beside the id."
   },
   "0x106bb20c": {
    "func": "0x106bb20c",
@@ -622206,7 +622210,7 @@
   "root_cert_bundles_page": "/root_cert_bundles -> f_105eb9a0 -> f_1055e63c (in f_1055e59c): hex-dumps loaded CA bundle with %02X%s... formatting; bundle fetched via verify-registry 0x11095f88 vfunc+108/+40",
   "registration_page": "/registration -> f_105eb17c: <Registration><RegState>%d</RegState><CustomerID>%s</CustomerID></Registration>",
   "bundle_download": "logs: \"Downloaded new cert bundle (ETag: %s)\",\"Local cert bundle unchanged (ETag: %s)\",\"Failed to load newly downloaded cert bundle\": ETag-change-detected refresh; mbedTLS loads CA list + client cert; \"JWT cert validation finished: %s\"; sources devicecertmanager.cxx,regdevicecert.cxx,certmanager.cxx",
-  "unresolved": "concrete request URL value (settings key cert.uri, filled at runtime) and exact JSON request body keys (request builder output is runtime data); the deeper fields inside the 0xb0-byte mbedtls_ssl_config are the mbedTLS library structure",
+  "unresolved": "the concrete endpoint VALUES behind the O_* URL keys (runtime settings, env-dependent via O_SONOS_CLOUD_API_TEST_ENV) and the deeper fields inside the 0xb0-byte mbedtls_ssl_config (mbedTLS library structure)",
   "download_flow": {
    "provenance": "devicecertmanager.cxx unit f_105a6984-f_105a8724 (source-path literal proven)",
    "orchestrator": "f_105a7dac: issues JSON request via inner builder f_105a75dc; finish logger f_105a7868 logs \"Cert download attempt finished (download %s)\" succeeded/failed",
@@ -622217,7 +622221,8 @@
     "httpResultCode",
     "newETag",
     "previousETag",
-    "download (cert payload)"
+    "download (cert payload)",
+    "downloaded/unchanged eventType values"
    ],
    "staging": "downloads written to *.tmp files (\"file %s [%s]\" log) then installed; state+etag persisted as settings keys (state, etag literals in scope)",
    "events": "muse Registration event emitted with eventType=downloaded, certType=deviceCert, secureReg fields; refresh scheduler f_105a6984 wakes via Job* fields and re-arms \"refresh check in %ld seconds\"; expiry path logs \"certificate expired\"",
@@ -622225,9 +622230,9 @@
    "note": "no PKCS#10/CSR on device: enrolment is a JSON cert-download API, not key-gen+CSR"
   },
   "todo": [
-   "Established: the keycert id vocabulary, the selector f_1057ac60 flag-bit mapping, the cert-object indexer, the /regcert page route, the bundle download page, and the download flow are documented.",
-   "Still unknown: per the record's own unresolved field - the request URL/endpoint (sourced from O_* cloud-URL keys at runtime), the exact JSON request body keys, the bss cert-object record layout, and the cert/key storage file paths.",
-   "Next step: resolve the O_* cloud-URL keys to concrete endpoints and decode the bss cert-object record layout."
+   "Established: the full O_* settings-key registry enumerated (~67 keys); download path literal /certbundles/v4/trusted_roots.rcb; request headers {application/json, X-Sonos-UserId, X-Sonos-Muse-Household-Id, X-Sonos-Denylisted}; reject-reason vocabulary {BAD_FILE..MISMATCH_USER, not_present}; storage {cert.xml, ssl_server_certs, /run/rcb, rootcerts_download, .tmp staging}.",
+   "Still unknown: the request-body JSON key names for the device-cert POST (response keys are decoded; the request builder emits household/mfg fields but the key literals were not individually pinned), and the per-id bss cert-object record layout beyond the documented {flag, mbedtls_ssl_config*} wrapper.",
+   "Next step: disassemble the request-body serializer inside f_105a75dc/f_105a7dac to name each emitted JSON key; map the +0x10.. tail of the cert-object wrapper."
   ],
   "local_store": {
    "layout": "<JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt} - constructed by f_106b268c via imported constructJFFSRootPath(buf, mgr->+0x10a4) then strlcat '/' + env + '/' + filename",
@@ -622244,6 +622249,13 @@
    "Resolved (boundary): residual unknown - the concrete URL value in cert.uri and the request body keys are runtime-data boundaries (settings/store contents, not in the image).",
    "Resolved (boundary): the ask crosses the injected-delegate/runtime boundary - the handler and dispatch layers are fully decoded in this record; the residual runtime-internal detail is not statically observable and is documented as a boundary.",
    "Established: keycert id vocabulary, selector flag-bit mapping, per-id cert-object tables (0x110a5670 locks / 0x110a56d8 refcounted objects holding a malloc(0xb0) mbedtls_ssl_config), /regcert + /root_cert_bundles + /registration routes, the download flow, the local store layout <JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt}, and the endpoint provenance (settings key cert.uri)."
-  ]
+  ],
+  "endpoints": {
+   "registry": "the O_* settings-key vocabulary is fully enumerated in rodata at 0x10eea650..0x10eead00 (~67 keys); URL-class keys include O_MUSIC_SERVICE_URL, O_CUSTREG_URL, O_UPDATE_MSG_URL, O_CLOUD_API_BASE_URL, O_DC_DESCRIPTOR_BASE_URL, O_SETUP_SERVER_URL, O_UPDATE_SERVER_URL, O_SERVICE_OUTAGE_SERVER_URL, O_HRMETRICS_URL, O_TRACKPLAYBASE_URL, O_UNIVERSAL_SEARCH_URL, O_TIMEZONE_URL plus non-URL keys (intervals, sids, flags). Key VALUES are runtime settings populated from provisioning/environment config - the O_SONOS_CLOUD_API_TEST_ENV key selects the environment.",
+   "download_path": "concrete server path literal: '/certbundles/v4/trusted_roots.rcb' (0x10eeb82c) - the root-cert-bundle fetch target under the API base URL",
+   "request_headers": "application/json; X-Sonos-UserId (f_105a75dc), X-Sonos-Muse-Household-Id (0x10ef22e4), X-Sonos-Denylisted (0x10ef241c)"
+  },
+  "reject_reasons": "cert validation reject codes emitted as strings: BAD_FILE, BAD_KEY, BAD_CERT, BAD_ISSUE_DATE, MISMATCH_ENV, MISMATCH_ISSUER, MISMATCH_HHID, MISMATCH_USER, not_present (0x10ef2430-0x10ef24b4)",
+  "storage": "persistence/staging: 'cert.xml' (0x10f051f4, certmanager.cxx), 'ssl_server_certs' (0x10eff9ac), '/run/rcb' + 'rootcerts_download' staging file (0x10eeb7a8), '*.tmp' download staging suffix (0x10eeb864); 'new cert updating mDNS service [%s]' (0x10ea24dc) shows cert install triggers mDNS re-announce"
  }
 }
