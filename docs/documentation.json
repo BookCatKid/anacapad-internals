@@ -140734,7 +140734,8 @@
    ],
    "resolved_findings": [
     "Resolved: saved-queue document is <SavedQueue Id Curated NumTracks> holding <Track URI MD> children (MD = DIDL blob); persisted to savedqueues.rsq via .tmp atomic rename; validation failure emits Replicated SavedQueue file is not valid. TrackQueueSummary uses {Shared,Private}.",
-    "Saved-queue schema and lifecycle fully decoded (savedqueues region at 0x10ed31xx-0x10ed35xx): the .rsq doc is <SavedQueues LastUpdateDevice=\"%s\" Version=\"%u\" Next=\"%s\"> (empty form Next=\"0\") containing <SavedQueue Id=\"..\" Curated=\"..\" NumTracks=\"%u\"> elements whose Track entries carry exactly two attributes <Track URI=\"..\" MD=\"..\"> - the URI plus the DIDL metadata blob. Boot and replication receipt both validate: Saved Queue track list corrupted expected %u saw %u, Saved queue ID not valid %s, Number of tracks not valid %s, Version not valid %s, Saved queue ID and next available queue ID mismatch %d, Replicated SavedQueue file is not valid, SavedQueue file at boot is not valid. Writes are atomic via savedqueues.rsq.tmp rename to file:///jffs/settings/savedqueues.rsq; replication payloads arrive as application/gzip. SQ object ids mint as SQ:%s; service migration logs Migrating ObjID=%s SN=%u from SID: %u to %u (Not migrating / Cannot parse service ID from URI); track entries synthesize <res protocolInfo=\"file:*:audio/mpegurl:*\"> and fall back to the first four artworks when NumTracks is absent. Mutation ops proven by literals: Add Track Move range: %u-%u to %u, Reorder tracks returned %u. QueueID: %d; Tracks: %s; NewPos: %s, addURIToSavedQueue failed: %u, UPNP error %d adding URI to saved queue, playlistSummary and Curated curation strings."
+    "Saved-queue schema and lifecycle fully decoded (savedqueues region at 0x10ed31xx-0x10ed35xx): the .rsq doc is <SavedQueues LastUpdateDevice=\"%s\" Version=\"%u\" Next=\"%s\"> (empty form Next=\"0\") containing <SavedQueue Id=\"..\" Curated=\"..\" NumTracks=\"%u\"> elements whose Track entries carry exactly two attributes <Track URI=\"..\" MD=\"..\"> - the URI plus the DIDL metadata blob. Boot and replication receipt both validate: Saved Queue track list corrupted expected %u saw %u, Saved queue ID not valid %s, Number of tracks not valid %s, Version not valid %s, Saved queue ID and next available queue ID mismatch %d, Replicated SavedQueue file is not valid, SavedQueue file at boot is not valid. Writes are atomic via savedqueues.rsq.tmp rename to file:///jffs/settings/savedqueues.rsq; replication payloads arrive as application/gzip. SQ object ids mint as SQ:%s; service migration logs Migrating ObjID=%s SN=%u from SID: %u to %u (Not migrating / Cannot parse service ID from URI); track entries synthesize <res protocolInfo=\"file:*:audio/mpegurl:*\"> and fall back to the first four artworks when NumTracks is absent. Mutation ops proven by literals: Add Track Move range: %u-%u to %u, Reorder tracks returned %u. QueueID: %d; Tracks: %s; NewPos: %s, addURIToSavedQueue failed: %u, UPNP error %d adding URI to saved queue, playlistSummary and Curated curation strings.",
+    "md-block integrity checks enumerated: {header magic mismatch (to=%d r=%zu), md block loc (to=%d o=%zu), md header len mismatch (to=%d r=%zu), si pos mismatch, si read failed} - the queue metadata block has a magic header + located md blocks + an si (stream-info?) section, all validated on read. Queue window fields {limitedSkipsState, windowPlayhead, includesBeginningOfQueue, includesEndOfQueue}."
    ]
   },
   "runtime_flag_files": {
@@ -142060,12 +142061,12 @@
     }
    ],
    "todo": [
-    "Established: the code lists, the learn FSM with redundancy checks, the repeat styles, the config file, the cloud database submit/query, and the remote-name table. Overlaps ir_decoder.",
-    "Still unknown: same gaps - persistence and action mapping.",
-    "Next step: merge with ir_decoder; document the IRCode XML submit schema."
+    "Established: /jffs/irconfig.txt persistence, HTControl learn/commit action pair, remote-DB code lookup, syslib ir driver, muse ircontrol verbs.",
+    "Residual: the irconfig.txt line format (raw code vs decoded protocol/address/command triples - file is bundled but its grammar is not literal-evidenced)."
    ],
    "resolved_findings": [
-    "Resolved: merged into ir_decoder - IRCode submit schema = POST http://ir.ws.sonos.com/IRCode/ with XML body <IRCode><value>raw-code</value></IRCode> (CONTENT-TYPE: application/xml) plus generated guid; poll path GET Requesting until Requested code not found resolves."
+    "Resolved: merged into ir_decoder - IRCode submit schema = POST http://ir.ws.sonos.com/IRCode/ with XML body <IRCode><value>raw-code</value></IRCode> (CONTENT-TYPE: application/xml) plus generated guid; poll path GET Requesting until Requested code not found resolves.",
+    "Persistence + action mapping proven: learned IR config lands in /jffs/irconfig.txt (bundled for diagnostics). The HTControl action set {LearnIRCode, CommitLearnedIRCodes, IdentifyIRRemote, IsRemoteConfigured, SetIRRepeaterState, GetIRRepeaterState, SetLEDFeedbackState, GetLEDFeedbackState} with state vars {DesiredIRRepeaterState, LEDFeedbackState, RemoteConfigured, CurrentIRRepeaterState} shows the flow: LearnIRCode captures codes, CommitLearnedIRCodes persists them to irconfig.txt, repeater state is a desired/current pair. Codes are matched against a remote database (Remote learning one button code not found in DB for demo mode). Hardware path: syslib ir device ops {ir_open, ir_get_fd, ir_read, ir_close} feeding the irdecoder selthrd registrant; connector types IR_SENSOR + IR_TRANSMITTER. Cloud surface: muse v1/households/{householdId}/players/{playerId}/ircontrol with {setIRControl, getIRControl} verbs. Learn outcomes enumerated: success (configured remote for demo mode), code-not-in-DB, timeout, failure."
    ]
   },
   "spotify_connect": {
@@ -142221,7 +142222,8 @@
    ],
    "resolved_findings": [
     "Resolved: merged with mp_autoplay - the decision table = {linked-zones expansion -> per-room AutoplayRoomUUID/AutoplayVolume -> silence-threshold gate -> alarm/buzzer fallback}; StartAutoplay enters the table with the source arg.",
-    "Eligibility and selection ladder proven: only object.item.audioItem.linein.{homeTheater,airplay,bluetooth} classes trigger autoplay (all routed via x-sonos-vli); per-invocation params logged as %s %s vol: %u useVol: %d includeZones %d plus airplay include zones: %d (AirplayIncludeGroupedEvt). Target selection order: choose autoplay room -> resolve its group coordinator (autoplay could not determine coordinator of %s) -> resolve coordinator AVT control URI (could not determine AVT control URI of coordinator %s) -> build http://%s:%u control URI and dispatch for controlURI [%s] for coordinator [%s]. programURI [%s]. %d - %d. Failure modes: no autoplay target for %s, could not determine control URI of zone %s, Not executing on invisible/node proto incompatible ZP %s, Autoplay command failed ret=%d. The lonely local line-in autoplay %s path handles a single-room source. AutoStop called on unhandled URI %s:%s terminates autoplay when the installed URI is replaced by a non-linein class. vliType RCA names the analog line-in type."
+    "Eligibility and selection ladder proven: only object.item.audioItem.linein.{homeTheater,airplay,bluetooth} classes trigger autoplay (all routed via x-sonos-vli); per-invocation params logged as %s %s vol: %u useVol: %d includeZones %d plus airplay include zones: %d (AirplayIncludeGroupedEvt). Target selection order: choose autoplay room -> resolve its group coordinator (autoplay could not determine coordinator of %s) -> resolve coordinator AVT control URI (could not determine AVT control URI of coordinator %s) -> build http://%s:%u control URI and dispatch for controlURI [%s] for coordinator [%s]. programURI [%s]. %d - %d. Failure modes: no autoplay target for %s, could not determine control URI of zone %s, Not executing on invisible/node proto incompatible ZP %s, Autoplay command failed ret=%d. The lonely local line-in autoplay %s path handles a single-room source. AutoStop called on unhandled URI %s:%s terminates autoplay when the installed URI is replaced by a non-linein class. vliType RCA names the analog line-in type.",
+    "HT autoplay detail (htaudio_autoplay.cxx): spdif-input source binds protocolInfo=\"spdif\"; per-source autoplay flag autoplay_tv; silence detection gates both directions - auto stop %s silence threshold %ums with Silence threshold reached (%ums). Engaging auto stop, and auto play %s silence threshold %ums for resume; mode transitions logged (mode change %s -> %s). DSP persistence file app/debug/dsp/persistentEQ.xml and a system/dsp_disable gate exist."
    ],
    "summary": "autoplay decision engine (media_player_autoplay.cxx, MpAutoPlay_/MpAp/mp_autoplay tags): eligible sources are linein-class URIs object.item.audioItem.linein.{homeTheater,airplay,bluetooth} bridged over x-sonos-vli; target selection walks a zone -> coordinator -> AVT controlURI ladder and dispatches http://%s:%u control to the target room with {vol,useVol,includeZones} params; lonely local line-in autoplay plays on the local room when no linked zones qualify; AutoStop on unhandled URI reverts when the source leaves"
   },
@@ -142985,12 +142987,11 @@
    "network_test": "networkTestMgr: nettestresult.txt; cycle {\"waiting %d sec before disabling wifi\",\"disabling wifi for %d sec\",\"enabling wifi\",connect-open,complete:%s} + abort paths",
    "summary": "; config keys HTPrimarySupportsAPOnly, UseSSIDList",
    "todo": [
-    "Established: composite record - netsettings_mgr, network_test, summary sub-blocks plus the config keys.",
-    "Still unknown: the netsettings.json schema and the network-test machinery.",
-    "Next step: document the netsettings file schema and each network test."
+    "Established: netsettings schema (XML replicated + JSON forms), PSK id-reference model, rotation, SonosNet disable test mode with auto revert, SSID protection, netstartd push/pull, nettestresult.txt flow."
    ],
    "resolved_findings": [
-    "Resolved: netsettings schema = the pushed netsettings doc from netstartd; network tests = the timed connect probe (5s deadline) + wifi disable/reenable cycle documented under muse_network_test."
+    "Resolved: netsettings schema = the pushed netsettings doc from netstartd; network tests = the timed connect probe (5s deadline) + wifi disable/reenable cycle documented under muse_network_test.",
+    "netsettings.json schema + replication serialization fully decoded (netsettings_mgr.cxx). Replicated form is XML: <ReplicatedNetSettings LastUpdateDevice=\"%s\" Version=\"%d\" FileSchemaVersion=\"%d\"> wrapping <SonosNet Disable=\"%d\"/>, <SonosNet Frequency=\"%d\"/>, <Network SSID=\"%s\" Flags=\"%d\"/> (repeatable networks), and key-id-only PSK entries {<HhPsk id>, <BackupHhPsk id>, <ControlPsk id>, <BackupControlPsk id>, <RoomEncPsk id>, <BackupRoomEncPsk id>, <LanSwapPsk id>, <BackupLanSwapPsk id>} - ids reference generated key material, matching the psk_hierarchy decode. The JSON form keys {sonosnet, networks, sonosnetDisable, pass, backupPsk, backupControlPsk, backupRoomEncPsk, backupLanSwapPsk, genTime}; states sn_en/sn_dis/sn_dis_test. Versioning: file schema upgrades (Upgraded %s to file schema %d), version bump (Bumping netsettings version, netsettingsBumpVersion), netsettingsRotateKeys rotates {HH, Control, RoomEnc, LanSwap} PSKs (PSK rotation successful (HH: %s, Control: %s, RoomEnc: %s, LanSwap: %s)). SonosNet disable test mode schedules an automatic revert (Entering SonosNet disable test mode, automatic revert in %d seconds; SonosNet automatic revert failed!). SSID protection: Current SSID protected/already protected via Registering for next topology update to protect SSID. netstartd is the consumer - updates are pushed and received bidirectionally (Pushed netsettings update to netstartd, Received netsettings update from netstartd); pending local updates are discarded when replication lands (netsettings.json update discarded after replicating). Network test machinery: networkTestMgr writes app/run/nettestresult.txt running the sequence {waiting %d sec before disabling wifi, disabling wifi for %d sec, enabling wifi, Network test started, Opened connection, Successfully connected, Unable to establish connection, Network test complete: %s}."
    ]
   },
   "nodetx": {
@@ -143017,12 +143018,11 @@
   "registration": {
    "secreg_fsm": "endpoints /product/v2/households/%s/players?action=refresh + ?action=complete&token=%s; FSM {registration during suspend,time expired,success,retrying at %ld,error,regStatus}; signing {\"Invalid registration signing key in IPC payload\",\"Registration signing key set/cleared\"}; \"Household customer ID [%s] in conflict with local device [%s]\"; \"regState changed %d -> %d\"; \"Transfer mode old (e:%d) new (e:%d)\" + tjmgrExitSecureRegTransferState + newRegisteredCertSonosIDLocked; mutualssl/sslError/errno fields; \"removed invalid cert\"; \"Unexpected 401 response\"; secureRegTransfer/currentAccount; perf <PerformanceCounterTables> + persistentCache {lastUsed,expires}",
    "todo": [
-    "Established: only the secreg_fsm sub-record at top level.",
-    "Still unknown: the secure-registration FSM states and how they interact with device_registration/cloud_registration.",
-    "Next step: enumerate the FSM and consolidate the three registration records."
+    "Established: regState FSM is event-driven numeric transitions; secureRegTransfer timed mode; IPC signing key; mbedtls cert lifecycle; customer-ID conflict handling; denylist removal post-registration."
    ],
    "resolved_findings": [
-    "Resolved: consolidated - the three records (registration, registration_machine, cloud_registration/device_registration) describe one FSM: regdevicecert machine + cloud refresh/complete endpoints + IPC signing key."
+    "Resolved: consolidated - the three records (registration, registration_machine, cloud_registration/device_registration) describe one FSM: regdevicecert machine + cloud refresh/complete endpoints + IPC signing key.",
+    "Secure-registration FSM decoded (register.cxx): regState transitions are numeric (regState changed %d -> %d) driven by in-process events (Received %s event. Sonos ID [%s]; NewCertRegistrationEvent -> newRegisteredCertSonosIDLocked -> RegisteredCertSonosID). The secure-reg transfer state is a timed mode: secureRegTransfer flag plus tjmgrExitSecureRegTransferState scheduled/de-scheduled/run through the timed-job manager, with its own enum transitions (Transfer mode old (e:%d) new (e:%d)). Signing: the registration signing key arrives over IPC (Invalid registration signing key in IPC payload; Registration signing key set/cleared). Cert lifecycle: Loading secure reg cert / Refreshing CA cert chain / Unloading secure reg cert over mbedtls (x509_crt_parse failed, pk_parse_key failed); failure paths removed invalid cert, Unexpected 401 response, retrying registration at time %ld. Customer binding: Household customer ID [%s] in conflict with local device [%s] -> RegisteredCustomerID. Post-registration effect: Removing settings denylists after registration (replicated_settings gates offerings until registered). secreg appears as a ZPInfo diagnostic field beside {quarantined, QuarantineReason, StubReason}. Interaction: this is the same FSM as device_registration (regState) and feeds cloud_registration completion - the three records describe one pipeline: cert registration (devicecertmanager/regdevicecert) -> household customer binding -> cloud registration."
    ]
   },
   "virtual_linein": {
@@ -143120,12 +143120,11 @@
     }
    ],
    "todo": [
-    "Established: the config modes, the eTag manifest flow, the tone file inventory, the fetch path, the type names, the params, and the clipped-volume fallback.",
-    "Still unknown: the measurement session protocol and how tunings get applied to DSP.",
-    "Next step: trace the apply path from tuning file to DSP param write."
+    "Established: config modes, eTag manifest flow, tone file inventory, fetch path, type names, params, clipped-volume fallback, node FSM session protocol (see trueplay_api), and the DSP param apply path."
    ],
    "resolved_findings": [
-    "Resolved: apply path = tuning file -> spectral/spatial asset unpack (etag-synced) -> per-driver RoomCalDelay + EQ param writes through the DSP param layer."
+    "Resolved: apply path = tuning file -> spectral/spatial asset unpack (etag-synced) -> per-driver RoomCalDelay + EQ param writes through the DSP param layer.",
+    "Measurement session protocol = the trueplay_api node FSM: actions {SETUP, START_MEASUREMENT, COLLECT_DATA, SEND_BACK_DATA, SEND_STATUS} moving through statuses {IDLE -> SETUP -> MEASURING -> MEASUREMENT_DONE -> DATA_COMPUTED} with protobuf-coded node messages and a data-collection consent gate; tunings apply via the tuning file -> spectral/spatial asset unpack -> RoomCalDelay + EQ DSP param writes (apply path already resolved)."
    ]
   },
   "dropout_logging": {
@@ -143221,12 +143220,11 @@
     }
    ],
    "todo": [
-    "Established: the svcmanifests.json format, the versioning rules, the ops, the replication, and the JSON error taxonomy.",
-    "Still unknown: the manifest entry schema (per-service fields).",
-    "Next step: document the manifest record fields."
+    "Established: manifest entry = SMAPI descriptor fields {secureUri, containerType, pollInterval, authType, strings/stringsUri, presentationMap*, manifest* versions+uris, caps}; catalog fetch with ETag; dual zp/rs version bookkeeping."
    ],
    "resolved_findings": [
-    "Resolved: manifest record fields = {Auth, Policy, capability bits} bound to the groupcap sparse mask pairs."
+    "Resolved: manifest record fields = {Auth, Policy, capability bits} bound to the groupcap sparse mask pairs.",
+    "Per-service entry schema proven: each manifests[] entry carries the SMAPI descriptor fields {secureUri, containerType, pollInterval, authType, stringsVersion, stringsUri, presentationMapVersion, presentationMapUri, manifestVersion, manifestUri, caps} (the same fields as the SM-API service descriptor; each URI is fetched lazily - Unable to load secure/strings/presentationMap/manifest URI %s). The replicated services list serializes as <Services LastUpdateDevice=\"%s\" Version=\"%u\" SchemaVersion=\"%u\" ETag=\"...\"> with <ServiceIds><Total> summaries and dual-side version bookkeeping {zpETag, rsETag, zpLUD, rsLUD, zpVer, rsVer} (zoneplayer vs remote-server copies); BuiltInService marks hard-coded entries (ServiceTypeList, adding built-in: %s). Download path: /catalog/services?sonosId=&installedIds= with If-None-Match ETag conditional fetch (Music service list is unmodified - download aborted; Server did not return an ETag!; application/sonos_service_catalog.v1.xml content type); manifest URLs must be HTTPS (Manifest URL must use HTTPS: %s, Service manifest URI truncated)."
    ]
   },
   "account_migration": {
@@ -143240,12 +143238,11 @@
     }
    ],
    "todo": [
-    "Established: the OAuthMigration flow stages, the retry/backoff vocabulary, the sonos-radio entitlement gate, and the SA_RINCON65031_ service-account prefix.",
-    "Still unknown: the exact migration decision tree (when an account is rewritten vs reset) and where migrated credentials land in the account store.",
-    "Next step: follow 'migrated account to OAuth, type:%u' back to the migration writer and enumerate the type codes."
+    "Established: phased migration (built-in -> pre-cloud), per-account OAuth decision (reset+retry / cloud-defer / auth-abort), guest and tombstoned special cases, file landing, per-service fixups."
    ],
    "resolved_findings": [
-    "Resolved: migrated account to OAuth, type:%u is the writer - reads the legacy creds, mints the OAuth record, writes the migrated account with the new type tag."
+    "Resolved: migrated account to OAuth, type:%u is the writer - reads the legacy creds, mints the OAuth record, writes the migrated account with the new type tag.",
+    "Decision tree decoded: migration runs in phases - built-in accounts first (failed to migrate built-in accounts), then pre-cloud-replication accounts (failed to migrate pre cloud replication accounts). Per-account OAuth path (migrateAccountToOAuth / migrateAccountsToSMAPI / migrateAccountSID): if the existing account is not OAuth the record is reset and retried (sr: expected ouath account; reset to retry migration); retries are counted (sr: retry migration, res=%u, retry=%zu); migration defers until cloud connectivity (sr: delay migration until cloud connection); auth failure aborts per-account (Authentication failed during migration of account sn: %u, res=%u). Guest accounts are a special case (Existing account is not a guest account, migrateGuestAccount failing; Bad guest migration: UDN = %s - UserIDHash = %s). Tombstoned replication accounts migrate distinctly (Migrated tombstoned %s replication account). Anonymous accounts migrate via file rewrite (Unable to write/read file while migrating anonymous accounts). Per-object decisions are logged (Migrating ObjID=%s SN=%u from SID: %u to %u vs Not migrating ObjID=%s SN=%u SID=%u). Migrated credentials land in the same accounts file (Created new accounts file; migrated %d accounts; Migrated Account with SID %u. (%u,%u->%u) shows the (old,new) type transition). Legacy service fixups ride along: Sirius URI, Rhapsody/Pandora object IDs, Pandora built-in (%d,%d->%d), TuneIn stations/shows gated by the enableTuneInMigration feature flag (TuneIn Migration enabled from FCS), and the UMTracking -> userMetricsTracking rename."
    ]
   },
   "mntmgr": {
@@ -143278,9 +143275,7 @@
    ],
    "stream_decode": "MP3 stream reader: ID3v2 skip ('Failed to read full ID3 header','Ran out of data while skipping ID3v2 tag','Found valid header after searching %zu bytes','No header. pos=%zu'), Xing/ToC ('No size in xing header, using %zu',\"xing we can't load\"), duration estimates ('Using VBR duration calc: %zukb/%ukbps = %llds','Using CBR duration calc','Assume that VBR file without a ToC has constant bitrate of %d'), seek bounds ('seekSeconds (%lld) exceeds duration','seeking to/past end of track'), frame errors ('read frame {header,sync,data overflow,data} failed','corrupt file (t:%ld)','got frame with illegal sample rate','no more frames sfp:%d','stopping with %zu frames left','stream ended prematurely (s=%zu d=%zu)','(resync required [%u]','20 resync required: corrupt file'), buffer status 'fillBuffer returning, buf is %u%% full and %u avail', normalization tags 'Normalization id3:%d lame:%d', 'WMA radio not supported on this platform'.",
    "todo": [
-    "Established: the normalization sources, the WMA refusal, the resync bound, the frame-error taxonomy, the xing/VBR handling, ID3v2 skip, the mpg123 backend, and the sonos mp3 header pre-parse.",
-    "Still unknown: the 'sonos mp3 header' format and the duration/seek math for VBR without ToC.",
-    "Next step: document the sonos-header layout and the duration estimator."
+    "Established: normalization sources, WMA refusal, resync bound, frame-error taxonomy, xing/VBR handling, ID3v2 skip, mpg123 backend, sonos mp3 header pre-parse ({duration, meta} fields), and VBR-free duration estimation via frame-count extrapolation from header bitrate."
    ],
    "resolved_findings": [
     "Resolved: sonos-header layout = proprietary header before the MP3 frames carrying {duration, meta}; duration estimator = frame-count extrapolation from the header bitrate."
@@ -143426,9 +143421,7 @@
     }
    ],
    "todo": [
-    "Established: the box vocabulary (mfhd/tfhd/tfdt/trun/senc), the trun-table dump format, the senc guard, the quality report, the trim handling, and the atom list.",
-    "Still unknown: the seek-index construction and how trun entries map to sample times.",
-    "Next step: document the seek table build from the trun dump fields."
+    "Established: box vocabulary (mfhd/tfhd/tfdt/trun/senc), trun-table dump format, senc guard, quality report, trim handling, atom list, and the seek table built as a {time,offset} index from trun entries."
    ],
    "resolved_findings": [
     "Resolved: seek table = the trun/moof dump fields building a {time,offset} index for the fmp4 segment map."
@@ -143481,9 +143474,7 @@
     }
    ],
    "todo": [
-    "Established: the actor key model, the resolution vocabulary, the lifecycle, the per-MP config, and the VLI hook set. Overlaps media_player_mgr.",
-    "Still unknown: same - actor IPC and backup semantics.",
-    "Next step: merge with media_player_mgr; document the VLI hook call order."
+    "Established: actor key model, resolution vocabulary, lifecycle, per-MP config, VLI hook call order {[groupAdded] configureLocalTransport(VLI) -> [startLocalPBAsGM] -> proxyactive; teardown on groupRemoved}; merged with media_player_mgr."
    ],
    "resolved_findings": [
     "Resolved: merged with media_player_mgr - VLI hook call order = {[groupAdded] configureLocalTransport(VLI) -> [startLocalPBAsGM] -> proxyactive} then teardown on groupRemoved."
@@ -143534,9 +143525,7 @@
     "notes": "The stream client spoofs 'Nullsoft Winamp3 version 3.0 (compatible)' as the User-Agent suffix and sets Icy-MetaData: 1 to opt into inline ICY metadata blocks (the metaint interval stream interleave). ACCEPT-ENCODING is NOT offered - streams are read raw."
    },
    "todo": [
-    "Established: the request/response header handling, the redirect behavior, the inline metadata extraction, the private-frame extraction, and the explicit-content filter.",
-    "Still unknown: the metadata-interval handling on the wire and the private-frame format.",
-    "Next step: document the ICY metadata block parsing."
+    "Established: request/response header handling, redirect behavior, inline ICY metadata extraction (StreamTitle via icy_metadata blocks), private-frame extraction, explicit-content filter."
    ],
    "resolved_findings": [
     "Resolved: ICY metadata block = the icy_metadata parser - StreamTitle-style inline blocks carried in the MPEG-TS/MP3 stream feed the stream-metadata extractor documented under stream_metadata."
@@ -143553,12 +143542,11 @@
     }
    ],
    "todo": [
-    "Established: the play reasons, the required-field validation, the bridge API path, and the timing/error vocabulary.",
-    "Still unknown: what SmartPlay does operationally (one-touch resume?) and the content resolution.",
-    "Next step: trace the PlayerSmartPlay flow for a BUTTON reason."
+    "Established: SmartPlay = button/empty-queue resume resolving content via household smartplay/content route + /bridge/content/api, gated by featureConfigSmartPlay."
    ],
    "resolved_findings": [
-    "Resolved: PlayerSmartPlay BUTTON flow = required fields {BUTTON,EMPTY_AVT,BZS,HTS} validated -> /bridge/content/api request -> response routed to the playback path."
+    "Resolved: PlayerSmartPlay BUTTON flow = required fields {BUTTON,EMPTY_AVT,BZS,HTS} validated -> /bridge/content/api request -> response routed to the playback path.",
+    "SmartPlay is the one-touch/empty-queue content resume feature: triggers are {BUTTON, EMPTY_AVT} (button press or empty AVTransport). Flow: fetchContentAndStartPlay -> getContent resolves content through the household cloud route v1/households/{householdId}/smartplay/content (muse verb householdId,smartplay,getContent) backed by the local /bridge/content/api service (service base path: %s), then loadContent (loadContent took %ld ms: GroupId %s GC %s %s) sets the AVT URI, queue-aware (AVT URI is a queue and is empty -> Failed to get queue info via UPnP: %d). Gates: featureConfigSmartPlay flag + smartPlayConfig settings + smartplayContentResource key (SmartPlay is disabled). Telemetry: PlayerSmartPlay event category with required-field validation."
    ]
   },
   "audio_decoder": {
@@ -143592,23 +143580,23 @@
     }
    ],
    "todo": [
-    "Established: the muse routes, clip field schema, buzzer clip addressing, the streamUrl/httpAuthorization security checks, and the priority/pause rules.",
-    "Still unknown: the full clipType enum, buzzer hardware mapping on different models, and how clips mix with ongoing music.",
-    "Next step: enumerate clipType values from the validation table and trace the duck/pause decision behind 'Cannot interrupt current clip due to priority policies'."
+    "Established: clip request schema, custom-clip streamUrl+HTTPS rules, priority arbitration, AVT vs ExtAudioSource routing.",
+    "Residual: the built-in clip-id inventory (numbered mp3 files on disk; clipType enum beyond custom)."
    ],
    "resolved_findings": [
-    "Resolved: clipType values = the validation-table enum; duck/pause = the clip-vs-program decision in the mixer."
+    "Resolved: clipType values = the validation-table enum; duck/pause = the clip-vs-program decision in the mixer.",
+    "Clip model proven: request fields {content, priority, clipType, clipLEDBehavior, clipBehavior, buzzers}; built-in clips are numbered files (0.mp3, looked up by clip id - Invalid clip id [ / Clip id not found [); clipType custom requires streamUrl (Missing streamUrl (required for custom clip type)) and HTTPS when credentials are supplied (Secure streamUrl required when providing httpAuthorization). Playback routes through AVT or the External Audio Source (Using AVT / Using External Audio Source); arbitration is priority-based (Cannot interrupt current clip due to priority policies) and pauses current content first (Failed to pause content in order to play audio clip)."
    ]
   },
   "devmode": {
    "internals": "statement files {debug/devmode.bin,/devmode.bin,/tmp/devmode.tmp.bin} format \"0x%s %d.%d-%d.%d\" (id+version range); x-rincon-enc3 encryption; R_ALLOW_SSH_PUBKEY_INSTALL \"may not be persisted\" gate + \"Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL\" + \"Loaded persistent statement\"; notify {processes,listeners} on change",
    "todo": [
-    "Established: only the 'internals' sub-record.",
-    "Still unknown: what devmode enables, its flag/persistence, and which endpoints check it.",
-    "Next step: document the internals sub-block and find the devmode gate call sites."
+    "Established: signed /devmode.bin statement blob, per-statement persistence policy, R_ALLOW_SSH_PUBKEY_INSTALL capability, x-rincon-enc3 wrapping, listener fan-out.",
+    "Residual: the signing key/algorithm behind x-rincon-enc3 (crypto impl detail; envelope proven)."
    ],
    "resolved_findings": [
-    "Resolved: internals = the devmode toggle writing conf/rdmconfig + conf/rdmlocation; gate call sites = the per-route flag checks on the admin/debug surface."
+    "Resolved: internals = the devmode toggle writing conf/rdmconfig + conf/rdmlocation; gate call sites = the per-route flag checks on the admin/debug surface.",
+    "devmode = a signed statement system (devmode.cxx): a /devmode.bin blob (fetched as debug/devmode.bin, staged via /tmp/devmode.tmp.bin) carries statements formatted 0x%s %d.%d-%d.%d (statement id + supported version range). Statements can be persistent or temporary - persistence is restricted per statement (R_ALLOW_SSH_PUBKEY_INSTALL may not be persisted; Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL) so the SSH-pubkey-install capability only ever applies to the running boot. Changes fan out to listeners and processes (Failed to notify listeners/processes about the change). Blob is x-rincon-enc3 wrapped (signed/encoded). So devmode = a secure policy door where a signed blob enables specific capabilities (e.g. SSH pubkey install) without an open flag file."
    ]
   },
   "download_status": {
@@ -143682,12 +143670,11 @@
     }
    ],
    "todo": [
-    "Established: the detected/unsupported format taxonomies on the input side.",
-    "Still unknown: the detection algorithm (burst header parsing) and debounce.",
-    "Next step: document the detection state machine."
+    "Established: IEC 61937 burst detection (PcPd + stride + anomalies), data-type table, parser-vs-source arbitration, reset timers."
    ],
    "resolved_findings": [
-    "Resolved: detection state machine = the SPDIF lock detect {signal present -> format probe {PCM,AC3,DTS} -> locked -> unlock on loss}."
+    "Resolved: detection state machine = the SPDIF lock detect {signal present -> format probe {PCM,AC3,DTS} -> locked -> unlock on loss}.",
+    "Detection algorithm proven: the SPDIFParser implements IEC 61937 burst detection - Pa/Pb/Pc/Pd preamble words with PcPd payload validation (Found apparent PcPd with only %u frames padding!), per-state machine transitions (State change %s -> %s. %s), stride tracking (InputBitstreamStride), and an anomaly list (non-zero frame). Burst data-type names {Professional Type II, MPEG2 AAC LSF 4096, MPEG4 AAC 2048/512/4096, MPEG2 AAC LSF Reserved 1/2, WMA Professional Type III/IV, UNKNOWN_BITSTREAM} map the IEC data-type field to codec profiles. Validity arbitration: Parser identified Encoded/PCM signal in disagreement with Source and Bitstream validity re-established - the parser verdict can override the claimed source type. Status dumps via <SPDIFParser><State/><InputBitstreamStride/><Anomalies/>. Debounce is the validity/reset machinery (SPDIF reset time %llu us, CSB/NSD/decoder/ASRC reset timers, First CSB accumulated/not accumulated)."
    ]
   },
   "netif_monitor": {
@@ -143758,12 +143745,12 @@
     }
    ],
    "todo": [
-    "Established: the wifi-connection-event trigger and the setting keys consulted.",
-    "Still unknown: what 'boot sequence' means operationally (which components re-run) and the full ordered boot stages.",
-    "Next step: trace 'updating boot sequence' to the routine it re-triggers and document the stage order."
+    "Established: boot_sequence_mgr consumes the boot settings set and re-runs on wifi events; bootseq counter guards topology joins.",
+    "Residual: the ordered stage list (which components run per boot pass - the mgr exists but its stage table is runtime data)."
    ],
    "resolved_findings": [
-    "Resolved: updating boot sequence re-triggers the bootstage recorder; stages = the ordered init milestone set."
+    "Resolved: updating boot sequence re-triggers the bootstage recorder; stages = the ordered init milestone set.",
+    "boot_sequence_mgr.cxx reads boot-time settings {TargetRoomName, LocalAccountTransferMode, ForceWifiDisable, ForceMeshDisable, SonosNetDisable, WEPKey} and re-triggers on connectivity events (updating boot sequence due to wifi connection event). Separately, bootseq %u is a per-member monotonic counter in the topology layer (Adding member %s with bootseq %u failed - out-of-sync GM; %s ZP %s (bootseq %u); new bootseq) used to reject stale group members, and appears in mdns/topology notify records (bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u})."
    ]
   },
   "cloud": {
@@ -144006,7 +143993,8 @@
    ],
    "resolved_findings": [
     "Resolved: stream type %d values = the framer-factory ordinals matching the accepted_mimes codec ids.",
-    "Stream architecture decoded (fileio/fileDataProvider/fileDataMgr/asyncfileio tags): URIs open through a stream-class dispatch (Success opening URI %s; stream type %d / Failed opening URI status 0x%x / getStreamInternal: ppstrm is null) whose classes cover http, smb, memory-resident, and directory - File is in memory; not opening HTTP stream is the cache hit; directory opens are mutually exclusive with file opens (already opened as a directory / as SMB directory) and SMB listings serialize as application/xml; listing via readdir. Sonos-API URIs must be pre-resolved (Sonos API URI %s not dereferenced before opening stream - the x-sonosapi indirection layer dereferences to a real URL first). Prebuffer/resume: Prebuffered %zu bytes during open, reopening http for streaming at %zu with the ?after= byte-offset resume query. Async notification registers per stream (%p: registering async / async enabled / unregistering). Framer factory: mime type for %s is %s drives parser selection; no framer found in factory is the unreachable-default guard."
+    "Stream architecture decoded (fileio/fileDataProvider/fileDataMgr/asyncfileio tags): URIs open through a stream-class dispatch (Success opening URI %s; stream type %d / Failed opening URI status 0x%x / getStreamInternal: ppstrm is null) whose classes cover http, smb, memory-resident, and directory - File is in memory; not opening HTTP stream is the cache hit; directory opens are mutually exclusive with file opens (already opened as a directory / as SMB directory) and SMB listings serialize as application/xml; listing via readdir. Sonos-API URIs must be pre-resolved (Sonos API URI %s not dereferenced before opening stream - the x-sonosapi indirection layer dereferences to a real URL first). Prebuffer/resume: Prebuffered %zu bytes during open, reopening http for streaming at %zu with the ?after= byte-offset resume query. Async notification registers per stream (%p: registering async / async enabled / unregistering). Framer factory: mime type for %s is %s drives parser selection; no framer found in factory is the unreachable-default guard.",
+    "Stream-type dispatch table recovered: URI-pattern -> MIME -> extension triples {sonos.com-http:*:audio/mpeg3:*, sonos.com-http:*:audio/x-ms-wma:*, sonos.com-http:*:audio/wma:*, sonos.com-http:*:audio/wav:* (.wav), sonos.com-http:*:audio/aiff:* (.aiff), sonos.com-http:*:audio/flac:* (.flac), sonos.com-spotify:*:audio/x-spotify:*, sonos.com-http:*:application/ogg:*, sonos.com-rtrecent:*:audio/x-sonos-recent:*, x-sonosapi-hls-static:*:*:*, sonos.com-http:*:application/dash+xml:* (.mpd), sonos.com-http:*:application/octet-stream:* (.unknown), audio/vnd.radiotime, x-sonosapi-hls:*:*:*} terminating in Unsupported mime."
    ]
   },
   "group_rc": {
@@ -144775,12 +144763,11 @@
     }
    ],
    "todo": [
-    "Established: the URI scheme list and the mime-type list for protocolInfo.",
-    "Still unknown: which schemes are playable vs metadata-only and the matching rules.",
-    "Next step: map schemes to their stream handlers."
+    "Established: http-get sink MIME list (19 types) vs internal x-rincon/x-sonosapi/file/spdif res schemes; matching is literal prefix templates."
    ],
    "resolved_findings": [
-    "Resolved: scheme->handler map = the protocol_info table pairing each URI scheme with its stream handler."
+    "Resolved: scheme->handler map = the protocol_info table pairing each URI scheme with its stream handler.",
+    "Playable-vs-metadata split proven: the sink list advertises http-get:* for real stream types {audio/mp3, audio/mp4, audio/x-m4a, audio/mpeg, audio/mpegurl, audio/x-mpegurl, application/x-mpegurl, application/vnd.apple.mpegurl (HLS), application/dash+xml (DASH), audio/mpeg3, audio/wav, audio/x-wav, audio/wma, audio/x-ms-wma, audio/aiff, audio/x-aiff, audio/flac, application/ogg, audio/ogg} plus a template form http-get:*:%s. The virtual/internal protocolInfos used inside DIDL <res> are NOT playable transports - {x-rincon-playlist:*:*:*, x-rincon-queue:*:*:* (queue references), x-rincon-mp3radio:*:*:* (streamable radio item), x-sonosapi-show:*:*:* (SMAPI show item), x-sonos-vli:*:audio:* (virtual line-in source), file:*:audio/mpegurl:* (local playlist file), spdif (physical input)} - these resolve through the load_content item-type resolver rather than HTTP fetch."
    ]
   },
   "browse_prefixes": {
@@ -145236,12 +145223,11 @@
    "node_fsm": "actions TP_NODE_ACTION_{NONE,SETUP,START_MEASUREMENT,SEND_BACK_DATA,COLLECT_DATA,SEND_STATUS}; status TP_NODE_STATUS_{IDLE,SETUP,MEASURING,MEASUREMENT_DONE,DATA_COMPUTED,ERROR,EXCEPTION}",
    "codec": "protobuf bridge {tpNodeActionToPBNodeAction,pbNodeActionToTPNodeAction,tpNodeStatusToPBNodeStatus,pbNodeStatusToTPNodeStatus,pbChannelTypeToTPChannelType,encodeNodeRequest,decodeNodeRequest,encodeNodeResponse,decodeNodeResponse}; \"Received node message\"; \"Node message is: %s\"; \"Node response is: %s\"; \"Error decoding node message\"; TPThrowException/\"TPException in \" + \" - l.\"; \"A critical error equivalent to an exception occurred and anything happening after is undefined behaviour: %s\"; \"<%s - %s:l%d> \"; Unhandled {trueplay channel type,node action,protobuf node action,trueplay node status,protobuf channel type} + \"Protobuf encoding/decoding of node request/response failed.\" + \"Either nRows or nCols is 0 but the other isn't.\"",
    "todo": [
-    "Established: the SDK version, the factory, the version negotiation, the node methods, and the minimal-node build limits.",
-    "Still unknown: the node method argument structures and the FSM behind setup->measure->compute.",
-    "Next step: document the node API per method."
+    "Established: method surface, action/status enums, TPNodeSetupInfo {nMics, nDSPChannels} args, protobuf message coding, data-collection consent gate, SDK 6.2.0.1."
    ],
    "resolved_findings": [
-    "Resolved: node API per method = the factory TrueplayAPIFactory + initNode/initNodeMajorVersion version negotiation {Build version for TP API, Updating Trueplay SDK version, not supported -> previous version, already in use}; node_fsm + codec sub-blocks hold the per-method flow."
+    "Resolved: node API per method = the factory TrueplayAPIFactory + initNode/initNodeMajorVersion version negotiation {Build version for TP API, Updating Trueplay SDK version, not supported -> previous version, already in use}; node_fsm + codec sub-blocks hold the per-method flow.",
+    "FSM + argument layer fully decoded. Method surface {init, setup, setupMeasurement, startMeasurement, computeData, handleMsg} on TPNode (source ../git/api/src/trueplay_api.cpp, ../git/core/public/common/src/node.cpp). Action enum {TP_NODE_ACTION_NONE, TP_NODE_ACTION_SETUP, TP_NODE_ACTION_START_MEASUREMENT, TP_NODE_ACTION_SEND_BACK_DATA, TP_NODE_ACTION_COLLECT_DATA, TP_NODE_ACTION_SEND_STATUS}; status enum {TP_NODE_STATUS_IDLE, TP_NODE_STATUS_SETUP, TP_NODE_STATUS_MEASURING, TP_NODE_STATUS_MEASUREMENT_DONE, TP_NODE_STATUS_DATA_COMPUTED, TP_NODE_STATUS_ERROR, TP_NODE_STATUS_EXCEPTION} - the setup->measure->compute pipeline is explicit: Node is not setup guards precede Starting the measurement and computeData. Setup args: TPNodeSetupInfo carries nMics & nDSPChannels (must both be 0 when one is 0 - minimal node builds have no mics; channel types not available for a minimal node build). Messages are protobuf-coded (encodeNodeRequest/decodeNodeRequest/encodeNodeResponse/decodeNodeResponse + tpNodeActionToPBNodeAction/pbNodeActionToTPNodeAction/tpNodeStatusToPBNodeStatus/pbNodeStatusToTPNodeStatus/pbChannelTypeToTPChannelType converters, Received node message / Node message is : %s / Node response is : %s / Error decoding node message). Consent gate: Trueplay data handler reports that data collection %s allowed (nullptr handler check). Version: SDK 6.2.0.1-main.Unspecified.2db5546c with separate Node data schema version. Exceptions via TPThrowException/TPException (critical error equivalent to an exception occurred ... undefined behaviour)."
    ]
   },
   "device_registration": {
@@ -146730,12 +146716,12 @@
     }
    ],
    "todo": [
-    "Established: the URL parser errors, the status map, the UDN format, the loopback token, the time formats, and the status enum.",
-    "Still unknown: where each helper is used and the error-code table.",
-    "Next step: map helpers to call sites."
+    "Established: two-bucket status map, UDN/time formats, loopback token mutex, playability enum.",
+    "Residual: per-helper call-site census (the helpers are leaf utilities; consumers span all UPnP code)."
    ],
    "resolved_findings": [
-    "Resolved: helper->callsite map = RparseServerLocationAndPort {host/port/scheme validation} + RmapStatusToUPNPRESULT {CANT_CONNECT,...} used by the UPnP client paths."
+    "Resolved: helper->callsite map = RparseServerLocationAndPort {host/port/scheme validation} + RmapStatusToUPNPRESULT {CANT_CONNECT,...} used by the UPnP client paths.",
+    "Error-code table is a two-bucket map: RmapStatusToUPNPRESULT collapses every transport/status failure into {UPNP_RESULT_CANT_CONNECT, UPNP_RESULT_GENERAL_FAILURE} preserving the original code in the log line (Original error code = 0x%08x). UDN compose format uuid:%s::urn:schemas-upnp-org:device:ZonePlayer:1; time formats {%04hu-%02hu-%02huT%02hu:%02hu:%02hu ISO, compact %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx (UUID-like grouping), %02hu:%02hu:%02hu, %+02d:%02d tz}; loopbackSecurityTokenMutex guards the loopback token; playability enum {UNPLAYABLE, MEMBER, NO-CONTENT, LAN-SWAPPABLE}."
    ]
   },
   "expat": {
@@ -146822,12 +146808,12 @@
     }
    ],
    "todo": [
-    "Established: libFLAC 1.3.4 version, the error vocabulary, the I/O callback statuses, the decoder states, and the metadata block types.",
-    "Still unknown: the integration layer (which stream path uses FLAC decode) and the callback bindings.",
-    "Next step: trace the decoder creation from the stream framer."
+    "Established: libFLAC 1.3.4 via audio/flac MIME route + m4a-flac container + eSDK flac-24bit format; full subframe vocabulary.",
+    "Residual: none structural - callback bindings are the standard read/write/seek/tell/length/eof/metadata/error set whose status enums are fully enumerated."
    ],
    "resolved_findings": [
-    "Resolved: decoder creation = reference libFLAC 1.3.4 via the stream framer; error/status enums documented."
+    "Resolved: decoder creation = reference libFLAC 1.3.4 via the stream framer; error/status enums documented.",
+    "Integration layer proven: FLAC enters three ways - (1) the HTTP stream MIME route sonos.com-http:*:audio/flac:* with .flac extension mapping in the stream-format dispatch table; (2) MP4-container FLAC via the m4a-flac codec variant ({m4a-m4a, m4a-alac, m4a-flac, m4a-opus, m4a-ec3}); (3) the eSDK stream format flac/flac-24bit (with {ogg/vorbis, mp4/aac-lc, spac/aac-he-v2, video-manifest}). Exact build: reference libFLAC 1.3.4 20220220. Subframe vocabulary {LEFT_SIDE, RIGHT_SIDE, MID_SIDE, CONSTANT, VERBATIM, PARTITIONED_RICE, PARTITIONED_RICE2} confirms the full decoder including stereo decorrelation modes."
    ]
   },
   "tp_enums": {
@@ -146864,12 +146850,12 @@
    "errors": "{\"hasn't been initialised. Did you forget to set the profile?\",\"internal error prevented the SDK from initialising\",\"Some memory hasn't been freed\",\"Receiving mode has been disabled\",\"profile creation could not be completed\",\"not running\"/\"already running\"/\"already stopped\"/\"already sending\",\"sample rate is invalid, or is too low for this profile\",\"NULL buffer/pointer/empty string\",\"channel requested is not supported by this profile\",\"Invalid frequency correction value\",\"internal issue occurred when processing\",\"profile was generated for a different version. Please upgrade\",\"Logging has been enabled but the corresponding callback has not been set\",\"callback not supported with the selected modulation scheme\",\"not intended to be used with the actual modulation scheme\",\"payload is empty/invalid/contains unknown symbols\",\"Couldn't decode the payload\",\"payload length longer/shorter than max/min\",\"gain level specified is invalid\",\"SDK has reported an unknown error\",\"Audio I/O error\",\"Unknown error code\",\"Send/Receive mode hasn't been enabled\",\"The device is muted. Cannot send data\",\"Chirp message/parity payload has already been allocated\",\"Requested length exceeds maximum/smaller than minimum payload length\",\"Payload does not support symbol sizes beyond 64-bit\",\"Preamble payload has too few symbols (TODO: #741)\",\"Protocol for chirp creation is null\",\"Failed to set meta data\",\"Checksum has been corrupted: %#x\",\"Seeking beyond the end of the array\",\"Bandwidth cannot be measured for equal-tempered settings\",\"Protocol acoustic/encoding is NULL\",\"Preamble must be at least 1 byte long/some length\",\"Preamble code is outside of symbol range\",\"Base frequency is below 20\",\"Channel count is not within acceptable range\",\"Header note length invalid\",\"Body note duration invalid\",\"Attack/Release time invalid\",\"Attack/release combination is invalid\",\"Portamento is invalid\",\"Preamble/Body silence duration invalid\",\"Alphabet bits is not within acceptable range\",\"Min/Max message length cannot be less than 1 byte\",\"Max message length cannot be less than min\",\"Polyphony is outside valid range\",\"Total frame length cannot be more than 256 bytes\",\"Strings have different lengths\",\"Chirp: Runtime assertion failed: \"}",
    "internals": "chirp-core 4.2.1_7265; GF/RS {new/del_gf,new/del_gf_poly,gf_calc_syndromes,gf_correct_errata,gf_forney_syndromes,gf_find_error_evaluator,gf_poly_{concatenate,mul,div,add,append,scale,zero_pad,strip_leadingzero},trim_gf_poly,new/del_chirp_rs,new/del_chirp_rs_result,copy_chirp_rs}; decoder {new/del_chirp_decoder,chirp_decoder_flush,new/del_chirp_cdma_decoder,new/del_chirp_peaks,new/del_chirp_scorer,new/del_chirp_voter,chirp_voter_set_state,new/del_chirp_weighting,new/del_chirp_template,new/del_chirp_block_buffer,new/del_chirp_fft,new/del_chirp_reverb,new/del_chirp_bitstring,new/del_chirp_biquad_filter,new/del_chirp_multitone,new/del_chirp_codebook,new/del_chirp_rms,new/del_chirp_decorator,chirp_maths_fft_init/deinit}; encoder {new/del_chirp_encoder,chirp_encoder_chirp,chirp_encoder_chirp_array_raw,chirp_encoder_test_signal_init/stop,new/del_chirp_wavetable,new/del_chirp_cdma_encoder}; SDK internals {_chirp_sdk_configure_core,_chirp_sdk_from_string,_chirp_sdk_as_string,_chirp_to_bytes,_new/_del_chirp_sdk_buffer_processed_metrics,chirp_sdk_buffer_metrics_t,chirp_sdk_payload_metrics_t,_chirp_on_received_cdma,_chirp_sdk_allocate/free_decoders_fsk,_chirp_on_sending_fsk,_chirp_on_received_fsk,_chirp_on_sent_fsk}; types {chirp_rs_t,chirp_rs_result_t,chirp_template_t,chirp_decoder_t,chirp_cdma_decoder_t,chirp_note_estimate_t,chirp_note_metric_t,chirp_cdma_match_t,chirp_peaks_t,chirp_peak_t,chirp_scorer_t,chirp_voter_t,chirp_weighting_t,chirp_encoder_t,chirp_wavetable_t,chirp_test_signal_t,chirp_cdma_encoder_t,chirp_block_buffer_t,chirp_fft_t,chirp_reverb_t,chirp_bitstring_t,chirp_biquad_filter_t,chirp_multitone_t,chirp_codebook_t,chirp_rms_t,chirp_decorator_t,chirp_u16_t}; errors {\"Wrong len value\",\"field_charac = 0\",\"Value of symbol_bits will overflow a cast\",\"Sum of message and parity lengths out of range\",\"Length should not be negative\",\"Erase count value negative\",\"No frames selected to decode (is sustain period too short?)\",\"chirp_encoder: cannot process an empty block\",\"Invalid note index\",\"FFT block_size must be greater than 1\",\"Bitstring length exceeds maximum supported limit\",\"Resolved [ %d\",\"Polyphony required is outside allowed range\",\"combinatoric result out of range\",\"event_index maximum value reached\"}; alt JSON parser {comment support,\"Invalid character value\",\"Unexpected EOF in block comment\",\"Comment not allowed here\",\"Trailing garbage\",\"Expected ,/:/digit before/after\",\"Unknown value\",\"Too long (caught overflow)\"}",
    "todo": [
-    "Established: the chirp-sdk 4.2.3 + libvorbis versions and the complete exported API surface.",
-    "Still unknown: which API calls anacapad actually makes vs dead-linked exports.",
-    "Next step: trace the call sites from chirp_stack into this API and document the used subset."
+    "Established: sender-side usage via ChirpExtAudioSrc under muse chirpRequest/chirp/{playId}; playId arbitration; calibrated volume gate; chirp-core 4.2.1_7265.",
+    "Residual: whether any anacapad code decodes chirps (decoder libs are linked but no receive-side consumer is evident - sender-only usage)."
    ],
    "resolved_findings": [
-    "Resolved: call sites = the chirp_stack consumers of {new_chirp_sdk, chirp_sdk_send, chirp_sdk_process_shorts_input/output, chirp_encode/decode, chirp_get_symbol}; used subset documented in internals."
+    "Resolved: call sites = the chirp_stack consumers of {new_chirp_sdk, chirp_sdk_send, chirp_sdk_process_shorts_input/output, chirp_encode/decode, chirp_get_symbol}; used subset documented in internals.",
+    "Used-vs-dead split proven: the anacapad consumer surface is the room-detection sender path - muse verb chirpRequest and route chirp/{playId} drive a chirp audio stream through ChirpExtAudioSrc (ChirpExtAudioSrc does not exist!, Chirp setup failed - chirp sender does not exist!). Runtime behavior: chirping with unique device value:%d payload, playId tracking (chirp with playId %d / differ than m_chirpPlayId), concurrent-play guard (chirp signal is already playing with playId %d), volume calibration gate (Chirp volume not yet calibrated, chirp output volume: %d), payload allowlist (Chirp payload %s not supported), and a playback-collision policy (ChirpIfPlayingSwappableAudio, chirp only). Precise version: chirp-core 4.2.1_7265 (the core lib) under the 4.2.3 SDK wrapper, with FSK + CDMA decoder/encoder pairs, reed-solomon, wavetable/biquad/multitone/FFT DSP, voter+scorer+peaks decode path - all compiled in; the APIs anacapad exercises are init/config/send/process + the send-path encoder; the FSK/CDMA decoder side is present but only the sender path has anacapad consumers."
    ]
   },
   "esdk_api": {
@@ -146932,12 +146918,12 @@
     }
    ],
    "todo": [
-    "Established: the korn temp-ram asserts, the module/event machinery errors, and the SP_MAX_EVENTS bound.",
-    "Still unknown: what 'korn' is architecturally (the eSDK's kernel?) and its module list.",
-    "Next step: enumerate modules from the init sequence and document the event loop."
+    "Established: korn = eSDK kernel owning module_manager + event queue + temp-ram bump allocator with leak asserts.",
+    "Residual: the module list registered in module_manager (eSDK modules register at init; the registry is runtime data)."
    ],
    "resolved_findings": [
-    "Resolved: modules = the init sequence driving sp_korn_event_count + temp-ram allocator asserts; event loop = the %s module pump dispatch."
+    "Resolved: modules = the init sequence driving sp_korn_event_count + temp-ram allocator asserts; event loop = the %s module pump dispatch.",
+    "Architecture proven: korn is the Spotify eSDK runtime kernel (esdk/src/korn/korn.c). It owns three subsystems - (1) a bump/scratch allocator: _temp_ram region with _temp_ram_free/_temp_ram_num_allocs accounting, MAX_KORN_TEMP_RAM_ALLOCS bound, LIFO discipline (ptr == korn_ptr->_temp_ram), and leak asserts (TEMP_RAM not freed at end of pump!, Too many returns of temp ram!); (2) a module manager (korn_ptr->module_manager, (%s) failed to initialize); (3) an event queue bounded by SP_MAX_EVENTS (sp_korn_event_count() < SP_MAX_EVENTS) with shutdown leak checks (shutdown. Possible memory leak.)."
    ]
   },
   "korn_events": {
@@ -146970,12 +146956,12 @@
     }
    ],
    "todo": [
-    "Established: the Spotify access-point endpoint list, the login handshake vocabulary, the 16KB TLV framing with MAC check, and the connectivity error taxonomy.",
-    "Still unknown: the TLV message-type table and the post-login command channel semantics.",
-    "Next step: enumerate TLV type codes from the receive-path parser behind 'Failed reading TLV header'."
+    "Established: AP resolver ladder, Hello/Login/ApWelcome handshake, 7-byte TLV header + MAC + 16KB cap, connectivity-change socket repopulation.",
+    "Residual: the numeric TLV message-type table (post-login dispatch switch in mod_ap_conn; framing proven)."
    ],
    "resolved_findings": [
-    "Resolved: TLV type codes = the receive-path parser behind Failed reading TLV header; handshake = {Connecting, Hello, apresolve request, logging in type/user, ApWelcome decode} over ap.spotify.com."
+    "Resolved: TLV type codes = the receive-path parser behind Failed reading TLV header; handshake = {Connecting, Hello, apresolve request, logging in type/user, ApWelcome decode} over ap.spotify.com.",
+    "Handshake + framing proven in mod_ap_conn.c: resolver ladder {local apresolve, apresolve (apresolve.spotify.com), fallback, ap.spotify.com}; connect with timeout (Connecting (%s) %s:%d timeout: %d sec) -> Sending Hello message to AP -> logging in, type %d sz %d user %s -> ApWelcome decode (Failed to decode ApWelcome: %s / ApWelcome failed). Inbound framing is a 7-byte TLV header (Failed reading TLV header %d %d/7 oserr %d) with packet_size <= 16384 assert, too-large rejection (Packet from AP is too large! Type: %d / Size: %d), and per-packet MAC verification (Corrupted packet, invalid MAC via memcmp). Health guards: Too long without response from server; SpPumpEvents() is called too slowly: %d ms for 100 calls; packet skip accounting Skipped %s(%d) (%d > %d); connectivity-change socket repopulation (Connectivity went from one type to another (%d -> %d), populating disconnected sockets array)."
    ]
   },
   "socket_hal": {
