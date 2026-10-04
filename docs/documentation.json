@@ -140270,12 +140270,13 @@
     }
    ],
    "todo": [
-    "Residual: per-scope scheduling policy (which scope runs which work) is registration-table data; the pool geometry is proven."
+    "Residual: per-registration work->scope binding (which caller picks scope:mtx vs scope:cv) is a registration arg, not table data; scope vocabulary itself proven complete"
    ],
    "resolved_findings": [
     "Resolved: registrants = the eventLoopThreadPool consumers {scopeDefault, scope:mtx, scope:cv, scopeHttpClient}; scheduling = watchdogTimestamp + elapsed-time logging + has-no-more-work shutdown path.",
     "Scheduling model proven: eventLoopThreadPool runs the work queue; each item carries a named scope {scopeDefault, scope:mtx, scope:cv, scopeHttpClient} - mutex/condvar/http-client bound execution contexts; event_loop_counter-- decrements the pending-work count. Lifecycle: Eventloop started. Threads: %zu -> eventloop configured -> Eventloop has no more work to do -> Eventloop stopped -> Eventloop shutdown. Cancelling watchdog; Eventloop failure! + eventLoop elapsed-time:%lld on faults; watchdogTimestamp feeds the watchdog cancel. The select-thread layer beneath it (selthrd.*) has 8 fd-watch registrants, each with {reset, data, except, timeout} callbacks: ARPingManager, ArpChecker, RHWEvtHandlerZP, RIPCHandler, RIRDecoder, RIfAddressMonitor, RMSearchNotifyHandler, RTrackPlayMonitor. Adjacent: the /fcs feature-config-override page serves a static HTML form (cloudsourcedconfig readonly textarea + overrideconfig POST to /fcs).",
-    "Decoded: the thread pool is a fixed 2-worker spawn - f_106b8f2c iterates the inline descriptor array obj+0xb4..obj+0xd4 (2 slots x 0x20) and spawns one thread per slot running worker f_106b8cd0; 'Eventloop started. Threads: %zu' reports that count."
+    "Decoded: the thread pool is a fixed 2-worker spawn - f_106b8f2c iterates the inline descriptor array obj+0xb4..obj+0xd4 (2 slots x 0x20) and spawns one thread per slot running worker f_106b8cd0; 'Eventloop started. Threads: %zu' reports that count.",
+    "Resolved: the complete scope vocabulary is only three names - {scopeDefault, scope:mtx, scope:cv} (0x10e9a088, 0x10e88490, 0x10e8849c); no other scope* strings exist in the image. Work is bound to a scope at registration time; the loop runs a thread pool (\"Eventloop started. Threads: %zu\") draining all scopes."
    ]
   },
   "devicecertmanager": {
