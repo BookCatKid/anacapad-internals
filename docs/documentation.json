@@ -138362,13 +138362,12 @@
     }
    ],
    "setup_ready_combo": "VOL_UP+VOL_DN combo: each press starts a timer ('VOL_UP starts timer, when pops, switch to setup-ready mode' / 'VOL_DN starts timer...'); holding both pops the timer and the device switches to setup-ready mode ('VOL_UP + VOL_DN timer popped, switching to setup-ready mode' and inverse order): the physical-button path into setup/join flow. Button presses can also tear down grouping: 'Becoming standalone due to button press'.",
-   "todo": [
-    "Residual: which of the proven button ids {79=PLAYPAUSE_HELD, 82=JOIN_PRESSED, ...} the cycle action binds to - the ids are named; the binding is a runtime event-map entry, not a literal."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: button handler = the long-press list walk cycling remembered group coordinators (per misc_health decode).",
     "Behavior decoded: long-press on play/pause walks the cloneable-GC list and JOINS the player to the next cloneable group coordinator - cycling to %s:%s moves the device to the next GC's playback session (clone semantics = become a group member playing that GC's queue), end of list reached wraps. The list maintains {head, tail, current} ordering with tracked transitions {Adding new GC, Moving GC to head (most-recent-first), Removing GC, Updating last PAUSED/STOPPED GC, Last GC in HH to change playback state is no longer cloneable, Untracked GC} - recency-ordered so each long-press hops to the next-most-recently-active group.",
-    "Resolved: the button-event ids are proven by the emit-name enum (enum_tables.10ef4fc8): BUTTON_PLAYPAUSE_PRESSED=78, BUTTON_PLAYPAUSE_HELD=79, BUTTON_VOL_UP_PRESSED=80, BUTTON_VOL_DN_PRESSED=81, BUTTON_JOIN_PRESSED=82, STATE_BUTTON_MICMUTE_PRESSED=83, plus DIAG_MODE=84; runtime-policy actions occupy 50-76."
+    "Resolved: the button-event ids are proven by the emit-name enum (enum_tables.10ef4fc8): BUTTON_PLAYPAUSE_PRESSED=78, BUTTON_PLAYPAUSE_HELD=79, BUTTON_VOL_UP_PRESSED=80, BUTTON_VOL_DN_PRESSED=81, BUTTON_JOIN_PRESSED=82, STATE_BUTTON_MICMUTE_PRESSED=83, plus DIAG_MODE=84; runtime-policy actions occupy 50-76.",
+    "Resolved: the cycle action binds event id 79 (BUTTON_PLAYPAUSE_HELD) - the dispatch @0x10863400 compares the event byte *(r31+0x14) against 0x45 (ORIENTATION_VERTICAL) and 0x4f (BUTTON_PLAYPAUSE_HELD); either match runs the walk @0x1086341c which advances list index *(r31+0x10) into the GC array *(r31+0xd4) and calls the join delegate f_108382c4 - long-press play/pause (and orientation-vertical events) cycle the cloneable coordinator list."
    ]
   },
   "fmp4_parser": {
