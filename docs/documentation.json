@@ -138683,12 +138683,12 @@
     }
    ],
    "todo": [
-    "Established: boot_sequence_mgr consumes the boot settings set and re-runs on wifi events; bootseq counter guards topology joins.",
-    "Residual: the ordered stage list (which components run per boot pass - the mgr exists but its stage table is runtime data)."
+    "Residual: per-stage component list - no static stage-name array exists in the image (checked); the pass is a re-eval over the boot settings set on each trigger event, component actions dispatched through the registered boot-time consumers"
    ],
    "resolved_findings": [
     "Resolved: updating boot sequence re-triggers the bootstage recorder; stages = the ordered init milestone set.",
-    "boot_sequence_mgr.cxx reads boot-time settings {TargetRoomName, LocalAccountTransferMode, ForceWifiDisable, ForceMeshDisable, SonosNetDisable, WEPKey} and re-triggers on connectivity events (updating boot sequence due to wifi connection event). Separately, bootseq %u is a per-member monotonic counter in the topology layer (Adding member %s with bootseq %u failed - out-of-sync GM; %s ZP %s (bootseq %u); new bootseq) used to reject stale group members, and appears in mdns/topology notify records (bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u})."
+    "boot_sequence_mgr.cxx reads boot-time settings {TargetRoomName, LocalAccountTransferMode, ForceWifiDisable, ForceMeshDisable, SonosNetDisable, WEPKey} and re-triggers on connectivity events (updating boot sequence due to wifi connection event). Separately, bootseq %u is a per-member monotonic counter in the topology layer (Adding member %s with bootseq %u failed - out-of-sync GM; %s ZP %s (bootseq %u); new bootseq) used to reject stale group members, and appears in mdns/topology notify records (bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u}).",
+    "Resolved: the boot sequence is event-driven, not a fixed stage table - literal re-trigger causes {registration event, cert update event, wifi connection event wC:%d} (0x10e98b35/0x10e98d05/0x10e9ac19) confirm the mgr re-runs the pass on event arrival; BootSequenceEvent is the delivered event name. The bootseq counter is logged as bootseq=%u with ports={%u-%u} and mdnssequence={old,new} (0x10f06b4d) - a per-member monotonic sequence guarding out-of-sync GM joins (0x10ec31d2)."
    ]
   },
   "cloud": {
