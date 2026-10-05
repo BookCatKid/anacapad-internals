@@ -139222,11 +139222,12 @@
     }
    ],
    "todo": [
-    "Residual: whether any non-WS path uses the compressors (the only proven consumer is permessage-deflate on cloudrequest; UPnP/HTTP bodies are uncompressed in-image)."
+    "Established: RCompressBuffer/RDecompressBuffer feed wspmd only (single caller @0x10775978); UPnP/HTTP bodies uncompressed."
    ],
    "resolved_findings": [
     "Resolved: compressor call sites = the protocols enabling the compressors per negotiated capability.",
-    "Consumer proven: vendored zlib 1.2.11 wrapped by RCompressBuffer/RDecompressBuffer feeds the websocket per-message deflate extension (cloudrequest.cxx: could not initialize per message deflate on ws client) on the lechmere/cloud channel - cloudcfg can toggle it live (cloudcfg per msg deflate change %d -> %d; local run state override present (%d); not applying cloudcfg change / cloudcfg disable per msg deflate change %d -> %d%s). So compression applies to WSS cloud traffic only; local-zone sockets use the smwb/cmwb send/recv mbuf watermark tuning separately. Connection lifecycle: Player IP changed. Bouncing connection / restarting connection plus the Following backoff schedule, retry in %lld loop sit in the same cloudrequest layer."
+    "Consumer proven: vendored zlib 1.2.11 wrapped by RCompressBuffer/RDecompressBuffer feeds the websocket per-message deflate extension (cloudrequest.cxx: could not initialize per message deflate on ws client) on the lechmere/cloud channel - cloudcfg can toggle it live (cloudcfg per msg deflate change %d -> %d; local run state override present (%d); not applying cloudcfg change / cloudcfg disable per msg deflate change %d -> %d%s). So compression applies to WSS cloud traffic only; local-zone sockets use the smwb/cmwb send/recv mbuf watermark tuning separately. Connection lifecycle: Player IP changed. Bouncing connection / restarting connection plus the Following backoff schedule, retry in %lld loop sit in the same cloudrequest layer.",
+    "Resolved (consumer census): the deflate-stream wrapper f_107756b4 has exactly ONE caller (0x10775978) inside the 'wspmd' log-domain module (websocket per-message deflate: 'unexpected inflate init error %x'/'inflate failed error %x' at 0x10775b3c/0x10775c34). No non-WS path uses the compressors - confirmed negative."
    ]
   },
   "audio_tap": {
