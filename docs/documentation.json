@@ -148741,7 +148741,8 @@
    "name": "wacd (wireless access config)",
    "summary": "wacd (/wifi/wacd): the Apple WAC (Wireless Accessory Configuration) provisioning agent. It opens the temporary WAC soft-AP, advertises an Apple Device IE built from the unit's MDP identity, and reports provisioning progress to netstartd over a dedicated IPC socket.",
    "todo": [
-    "Residual: the on-air WAC exchange itself (Apple's accessory handshake) is handled by the soft-AP + IE broadcast; what remains undecoded is the exact credential handoff fields inside WAC_DONE/STA messages."
+    "Established: full wacd flow - MDP->SSID synthesis, soft-AP + Apple Device IE, WirelessSetup bonjour service, 6-msg progress channel to netstartd, USR1 timeout test hook.",
+    "Residual: the exact credential fields inside the WAC STA/DONE payloads (the Apple-side handshake carries them; anacapad/netstartd only see the milestone name)"
    ],
    "artifacts": [
     "wifi/wacd"
@@ -148750,7 +148751,9 @@
     "Resolved (boundary): WAC provisioning handoff = the /var/run/wac_mode state machine + wpa_supplicant/netstartd IPC transitions documented under wac_mode.",
     "IPC channel: connects to /tmp/netstartd_wac.ipc and sends WAC_AP_OPEN, WAC_AP_CLOSE, WAC_STA, WAC_DONE, WAC_TMO, WAC_STOP, WAC_ERROR notifications ('Send WAC AP Open/Close/Timeout/Done/Stop/Error msg fail'); owns /tmp/wacd.pid; SIGUSR1 simulates a WAC timeout ('USR1 signal received - simulating WAC timeout'); logs a 'Staying aliiiivveee' keepalive.",
     "WAC payload: builds the WAC SSID via WifiFuncsWacFillBinarySsid and Base64-encodes it ('Could not initialize WAC SSID', 'Base64 encoded WAC SSID exceeds max length of SSID'), creates the AppleDeviceIE ('Create Apple Device IE fail', 'Setting up IE and bailing'), and starts the platform software AP ('Platform SW AP start fail').",
-    "Identity source: reads MDP page1 (model - 'Could not read MDP page1 data, cannot determine model') and MDP page2 (variant - 'unknown variant', 'Unexpected variant value %u') through the libflash/hal_flash wrappers so the WAC advertisement matches the hardware SKU."
+    "Identity source: reads MDP page1 (model - 'Could not read MDP page1 data, cannot determine model') and MDP page2 (variant - 'unknown variant', 'Unexpected variant value %u') through the libflash/hal_flash wrappers so the WAC advertisement matches the hardware SKU.",
+    "Resolved: wacd internals - links libwifi (WifiFuncsWacFillBinarySsid, PlatformSoftwareAccessPoint{Start,Stop}), libsonosutils IPC (InitializeIPCContext -> /tmp/netstartd_wac.ipc), libsonos-mdp (sonosMdpSerialToString + sonosGetFinalColorVariant + sonosGetColorVariantString) and libflash (hal_flash_get_mdp{,2}). The WAC soft-AP SSID is built from MDP: serial hex + color-variant name, base64-encoded with a length guard ('Base64 encoded WAC SSID exceeds max length of SSID'). Advertised Bonjour service type literal 'com.sonos.protocol.WirelessSetup'. Milestone strings {Configuration Started, Configuration Received, Configuration Complete} feed WAC_STA progress. Control: SIGUSR1 = 'simulating WAC timeout' test hook; 'Setting up IE and bailing' = IE-broadcast-only mode (no soft-AP); 'Staying aliiiivveee' keepalive log.",
+    "Resolved: failure ladder - 'Could not get flash info' (hal_flash_info_init), 'Could not read MDP page1 data, cannot determine model' (fatal), 'Could not read MDP page2 data, unknown variant'/'Unexpected variant value %u' (warn-only), 'Platform SW AP start fail %u', 'Create Apple Device IE fail %u'. Outbound message set to netstartd proven: WAC_AP_OPEN, WAC_AP_CLOSE, WAC_TMO(timeout), WAC_DONE, WAC_STOP, WAC_ERROR."
    ]
   },
   "bin_wpa_supplicant": {
