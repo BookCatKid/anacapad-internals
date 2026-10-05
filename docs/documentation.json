@@ -140365,10 +140365,11 @@
    "resolved_findings": [
     "Resolved: the committed override file is consumed by the fcs/cloud-config reader (fcs_detail) - local override wins over cloud-persisted config.",
     "File proven: /fcs override POST writes the overrideconfig content into the feature-config store (fcs_detail record - the handler chain f_105eba60 -> f_106ba5b0 commits it); the file overrides cloud-sourced feature config, consumed at next config read by the feature_flag_registry gates.",
-    "Resolved: the override filename is 'cloudconfig_override.json' (0x10ef3da8) composed 'settings' + 'cloudconfig_override.json' by the path builder at f_105be220 before sonosFileCreate in the /fcs commit path (0x106b9d84). The 'settings' dir is the /jffs/settings store root (sibling literals /jffs/settings/{alarmclock.xml,areas.json,cloudconfig.json,householdsettings.json,zones.json,zpMetricsConfigV2.xml}), so the on-disk path is /jffs/settings/cloudconfig_override.json. A sibling builder (0x105be318+) composes the 'featureconfig' subdir + 'RFeatureConfigManager'. Read side: 'Using override config' at 0x105c027c."
+    "Resolved: the override filename is 'cloudconfig_override.json' (0x10ef3da8) composed 'settings' + 'cloudconfig_override.json' by the path builder at f_105be220 before sonosFileCreate in the /fcs commit path (0x106b9d84). The 'settings' dir is the /jffs/settings store root (sibling literals /jffs/settings/{alarmclock.xml,areas.json,cloudconfig.json,householdsettings.json,zones.json,zpMetricsConfigV2.xml}), so the on-disk path is /jffs/settings/cloudconfig_override.json. A sibling builder (0x105be318+) composes the 'featureconfig' subdir + 'RFeatureConfigManager'. Read side: 'Using override config' at 0x105c027c.",
+    "Resolved: the path is root-prefixed, not cwd-relative. The consumer f_1068a70c prepends a root string held in a .bss global (0x1109b024) before appending the relative 'settings/<file>' tail - i.e. <jffs-root>/settings/cloudconfig_override.json. The root pointer is runtime-initialized (bss, zero-init, no static writer - set at process init); all sibling literals use absolute /jffs/settings/* paths, confirming the root resolves to /jffs at runtime."
    ],
    "todo": [
-    "Residual: whether the /jffs prefix is prepended by the join helper or resolved relative to a process cwd - the 'settings' + filename join is proven; the leading mount root is inferred from the sibling file literals"
+    "Established: file path = <runtime jffs-root global @0x1109b024>/settings/cloudconfig_override.json - root-prefixed via f_1068a70c, not cwd-relative; root initialized at process init (matches /jffs/settings/* absolute literals)."
    ]
   },
   "json_parser": {
