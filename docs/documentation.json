@@ -140337,12 +140337,13 @@
      "notes": "overrideconfig region"
     }
    ],
-   "todo": [
-    "Residual: the on-disk path of the override file (likely /jffs/app/debug or settings dir - the write path string is handler data)."
-   ],
    "resolved_findings": [
     "Resolved: the committed override file is consumed by the fcs/cloud-config reader (fcs_detail) - local override wins over cloud-persisted config.",
-    "File proven: /fcs override POST writes the overrideconfig content into the feature-config store (fcs_detail record - the handler chain f_105eba60 -> f_106ba5b0 commits it); the file overrides cloud-sourced feature config, consumed at next config read by the feature_flag_registry gates."
+    "File proven: /fcs override POST writes the overrideconfig content into the feature-config store (fcs_detail record - the handler chain f_105eba60 -> f_106ba5b0 commits it); the file overrides cloud-sourced feature config, consumed at next config read by the feature_flag_registry gates.",
+    "Resolved: the override filename is 'cloudconfig_override.json' (0x10ef3da8) composed 'settings' + 'cloudconfig_override.json' by the path builder at f_105be220 before sonosFileCreate in the /fcs commit path (0x106b9d84). The 'settings' dir is the /jffs/settings store root (sibling literals /jffs/settings/{alarmclock.xml,areas.json,cloudconfig.json,householdsettings.json,zones.json,zpMetricsConfigV2.xml}), so the on-disk path is /jffs/settings/cloudconfig_override.json. A sibling builder (0x105be318+) composes the 'featureconfig' subdir + 'RFeatureConfigManager'. Read side: 'Using override config' at 0x105c027c."
+   ],
+   "todo": [
+    "Residual: whether the /jffs prefix is prepended by the join helper or resolved relative to a process cwd - the 'settings' + filename join is proven; the leading mount root is inferred from the sibling file literals"
    ]
   },
   "json_parser": {
