@@ -138259,12 +138259,11 @@
      "notes": "sharelist block"
     }
    ],
-   "todo": [
-    "Residual: the exact %s|%u tuple members in remoteSettingIsBetter (etag+seq vs id+version - the two-field merge is proven; the field names are rodata-only)."
-   ],
+   "todo": null,
    "resolved_findings": [
     "Resolved: merged with share_indexer - remoteSettingIsBetter compares {version,timestamp} preferring newer remote shares rows.",
-    "Merge complete: this record and share_indexer describe the same engine - the share XML schema {Shares, Share, Path, UserName, Password, VerifiedValidProtocol, Id} and ops {localAddShare, localRemoveShare, localRequestReindex, localRequestResort, localRemoveUnsupportedShares} are documented in share_indexer. The conflict-resolution predicate is remoteSettingIsBetter: us [%s|%u] vs them [%s|%u] - a {id-or-etag, version} tuple comparison implementing last-writer-wins merge across %s/indexrepl replication; proposeUpdatedShareList is the push op."
+    "Merge complete: this record and share_indexer describe the same engine - the share XML schema {Shares, Share, Path, UserName, Password, VerifiedValidProtocol, Id} and ops {localAddShare, localRemoveShare, localRequestReindex, localRequestResort, localRemoveUnsupportedShares} are documented in share_indexer. The conflict-resolution predicate is remoteSettingIsBetter: us [%s|%u] vs them [%s|%u] - a {id-or-etag, version} tuple comparison implementing last-writer-wins merge across %s/indexrepl replication; proposeUpdatedShareList is the push op.",
+    "Resolved: remoteSettingIsBetter calls the shared predicate f_10660e58 - the [%s|%u] tuple is {id-string stored at this+0x102 (25-byte strlcpy field), version u32 at this+0x11c}. Accept rule identical to the replicated-list predicate: remote version > local wins; equal versions tiebreak on strcmp(remote id, local id) < 0. A flag at +0x4e12 gates the check (admin-update bypass); +0x52c8==2 forces re-accept ('no longer better' path emits the reject log)."
    ]
   },
   "svc_manifest": {
