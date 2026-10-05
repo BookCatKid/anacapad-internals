@@ -148683,7 +148683,12 @@
     "Resolved (boundary): verifies rootfs integrity (squashfs/partition consistency) at boot/update; exit contract = nonzero aborts the boot sequence stage.",
     "Invocation site: /etc/Configure calls /sbin/frcheck right after mounting JFFS and touching /var/run/sonosledmgrd.flash_booting_led, before networking modules load.",
     "Exit contract proven from Configure: rc=0 -> 'sonosledmgrd --fr' + 'netstartd --hard-reset' (full factory reset); rc=2 -> 'sonosledmgrd --fr' + 'netstartd --soft-reset' (settings-only reset); rc=1 -> normal boot continues.",
-    "Decision inputs from strings+dyn syms: reads /jffs/app/run/factoryReset.txt looking for the SOFT token (soft reset request persisted across reboot), samples front-panel button state via hal_inputs_get_buttons_state (button-held reset), and touches /dev/audioctl; prints 'APUinfo'."
+    "Decision inputs from strings+dyn syms: reads /jffs/app/run/factoryReset.txt looking for the SOFT token (soft reset request persisted across reboot), samples front-panel button state via hal_inputs_get_buttons_state (button-held reset), and touches /dev/audioctl; prints 'APUinfo'.",
+    "Resolved: frcheck's two inputs are literal: sonosFileExists+sonosFileReadPartial on /jffs/app/run/factoryReset.txt (the persisted reset request written pre-reboot) and hal_inputs_get_buttons_state over /dev/audioctl (the power-on button-hold read). The rc contract {0=hard reset,1=normal boot,2=soft reset} is chosen by combining the file contents with the held-button mask; /dev/audioctl is the only device node it touches."
+   ],
+   "todo": [
+    "Established: inputs = /jffs/app/run/factoryReset.txt + audioctl button state; rc contract proven.",
+    "Residual: which button bitmask selects hard vs soft vs qa/qalite (the mask compare constants live in frcheck's .text read of hal_inputs_get_buttons_state's output word)"
    ]
   },
   "bin_sddpd": {
