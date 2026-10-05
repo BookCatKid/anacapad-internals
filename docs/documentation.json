@@ -140272,12 +140272,14 @@
     }
    ],
    "todo": [
-    "Residual: which of the two sibling families (0x10fad874 with TERMINATING vs 0x10fad930 without) regState indexes - both share {RESET,OFFLINE,INITIATING,ONLINE}; the distinguishing consumer emit is not a static ref"
+    "Established: both state-name tables fully decoded - A={RESET..ERROR incl TERMINATING} 6-ord, B={RESET..ERROR} 5-ord; ordinal col is 1-based serialization index; zero-based regState = RESET0 OFFLINE1 INITIATING2 ONLINE3 ERROR4(B).",
+    "Residual: which family the live regState->name mapper binds (tables are container-copied with zero direct refs)."
    ],
    "resolved_findings": [
     "Resolved: regState values = the FSM transitions logged as regState changed %d -> %d through {during suspend, time expired, success, error, retry-at}; signing-key IPC payload = the Invalid registration signing key reject on the IPC set/clear path (registration_machine).",
     "Narrowed: candidate regState vocabularies are proven in enum_tables - {RESET,OFFLINE,INITIATING,ONLINE,TERMINATING,ERROR} at 0x10fad874 and {RESET,OFFLINE,INITIATING,ONLINE,ERROR} at 0x10fad930 fit the %d->%d transition logs; which family regState indexes is not statically referenced.",
-    "Resolved: both candidate regState families are now decoded - @0x10fad874 {RESET:1,OFFLINE:2,INITIATING:3,ONLINE:4,TERMINATING:5,ERROR:6}, @0x10fad930 {RESET:1,OFFLINE:2,INITIATING:3,ONLINE:4,ERROR:5}; whichever family regState indexes, the state vocabulary is the RESET/OFFLINE/INITIATING/ONLINE(+TERMINATING)/ERROR lifecycle, codes starting at 1."
+    "Resolved: both candidate regState families are now decoded - @0x10fad874 {RESET:1,OFFLINE:2,INITIATING:3,ONLINE:4,TERMINATING:5,ERROR:6}, @0x10fad930 {RESET:1,OFFLINE:2,INITIATING:3,ONLINE:4,ERROR:5}; whichever family regState indexes, the state vocabulary is the RESET/OFFLINE/INITIATING/ONLINE(+TERMINATING)/ERROR lifecycle, codes starting at 1.",
+    "Resolved (table shapes): both reg-state name tables are {name_ptr,u32 strlen,u32 ordinal} triples. Family A @0x10fad874 (6 entries): RESET=1,OFFLINE=2,INITIATING=3,ONLINE=4,TERMINATING=5,ERROR=6. Family B @0x10fad930 (5 entries): RESET=1..ERROR=5 (no TERMINATING) followed immediately by a PLAY_TO_BONDED=1/PLAY_REPEATED=2 table - i.e. B sits inside a different enum-table array. The ordinal column is 1-based (name-serialization position); zero-based regState codes remain RESET=0,OFFLINE=1,INITIATING=2,ONLINE=3,(TERMINATING=4 in A),ERROR=4(B)/5(A). Neither table has any direct text or data reference - they are reached through a containing structure/copy (consistent with zero-xref rodata tables elsewhere), so the regState->name binding family is not statically attributable; 'regState changed %d -> %d' (0x10efccd4) logs numeric codes regardless."
    ]
   },
   "hhsettings_rest": {
