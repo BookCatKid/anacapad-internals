@@ -148684,11 +148684,12 @@
     "Invocation site: /etc/Configure calls /sbin/frcheck right after mounting JFFS and touching /var/run/sonosledmgrd.flash_booting_led, before networking modules load.",
     "Exit contract proven from Configure: rc=0 -> 'sonosledmgrd --fr' + 'netstartd --hard-reset' (full factory reset); rc=2 -> 'sonosledmgrd --fr' + 'netstartd --soft-reset' (settings-only reset); rc=1 -> normal boot continues.",
     "Decision inputs from strings+dyn syms: reads /jffs/app/run/factoryReset.txt looking for the SOFT token (soft reset request persisted across reboot), samples front-panel button state via hal_inputs_get_buttons_state (button-held reset), and touches /dev/audioctl; prints 'APUinfo'.",
-    "Resolved: frcheck's two inputs are literal: sonosFileExists+sonosFileReadPartial on /jffs/app/run/factoryReset.txt (the persisted reset request written pre-reboot) and hal_inputs_get_buttons_state over /dev/audioctl (the power-on button-hold read). The rc contract {0=hard reset,1=normal boot,2=soft reset} is chosen by combining the file contents with the held-button mask; /dev/audioctl is the only device node it touches."
+    "Resolved: frcheck's two inputs are literal: sonosFileExists+sonosFileReadPartial on /jffs/app/run/factoryReset.txt (the persisted reset request written pre-reboot) and hal_inputs_get_buttons_state over /dev/audioctl (the power-on button-hold read). The rc contract {0=hard reset,1=normal boot,2=soft reset} is chosen by combining the file contents with the held-button mask; /dev/audioctl is the only device node it touches.",
+    "Resolved: decision logic from the .text (main 0x10000544+): rc starts 1 (normal). If /jffs/app/run/factoryReset.txt exists: sonosFileReadPartial reads 4 bytes + NUL; strcmp=='SOFT' -> rc=2 (soft reset); read<=0 or non-SOFT content -> rc=0 (hard reset); file is unlinked after reading either way (one-shot semantics). Then /dev/audioctl is opened and f_10000904 reads the button-state word into a 4-byte stack buf; if the probed byte ==1 -> rc=0 (hard reset) - a held panel button forces factory reset independent of the file. So: hard=empty/foreign file OR button-held; soft='SOFT' file; normal otherwise."
    ],
    "todo": [
-    "Established: inputs = /jffs/app/run/factoryReset.txt + audioctl button state; rc contract proven.",
-    "Residual: which button bitmask selects hard vs soft vs qa/qalite (the mask compare constants live in frcheck's .text read of hal_inputs_get_buttons_state's output word)"
+    "Established: complete decision tree - {SOFT file->2, other-content file->0, button byte==1->0, default 1}; file is one-shot (unlinked).",
+    "Residual: which physical button the byte-1 slot in hal_inputs_get_buttons_state's output word corresponds to (libsyslib_hal maps GPIO->button index; the mask semantics are inside the lib)"
    ]
   },
   "bin_sddpd": {
