@@ -139928,13 +139928,14 @@
     }
    ],
    "todo": [
-    "Residual: the per-daemon op tables for the remaining external routes (sonospowercoordinator, btmanager - absent on this build, sonosledmgrd message ids). The netstartd msg-id setter table is decoded; the WAC channel is now enumerated at the message-name level."
+    "Residual: the per-daemon op tables for the remaining external routes (sonospowercoordinator, btmanager - absent on this build). The netstartd msg-id setter table is decoded; the WAC channel is now enumerated at the message-name level; sonosledmgrd proven to be flag-word driven, not opcode IPC."
    ],
    "resolved_findings": [
     "Resolved: netstartd external route = the /tmp/netstartd.ipc dispatcher {msg-id -> field setter} decoded under netstartd_ipc.",
     "Resolved: wacd->netstartd channel /tmp/netstartd_wac.ipc carries WAC_AP_OPEN/WAC_AP_CLOSE/WAC_STA/WAC_DONE/WAC_TMO/WAC_STOP/WAC_ERROR - decoded from wifi/wacd + wifi/netstartd string tables.",
     "Resolved (partial): anacapad->sonosledmgrd requests traverse the /sonosledmgrd-external route name; sonosledmgrd runs a socket-based IPC ('hostPort' config field) and consumes the shared leds_zp R_LED_* mode vocabulary - message-level opcodes remain in stripped code.",
-    "Resolved: netstartd per-msgType handler mapping is now explicit - the NS2_MSG_* opcode table {0..0x17} plus NS2_STATE_* FSM table (18 states, {name*, handler-slot array}) both decoded from .data.rel.ro"
+    "Resolved: netstartd per-msgType handler mapping is now explicit - the NS2_MSG_* opcode table {0..0x17} plus NS2_STATE_* FSM table (18 states, {name*, handler-slot array}) both decoded from .data.rel.ro",
+    "Resolved (sonosledmgrd channel): sonosledmgrd has no message-id IPC at all - its imports carry socket/sendto only (no bind/listen/accept/recv), and the shipped /opt/bin/sonosledmgrd binary consumes the R_LED_* mode set through a shared flag word logged 'audiodev_flag %x' (flag-block ladder at 0x100036a4+, bit 0x100 gated, leds_zp log domain) which arrives via hal_audiodev_open; LED writes go through hal_led_{write,flash,diag,brightness}. The anacapad->ledmgrd 'messages' are the R_LED_* bit positions in that audiodev flag word plus the /var/run/sonosledmgrd.flash_booting_led sentinel file - there is no opcode table to enumerate."
    ]
   },
   "led_hw": {
