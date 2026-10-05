@@ -141107,12 +141107,14 @@
     }
    ],
    "todo": [
-    "Residual: StringTableSize cap and where each queue's EntriesMax (+0x10) field is initialized - per-queue config, not a rodata bound."
+    "Established: full queue-object field map from the <Queue> emitter; EntriesMax @+0x2660 has NO literal writers in .text (only stack-slot coincidences) so each queue's capacity arrives via ctor arg.",
+    "Residual: the per-queue EntriesMax argument values at each TrackQueue ctor call site (caller data) and the StringTableSize cap"
    ],
    "resolved_findings": [
     "Resolved: string-table dedup = <Queue> dump fields {EntriesMax/Used/HighWater, StringTableSize/Used/HighWater}; capacity = EntriesMax constant.",
     "Structure proven: the <Queue> status XML exposes the internal bookkeeping - {EntriesMax, EntriesUsed, EntriesHighWater} for the item array and {StringTableSize, StringTableUsed, StringTableHighWater} for the dedup string pool (queue item URIs/metadata share one string table; high-water marks track peak usage). Policy field is the shared/private enum (protocolInfo http-get:*:%s:* with shared/private items). Enqueue bounds: cannot enqueue item; %s queue is full (%zu items added, %zu items enqueued) at EntriesMax, plus a separate item.id tracking bound (item.id tracking is out of memory). UpdateID/ObjectID/OwnerID/CloudQueueHost carry ownership and the cloud-queue endpoint. Adjacent: the enqueue metadata parser consumes /containerType, /containerName, /name, /explicit, /durationMs, /artist, /imageUrl, /releaseDate, /mimetype paths (Unable to parse metadata: guard).",
-    "Resolved: the enqueue bounds (0x104488b0, muse domain) - the item.id-tracking cap is a literal bound cmplwi 0x13 at 0x1044891c: item.id tracking is out of memory fires when the tracking count exceeds 0x13 (20 entries). The 'queue is full' predicate compares live fields *(q+0x10) vs *(q+0xc) - EntriesMax is a per-queue runtime field set at queue construction, not a global constant. A type field *(q+4) is checked (0,1,2 branches) before the bounds."
+    "Resolved: the enqueue bounds (0x104488b0, muse domain) - the item.id-tracking cap is a literal bound cmplwi 0x13 at 0x1044891c: item.id tracking is out of memory fires when the tracking count exceeds 0x13 (20 entries). The 'queue is full' predicate compares live fields *(q+0x10) vs *(q+0xc) - EntriesMax is a per-queue runtime field set at queue construction, not a global constant. A type field *(q+4) is checked (0,1,2 branches) before the bounds.",
+    "Resolved: the <Queue> emit site (0x1026527c) maps the queue object fields - Name=str arg, EntriesMax=u32 @+0x2660, EntriesUsed=u16 @+0x266c, EntriesHighWater=u16 @+0x266e, StringTableSize=u32 @+0x2670, StringTableUsed=u32 @+0x2678, StringTableHighWater=u32 @+0x267c, UpdateID=u32 @+0x70, ObjectID=str @+0x5c, OwnerID=str, Policy=u32 @+0x26e4, CloudQueueHost=str. EntriesUse/HighWater are u16 (<=65535) while EntriesMax is u32 - the cap is wider than the counter width."
    ]
   },
   "accounts_replication": {
