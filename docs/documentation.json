@@ -137754,14 +137754,12 @@
      "notes": "areas block"
     }
    ],
-   "todo": [
-    "Established: membership mutation = {playerIdsToAdd, playerIdsToRemove} -> \"Effective set of new group members\"; read-only areas rejected; playerIds is the member array name.",
-    "Residual: whether playback dispatch expands to per-zone fan-out or a single coordinator remains unproven - the membership data model is decoded but the play path is dispatch data"
-   ],
+   "todo": null,
    "resolved_findings": [
     "Resolved: areas-manager startup read = the areas list from the replicated store; Everywhere is synthesized as the union pseudo-area when the household has multiple areas.",
     "Consumer binding proven: the runtime readers are the muse areas resource routes clustered at 0x10e7c0e4-0x10e7c195 (areas/areaId literals) plus the playerIds membership fields at 0x10e77384/0x10e9c20c/0x10e9c21c - areas are read by the v1 areas API and by group/topology code that expands playerIds membership. areasMgr (areas.cxx) loads areas.json at boot (Areas successfully loaded from file) with schema versioning (Loaded areas schema version (%d) differs from local version (%d)) and atomic persistence (accepted file -> rename; Renaming accepted file succeeded, storing accepted areas). Constraints enforced at write: Area IDs must be distinct, Maximum area limit (%d) reached, Cannot update read-only area. The builtin area is GUID 7055133f-81e7-45e6-ba70-8803966c7185 named Everywhere. Membership is an array field - Set of players in area (array playerIds).",
-    "Resolved: the area/group membership model is delta-based, proven by the literal arg grammar (0x10ec4380-0x10ec43ec): mutators carry {playerIdsToAdd, playerIdsToRemove} arrays and compute an \"Effective set of new group members\" - so area playback resolves by computing the effective member set, not by storing absolute lists. Read-only guard: \"Cannot update read-only area\". The playerIds field itself is \"Set of players in area (array playerIds)\" (0x10ead394); playerIds is also exposed in the credentials-header capability toggle on the status page (0x10ebb19b)."
+    "Resolved: the area/group membership model is delta-based, proven by the literal arg grammar (0x10ec4380-0x10ec43ec): mutators carry {playerIdsToAdd, playerIdsToRemove} arrays and compute an \"Effective set of new group members\" - so area playback resolves by computing the effective member set, not by storing absolute lists. Read-only guard: \"Cannot update read-only area\". The playerIds field itself is \"Set of players in area (array playerIds)\" (0x10ead394); playerIds is also exposed in the credentials-header capability toggle on the status page (0x10ebb19b).",
+    "Deepened (dispatch shape): the [group] play path (~f_103cdc74) validates the effective member list ('Effective player id set is empty', ' has too many player ids', ' contains invalid player ids', ungroupable-player rejection, 'Protocol versions that do not match'/'protocol versions are incompatible' via validateProtocolVersionCompatibility with audio-protocol classes {'Audio TX','HT Audio'}) then emits '[group] created new group [%s, %s]' / '[group] created new group, but no GC!' - the members are folded into a single new group anchored on one GC (group coordinator), so playback is coordinator-mediated per group, not fanned out per zone. Per-zone transmission is the chsnk/htsnk stream layer's job below the group."
    ]
   },
   "async_stream": {
