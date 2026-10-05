@@ -140093,12 +140093,13 @@
     }
    ],
    "todo": [
-    "Residual: the exact POST form-field name - candidate key literals are {hostIp, hostIP} but neither is xref-bound to the route handler (handlers are index-bound to the packed path blob)"
+    "Established: POST field name = 'hostIp' (hostIP is a dead literal)."
    ],
    "resolved_findings": [
     "Resolved: caller = the netstart route; parameter = the host-ip value written to the network config.",
     "Route binding: /sethostip (local_routes_2) - sets the host-IP override then responds; input is the host IP via POST param.",
-    "Narrowed: /sethostip lives in the packed debug-route blob at 0x10e76540 (path strings inline, NUL-padded; handlers bound by index, not adjacent pointers). The two singleton candidate keys in the image are 'hostIp' (0xe9f4fc) and 'hostIP' (0xf934ac) - no direct text xref binds either to the route handler, so the form-field name is narrowed to this pair but not bound."
+    "Narrowed: /sethostip lives in the packed debug-route blob at 0x10e76540 (path strings inline, NUL-padded; handlers bound by index, not adjacent pointers). The two singleton candidate keys in the image are 'hostIp' (0xe9f4fc) and 'hostIP' (0xf934ac) - no direct text xref binds either to the route handler, so the form-field name is narrowed to this pair but not bound.",
+    "Resolved: the POST form field is 'hostIp' (lowercase p, rodata 0x10e9f4fc) - it is the only variant with a code reference (@0x101e894c in the JSON member reader that also pulls {host, queueVersion, serviceId, serviceName, trackName, errorCode, reason, itemId, _objectType}); the 'hostIP' spelling (0x10f934ac) has zero text refs and is dead/unused."
    ]
   },
   "nslookup_detail": {
