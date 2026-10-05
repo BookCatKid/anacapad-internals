@@ -137551,13 +137551,12 @@
      "notes": "ctor stores r4 -> +0x90; slot array +0x98 memset 0x300 = 24x32B"
     }
    ],
-   "todo": [
-    "Residual: the per-registry fd-capacity arg values - each fdevent ctor caller supplies its own bound (call sites pass runtime fields, not immediates); the array ceiling of 24 is proven."
-   ],
+   "todo": null,
    "resolved_findings": [
     "Resolved: merged with fd_event - the registrant list is the event-topic registry; capacity constant = the fd-event table size in the registry block.",
     "epoll wrapper fully enumerated (literal block 0x10ef40xx): ops {addFd,removeFd,waitForEvent} over epoll_{create1,ctl,wait}; thread names fdevent.{signal.write,wait.poll,check.poll,reset.read} form a self-pipe poll loop; EventSync %s syncs state; error taxonomy covers %s epoll_create1 error errno %d, unsupported flags %u, trying to add fd %d, %d already monitored, exceeded the fd capacity of %d, adding fd %d 0x%08x, epoll_ctl error fd %d errno %d, trying to remove %d, removing %d 0x%08x, epoll_wait %d errno %d, epoll_wait error fd %d events 0x%04x but not in list, called with no events to wait on. This record duplicates fd_event - same machinery.",
-    "Established: the capacity bound is dual - the printed %d is the per-instance ctor arg stored at obj+0x90 (fdevent ctor f_105c4824 stores r4), but the hard ceiling is the fixed inline slot array: memset(obj+0x98,0,0x300) = 24 slots x 32B, initialized to -1 by a ctr=0x18 fill loop at 0x105c48a0, epoll fd at +0x398. Effective capacity = min(configured, 24)."
+    "Established: the capacity bound is dual - the printed %d is the per-instance ctor arg stored at obj+0x90 (fdevent ctor f_105c4824 stores r4), but the hard ceiling is the fixed inline slot array: memset(obj+0x98,0,0x300) = 24 slots x 32B, initialized to -1 by a ctr=0x18 fill loop at 0x105c48a0, epoll fd at +0x398. Effective capacity = min(configured, 24).",
+    "Corrected (ctor arg identity): f_105c4824's r4 -> +0x90 is the instance NAME tag, not a capacity - it is printed verbatim by the 'EventSync %s' log immediately after the store, and call sites pass subsystem name strings (e.g. 'sntp_srv' at 0x104a90d8; two sites forward their own r4 name arg; one passes a config-object name field *(r28+0x7a60)). The fd-capacity bound itself is a pure literal: addFd walks the slot array with mtctr=0x18 (24) at 0x105c4a60-0x105c4aac, allocating per-slot {fd at +0x98+i*32, event bitmask slw 1<<slot at +0xa0, data at +0xa8, index at +0xb0}. Effective capacity is therefore exactly 24 - there is no configurable arg. The 'exceeded the fd capacity of %d' / '%d already monitored' strings at 0x10ef40f4/0x10ef4122 have zero references in .text or data pointer tables in this image - they belong to a second fdevent variant compiled for a different configuration (the visible addFd logs through 'fdevent'-gated f_109b6fe4 checks instead)."
    ]
   },
   "upnp_eventing": {
