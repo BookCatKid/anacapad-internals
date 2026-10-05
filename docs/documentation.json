@@ -139348,13 +139348,12 @@
      "notes": "crashreport block"
     }
    ],
-   "todo": [
-    "Residual: exact retry/backoff schedule - the failure observation (http resp + last error) is proven but the requeue interval/attempt cap are runtime timer args, not literals"
-   ],
+   "todo": "Residual: the poll interval and attempt cap for the 'Checking for crash dumps' sweep - scheduling values are runtime timer args, not literals",
    "resolved_findings": [
     "Resolved: upload path = the sentry uploader (dump-proc-anacapa + tags); retry/dedup = buffered resend with per-dump dedup on the report channel.",
     "Two distinct paths proven: (1) the crash EVENT report - %s %s crash event, crashCount: %i with fields {procName, numCrashes, uploadResp, playerCrash, lifetime} logged Reported/Failed to report; dedup is built in via numCrashes (repeated crashes of the same proc collapse into one counted event) and uploadResp records the cloud ack; staged in-memory and pushed over the ws crash-upload service channel (reporting record). (2) the crash DUMP upload - the sentry multipart path (/upload/{anacapad-external,...} endpoints, sentry[tags], log attachments) handled by the dump uploader. Adjacent recovered: /reboot + /factoryreset POST forms carry a csrfToken hidden field (<form action=\"/%s\" method=\"POST\"><input type=\"hidden\" name=\"csrfToken\" value=\"%s\">), Remote factory reset./Rebooting... confirmations; WSS eventing guards {Invalid transport: WSS is required, Invalid namespace: UPnP renew/subscribe/unsubscribe not supported}; shutdown deferral Deferring shutdown, reason [%d] with deferred newHHID/newSSID event queueing; IP rebind re-binding for new IP addr, old = %s, new = %s including the 169.254. link-local case.",
-    "Resolved: crash upload is a queued task {crashdump_upload} posting to a config-delivered URL (config key CRASH_UPLOAD_SUBMIT_URL @0x10eeac4a); failure path logs \"Crashdump didn't finish upload; http resp: [%d]; last error: [%s]\" - retry is driven by HTTP response + curl error, and crash telemetry counts via {crash event, crashCount: %i, crashed_play_state}."
+    "Resolved: crash upload is a queued task {crashdump_upload} posting to a config-delivered URL (config key CRASH_UPLOAD_SUBMIT_URL @0x10eeac4a); failure path logs \"Crashdump didn't finish upload; http resp: [%d]; last error: [%s]\" - retry is driven by HTTP response + curl error, and crash telemetry counts via {crash event, crashCount: %i, crashed_play_state}.",
+    "Resolved: the per-daemon upload vocabulary is literal - properties files {apad.properties,sonospowercoordinator.properties,btmanager.properties,netstartd.properties} with crash-count keys {sonospowercoordinatorCrashCount,netstartd.count}; upload routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/watchdog-legacy,/legacy-to-sentry,/btmanager-external,/sonosledmgrd-external,/netstartd-external}; artifacts {%s-anacapa_dump.gz,sonospowercoordinator_backtrace,btmanager_backtrace,/jffs/app/debug/sonosledmgrd.dmp}; watchdog evidence files /jffs/{watchdog.log,watchdog.dmesg} as watchdog_log/watchdog_dmesg attachments; crashed play state from /tmp/crashed_play_state ('couldn't read expected bytes for play state'); backtrace staging /tmp/backtrace. The poller is 'Checking for crash dumps' - periodic sweep."
    ]
   },
   "inprocess_events": {
