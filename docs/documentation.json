@@ -148500,9 +148500,9 @@
     "opt/ir/irconfig.txt (shipped NEC-family code map: repeat=4f 13 05; vol_up=2,25 01; vol_down=2,27 01; vol_mute=2,29 01) the factory-default TV remote codes.",
     "opt/musicservices/musicservices.xml: bootstrap seed contains ONLY TuneIn: <Service Id=254 Name=TuneIn Uri=http://legato.radiotime.com/Radio.asmx SecureUri=https://... Capabilities=0><Policy Auth=Anonymous PollInterval=0>; the real catalog is fetched at runtime.",
     "opt/htdocs: serving root: /xml/*.xml (16 advertised SCPDs + device/group descriptions + factory_reset.xsl + review.xsl), review.js, perfcounters.js, img/icon-S9.png; pub -> /tmp/pub symlink (ramdisk; Configure creates /ramdisk/tmp/pub) so web-uploaded artifacts live in volatile RAM.",
-    "opt/localsettings/*.json: all 6 attrdata files (global/playback/playerBasic/playerUI/security/settings_targettypes) ship as EMPTY 0-byte placeholders; the attribute schemas are compiled into the binary, files are runtime-populated.",
+    "opt/localsettings/*.json: settings_targettypes.json maps targetTypes {playerUI:LP, playerBasic:P, security:L, global:L, playback:L} (fileFormatVersion 1) and each <target>_attrdata.json ships POPULATED with the seeded attribute set, defaults, readPerm/writePerm bits, and a per-target schemaValidator (schemaVersion>=1 required, eTag string, timestamp ^[0-9]+$ <=20 chars, additionalProperties:false). playerBasic additionally carries the unpaired* shadow attributes at perm 0x0.",
     "opt/buzzers: button-feedback audio {0,1,100,101}.mp3 + speaker-detect.mp3 (x-rincon-buzzer:// URIs).",
-    "opt/timezones/timezones.xml: fallback tz table (cloud feed overrides via update-timezone.sonos.com)."
+    "opt/timezones/timezones.xml: TimeZoneRules Version=9 - per-ID rows {ID,GMTBias(minutes)} + optional <StandardTime>/<DaylightTime> elements {Month,DayOfWeek,Day,Hour,Bias} in US DST form (Nov w0d1h2 / Mar w0d2h2 bias -60). Fallback tz table; cloud feed overrides via update-timezone.sonos.com."
    ],
    "evidence": [
     {
@@ -148510,6 +148510,10 @@
      "address": "opt/",
      "notes": "shipped files"
     }
+   ],
+   "resolved_findings": [
+    "Corrected: the attrdata files are populated at ship time (128-1591 bytes), not 0-byte placeholders.",
+    "Resolved (htdocs_locked/dsp): the engineering DSP UI defines meter params - getDSP returns <param name=value min max> entries; block debug params named DebugMeter* carry meter min/max and the level param is named 'levdB'. DSP write surface is getDSP/putDSP GET routes with <block><id><debug><mode><debugParam><param> elements addressed by dotted section.filter.param ids."
    ]
   },
   "sibling_daemons": {
