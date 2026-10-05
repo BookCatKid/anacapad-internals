@@ -138811,7 +138811,8 @@
    ],
    "resolved_findings": [
     "Resolved: descriptor XML = the service-descriptor schema {name,id,uri-prefix map,capability list}.",
-    "ServiceList grammar proven: replicated document <Services LastUpdateDevice=\"%s\" Version=\"%u\" SchemaVersion=\"%u\" [ETag=\"%s\"]> wrapping per-service elements {ServiceIds, Presentation, BuiltInService, ServiceTypeList, SecureUri, ContainerType, PollInterval, Manifest, Strings, Auth} with lowercase config attrs {secureUri, containerType, pollInterval, authType, stringsVersion+stringsUri, presentationMapVersion+presentationMapUri, manifestVersion+manifestUri, caps} each with an Unable to load %s URI failure. Version bookkeeping splits local vs replicated {zpETag, rsETag, zpLUD, rsLUD, zpVer, rsVer} - the accept predicate logs deciding whether to accept replicated list from: %s; ver: %u format: %u then Replicated list accepted or reject. Catalog fetch: GET /catalog/services?sonosId=%s&installedIds=%s with If-None-Match ETag -> 304 short-circuits (Music service list is unmodified - download aborted), missing ETag warns (Server did not return an ETag!); content type application/sonos_service_catalog.v1.xml. Diagnostics via Could not submit Available Services DIAG. Service count is: %zu + AvailableSvcsSummary; state vars ZPMusicServicesList etc. derive from the same document. Loading musicservices backstop is the shipped fallback list."
+    "ServiceList grammar proven: replicated document <Services LastUpdateDevice=\"%s\" Version=\"%u\" SchemaVersion=\"%u\" [ETag=\"%s\"]> wrapping per-service elements {ServiceIds, Presentation, BuiltInService, ServiceTypeList, SecureUri, ContainerType, PollInterval, Manifest, Strings, Auth} with lowercase config attrs {secureUri, containerType, pollInterval, authType, stringsVersion+stringsUri, presentationMapVersion+presentationMapUri, manifestVersion+manifestUri, caps} each with an Unable to load %s URI failure. Version bookkeeping splits local vs replicated {zpETag, rsETag, zpLUD, rsLUD, zpVer, rsVer} - the accept predicate logs deciding whether to accept replicated list from: %s; ver: %u format: %u then Replicated list accepted or reject. Catalog fetch: GET /catalog/services?sonosId=%s&installedIds=%s with If-None-Match ETag -> 304 short-circuits (Music service list is unmodified - download aborted), missing ETag warns (Server did not return an ETag!); content type application/sonos_service_catalog.v1.xml. Diagnostics via Could not submit Available Services DIAG. Service count is: %zu + AvailableSvcsSummary; state vars ZPMusicServicesList etc. derive from the same document. Loading musicservices backstop is the shipped fallback list.",
+    "Resolved: the shipped built-in descriptor list /opt/musicservices/musicservices.xml contains exactly one Service: Id=254 TuneIn v1.1 Uri=http://legato.radiotime.com/Radio.asmx SecureUri=https://legato.radiotime.com/Radio.asmx ContainerType=MService Capabilities=0 Policy Auth=Anonymous PollInterval=0 - the hardcoded backstop service for the ServiceTypeList 'adding built-in' path."
    ]
   },
   "radiolog": {
@@ -140004,7 +140005,8 @@
    "resolved_findings": [
     "Resolved: static policy table = the guest/admin permission sets; Using guest policy selects the guest permission set.",
     "Established: the policy selection vocabulary (static/fast/guest/mTLS/offline), the resolveToken/getPermissions calls, and the cache machinery.",
-    "Established: static policy table (guest/admin sets), guest-policy selection, cache behavior."
+    "Established: static policy table (guest/admin sets), guest-policy selection, cache behavior.",
+    "Resolved: the static offline-policy set ships as /opt/conf/v1_auth_offline_policy_{guest,owner,p2p}.json - roles GUEST/OWNER/P2P version 1, each a {ns,perm} bitmask table over ~66 namespaces (alarms..zones, upnp*, settings:*, playbackSession, effectiveSettings...). perm is a bitmask: guest samples show read=1, low write bits (zones=7, diagnostics=7, effectiveSettings=97=0x61) while owner saturates (zones=15, devices=15, authorization=15, voice=15, settings=127, hardwareStatus=127, playbackSession=31). P2P mirrors guest minus households/voice/etc with svc=7."
    ]
   },
   "catalog_translate": {
@@ -141680,11 +141682,13 @@
     }
    ],
    "todo": [
-    "Residual: the key registry contents (target types + readPerm/writePerm bits are external JSON config loaded at setup; the ingest/validation machinery is proven)."
+    "Established: complete seeded-attribute registry incl. defaults, perm bits and JSON-schema validators from shipped attrdata files; targetTypes scope letters {LP,P,L}.",
+    "Residual: semantic of the L/P/LP scope letters in targetTypes (local vs player vs household pairing) - the letters are literal but their interpretation lives in the scope-selection code"
    ],
    "resolved_findings": [
     "Resolved: group/key tables = files {_attrdata.json,_exclude.json,_settings.json,_effective.json,settings_targettypes.json,__location_summation,__migration_data} with magic-header validation {magic,length,checksum,count}; write validation via HHSettingsMgr.",
-    "Checksum algorithm identified: the file header {\"magic\":\"`|_(:/)_|`\",\"length\":%u,\"checksum\":\"0x%08X\",\"counter\":%u} is sscanf-parsed and the checksum is sonos_fnv1a_32_strHash_knownLen (FNV-1a 32) over the payload; the trailer {\"magic\":\"(=^+^=)\",\"version\":11}] is verified by memrchr+memcmp. Loader calls sonosFileExistsEx + sonosFileReadWhole then validates header, hash, trailer. The settings key registry lives in settings_targettypes.json ({fileFormatVersion, targetTypes, readPerm, writePerm} vocabulary) with per-group files _settings.json/_effective.json/_attrdata.json/_exclude.json; [Rq] request guards reject \"attempt to subvert read/write authorization\" and \"attempt to update location only settings\"."
+    "Checksum algorithm identified: the file header {\"magic\":\"`|_(:/)_|`\",\"length\":%u,\"checksum\":\"0x%08X\",\"counter\":%u} is sscanf-parsed and the checksum is sonos_fnv1a_32_strHash_knownLen (FNV-1a 32) over the payload; the trailer {\"magic\":\"(=^+^=)\",\"version\":11}] is verified by memrchr+memcmp. Loader calls sonosFileExistsEx + sonosFileReadWhole then validates header, hash, trailer. The settings key registry lives in settings_targettypes.json ({fileFormatVersion, targetTypes, readPerm, writePerm} vocabulary) with per-group files _settings.json/_effective.json/_attrdata.json/_exclude.json; [Rq] request guards reject \"attempt to subvert read/write authorization\" and \"attempt to update location only settings\".",
+    "Resolved: the shipped attrdata registry (opt/localsettings/*_attrdata.json) enumerates every seeded attribute with defaults + perm bits. playerUI: {statusLight:true(r0x4/w0x8), buttonLockState:false}; global: {enableContentAccess:false, overrideRemoveMSPCredentials:true}; playback: {allowDirectControl:true, allowLineIn:true, allowAirplay:true}; security: {allowGuestAccess:true, allowInsecureUPnP:true, allowUnauthenticatedControl:true, authPin:''(r4/w4,maxLength64)}; playerBasic: {zoneName:'Unnamed Room'(1..64,no edge ws), icon:''(<=128), configuration:0(int32), targetRoomName:'', unpairedZoneName/unpairedIcon/unpairedConfiguration/unpairedStatusLight:true/unpairedButtonLockState:false all with r/w perm 0x0}."
    ]
   },
   "json_schema_validator": {
@@ -141697,12 +141701,10 @@
      "notes": "schema validator"
     }
    ],
-   "todo": [
-    "Residual: the complete schema group list beyond {playerUI, playerBasic} (config data in settings_targettypes.json; validation machinery proven)."
-   ],
    "resolved_findings": [
     "Resolved: keyword support = {patternProperties,maxLength,minLength,maxItems,minItems,dependencies,maxProperties,minProperties,required,additionalProperties,uniqueItems,instanceRef,expected,duplicates,disallowed,exclusiveMaximum,exclusiveMinimum,additionalItems,properties,fileFormatVersion,targetTypes,readPerm,writePerm}.",
-    "Draft identified by keyword semantics: the implemented set {patternProperties, maxLength, minLength, maxItems, minItems, dependencies, maxProperties, minProperties, required, additionalProperties, uniqueItems, exclusiveMaximum, exclusiveMinimum, additionalItems, properties} is JSON Schema draft-04 (dependencies + boolean exclusiveMin/Max + additionalItems are all pre-draft-06 forms). No $schema or draft URI literal exists - the draft is implicit. Failures emit [Vf] ValidationFailureMsg[%s] %s with fields {instanceRef, expected, duplicates, disallowed}. Consumer binding: the schema groups {playerUI, playerBasic} under schemaValidator validate local-settings targetTypes from settings_targettypes.json (fileFormatVersion, readPerm, writePerm)."
+    "Draft identified by keyword semantics: the implemented set {patternProperties, maxLength, minLength, maxItems, minItems, dependencies, maxProperties, minProperties, required, additionalProperties, uniqueItems, exclusiveMaximum, exclusiveMinimum, additionalItems, properties} is JSON Schema draft-04 (dependencies + boolean exclusiveMin/Max + additionalItems are all pre-draft-06 forms). No $schema or draft URI literal exists - the draft is implicit. Failures emit [Vf] ValidationFailureMsg[%s] %s with fields {instanceRef, expected, duplicates, disallowed}. Consumer binding: the schema groups {playerUI, playerBasic} under schemaValidator validate local-settings targetTypes from settings_targettypes.json (fileFormatVersion, readPerm, writePerm).",
+    "Resolved: the complete schema group list = the targetTypes keys of the shipped /opt/localsettings/settings_targettypes.json {playerUI:LP, playerBasic:P, security:L, global:L, playback:L} - 5 groups, fileFormatVersion=1. Each group ships <group>_attrdata.json with a schemaValidator: required {schemaVersion(min 1)}, optional eTag (string) + timestamp (^[0-9]+$, maxLength 20), attributes object with additionalProperties:false."
    ]
   },
   "eventloop_perf": {
