@@ -138898,12 +138898,13 @@
     }
    ],
    "todo": [
-    "Residual: the channelMapSet value grammar (channel-map-set payload shape) - the cms init/update path is proven; the map payload fields are muse-schema data."
+    "Residual: the pair/member separator bytes inside flatChannelMapSet (delimiters are passed to generic tokenizers, not literals in the validator - the grammar is the channelMapPair proto field's wire encoding)"
    ],
    "resolved_findings": [
     "Resolved: zone CRUD = the create/join/remove paths on the zones registry; events = the ZoneGroupState + member-change emissions.",
     "Zone lifecycle decoded: muse ops read defs (museGetZoneDefinition -> found zone [%s]); transitions are primary/secondary aware (zone transition on secondary/primary: zoneId %s / zone transition failed on primary); cms = channel-map-set updates (cms init from %s / cms update from %s) drive speaker-channel assignments; events {ZoneMemberSettingsChangedEvt, ZonesDefinitionsChangedEvent} fan out to replication + muse. Zone records persist via zones_storage (JSON + schema version + atomic rename accept).",
-    "Zone command forwarding vocabulary (zonesutils): primary %s not found guard; forward %sactivateZone cmd to %s, forward updateActiveZone cmd to %s, send joinZone cmd to %s, send updateZoneMemberSettings cmd to %s - the manager forwards zone commands to the primary/coordinator when the local device is not primary."
+    "Zone command forwarding vocabulary (zonesutils): primary %s not found guard; forward %sactivateZone cmd to %s, forward updateActiveZone cmd to %s, send joinZone cmd to %s, send updateZoneMemberSettings cmd to %s - the manager forwards zone commands to the primary/coordinator when the local device is not primary.",
+    "Resolved (flatChannelMapSet provenance): joinZone reads request args {zoneId, flatChannelMapSet, isHomeTheater} (0x10169d50-0x10169e20) and validates the map via the 'invalid flatChannelMap' throw at 0x10169edc; the wire member is muse proto field 'channelMapPair' (proto-field name table 0x10f978b0) - i.e., the flat map is a serialization of per-member {playerId -> channel list} pairs. The validator itself delegates splitting to generic std::string helpers (f_10161ff8/f_10831bc0) with no delimiter literal inside the validator - the pair separator is supplied by the caller/tokenizer layer, not a fixed constant in zones_mgr."
    ]
   },
   "zones_storage": {
