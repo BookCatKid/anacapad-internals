@@ -149057,12 +149057,10 @@
     "Decoded: result counter line 'rna:%d rns:%d rnn:%d rqa:%d rqs:%d rqn:%d zc:%d dup:%d %s %s %s %s %s' plus named event literals {DHCP_RN_FAIL, DHCP_RQ_FAIL, DHCP_RN_NAK, DHCP_RQ_NAK, DHCP_DUP} - renew/request ack/nak counters, zeroconf count, duplicate-address count.",
     "Decoded: lease lifecycle - 'No lease, forking to background'/'No lease, failing' (daemonize policy), 'Lease lost, entering init state', 'Received DHCP NAK' -> init, 'No lease time with ACK, using 1 hour lease' fallback, 'Sending gratuitous ARP' after bind, lease/renewal/bound/deconfig state names.",
     "Decoded: monitoring - an 'address monitor' socket watches the assigned address, an ARP socket watches for conflicts, and an SSID-change listener triggers re-DHCP ('FATAL: couldn't listen for SSID change'). Reads /jffs/netsettings.txt for static-net config.",
-    "Resolved: the client hook is /etc/dhcp.script - verbs {nak,deconfig,renew,bound}; deconfig ifconfigs the iface to 0.0.0.0 and installs 255.255.255.255 + 224.0.0.0/4 multicast routes; renew|bound rewrites /etc/resolv.conf {search <domain>, nameserver per $dns} and sets broadcast/netmask. Launch contract from netconfig.sh: udhcpc -f -s /etc/dhcp.script -i br0 -w ath0 -h <hostname> -d access.bestbuy.com with -z on station/satellite/sta_and_sat and -F -W 20 on island."
+    "Resolved: the client hook is /etc/dhcp.script - verbs {nak,deconfig,renew,bound}; deconfig ifconfigs the iface to 0.0.0.0 and installs 255.255.255.255 + 224.0.0.0/4 multicast routes; renew|bound rewrites /etc/resolv.conf {search <domain>, nameserver per $dns} and sets broadcast/netmask. Launch contract from netconfig.sh: udhcpc -f -s /etc/dhcp.script -i br0 -w ath0 -h <hostname> -d access.bestbuy.com with -z on station/satellite/sta_and_sat and -F -W 20 on island.",
+    "Resolved: the /tmp/udhcpc_renew_option type enum is {0=init-reboot renew, 1=confirm/extend lease renew} - the file is fscanf'd '%d\\n', one-shot deleted, values >1 clamp to 0 ('Error: invalid renew type %d from file %s: Using %d instead'); perform_renew(type): type==0 enters the state-indexed init-reboot flow (jump tables 0x100070c8/0x100070a4 over the 9-state DHCP FSM), type==1 runs the confirm/extend path ('Performing a DHCP confirm/extend lease renew' -> renew send, unicast/broadcast by flag); in the wrong states it logs 'Already requested a renew, now deconfig' or 'Renew requested in state %d, back to SELECTING'"
    ],
-   "todo": [
-    "Established: full renew-IPC/state machine/sentinel/zeroconf contract from sibling strings.",
-    "Residual: the exact renew-type integer enumeration (which int = confirm vs init-reboot vs deconfig) requires mapping the file-reader's switch arms; 'Using %d instead' shows a numeric default. Who writes /tmp/udhcpc_renew_option (netstartd? anacapad? /status handler) is unresolved - the writer site was not traced."
-   ],
+   "todo": "Resolved: renew-type enum {0=init-reboot, 1=confirm/extend} proven at the perform_renew dispatch. No residual",
    "evidence": [
     {
      "type": "firmware",
