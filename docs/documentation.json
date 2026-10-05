@@ -140596,11 +140596,13 @@
     }
    ],
    "todo": [
-    "Residual: the Sentry DSN/project id and exact multipart field names (DSN is compile-time config - possibly in the sentry* symbol-adjacent rodata or the crash-upload config)."
+    "Established: multipart boundary + full field grammar literal; submit URL = O_MINIDUMP_SUBMIT_URL option (deployment config, absent from image).",
+    "Residual: the concrete sentry.io project id/DSN - lives in the deployed O_MINIDUMP_SUBMIT_URL option value, not in the binary"
    ],
    "resolved_findings": [
     "Resolved: upload payload = per-route dumps {anacapad.core, anacapad.dmp, sonospowercoordinator.dmp} over routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/watchdog-legacy,/legacy-to-sentry,/btmanager-external,/sonosledmgrd-external,/netstartd-external}; destination = the sentry ingest host.",
-    "Upload payload and destination proven (reporting record decode): each daemon dump ({anacapad.core, anacapad.dmp, sonospowercoordinator.dmp, btmanager.dmp, netstartd.dmp, sonosledmgrd.dmp}) uploads as a Sentry multipart/form-data POST to the crash-upload cloud service (cloud_services registry); parts = the dump file, its .properties sidecar (daemon key=value state), counter sidecars (sonospowercoordinatorCrashCount, netstartd.count), and text/plain log attachments (/opt/log/anacapa.hdmi.log, anacapa.tv.log, btmanager.log, /tmp/backtrace, /tmp/watchdog). Sentry event tags and the envelope metadata ride the same POST. Routes {/upload, /watchdog, *-external, /watchdog-legacy, /legacy-to-sentry} are the local submission endpoints that feed the uploader - external daemons POST their dump descriptors through them."
+    "Upload payload and destination proven (reporting record decode): each daemon dump ({anacapad.core, anacapad.dmp, sonospowercoordinator.dmp, btmanager.dmp, netstartd.dmp, sonosledmgrd.dmp}) uploads as a Sentry multipart/form-data POST to the crash-upload cloud service (cloud_services registry); parts = the dump file, its .properties sidecar (daemon key=value state), counter sidecars (sonospowercoordinatorCrashCount, netstartd.count), and text/plain log attachments (/opt/log/anacapa.hdmi.log, anacapa.tv.log, btmanager.log, /tmp/backtrace, /tmp/watchdog). Sentry event tags and the envelope metadata ride the same POST. Routes {/upload, /watchdog, *-external, /watchdog-legacy, /legacy-to-sentry} are the local submission endpoints that feed the uploader - external daemons POST their dump descriptors through them.",
+    "Resolved: the upload transport is multipart/form-data with boundary literal 'SONOSMULTIPARTBOUNDARY.BLAHBLAHBLAH' (Content-Disposition: %s emission). The submit URL is NOT compiled in - it is read from option key O_MINIDUMP_SUBMIT_URL, so the DSN/endpoint is deployment config. 'No URL found to upload dump file' is the missing-option failure. Field vocabulary {sentry[release],sentry[tags][%s],sentry[user][id],%s[sonosID],%s[hhid],%s[serial],%s[upload_sw_version],%s[hardware_version],%s[model],%s[upload_spotifyesdk_version],%s[play_state],%s[watchdog_crash]} is literal."
    ]
   },
   "tv_processor": {
