@@ -138257,11 +138257,13 @@
   "datatap": {
    "detail": "\"Datatap snapshot failed after %zu\" (snapshot bound); ZoneDevDiscThread",
    "todo": [
-    "Residual: the metadata XML schema inside <SPDIFTap> (which session/format fields) - the wrapper tag is proven; inner elements are written by the audiotap_manager serializer already covered in audio_taps."
+    "Established: <SPDIFTap> content = base64 of the tap blob ({0x4000B metadata head, PCM rolling buffer, 0x30B BE trailer} per audio_taps) - no inner XML elements; timestamp via gettimeofday+timevalAddMs, file staged then unlinked after write.",
+    "Residual: the semantic name of each field inside the blob's 0x30B BE trailer (shared with audio_taps residual) - field names live in the tap-session parser, positional only."
    ],
    "resolved_findings": [
     "Resolved: reconciled with audio_taps - the tap is a rolling buffer whose snapshot serializes the buffer verbatim with <SPDIFTap> metadata XML.",
-    "Object model resolved (datatap.cxx, datatap tag): RDataTap is the generic capture object - instances are typed by name (rolling_data_tap for the audio taps) and serialize a metadata XML wrapper into the buffer ahead of payload (<SPDIFTap>...</SPDIFTap> for the SPDIF tap; Error: failed to read metadata from buffer! on the parse side). Snapshot dumps the rolling buffer to the versioned file (Datatap snapshot failed after %zu bytes) consumed by the /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap routes documented in audio_taps. Difference from rolling_data_tap: datatap is the base object (metadata + snapshot); rolling_data_tap is the subtype that keeps the circular audio buffer the snapshot drains."
+    "Object model resolved (datatap.cxx, datatap tag): RDataTap is the generic capture object - instances are typed by name (rolling_data_tap for the audio taps) and serialize a metadata XML wrapper into the buffer ahead of payload (<SPDIFTap>...</SPDIFTap> for the SPDIF tap; Error: failed to read metadata from buffer! on the parse side). Snapshot dumps the rolling buffer to the versioned file (Datatap snapshot failed after %zu bytes) consumed by the /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap routes documented in audio_taps. Difference from rolling_data_tap: datatap is the base object (metadata + snapshot); rolling_data_tap is the subtype that keeps the circular audio buffer the snapshot drains.",
+    "<SPDIFTap> payload decoded (writer f_1034308c): open64 target file -> f_1038689c/f_10387b7c (rolling-buffer drain) -> gettimeofday+timevalAddMs timestamp -> sonosBase64EncReset ... f_10387da8 stream -> sonosBase64EncFinalize -> close+unlink. So the element content is base64 of the raw tap blob - the SAME blob whose 0x4000-byte metadata head and 0x30-byte BE trailer are decoded in audio_taps; there are no inner XML elements, the schema is <SPDIFTap>base64(tap-blob)</SPDIFTap>."
    ]
   },
   "trueplay": {
