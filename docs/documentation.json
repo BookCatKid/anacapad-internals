@@ -140440,12 +140440,13 @@
     }
    ],
    "todo": [
-    "Residual: which consumers use which engine (both error vocabularies are proven; the per-consumer binding is a call-site census)."
+    "Residual: the precise per-subsystem engine binding beyond the three proven RapidJSON sites - the custom-parser error enum is emitted inline too, so each consuming TU carries its own copy; a complete census requires mapping every parse-call site, not literal xrefs."
    ],
    "resolved_findings": [
     "Resolved: implementation = the embedded JSON parser identified by its error enum {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error}; callers = every muse/cloud JSON consumer.",
     "Implementation proven: a custom in-house recursive JSON parser (the {Exceeded max depth, Invalid unicode escape, ...} enum). RapidJSON is ALSO statically linked: its verbatim GetParseError_En strings are in the image (Missing a comma or } after an object member / Incorrect hex digit after \\u escape / The surrogate pair in string is invalid / Terminate parsing due to Handler error / Unspecific syntax error), used by zones_storage and common_logger. The error enum is the parser API: {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error} - depth and sequence-length caps bound nesting/array size. Callers: every JSON consumer in the tree - muse command arrays, zones_storage definitions, httpcaches.json cacheHashes, householdsettings.json, feature-config documents, netsettings.json, and the SMAPI/spotify JSON bodies (Content-Type application/json; charset=utf-8).",
-    "Correction: two JSON engines coexist - the custom parser (its own error enum) and RapidJSON (header-only, identified by its verbatim GetParseError_En strings: Missing a comma or } after an object member, Incorrect hex digit after \\u escape, The surrogate pair in string is invalid, Missing a closing quotation mark, Invalid encoding in string, Number too big to be stored in double, Miss fraction part in number, Miss exponent in number, Terminate parsing due to Handler error, Unspecific syntax error). RapidJSON consumers: zones_storage (zone definitions) and common_logger (config)."
+    "Correction: two JSON engines coexist - the custom parser (its own error enum) and RapidJSON (header-only, identified by its verbatim GetParseError_En strings: Missing a comma or } after an object member, Incorrect hex digit after \\u escape, The surrogate pair in string is invalid, Missing a closing quotation mark, Invalid encoding in string, Number too big to be stored in double, Miss fraction part in number, Miss exponent in number, Terminate parsing due to Handler error, Unspecific syntax error). RapidJSON consumers: zones_storage (zone definitions) and common_logger (config).",
+    "Per-engine consumer census (via RapidJSON GetParseError_En string xrefs): RapidJSON instantiations concentrate in three code regions - the 0x101c/0x101d cluster (~40 inlined-template funcs, the muse/HTTP JSON surface), locSetUpdMgr (f_105db1f0, settings-update manager), and the share-indexer module (f_103da928, the .sparsebundle/indexing TU). The custom recursive parser serves the remaining consumers; neither engine is wrapped behind a single dispatch so the binding is per-TU at compile time."
    ]
   },
   "event_loop": {
@@ -140539,14 +140540,13 @@
      "notes": "ctor stores r4 -> +0x90; slot array +0x98 memset 0x300 = 24x32B"
     }
    ],
-   "todo": [
-    "Residual: the concrete capacity value each of the 4 owners passes (r26/r27 chains at the call sites resolve to each owner's config field, not an immediate) - per-owner value recovery requires tracing each caller's own setup."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: capacity constant = the exceeded the fd capacity of %d literal; registrants = the {fdevent.signal/write, wait.poll, check.poll, reset.read, removeFd, waitForEvent} ops + EventSync + epoll trio.",
     "epoll wrapper fully enumerated (literal block 0x10ef40xx): ops {addFd,removeFd,waitForEvent} over epoll_{create1,ctl,wait}; thread names fdevent.{signal.write,wait.poll,check.poll,reset.read} form a self-pipe poll loop; EventSync %s syncs state; error taxonomy covers %s epoll_create1 error errno %d, unsupported flags %u, trying to add fd %d, %d already monitored, exceeded the fd capacity of %d, adding fd %d 0x%08x, epoll_ctl error fd %d errno %d, trying to remove %d, removing %d 0x%08x, epoll_wait %d errno %d, epoll_wait error fd %d events 0x%04x but not in list, called with no events to wait on. This record duplicates fd_event - same machinery.",
     "Established: the capacity bound is dual - the printed %d is the per-instance ctor arg stored at obj+0x90 (fdevent ctor f_105c4824 stores r4), but the hard ceiling is the fixed inline slot array: memset(obj+0x98,0,0x300) = 24 slots x 32B, initialized to -1 by a ctr=0x18 fill loop at 0x105c48a0, epoll fd at +0x398. Effective capacity = min(configured, 24).",
-    "Resolved: fdevent ctor f_105c4824 caller census complete - exactly 4 instantiation sites {0x104a9118, 0x107f0d3c, 0x10d5c700, 0x10d5c838}; all four pass the capacity in r4 as a caller-computed value (r26/r27 chains - no immediate anywhere), so per-registry bounds are set by each owner's own field and the claim stands proven, not assumed."
+    "Resolved: fdevent ctor f_105c4824 caller census complete - exactly 4 instantiation sites {0x104a9118, 0x107f0d3c, 0x10d5c700, 0x10d5c838}; all four pass the capacity in r4 as a caller-computed value (r26/r27 chains - no immediate anywhere), so per-registry bounds are set by each owner's own field and the claim stands proven, not assumed.",
+    "CORRECTION: the fdevent ctor arg r4 stored at obj+0x90 is the object NAME string, not a capacity - the ctor prints it via \"EventSync %s\" (%s fmt at 0x105c4878). Call-site provenance: site 0x107f0d3c passes the bss singleton pointer 0x11097a60 = literal \"mixthrd\"; site 0x104a9118 passes a stack string r1+0x30; sites 0x10d5c700/0x10d5c838 pass their caller's name arg through. The fd bound is solely the fixed inline array: memset(obj+0x98,0,0x300) = 24 slots of 32B init to -1, plus epoll. The \"exceeded the fd capacity\" %d therefore reads the slot count, not a ctor arg."
    ]
   },
   "error_codes": {
@@ -140851,13 +140851,14 @@
     }
    ],
    "todo": [
-    "Residual: IdleState 0x%08x bit meanings - the hex field is a bitmask whose flag bits live in the wireless-state writer, not the enum path."
+    "Residual: the IdleState bit flags - the member is wire-received (peer-computed), so bit names live in the producing node logic, not the topology emit path."
    ],
    "resolved_findings": [
     "Resolved: mode FSM = {SONOSNET,INVALID,ETHERNET,STATION_SATELLITE,SONOSNET_SATELLITE_STATION_PRIMARY,STATION}; transitions driven by netconfig + <Wireless><WirelessInfo> dump.",
     "Mode semantics mapped: SONOSNET_MODE = SonosNet mesh member, ETHERNET_MODE = wired with radio roles reduced, STATION_MODE = plain WiFi STA, STATION_SATELLITE_MODE = satellite over STA link, SONOSNET_SATELLITE_STATION_PRIMARY_MODE = satellite carrying the primary STA uplink, INVALID_MODE = unset. Transitions are config-driven not autonomous: the mode word comes from the wireless config (WirelessInfo reports WifiMode %d + WifiModeString); SonosNetDisabled + IdleState(0x%08x bitmask) + BusyClients + ConnectionType expose the operational state. The setup() in SonosNet disable test mode path schedules an automatic revert in %d seconds - test-mode transitions are self-reverting.",
     "Resolved: the numeric enum mapping - the WifiModeString emit path at 0x1073ff10 computes idx=mode+1, bounds cmplwi 0x5, then dispatches through the self-relative jump table at 0x10f11f7c: -1=INVALID_MODE, 0=SONOSNET_MODE, 1=STATION_MODE, 2=SONOSNET_SATELLITE_STATION_PRIMARY_MODE, 3=STATION_SATELLITE_MODE, 4=ETHERNET_MODE (out-of-range -> 'Unknown'). The companion display ladder maps to human strings {'SonosNet (wireless)', 'SonosNet (Ethernet)', 'Ethernet', 'Ethernet (WiFi Disabled)', 'WiFi', 'Home Theater 2.0', 'Home Theater (Ethernet)'} (0x10f02c60 block).",
-    "Resolved: the wifi-enabled FSM vocabulary is proven in enum_tables.10fadd94: INACTIVE=1, WIFI_ENABLING=2, ACK_AWAIT=3, WIFI_DISABLING=4, WIFI_DISABLED=5, ACK_NOT_RECEIVED=6."
+    "Resolved: the wifi-enabled FSM vocabulary is proven in enum_tables.10fadd94: INACTIVE=1, WIFI_ENABLING=2, ACK_AWAIT=3, WIFI_DISABLING=4, WIFI_DISABLED=5, ACK_NOT_RECEIVED=6.",
+    "IdleState member proven wire-received: the emit path reads lbz +0x82e(r30) and prints it as 0x%08x; the dominant writer (f_10761d40) is a verbatim struct copy mapping wire record +0x18..+0x1f -> members +0x828..+0x82f (+0x1e -> +0x82e). The other writers (0x1074/0x1076 cluster) are same-shape record copies, so the bitmask is set by whichever peer produced the zone-member document - bit meanings are producer-side semantics outside this path."
    ]
   },
   "audio_decoders": {
