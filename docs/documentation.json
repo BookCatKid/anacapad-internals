@@ -141768,11 +141768,12 @@
     }
    ],
    "todo": [
-    "Residual: the private-key encryption scheme (encrypted-private-key field exists; the cipher/kdf sits inside the cert manager impl)."
+    "Residual: the exact cert private-key KDF and CBC-vs-ECB selection inside the cert-manager impl (primitives proven mbedtls AES/RSA/AEAD; the derivation step is not exported)."
    ],
    "resolved_findings": [
     "Resolved: on-disk format = %s/%s.%s files with keys {encrypted-private-key,expiration,encryption-key-type,sonos-key-and-cert} + failed-to-retrieve-key error path.",
-    "Format proven: PEM - both -----BEGIN CERTIFICATE----- and -----BEGIN PUBLIC KEY----- literals are in the image, plus public key hash: sha256//%s (HPKP-style pin format) and DH signature params {dh(g), dh(pub_key), Signature}. cert.xml stores <DeviceCertInfo>; the X-Sonos-DeviceCert header carries the device cert on requests. Cert health states {DeviceCertRequired, DeviceCertInvalid, DeviceCertExpired, DeviceCertRevoked} gate the refresh job (Unknown cert metadata state: %s. Scheduling cert refresh job; %zu consecutive cert fetch failures. Trying again in %ld seconds). Trust roots ship as /certbundles/v4/trusted_roots.rcb via libsonos-root-cert-bundle.so.2; validation via libsonos-certval.so.2; fetchRegDeviceCert/refreshRegDeviceCert are the fetch verbs; NewCertRegistrationEvent fires on registration."
+    "Format proven: PEM - both -----BEGIN CERTIFICATE----- and -----BEGIN PUBLIC KEY----- literals are in the image, plus public key hash: sha256//%s (HPKP-style pin format) and DH signature params {dh(g), dh(pub_key), Signature}. cert.xml stores <DeviceCertInfo>; the X-Sonos-DeviceCert header carries the device cert on requests. Cert health states {DeviceCertRequired, DeviceCertInvalid, DeviceCertExpired, DeviceCertRevoked} gate the refresh job (Unknown cert metadata state: %s. Scheduling cert refresh job; %zu consecutive cert fetch failures. Trying again in %ld seconds). Trust roots ship as /certbundles/v4/trusted_roots.rcb via libsonos-root-cert-bundle.so.2; validation via libsonos-certval.so.2; fetchRegDeviceCert/refreshRegDeviceCert are the fetch verbs; NewCertRegistrationEvent fires on registration.",
+    "libsonoscrypto.so.3 is shipped and is mbedtls-based. Its dynsym imports reveal the crypto primitives used: mbedtls_cipher_update_ad + mbedtls_cipher_write_tag (AEAD - AES-GCM or AES-CCM, the .upd/envelope path), mbedtls_aes_setkey_dec + mbedtls_aes_crypt_ecb (AES-128 ECB/CBC - consistent with the cert AES-128/AES-CBC/AES-ECB strings), mbedtls_rsa_*/mbedtls_pk_* (RSA key-wrap and signing), mbedtls_md_hmac_* (HMAC), mbedtls_sha256_*, mbedtls_md5_* (legacy). So the crypto stack is: envelope payload = AEAD AES, key-wrap = RSA, private-key storage = AES-CBC/ECB. The exported API is ZZ-mangled (ZZ0052=envelope decrypt, ZZ0053=envelope parse, ZZ0070=key-source) but internally all mbedtls."
    ]
   },
   "local_settings_mgr": {
