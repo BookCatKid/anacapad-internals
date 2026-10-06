@@ -149079,7 +149079,7 @@
    "name": "Atheros WiFi modules",
    "summary": "The Qualcomm Atheros 802.11 stack under /wifi/N plus the bridge module: load order enforced by /etc/Configure is adf.ko -> asf.ko -> ath_hal.ko -> dfs.ko (if present) -> ath_driver.ko, then /wifi/bridge.ko.",
    "todo": [
-    "Residual: the raw ioctl numbers inside ath_driver.ko (the athconfig verb->ioctl map lives in stripped ioctl tables); the DFS event -> userspace notification mechanism (netlink vs proc) is implied but not string-proven."
+    "Residual: most of the 385 cmd slots route to shared helper arms (ath_stop/reset_rxtx_stats/arg-copy stubs) rather than distinct named handlers - the ~30 bindings above are the strong ones; remaining cmds need per-case-body disasm to bind exact handler (mechanical, voluminous)."
    ],
    "artifacts": [
     "wifi/N/adf.ko",
@@ -149093,7 +149093,8 @@
     "Resolved (boundary): DFS channel-vacate = radar event -> dfs.ko -> channel switch coordinated with athconfig.",
     "Load order/dependencies (modinfo): adf.ko 'Qualcomm Atheros Device Framework' (no deps), asf.ko 'Atheros Device Module' (adf services), ath_hal.ko 'Atheros HAL' (depends=asf, the proprietary HAL by Errno Consulting/Sam Leffler), dfs.ko 'DFS Support for Atheros 802.11' (optional), ath_driver.ko 'Sonos WiFi driver' (depends=dfs - the Sonos-customized driver on top of the HAL), bridge.ko (GPL, ethernet bridging for br0).",
     "SonosNet control surface: userland does not ioctls the driver directly - it shells to /wifi/athconfig verbs (see bin_athconfig: setchannel/getacs, stassidlistadd/clr, keycache, sethhid/setuuid, ssidinbeaconenable, nsprobeenable, blockadvertisedpath, setnetsettings, txtrigger, conttx, senddeauth) which map onto ath_driver ioctls; wpa_supplicant binds through the custom '-D sonos' driver wrapper.",
-    "DFS flow: dfs.ko supplies radar detection; athconfig owns the CAC/NOL lifecycle verbs (cacenable/cactimeout/cacreset, nolenable/setnoltimeout/nolclear) and test injection (bangradar); radartool tunes detector thresholds (firpwr, rrssi, dfstime, numdetects, relpwr/block checks). Channel vacate on radar = driver event -> dfs.ko NOL entry -> netstartd channel reselection via getacs."
+    "DFS flow: dfs.ko supplies radar detection; athconfig owns the CAC/NOL lifecycle verbs (cacenable/cactimeout/cacreset, nolenable/setnoltimeout/nolclear) and test injection (bangradar); radartool tunes detector thresholds (firpwr, rrssi, dfstime, numdetects, relpwr/block checks). Channel vacate on radar = driver event -> dfs.ko NOL entry -> netstartd channel reselection via getacs.",
+    "athconfig verb->ioctl map RECOVERED: ath_driver.ko is NOT stripped (full .symtab present). ath_ioctl (.text+0xf85c, 0x3580B) bounds-checks cmd<=0x180 then dispatches through a 0x181-entry self-relative jump table at .rodata+0x5c (entries filled by .rela.rodata relocs); cmd>0x180 goes to a tail chain at 0x11524 (handles 0x752f and the 0x8b.. SIOCDEVPRIVATE range). Named handler bindings resolved via relocs: set_uuid=0x97, set_hhid=0x2, set_hhid_aes_key_channel=0x8, set_aes_key=0x15, set_nchains=0xf, set_channel={0x35,0xd9,0xe9}, hostap_set_key=0x28, hostap_clear_key=0xe8, del_key={0x9a,0xc8}, scan_start=0x9d, scan_abort=0x136, scan_get_results=0x163, scan_clear_ssid=0xe4, send_deauth=0x164, sta_get_state=0x139, sta_has_wireless_cnx=0x133, send_netstart={0xd,0x1b,0x1d,0x29-0x2c}, get_wd_info=0x17f, path_mgr_{get_learned_hops=0x65,set_have_uwc=0x9b,get_have_uwc=0x13c}, get_channel_list={0x52,0x53,0x58}, deauth_sta=0x20, sta_scan_start_event=0xdc, sta_simple_data_event=0x17c, rx_hist_to_user=0x16d, wait_on_txqs=0x6e, continuous_beacon_change={0x20,0x21,0x23}, mibcc_show={0xcb,0xcc}."
    ]
   },
   "fmt_upd": {
