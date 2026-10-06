@@ -138016,7 +138016,8 @@
     }
    ],
    "todo": [
-    "Residual: the exact predicate mix of +0xdc/+0xdd flag bytes in the armed check inside f_10d552a0 (which sub-conditions arm vs veto the preemptive turn-on)."
+    "Established: armed check = (+0xf4 == 2) ? flag-chain{+0xdc,+0xdd,+0xe1,+0xe2} : armed - the veto applies only in mode 2; the mode field and flag bytes have no naming strings (anonymous struct members).",
+    "Residual: the semantic names of mode==2 and each flag byte are not recoverable from literals; binding them needs the preempt-path call context or sibling-binary symbols."
    ],
    "resolved_findings": [
     "Resolved: ampPowerOnLocked = the rail sequencer writing device nodes in order {enable, unmute, clock-stable wait}; rail transition order is the fixed power-up sequence with the per-rail delay constants.",
@@ -138026,7 +138027,8 @@
     "Correction: the earlier 'state 2 = fully-on' inference is inconsistent with the name table - state 2 = AMP_OFF. The transition fn (0x10d56670) clears the flag byte at obj+0xe2 when entering states 0/1 (powered rails) and leaves it on entering 2, consistent with +0xe2 = pending preemptive turn-on rather than powered state.",
     "The +0xe2 consumer is f_10d552a0 (locked via the +0x48 mutex): it computes a predicate from {+0xdd byte flag, ampState(+0xf4)==2/AMP_OFF, +0xdc byte flag} then reads +0xe2 - if +0xe2==0 the function returns 0; if set it returns the +0xe1 byte. So +0xe2 = preemptive-turn-on armed flag and +0xe1 = the armed target value; the query reports the armed target only while the pending flag is set, which the ampState-2 transition clears.",
     "+0xe1 semantic proven: the sole non-init writer is manageAmpStateLocked_notifyPlayingUnmuteableSource_np (0x10d54ec4), which stores its amp-state argument (r30=r4) into +0xe1 after comparing against the current value. So +0xe1 is the PENDING TARGET ampState (a {0=HI_RAIL,1=LO_RAIL} rail value) that the preemptive turn-on arms toward; the +0xe2 flag marks the arm. The notification name pins the trigger: an unmuteable source starting playback.",
-    "Kernel side (audiodev.ko, symtab present): the /dev/audioctl ioctl dispatch is audioctl_device_ioctl (.text+0x4924). Amp control surface is named: audioctl_amp_power(+part.3), audioctl_mute, audioctl_limelight_{assert,deassert}_amp_{hiz,pdn,reset}, amp_wq_function/ampctl_work (amp workqueue), audioctl_fpgaIsr + audioctl_initFpgaIrq (amp/FPGA IRQ path). This is the kernel endpoint the amp_state FSM drives; the HI/LO_RAIL/OFF states map onto audioctl_amp_power/limelight_assert calls."
+    "Kernel side (audiodev.ko, symtab present): the /dev/audioctl ioctl dispatch is audioctl_device_ioctl (.text+0x4924). Amp control surface is named: audioctl_amp_power(+part.3), audioctl_mute, audioctl_limelight_{assert,deassert}_amp_{hiz,pdn,reset}, amp_wq_function/ampctl_work (amp workqueue), audioctl_fpgaIsr + audioctl_initFpgaIrq (amp/FPGA IRQ path). This is the kernel endpoint the amp_state FSM drives; the HI/LO_RAIL/OFF states map onto audioctl_amp_power/limelight_assert calls.",
+    "Armed-check f_10d552a0 decoded under the +0x48 mutex: word +0xf4 is a mode field; mode != 2 returns armed(1) unconditionally, mode == 2 gates on the byte-flag chain {+0xdc, +0xdd, +0xe1, +0xe2} read in order (each branch returns the flag byte as the armed result). The 'preempt' string family is the RAmpManager preempt path."
    ]
   },
   "lla": {
