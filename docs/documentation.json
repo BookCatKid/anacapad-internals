@@ -86403,7 +86403,7 @@
   "/QPlay/Control": {
    "name": "QPlay",
    "control_path": "/QPlay/Control",
-   "description": "QPlay (QQ Music) authentication service stub; the extractor resolved no handler for QPlayAuth: likely registered but dispatch entry unresolved in this build.",
+   "description": "QPlay (QQ Music) authentication service; QPlayAuth dispatch is statically bound (strcmp-matcher 0x1073a4f0, exec 0x1073a5d0) and the request/response grammar is fully decoded.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -86978,8 +86978,7 @@
     "compiled lib (qplay): no path literal"
    ],
    "todo": [
-    "Established: QPlay is a registered stub in this build; QPlayAuth's handler could not be resolved from any dispatch table.",
-    "Residual: where (or whether) the QPlayAuth dispatch entry is registered - the service may be table-less in this firmware."
+    "Residual: the Seed->Code transform inside the impl member fn (impl = req member +0x04, v[+0x08]) - crypto is inlined or via a shared hash lib with no literals; buffer caps proven {Seed in 0x80, Code out 0x80, MID/DID out 0x15}."
    ]
   },
   "/SystemProperties/Control": {
@@ -98694,7 +98693,7 @@
    ],
    "notes": "CORRECTION: catalogue entries whose src mentions r2+0xffff8ff8 (e.g. the stw at 0x103619b8 in f_10360ea4) are stack-protector canary slots at sp+0x934 inside large frames, not object members. The 0x10aacb34 store (*(*(arg)+0x68)+1) is a refcount or index increment on another class.",
    "todo": [
-    "Residual: the three attribute names bound by the optional-pair args into f_10c38f90 (the DIDL integer attributes guarded by +0x934/+0x936), the per-slot identity of the four shared_ptr members released in the f_10262ed8 dtor (+0x924..+0x93c), and which u32 role the chproc +0x934 plays within the RCStates encoder record."
+    "Residual: the per-slot identity of the four shared_ptr members released in the f_10262ed8 dtor (+0x924..+0x93c), and which u32 role the chproc +0x934 plays within the RCStates encoder record."
    ],
    "resolved_findings": [
     "Established: every catalogued +0x934 site is classified - zoneImpl capability mask (fully proven), two container begin/end pointer fields, a three-byte flag cluster, two flag-byte-guarded containers, a 0x21-byte char field, and a lazy-init pointer; no single shared field exists at this offset. Still unknown: the exact flag semantics inside each cluster (what each bool enables) - the fields themselves are typed and located. Next step: name each flag via its consumer's branch target (done per-site as needed).",
@@ -98703,7 +98702,8 @@
     "f_10aacb34 owner identified by its JSON key ladder: a music-service content-metadata record parsed via keys {contentType,imageUrl,linkUrl,mediaUrl,name,releaseDate,tags,type}.",
     "f_1062727c owner identified by module string: netsettings; its +0x934 is inside a 16-byte field at +0x930..+0x93f zeroed byte-by-byte at init (0x1062741c-0x10627458).",
     "DIDL flag-byte cluster decoded: the +0x934/+0x936 (and parallel +0x8fc/+0x8fe/+0x910) bytes are has-present flags guarding optional attribute value bytes. In f_10448f38 the emitter reads lbz +0x934 gating lbz +0x935, lbz +0x936 gating lbz +0x937 - {has-flag, value} pairs passed as r7/r8 args into attribute setter f_10c38f90; the +0x8fe/+0x8ff pair gates the r:isAd literal emit and +0x8fc/+0x8fd gates a %u numeric emit.",
-    "chproc correction: the const stored into the RCStates u32 field is 0x10ec9ed0 = format string encoder %s, bit depth %u, sample rate %u - it is the RCStates log format, not a 0x04050607 byte table. The +0x934 member is a u32 in that encoder/RCStates audio-state record."
+    "chproc correction: the const stored into the RCStates u32 field is 0x10ec9ed0 = format string encoder %s, bit depth %u, sample rate %u - it is the RCStates log format, not a 0x04050607 byte table. The +0x934 member is a u32 in that encoder/RCStates audio-state record.",
+    "DIDL optional-pair attrs resolved: the f_10c38f90 record is {vptr, i32 val, i32 aux, bool x3} (16B) and the call site at 0x1044930c carries the names {r:chapterNum, r:episodeNumber, upnp:originalTrackNumber} - three optional integer DIDL attributes emitted through the binder. f_10c38f90 record shape: +0=vptr(GOT), +4/+8 ints, +0xc..+0xe flag bytes."
    ],
    "per_class": [
     {
@@ -98954,11 +98954,12 @@
    ],
    "notes": null,
    "todo": [
-    "Residual: per-class member semantics still open for the chsnk crossfade bookkeeping word (which phase/counter it is within the crossfade %zu samples path), the settings flag-word bit 0x2000 semantic, the libcurl-internal struct field name at +0xcdc (upstream curl layout would need the bundled curl source level), and the SMAPI subscription field role."
+    "Residual: per-class member semantics still open for the chsnk crossfade bookkeeping word and the libcurl-internal struct field name at +0xcdc (upstream curl layout would need the bundled curl sources); the systemstate word is proven = env-tunable numeric default 0x2000 whose option name is runtime-registered."
    ],
    "resolved_findings": [
     "Established: +0xcdc resolves per class - on spot_q it is a u32 track/stream id (setter f_10220878, compared in f_102203a0); the 0x101f/0x1033/0x109 load sites belong to unrelated objects at the shared offset. Still unknown: the field meanings at those other classes' +0xcdc. Next step: identify the owning class at each remaining site (as done for 0x934).",
-    "loadContainer member target identified: the pointer written into +0xcdc points at 0x10f9a6c4, which is a rodata pointer table (entries 0x10a19f90, 0x10a19e18, 0x10a198e0, 0x10a19730, 0x10a19218, then a null pair, then 0x10a19d60/0x10a19ecc/0x109c9854/0x109ccb98 and more). The member is therefore a code/handler-record pointer into a browse-loader dispatch table, not a data constant."
+    "loadContainer member target identified: the pointer written into +0xcdc points at 0x10f9a6c4, which is a rodata pointer table (entries 0x10a19f90, 0x10a19e18, 0x10a198e0, 0x10a19730, 0x10a19218, then a null pair, then 0x10a19d60/0x10a19ecc/0x109c9854/0x109ccb98 and more). The member is therefore a code/handler-record pointer into a browse-loader dispatch table, not a data constant.",
+    "systemstate +0xcdc word resolved: in the boot-init path (netsettings/systemtimeoffset module, f_101981f0) the word is seeded to 0x2000 then conditionally overwritten by env-option index 0x33 parsed as hex (strtol base 16 at 0x10199afc). So on this class +0xcdc is a numeric tunable with compiled default 8192, not a bitmask bit. The env-name table is runtime-built in .bss (0x110a53e0, stride 0x14) so the option name for selector 0x33 is registration data."
    ],
    "per_class": [
     {
@@ -110449,8 +110450,8 @@
    ],
    "notes": null,
    "todo": [
-    "Established: embedded-member offset map zp+0x000..0x388 (~30 members, {fntable,aux,flag} shape), registrar signature.",
-    "Residual: which subsystem each member fn-table belongs to - requires resolving each table slot set"
+    "Established: 32-row member census at zp+0x000..0x3b8; 5 members named by literal (muse hhid, alarmclock event, group master, hw-warning, discovery chime); generic thunk f_10809540 marks empty callbacks.",
+    "Residual: subsystem binding for the remaining ~25 member callbacks - the thunks carry no module literals; each requires call-chain tracing to a named subsystem."
    ],
    "disasm_digest": {
     "insns": 3299,
@@ -110934,7 +110935,8 @@
    "resolved_findings": [
     "Resolved via complete decompile pass: 3299-insn worker; direct calls: f_105d0f7c, f_10180794, f_1018069c, f_10807034, f_10691e00, f_100c5050, f_10564c3c, f_10bb9fb4, f_10809f0c, f_1068aeac, f_109bcfc8, f_1058a574, f_101af8ac, f_10367674, f_102a402c, f_106783f4, f_105877; string literals: zp; on event; primary; eAccountTransactionEvent; onEvent; tf-8\"; ion>; healthchecker; scopeZP; %d; scopeDefault; warn_fault; etting mute state; zp_pre_setup_state; member stores: 0x234,0x1f0,0x208,0x20c,0x210,0x214,0x218,0x21c,0x220,0x224,0x228,0x22c; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
     "Batch4 context: Residual: the embedded-member offset map of the zp aggregate and which subsystem each of the ~40 f_1018069c registration rows binds (ctor proven: zoneImpl at zp+0x3a8 via f_10691e00, vptr 0x10e98278, HTControl via f_10242118).",
-    "Resolved: the zp aggregate embedded-member map is decoded - the registration block 0x1018d300-0x1018d900 installs ~30 sub-objects at zp+0x000,0x028,0x044,0x060,0x07c,0x098,0x0b4,0x0d0,0x0ec,0x108,0x124/0x128,0x144/0x148,0x164/0x168,0x184/0x188,0x1a4/0x1a8,0x1c4/0x1c8,0x1e4/0x1e8,0x204/0x208,0x224/0x228,0x244/0x248,0x264/0x268,0x284/0x288,0x2a4/0x2a8,0x2c4/0x2c8,0x2e4/0x2e8,0x304/0x308,0x324/0x328,0x344/0x348,0x364/0x368,0x384/0x388 (stride ~0x20-0x24). Each member is {secondary fn-table ptr, aux ptr, flag byte} - the fn tables are plain pointer arrays (not Itanium vtables: -8/-4 words are zero) whose slot-0 impls include f_10809540 and f_1012cb60; members register themselves via f_1018069c(this=member+4, arg4, arg4+len)."
+    "Resolved: the zp aggregate embedded-member map is decoded - the registration block 0x1018d300-0x1018d900 installs ~30 sub-objects at zp+0x000,0x028,0x044,0x060,0x07c,0x098,0x0b4,0x0d0,0x0ec,0x108,0x124/0x128,0x144/0x148,0x164/0x168,0x184/0x188,0x1a4/0x1a8,0x1c4/0x1c8,0x1e4/0x1e8,0x204/0x208,0x224/0x228,0x244/0x248,0x264/0x268,0x284/0x288,0x2a4/0x2a8,0x2c4/0x2c8,0x2e4/0x2e8,0x304/0x308,0x324/0x328,0x344/0x348,0x364/0x368,0x384/0x388 (stride ~0x20-0x24). Each member is {secondary fn-table ptr, aux ptr, flag byte} - the fn tables are plain pointer arrays (not Itanium vtables: -8/-4 words are zero) whose slot-0 impls include f_10809540 and f_1012cb60; members register themselves via f_1018069c(this=member+4, arg4, arg4+len).",
+    "Member-table census complete: 32 registration rows install records {callback fn ptr, aux fn ptr, sentinel/flags, 0, fn2} at zp+0x000..0x3b8 stride 0x1c..0x20 (rodata tables 0x10e8aa88..0x10e98410). Identifiable members by callback literals: +0x1c4 NewMuseHHIDEvent handler (RZonePlayer muse), +0x244 /AlarmClock/Event, +0x304 Master (group role), +0x324 hardware warning state, +0x364 discovery chime; +0x000/+0x028 rows are zeroed placeholders; six rows share the generic thunk f_10809540 (empty/base callback)."
    ]
   },
   "0x104661fc": {
@@ -135621,7 +135623,8 @@
    "resolved_findings": [
     "Resolved: QPlayAuth (Seed->{Code,MID,DID}) is the ENTIRE QPlay surface - impl f_104666b4 computes the auth values then returns 0 unconditionally with no session state and no event. No control/listen channel exists. Marking QPlay advertisement+handshake-only.",
     "In-binary QPlay surface fully bounded: (1) device-description capability qq:X_QPlay_SoftwareCapability emitted as QPlay:2 but gated by the per-model #QPLAY_SUPPORT# template token (device-description template block at 0x10ef8xxx), (2) /QPlay/Control SOAP endpoint with the single QPlayAuth{Seed in; Code,MID,DID out} action - dispatch 0x1073a4f0, arg records built at 0x1073a5d0, (3) shared-T QPlay as a transport mode on the http streamer: updateSharedTQPlayMode is called from the segment-fetch path (adjacent to resetSegmentFetchErrors/canFetchSegment error-budget logic and entering pauseTransition) and rejects calls from a bad streamer context. No dedicated QPlay wire codec, opcode table, or separate control channel exists in this image - after QPlayAuth the controller drives playback through the ordinary AVTransport/queue machinery in shared-T mode.",
-    "Resolved: QPlay is a first-class UPnP service - /QPlay/Control appears in the master control/event URL table @0x10e76060 (between /ZoneGroupTopology/Control and /MediaServer/ConnectionManager/Control), and the device description advertises <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability> plus a #QPLAY_SUPPORT# template token. QPlayAuth is a literal action/state-variable name @0x10f11d58. QPlay is the only advertised service with NO matching /QPlay/Event route."
+    "Resolved: QPlay is a first-class UPnP service - /QPlay/Control appears in the master control/event URL table @0x10e76060 (between /ZoneGroupTopology/Control and /MediaServer/ConnectionManager/Control), and the device description advertises <qq:X_QPlay_SoftwareCapability>QPlay:2</qq:X_QPlay_SoftwareCapability> plus a #QPLAY_SUPPORT# template token. QPlayAuth is a literal action/state-variable name @0x10f11d58. QPlay is the only advertised service with NO matching /QPlay/Event route.",
+    "Seed/Code buffer contract pinned from the exec handler: Seed parse cap 0x80, Code/MID/DID out caps {0x80,0x15,0x15}; the transform runs inside impl->v[+0x08] on the req member object (see services/QPlay record)."
    ]
   },
   "queue_persistence": {
