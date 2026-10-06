@@ -98688,9 +98688,7 @@
     }
    ],
    "notes": "CORRECTION: catalogue entries whose src mentions r2+0xffff8ff8 (e.g. the stw at 0x103619b8 in f_10360ea4) are stack-protector canary slots at sp+0x934 inside large frames, not object members. The 0x10aacb34 store (*(*(arg)+0x68)+1) is a refcount or index increment on another class.",
-   "todo": [
-    "Residual: which perf-counter entries the four shared_ptr slots hold (each slot is a registered counter handle; the binding between slot index and counter name is the registration order inside f_10317374, which is name-arg driven)."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Established: every catalogued +0x934 site is classified - zoneImpl capability mask (fully proven), two container begin/end pointer fields, a three-byte flag cluster, two flag-byte-guarded containers, a 0x21-byte char field, and a lazy-init pointer; no single shared field exists at this offset. Still unknown: the exact flag semantics inside each cluster (what each bool enables) - the fields themselves are typed and located. Next step: name each flag via its consumer's branch target (done per-site as needed).",
     "f_10262ed8 owner decoded: it is a destructor that releases four shared_ptr member slots at +0x924/+0x92c/+0x934/+0x93c - each pointer is null-checked, then refcount-decremented via an lwarx/stwcx. atomic loop at 0x10263240/0x10263280/0x102632c0/0x10263300 with a conditional delete path (release thunk at 0x11098b00). +0x934 is the third refcounted member slot, not a lazily-created scalar.",
@@ -98700,7 +98698,8 @@
     "DIDL flag-byte cluster decoded: the +0x934/+0x936 (and parallel +0x8fc/+0x8fe/+0x910) bytes are has-present flags guarding optional attribute value bytes. In f_10448f38 the emitter reads lbz +0x934 gating lbz +0x935, lbz +0x936 gating lbz +0x937 - {has-flag, value} pairs passed as r7/r8 args into attribute setter f_10c38f90; the +0x8fe/+0x8ff pair gates the r:isAd literal emit and +0x8fc/+0x8fd gates a %u numeric emit.",
     "chproc correction: the const stored into the RCStates u32 field is 0x10ec9ed0 = format string encoder %s, bit depth %u, sample rate %u - it is the RCStates log format, not a 0x04050607 byte table. The +0x934 member is a u32 in that encoder/RCStates audio-state record.",
     "DIDL optional-pair attrs resolved: the f_10c38f90 record is {vptr, i32 val, i32 aux, bool x3} (16B) and the call site at 0x1044930c carries the names {r:chapterNum, r:episodeNumber, upnp:originalTrackNumber} - three optional integer DIDL attributes emitted through the binder. f_10c38f90 record shape: +0=vptr(GOT), +4/+8 ints, +0xc..+0xe flag bytes.",
-    "chsrc +0x900 sub-object identified: f_10262ed8 is the dtor of the chsrc (channel-source) class whose ctor f_1025f19c constructs at +0x900 a perf_counter registry (f_10317374, registers CHSRC Fill Level + frames/number of frames processed counters, perf_counter_table literal, NO DESCRIPTION PROVIDED default text). The four shared_ptr members released at +0x924/+0x92c/+0x934/+0x93c are therefore counter-registry handle slots inside that perf table, not top-level chsrc members. chsrc domain confirmed by ctor literals chsrc + chsrc-state-change."
+    "chsrc +0x900 sub-object identified: f_10262ed8 is the dtor of the chsrc (channel-source) class whose ctor f_1025f19c constructs at +0x900 a perf_counter registry (f_10317374, registers CHSRC Fill Level + frames/number of frames processed counters, perf_counter_table literal, NO DESCRIPTION PROVIDED default text). The four shared_ptr members released at +0x924/+0x92c/+0x934/+0x93c are therefore counter-registry handle slots inside that perf table, not top-level chsrc members. chsrc domain confirmed by ctor literals chsrc + chsrc-state-change.",
+    "chsrc +0x924/+0x92c/+0x934/+0x93c counter identities: f_10317374 (perf_counter_table registrar) registers exactly four named perf_counters - \"frames\" (number of frames processed), \"accumTime\" (aggregate audio of processed frames), \"accumBytes\" (aggregate size of processed frames), \"aheadTime\" (amount of audio prebuffered). The four shared_ptr slots released by the dtor are these four counter handles in registration order; the optional fifth literal \"queue expiration time\" at 0x10eb80e8 is a sibling stat, not a table-registered counter."
    ],
    "per_class": [
     {
@@ -118141,9 +118140,7 @@
    "note": "slots: +0x00 f_106ea5ac(ctor ref), +0x04 f_106c7ba4, +0x08 f_106ea33c, +0x0c f_106e9ec0, +0x10 f_106e9814, +0x14 f_106e9494, +0x18 f_106e9a24, +0x1c f_106ea0f8 (RMD marshaller), +0x20 f_106e9c50, +0x24 f_1012b9b4, +0x28 f_106e963c, +0x2c f_106e91e4",
    "evidence": "rodata table dump 0x10f0918c; ctor disasm f_106ea5ac installs vptr",
    "role_correction": "outbound SOAP call builders, one slot per ZGT action; used when this device issues ZGT calls (e.g. RegisterMobileDevice to a coordinator)",
-   "todo": [
-    "Established: all 12 vtable slots mapped - +0x00 ctor, 9 ZGT action marshallers, +0x24 non-ZGT helper, +0x2c getServiceType URN accessor. No residual."
-   ],
+   "todo": [],
    "slot_map": {
     "+0x00": "f_106ea5ac ctor/lifecycle",
     "+0x04": "f_106c7ba4 base/helper (no action literal - non-marshaller slot)",
@@ -124292,13 +124289,14 @@
    "files": "ai_impl_base.cxx + spotify/ai_spotify.cxx",
    "semantics": "Spotify is an AudioIn impl source (ai_spotify): Connect playback flows through the AudioIn service impl",
    "todo": [
-    "Residual: the full ai_spotify vtable slot order (which decoded body fills which slot) - vtable is runtime-installed at ctor, so slot-to-body binding needs the ctor store sequence"
+    "Residual: precise semantic name for slots +0x18/+0x30/+0x34/+0x3c whose bodies lack distinctive literals; secondary vtables at +0x4c/+0x6c (object +0x4/+0x8 bases) are interface slices with 6 and 2 slots respectively."
    ],
    "impl_contract": "ai_impl_base (f_102926ac/27f8/2eb8) supplies the shared AudioIn machinery: a zone-group tracker ('Adding group with coord %s demoMode %d' / 'Removing group with coord %s' - impls track groups keyed by coordinator UUID with a demoMode flag) and a WORKER THREAD, f_10292eb8: mutex +0x58, run flag +0x1d8, blocks on condvar +0xe8 and on each wake calls VFUNC +0x20 - the single per-tick process slot each derived impl must fill. ai_spotify (zoneplayer/spotify/ai_spotify.cxx, fns f_104dbe84/4dc4a4/4dd600/4dd744+) is the Spotify Connect impl: its internals handle transport ('Pausing track, offset %u ms') and stream transitions ('Logical Track Boundary') under tag 'spot'. Registration: ai_spotify's functions have NO external bl callers and no static vtable slots in rodata - it is reached only virtually, and its derived vptr is installed by a ctor that builds the vtable at runtime (same pattern as the zp-aa composite: .data-resident tables initialized by the ctor, not rodata). So the contract narrows to: ctor installs derived vptr on the ai_impl_base subobject; the base's worker thread then drives the impl via vfunc +0x20.",
    "resolved_findings": [
     "Resolved: ai_impl_base provides the group tracker (coord-keyed, demoMode flag) + a worker thread that pumps vfunc +0x20 per condvar wake; ai_spotify fills the slot and handles 'Pausing track, offset %u ms' + 'Logical Track Boundary' internally; its vtable is runtime-built (no rodata slots, no direct callers).",
     "Resolved: ai_spotify.cxx implements class RSpotifyAudioInput (log domain 'spotifyAudioInput') over the ai_impl_base.cxx base - Spotify Connect registers as an AudioIn source alongside ai_vli (VLI-backed audio input). The AudioIn service surface is urn:schemas-upnp-org:service:AudioIn:1 with actions {GetAudioInputAttributes, SetAudioInputAttributes}, state fields {XAudioInputName, AudioInputIcon, AudioInputLevel, AudioInputLatency}, events {AudioInputAttributesEvent, AudioInputDisconnectedEvent}, HTAudioInCode status XML, and cloud proxy routes v1/players/{playerId}/upnpAudioIn {call,subscribe,renew,unsubscribe}. SupportsAudioIn is the capability gate; AudioInputZP/audioinzoneplayer is the zone-player binding; 'Clearing AudioInput session on line-in disconnect' ties session teardown to line-in state.",
-    "Resolved: ai_spotify per-vfunc bodies are present in .text (the vtable is runtime-installed, so slots bind at construction) - the scheme matcher @0x1020c8e8 accepts {spotify:, x-spotify-file://} via strncasecmp(8/17); a second vfunc @0x1020ca08 byte-swaps *(arg+4) as a length and rejects sizes {9,12} - consistent with a token/field-length gate on the incoming request."
+    "Resolved: ai_spotify per-vfunc bodies are present in .text (the vtable is runtime-installed, so slots bind at construction) - the scheme matcher @0x1020c8e8 accepts {spotify:, x-spotify-file://} via strncasecmp(8/17); a second vfunc @0x1020ca08 byte-swaps *(arg+4) as a length and rejects sizes {9,12} - consistent with a token/field-length gate on the incoming request.",
+    "ai_spotify vtable is NOT runtime-injected: the RSpotifyAudioInput ctor (f_104db6xx, domain spotifyAudioInput) statically stores three vptrs - primary 0x10ed9c94 at +0x0, plus sub-vtables 0x10ed9ce0 at +0x4 and 0x10ed9d00 at +0x8. Primary slot order: +0x00 f_104e16f8, +0x04 f_104e1a68 (dtor pair), +0x08 f_104dfb10 / +0x14 f_104dfb20 / +0x20 f_104dfb30 / +0x38 f_104dfb40 (SpotifyInternalEvent sink family emitting \"Final track samples received\"), +0x10 f_104dd904 (eSDK vli flush, guards byte-offset seek), +0x18 f_104da2f4, +0x1c f_104de170 (sn_ session-id formatter), +0x24 f_104dc5a8 (Seek \"Seeking to position %u ms, streamId: %u\"), +0x28 f_1021cd78 (playback-command dispatcher emitting RSpotifyPlayback{Play,Pause,Seek,SeekRelative}), +0x2c f_104dfa08 (Full reset), +0x30 f_104dc040, +0x34 f_104de748, +0x3c f_104dca78, +0x40 f_104da304."
    ]
   },
   "sonos_libs": {
@@ -131288,9 +131286,7 @@
     "id3": "in-band ID3v2 tags detected on 49 44 33 magic inside PES payloads",
     "silence": "'silen: %zu' stuffing/null runs"
    },
-   "todo": [
-    "Residual: none on the type space - accepted stypes {3,4,10-13}=audio PID, {0x15}=timed-ID3 PID, rest rejected; remaining open is only which upstream producer muxes each (encoder-side, not demuxer state)"
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: tsclient is an MPEG-TS demuxer - 4-byte header parse, PID dispatch (PAT 0 / PMT / audio this+0x10 / timed-ID3 this+0x30), PSI section+descriptor+ES walk, stream_type dispatch, adaptation-field handling, in-band ID3v2, deadline-bounded batch pump.",
     "Resolved: the ES stream_type acceptance set is a bitmask test @0x104cdb20-0x104cdb44 - stype>0x15 skips; otherwise (1<<stype)&0x3c18 nonzero accepts {0x03 MPEG-1 audio, 0x04 MPEG-2 audio, 0x0a/0x0b/0x0c/0x0d DSM-CC multiprotocol/U-N/stream-descriptors/sections} as the audio PID; the 0x20<<16 bit (stype==0x15, metadata-in-PES) registers the timed-ID3 PID via \"srwi r26,13; stw r26,+0x30\" (PID = ES pid field >>13 mask); all other stypes log \"Unsupported stream type: %x\"."
@@ -134082,9 +134078,7 @@
     "disableTlsRsaCiphersuites"
    ],
    "notable": "enableTrueRoom (next-gen tuning), enableVirtualHeight + enableFlexibleSurroundsTuning (Atmos-era HT), enable3ChannelSatellites, enableHTSNKv2 (channel-sink v2), enableTuneInReplacement/Migration (service swap), enableSvcHomeControlLutron/enableSvcPlus (partner integrations), disableTlsRsaCiphersuites (hardening), enablePitchfork (IBT plans)",
-   "todo": [
-    "Residual: none open for key inventory/read sites - remaining is per-flag consumer semantics downstream of the read (each gated code path), which is per-site work not flag-registry state"
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: flag read model - each featureConfig* key is looked up via the shared flag getter against the replicated cloud-config JSON doc; enable*/disable* booleans are read once at init into the flag struct; one flag traced end-to-end (the pattern is uniform: key string -> getter -> member bool). Enumerated the complete 48-key vocabulary in the record; per-flag reader lists are derivable from the uniform getter pattern.",
     "Carrier resolved: featureConfig is not a local file - it is the cloud document fetched by RFeatureConfigManager via GET /features/v1/config? (query params {swVersion,hwVersion}, cache-control: no-cache; literal at 0x10ef3898). The featureConfig* prefixed keys (pool at 0x10f97ab4-0x10f97bd0: DropoutContext, HomeTheaterWifiPerfTelemetry, MetricsService, Plink, Quickbonding, SemiSleep, SmartPlay, SpotABR, SsdpAdvertiseConfig, ZoneExperiment) are the replicated-store gate mirrors derived from that document; the unprefixed enable*/config keys (pool around 0x10f9c2ba: apiPlayback, quickbondingConfig, ssdpAdvertiseConfig, enablePitchfork, enableSslClientCacheRefresh, plink, enableDhcpProxyFailureTelemetry, homeTheaterWifiPerfTelemetry, enableOnDemand...) are the feature value names inside it. Gate sites are xref-enumerable per key: enablePitchfork gates the ibt plan executor at ~0x10a581b0 (two reads); enableSemiSleep is read at ~0x100d4ebc (rc area), ~0x101bc458, ~0x10363560 (dp_zpimpl), and ~0x10a7c25c/~0x10a7e270 (muse-side). The ZoneExperiment layer overrides via the replicated <ZoneExperiments> store and the local /experiments endpoint.",
@@ -135262,7 +135256,8 @@
     "Resolved: capability rows per model id are the capability-conditional table entries indexed by ZPSnn - each row binds the model id to its capability flags (the sparse {name,mask} pair tables decoded for group_capabilities); the per-id rows are the flag combinations for that hardware revision.",
     "Product-descriptor architecture decoded end to end: f_10908f38 populates the descriptor singleton - defaults (Unknown), special-cases legacy ids {Connect, HDLCD3250, Sonos, SYMFONISK}, then runs a strcmp ladder on the model id string. Per matched model it strlcpy-writes three names: +0x4 short id (0x41), +0x45 ZPSnn canonical name (0x41), +0x86 display name (0x41), +0xc7 short code (5). S9 proven: ZPS9 + Playbar + flag word +0xd0 = 0x00008000 with +0xcc=0xa, +0xd4=0x30206772, +0xd8=0x00037008, +0xdc/-0xe0/-0xe4=0, +0xf4=6. Unknown-model fallback ORs 0x05010001 into +0xd0. A second block at 0x10909408-0x109094ec writes the hardware board codes {A100,A101,A102,A200,B100,C100,C200,C201,D100,X999} - the S0-S9 submodel series. f_10909fcc is the separate capability-constant ladder: strcmp over the full model set {S1,S3,S6,S9,S11,S12,S13,S14,S15,S16,S17,S18,S19,S20,S21,S22,S23,S27,S28,S33,S34,S35,S37,S38,S40,S41,S42,S43,S44,S45,S48,S51,S53,S54,S56,S59,ZP90,ZP120,BR200,Sub} writing a per-model tuple {+0xec u32, +0xf0 u16, +0xf8 u32, +0xfc u32} - e.g. S9={0x80,0x19,0x80}, S21={0xa,0x14,0x200,0x100}, S6={0x32,0x1e,0x100,0x100}, S11={0x38,0xd,0x100,0x100}. Capability gating runs through the accessor family on +0xd0: f_10908540 tests low byte +0xd3 (analog line-in present, gates AudioIn/Control registration; 0 on S9), f_1090855c masks 0xff00 (the +0xd1/+0xd2 bytes; 0x80 set on S9 = optical/TV input path). The ZPS-to-product mapping is therefore identity for most ids (Snn -> ZPSnn) with display-name overrides like Playbar and the SYMFONISK brand block.",
     "Resolved: the SKU record document schema is literal - emit format \"sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\" />\" (0x10ebfcb0) proves per-SKU fields {sku, startDate, endDate, codes} - the codes attribute is the multi-value list each SKU grants. The 63-row product table (internalId/displayName/modelId) is already decoded; this adds the SKU-level entitlement document shape.",
-    "Resolved: the full display-name array at 0x10f7c618-0x10f7c840 gives the human-readable names paired against the ZPS id table - {CONTROL,Connect:Amp,Play:5,Dock,Play:3,Play:1,Playbase,One,Beam,Move,Arc,Table lamp,Bookshelf,One SL,Five,Roam,TITAN,Picture frame,Arc SL,Roam SL,Ray,Beam SL,Sub Mini,Era 100,Optimo1 SL,Era 300,Floor lamp,Move 2,Arc Ultra,Era 100 Pro,Ace,Jaws,Pallas Plus,RylesS767,Roam 2,Sub 4,Ryles30,Gambit,Roundhouse} + trailing raw ids {S5,S3,S1,S6,S11-S24,S26-S61} and the A-series SKU ladder {A200,A101,A102,B100,D100,C201,C100,X999,C200} immediately after. '(Unknown)' sentinel at 0x10f7c1e8. The embedded dev-version string '86.10-80260-dev-secbuild-20260826' proves this image's dev lineage."
+    "Resolved: the full display-name array at 0x10f7c618-0x10f7c840 gives the human-readable names paired against the ZPS id table - {CONTROL,Connect:Amp,Play:5,Dock,Play:3,Play:1,Playbase,One,Beam,Move,Arc,Table lamp,Bookshelf,One SL,Five,Roam,TITAN,Picture frame,Arc SL,Roam SL,Ray,Beam SL,Sub Mini,Era 100,Optimo1 SL,Era 300,Floor lamp,Move 2,Arc Ultra,Era 100 Pro,Ace,Jaws,Pallas Plus,RylesS767,Roam 2,Sub 4,Ryles30,Gambit,Roundhouse} + trailing raw ids {S5,S3,S1,S6,S11-S24,S26-S61} and the A-series SKU ladder {A200,A101,A102,B100,D100,C201,C100,X999,C200} immediately after. '(Unknown)' sentinel at 0x10f7c1e8. The embedded dev-version string '86.10-80260-dev-secbuild-20260826' proves this image's dev lineage.",
+    "Descriptor predicate accessors decoded: +0x10c is the hardware-generation class word (predicates compare it against 0x22/0x23 - the S2-gen boundary family) and +0x110 the sub-class within generation (xori-compared 1/2/3/4 = Amp-style/Play-style/Soundbar-style/Portable-style per the capability ladder ordering); a third predicate family gates +0x10c==0x11. The capability-tuple words at +0xec/+0xf0/+0xf8/+0xfc are stored in the same ctor sweeps as the name triples, per-model-row data."
    ]
   },
   "multi_daemon_boundary": {
@@ -136234,9 +136229,7 @@
    "vli": "VLI streams carry SNTP config: 'vli sntp port %u', 'vli src tx settings sntp port'",
    "unresolved": "server-election rule, clock-domain semantics, port number, jitter/drift thresholds",
    "server_detail": "sntpsrv.cxx: local SNTP responder: 'failed sntp response on %s:%u', per-clock request handling 'could not process sntp-%u-clock request; thread exit', 'processing sntp-%u-clock evtMask: %u fd: %d' under domain 'sntp_srv', interrupt fds added/removed dynamically. sntppoll.cxx: '{sntppoll' status XML + sntp.txt dump + save_sntp key; zone/common/sntp.cxx provides 'sntp.poll'. VLI transport is SNTP-disciplined: 'vli src tx settings sntp port: %u', 'vli sntp port %u', 'htsnk_invld_sntp' (HT sink rejects invalid sntp). Drift telemetry: 'error was %.0f ms %s; cpu usage was %.01f%%; sntp v:%d f:%d'.",
-   "todo": [
-    "Residual: none major - constants bound {gain 0.25, rails +/-10 ppm, ppm scale 1e6, ms scale 1000, pull-rate 0.01 normal / 0.05 PCM-transition, suspect-count gate 300}; the +0x18f4/+0x18f8 pair is now proven to be a shared_ptr {ptr,ctrl} to the live sample set, so the last open item is the sample-set type's own layout (heap type, not in this record)."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: Starting SNTP server switch sits inside seamless-handoff worker f_10308e48 (chsnk) - after a successful quick/delayed handoff the new source invokes SNTP swap calls f_10497594/f_104973d4/f_10494bf8 and logs Completed SNTP server switch in %dms. No NTP election; the SNTP role follows the group source/coordinator claim.",
     "Server-election rule proven by literal neighborhood: Starting SNTP server switch / Completed SNTP server switch in %dms sit directly inside the seamless coordinator-handoff sequence (Completed seamless handoff wait loop in %dms -> SNTP switch -> setting TXS to %s -> audio source uuid / m_remoteSource / chsnk hint / LSE skip-ahead / CoordChangeAutoStart / newgc / chsnkSync). The household SNTP server is therefore hosted by the group coordinator and transfers to the new GC as a step of the seamless handoff - the election predicate is coordinator role, not a separate vote. The switch is timed like the handoff steps (%dms log), tying clock-master transfer into the audio sync pipeline (LSE/chsnkSync) so group playback scheduling never loses its reference clock during GC changes.",
@@ -137206,9 +137199,7 @@
     "details": "cookie-based session tracking; waitOnTxBitFlagsClearedLocked; \"StartSession for unusable/unknown type\"; protocolInfo=\"x-sonos-vli:*:audio:*\"; \"VLIGroupIDs cannot contain commas\"; completion-signal timeouts"
    },
    "link": "\"Link helper created with empty VLI group ID\"; \"Starting to Process %s Group Info\"; \"Found Suspended Rooms While Processing %s Group Info\"; \"Finished Processing %s Group Info in %llu us\"; \"Ignoring player %s (too many members)\"; \"Link player %s to %s group %s: (ret %d)\"; URI x-sonos-vli:%s:%u,%s; sources {airplay:,bluetooth:}; 16-byte hex id fmt",
-   "todo": [
-    "Residual: none for the thread-state field - bound to the {idle=0,running=1,stopped=2} lifecycle. Earlier {2,3,4} hypothesis disproven by the write-site census"
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: session lifecycle = ctrl (vliCommand {apiKey,operation,position,volume}) -> link establishment through the source-manager group hooks {[groupAdded] configureLocalTransport(VLI),[groupRemoved] configureLocalTransport(null),[startLocalPBAsGM],[stopLocalPBAsGM]} -> sink via the vli transport stream; VliSessionEndedEvt tears down.",
     "Session lifecycle consolidated from the sub-block vocabularies: StartSession (ctrl callback) allocates the VLI group id and mints the x-sonos-vli:<id>:<ch>,<backing-source> URI; SessionStartInfoUpdated pushes metadata; the link worker processes the group info (Starting/Found Suspended Rooms/Finished Processing %s Group Info in %llu us) and links member players (Link player %s to %s group %s ret %d, too many members reject); vlintxsink begins NodeTX transmission (NodeTx configured to handle %s audio qos %d) with retransmit-aware frame scheduling; SuspendSession parks the session (Failed to suspend/resume source, Thread entering state %d desired=%d) while suspended rooms stay linked; StopSession deactivates (deactivating current VL). vli_source_manager registers sources (Error 0x%x registering vli source %d).",
@@ -137773,7 +137764,7 @@
   "upgrade": {
    "check_layer": "update-check client: \"Fetching %s\"/\"Failure fetching (0x%x) (%d)\"; fields {updateServerIP,httpResult,updateAutoCheckError,useCachedOnly,updateType}; headers X-Sonos-LatestSWGen: %u + Content-Location: %s; \"Redirect detected, final URI: %s\"; \"UPM Invalid\"; \"Check for updates %s (%u)\"/\"Check for online update (user)\"/\"Unknown upgrade server state\"; R_AvailableSoftwareUpdate sysprop; SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions,allowDowngradeToPrevSWGen,denyDowngradeToPrevSwGenList}; \"Invalid swgen member detected, swgen: 1\"",
    "todo": [
-    "Residual: semantic names of the two 16-byte header fields at +0x4a/+0x5a (candidates: salt/IV + digest, or GUID pair) - they are copied verbatim into the parse struct; their meaning is set by sonosRcbVerifySig/ParseManifest consumers."
+    "Residual: field2 (+0x5a) semantic still unbound (no consumer observed); field1 is proven a binary bundle-id rendered hex in the rcb filename and presence-gating the &au=1 URL param."
    ],
    "resolved_findings": [
     "Resolved: check_layer = the update-check client {Fetching %s, updateServerIP, httpResult, updateAutoCheckError, useCachedOnly, updateType}; linked to the bin_* manifest/download records under update_machinery.",
@@ -137782,7 +137773,8 @@
     "Resolved: the .upm consumer binary ships as /bin/upgrade (upgrade_lib embedded). Container integrity vocabulary proven from its 62-entry error string table at .rodata 0x10024788: idx0 success, 1 file-format unknown, 6 signature verification failed, 7 file type unknown, 0x22 corrupt data (MD5 signature mis-match), plus encrypted-upgrade stubs {0x2d encrypted upgrades currently unsupported on this product, 0x2e no encrypted upgrade key available, 0x2f error decrypting upgrade} and u-boot/FCB flash errors {no available slot, failure reading/erasing/writing the flash slot/FCB, unsupported partition, read-back comparison failed, bad fcbs, bad uboot}. Payload extraction runs /bin/tar into /jffs/app/install and executes /var/upgradescript via /bin/sh; per-component rcb bundles land at /jffs/sys/run/rcb/{upd_cert_bundle,%s-%s}.rcb verified via imported sonosRcbVerifySig (libsonoscrypto ZZ* family also imported).",
     "Resolved: upgrade_mgr<->upgrade comm FSM and download URL from the shipped binary: state strings {HELLO, DOWNLOAD, FLASHWRITE, REBOOT, CONNECT, ERROR, FINISHED, *_DONE variants} with reportOpComplete state/upgradeResult reporting; control socket via /tmp/upgrade_mgr.pid presence; fetch URL templates \"%supdate.upm?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s\" and \"%s%s-%u-%u.upd?...\" with optional \"&au=1\" and \"&sonosid=%s&householdid=%s\" suffixes; region names {any region, United States and Canada, Europe, China, Japan}; device-query report file /var/run/upgrade_report.txt and /var/run/stopupgrade cancel flag; upgradeinfo keys {sonosid, householdid, ver_from, ver_system, dnlspeed, dnlduration, serverip, requestpath, status, state}.",
     "Resolved (.upm framing, from shipped /bin/upgrade): the per-section cursor is {+0: ctx, +4: section header}; header fields {+0x4: type (valid range 3..0x16/22, matches the .upd type vocabulary), +0xc: flags where bit 0x2 = optional/tolerated when the type is unknown, +0x10: payload offset}. Dispatch runs a stride-28 per-type handler table {+0x10: arg, +0x14: already-seen flag -> 'Multiple sections of type %u' dedup error, +0x28: flags where bit0 = 'Skipping checks for section %u'}. Section flag bit0x1 => 'encrypted signature section not supported', bit0x4 => unsupported-encryption reject. File body is mapped via mmap64 (anonymous/work buffer rounded to 0x200, then copied). The cert-bundle section is parsed by sonosRcbParseHeader(data,size,verifycb=sonosRcbVerifySig) and persisted to /jffs/sys/run/rcb/%s-%s.rcb via sonosFileCreate. Error names live in an enum-indexed string table at 0x10024788 (idx 0='success' ... 'upgrade file format unknown', 'MD5 signature mis-match', 'bad fcbs', 'bad uboot', 'lost client connection').",
-    "Outer .upm/RCB header fully decoded from sonosRcbParseHeader @libsonos-root-cert-bundle.so.2:0xc64 - file layout {+0x00: 8-byte magic \"rcbundle\" (memcmp, fail->status 3); +0x08: u16 BE version, must be >=3 (v-3 shifted check, fail->status 7); +0x0a: 64-byte bundle name string copied NUL-terminated into the out struct; +0x4a: 16-byte field A; +0x5a: 16-byte field B; +0x6a: u16 BE section count <=0x12c (300, fail->status 4); +0x6c: section directory begins}. Header consumed = 0x6c bytes; parsed struct returned to caller is 0x78 bytes {u16 ver, name[64], fieldA[16], fieldB[16]}. Read goes through a caller-supplied callback (arg5) whose status must be <=9; all bounds checks return status 8."
+    "Outer .upm/RCB header fully decoded from sonosRcbParseHeader @libsonos-root-cert-bundle.so.2:0xc64 - file layout {+0x00: 8-byte magic \"rcbundle\" (memcmp, fail->status 3); +0x08: u16 BE version, must be >=3 (v-3 shifted check, fail->status 7); +0x0a: 64-byte bundle name string copied NUL-terminated into the out struct; +0x4a: 16-byte field A; +0x5a: 16-byte field B; +0x6a: u16 BE section count <=0x12c (300, fail->status 4); +0x6c: section directory begins}. Header consumed = 0x6c bytes; parsed struct returned to caller is 0x78 bytes {u16 ver, name[64], fieldA[16], fieldB[16]}. Read goes through a caller-supplied callback (arg5) whose status must be <=9; all bounds checks return status 8.",
+    "Header 16B field1 (+0x4a) semantics narrowed: it is a binary bundle identifier - the /bin/upgrade caller passes it through RserializeData (libsonosminiutils %02x hex serializer) into the stash filename /jffs/sys/run/rcb/<name>-<hex(field1)>.rcb, and a second site (0x1000a4e4) tests field1[0] != 0 to decide whether to append the &au=1 suffix to an update URL. field2 (+0x5a) is copied verbatim into the parse struct but has no consumer in /bin/upgrade or libsonos-root-cert-bundle - its meaning is set by the manifest/signature verify path or is reserved."
    ]
   },
   "audio_in": {
@@ -137966,12 +137958,13 @@
     }
    ],
    "todo": [
-    "Residual: which object member each remaining pool double normalizes (2116.5/2304/3072 scale set and the {1.026,0.9747} pair's exact mute band edge) - the constant values and compare structure are proven; per-field names are the last step."
+    "Residual: the exact semantic name of +0x118 (the source rate member that seeds the +0x128/+0x130 bounds) - nominal-rate vs canonical-rate naming needs the producer trace; the mute-band asymmetric edges {1.026 vs ~0.9747} are proven as the deadband comparands."
    ],
    "resolved_findings": [
     "Resolved: m_dOverallRate/m_dIntegratedRate = the PI servo - overall rate is the instantaneous estimate, integrated rate the accumulator; coefficients are the gain constants in the update loop (bounded: the exact K values are tunable literals, not structurally labeled).",
     "Servo decoded: a timesync DPLL (TimeSync Reset with TS_DPLL_STATE_NO_LOCK) drives the ASRC - m_dOverallRate is the proportional term, m_dIntegratedRate the integral accumulator, dAbsoluteError the measured drift, current canonical rate = %u the group canonical rate (the coordinator's audio clock is canonical; members servo to it via remoteToLocal regression). Remote->local mapping uses sample-history least squares: remoteToLocal lltvError samples [%s] %zu| %d [%d], lltvRemoteToLocal = %lld, Insufficient history. m_remoteToLocalSamplesLen - pre-roll seeds it (Enter pre-roll with initRemoteTicks = [%llu] & m_llInitLock). Mute rules: (Should) Mute SRC fires when drift is out of bounds (Out of bounds. drift: %f mute count: %d) or error exceeds threshold (mute adj.), (Should) Un-Mute SRC. Counter was %d on re-lock - the SRC-mute-on-drift rule. Clock-measurement guards: Input clock failure during measureDrift, time went back; try again, Thread descheduled for %uus. Limit %uus, Thread continuously interrupted, Div-by-zero detected & prevented. Line Rate = %u & Audio Rate = %u. Iteration counters m_tsyncIterCtr + {LE, LEP, IC, ICP, IL, RT, err, errf, dOut, dIn, AP, RL} are the servo telemetry. TV Locktime [%i].[%i] tracks HT databurst lock.",
-    "Resolved (servo constants decoded, f_107fb8a4 + f_107fc6b0): the rate rails are doubles at 0x10f2b600 = 1.05 and 0x10f2b8d8 = 0.9523809523809523 (=1/1.05) - Rate Maxed fires when the rate field (object +0x130, evlddx-loaded) exceeds 1.05, Rate Inv Maxed when it drops below 1/1.05: a +/-5% excursion clamp on the ASRC pull. In the mute/out-of-bounds path (f_107fc6b0) the constants are {1.016 (0x10f2b948) and 1.011 (0x10f2b950) - the SRC-mute hysteresis band on the rate (mute-in ~1.6%, release ~1.1%), and 200.0 (0x10f2b928) - the drift out-of-bounds bound: |dAbsoluteError| > 200 triggers 'Out of bounds. drift: %f mute count: %d'. The neighbor pool also carries the symmetric low-rail pair {1.026, 0.9747 (=1/1.026)} at 0x10f2b938/0x10f2b930 and the percent scale {-100.0, +100.0} used to render rate deviation as a percentage, 1.0 identity (shared 0x10eb9ee0), epsilon 1e-5 (0x10f2b900) for the div-by-zero guard, and the {2116.5, 2304, 3072, 1536, 1440, 768, 384} buffer/rate scale set feeding the dOut/dIn conversions."
+    "Resolved (servo constants decoded, f_107fb8a4 + f_107fc6b0): the rate rails are doubles at 0x10f2b600 = 1.05 and 0x10f2b8d8 = 0.9523809523809523 (=1/1.05) - Rate Maxed fires when the rate field (object +0x130, evlddx-loaded) exceeds 1.05, Rate Inv Maxed when it drops below 1/1.05: a +/-5% excursion clamp on the ASRC pull. In the mute/out-of-bounds path (f_107fc6b0) the constants are {1.016 (0x10f2b948) and 1.011 (0x10f2b950) - the SRC-mute hysteresis band on the rate (mute-in ~1.6%, release ~1.1%), and 200.0 (0x10f2b928) - the drift out-of-bounds bound: |dAbsoluteError| > 200 triggers 'Out of bounds. drift: %f mute count: %d'. The neighbor pool also carries the symmetric low-rail pair {1.026, 0.9747 (=1/1.026)} at 0x10f2b938/0x10f2b930 and the percent scale {-100.0, +100.0} used to render rate deviation as a percentage, 1.0 identity (shared 0x10eb9ee0), epsilon 1e-5 (0x10f2b900) for the div-by-zero guard, and the {2116.5, 2304, 3072, 1536, 1440, 768, 384} buffer/rate scale set feeding the dOut/dIn conversions.",
+    "Pool-double member bindings narrowed: the ctor (f_107fb418) SPE-loads 2116.5 (0x10f2b8a0) and 2304 (0x10f2b8a8) adjacent doubles into the member block and seeds +0x118, then copies +0x118 into +0x128 and +0x130 (the evlddx/evstddx pairs at 0x107fb4f4-0x107fb50c). The band gate (f_107fc478) then compares the +0x128/+0x130 members against the mute-band pair {1.026 @0x10f2b938 loaded 0x107fc58c, its reciprocal-edge @0x10f2b928 loaded 0x107fc55c} - so +0x128/+0x130 carry the nominal rate scaled by the band edges, i.e. they are the {upper,lower} deadband bounds derived from the member rate; 3072 @0x10f2b8d0 is loaded in f_107fb89c (a second ctor-adjacent seed)."
    ]
   },
   "amp_manager": {
@@ -137985,14 +137978,16 @@
     }
    ],
    "todo": [
-    "Residual: none for the ampState enum itself - {HI_RAIL,LO_RAIL,OFF} proven. The +0xe2 flag's exact consumer (preemptive turn-on arming) is context-inferred."
+    "Residual: the exact predicate mix of +0xdc/+0xdd flag bytes in the armed check inside f_10d552a0 (which sub-conditions arm vs veto the preemptive turn-on)."
    ],
    "resolved_findings": [
     "Resolved: ampPowerOnLocked = the rail sequencer writing device nodes in order {enable, unmute, clock-stable wait}; rail transition order is the fixed power-up sequence with the per-rail delay constants.",
     "Rail transition order proven (ampManager.cxx, ampMgr tag): ampPowerOnLocked runs power -> unmute -> high-power-rail in sequence, each a separate amp command with per-step failures (failed to power on/unmute amps, failed to transition to high power rail) and unsupported-command ignores (ignored unsupported amp command: power/mute/hipower); ampPowerOffLocked runs the reverse mute -> power off -> low-power-rail (failed to mute/power off amps, failed to transition to low power rail, requested amp power off). Preemptive turn-on is zone-scoped (zone %zu preemptive turn on %d -> 0 / %d -> %d set-reset pair). Off is deferred (scheduling off in %d sec) gated on the condition bitmap roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d. Amp commands route to the amp driver via per-command support checks; fault recovery retries unmute (failed to unmute amps to clear fault). State machine emits ampState %d -> %d + notifyAmpState; notify hooks {notifyPlayState, notifyPlayingUnmuteableSource_p/_np, notifyOutputFixed, notifyPreemptiveTurnOn, resetPreemptiveTurnOn} feed the state inputs.",
     "Resolved: ampState is a 3-value FSM {0,1,2} stored at mgr+0xf4 (setter f_10d565c8 logs 'ampState %d -> %d', notifies observer list at +0xf8, posts AmplifierPowerStateChangedEvent). Entering state 2 clears the preemptive-turn-on byte at +0xe2 -> 2 is the fully-on (HI_RAIL) state; ampPowerOnLocked sequences amp cmds {power, unmute, hipower} ('ignored unsupported amp command: power/mute/hipower'), ampPowerOffLocked mutes then drops to low rail ('scheduling off in %d sec' idle timeout). Rail/vocab names {AMP_OFF, AMP_LO_RAIL, AMP_HI_RAIL} sit in the hw-event name table at 0x10ef5044-0x10ef504c. Input triggers: manageAmpStateLocked_notify{Volume, PlayState, PlayingUnmuteableSource_p/np, OutputFixed, PreemptiveTurnOn, resetPreemptiveTurnOn} ('zone %d volume %f -> %f', 'zone %d is playing %d -> %d', 'zone %zu preemptive turn on %d -> 0').",
     "Resolved: ampState display names are consecutive entries in the emit-name array at 0x10ef5044: index 0=AMP_HI_RAIL, 1=AMP_LO_RAIL, 2=AMP_OFF - so state 1 is the idle/low-rail state, not an intermediate mute.",
-    "Correction: the earlier 'state 2 = fully-on' inference is inconsistent with the name table - state 2 = AMP_OFF. The transition fn (0x10d56670) clears the flag byte at obj+0xe2 when entering states 0/1 (powered rails) and leaves it on entering 2, consistent with +0xe2 = pending preemptive turn-on rather than powered state."
+    "Correction: the earlier 'state 2 = fully-on' inference is inconsistent with the name table - state 2 = AMP_OFF. The transition fn (0x10d56670) clears the flag byte at obj+0xe2 when entering states 0/1 (powered rails) and leaves it on entering 2, consistent with +0xe2 = pending preemptive turn-on rather than powered state.",
+    "The +0xe2 consumer is f_10d552a0 (locked via the +0x48 mutex): it computes a predicate from {+0xdd byte flag, ampState(+0xf4)==2/AMP_OFF, +0xdc byte flag} then reads +0xe2 - if +0xe2==0 the function returns 0; if set it returns the +0xe1 byte. So +0xe2 = preemptive-turn-on armed flag and +0xe1 = the armed target value; the query reports the armed target only while the pending flag is set, which the ampState-2 transition clears.",
+    "+0xe1 semantic proven: the sole non-init writer is manageAmpStateLocked_notifyPlayingUnmuteableSource_np (0x10d54ec4), which stores its amp-state argument (r30=r4) into +0xe1 after comparing against the current value. So +0xe1 is the PENDING TARGET ampState (a {0=HI_RAIL,1=LO_RAIL} rail value) that the preemptive turn-on arms toward; the +0xe2 flag marks the arm. The notification name pins the trigger: an unmuteable source starting playback."
    ]
   },
   "lla": {
@@ -138198,9 +138193,7 @@
      "notes": "update coordinator region"
     }
    ],
-   "todo": [
-    "Residual: none open at the enqueue level - beginSoftwareUpdate posts job id 5 onto asynceventloop @0x110978c0; remaining detail is inside the job run vfunc (documented separately)."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: coordinator-mgr split = the per-player upgrade_mgr daemon does download/flash while the household coordinator orchestrates order via the checkDevicesToUpdate manifest pass; hooks = the pre/post-check callbacks registered on the coordinator.",
     "Coordinator/mgr split proven: update_coordinator is anacapad's in-process policy actor - beginUpdate is single-shot (Update already started. rejects reentry), loads cert.xml + metadata.txt via certmanager for signature verification (loading %s (0x%x) took %ums; Buffer not sufficient to store entire certificate), pulls cloud settings (Failed to query cloud settings), enforces the swgen downgrade floor (Current Swgen Min downgrade version %s; MinVersion: [%s] vs PrevSWGenMinVersion: [%s]), and writes the upgradeinfo file under /var/run. updateHookJob is the deferred launch hook that hands execution to /bin/upgrade_mgr - the coordinator decides/stages, upgrade_mgr does the image work (user_update + auto_update both converge on it). Member updates report error updating %s; downloads ride async_file_downloader {Failed to open/write file, Unexpected response (%d), Cancelled/failed download attempt of file (%s) from url (%s)}. Bonus: the DiagnosticManifest v2.0.0 submission schema {serial_num, swversion, secreg, quarantined, ZPSupportInfo, ZPInfo, LocalUID, IPAddress, SoftwareVersion, QuarantineReason} posts to /v2/diags on the product-diagnostics service.",
@@ -138551,9 +138544,7 @@
      "notes": "tj block"
     }
    ],
-   "todo": [
-    "Residual: none for the type dispatch - both delegates, the flag, both resolvers, and the shared retry/telemetry loop are proven. (What remains is inside each resolver's lookup semantics - ordinary per-site reads.)"
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: wake trigger = the timed-job expiry firing the AVT restore order {queue restore, volume restore, play resume}.",
     "Wake trigger and retry proven: WakeOnLANRequestEvent arrives with a type field - the worker reschedules per-type (reschedule wake missing players type %d time %ld), runs (async wake missing players ran; type %d time %ld), retries via scheduling retry TJ, and rejects unknown types (Unexpected WakeOnLANRequestEvent type); the task/timer/request triple has {stopped, failed to run, cancelled, failure} lifecycle logs plus shutdown drops (shutting down; droping async wake missing players timer/request). The event sits in the household event vocabulary {DeviceStartupEvent, LocalIpChangedEvent, RequestTVTransitionEvent, WakeOnLANRequestEvent, PortableWifiReconnectEvent, PlaybackCorrelationEvt, HouseholdSettingsChangeEvent, TVInputSelectedEvent, RemoteHTSwapStateChangedEvent (source: %s, swap active: %d, are we satellite: %d), VoiceAccountTransactionEvent, updating boot sequence due to registration event}. Restore order: Backing up track queue + Backing up AVT before the timed job, Restoring AVT and track queue after - AVT restore precedes queue restore completion. Adjacent settings {R_VolNormMode, R_CrossfadeDuration, R_AirplayIncludeLinked}; muse scope scopeMp on /v/players/ v1.1.0; refreshMdnsRegistratio[n] post-wake.",
@@ -139575,9 +139566,7 @@
      "notes": "spotify vli block"
     }
    ],
-   "todo": [
-    "Residual: none significant - cookie domain is a global monotonically-incrementing u32 shared across sessions; collision only possible at 2^32 wrap, staleness check is exact equality."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: session FSM = VLI session lifecycle {start link, stream, suspend, end} riding the spotify delegation state.",
     "Session lifecycle proven (spotify_vli.cxx, RSpotifyVLIControl, spotify_md domain): the VLI session FSM calls into the Spotify source on transitions - onVirtualLineInSuspendSession / onVirtualLineInStartAudio / onVirtualLineInStopAudio / onVirtualLineInPlayModesChanged (matching the TXST ops START/SUSPEND_SESSION + START/PAUSE_AUDIO_STREAMING). Cookies are a per-session generation counter guarding stale control: each op logs %s:%d calling onVirtualLineIn*() cookie %d and old-vs-new mismatch discards (spotify old cookie: %d new: %d, Ignoring stale stopSession due to cookie mismatch: %d != %d). During delegation the FSM suppresses all eSDK callbacks (Ignoring audio flush/track changed/seeks (pos %u)/pause/became inactive/volume change while setting state / delegating, isPlaying set to %d) - the delegation handoff is atomic wrt player-visible events. Selection emits Spotify eSDK source selected, isDelegating %d, isActive %d / not selected e=0x%08x / Source Deselected, from sender %d. Metadata flows through the VLI metadata channel: MetadataChanged {track, artist, album, playback_source_uri, bitrate} + Next Metadata {track, artist, album} as R_SPOT_EVT_METADATA_CHANGE.",
@@ -140226,9 +140215,7 @@
    ]
   },
   "sync": {
-   "todo": [
-    "Residual: none as a standalone module - see perfect_sync and audio_rate_ctrl."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: consolidated sync evidence - audio sync (SNTP-gated chsnk), group sync (topology), settings sync (replication) gathered into this record.",
     "Identified by context: sync is the group audio synchronization layer - the coordinator time-sync + drift machinery shared with perfect_sync (perfect initial sync at join) and audio_rate_ctrl (the DPLL servo holding member rates to the canonical group clock). The empty record reflects the sync vocabulary being distributed across those records rather than a standalone module."
@@ -140251,9 +140238,7 @@
    ]
   },
   "settings": {
-   "todo": [
-    "Residual: none - see the named sub-records."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: umbrella - the settings family = {settings engine, household_settings, player_settings, feature_config, settings replication}; per-record details in each member.",
     "Identified by context: the settings surface is distributed across effective_settings (routes/verbs/groups), settings_replication (replicated settings transport), local_settings_mgr + household_settings (file stores), and feature_config (cloud feature config) - this record is the umbrella placeholder; no standalone settings module exists beyond those."
@@ -140294,9 +140279,7 @@
   },
   "spotifyzc": {
    "handler": "f_1020f8c4 (GC-gated getInfo; blob transfer encrypted per gap audit)",
-   "todo": [
-    "Residual: none - see spotify_zeroconf for the decoded exchange."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: merged with spotify_zeroconf - handler sub-block covers the zc request path {path,method,userAgent,esdkVersion,action} + GC gate.",
     "Duplicate consolidation: this stub is the /spotifyzc route handler for the Spotify zeroconf exchange - the full protocol (getInfo/addUser/resetUsers/resetUser/spotifyTransferZeroConf, SONOS_DC_* results, GC 404 gate) lives in spotify_zeroconf."
@@ -141321,9 +141304,7 @@
      "notes": "translate block"
     }
    ],
-   "todo": [
-    "Residual: none - see catalog_translate."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: merged with catalog_translate - cache writer = the saved translation to cache path after GET /content/api/catalog/id/%s?destinationServiceId=%s.",
     "Duplicate consolidation: identical scope to catalog_translate (translateId cloud GET + caching) - see catalog_translate for the mechanism."
@@ -141553,10 +141534,7 @@
      "notes": "logger+json"
     }
    ],
-   "todo": [
-    "Established: complete registered-category vocabulary - toml routing table + anacapa.conf DiagLevel category keys agree.",
-    "Residual: none for the category inventory; remaining is per-category emit semantics which is per-callsite"
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: category registration = {filter,fileSize,preserveSize,defaultLevel,backup,hostIP,hostPort,STDERR} keys + Invalid log category name bounds -> per-domain file sinks.",
     "Config/sink layer proven: keys {filter, fileSize, preserveSize, defaultLevel, backup, hostIP, hostPort, STDERR, .backup, logger, rsettings} load from anacapa_logger.toml; category validation enforces name bounds (Invalid log category name (%s), length: %zu, range [%d, %d]); line format \"[%s | %07ld%03ld] <%s,%d> \" = [domain | sec.usec] <file,line>; IO guards {stat/ferror/read failed}; remote logging to {hostIP, hostPort} plus STDERR sink; config parses via RapidJSON (its error strings surface verbatim).",
@@ -141946,10 +141924,7 @@
      "notes": "libFLAC"
     }
    ],
-   "todo": [
-    "Established: libFLAC 1.3.4 via audio/flac MIME route + m4a-flac container + eSDK flac-24bit format; full subframe vocabulary.",
-    "Residual: none structural - callback bindings are the standard read/write/seek/tell/length/eof/metadata/error set whose status enums are fully enumerated."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: decoder creation = reference libFLAC 1.3.4 via the stream framer; error/status enums documented.",
     "Integration layer proven: FLAC enters three ways - (1) the HTTP stream MIME route sonos.com-http:*:audio/flac:* with .flac extension mapping in the stream-format dispatch table; (2) MP4-container FLAC via the m4a-flac codec variant ({m4a-m4a, m4a-alac, m4a-flac, m4a-opus, m4a-ec3}); (3) the eSDK stream format flac/flac-24bit (with {ogg/vorbis, mp4/aac-lc, spac/aac-he-v2, video-manifest}). Exact build: reference libFLAC 1.3.4 20220220. Subframe vocabulary {LEFT_SIDE, RIGHT_SIDE, MID_SIDE, CONSTANT, VERBATIM, PARTITIONED_RICE, PARTITIONED_RICE2} confirms the full decoder including stereo decorrelation modes."
@@ -149185,9 +149160,7 @@
     "Resolved: the client hook is /etc/dhcp.script - verbs {nak,deconfig,renew,bound}; deconfig ifconfigs the iface to 0.0.0.0 and installs 255.255.255.255 + 224.0.0.0/4 multicast routes; renew|bound rewrites /etc/resolv.conf {search <domain>, nameserver per $dns} and sets broadcast/netmask. Launch contract from netconfig.sh: udhcpc -f -s /etc/dhcp.script -i br0 -w ath0 -h <hostname> -d access.bestbuy.com with -z on station/satellite/sta_and_sat and -F -W 20 on island.",
     "Resolved: the /tmp/udhcpc_renew_option type enum is {0=init-reboot renew, 1=confirm/extend lease renew} - the file is fscanf'd '%d\\n', one-shot deleted, values >1 clamp to 0 ('Error: invalid renew type %d from file %s: Using %d instead'); perform_renew(type): type==0 enters the state-indexed init-reboot flow (jump tables 0x100070c8/0x100070a4 over the 9-state DHCP FSM), type==1 runs the confirm/extend path ('Performing a DHCP confirm/extend lease renew' -> renew send, unicast/broadcast by flag); in the wrong states it logs 'Already requested a renew, now deconfig' or 'Renew requested in state %d, back to SELECTING'"
    ],
-   "todo": [
-    "Resolved: renew-type enum {0=init-reboot, 1=confirm/extend} proven at the perform_renew dispatch. No residual"
-   ],
+   "todo": [],
    "evidence": [
     {
      "type": "firmware",
