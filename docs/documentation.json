@@ -138849,14 +138849,15 @@
     }
    ],
    "todo": [
-    "Established: arpchecker failure/recovery lines, arping scheduler with failure-adaptive interval, CrAssoc metric fields {mstime1/2,arpscstime,arpatt,arpscs,ddtime,zstime,zntime}.",
-    "Residual: which class fills +0x118 of the 0x110a5448 singleton (the uploader object identity) - settable per product build via the +0x118 setter; the emit chain and debounce are fully proven."
+    "Established: +0x118 stays null in this build - the only writer is the static-init ctor (stores 0); the singleton has no .text readers outside its own init, so uploader binding is a sibling-binary boundary (consistent with multi_daemon_boundary).",
+    "Residual: which sibling daemon supplies the uploader class - outside the anacapad image."
    ],
    "resolved_findings": [
     "Resolved: CrAssoc submit = the assoc_tracker emit reporting CrAssoc event for %s with metrics {mstime1/2,arpscstime,arpatt,arpscs,ddtime,zstime,zntime}; arping interval adapts on failure count.",
     "Resolved: the CrAssoc emit routine f_10587798 builds its doc via f_10558000 adds binding each key to a tracker member - {mstime1:+0x4, mstime2:+0x8, msnum:+0xc, arpscstime:+0x18, ddtime1:+0x1c, ddtime2:+0x28, ddnum:+0x2c, zstime1:+0x34, zstime2:+0x38, zsnum:+0x3c, zntime1:+0x44, zntime2:+0x48, znnum:+0x4c, znscs, znstate:+0x7c, mssr:+0x64, msss:+0x68, arpscs:byte +0x70, arpatt:+0x74, arpsnum:+0x84 (conditional), msrs:+0xa4}; the emit is gated by a 30-tick minimum interval (cmp *(+0x4)+0x1e vs sonosClockGetTime at 0x1058805c) and an IP-validity fallback using the literals invalid IP and 0.0.0.0.",
     "Resolved: the uploader identity chain - emit arg pUploader (r4) = *(tracker+0x2c0), installed under the +0x2c8 lock by setter f_105876ac, whose sole caller (0x10199c70, boot-time zone-player wiring) passes member +0x118 of the Meyers singleton at .data 0x110a5448 (ctor f_10559024, destructor f_10559b3c via __cxa_atexit). The CrAssoc consumer is therefore the context singleton's +0x118 uploader object, not a registered event-bus subscriber - the CrAssoc name literal has only the one emitter reference at 0x105879cc.",
-    "Negative evidence: the 0x110a5448 uploader singleton lives in .bss (0x1109b000..0x110c9eb8) - no pointer word or code address-formation to it exists anywhere in the image, so the object is reached only via runtime-installed pointers/SDA-relative addressing whose anchor is initialized at startup. The +0x118 setter target therefore cannot be enumerated statically; boundary confirmed."
+    "Negative evidence: the 0x110a5448 uploader singleton lives in .bss (0x1109b000..0x110c9eb8) - no pointer word or code address-formation to it exists anywhere in the image, so the object is reached only via runtime-installed pointers/SDA-relative addressing whose anchor is initialized at startup. The +0x118 setter target therefore cannot be enumerated statically; boundary confirmed.",
+    "Singleton census complete: 0x110a5448 is initialized solely by f_10559024 (registered via __cxa_atexit). The ctor seeds vtable 0x10eeae78 (+0x8), flag bytes, and zeroes +0x118/+0x120/+0x124/+0x128/+0x12c/+0x150. No pointer slot holds the singleton address and no other .text references it - +0x118 is never written non-zero inside anacapad, so the uploader object is never installed by this binary."
    ]
   },
   "audio_fifo": {
