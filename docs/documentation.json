@@ -140420,8 +140420,7 @@
     }
    ],
    "todo": [
-    "Established: both state-name tables fully decoded - A={RESET..ERROR incl TERMINATING} 6-ord, B={RESET..ERROR} 5-ord; ordinal col is 1-based serialization index; zero-based regState = RESET0 OFFLINE1 INITIATING2 ONLINE3 ERROR4(B).",
-    "Residual: which family the live regState->name mapper binds (tables are container-copied with zero direct refs)."
+    "Resolved: live mapper = family B @0x10fad930 (5-state) - proven by writer census on the setter; family A's TERMINATING slot is unreachable from regState."
    ],
    "resolved_findings": [
     "Resolved: regState values = the FSM transitions logged as regState changed %d -> %d through {during suspend, time expired, success, error, retry-at}; signing-key IPC payload = the Invalid registration signing key reject on the IPC set/clear path (registration_machine).",
@@ -140430,7 +140429,8 @@
     "Resolved (table shapes): both reg-state name tables are {name_ptr,u32 strlen,u32 ordinal} triples. Family A @0x10fad874 (6 entries): RESET=1,OFFLINE=2,INITIATING=3,ONLINE=4,TERMINATING=5,ERROR=6. Family B @0x10fad930 (5 entries): RESET=1..ERROR=5 (no TERMINATING) followed immediately by a PLAY_TO_BONDED=1/PLAY_REPEATED=2 table - i.e. B sits inside a different enum-table array. The ordinal column is 1-based (name-serialization position); zero-based regState codes remain RESET=0,OFFLINE=1,INITIATING=2,ONLINE=3,(TERMINATING=4 in A),ERROR=4(B)/5(A). Neither table has any direct text or data reference - they are reached through a containing structure/copy (consistent with zero-xref rodata tables elsewhere), so the regState->name binding family is not statically attributable; 'regState changed %d -> %d' (0x10efccd4) logs numeric codes regardless.",
     "Registration FSM bound at 0x10fad874: {RESET=1, OFFLINE=2, INITIATING=3, ONLINE=4, TERMINATING=5, ERROR=6}; companion reg-state table at 0x10fad930 {RESET,OFFLINE,INITIATING,ONLINE,ERROR}=1..5 and broadcast variant {RESET,OFFLINE,ONLINE,ROOT_INDIRECT,BROADCAST_BLOCKED}=1..5 at 0x10fad8e8; reg-type enum at 0x10fad3ac {UNKNOWN, SW_GEN, SECURE_REG, UPNP_OVER_TLS}.",
     "Alarm-state enum at 0x10fac83c: {ALARM_DISABLED=1, ALARM_PENDING=2, ALARM_SNOOZED=3, ALARM_FIRING=4}; weekday enum at 0x10fad40c {SU=1,MO=2,TU=3,WE=4,TH=5,FR=6,SA=7}.",
-    "Registration-state enum bound at 0x10f99e30: {UNKNOWN=1, UNREGISTERED=2, LEGACY_REGISTERED=3, SECURE_REGISTERED=4, TRANSFER=5, OFFLINE=6, PREP_TRANSFER=7}."
+    "Registration-state enum bound at 0x10f99e30: {UNKNOWN=1, UNREGISTERED=2, LEGACY_REGISTERED=3, SECURE_REGISTERED=4, TRANSFER=5, OFFLINE=6, PREP_TRANSFER=7}.",
+    "Live regState->name family bound by the sibling registration_machine proof: the setter f_1064c540 only ever writes targets {1,3,4,5} and no code path writes or compares 6 (TERMINATING) - so the live mapper binds family B @0x10fad930 {RESET,OFFLINE,INITIATING,ONLINE,ERROR}=1..5; family A @0x10fad874 (with TERMINATING=6) is a different enum's table."
    ]
   },
   "hhsettings_rest": {
