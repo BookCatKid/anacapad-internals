@@ -138698,13 +138698,13 @@
   "devmode": {
    "internals": "statement files {debug/devmode.bin,/devmode.bin,/tmp/devmode.tmp.bin} format \"0x%s %d.%d-%d.%d\" (id+version range); x-rincon-enc3 encryption; R_ALLOW_SSH_PUBKEY_INSTALL \"may not be persisted\" gate + \"Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL\" + \"Loaded persistent statement\"; notify {processes,listeners} on change",
    "todo": [
-    "Established: signed /devmode.bin statement blob, per-statement persistence policy, R_ALLOW_SSH_PUBKEY_INSTALL capability, x-rincon-enc3 wrapping, listener fan-out.",
-    "Residual: which key file the caller passes to ZZ0053 (the verifying PEM is selected by the devmode verify caller, not pinned in the image)."
+    "Established: signed /devmode.bin statement blob, per-statement persistence policy, R_ALLOW_SSH_PUBKEY_INSTALL capability, x-rincon-enc3 wrapping, listener fan-out."
    ],
    "resolved_findings": [
     "Resolved: internals = the devmode toggle writing conf/rdmconfig + conf/rdmlocation; gate call sites = the per-route flag checks on the admin/debug surface.",
     "devmode = a signed statement system (devmode.cxx): a /devmode.bin blob (fetched as debug/devmode.bin, staged via /tmp/devmode.tmp.bin) carries statements formatted 0x%s %d.%d-%d.%d (statement id + supported version range). Statements can be persistent or temporary - persistence is restricted per statement (R_ALLOW_SSH_PUBKEY_INSTALL may not be persisted; Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL) so the SSH-pubkey-install capability only ever applies to the running boot. Changes fan out to listeners and processes (Failed to notify listeners/processes about the change). Blob is x-rincon-enc3 wrapped (signed/encoded). So devmode = a secure policy door where a signed blob enables specific capabilities (e.g. SSH pubkey install) without an open flag file.",
-    "Resolved: the x-rincon-enc3 verifying algorithm is RSA PKCS#1 v1.5 - the libsonoscrypto verifier imports mbedtls_rsa_rsassa_pkcs1_v15_verify directly, and the parse+verify entry (ZZ0137) decodes a byte-swapped header with magic check cmpwi 0x1E71 before delegating to the RSA verify helpers ZZ0068/ZZ0064. The PEM key path is a caller-supplied arg to the key loader ZZ0053 (not a compiled-in filename)."
+    "Resolved: the x-rincon-enc3 verifying algorithm is RSA PKCS#1 v1.5 - the libsonoscrypto verifier imports mbedtls_rsa_rsassa_pkcs1_v15_verify directly, and the parse+verify entry (ZZ0137) decodes a byte-swapped header with magic check cmpwi 0x1E71 before delegating to the RSA verify helpers ZZ0068/ZZ0064. The PEM key path is a caller-supplied arg to the key loader ZZ0053 (not a compiled-in filename).",
+    "Key selection proven: ZZ0053 (libsonoscrypto 0x6318) takes a key-container blob pointer, not a file path - it parses a magic-checked header (XOR-magic 0x779B99CA at blob+0, byte-swapped fields) and selects numbered signing keys ({Unknown %s signing key!, %s signing key %u is revoked!, %s signed with key %u} vocabulary). There is no PEM/key-file literal in the image - verifying key material is delivered inside the signed container itself."
    ]
   },
   "download_status": {
@@ -140122,12 +140122,11 @@
      "notes": "handler disas"
     }
    ],
-   "todo": [
-    "Residual: the RDM-mode flag source (the predicate reads the retail-demo state - in_process rdm flags; devmode record)."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: RDM predicate = the remote-display-mode check; forward target = the button-event forward path.",
-    "Route binding proven: this is the /rdmbuttonfwd diagnostic endpoint (local_routes_2 census) - RDM mode = Retail Demo Mode; the handler gates on auth + the RDM-mode predicate then forwards injected button events (BUTTON_* vocabulary from hw_events) into the input pipeline for demo-mode testing; non-RDM requests fall to the 403 path."
+    "Route binding proven: this is the /rdmbuttonfwd diagnostic endpoint (local_routes_2 census) - RDM mode = Retail Demo Mode; the handler gates on auth + the RDM-mode predicate then forwards injected button events (BUTTON_* vocabulary from hw_events) into the input pipeline for demo-mode testing; non-RDM requests fall to the 403 path.",
+    "RDM flag source proven: the /rdmbuttonfwd handler (route row {path @0x110914dc, handler 0x100b9e58}) gates on f_105489fc = getDevModeFlag(g_devmode@0x11097374, bit 0x12) - an indexed bitfield read on the devmode.cxx state object (mutex +0x568, flag word built via ZZ0018 over members +0x404/+0x408). RDM state itself is backed by the RDMValue settings key and conf/rdmconfig/conf/rdmlocation files; IN_RDM_MODE is the broadcast event name."
    ]
   },
   "ttm_helper_detail": {
@@ -140190,12 +140189,11 @@
      "notes": "handler disas"
     }
    ],
-   "todo": [
-    "Residual: which feature-config fields the override applies to (feature flag names - feature_flag_registry record)."
-   ],
+   "todo": [],
    "resolved_findings": [
     "Resolved: override file = the fcs override doc loaded before cloud-persisted config; load order = local override wins.",
-    "Route binding proven: /fcs serves the Feature config override HTML page (cloudsourcedconfig readonly textarea + overrideconfig POST form); f_105eba60 -> f_106ba5b0 is the POST handler applying the override into feature-config; the sibling reads sonosClockGetTime for the page timestamp."
+    "Route binding proven: /fcs serves the Feature config override HTML page (cloudsourcedconfig readonly textarea + overrideconfig POST form); f_105eba60 -> f_106ba5b0 is the POST handler applying the override into feature-config; the sibling reads sonosClockGetTime for the page timestamp.",
+    "Override granularity proven: the POST handler stores the submitted cloudsourcedconfig body verbatim as the override document (f_106ba5b0 state dispatch on *(this) parse states {1,5,6}), and the loader applies the whole local doc before the cloud-persisted one - so the override applies to every feature-config key the document carries, not a fixed field subset."
    ]
   },
   "hermes": {
@@ -141062,12 +141060,13 @@
     }
    ],
    "todo": [
-    "Residual: the default timeout value callers pass (armed into req+0x48) and the worker-pool thread count - both are ctor/config-supplied fields."
+    "Residual: the per-request timeout value - the deadline is a caller-supplied field armed into req+0x48/+0x4c (Request Timeout literal has no code ref; each call site carries its own budget)."
    ],
    "resolved_findings": [
     "Resolved: thread-pool = performAsync scheduling over the pool {not scheduled. No active thread pool available, Client not setup, empty URL, Curl error, Request timed out in %lld ms, curl_multi_perform}.",
     "Thread-pool scheduling and request state proven: performAsync submits work onto the eventLoop scopeHttpClient thread-pool - if no pool is live the request is cancelled (not scheduled. No active thread pool available. Cancelling.); Client not setup guards uninitialized submission. Requests run on a curl_multi loop (curl_multi_perform/poll/info_read) with per-request curl easy state: Curl error (%d): %s surfaces CURLE codes, Request timed out in %lld ms is the deadline, HTTP request attempted with empty URL is the arg guard. Perf counters taskCount (tasks actively processed) + mainLoopIteration (loop time) drive the metrics. DNS resolution rides asio categories {generic, std:unknown, asio.netdb, asio.addrinfo, asio.misc} with netdb errors {Service not found, Socket type not supported, Host not found authoritative/non-authoritative}. Session state: Session status 0x%x connected %d wantWrite %d wantRead %d is the per-connection readiness word.",
-    "Resolved: the timeout mechanism (async_http_client 0x10995d28) - each request carries a deadline timeval pair at req+0x48/+0x4c; the monitor compares elapsed via sonosClockGetTime and emits 'Request timed out in %lld ms' with the elapsed delta. The deadline is armed per-request at schedule time (caller-supplied timeout), not a global rodata constant."
+    "Resolved: the timeout mechanism (async_http_client 0x10995d28) - each request carries a deadline timeval pair at req+0x48/+0x4c; the monitor compares elapsed via sonosClockGetTime and emits 'Request timed out in %lld ms' with the elapsed delta. The deadline is armed per-request at schedule time (caller-supplied timeout), not a global rodata constant.",
+    "Worker pool proven: scopeHttpClient pool init passes count r5=1 (0x10694808-0x10694814) through the clamp wrapper f_10989174->f_10989148 (count<3 arm -> (1,0)); the pool runs a single worker thread, with scope:mtx and scope:cv channels bound on the same object."
    ]
   },
   "browse_ids": {
@@ -141686,7 +141685,8 @@
    ],
    "resolved_findings": [
     "Resolved: unbound ops = the verb list diffed against the binding table - areas, audioClips, authz, cloudRegistration verb sets each bound; residuals listed in the record.",
-    "Bound-vs-unbound determination method: the muse type registry records are 0x14-byte entries {id, name*, code, extra} (lechmere_wss census); a verb is bound when its registry record carries a non-null dispatch pointer, unbound stubs carry none - the 237/265 count is the registry-level bound ratio. Namespaces with fully-bound verb sets proven by route tables: virtualLineIn (6 verbs), soundSwap (requestSwap/triggerSwap), roomDetection (chirp), upnp bridge (call/subscribe/renew/unsubscribe), playback (load*/play/pause/stop/seek family)."
+    "Bound-vs-unbound determination method: the muse type registry records are 0x14-byte entries {id, name*, code, extra} (lechmere_wss census); a verb is bound when its registry record carries a non-null dispatch pointer, unbound stubs carry none - the 237/265 count is the registry-level bound ratio. Namespaces with fully-bound verb sets proven by route tables: virtualLineIn (6 verbs), soundSwap (requestSwap/triggerSwap), roomDetection (chirp), upnp bridge (call/subscribe/renew/unsubscribe), playback (load*/play/pause/stop/seek family).",
+    "Negative evidence: the /households/{householdId}/... route path block (0x10e7bf42.., ~200 literal templates in .rodata) has ZERO references in any section - no pointer-table entry, no lis/addi formation - so the verb binding table is runtime-built (registration-time string args via a different block) and these literals are most plausibly the codegen-emitted route metadata consumed by offset/index, not by name pointer."
    ]
   },
   "cec_diagnostics": {
@@ -148783,8 +148783,7 @@
    "name": "mdputil",
    "summary": "Manufacturing-data partition utility (/bin/mdputil) over libsonos-mdp + libflash. Prints keyval-parseable identity lines, validates and writes signed MDP pages on /dev/mtd/0.",
    "todo": [
-    "Established: variants {0xffffae2d=v1 color@+0x44c, 0xfa87b921=v2 color@+0xa10}, color+series enums, serial format, full field vocabulary, mutability rules.",
-    "Residual: the per-index MDP offset table behind -fwn (bound 0x104, REGION index=2 proven externally via preinstall.sh) - the descriptor array or cmpwi chain inside the -f write path is the remaining decode."
+    "Residual: the MDP1/MDP2/MDP3 field offsets outside the 0x28-byte HW manifest (VENDOR/MODEL/SERIAL/DCOFS/etc come from the libflash hal_flash_get_mdp accessors, not this table)."
    ],
    "artifacts": [
     "bin/mdputil"
@@ -148801,7 +148800,8 @@
     "Resolved: sonosMdpSerialToString emits '%02X%02X%02X%02X%02X%02X%c' - the 6-byte serial as hex plus a check character computed by a digit-mixing loop (4 bytes summed mod-10 style via the 0x...f0f1 reciprocal multiply, mapped into a char).",
     "Resolved: complete keyval field vocabulary from mdputil's manifest printer: {VENDOR,MODEL,SUBMODEL,SERIES_ID,REVISION,SERIAL,REGION,COPYRIGHT,FLAGS,HWFEATURES,CH11SPURIMMUNITYLEVEL,DCOFS(4-tuple DC offset %d:%d:%d:%d),MDPVERSION,MDP2VERSION,MDP2ENCVERSION,MDP3VERSION,MDP_OLD_VERSION,MDP_NEW_VERSION,PAGESPRESENT,FUSEVAL,SWFEATURES,VARIANT,WILDCARD_VARIANT,NANDID,UNITSIG,DATECODE,LOCATION,SERIALSIG}. FLAGS/HWFEATURES/FUSEVAL print with '# (' bit-decode suffixes. Mutability rules literal: 'MDP HAS_VERSION can't be modified', 'Use -T to modify MDP HAS_HWFEATURES', '-fwn <index>=<value>' writes field index via '%d=%d' parse, '-wf' overrides the 'There is already a valid MDP in place' guard, 'Fixing bad MDP version'/'New MDP flags 0x%08x' repair path. Compiled-in COPYRIGHT default 'Copyright 2025 Sonos, Inc.' at .data 0x1002003c.",
     "Resolved: the REGION field is externally confirmed - preinstall.sh reads it via `mdputil | keyval ^REGION` and rewrites REGION=5 to 2 via `mdputil -fwe 2` (the -fwe <index> write form), so REGION is a first-class keyval field and field-index 2 targets it in this build.",
-    "Resolved: mdputil internals - optstring \"Aa:whfv:V:M:m:r:Nn:e:s:S:Ik:F:C:P:T:i:d:D:Bpj:u\"; field-index bound <0x104 (cmplwi 0x104 at 0x10002960, \"Bad parm\" on overflow); MDP read via hal_flash_get_mdp + hal_flash_get_mdp2 into two stack structs; the MDP2 signed-write path f_100024c4 opens /dev/mtd/0, ioctls 0x40044d24 (info) + 0x80244d23 (page read), XOR-compares 8-byte blocks, and runs libsonoscrypto ZZ0062/ZZ0064/ZZ0061/ZZ0109/ZZ0087 ops gated on MDP2 magic 0xCA989B4A (word0) and size bound 0x3c3 (word1). Print order of keyval fields: VENDOR,MODEL,SUBMODEL,SERIES_ID,REVISION,SERIAL,REGION,COPYRIGHT,FLAGS,HWFEATURES,...,WIFITYPE=N,FSN; FLAGS bits {KERNEL_PRINTK_ENABLE, CONSOLE_ENABLE, HAS_HWFEATURES, HAS_VERSION}; HWFEATURES bits {ATH_AR2414_WIFI, STMICRO_NAND, REDROCKS, ATH_AR5416_WIFI, ATH_AR9000_WIFI, LED_SWAP, ALT_ANTENNAS}; FSN read via hal_flash_read_fsn printed as %02x bytes or FSN=INVALID. Sensor/misc vocab {AMP, TEMP_SENSOR(AMP), TEMP_SENSOR(CPU), ALS, ACCELEROMETER, FUEL_GAUGE, RADIO}; error literals {Bad parm, Bad hash, Bad mdp, Bad key} and LED subcommand verbs {show, clear} with \"%d=%d\" + \" (dynamic)\" output."
+    "Resolved: mdputil internals - optstring \"Aa:whfv:V:M:m:r:Nn:e:s:S:Ik:F:C:P:T:i:d:D:Bpj:u\"; field-index bound <0x104 (cmplwi 0x104 at 0x10002960, \"Bad parm\" on overflow); MDP read via hal_flash_get_mdp + hal_flash_get_mdp2 into two stack structs; the MDP2 signed-write path f_100024c4 opens /dev/mtd/0, ioctls 0x40044d24 (info) + 0x80244d23 (page read), XOR-compares 8-byte blocks, and runs libsonoscrypto ZZ0062/ZZ0064/ZZ0061/ZZ0109/ZZ0087 ops gated on MDP2 magic 0xCA989B4A (word0) and size bound 0x3c3 (word1). Print order of keyval fields: VENDOR,MODEL,SUBMODEL,SERIES_ID,REVISION,SERIAL,REGION,COPYRIGHT,FLAGS,HWFEATURES,...,WIFITYPE=N,FSN; FLAGS bits {KERNEL_PRINTK_ENABLE, CONSOLE_ENABLE, HAS_HWFEATURES, HAS_VERSION}; HWFEATURES bits {ATH_AR2414_WIFI, STMICRO_NAND, REDROCKS, ATH_AR5416_WIFI, ATH_AR9000_WIFI, LED_SWAP, ALT_ANTENNAS}; FSN read via hal_flash_read_fsn printed as %02x bytes or FSN=INVALID. Sensor/misc vocab {AMP, TEMP_SENSOR(AMP), TEMP_SENSOR(CPU), ALS, ACCELEROMETER, FUEL_GAUGE, RADIO}; error literals {Bad parm, Bad hash, Bad mdp, Bad key} and LED subcommand verbs {show, clear} with \"%d=%d\" + \" (dynamic)\" output.",
+    "-fwn path decoded (f_10002320): the MDP HW manifest is a 0x28-byte block at mdp_obj+0xb4 guarded by magic 0x7a61670e at +0xb0; entries are 8 hardware-presence bytes named by the table @0x10003328 {LED, AMP, TEMP_SENSOR(AMP), TEMP_SENSOR(CPU), ALS, ACCELEROMETER, FUEL_GAUGE, RADIO}. -fwn <index>=<value> validates index<=7 then stores the byte at +0xb4+index and re-arms the magic; per-index value bounds via jump table @0x100031f4: {idx0 rejected; idx{1,3,4} allow value 1..3; idx2 allows 1..5; idx{5,6,7} allow 1..2}. 'clear' memsets the whole 0x28 block and drops the magic."
    ]
   },
   "bin_frcheck": {
@@ -148817,11 +148817,11 @@
     "Decision inputs from strings+dyn syms: reads /jffs/app/run/factoryReset.txt looking for the SOFT token (soft reset request persisted across reboot), samples front-panel button state via hal_inputs_get_buttons_state (button-held reset), and touches /dev/audioctl; prints 'APUinfo'.",
     "Resolved: frcheck's two inputs are literal: sonosFileExists+sonosFileReadPartial on /jffs/app/run/factoryReset.txt (the persisted reset request written pre-reboot) and hal_inputs_get_buttons_state over /dev/audioctl (the power-on button-hold read). The rc contract {0=hard reset,1=normal boot,2=soft reset} is chosen by combining the file contents with the held-button mask; /dev/audioctl is the only device node it touches.",
     "Resolved: decision logic from the .text (main 0x10000544+): rc starts 1 (normal). If /jffs/app/run/factoryReset.txt exists: sonosFileReadPartial reads 4 bytes + NUL; strcmp=='SOFT' -> rc=2 (soft reset); read<=0 or non-SOFT content -> rc=0 (hard reset); file is unlinked after reading either way (one-shot semantics). Then /dev/audioctl is opened and f_10000904 reads the button-state word into a 4-byte stack buf; if the probed byte ==1 -> rc=0 (hard reset) - a held panel button forces factory reset independent of the file. So: hard=empty/foreign file OR button-held; soft='SOFT' file; normal otherwise.",
-    "Resolved (boundary narrowed): hal_inputs_get_buttons_state (libsyslib_hal.so.1 @0x13cc) fills an 8-word (0x20-byte) output struct copied verbatim from a single ioctl 0x40F4FC3E on the button/input device (opened via a PIC-loaded path global; the only device literals in the lib are /dev/ir and /dev/audioctl). There is no GPIO->button-name table in the lib - the 8 words are the raw kernel-driver state word array, so byte-1 slot identity is kernel-module layout, confirmed opaque at this layer. Ioctl magic 0xF4 cmd 0x3E is the driver-defined read-state request."
+    "Resolved (boundary narrowed): hal_inputs_get_buttons_state (libsyslib_hal.so.1 @0x13cc) fills an 8-word (0x20-byte) output struct copied verbatim from a single ioctl 0x40F4FC3E on the button/input device (opened via a PIC-loaded path global; the only device literals in the lib are /dev/ir and /dev/audioctl). There is no GPIO->button-name table in the lib - the 8 words are the raw kernel-driver state word array, so byte-1 slot identity is kernel-module layout, confirmed opaque at this layer. Ioctl magic 0xF4 cmd 0x3E is the driver-defined read-state request.",
+    "hal_inputs_get_buttons_state proven (libsyslib_hal.so.1 @0x13cc): ioctl(fd, 0x40F4FC3E, buf) fills 8 u32 words copied verbatim to the out array (word[i]=stack[0x18+4i]); on primary-device failure it retries on a second device fd with ioctl 0x80000002. So the frcheck byte-1 slot is index 1 of the 8-word button-state vector - the per-index button identity is assigned in the kernel input driver, not userspace."
    ],
    "todo": [
-    "Established: complete decision tree - {SOFT file->2, other-content file->0, button byte==1->0, default 1}; file is one-shot (unlinked).",
-    "Residual: byte-1 slot identity inside the 8-word ioctl 0x40F4FC3E result - defined by the kernel input driver (not shipped in the public files extract)."
+    "Residual: which physical button each of the 8 words maps to - defined by the kernel input driver behind ioctl 0x40F4FC3E (not shipped)."
    ]
   },
   "bin_sddpd": {
@@ -149032,7 +149032,7 @@
    "name": "sonosledmgrd",
    "summary": "sonosledmgrd (/opt/bin/sonosledmgrd): the LED manager daemon that executes the R_LED_* mode vocabulary shared with anacapad's leds_zp library - it owns the physical hal_led device, pattern engine, and captouch feedback color.",
    "todo": [
-    "Residual: the IPC wire framing on the client socket (message ids for set-pattern vs apply-mode requests) - the socket exists but its message table is in stripped code; the mode vocabulary itself is fully enumerated."
+    "Residual: the numeric id assigned to each request kind (set-pattern vs apply-mode etc) - the dispatch is a sequential u32 field reader with the id-to-handler binding inlined in the connection loop, no standalone table."
    ],
    "artifacts": [
     "opt/bin/sonosledmgrd",
@@ -149044,7 +149044,8 @@
     "Pattern record format: 'cksum=%08x, flags=%04x repeats=%u num_steps=%u led_ids=%08x' with per-step 'step[%d]= r=%02x, g=%02x b=%02x hold_time=%u fade=%u' - RGB step sequences with hold/fade timing, repeated and bitmasked across LED ids; writes through hal_led_open/brightness with a hal token guard (led_get_hal_token), plus led_set_feedbackFlash and captouch default-color control.",
     "Lifecycle: /etc/runledmgrd respawns it with trackrestart and a stale-pid watchdog loop; --fr runs the factory-reset flash pattern (driven by frcheck rc != 1 in Configure); /var/run/sonosledmgrd.flash_booting_led marks boot-time LED activity; writes /var/run/sonosledmgrd.pid.",
     "Client surface: socket-based IPC (socket/bind imports, 'hostPort' field, client channel name '/sonosledmgrd-external' referenced from anacapad) serving the leds_zp client lib shared with anacapad and netstartd (netstartd contains the same 'applyLEDMode R_LED_WAC_TIMEOUT' call site).",
-    "Logger: /opt/conf/sonosledmgrd_logger.toml (/jffs/conf/ override first) - sonosledmgrd.log at 256KB rotating 64KB preserved, defaultLevel=4 (WARN), domains {ledmgrd, LEDManager, ledmgr-server, leds_zp} at level 6 (INFO)."
+    "Logger: /opt/conf/sonosledmgrd_logger.toml (/jffs/conf/ override first) - sonosledmgrd.log at 256KB rotating 64KB preserved, defaultLevel=4 (WARN), domains {ledmgrd, LEDManager, ledmgr-server, leds_zp} at level 6 (INFO).",
+    "IPC framing proven: the client socket protocol reads fixed 4-byte words sequentially (read(fd,buf,4) at 0x100e4cf8, 0x100e854c, 0x100e856c, 0x100e8588, 0x100e85d0 inside the connection loop) - each request is a sequence of u32 fields (id/args) rather than a self-describing frame; arg presence branches on each read result. Byte-level arg extraction via rlwinm byte masks."
    ]
   },
   "bin_busybox_applets": {
