@@ -86399,7 +86399,7 @@
   "/QPlay/Control": {
    "name": "QPlay",
    "control_path": "/QPlay/Control",
-   "description": "QPlay (QQ Music) authentication service; QPlayAuth dispatch is statically bound (strcmp-matcher 0x1073a4f0, exec 0x1073a5d0) and the request/response grammar is fully decoded.",
+   "description": "QPlay (QQ Music) authentication service; QPlayAuth dispatch is statically bound (strcmp-matcher 0x1073a4f0, exec 0x1073a5d0) and the request/response grammar and the Seed->Code transform are fully decoded.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -86462,7 +86462,7 @@
    },
    "actions": {
     "QPlayAuth": {
-     "description": "QPlay authentication handshake (Tencent seed->code exchange, fully decoded): dispatcher f_1073a4f0 strcmp-matches 'QPlayAuth' -> exec f_1073a5d0. Exec calls req->v[+0x1c] to fetch arg 'Seed' (0x10f11d64), parses it via f_1056157c into a stack buffer capped at 0x80 bytes, then gates on req->v[+0x08] (parse-ok check) -> emits 402 (0x192) Invalid Args on failure; 401 (0x191) for unknown action names. On success it calls impl->v[+0x08](impl, seedBuf, codeOut, 0x80, midOut, 0x15, didOut, 0x15) where impl = req->member[+0x04]: Code buffer cap 0x80, MID and DID buffers cap 0x15 (20-char strings + NUL). Each output is emitted as an individual out-arg via req->v[+0x24] with names 'Code'(0x10eb95c4)/'MID'(0x10f11d6c)/'DID'(0x10f11d70), value serialized through the out-arg object's v[+0x10] emitter; response committed via req->v[+0x0c]. The Seed->Code transform lives inside the impl member fn (no literals, crypto inlined or via shared hash lib) and is the only undecoded part. NOTE: an earlier attribution of the compute fn to f_104666b4 was wrong - that fn is a MuseDebugInfo formatter ('%s, %u, %u, %u' @0x10f94c88, 'MuseDebugInfo' @0x10f94c98).",
+     "description": "QPlay authentication handshake (fully decoded end to end): dispatcher f_1073a4f0 strcmp-matches QPlayAuth -> exec f_1073a5d0. Exec calls req->v[+0x1c] to fetch arg Seed (0x10f11d64), parses via f_1056157c into a stack buffer capped at 0x80, gates on req->v[+0x08] parse-ok -> emits 402 (0x192) Invalid Args on failure, 401 (0x191) for unknown action names. On success it calls impl->v[+0x08](impl, seedBuf, codeOut, 0x80, midOut, 0x15, didOut, 0x15) where impl = req member +0x04. IMPL PROVEN STATIC: the impl object is constructed by f_10466750 (vptr 0x10ed1d18, installed at ctor site 0x1018f280) and its v[+0x08] = f_104666b4. f_104666b4 computes Code via f_1064548c(codeOut,0x80,seed) -> f_106453bc: ZZ0062 digest-init type 2 (proven MD5 - libsonoscrypto ZZ0062 dispatches type1=SHA-256, type2=MD5, type3=SHA-1 at 0x6b60-0x6b78), ZZ0064 update with seed bytes, ZZ0064 update with a 16-byte static key at 0x10efc7ac (53 6f 6e 6f 73 03 11 19 88 09 10 17 1e 22 ff ff = \"Sonos\"+11 bytes, preceded by literal 62800021), ZZ0061 finish, then RserializeData(digest,0x10,out,cap) serializes the 16-byte MD5 into codeOut. So Code = serialize(MD5(Seed || key16)). MID = bounded strlcpy f_10906304(midOut, f_106453a8(), 0x15) of a getter string; DID = snprintf(didOut,0x15,\"%u\", f_106454a8()) - a numeric device id. Outputs emitted individually via req->v[+0x24] with names Code(0x10eb95c4)/MID(0x10f11d6c)/DID(0x10f11d70), response committed via req->v[+0x0c]. Correction: an earlier note claiming f_104666b4 was a MuseDebugInfo formatter and a wrong attribution is itself wrong - the impl vtable at 0x10ed1d18 statically binds it as v[+0x08]; the nearby MuseDebugInfo literals belong to a different function.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073a4f0",
@@ -86974,7 +86974,7 @@
     "compiled lib (qplay): no path literal"
    ],
    "todo": [
-    "Residual: the Seed->Code transform inside the impl member fn (impl = req member +0x04, v[+0x08]) - crypto is inlined or via a shared hash lib with no literals; buffer caps proven {Seed in 0x80, Code out 0x80, MID/DID out 0x15}."
+    "Residual: the semantic meaning of the 16-byte key constant at 0x10efc7ac (\"Sonos\"+11 bytes) and of the MID getter f_106453a8 return string - both are concrete values/functions but their external names are not recoverable from literals; the transform itself is fully proven (MD5 of Seed||key serialized by RserializeData)."
    ]
   },
   "/SystemProperties/Control": {
