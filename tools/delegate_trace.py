@@ -442,12 +442,17 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc):
         return None, ("%s object (caller-dependent argument)" % obj)
     if obj.startswith("vret") or obj.startswith("ret"):
         return None, ("call-returned object %s: callee return-class "
-                      "unbound" % obj)
+                      "unbound in the linear slice (emulator frontier)"
+                      % obj)
     if "sp-" in obj or "sp+" in obj:
         return None, ("stack-reloaded object %s: producer lies outside"
-                      " the emulated linear slice" % obj)
+                      " the emulated linear slice (emulator coverage "
+                      "frontier, not a proven static boundary - wider "
+                      "stack-slot dataflow could still bind it)" % obj)
     if obj == "?":
-        return None, "opaque register object (dataflow lost)"
+        return None, ("opaque register object (dataflow lost within "
+                      "the emulated linear slice - emulator frontier, "
+                      "not a proven boundary)")
     return None, "object %s (unbound)" % obj
 
 
