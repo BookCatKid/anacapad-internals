@@ -22,7 +22,11 @@ import disas as D
 
 
 def main():
-    D.init()
+    try:
+        D.init()
+    except (OSError, FileNotFoundError) as e:
+        sys.exit("anacapad binary not found: %s "
+                 "(set ANACAPAD=/path/to/anacapad)" % e)
     elf = D._elf
     starts = set(D._starts)
     TEXT_LO, TEXT_HI = 0x10000000, 0x11000000

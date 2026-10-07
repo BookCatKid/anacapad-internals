@@ -35,7 +35,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
 import extract_soap_api as X
 
-BIN = "reference/public/files/opt/bin/anacapad"
+BIN = os.environ.get("ANACAPAD") or \
+    "reference/public/files/opt/bin/anacapad"
 
 # Per-service delegate vptr bindings proven in the doc pass.
 SVC_VPTR = {
@@ -358,13 +359,17 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc):
                 return None, ("member pointer field %s of %s holds "
                               "0x%s (a heap/runtime object pointer, "
                               "not a class) - object's ctor not "
-                              "reachable (boundary)"
+                              "reachable by the ctor-scan "
+                              "(analyzer frontier)"
                               % (k, c, mv.lstrip("0x")))
             what = "embedded subobject" if embedded else "member"
             return None, ("%s %s of %s: none of the class's %d "
                           "emulated ctors installs a vptr/pointer at "
                           "the field; populated by runtime code outside"
-                          " service construction (boundary)"
+                          " service construction (analyzer "
+                          "frontier: ctor-scan coverage only - an "
+                          "image-wide store-xref census may still "
+                          "bind the field)"
                           % (what, k, c, len(ctors_of.get(c) or [])))
         return None, ("member %s of this (caller-dependent class; no "
                       "install site resolved)" % k)
@@ -388,14 +393,18 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc):
                                    % (g, k, hex(slot or 0)))
                     return None, ("member 0x%x of global object 0x%x: "
                                   "no ctor-installed vptr at the "
-                                  "field (boundary)" % (k, g))
+                                  "field (analyzer frontier: "
+                                  "store-xref census may still bind "
+                                  "it)" % (k, g))
                 t = bound(f"{gv:#x}")
                 return t, ("global object 0x%x v+%s -> f_%x"
                            % (g, hex(slot or 0), t) if t else
                            "global object 0x%x v+%s"
                            % (g, hex(slot or 0)))
         return None, ("global pointer at 0x%x: runtime-initialized "
-                      "(boundary)" % g)
+                      "(analyzer frontier: producer not "
+                      "located by ctor/linear-slice scan - image-wide "
+                      "store-xref census may still bind it)" % g)
     m = re.fullmatch(r"\*\(r3-in\+0x([0-9a-f]+)\)\+0x([0-9a-f]+)", obj)
     if m:
         k, j = f"{int(m.group(1), 16):#x}", f"{int(m.group(2), 16):#x}"
@@ -412,9 +421,12 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc):
                                % (k, j, hex(slot or 0)))
                 return None, ("member %s of embedded member %s of %s: "
                               "second-level field not ctor-installed "
-                              "(boundary)" % (j, k, c))
+                              "(analyzer frontier: store-xref "
+                              "census may still bind it)" % (j, k, c))
             return None, ("member %s of %s: no ctor-installed member "
-                          "object at the field (boundary)" % (k, c))
+                          "object at the field (analyzer "
+                          "frontier: store-xref census may still "
+                          "bind it)" % (k, c))
         return None, ("member %s.%s of this (caller-dependent class)"
                       % (k, j))
     m = re.fullmatch(r"\*\((r[34])-in\+0x0\)\+0x([0-9a-f]+)", obj)
