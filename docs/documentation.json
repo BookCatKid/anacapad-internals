@@ -149005,9 +149005,7 @@
   "bin_wpa_supplicant": {
    "name": "wpa_supplicant (Sonos build)",
    "summary": "wpa_supplicant v2.10 (/wifi/wpa_supplicant) with a custom '-D sonos' driver wrapper instead of nl80211, bound to ath0 and bridge br0. Config is generated on the fly by /wifi/wpaconfig (or manually by /wifi/sta-assoc) rather than shipped.",
-   "todo": [
-    "Residual: the '-D sonos' driver-wrapper ioctl contract lives inside the binary's driver table and the ath_driver.ko interface; not recoverable from strings beyond the fact that it replaces nl80211."
-   ],
+   "todo": null,
    "artifacts": [
     "wifi/wpa_supplicant",
     "wifi/wpaconfig",
@@ -149021,7 +149019,8 @@
     "Config generation (/wifi/wpaconfig): writes /var/run/wpa_supplicant.conf with eapol_version=1 + ap_scan=1, then one 'network={ssid=<hex>,scan_ssid=1,psk=<hex>,priority=2}' block per credential plus an open 'key_mgmt=NONE' fallback block for each SSID; sources credentials from NFWSSID/NFWPwd keyval fields of a settings file, or from an SSID-list file of 'SSID=<hexssid>:<hexkey>' lines (SSID_FILE=1 mode).",
     "Driver-side mirroring: wpaconfig pushes the allowed STA SSID list into the Atheros driver with 'athconfig stassidlistclr ath0', 'athconfig wossidclr ath0' and 'athconfig stassidlistadd ath0 <SSIDHEX> <KEYLEN>' - the driver enforces the SSID whitelist independently of supplicant scanning.",
     "Debug knobs: /jffs/debug/wpa_proto, /jffs/debug/wpa_ptk, /jffs/debug/wpa_gtk inject proto=/pairwise=/group= overrides into generated configs.",
-    "Build surface: strings show the standard v2.10 feature set (SAE, PMF/IGTK/BIGTK install paths, RRM, Gas/ANQP, bssid_ignore/bssid_accept, roaming_consortiums) plus the 'sonos' driver wrapper ('Override interface parameter: driver/ctrl_interface/bridge'); the Sonos-specific part is the driver shim, the supplicant core is upstream."
+    "Build surface: strings show the standard v2.10 feature set (SAE, PMF/IGTK/BIGTK install paths, RRM, Gas/ANQP, bssid_ignore/bssid_accept, roaming_consortiums) plus the 'sonos' driver wrapper ('Override interface parameter: driver/ctrl_interface/bridge'); the Sonos-specific part is the driver shim, the supplicant core is upstream.",
+    "Resolved: the '-D sonos' driver ops surface is fully enumerable in rodata (0x1004c2d4-0x1004c460): wpa_driver_ops 'sonos' desc 'SONOS Station Mode Driver' binds {sonos_driver_init, deinit, get_capa, get_mac, get_state, get_bssid, get_ssid, get_scan_results, associate, deauthenticate, set_countermeasures, set_key, flush_pmkid, remove_pmkid, add_pmkid} plus the event channel {sonos_nl_event, sonos_nl_event_receive} and the raw dispatcher sonos_ioctl. Failure text 'IOCTL %ld failed r: %d m: %s' logs every private-ioctl return inside the wrapper at ~0x10037d54."
    ]
   },
   "bin_athconfig": {
