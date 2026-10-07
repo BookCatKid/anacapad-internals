@@ -141621,15 +141621,15 @@
     }
    ],
    "todo": [
-    "Established: 1s open-until deadline in monotonic us; telemetry counter schema.",
-    "Residual: numeric defaults for trip count (+0x20), probe cap (+0x24), window span (+0x40/+0x44) - muse dispatch config values, not .rodata literals"
+    "Established: 1s open-until deadline in monotonic us; telemetry counter schema."
    ],
    "resolved_findings": [
     "Resolved: trip/reset = %s CB state transition to [CLOSED]/[OPEN]/[SEMI_OPEN]; protected call = the musecommand dispatch path.",
     "Mechanism proven (sonos-muse/src/sonos/muse/common/circuitbreaker.cxx): a standard circuit breaker wraps outbound cloud-command execution inside musecommand - %s CB state transition to [CLOSED]/[OPEN]/[SEMI_OPEN] marks trips and probes; telemetry fields {circuitBreakerOpenedCount, circuitBreakerTelemetry} expose trip counts. SEMI_OPEN is the cooldown probe state between OPEN and CLOSED. Adjacent muse grammar confirmations: command envelope = JSON array [header, body] (muse command must be formatted as an array containing a header object followed by a body object / missing the body object / failed to parse json body (offset: %u): %s); audiences v1.api.smartspeaker.audio + v2.api.smartspeaker.audio; credential types {apikey, mtls, guest_token, guest_token_pin}; Policy key permissions length exceeds maximum size! bounds authz policy keys.",
     "Cooldown arm proven: OPEN stores deadline +0x30 = clock + 0xf0000 ticks before logging transition (0x109d92d8..0x109d930c); state word at +0x1c; failure counter +0x130; trip threshold member +0x20.",
     "Resolved: the CB telemetry counter schema is literal - group museCircuitBreaker carries {timeInOpenStateMS, circuitBreakerOpenedCount, totalFailures, totalSuccessfulRetries, totalFailedRetries} (0x10f07da4-0x10f07dfc); state names are exactly {CLOSED, OPEN, SEMI_OPEN} via \"%s CB state transition to [%s]\" logs (0x10f94550-0x10f94598, source sonos-muse/common/circuitbreaker.cxx). Adjacent museSecuritySettings keys {guestAccessAllowed, unauthCtrlAllowed} and the MuseChaos fault-injection verbs (namespace/command/interval/delayMs, \"chaos: delaying/dropping request\") live in the same table run.",
-    "Resolved: the +0x30 open-until deadline is monotonic us, not 0xf0000-ticks - f_109d91ec stores last-event + 0xf4240 (1,000,000 us = 1 s) via clock_gettime(CLOCK_MONOTONIC) (see circuitbreaker record state_machine decode at 0x109d91ec/0x109d9470/0x109d90cc). Trip threshold (+0x20), half-open probe cap (+0x24) and window span (+0x40/+0x44) are config members populated at musecommand dispatch init."
+    "Resolved: the +0x30 open-until deadline is monotonic us, not 0xf0000-ticks - f_109d91ec stores last-event + 0xf4240 (1,000,000 us = 1 s) via clock_gettime(CLOCK_MONOTONIC) (see circuitbreaker record state_machine decode at 0x109d91ec/0x109d9470/0x109d90cc). Trip threshold (+0x20), half-open probe cap (+0x24) and window span (+0x40/+0x44) are config members populated at musecommand dispatch init.",
+    "Resolved: the breaker defaults are literal, not muse-dispatch data - Configure (f_109d8ecc, stores args to obj+0x20..+0x2c and +0x40/+0x44) is invoked from exactly two sites with identical config: 0x1008455c (breaker name 'ucs') and 0x1008e3f4 (breaker name 'thor'). Args: (name*, 6, 2, &u64(30000), &flags{1}, 1, 0, 30000, stack u64 120000) - i.e. trip threshold 6, probe cap 2, and two time windows 30000 and 120000 (ms)."
    ]
   },
   "common_logger": {
