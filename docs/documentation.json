@@ -138747,15 +138747,15 @@
     }
    ],
    "todo": [
-    "Established: clip request schema, custom-clip streamUrl+HTTPS rules, priority arbitration, AVT vs ExtAudioSource routing; state enum (0..7) and 17-type clip vocabulary recovered from the 0x10ebffe4 descriptor.",
-    "Residual: the semantic role of each clip-type id (which types are cloud-injected vs built-in buzzer) is event-consumption data; per-field type codes are SonosPB-internal discriminants."
+    "Established: clip request schema, custom-clip streamUrl+HTTPS rules, priority arbitration, AVT vs ExtAudioSource routing; state enum (0..7) and 17-type clip vocabulary recovered from the 0x10ebffe4 descriptor."
    ],
    "resolved_findings": [
     "Resolved: clipType values = the validation-table enum; duck/pause = the clip-vs-program decision in the mixer.",
     "Clip model proven: request fields {content, priority, clipType, clipLEDBehavior, clipBehavior, buzzers}; built-in clips are numbered files (0.mp3, looked up by clip id - Invalid clip id [ / Clip id not found [); clipType custom requires streamUrl (Missing streamUrl (required for custom clip type)) and HTTPS when credentials are supplied (Secure streamUrl required when providing httpAuthorization). Playback routes through AVT or the External Audio Source (Using AVT / Using External Audio Source); arbitration is priority-based (Cannot interrupt current clip due to priority policies) and pauses current content first (Failed to pause content in order to play audio clip).",
     "Resolved: the built-in clip inventory is the shipped /opt/buzzers/ directory: {0.mp3 (87KB), 1.mp3 (41KB), 100.mp3 (42KB), 101.mp3 (5KB), speaker-detect.mp3 (254KB)} - clip ids {0,1,100,101} plus the named 'speaker-detect' clip; clipType 'custom' is the escape for user-supplied audio.",
     "AudioClip descriptor table recovered at 0x10ebffe4 (.rodata): clip-state enum is u8-packed values 0..7 bound positionally to {STARTING, STARTED, PAUSED, RESUMING, RESUMED, FINISHED, CANCELLED, DISCARDED}; clip-type vocabulary = 17 names {COMMON, AUDIOCLIP, CHIRP, AVT_HACK, ALEXA_TTS, ALEXA_WELCOME, ALEXA_FAILURE, ALEXA_ALERT, GOOGLE_MEDIA, GOOGLE_ALARM, GOOGLE_TTS, SPS, SVE_TTS, VOCAL_GUIDANCE, ALERT, SETUP_CHIRP, DISCOVERY}, followed by a 16-entry u32 per-field type table {5,4,4,4,4,4,4,4,4,5,4,4,4,4,7,8} and an 'ext_audio_action' field marker.",
-    "Clip/alert outcome states at 0x10fac904: {ACTIVE=1, DONE=2, DISMISSED=3, INACTIVE=4, INTERRUPTED=5, ERROR=6}."
+    "Clip/alert outcome states at 0x10fac904: {ACTIVE=1, DONE=2, DISMISSED=3, INACTIVE=4, INTERRUPTED=5, ERROR=6}.",
+    "Clip-source split proven by literals: built-in clips are local files via x-rincon-buzzer:<id> -> 'file:///opt/buzzers/%s' / 'file://%s/buzzers/0.mp3' and calibration clips via x-rincon-sonarcal:{leader,testtone,complete_ht}.ogg; custom/cloud clips arrive as streamUrl over HTTPS. The 17 clip-type names are the playback-category enum; the buzzer vs streamUrl binding separates device-shipped clips from injected ones."
    ]
   },
   "devmode": {
