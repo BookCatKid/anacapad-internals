@@ -148927,7 +148927,7 @@
    "name": "mdnsd (Sonos mDNS fork)",
    "summary": "Stock Apple mDNSResponder daemon (/sbin/sddpd-adjacent /sbin/mdnsd), run foregrounded as 'mdnsd -f' by /etc/runmdns behind the waitwhiletrue /var/run/stopmdns gate. Sonos ships the posix mDNSResponder, not avahi.",
    "todo": [
-    "Residual: upstream release mapping - the banner is an Engineering Build with no mDNSResponder-XXX tag; DSO/Push presence implies a post-878.x lineage but the exact upstream base is not provable from strings"
+    "Residual: exact upstream release within the 878.x-1310.x window (DSO/push present, SRP absent) - no version tag or per-release marker string exists in the image."
    ],
    "artifacts": [
     "sbin/mdnsd"
@@ -148938,7 +148938,8 @@
     "Privileges/sandboxing: attempts setgid+setuid to nobody and warns on failure ('WARNING: mdnsd continuing as group root / as root because setgid/setuid to nobody failed'); usage is '%s [-debug]' (-f foreground flag comes from mDNSPosix main).",
     "Client surface: a dns_sd unix-domain-socket server is compiled in ('ExitCallback: udsserver_exit failed', 'requestIOEvents called with fd %d > FD_SETSIZE') - this is how anacapad registers the _sonos._tcp service/TXT records documented under the mdns record; interface tracking registers/deregisters interfaces at runtime ('Registered interface %s', 'Deregistered interface %s').",
     "Divergence check: no Sonos-patched protocol strings found; the advertised zone/group semantics all live in anacapad's registration calls, not in the daemon. /etc/mdnsd.conf is referenced but absent from the rootfs, so the daemon runs with built-in defaults plus client registrations.",
-    "Resolved: /sbin/mdnsd is mDNSResponder Engineering Build (Aug 20 2026 14:46:24) - self-bannered \"@(#) mDNSResponder (Engineering Build)\", no upstream release tag (build number only, \"mDNSResponder Build %d.%02d.%02d\" in state-log banners). The UDS path is the upstream default /var/run/mdnsd with pidfile /var/run/mdnsd.pid; supervised by /etc/runmdns (waitwhiletrue /var/run/stopmdns then exec /sbin/mdnsd -f). The build carries the DSO/TLV extension family (dso_add_tlv_*, BuildUpdateMessage, SendGroupUpdates for DNS Push subscriptions) and a client/daemon version handshake (\"client version 0x%08X daemon version 0x%08X\", DaemonVersion query). Built with crosstool-NG GCC 5.5.0."
+    "Resolved: /sbin/mdnsd is mDNSResponder Engineering Build (Aug 20 2026 14:46:24) - self-bannered \"@(#) mDNSResponder (Engineering Build)\", no upstream release tag (build number only, \"mDNSResponder Build %d.%02d.%02d\" in state-log banners). The UDS path is the upstream default /var/run/mdnsd with pidfile /var/run/mdnsd.pid; supervised by /etc/runmdns (waitwhiletrue /var/run/stopmdns then exec /sbin/mdnsd -f). The build carries the DSO/TLV extension family (dso_add_tlv_*, BuildUpdateMessage, SendGroupUpdates for DNS Push subscriptions) and a client/daemon version handshake (\"client version 0x%08X daemon version 0x%08X\", DaemonVersion query). Built with crosstool-NG GCC 5.5.0.",
+    "Release-window fingerprint: banner 'mDNSResponder (Engineering Build) (Aug 20 2026 14:46:24)' - build-time only, no mDNSResponder-XXX tag. Feature presence: DSO TLV machinery (dso_start_tlv/add_tlv_bytes/dsop fields) + '_dns-push-tls' service type = DNS Push Notifications (RFC 8765) era code, i.e. >= mDNSResponder-878.x; LLQ + NAT-PMP + sleep proxy + WAB browse queries all present. SRP (service registration protocol) and Oblivious-DoT strings are ABSENT - pre-SRP vintage, consistent with the 878.x-1310.x window."
    ]
   },
   "bin_netstartd": {
