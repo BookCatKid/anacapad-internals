@@ -137861,7 +137861,7 @@
     }
    ],
    "todo": [
-    "Residual: which node the muse/cloud targets with beginUpdate (the trigger of self-nomination is upstream of the image - cloud-side selection); and the member-side controlUri handlers that answer STATUS/DOWNLOAD/FLASHWRITE/REBOOT (the receiver FSM lives in per-route or sibling-daemon code)."
+    "Residual: the peer-election predicate (which household member the coordinator advances next) - command enum, NOTIFY report grammar, and status-server surface are now proven; the pick-next-member comparator is inside the coordinator loop."
    ],
    "resolved_findings": [
     "Resolved: ST_SESSION_ACTIVE -> upgrade_mgr launch = the session-state transition hands off to the external upgrade_mgr with the manifest row; the window gate is the AutoUpdateWindow seconds-since-midnight range.",
@@ -137870,7 +137870,8 @@
     "Resolved (coordinator selection model): there is no election protocol in anacapad - the household update coordinator is self-nominated. The node that receives the muse beginUpdate call writes /var/run/upgradeinfo (updateHookJob worker f_106b2fa4: fopen append, emits 'MinVersion: [%s]' + 'PrevSWGenMinVersion: [%s]' after a cloud-settings query; 'Failed to query cloud settings'/'error updating %s' on the error arms) and ST_SESSION_ACTIVE launches /bin/upgrade_mgr (shipped, PPC ELF). upgrade_mgr parses a key=value info file - parse-error literals name the schema: {LocalSerial, User-Agent, HouseholdID, Timestamp, SystemVersion, UpdateID, NumZPs, NumUpdateZPs, AutoUpdate, StatusServer, ReportFilename} plus per-device rows {udn,type,version,hwversion,modelflags,controlUri,updateID} ('bad udn'/'bad type'/'bad version'/'bad hw version'/'bad model flags'/'bad controlUri'/'bad updateID'). It then SSDP-advertises itself: 'NOTIFY * HTTP/1.1', 'NT: urn:schemas-upnp-org:device:SonosUpgradeMgr:1', 'USN: uuid:RINCON_%s01400::urn:schemas-upnp-org:device:SonosUpgradeMgr:1', 'X-RINCON-HOUSEHOLD: %s', 'X-RINCON-REASON: hh-upgrade' - members discover the coordinator via SSDP.",
     "Resolved (upgrade_mgr member protocol): the coordinator drives each member's controlUri with a small HTTP command set {STATUS, DOWNLOAD, FLASHWRITE, PING, REBOOT}; members answer 'STATUS?phase=%s;percent-complete=%d', 'COMPLETE?phase=%s', 'ERROR?phase=%s;error-code=%d'. Per-device phase FSM {UNDEFINED,CONNECT,WAIT,FINISHED,INIT,HELLO_DONE,DOWNLOAD_DONE,FLASHWRITE_DONE,REBOOTING_DONE}; member hello is 'HELLO'. Coordinator greets members with query '?Version=%s.%s-%s&Auto=%s&Client=%s' (and '?Delay=5'). Status socket for anacapad->upgrade_mgr polling: 'status server: listening on port %d' + 'status server: client connected' - the report fields upgrade_mgr_report.json consumes. Report output: per-device JSON {Serial,Type,CurrentVersion,TargetVersion,UpdateID,HardwareVersion,State,Result,DownloadDuration,ServerIP,ErrorMsg,ExtendedError} under ZPs[] + summary {Version,SystemResult,SystemVersion,UpdateID,Timestamp,Duration,NumZPs,NumUpdateZPs} written to ReportFilename; 'Updated %zu/%zu devices' progress. /tmp/upgrade_mgr.pid singleton lock.",
     "Member-side receiver op vocabulary recovered at 0x10eef2e0+0x28: {CONNECT, HELLO, DOWNLOAD, FLASHWRITE, WAIT, REBOOT, ERROR, FINISHED} - the controlUri opcodes the member answers, paired with the coordinator-side FSM states {INIT, HELLO, HELLO_DONE, DOWNLOAD, DOWNLOAD_DONE, FLASHWRITE, FLASHWRITE_DONE, REBOOT, REBOOTING_DONE, UNDEFINED} in the same table.",
-    "Member-side controlUri opcode ids bound (0x10fad660): CONNECT=2, HELLO=3, DOWNLOAD=4, FLASHWRITE=5, WAIT=6, REBOOT=7, ERROR=8, FINISHED=9 - the receiver op enum now carries numeric ids."
+    "Member-side controlUri opcode ids bound (0x10fad660): CONNECT=2, HELLO=3, DOWNLOAD=4, FLASHWRITE=5, WAIT=6, REBOOT=7, ERROR=8, FINISHED=9 - the receiver op enum now carries numeric ids.",
+    "Member-side receiver FSM decoded in /bin/upgrade_mgr (f_10003bc0 string->enum ladder): coordinator->member command words map to enum {UNDEFINED=0, CONNECT=1, HELLO=2, DOWNLOAD=3, WAIT=4, FLASHWRITE=5, REBOOT=6, ERROR=7, FINISHED=8} stored at obj+0x4. The member->coordinator reporting side is NOTIFY * HTTP/1.1 bodies '%s STATUS?phase=%s;percent-complete=%d', '%s COMPLETE?phase=%s', '%s ERROR?phase=%s;error-code=%d' sent to the assigned controlUri ('bad controlUri'/'bad updateID' rejection paths present); the member also runs a status server ('status server: listening on port %d', client connect/disconnect/truncated-message handling). A second ladder f_10003db8 maps report phases starting INIT=1 into the {.., DOWNLOAD_DONE, FLASHWRITE_DONE, REBOOTING_DONE} done-verb set."
    ]
   },
   "av_transport": {
@@ -149115,7 +149116,7 @@
    "name": "sonosledmgrd",
    "summary": "sonosledmgrd (/opt/bin/sonosledmgrd): the LED manager daemon that executes the R_LED_* mode vocabulary shared with anacapad's leds_zp library - it owns the physical hal_led device, pattern engine, and captouch feedback color.",
    "todo": [
-    "Residual: the numeric id assigned to each request kind (set-pattern vs apply-mode etc) - the dispatch is a sequential u32 field reader with the id-to-handler binding inlined in the connection loop, no standalone table."
+    "Residual: the concrete id-to-handler assignments inside the inline dispatch (kind domain proven <=0xe2; each arm is an inlined field-consume in f_10081160's index table, not a named table)."
    ],
    "artifacts": [
     "opt/bin/sonosledmgrd",
@@ -149128,7 +149129,8 @@
     "Lifecycle: /etc/runledmgrd respawns it with trackrestart and a stale-pid watchdog loop; --fr runs the factory-reset flash pattern (driven by frcheck rc != 1 in Configure); /var/run/sonosledmgrd.flash_booting_led marks boot-time LED activity; writes /var/run/sonosledmgrd.pid.",
     "Client surface: socket-based IPC (socket/bind imports, 'hostPort' field, client channel name '/sonosledmgrd-external' referenced from anacapad) serving the leds_zp client lib shared with anacapad and netstartd (netstartd contains the same 'applyLEDMode R_LED_WAC_TIMEOUT' call site).",
     "Logger: /opt/conf/sonosledmgrd_logger.toml (/jffs/conf/ override first) - sonosledmgrd.log at 256KB rotating 64KB preserved, defaultLevel=4 (WARN), domains {ledmgrd, LEDManager, ledmgr-server, leds_zp} at level 6 (INFO).",
-    "IPC framing proven: the client socket protocol reads fixed 4-byte words sequentially (read(fd,buf,4) at 0x100e4cf8, 0x100e854c, 0x100e856c, 0x100e8588, 0x100e85d0 inside the connection loop) - each request is a sequence of u32 fields (id/args) rather than a self-describing frame; arg presence branches on each read result. Byte-level arg extraction via rlwinm byte masks."
+    "IPC framing proven: the client socket protocol reads fixed 4-byte words sequentially (read(fd,buf,4) at 0x100e4cf8, 0x100e854c, 0x100e856c, 0x100e8588, 0x100e85d0 inside the connection loop) - each request is a sequence of u32 fields (id/args) rather than a self-describing frame; arg presence branches on each read result. Byte-level arg extraction via rlwinm byte masks.",
+    "Request framing decoded further: the connection loop reads into a ring buffer (f_10080e4c family, max message bound 0x26f=623 at 0x10080e88); the per-message handler f_10081160 reads the request-kind u32 and bound-checks it <= 0xe2 (cmplwi at 0x10081190) - the request-kind domain is therefore 0..226, dispatched through an index*4 word-table reader, with a second field bound 0x26e for the trailing arg word."
    ]
   },
   "bin_busybox_applets": {
