@@ -139493,8 +139493,7 @@
     }
    ],
    "todo": [
-    "Established: sweep = 'reportLatestAnacapaDump' timed job, first-fire boot+90, tuple {5,1,0}; handler chain proven.",
-    "Residual: the upload-attempt cap inside f_10253c40 (retries per dump) - not exposed at the collect layer which only marks progress states {0x11,0x12,0x13}."
+    "Established: sweep = 'reportLatestAnacapaDump' timed job, first-fire boot+90, tuple {5,1,0}; handler chain proven."
    ],
    "resolved_findings": [
     "Resolved: upload path = the sentry uploader (dump-proc-anacapa + tags); retry/dedup = buffered resend with per-dump dedup on the report channel.",
@@ -139502,7 +139501,8 @@
     "Resolved: crash upload is a queued task {crashdump_upload} posting to a config-delivered URL (config key CRASH_UPLOAD_SUBMIT_URL @0x10eeac4a); failure path logs \"Crashdump didn't finish upload; http resp: [%d]; last error: [%s]\" - retry is driven by HTTP response + curl error, and crash telemetry counts via {crash event, crashCount: %i, crashed_play_state}.",
     "Resolved: the per-daemon upload vocabulary is literal - properties files {apad.properties,sonospowercoordinator.properties,btmanager.properties,netstartd.properties} with crash-count keys {sonospowercoordinatorCrashCount,netstartd.count}; upload routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/watchdog-legacy,/legacy-to-sentry,/btmanager-external,/sonosledmgrd-external,/netstartd-external}; artifacts {%s-anacapa_dump.gz,sonospowercoordinator_backtrace,btmanager_backtrace,/jffs/app/debug/sonosledmgrd.dmp}; watchdog evidence files /jffs/{watchdog.log,watchdog.dmesg} as watchdog_log/watchdog_dmesg attachments; crashed play state from /tmp/crashed_play_state ('couldn't read expected bytes for play state'); backtrace staging /tmp/backtrace. The poller is 'Checking for crash dumps' - periodic sweep.",
     "Resolved (scheduling): the crash-dump sweep is the 'reportLatestAnacapaDump' timed job (handler f_10254ee0, registered at 0x100c254c) with first-fire = boot-time now+0x5a (90 ticks) and tuple {r8=5 period/class, r9=1 flags (bit0 set -> no boot-time conversion? per the addJob flag convention), r10=0} - the poll cadence is static-registered, not caller-supplied. The handler logs 'Checking for crash dumps' on the 'crashdump' domain, calls sonosClockGetTime and the dump-collect helpers f_102535f8/f_10254d1c/f_10540c78/f_10564bdc.",
-    "Resolved: sweep cadence fully pinned - handler f_10254ee0 re-arms itself via sonosClockGetTime()+0x384 (900 s), so period units are the clock's seconds-scale ticks: first fire boot+90, then every 900 s (15 min). Handler flow: crashdump log domain ('Checking for crash dumps'), path probe f_102535f8, then f_10254d1c collects - it reads a 15-byte sniff via sonosFileReadPartial and strstrs for the 'Version:' header marker before upload, stepping a progress state through ids {0x11,0x12,0x13} (r30 stores); upload delegated to f_10253c40."
+    "Resolved: sweep cadence fully pinned - handler f_10254ee0 re-arms itself via sonosClockGetTime()+0x384 (900 s), so period units are the clock's seconds-scale ticks: first fire boot+90, then every 900 s (15 min). Handler flow: crashdump log domain ('Checking for crash dumps'), path probe f_102535f8, then f_10254d1c collects - it reads a 15-byte sniff via sonosFileReadPartial and strstrs for the 'Version:' header marker before upload, stepping a progress state through ids {0x11,0x12,0x13} (r30 stores); upload delegated to f_10253c40.",
+    "Closed: there is no retry counter in f_10253c40 - the loop iterates the dump-entry array once (r29=entry count from caller, r30=index, r31 walks an 8-byte-stride array of dump records). Each dump gets one upload attempt f_105459b4(entry, timeout=0x2710=10000ms); on failure it logs and advances (no retry)."
    ]
   },
   "inprocess_events": {
