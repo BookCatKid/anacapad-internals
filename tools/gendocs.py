@@ -1316,7 +1316,9 @@ def render_subsystems(m):
         name = path0.rsplit("/", 1)[-2] \
             if path0.endswith("/Control") else path0
         slug = slug_of.get(path0, name.lower())
-        for path, t in _todos_in(svc, name):
+        for path, t in _todos_in(
+                {k: v for k, v in (svc or {}).items()
+                 if k != "state_variables"}, name):
             rel = path[len(name):].lstrip("/")
             if not rel:
                 label = "service [`%s`](../soap/%s.md)" % (name, slug)
@@ -1406,8 +1408,44 @@ def render_subsystems(m):
                  "cert layer `%s`" % path[len("cert_layer") + 1:])
         misc_rows.append([label, _e(_snip(t))])
 
+    cap_rows = []
+    for off, cap in sorted(
+            (getattr(m, "raw_doc", {}).get("capabilities")
+             or {}).items()):
+        for path, t in _todos_in(cap, off):
+            label = ("capability [`%s`](../architecture.md#%s)"
+                     % (off, off) if path == off else
+                     "capability `%s` `%s`"
+                     % (off, path[len(off) + 1:]))
+            cap_rows.append([label, _e(_snip(t))])
+
+    # whole-doc catch-all: any top-level section not claimed by a
+    # dedicated collector still contributes every todo-bearing record,
+    # so a future section can never silently drop rows. routing is
+    # covered partially (routers[].records[]); walk the rest of it
+    # here.
+    covered = {"subsystems", "services", "state_variables",
+               "uri_formats", "payload_formats", "shared_primitives",
+               "internal_functions", "request_vtable", "routing",
+               "muse", "cert_layer", "capabilities"}
+    routing = getattr(m, "routing", {}) or {}
+    for k, v in routing.items():
+        if k != "routers":
+            for path, t in _todos_in(v, "routing/%s" % k):
+                misc_rows.append(["routing `%s`" % path,
+                                  _e(_snip(t))])
+    for raddr, r in (routing.get("routers") or {}).items():
+        extra = {k: v for k, v in (r or {}).items() if k != "records"}
+        for path, t in _todos_in(extra, "routing/routers/%s" % raddr):
+            misc_rows.append(["routing `%s`" % path, _e(_snip(t))])
+    for k, v in sorted((getattr(m, "raw_doc", {}) or {}).items()):
+        if k in covered:
+            continue
+        for path, t in _todos_in(v, k):
+            misc_rows.append(["record `%s`" % path, _e(_snip(t))])
+
     if open_rows or soap_rows or sv_rows or fmt_rows \
-            or prim_rows or fn_rows or misc_rows:
+            or prim_rows or fn_rows or misc_rows or cap_rows:
         ow = ["# Open work", ""]
         _pt_add(m, ow, "open_work", "intro")
         _details(ow, ["Every record that still has documented "
@@ -1433,6 +1471,9 @@ def render_subsystems(m):
         if fn_rows:
             ow += ["## Internal functions", ""]
             _table(ow, ["Function", "TODO"], fn_rows)
+        if cap_rows:
+            ow += ["## Capability fields", ""]
+            _table(ow, ["Field", "TODO"], cap_rows)
         if misc_rows:
             ow += ["## Other records", ""]
             _table(ow, ["Record", "TODO"], misc_rows)

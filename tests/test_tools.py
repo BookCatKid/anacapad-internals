@@ -618,15 +618,26 @@ class TodoPolicyTests(unittest.TestCase):
             state_vars.update((svc or {}).get("state_variables") or {})
         misc = {k: doc.get(k) for k in
                 ("request_vtable", "routing", "muse", "cert_layer")}
+        # the "## Other records" catch-all also covers every top-level
+        # key without a dedicated section
+        _covered_sections = {
+            "subsystems", "services", "state_variables",
+            "uri_formats", "payload_formats", "shared_primitives",
+            "internal_functions", "capabilities"}
+        for k, v in doc.items():
+            if k not in _covered_sections:
+                misc.setdefault(k, v)
 
         # each section header is rendered only when its row source
         # actually carries todos (gendocs omits empty categories)
+        cap_src = doc.get("capabilities")
         sections = {
             "## Subsystems": doc.get("subsystems"),
             "## SOAP services, actions and errors": soap,
             "## Shared primitives": doc.get("shared_primitives"),
             "## State variables": state_vars,
             "## Internal functions": doc.get("internal_functions"),
+            "## Capability fields": cap_src,
             "## Other records": misc,
         }
         for header, src in sections.items():
@@ -670,17 +681,34 @@ class TodoPolicyTests(unittest.TestCase):
         sources = []
         for n, s in sorted((doc.get("subsystems") or {}).items()):
             sources.append(s)
-        for svc in services.values():
-            sources.append(svc)
+        for svc in soap.values():          # state_variables excluded:
+            sources.append(svc)            # covered via top_level below
+        sources.extend((cap_src or {}).values())
         sources.extend((doc.get("shared_primitives") or {}).values())
         sources.extend(
             (doc.get("internal_functions") or {}).values())
         sources.append(doc.get("request_vtable") or {})
-        for r in ((doc.get("routing") or {}).get("routers")
-                  or {}).values():
+        routing = doc.get("routing") or {}
+        for r in (routing.get("routers") or {}).values():
             sources.extend(r.get("records") or [])
+            # router-level fields outside records
+            sources.append({k: v for k, v in (r or {}).items()
+                            if k != "records"})
+        # routing keys other than routers
+        sources.append({k: v for k, v in routing.items()
+                        if k != "routers"})
         sources.append(doc.get("muse") or {})
         sources.append(doc.get("cert_layer") or {})
+        # whole-doc catch-all mirrors the generator: every top-level
+        # key not claimed by a dedicated collector contributes rows
+        covered = {"subsystems", "services", "state_variables",
+                   "uri_formats", "payload_formats",
+                   "shared_primitives", "internal_functions",
+                   "request_vtable", "routing", "muse", "cert_layer",
+                   "capabilities"}
+        for k, v in doc.items():
+            if k not in covered:
+                sources.append(v)
 
         expected = Counter()
         for src in sources:
@@ -699,7 +727,8 @@ class TodoPolicyTests(unittest.TestCase):
                 if line.endswith(" |") else line[2:].split(" | ")
             if len(cells) < 2 or cells[0] in (
                     "Subsystem", "Primitive", "Record", "Variable",
-                    "Format", "Function") or "---" in cells[0]:
+                    "Format", "Function", "Field") \
+                    or "---" in cells[0]:
                 continue
             rendered[cells[-1].rstrip(" |")] += 1
 

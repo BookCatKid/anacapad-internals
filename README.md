@@ -120,8 +120,8 @@ python3 tools/import_extract.py        # fold into docs/documentation.json
 `tools/extract_upd.py` can pull the ELF out of a Sonos `.upd` container.
 `tools/` also contains the analysis helpers used during the RE work
 (`disas.py`, `xref.py`, `sfind.py`, `expand_surface.py`, `parse_scpd.py`,
-`worksheet.py`, `_errdomain*.py`); they all honor
-`ANACAPAD`.
+`worksheet.py`, `errdomain_scan.py`, `delegate_trace.py`); they all
+honor `ANACAPAD`.
 
 ## GitHub Pages
 
