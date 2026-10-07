@@ -148987,8 +148987,7 @@
    "name": "wacd (wireless access config)",
    "summary": "wacd (/wifi/wacd): the Apple WAC (Wireless Accessory Configuration) provisioning agent. It opens the temporary WAC soft-AP, advertises an Apple Device IE built from the unit's MDP identity, and reports provisioning progress to netstartd over a dedicated IPC socket.",
    "todo": [
-    "Established: full wacd flow - MDP->SSID synthesis, soft-AP + Apple Device IE, WirelessSetup bonjour service, 6-msg progress channel to netstartd, USR1 timeout test hook.",
-    "Residual: the exact credential fields inside the WAC STA/DONE payloads (the Apple-side handshake carries them; anacapad/netstartd only see the milestone name)"
+    "Established: full wacd flow - MDP->SSID synthesis, soft-AP + Apple Device IE, WirelessSetup bonjour service, 6-msg progress channel to netstartd, USR1 timeout test hook."
    ],
    "artifacts": [
     "wifi/wacd"
@@ -148999,7 +148998,8 @@
     "WAC payload: builds the WAC SSID via WifiFuncsWacFillBinarySsid and Base64-encodes it ('Could not initialize WAC SSID', 'Base64 encoded WAC SSID exceeds max length of SSID'), creates the AppleDeviceIE ('Create Apple Device IE fail', 'Setting up IE and bailing'), and starts the platform software AP ('Platform SW AP start fail').",
     "Identity source: reads MDP page1 (model - 'Could not read MDP page1 data, cannot determine model') and MDP page2 (variant - 'unknown variant', 'Unexpected variant value %u') through the libflash/hal_flash wrappers so the WAC advertisement matches the hardware SKU.",
     "Resolved: wacd internals - links libwifi (WifiFuncsWacFillBinarySsid, PlatformSoftwareAccessPoint{Start,Stop}), libsonosutils IPC (InitializeIPCContext -> /tmp/netstartd_wac.ipc), libsonos-mdp (sonosMdpSerialToString + sonosGetFinalColorVariant + sonosGetColorVariantString) and libflash (hal_flash_get_mdp{,2}). The WAC soft-AP SSID is built from MDP: serial hex + color-variant name, base64-encoded with a length guard ('Base64 encoded WAC SSID exceeds max length of SSID'). Advertised Bonjour service type literal 'com.sonos.protocol.WirelessSetup'. Milestone strings {Configuration Started, Configuration Received, Configuration Complete} feed WAC_STA progress. Control: SIGUSR1 = 'simulating WAC timeout' test hook; 'Setting up IE and bailing' = IE-broadcast-only mode (no soft-AP); 'Staying aliiiivveee' keepalive log.",
-    "Resolved: failure ladder - 'Could not get flash info' (hal_flash_info_init), 'Could not read MDP page1 data, cannot determine model' (fatal), 'Could not read MDP page2 data, unknown variant'/'Unexpected variant value %u' (warn-only), 'Platform SW AP start fail %u', 'Create Apple Device IE fail %u'. Outbound message set to netstartd proven: WAC_AP_OPEN, WAC_AP_CLOSE, WAC_TMO(timeout), WAC_DONE, WAC_STOP, WAC_ERROR."
+    "Resolved: failure ladder - 'Could not get flash info' (hal_flash_info_init), 'Could not read MDP page1 data, cannot determine model' (fatal), 'Could not read MDP page2 data, unknown variant'/'Unexpected variant value %u' (warn-only), 'Platform SW AP start fail %u', 'Create Apple Device IE fail %u'. Outbound message set to netstartd proven: WAC_AP_OPEN, WAC_AP_CLOSE, WAC_TMO(timeout), WAC_DONE, WAC_STOP, WAC_ERROR.",
+    "Resolved: the WAC milestone channel carries NO credential payload - the dispatcher (0x10002b60) maps state r31->{4:'Send WAC Done msg fail',5:'Send WAC Stop',6:'Send WAC Error'} and calls sender f_10002a68 with a bare u32 message id {9=AP_DONE path, 0xb=STOP, 0xc=ERROR}; no field bytes are serialized. The Apple credential handshake (MFi WAC) rides the soft-AP WirelessSetup bonjour service entirely outside this IPC - anacapad/netstartd see only the milestone ids."
    ]
   },
   "bin_wpa_supplicant": {
