@@ -657,6 +657,7 @@ class Model:
     internal_functions: dict = field(default_factory=dict)
     dispatch_candidates: dict = field(default_factory=dict)
     cert_layer: dict = field(default_factory=dict)
+    raw_services: dict = field(default_factory=dict)
 
     def all_actions(self):
         for s in self.services:
@@ -719,8 +720,9 @@ def normalize(doc, client_text=None):
     m.dispatch_candidates = doc.get("dispatch_candidates") or {}
     m.cert_layer = doc.get("cert_layer") or {}
 
+    m.raw_services = doc.get("services") or {}
     m.services = [Service.from_raw(p, s)
-                  for p, s in (doc.get("services") or {}).items()]
+                  for p, s in m.raw_services.items()]
     m.services.sort(key=lambda s: (s.name, s.control_path))
 
     m.global_state_variables = {

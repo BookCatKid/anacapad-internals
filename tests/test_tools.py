@@ -608,6 +608,15 @@ class TodoPolicyTests(unittest.TestCase):
                 return any(has_todo(v) for v in o)
             return False
 
+        def count_todo_records(o):
+            if isinstance(o, dict):
+                n = 1 if o.get("todo") else 0
+                return n + sum(count_todo_records(v)
+                               for k, v in o.items() if k != "todo")
+            if isinstance(o, list):
+                return sum(count_todo_records(v) for v in o)
+            return 0
+
         doc = self.doc
         services = doc.get("services") or {}
         soap = {p: {k: v for k, v in (svc or {}).items()
@@ -631,6 +640,42 @@ class TodoPolicyTests(unittest.TestCase):
         for header, src in sections.items():
             if has_todo(src):
                 self.assertIn(header, ow)
+
+        # every todo-bearing record (including nested argument and
+        # section records) must produce one open-work row. Count the
+        # table rows under each header and compare with the recursive
+        # todo-record census.
+        def rows_under(header):
+            if header not in ow:
+                return 0
+            seg = ow.split(header, 1)[1]
+            next_h = seg.find("\n## ")
+            if next_h >= 0:
+                seg = seg[:next_h]
+            return sum(1 for l in seg.split("\n") if l.startswith("| `")
+                       or l.startswith("| [") or l.startswith("| a")
+                       or l.startswith("| s") or l.startswith("| e")
+                       or l.startswith("| r") or l.startswith("| c")
+                       or l.startswith("| m"))
+
+        expected = {
+            "## Subsystems": doc.get("subsystems"),
+            "## SOAP services": soap,
+            "## State variables": state_vars,
+            "## Internal functions": doc.get("internal_functions"),
+            "## Other records": misc,
+        }
+        total_expected = sum(count_todo_records(v or {})
+                             for v in expected.values())
+        # state-variable records are counted under their own header via
+        # the model; nested argument/section todos live under services
+        # and are covered by the SOAP rows.
+        total_rows = sum(rows_under(h) for h in expected
+                         if h in ow)
+        self.assertGreaterEqual(total_rows, total_expected,
+                                "open-work page dropped todo records: "
+                                "%d rows < %d todo-bearing records"
+                                % (total_rows, total_expected))
 
     def test_no_placeholder_todo_rendered(self):
         hits = [l for t in self.pages.values() for l in t.split("\n")

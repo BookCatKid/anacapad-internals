@@ -1284,48 +1284,67 @@ def render_subsystems(m):
         _subsystem_body(out, n, s)
     files["subsystems/index.md"] = "\n".join(out)
 
-    open_rows = []
-    for n, s in subs:
-        raw = s.get("todo")
-        if not raw:
-            continue
-        first = raw[0] if isinstance(raw, list) else raw
-        open_rows.append(["[`%s`](index.md#%s)" % (n, n),
-                          _e(_snip(first))])
-
     def _first_todo(t):
         return t[0] if isinstance(t, list) else t
 
+    def _todos_in(o, path):
+        """Yield (record_path, first_todo_line) for every dict with a
+        todo field, descending into nested dicts/lists."""
+        if isinstance(o, dict):
+            if o.get("todo"):
+                yield path, _first_todo(o["todo"])
+            for k, v in o.items():
+                if k == "todo":
+                    continue
+                yield from _todos_in(v, "%s/%s" % (path, k))
+        elif isinstance(o, list):
+            for i, v in enumerate(o):
+                yield from _todos_in(v, "%s[%d]" % (path, i))
+
+    open_rows = []
+    for n, s in subs:
+        for path, t in _todos_in(s, n):
+            label = ("[`%s`](index.md#%s)" % (path, n)
+                     if path == n else
+                     "`%s` `%s`" % (n, path[len(n) + 1:]))
+            open_rows.append([label, _e(_snip(t))])
+
     soap_rows = []
-    for s in m.services:
-        if s.todo:
-            soap_rows.append(
-                ["service [`%s`](../soap/%s.md)" % (s.name, s.slug),
-                 _e(_snip(_first_todo(s.todo)))])
-        for a in s.actions.values():
-            if a.todo:
-                soap_rows.append(
-                    ["action [`%s`](../soap/%s.md#%s)"
-                     % (a.name, s.slug, a.name.lower()),
-                     _e(_snip(_first_todo(a.todo)))])
-            for e in a.errors:
-                if getattr(e, "todo", None):
-                    soap_rows.append(
-                        ["error [`%s` %s](../soap/%s.md#%s)"
-                         % (a.name, e.code_label, s.slug,
-                            a.name.lower()),
-                         _e(_snip(_first_todo(e.todo)))])
-        for e in s.errors:
-            if getattr(e, "todo", None):
-                soap_rows.append(
-                    ["error [`%s` dispatcher %s](../soap/%s.md)"
-                     % (s.name, e.code_label, s.slug),
-                     _e(_snip(_first_todo(e.todo)))])
-        av = s.availability
-        if av and getattr(av, "todo", None):
-            soap_rows.append(
-                ["availability [`%s`](../soap/%s.md)" % (s.name, s.slug),
-                 _e(_snip(_first_todo(av.todo)))])
+    slug_of = {s.control_path: s.slug for s in m.services}
+    for path0, svc in sorted(m.raw_services.items(),
+                             key=lambda kv: kv[0]):
+        name = path0.rsplit("/", 1)[-2] \
+            if path0.endswith("/Control") else path0
+        slug = slug_of.get(path0, name.lower())
+        for path, t in _todos_in(svc, name):
+            rel = path[len(name):].lstrip("/")
+            if not rel:
+                label = "service [`%s`](../soap/%s.md)" % (name, slug)
+            elif rel.startswith("actions/"):
+                rest = rel[len("actions/"):]
+                aname, _, sub = rest.partition("/")
+                anchor = aname.lower()
+                if not sub:
+                    label = ("action [`%s`](../soap/%s.md#%s)"
+                             % (aname, slug, anchor))
+                elif sub.startswith("errors"):
+                    label = ("error [`%s`](../soap/%s.md#%s) %s"
+                             % (aname, slug, anchor, sub))
+                elif sub.startswith("inputs/") or \
+                        sub.startswith("outputs/"):
+                    label = ("arg [`%s.%s`](../soap/%s.md#%s)"
+                             % (aname, sub.split("/", 1)[1],
+                                slug, anchor))
+                else:
+                    label = ("action [`%s`](../soap/%s.md#%s) %s"
+                             % (aname, slug, anchor, sub))
+            elif rel.startswith("errors"):
+                label = ("error [`%s` dispatcher](../soap/%s.md) %s"
+                         % (name, slug, rel))
+            else:
+                label = ("service [`%s`](../soap/%s.md) %s"
+                         % (name, slug, rel))
+            soap_rows.append([label, _e(_snip(t))])
 
     sv_rows = []
     for k, sv in m.all_state_variables().items():
@@ -1346,47 +1365,46 @@ def render_subsystems(m):
 
     prim_rows = []
     for k, v in sorted(m.shared_primitives.items()):
-        if isinstance(v, dict) and v.get("todo"):
+        for path, t in _todos_in(v, k):
             anchor = k if k in _SOAP_PRIM_KEYS \
                 else "other-recovered-subsystems"
-            prim_rows.append(
-                ["[`%s`](../architecture.md#%s)" % (k, anchor),
-                 _e(_snip(_first_todo(v["todo"])))])
+            label = ("[`%s`](../architecture.md#%s)" % (k, anchor)
+                     if path == k else
+                     "`%s` `%s`" % (k, path[len(k) + 1:]))
+            prim_rows.append([label, _e(_snip(t))])
 
     fn_rows = []
     for addr, f in sorted(m.internal_functions.items()):
-        if isinstance(f, dict) and f.get("todo"):
-            fn_rows.append(
-                ["[`%s`](../architecture.md#internal-functions)" % addr,
-                 _e(_snip(_first_todo(f["todo"])))])
+        for path, t in _todos_in(f, addr):
+            label = ("[`%s`](../architecture.md#internal-functions)"
+                     % addr if path == addr else
+                     "`%s` `%s`" % (addr, path[len(addr) + 1:]))
+            fn_rows.append([label, _e(_snip(t))])
 
     misc_rows = []
-    if m.request_vtable.get("todo"):
+    for path, t in _todos_in(m.request_vtable, "request_vtable"):
         misc_rows.append(
-            ["[request vtable](../architecture.md#request-object-vtable)",
-             _e(_snip(_first_todo(m.request_vtable["todo"])))])
+            ["[request vtable](../architecture.md#request-object-vtable)"
+             + (" `%s`" % path[len("request_vtable") + 1:]
+                if path != "request_vtable" else ""),
+             _e(_snip(t))])
     for raddr, r in (m.routing.get("routers") or {}).items():
         for rec in r.get("records") or []:
-            if rec.get("todo"):
+            for path, t in _todos_in(rec, rec.get("path") or raddr):
                 misc_rows.append(
-                    ["routing [`%s`](../architecture.md)" % rec.get("path"),
-                     _e(_snip(_first_todo(rec["todo"])))])
-    if isinstance(m.muse, dict) and m.muse.get("todo"):
-        misc_rows.append(
-            ["[muse API](../muse/index.md)",
-             _e(_snip(_first_todo(m.muse["todo"])))])
-    for k, v in sorted((m.muse or {}).items()):
-        if k == "todo":
-            continue
-        if isinstance(v, dict) and v.get("todo"):
-            misc_rows.append(
-                ["muse record `%s`" % k,
-                 _e(_snip(_first_todo(v["todo"])))])
+                    ["routing [`%s`](../architecture.md) `%s`"
+                     % (rec.get("path"), path),
+                     _e(_snip(t))])
+    for path, t in _todos_in(m.muse, "muse"):
+        label = ("[muse API](../muse/index.md)" if path == "muse"
+                 else "muse record `%s`" % path[len("muse") + 1:])
+        misc_rows.append([label, _e(_snip(t))])
     cl = getattr(m, "cert_layer", None) or {}
-    if isinstance(cl, dict) and cl.get("todo"):
-        misc_rows.append(
-            ["cert layer (`documentation.json` `cert_layer`)",
-             _e(_snip(_first_todo(cl["todo"])))])
+    for path, t in _todos_in(cl, "cert_layer"):
+        label = ("cert layer (`documentation.json` `cert_layer`)"
+                 if path == "cert_layer" else
+                 "cert layer `%s`" % path[len("cert_layer") + 1:])
+        misc_rows.append([label, _e(_snip(t))])
 
     if open_rows or soap_rows or sv_rows or fmt_rows \
             or prim_rows or fn_rows or misc_rows:
