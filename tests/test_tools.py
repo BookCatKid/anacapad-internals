@@ -608,15 +608,6 @@ class TodoPolicyTests(unittest.TestCase):
                 return any(has_todo(v) for v in o)
             return False
 
-        def count_todo_records(o):
-            if isinstance(o, dict):
-                n = 1 if o.get("todo") else 0
-                return n + sum(count_todo_records(v)
-                               for k, v in o.items() if k != "todo")
-            if isinstance(o, list):
-                return sum(count_todo_records(v) for v in o)
-            return 0
-
         doc = self.doc
         services = doc.get("services") or {}
         soap = {p: {k: v for k, v in (svc or {}).items()
@@ -632,7 +623,8 @@ class TodoPolicyTests(unittest.TestCase):
         # actually carries todos (gendocs omits empty categories)
         sections = {
             "## Subsystems": doc.get("subsystems"),
-            "## SOAP services": soap,
+            "## SOAP services, actions and errors": soap,
+            "## Shared primitives": doc.get("shared_primitives"),
             "## State variables": state_vars,
             "## Internal functions": doc.get("internal_functions"),
             "## Other records": misc,
@@ -641,41 +633,81 @@ class TodoPolicyTests(unittest.TestCase):
             if has_todo(src):
                 self.assertIn(header, ow)
 
-        # every todo-bearing record (including nested argument and
-        # section records) must produce one open-work row. Count the
-        # table rows under each header and compare with the recursive
-        # todo-record census.
-        def rows_under(header):
-            if header not in ow:
-                return 0
-            seg = ow.split(header, 1)[1]
-            next_h = seg.find("\n## ")
-            if next_h >= 0:
-                seg = seg[:next_h]
-            return sum(1 for l in seg.split("\n") if l.startswith("| `")
-                       or l.startswith("| [") or l.startswith("| a")
-                       or l.startswith("| s") or l.startswith("| e")
-                       or l.startswith("| r") or l.startswith("| c")
-                       or l.startswith("| m"))
+        # every todo-bearing record must produce exactly one open-work
+        # row. Rebuild the expected multiset of rendered TODO cells
+        # (gendocs escapes + snips the first todo line per record) and
+        # compare it against the rendered table cells as a Counter, so
+        # dropped, duplicated or stale rows all fail.
+        from collections import Counter
 
-        expected = {
-            "## Subsystems": doc.get("subsystems"),
-            "## SOAP services": soap,
-            "## State variables": state_vars,
-            "## Internal functions": doc.get("internal_functions"),
-            "## Other records": misc,
-        }
-        total_expected = sum(count_todo_records(v or {})
-                             for v in expected.values())
-        # state-variable records are counted under their own header via
-        # the model; nested argument/section todos live under services
-        # and are covered by the SOAP rows.
-        total_rows = sum(rows_under(h) for h in expected
-                         if h in ow)
-        self.assertGreaterEqual(total_rows, total_expected,
-                                "open-work page dropped todo records: "
-                                "%d rows < %d todo-bearing records"
-                                % (total_rows, total_expected))
+        def todos_in(o):
+            if isinstance(o, dict):
+                if o.get("todo"):
+                    t = o["todo"]
+                    yield t[0] if isinstance(t, list) else t
+                for k, v in o.items():
+                    if k != "todo":
+                        yield from todos_in(v)
+            elif isinstance(o, list):
+                for v in o:
+                    yield from todos_in(v)
+
+        # state-variable and format records are emitted from their
+        # top-level todo only (no nested walk), so handle them
+        # separately to mirror the generator exactly.
+        top_level = []
+        for v in state_vars.values():
+            t = (v or {}).get("todo")
+            if t:
+                top_level.append(t)
+        for src in (doc.get("uri_formats"),
+                    doc.get("payload_formats")):
+            for v in (src or {}).values():
+                t = (v or {}).get("todo")
+                if t:
+                    top_level.append(t)
+
+        sources = []
+        for n, s in sorted((doc.get("subsystems") or {}).items()):
+            sources.append(s)
+        for svc in services.values():
+            sources.append(svc)
+        sources.extend((doc.get("shared_primitives") or {}).values())
+        sources.extend(
+            (doc.get("internal_functions") or {}).values())
+        sources.append(doc.get("request_vtable") or {})
+        for r in ((doc.get("routing") or {}).get("routers")
+                  or {}).values():
+            sources.extend(r.get("records") or [])
+        sources.append(doc.get("muse") or {})
+        sources.append(doc.get("cert_layer") or {})
+
+        expected = Counter()
+        for src in sources:
+            for t in todos_in(src):
+                expected[gendocs._e(gendocs._snip(t))] += 1
+        for t in top_level:
+            expected[gendocs._e(gendocs._snip(
+                t[0] if isinstance(t, list) else t))] += 1
+
+        rendered = Counter()
+        for line in ow.split("\n"):
+            if not line.startswith("| ") or line.startswith("| ---") \
+                    or line.startswith("|---"):
+                continue
+            cells = line[2:-2].split(" | ") \
+                if line.endswith(" |") else line[2:].split(" | ")
+            if len(cells) < 2 or cells[0] in (
+                    "Subsystem", "Primitive", "Record", "Variable",
+                    "Format", "Function") or "---" in cells[0]:
+                continue
+            rendered[cells[-1].rstrip(" |")] += 1
+
+        self.assertEqual(expected, rendered,
+                         "open-work rows differ from todo-record "
+                         "census: missing=%s extra=%s"
+                         % (list((expected - rendered).items())[:5],
+                            list((rendered - expected).items())[:5]))
 
     def test_no_placeholder_todo_rendered(self):
         hits = [l for t in self.pages.values() for l in t.split("\n")
