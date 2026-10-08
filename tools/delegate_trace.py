@@ -690,9 +690,12 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
     if m:
         reg, k = m.group(1), int(m.group(2), 16)
         if reg == "r4":
-            return None, ("request-object vfunc v+%s (request object "
-                          "boundary: arg4; vtable never stored in "
-                          ".text)" % hex(k))
+            t = bound2(REQ_VPTR, k)
+            return t, ("request-object v+%s -> f_%x (candidate: "
+                       "primary vptr %s)" % (hex(k), t, REQ_VPTR)
+                       if t else
+                       "request-object v+%s (slot outside primary "
+                       "vptr %s)" % (hex(k), REQ_VPTR))
         c = ctx.get("r3")
         if c:
             t = bound2(c, k)
@@ -715,10 +718,22 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
                       % obj)
     if "sp-" in obj or "sp+" in obj:
         # stack-reloaded object: consult the image-wide store census
-        # for a producer at the same (fn, base) slot
+        # for producers at the same (fn, base) slot; when several
+        # stores exist, the nearest one before the vcall pc in
+        # program order is the live producer
         if slot_xref is not None:
-            srcs = sorted(set(slot_xref.get((fn, obj)) or []))
-            if srcs:
+            sites = slot_xref.get((fn, obj)) or []
+            if sites:
+                vpc = int(vc.get("pc") or "0", 16)
+                before = [s for s in sites
+                          if int(s["pc"], 16) <= vpc]
+                if before:
+                    last = max(int(s["pc"], 16) for s in before)
+                    live = [s for s in before
+                            if int(s["pc"], 16) == last]
+                else:
+                    live = sites
+                srcs = sorted({s["src"] for s in live})
                 if len(srcs) == 1:
                     src = srcs[0]
                     if re.fullmatch(r"0x[0-9a-f]+", src):
