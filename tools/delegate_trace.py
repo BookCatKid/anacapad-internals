@@ -526,13 +526,21 @@ NOTIFY = re.compile(r"notify|signal|gena|publish|post_event|"
                     r"send_event|fire|callback|emit|subscrib", re.I)
 
 REQ_BOUNDARY = ("request object (opaque: built in the UPnP httpd "
-                "action layer, dispatcher arg r4; the request vtable "
-                "is never stored in .text - all 811 vptr+0xc8 sites "
-                "are generic dispatch sites)")
+                "action layer, dispatcher arg r4)")
+
+# The request object's class: embedded base at httpd_ctx+0x288 whose
+# secondary vptr 0x10f9ee7c is installed by httpd-ctx ctors
+# (f_10336444, f_10336bf0); the full class's ctor f_10ab6128 installs
+# primary vptr 0x10f9ee98 (+0x0) plus the base addr-point @+0x78.
+# r4-in arg objects use the primary vptr for accessor vcalls.
+REQ_VPTR = "0x10f9ee98"
 
 
 def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
-                  binds=None, sink=None):
+                  binds=None, sink=None, slot_xref=None):
+    """-> (target|None, verdict); sink[t] = target's class vptr.
+    slot_xref: optional {(fn, obj_base): [srcs]} from the store
+    census for stack-reload binding."""
     """-> (target|None, verdict); sink[t] = target's class vptr"""
     obj = vc["obj"] or "?"
     b = (binds or {}).get(vc.get("pc"))
@@ -565,7 +573,18 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
                        if t else "%s v+%s (slot outside vtable)"
                        % (obj, hex(slot or 0)))
         if obj == "r4-in":
-            return None, "arg4 object (%s)" % REQ_BOUNDARY
+            # arg4 is the request object on the dominant dispatch
+            # path; resolve against the request class's primary vptr
+            # (see REQ_VPTR) - verdict names it as a candidate since
+            # arg4 is heterogeneous across impl fns
+            t = bound(REQ_VPTR)
+            return t, ("request-object v+%s -> f_%x (candidate: "
+                       "primary vptr %s)" % (hex(slot or 0), t,
+                                            REQ_VPTR)
+                       if t else
+                       "request-object v+%s (slot outside primary "
+                       "vptr %s - arg4 class may differ here)"
+                       % (hex(slot or 0), REQ_VPTR))
         return None, "%s object (caller-dependent)" % obj
     m = re.fullmatch(r"(?:\*\()?r3-in\+0x([0-9a-f]+)\)?", obj)
     if m:
@@ -695,10 +714,45 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
                       "unbound in the linear slice (emulator frontier)"
                       % obj)
     if "sp-" in obj or "sp+" in obj:
+        # stack-reloaded object: consult the image-wide store census
+        # for a producer at the same (fn, base) slot
+        if slot_xref is not None:
+            srcs = sorted(set(slot_xref.get((fn, obj)) or []))
+            if srcs:
+                if len(srcs) == 1:
+                    src = srcs[0]
+                    if re.fullmatch(r"0x[0-9a-f]+", src):
+                        v = int(src, 16)
+                        if elf.sect_of(v) in (".rodata",
+                                              ".data.rel.ro"):
+                            t = bound(src)
+                            return t, ("%s: store-xref binds to "
+                                       "global vptr %s v+%s"
+                                       % (obj, src, hex(slot or 0))
+                                       if t else
+                                       "%s: store-xref binds to "
+                                       "global %s (slot outside "
+                                       "vtable)" % (obj, src))
+                        return None, ("%s: store-xref shows a "
+                                      "non-vptr pointer 0x%x stored "
+                                      "at the slot (runtime object)"
+                                      % (obj, v))
+                    if src.startswith("ret(0x"):
+                        return None, ("%s: store-xref shows the slot "
+                                      "holds a call-returned object "
+                                      "from f_%s (callee class "
+                                      "analysis pending)"
+                                      % (obj, src[4:-1]))
+                    return None, ("%s: store-xref shows producer "
+                                  "expression %s" % (obj, src))
+                return None, ("%s: %d distinct producers at the slot "
+                              "(%s)" % (obj, len(srcs),
+                                        " | ".join(srcs[:3])))
         return None, ("stack-reloaded object %s: producer lies outside"
                       " the emulated linear slice (emulator coverage "
-                      "frontier, not a proven static boundary - wider "
-                      "stack-slot dataflow could still bind it)" % obj)
+                      "frontier, not a proven static boundary - "
+                      "image-wide store-xref census shows no store "
+                      "at the slot)" % obj)
     if obj == "?":
         return None, ("opaque register object (dataflow lost within "
                       "the emulated linear slice - emulator frontier, "
@@ -707,7 +761,8 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
 
 
 def walk_graph(elf, text, starts, extents, plt, fsum, member_map,
-               ctors_of, obj_map, lo, hi, seed_fns, sec):
+               ctors_of, obj_map, lo, hi, seed_fns, sec,
+               slot_xref=None):
     ev, frontier, seen = [], [], set()
     stack = list(seed_fns)
     while stack:
@@ -753,7 +808,7 @@ def walk_graph(elf, text, starts, extents, plt, fsum, member_map,
             sink = {}
             t, verdict = resolve_vcall(elf, member_map, ctors_of,
                                        obj_map, lo, hi, f"{f:#x}", vc,
-                                       binds, sink)
+                                       binds, sink, slot_xref)
             if t:
                 # the resolved target's r3 class is the vptr that
                 # produced it; record so its own dispatch binds
