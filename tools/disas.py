@@ -71,7 +71,7 @@ def fmt_ins(pc, ins):
         nm = name_of(a[0])
         return "%s 0x%x%s" % (op, a[0], "  <%s>" % nm if nm else "")
     if op == "bc":
-        bo, bi, tgt = a
+        bo, bi, tgt = a[:3]
         cr = "cr%d" % (bi >> 2) if bi >= 2 else ""
         cond = {4: "lt", 5: "gt", 6: "eq", 7: "so",
                 12: "ge", 13: "le", 14: "ne", 15: "ns",

@@ -160,7 +160,7 @@ def decode(w, pc):
         tgt = bd if (w & 2) else (pc + bd) & 0xFFFFFFFF
         if bo == 20 and not (w & 1):
             return ("b", tgt)
-        return ("bc", bo, bi, tgt)
+        return ("bc", bo, bi, tgt, bool(w & 1))
     if op == 19:
         xo = (w >> 1) & 0x3FF
         if xo == 16:
@@ -402,6 +402,7 @@ class FuncEmu:
             self.reg[n] = ("arg", n)
         self.mem = {}
         self.ctr = None
+        self.lr = None
         self.labels = set()
         self.events = []
         va = start
@@ -486,6 +487,9 @@ class FuncEmu:
             base = R[ra] if ra else 0
             key = ("m", base, imm & 0xFFFFFFFF)
             v = self.mem.get(key)
+            if v is None and isinstance(base, int):
+                # static cell: fold to the initial file word
+                v = self.elf.u32((base + imm) & 0xFFFFFFFF)
             if v is None:
                 v = ("load", base if base is not None else 0,
                      imm & 0xFFFFFFFF)
@@ -532,6 +536,12 @@ class FuncEmu:
                                  "idx": R[rb], "size": op}))
         elif op == "mtctr":
             self.ctr = R[ins[1]]
+        elif op == "mflr":
+            self.reg[ins[1]] = self.lr
+        elif op == "mtlr":
+            self.lr = R[ins[1]]
+        elif op == "mfctr":
+            self.reg[ins[1]] = self.ctr
         elif op in ("bctrl", "bctr"):
             tgt = self.ctr
             obj, slot = None, None
@@ -546,6 +556,7 @@ class FuncEmu:
                                  "link": op == "bctrl",
                                  "args": {n: R[n] for n in range(3, 11)}}))
             if op == "bctrl":
+                self.lr = va + 4
                 for r in VOL - {1, 2, 13}:
                     self.reg[r] = None
                 self.reg[3] = ("vret", obj, slot)
@@ -559,6 +570,7 @@ class FuncEmu:
                                  "args": {n: R[n] for n in range(3, 11)}}))
             for r in VOL - {1, 2, 13}:
                 self.reg[r] = None
+            self.lr = va + 4
             if nm not in NORETURN:
                 self.reg[3] = ("call", tgt)
             # noreturn: fallthrough belongs to another path -- don't let a
@@ -571,8 +583,13 @@ class FuncEmu:
                                      "args": {n: R[n]
                                               for n in range(3, 11)}}))
         elif op == "blrl":
+            self.lr = va + 4
             for r in VOL - {1, 2, 13}:
                 self.reg[r] = None
+        elif op == "bc":
+            # bcl (link bit): LR = next PC - the PIC GOT-base idiom
+            if len(ins) > 4 and ins[4]:
+                self.lr = va + 4
         elif op == "blr":
             self.events.append((va, "ret", {"r3": R[3]}))
 
