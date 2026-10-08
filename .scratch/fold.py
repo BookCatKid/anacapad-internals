@@ -59,7 +59,7 @@ def bind_vtable_r3():
     return n
 print("vtable-bound r3: %d" % bind_vtable_r3(), file=sys.stderr)
 
-def bind_callers(callsite_map, regs=("3", "4", "5")):
+def bind_callers(callsite_map, regs=("3", "4", "5", "6", "7", "8")):
     """obj_map[callee][r<reg>] = unanimous caller arg class."""
     bound_n = 0
     for callee, sites in callsite_map.items():
@@ -230,16 +230,19 @@ def _ret_src_class(src):
 
 slot_xref = {}
 for off, sites in xref.items():
-    if off != "0x0":
-        # only stores INTO the cell are producers; stores to
-        # *(slot+K) write a field of the pointed-to object
-        continue
     for s in sites:
-        if s["base"].startswith("*(") and "sp" in s["base"]:
-            src = _ret_src_class(s["src"]) or s["src"]
-            ent = {"pc": s["pc"], "src": src}
-            slot_xref.setdefault((s["fn"], s["base"]), []).append(ent)
-            fo = D._sp_flat(s["base"])
+        b = s["base"]
+        src = _ret_src_class(s["src"]) or s["src"]
+        ent = {"pc": s["pc"], "src": src}
+        if b == "sdata:sp":
+            # direct frame store: cell key is the flat offset column
+            fo = X.sgn32(int(off, 16))
+            slot_xref.setdefault(
+                (s["fn"], "#flat:%#x" % fo), []).append(ent)
+        elif off == "0x0" and b.startswith("*(") and "sp" in b:
+            # stores INTO the cell only; *(slot+K) is a field write
+            slot_xref.setdefault((s["fn"], b), []).append(ent)
+            fo = D._sp_flat(b)
             if fo is not None:
                 slot_xref.setdefault(
                     (s["fn"], "#flat:%#x" % fo), []).append(ent)
@@ -255,6 +258,8 @@ for off, sites in xref.items():
         cell_xref[(s["fn"], s["base"])].append(
             {"pc": s["pc"], "src": src})
 D.CELL_XREF = cell_xref
+D._T, D._STARTS, D._EXT, D._PLT = text, starts, extents, plt
+D.SRC_CLASS = _ret_src_class
 
 # --- callsite census: caller-directed r3/r5 binding ---
 import glob

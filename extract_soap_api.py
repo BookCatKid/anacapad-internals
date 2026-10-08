@@ -427,6 +427,33 @@ class FuncEmu:
             va += 4
         return self
 
+    def _mkey(self, base, imm):
+        """Canonical memory cell key: flat-off the base expr so
+        ('add', sp, -32)+0x1c and ('add', sp, 0)+0x1c collide."""
+        b, k = flat_off(base)
+        if not isinstance(k, int) or not isinstance(imm, int):
+            return ("m", base, imm & 0xFFFFFFFF)
+        return ("m", b, (sgn32(k) + sgn32(imm)) & 0xFFFFFFFF)
+
+    def _deref(self, v, depth=0):
+        """Resolve ('load', b, K) through the mem map (incl saved
+        register slots); also folds integer-base loads to the file
+        word.  Identity for anything else."""
+        if depth > 6 or not (isinstance(v, tuple) and v[0] == "load"):
+            return v
+        m = self.mem.get(self._mkey(v[1], v[2] & 0xFFFFFFFF))
+        if isinstance(m, tuple) and m[0] == "saved":
+            m = self.reg[m[1]]
+        if m is not None:
+            return self._deref(m, depth + 1)
+        b, k = flat_off(v[1])
+        if isinstance(b, int) and isinstance(k, int):
+            w = self.elf.u32(
+                (b + k + sgn32(v[2])) & 0xFFFFFFFF)
+            if w is not None:
+                return w
+        return v
+
     def step(self, va, ins):
         op = ins[0]
         R = self.reg
@@ -485,9 +512,13 @@ class FuncEmu:
         elif op in ("lwz", "lbz", "lhz", "lha", "lwzu", "lbzu", "lhzu"):
             _, rd, ra, imm = ins
             base = R[ra] if ra else 0
-            key = ("m", base, imm & 0xFFFFFFFF)
+            key = self._mkey(base, imm & 0xFFFFFFFF)
             v = self.mem.get(key)
-            if v is None and isinstance(base, int):
+            if isinstance(v, tuple) and v[0] == "saved":
+                # callee-saved register spill/restore slot: the live
+                # value is the register's working value at the load
+                v = R[v[1]]
+            elif v is None and isinstance(base, int):
                 # static cell: fold to the initial file word
                 v = self.elf.u32((base + imm) & 0xFFFFFFFF)
             if v is None:
@@ -508,21 +539,31 @@ class FuncEmu:
             if op in ("stmw", "lmw"):
                 base0 = R[ra] if ra else 0
                 for rn in range(rs, 32):
-                    k2 = ("m", base0,
-                          (imm + 4 * (rn - rs)) & 0xFFFFFFFF)
+                    k2 = self._mkey(base0,
+                                    (imm + 4 * (rn - rs)) & 0xFFFFFFFF)
                     if op == "stmw":
-                        self.mem[k2] = R[rn]
+                        # callee-saved spill: rN unassigned in this
+                        # fn means caller's value; mark the slot so
+                        # restores yield the register's live value
+                        self.mem[k2] = R[rn] if R[rn] is not None \
+                            else ("saved", rn)
                     else:
-                        R[rn] = self.mem.get(k2) or \
-                            ("load", base0 if base0 is not None else 0,
-                             (imm + 4 * (rn - rs)) & 0xFFFFFFFF)
+                        v = self.mem.get(k2)
+                        if isinstance(v, tuple) and v[0] == "saved":
+                            R[rn] = R[v[1]]
+                        else:
+                            R[rn] = v or (
+                                "load",
+                                base0 if base0 is not None else 0,
+                                (imm + 4 * (rn - rs)) & 0xFFFFFFFF)
                 return
             base = R[ra] if ra else 0
-            key = ("m", base, imm & 0xFFFFFFFF)
-            self.mem[key] = R[rs]
+            key = self._mkey(base, imm & 0xFFFFFFFF)
+            self.mem[key] = R[rs] if R[rs] is not None \
+                else ("saved", rs)
             if op.endswith("u") and ra:
                 self.reg[ra] = vadd(R[ra], imm)
-            self.events.append((va, "store", {"src": R[rs],
+            self.events.append((va, "store", {"src": self.mem[key],
                                               "addr": (base,
                                                        imm & 0xFFFFFFFF),
                                               "size": op}))
@@ -544,13 +585,14 @@ class FuncEmu:
             self.reg[ins[1]] = self.ctr
         elif op in ("bctrl", "bctr"):
             tgt = self.ctr
+            tgt = self._deref(tgt)
             obj, slot = None, None
             if isinstance(tgt, tuple) and tgt[0] == "load" \
                     and isinstance(tgt[1], tuple) \
                     and tgt[1][0] == "load" and tgt[1][2] == 0:
-                obj, slot = tgt[1][1], tgt[2]
+                obj, slot = self._deref(tgt[1][1]), tgt[2]
             elif isinstance(tgt, tuple) and tgt[0] == "load":
-                obj, slot = tgt[1], tgt[2]
+                obj, slot = self._deref(tgt[1]), tgt[2]
             self.events.append((va, "vcall",
                                 {"ctr": tgt, "obj": obj, "slot": slot,
                                  "link": op == "bctrl",

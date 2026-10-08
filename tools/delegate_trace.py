@@ -559,7 +559,40 @@ REQ_VPTR = "0x10f9ee98"
 CALLER_FRAME = {}
 STWU = {}
 CELL_XREF = {}
+# fold.py may inject a src-string -> class resolver (ret(0xT) -> vptr)
+SRC_CLASS = None
+# text/starts/extents/plt injected by the driver for lazy census
+_T = _STARTS = _EXT = _PLT = None
 
+# lazy per-fn census of stores to sp-relative cells: the string census
+# (xref_chunk.py) drops direct ("sdata","sp")-based stores, so spill
+# producers are only visible through the emulator itself
+_SP_STORES = {}
+
+
+def sp_stores(elf, fva):
+    """->{flat_cell_off: [(pc, src_str)]} for stores into fn's frame."""
+    if fva not in _SP_STORES:
+        em = X.emu(elf, _T, _STARTS, _EXT, fva, _PLT)
+        d = {}
+        if em is not None:
+            import collections as _c
+            d = _c.defaultdict(list)
+            for pc, kind, ev in em.events:
+                if kind != "store":
+                    continue
+                b, k = X.flat_off(ev["addr"][0])
+                kk = X.sgn32(ev["addr"][1])
+                if b == ("sdata", "sp") and isinstance(k, int) \
+                        and isinstance(kk, int):
+                    src = ev.get("src")
+                    s = X.vstr(src)
+                    if SRC_CLASS:
+                        s = SRC_CLASS(s) or s
+                    d[(k + kk) & 0xFFFFFFFF].append(
+                        {"pc": f"{pc:#x}", "src": s})
+        _SP_STORES[fva] = d
+    return _SP_STORES[fva]
 
 def _sp_flat(obj):
     """'*(sp-0x20+0x1c)' / 'sp+0x0+0x1c' -> signed flat offset, or None."""
@@ -607,7 +640,8 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
             return t
         return None
 
-    if obj in ("r3-in", "r4-in", "r5-in"):
+    if re.fullmatch(r"r[3-9]|r10", obj[:-3] or "x") and \
+            obj.endswith("-in") or obj in ("r3-in", "r4-in", "r5-in"):
         c = ctx.get(obj[:2])
         if c:
             t = bound(c)
@@ -779,6 +813,19 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
                     sites = slot_xref.get((fn, "#flat:%#x" % fo))
             if sites is None:
                 sites = []
+            # lazy emulator census: direct-frame stores the string
+            # census drops ((\"sdata\",\"sp\") bases)
+            fo0 = _sp_flat(inner)
+            if fo0 is not None and _EXT is not None:
+                try:
+                    fva = int(fn, 16)
+                except (TypeError, ValueError):
+                    fva = None
+                if fva is not None:
+                    lazy = sp_stores(elf, fva).get(
+                        fo0 & 0xFFFFFFFF)
+                    if lazy:
+                        sites = list(sites) + lazy
             if sites:
                 vpc = int(vc.get("pc") or "0", 16)
                 before = [s for s in sites
@@ -830,6 +877,42 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
                                       "non-vptr pointer 0x%x stored "
                                       "at the slot (runtime object)"
                                       % (obj, v))
+                    mreg = re.fullmatch(r"(r[0-9]+)-in", src)
+                    if mreg:
+                        # spilled register arg - class is the fn's
+                        # bound arg class, else caller-dependent
+                        c = ctx.get(mreg.group(1))
+                        if c:
+                            if moff:
+                                c2 = (member_map.get(c) or {}
+                                      ).get(hex(moff))
+                                if c2:
+                                    t = bound(c2)
+                                    return t, (
+                                        "%s: spill of %s (class %s) "
+                                        "member %s -> %s v+%s"
+                                        % (obj, src, c, hex(moff),
+                                           c2, hex(slot or 0)))
+                            t = bound(c)
+                            return t, ("%s: spill of %s binds class "
+                                       "%s v+%s"
+                                       % (obj, src, c,
+                                          hex(slot or 0))
+                                       if t else
+                                       "%s: spill of %s binds %s "
+                                       "(slot outside vtable)"
+                                       % (obj, src, c))
+                        return None, ("%s: stack cell holds a spill "
+                                      "of %s (caller-dependent "
+                                      "argument)" % (obj, src))
+                    msv = re.fullmatch(r"saved\((0x[0-9a-f]+)\)", src)
+                    if msv:
+                        return None, (
+                            "%s: stack cell is the callee-saved "
+                            "register r%d spill slot - value is the "
+                            "caller's r%d at entry (caller-dependent)"
+                            % (obj, int(msv.group(1), 16),
+                               int(msv.group(1), 16)))
                     if src.startswith("ret(0x"):
                         return None, ("%s: store-xref shows the slot "
                                       "holds a call-returned object "
@@ -846,28 +929,31 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
         fo = _sp_flat(inner)
         cf = CALLER_FRAME
         if fo is not None and cf.get(fn):
-            stwu = STWU.get(fn, 0)
-            want = fo - stwu
             prods = []
             for caller in cf.get(fn) or []:
-                for s in slot_xref.get(
-                        (caller, "#flat:%#x" % want), []) or []:
-                    src = s["src"]
-                    mreg = re.fullmatch(r"(r[0-9]+)-in", src)
-                    if mreg:
-                        src = (obj_map.get(caller) or {}).get(
-                            mreg.group(1)) or src
-                    mret = re.match(r"ret\(0x[0-9a-f]+\)", src)
-                    if mret:
-                        # spilled object is a call return: chase the
-                        # vptr install *(ret+0) = class in this caller
-                        inst = {i["src"] for i in
-                                CELL_XREF.get((caller, src), [])
-                                if re.fullmatch(r"0x[0-9a-f]+",
-                                                i["src"])}
-                        if len(inst) == 1:
-                            src = next(iter(inst))
-                    prods.append(src)
+                # callee entry sp = caller sp at the call insn: entry
+                # sp for tail-calls (b/bctr after epilogue), post-stwu
+                # sp for bl - probe both flat offsets
+                for want in {fo, fo - STWU.get(caller, 0)}:
+                    for s in slot_xref.get(
+                            (caller, "#flat:%#x" % want), []) or []:
+                        src = s["src"]
+                        mreg = re.fullmatch(r"(r[0-9]+)-in", src)
+                        if mreg:
+                            src = (obj_map.get(caller) or {}).get(
+                                mreg.group(1)) or src
+                        mret = re.match(r"ret\(0x[0-9a-f]+\)", src)
+                        if mret:
+                            # spilled object is a call return: chase
+                            # the vptr install *(ret+0) = class in
+                            # this caller
+                            inst = {i["src"] for i in
+                                    CELL_XREF.get((caller, src), [])
+                                    if re.fullmatch(r"0x[0-9a-f]+",
+                                                    i["src"])}
+                            if len(inst) == 1:
+                                src = next(iter(inst))
+                        prods.append(src)
             srcs = sorted({p for p in prods
                            if re.fullmatch(r"0x[0-9a-f]+", p)})
             if len(srcs) == 1:
