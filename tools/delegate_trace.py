@@ -144,14 +144,16 @@ def summarize(elf, text, starts, extents, plt, lo, hi, t):
     if em is None:
         return None
     calls, vcalls, mld, mst, strs, faults = [], [], {}, {}, [], []
+    stores = []
     for pc, kind, ev in em.events:
         if kind == "call":
             nm = plt.get(ev["target"]) or (
                 f"f_{ev['target']:x}" if lo <= ev["target"] < hi
                 else None)
-            calls.append({"pc": f"{pc:#x}", "f": nm,
-                          "a3": X.vstr(ev["args"].get(3)),
-                          "a4": X.vstr(ev["args"].get(4))})
+            rec = {"pc": f"{pc:#x}", "f": nm}
+            for n in range(3, 11):
+                rec["a%d" % n] = X.vstr(ev["args"].get(n))
+            calls.append(rec)
             for r, a in ev["args"].items():
                 s = X.rodata_str(elf, a) if isinstance(a, int) else None
                 if s:
@@ -170,12 +172,16 @@ def summarize(elf, text, starts, extents, plt, lo, hi, t):
             if isinstance(b, tuple) and b == ("arg", 3) and off:
                 d = mld if kind == "load" else mst
                 d[f"{off:#x}"] = d.get(f"{off:#x}", 0) + 1
+                if kind == "store":
+                    stores.append({"pc": f"{pc:#x}", "off": f"{off:#x}",
+                                   "src": X.vstr(ev.get("src"))})
             elif kind == "load" and isinstance(b, int):
                 s = X.rodata_str(elf, b)
                 if s:
                     strs.append(s)
     return {"calls": calls[:80], "vcalls": vcalls[:80],
             "member_loads": mld, "member_stores": mst,
+            "member_store_ev": stores[:80],
             "strings": sorted(set(strs))[:40], "fault_codes": faults}
 
 
@@ -248,9 +254,9 @@ def propagate_objmap(elf, doc, fsum, member_map, lo, hi):
     def resolve_expr(expr, ctx):
         if expr is None:
             return None
-        if expr in ("r3-in", "r4-in", "r5-in"):
-            return ctx.get(expr[:2])
-        m = re.fullmatch(r"\*\((r3|r4|r5)-in\+0x([0-9a-f]+)\)", expr)
+        if re.fullmatch(r"r\d+-in", expr):
+            return ctx.get(expr.split("-")[0])
+        m = re.fullmatch(r"\*\((r\d+)-in\+0x([0-9a-f]+)\)", expr)
         if m and ctx.get(m.group(1)):
             return (member_map.get(ctx[m.group(1)]) or {}).get(
                 f"{int(m.group(2), 16):#x}")
@@ -284,12 +290,232 @@ def propagate_objmap(elf, doc, fsum, member_map, lo, hi):
                 if not f.startswith("f_"):
                     continue
                 tgt = obj_map.setdefault(f"{int(f[2:], 16):#x}", {})
-                for argn, key in (("a3", "r3"), ("a4", "r4")):
+                for n in range(3, 11):
+                    argn, key = "a%d" % n, "r%d" % n
                     v = resolve_expr(c.get(argn), ctx)
                     if v and key not in tgt:
                         tgt[key] = v
                         changed = True
     return obj_map
+
+
+def augment_member_map(fsum, obj_map, member_map, cvp):
+    """Bind member fields that the ctor-scan missed by sweeping every
+    function whose arg3 class is known:
+
+      - call a3 = r3-in+0xK (or r3-in): the callee constructs the
+        embedded member at this+K; ctor_vptr gives its vptr.
+      - store to *(this+K) whose src is ret(T): the field holds a
+        heap object; the ctor called on that same ret(T) object
+        installs its class.
+    """
+    for fn, s in fsum.items():
+        ctx = obj_map.get(fn)
+        c = (ctx or {}).get("r3")
+        if not c:
+            continue
+        mm = member_map.setdefault(c, {})
+        for cl in s["calls"]:
+            f = cl.get("f") or ""
+            if not f.startswith("f_"):
+                continue
+            m = re.fullmatch(r"r3-in(?:\+0x([0-9a-f]+))?",
+                             cl.get("a3") or "")
+            if m:
+                pv = cvp(int(f[2:], 16))
+                if pv:
+                    mm.setdefault(
+                        f"{int(m.group(1) or '0', 16):#x}",
+                        f"{pv:#x}")
+        for st in s.get("member_store_ev") or []:
+            src = st.get("src") or ""
+            if not src.startswith("ret("):
+                continue
+            for cl in s["calls"]:
+                if cl.get("a3") == src and \
+                        (cl.get("f") or "").startswith("f_"):
+                    pv = cvp(int(cl["f"][2:], 16))
+                    if pv:
+                        mm.setdefault(st["off"], f"{pv:#x}")
+
+
+# ------------------------------------------------------------------
+# stage 2b: object binding (cells, call returns)
+# ------------------------------------------------------------------
+
+_RET_CACHE = {}
+
+
+def ret_exprs(elf, text, starts, extents, plt, tgt, depth=0):
+    """r3 exprs at a callee's blr sites (linear-slice emulation)."""
+    if depth > 3 or tgt not in extents:
+        return []
+    if tgt not in _RET_CACHE:
+        em = X.emu(elf, text, starts, extents, tgt, plt)
+        _RET_CACHE[tgt] = [] if em is None else [
+            ev["r3"] for pc, k, ev in em.events if k == "ret"]
+    return _RET_CACHE[tgt]
+
+
+def _cell_key(base, off):
+    """Canonical memory-cell key: (residual base expr, total const).
+    Catches same-cell access through differently-shaped address
+    exprs, which the emulator's raw-expr mem dict misses."""
+    b, k = X.flat_off(base)
+    kk = X.sgn32(off)
+    if not isinstance(k, int) or not isinstance(kk, int):
+        return None
+    return (repr(b), (k + kk) & 0xFFFFFFFF)
+
+
+def _class_of(elf, member_map, ctx, expr):
+    """Best-effort vptr for an object expr in caller context."""
+    if not isinstance(expr, tuple):
+        if isinstance(expr, int):
+            p = elf.u32(expr)
+            if p and elf.sect_of(p) in (".rodata", ".data.rel.ro"):
+                return f"{p:#x}"
+        return None
+    if expr[0] == "arg":
+        return ctx.get("r%d" % expr[1])
+    if expr[0] == "load":
+        b, k = X.flat_off(expr[1])
+        off = (k + X.sgn32(expr[2])) & 0xFFFFFFFF \
+            if isinstance(k, int) else None
+        if b == ("arg", 3) and ctx.get("r3") and off:
+            return (member_map.get(ctx["r3"]) or {}).get(f"{off:#x}")
+        if isinstance(b, int):
+            p = elf.u32((b + X.sgn32(expr[2])) & 0xFFFFFFFF)
+            if p:
+                q = elf.u32(p)
+                if q and elf.sect_of(q) in (".rodata",
+                                            ".data.rel.ro"):
+                    return f"{q:#x}"
+    return None
+
+
+def _ret_bind(elf, text, starts, extents, plt, member_map, ctx,
+              tgt, calls, pc, depth):
+    """Classify a call-returned object: emulate tgt, take r3 at its
+    last blr, and translate callee-side arg exprs through the actual
+    arguments of the nearest preceding call to tgt."""
+    if depth > 3:
+        return None
+    rts = ret_exprs(elf, text, starts, extents, plt, tgt, depth)
+    if not rts:
+        return None
+    rt = rts[-1]
+
+    def call_args(n):
+        best = None
+        for cpc, ct, cargs in calls:
+            if ct == tgt and cpc < pc:
+                best = cargs
+        if best is None:
+            return None
+        return best.get(n)
+
+    if isinstance(rt, int):
+        return ("load", rt, 0)
+    if not isinstance(rt, tuple):
+        return None
+    if rt[0] == "arg":
+        return call_args(rt[1])
+    if rt[0] == "call":
+        return _ret_bind(elf, text, starts, extents, plt, member_map,
+                         ctx, rt[1], calls, pc, depth + 1)
+    if rt[0] in ("load", "add"):
+        b, k = X.flat_off(rt[1])
+        if isinstance(b, tuple) and b[0] == "arg":
+            a = call_args(b[1])
+            if a is None:
+                return None
+            kk = X.sgn32(rt[2])
+            if isinstance(k, int) and isinstance(kk, int):
+                return (rt[0], a, (k + kk) & 0xFFFFFFFF) \
+                    if rt[0] == "load" else ("add", a,
+                                             (k + kk) & 0xFFFFFFFF)
+        if isinstance(b, int) and rt[0] == "load":
+            return rt
+    return None
+
+
+_BIND_CACHE = {}
+
+
+def fn_binds(elf, text, starts, extents, plt, member_map, ctx, fva):
+    """{(pc_hex): bound caller-context object vstr} for vcall objects
+    that are cell reloads, call returns, or nested vcall returns.
+
+    Cell rule: the latest same-function store to the canonically
+    identical cell is the producer (covers arg spills and
+    differently-shaped address exprs).
+    Return rule: emulate the callee (or resolved inner vfunc target)
+    and translate its r3-at-blr through the matching call site's
+    arguments."""
+    key = (fva, repr(sorted((ctx or {}).items())))
+    if key in _BIND_CACHE:
+        return _BIND_CACHE[key]
+    out = {}
+    em = X.emu(elf, text, starts, extents, fva, plt)
+    if em is not None:
+        cellsrc, calls = {}, []
+        for pc, kind, ev in em.events:
+            if kind == "store":
+                ck = _cell_key(ev["addr"][0], ev["addr"][1])
+                if ck:
+                    cellsrc[ck] = ev.get("src")
+            elif kind == "call":
+                calls.append((pc, ev["target"], ev["args"]))
+        # stmw spills write the emulator's mem dict without emitting
+        # store events; merge residual cells as fallback producers
+        for mk, mv in em.mem.items():
+            if isinstance(mk, tuple) and len(mk) == 3 \
+                    and mk[0] == "m":
+                ck = _cell_key(mk[1], mk[2])
+                if ck:
+                    cellsrc.setdefault(ck, mv)
+
+        def bind_expr(e, pc, depth):
+            if depth > 4 or not isinstance(e, tuple):
+                return e
+            if e[0] == "load":
+                b2 = bind_expr(e[1], pc, depth + 1) \
+                    if isinstance(e[1], tuple) else e[1]
+                ck = _cell_key(b2, e[2])
+                src = cellsrc.get(ck)
+                if src is not None and src != e:
+                    return bind_expr(src, pc, depth + 1)
+                return ("load", b2, e[2]) if b2 != e[1] else e
+            if e[0] == "call":
+                nb = _ret_bind(elf, text, starts, extents, plt,
+                               member_map, ctx, e[1], calls, pc, 0)
+                return bind_expr(nb, pc, depth + 1) \
+                    if nb is not None else e
+            if e[0] == "vret":
+                iv = _class_of(elf, member_map, ctx, e[1])
+                if iv and isinstance(e[2], int):
+                    t2 = elf.u32(int(iv, 16) + e[2])
+                    if t2:
+                        nb = _ret_bind(elf, text, starts, extents,
+                                       plt, member_map, ctx, t2,
+                                       calls, pc, 0)
+                        if nb is not None:
+                            return bind_expr(nb, pc, depth + 1)
+                return e
+            if e[0] == "add":
+                b2 = bind_expr(e[1], pc, depth + 1) \
+                    if isinstance(e[1], tuple) else e[1]
+                return ("add", b2, e[2]) if b2 != e[1] else e
+            return e
+
+        for pc, kind, ev in em.events:
+            if kind == "vcall":
+                nb = bind_expr(ev["obj"], pc, 0)
+                if nb != ev["obj"]:
+                    out[f"{pc:#x}"] = X.vstr(nb)
+    _BIND_CACHE[key] = out
+    return out
 
 
 # ------------------------------------------------------------------
@@ -305,19 +531,31 @@ REQ_BOUNDARY = ("request object (opaque: built in the UPnP httpd "
                 "are generic dispatch sites)")
 
 
-def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc):
-    """-> (target|None, verdict)"""
+def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
+                  binds=None, sink=None):
+    """-> (target|None, verdict); sink[t] = target's class vptr"""
     obj = vc["obj"] or "?"
+    b = (binds or {}).get(vc.get("pc"))
+    if b and b != obj:
+        obj = b
     slot = vc.get("slot")
     ctx = obj_map.get(fn) or {}
 
     def bound(vptr):
         t = elf.u32(int(vptr, 16) + (slot or 0))
-        return t if t and lo <= t < hi else None
+        if t and lo <= t < hi:
+            if sink is not None:
+                sink[t] = vptr
+            return t
+        return None
 
     def bound2(vptr, off):
         t = elf.u32(int(vptr, 16) + off)
-        return t if t and lo <= t < hi else None
+        if t and lo <= t < hi:
+            if sink is not None:
+                sink[t] = vptr
+            return t
+        return None
 
     if obj in ("r3-in", "r4-in", "r5-in"):
         c = ctx.get(obj[:2])
@@ -468,8 +706,8 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc):
     return None, "object %s (unbound)" % obj
 
 
-def walk_graph(elf, extents, fsum, member_map, ctors_of, obj_map,
-               lo, hi, seed_fns, sec):
+def walk_graph(elf, text, starts, extents, plt, fsum, member_map,
+               ctors_of, obj_map, lo, hi, seed_fns, sec):
     ev, frontier, seen = [], [], set()
     stack = list(seed_fns)
     while stack:
@@ -479,8 +717,11 @@ def walk_graph(elf, extents, fsum, member_map, ctors_of, obj_map,
         seen.add(f)
         s = fsum.get(f"{f:#x}")
         if s is None:
-            frontier.append("f_%x (not emulated)" % f)
-            continue
+            s = summarize(elf, text, starts, extents, plt, lo, hi, f)
+            if s is None:
+                frontier.append("f_%x (not emulated)" % f)
+                continue
+            fsum[f"{f:#x}"] = s
         name = "f_%x" % f
         ml, ms = s.get("member_loads", {}), s.get("member_stores", {})
         fc = s.get("fault_codes", [])
@@ -506,10 +747,19 @@ def walk_graph(elf, extents, fsum, member_map, ctors_of, obj_map,
             else:
                 ev.append("%s -> plt:%s (library boundary)"
                           % (name, fn_))
+        binds = fn_binds(elf, text, starts, extents, plt, member_map,
+                         obj_map.get(f"{f:#x}") or {}, f)
         for vc in s["vcalls"]:
+            sink = {}
             t, verdict = resolve_vcall(elf, member_map, ctors_of,
-                                       obj_map, lo, hi, f"{f:#x}", vc)
+                                       obj_map, lo, hi, f"{f:#x}", vc,
+                                       binds, sink)
             if t:
+                # the resolved target's r3 class is the vptr that
+                # produced it; record so its own dispatch binds
+                if sink.get(t):
+                    obj_map.setdefault(f"{t:#x}", {}) \
+                        .setdefault("r3", sink[t])
                 stack.append(t)
             else:
                 frontier.append("%s: %s" % (name, verdict))
@@ -587,7 +837,15 @@ def main():
         member_map, ctors_of = engine_member_maps(elf, em_)
         resolve_member_ctor_vptrs(elf, text, starts, extents, plt,
                                   em_, member_map)
-        obj_map = propagate_objmap(elf, doc, fsum, member_map, lo, hi)
+        cvp = _ctor_vptr_cache(elf, text, starts, extents, plt)
+        obj_map = propagate_objmap(elf, doc, fsum, member_map, lo,
+                                   hi)
+        # augmenting the member map exposes new arg-object classes;
+        # re-propagate until stable
+        for _ in range(3):
+            augment_member_map(fsum, obj_map, member_map, cvp)
+            obj_map = propagate_objmap(elf, doc, fsum, member_map,
+                                       lo, hi)
         print("obj_map: %d fns (r3:%d r4:%d r5:%d)"
               % (len(obj_map),
                  sum(1 for v in obj_map.values() if "r3" in v),
@@ -598,6 +856,27 @@ def main():
                 json.dump(obj_map, fp, indent=1)
             print("wrote %s" % args.objmap_out)
         if args.verdicts:
+            # warmup: vcall resolution records target r3 classes into
+            # obj_map; walk every record to a fixpoint so later
+            # verdicts benefit from classes discovered in earlier ones
+            def all_seeds():
+                for p, svc in sorted(doc["services"].items()):
+                    for an, act in sorted(
+                            (svc.get("actions") or {}).items()):
+                        for t in (act.get("todo") or []):
+                            if isinstance(t, str):
+                                sd = seed_targets(elf, extents, lo,
+                                                  hi, p, act, t)
+                                if sd:
+                                    yield sd
+            for _ in range(3):
+                before = repr(sorted(obj_map.items()))
+                for sd in all_seeds():
+                    walk_graph(elf, text, starts, extents, plt, fsum,
+                               member_map, ctors_of, obj_map, lo, hi,
+                               sd, None)
+                if repr(sorted(obj_map.items())) == before:
+                    break
             for p, svc in sorted(doc["services"].items()):
                 for an, act in sorted(
                         (svc.get("actions") or {}).items()):
@@ -609,8 +888,9 @@ def main():
                         if not seeds:
                             continue
                         ev, frontier = walk_graph(
-                            elf, extents, fsum, member_map, ctors_of,
-                            obj_map, lo, hi, seeds, None)
+                            elf, text, starts, extents, plt, fsum,
+                            member_map, ctors_of, obj_map, lo, hi,
+                            seeds, None)
                         print("%s %s" % (p, an))
                         for e in ev[:8]:
                             print("  + %s" % e)

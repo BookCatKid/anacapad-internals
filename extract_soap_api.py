@@ -573,6 +573,8 @@ class FuncEmu:
         elif op == "blrl":
             for r in VOL - {1, 2, 13}:
                 self.reg[r] = None
+        elif op == "blr":
+            self.events.append((va, "ret", {"r3": R[3]}))
 
 
 # ============================================ shared analysis helpers =====
