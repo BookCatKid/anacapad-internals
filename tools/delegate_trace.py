@@ -346,14 +346,31 @@ def augment_member_map(fsum, obj_map, member_map, cvp):
 _RET_CACHE = {}
 
 
+def _has_arg(e):
+    """expr contains a callee-side ('arg', n) node."""
+    return isinstance(e, tuple) and \
+        (e[0] == "arg" or any(_has_arg(x) for x in e[1:]))
+
+
 def ret_exprs(elf, text, starts, extents, plt, tgt, depth=0):
-    """r3 exprs at a callee's blr sites (linear-slice emulation)."""
+    """r3 exprs at a callee's blr sites (linear-slice emulation).
+    Tail-called callees contribute their arg-free return exprs (an
+    arg node would name the wrong frame in the caller's context)."""
     if depth > 3 or tgt not in extents:
         return []
     if tgt not in _RET_CACHE:
         em = X.emu(elf, text, starts, extents, tgt, plt)
-        _RET_CACHE[tgt] = [] if em is None else [
-            ev["r3"] for pc, k, ev in em.events if k == "ret"]
+        if em is None:
+            _RET_CACHE[tgt] = []
+        else:
+            out = [ev["r3"] for pc, k, ev in em.events if k == "ret"]
+            for pc, k, ev in em.events:
+                if k == "tail" and isinstance(ev["target"], int):
+                    for e in ret_exprs(elf, text, starts, extents,
+                                       plt, ev["target"], depth + 1):
+                        if not _has_arg(e):
+                            out.append(e)
+            _RET_CACHE[tgt] = out
     return _RET_CACHE[tgt]
 
 
