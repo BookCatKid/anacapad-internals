@@ -149,10 +149,17 @@ print("census-bound member fields: %d" % xbind, file=sys.stderr)
 global_xref = collections.defaultdict(list)
 for off, sites in xref.items():
     for s in sites:
-        m = re.fullmatch(r"\*\((0x[0-9a-f]+)\+0x[0-9a-f]+\)", s["base"])
-        if m:
-            global_xref[m.group(1)].append(
-                {"fn": s["fn"], "pc": s["pc"], "src": s["src"]})
+        b = s["base"]
+        m = re.fullmatch(r"\*\((0x[0-9a-f]+)\+0x[0-9a-f]+\)", b)
+        if re.fullmatch(r"0x[0-9a-f]+", b):
+            flat = int(b, 16)
+        elif m:
+            flat = int(m.group(1), 16)
+        else:
+            continue
+        cell = (flat + int(off, 16)) & 0xFFFFFFFF
+        global_xref[f"{cell:#x}"].append(
+            {"fn": s["fn"], "pc": s["pc"], "src": s["src"]})
 
 def class_of_expr(e, ctx=None, depth=0):
     """expr -> vptr class, using member_map + census global cells."""
@@ -175,7 +182,9 @@ def class_of_expr(e, ctx=None, depth=0):
                     for s in global_xref.get(f"{cell:#x}", [])}
             srcs.discard("0x0")
             hexs = {s for s in srcs
-                    if re.fullmatch(r"0x[0-9a-f]+", s)}
+                    if re.fullmatch(r"0x[0-9a-f]+", s)
+                    and elf.sect_of(int(s, 16))
+                    in (".rodata", ".data.rel.ro")}
             if len(hexs) == 1:
                 return next(iter(hexs))
             if hexs:
