@@ -59,7 +59,7 @@ def bind_vtable_r3():
     return n
 print("vtable-bound r3: %d" % bind_vtable_r3(), file=sys.stderr)
 
-def bind_callers(callsite_map, regs=("3", "5")):
+def bind_callers(callsite_map, regs=("3", "4", "5")):
     """obj_map[callee][r<reg>] = unanimous caller arg class."""
     bound_n = 0
     for callee, sites in callsite_map.items():
@@ -75,7 +75,8 @@ def bind_callers(callsite_map, regs=("3", "5")):
                 if a is None:
                     continue
                 cctx = obj_map.get(s["caller"]) or {}
-                cls = D._class_of(elf, member_map, cctx, _tuple(a))
+                cls = class_of_expr(_tuple(a), cctx) or \
+                    D._class_of(elf, member_map, cctx, _tuple(a))
                 if cls:
                     classes.add(cls)
                     n_known += 1
@@ -173,10 +174,12 @@ def class_of_expr(e, ctx=None, depth=0):
             srcs = {_ret_src_class(s["src"]) or s["src"]
                     for s in global_xref.get(f"{cell:#x}", [])}
             srcs.discard("0x0")
-            if len(srcs) == 1:
-                return next(iter(srcs))
-            if srcs:
-                return "union{" + ",".join(sorted(srcs)) + "}"
+            hexs = {s for s in srcs
+                    if re.fullmatch(r"0x[0-9a-f]+", s)}
+            if len(hexs) == 1:
+                return next(iter(hexs))
+            if hexs:
+                return "union{" + ",".join(sorted(hexs)) + "}"
         return class_of_expr(e[1], ctx, depth + 1)
     if e[0] == "arg" and ctx:
         return ctx.get("r%d" % e[1])

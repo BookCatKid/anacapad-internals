@@ -567,7 +567,10 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
     ctx = obj_map.get(fn) or {}
 
     def bound(vptr):
-        t = elf.u32(int(vptr, 16) + (slot or 0))
+        try:
+            t = elf.u32(int(vptr, 16) + (slot or 0))
+        except (TypeError, ValueError):
+            return None
         if t and lo <= t < hi:
             if sink is not None:
                 sink[t] = vptr
@@ -575,7 +578,10 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
         return None
 
     def bound2(vptr, off):
-        t = elf.u32(int(vptr, 16) + off)
+        try:
+            t = elf.u32(int(vptr, 16) + off)
+        except (TypeError, ValueError):
+            return None
         if t and lo <= t < hi:
             if sink is not None:
                 sink[t] = vptr
