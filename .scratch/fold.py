@@ -180,6 +180,18 @@ def class_of_expr(e, ctx=None, depth=0):
         return class_of_expr(e[1], ctx, depth + 1)
     if e[0] == "arg" and ctx:
         return ctx.get("r%d" % e[1])
+    if e[0] == "call":
+        # return-through-call: class of the inner callee's r3
+        pv = cvp(e[1])
+        if pv:
+            return f"{pv:#x}"
+        for re2 in D.ret_exprs(elf, text, starts, extents, plt,
+                               e[1]):
+            c2 = class_of_expr(re2, obj_map.get(f"{e[1]:#x}") or {},
+                               depth + 1)
+            if c2:
+                return c2
+        return None
     if e[0] == "vret" and ctx:
         return None
     return None
