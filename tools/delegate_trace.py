@@ -553,6 +553,25 @@ REQ_BOUNDARY = ("request object (opaque: built in the UPnP httpd "
 REQ_VPTR = "0x10f9ee98"
 
 
+# fold.py may inject caller-frame provenance for arg-spill slots:
+#   CALLER_FRAME[callee] -> [caller fns],  STWU[fn] -> frame delta,
+#   CELL_XREF[(fn, base)] -> producers of *(base+0)
+CALLER_FRAME = {}
+STWU = {}
+CELL_XREF = {}
+
+
+def _sp_flat(obj):
+    """'*(sp-0x20+0x1c)' / 'sp+0x0+0x1c' -> signed flat offset, or None."""
+    m = re.search(r"sp((?:[+-]0x[0-9a-f]+)+)", obj)
+    if not m:
+        return None
+    total = 0
+    for tm in re.finditer(r"([+-])(0x[0-9a-f]+)", m.group(1)):
+        v = int(tm.group(2), 16)
+        total += v if tm.group(1) == "+" else -v
+    return total
+
 def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
                   binds=None, sink=None, slot_xref=None):
     """-> (target|None, verdict); sink[t] = target's class vptr.
@@ -739,13 +758,27 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
         return None, ("call-returned object %s: callee return-class "
                       "unbound in the linear slice (emulator frontier)"
                       % obj)
+
     if "sp-" in obj or "sp+" in obj:
         # stack-reloaded object: consult the image-wide store census
         # for producers at the same (fn, base) slot; when several
         # stores exist, the nearest one before the vcall pc in
-        # program order is the live producer
+        # program order is the live producer.
+        # obj may be a field load through a spilled pointer:
+        #   *(*(sp+..)+0xK)  ->  cell = *(sp+..), member K of the
+        # pointer's class carries the object class
+        inner, moff = obj, 0
+        dm = re.fullmatch(r"\*\((\*\(sp[^()]*\))\+(0x[0-9a-f]+)\)", obj)
+        if dm:
+            inner, moff = dm.group(1), int(dm.group(2), 16)
         if slot_xref is not None:
-            sites = slot_xref.get((fn, obj)) or []
+            sites = slot_xref.get((fn, inner))
+            if sites is None:
+                fo = _sp_flat(inner)
+                if fo is not None:
+                    sites = slot_xref.get((fn, "#flat:%#x" % fo))
+            if sites is None:
+                sites = []
             if sites:
                 vpc = int(vc.get("pc") or "0", 16)
                 before = [s for s in sites
@@ -763,6 +796,28 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
                         v = int(src, 16)
                         if elf.sect_of(v) in (".rodata",
                                               ".data.rel.ro"):
+                            if moff:
+                                # field load through the spilled
+                                # pointer: member K of class src
+                                # carries the object's class
+                                c2 = (member_map.get(src) or
+                                      {}).get(hex(moff))
+                                if c2:
+                                    t = bound(c2)
+                                    return t, (
+                                        "%s: store-xref binds to "
+                                        "class %s member %s -> %s "
+                                        "v+%s" % (obj, src,
+                                                  hex(moff), c2,
+                                                  hex(slot or 0))
+                                        if t else
+                                        "%s: member %s of %s = %s "
+                                        "(slot outside vtable)"
+                                        % (obj, hex(moff), src, c2))
+                                return None, (
+                                    "%s: member %s of class %s not "
+                                    "installed in member_map"
+                                    % (obj, hex(moff), src))
                             t = bound(src)
                             return t, ("%s: store-xref binds to "
                                        "global vptr %s v+%s"
@@ -786,6 +841,52 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
                 return None, ("%s: %d distinct producers at the slot "
                               "(%s)" % (obj, len(srcs),
                                         " | ".join(srcs[:3])))
+        # no own-fn store: the cell may be the caller's arg-spill -
+        # same address at caller flat offset fo - callee_stwu
+        fo = _sp_flat(inner)
+        cf = CALLER_FRAME
+        if fo is not None and cf.get(fn):
+            stwu = STWU.get(fn, 0)
+            want = fo - stwu
+            prods = []
+            for caller in cf.get(fn) or []:
+                for s in slot_xref.get(
+                        (caller, "#flat:%#x" % want), []) or []:
+                    src = s["src"]
+                    mreg = re.fullmatch(r"(r[0-9]+)-in", src)
+                    if mreg:
+                        src = (obj_map.get(caller) or {}).get(
+                            mreg.group(1)) or src
+                    mret = re.match(r"ret\(0x[0-9a-f]+\)", src)
+                    if mret:
+                        # spilled object is a call return: chase the
+                        # vptr install *(ret+0) = class in this caller
+                        inst = {i["src"] for i in
+                                CELL_XREF.get((caller, src), [])
+                                if re.fullmatch(r"0x[0-9a-f]+",
+                                                i["src"])}
+                        if len(inst) == 1:
+                            src = next(iter(inst))
+                    prods.append(src)
+            srcs = sorted({p for p in prods
+                           if re.fullmatch(r"0x[0-9a-f]+", p)})
+            if len(srcs) == 1:
+                t = bound(srcs[0])
+                return t, ("%s: caller-frame arg-spill binds to "
+                           "class %s v+%s"
+                           % (obj, srcs[0], hex(slot or 0))
+                           if t else
+                           "%s: caller-frame arg-spill binds to %s "
+                           "(slot outside vtable)" % (obj, srcs[0]))
+            if srcs:
+                return None, ("%s: caller-frame arg-spill producers "
+                              "disagree (%s)"
+                              % (obj, " | ".join(srcs[:3])))
+            if prods:
+                return None, ("%s: caller-frame arg-spill producers "
+                              "are call-returned objects (%s)"
+                              % (obj, " | ".join(
+                                  sorted(set(prods))[:3])))
         return None, ("stack-reloaded object %s: producer lies outside"
                       " the emulated linear slice (emulator coverage "
                       "frontier, not a proven static boundary - "

@@ -228,9 +228,24 @@ for off, sites in xref.items():
     for s in sites:
         if s["base"].startswith("*(") and "sp" in s["base"]:
             src = _ret_src_class(s["src"]) or s["src"]
-            slot_xref.setdefault((s["fn"], s["base"]),
-                                 []).append({"pc": s["pc"],
-                                             "src": src})
+            ent = {"pc": s["pc"], "src": src}
+            slot_xref.setdefault((s["fn"], s["base"]), []).append(ent)
+            fo = D._sp_flat(s["base"])
+            if fo is not None:
+                slot_xref.setdefault(
+                    (s["fn"], "#flat:%#x" % fo), []).append(ent)
+
+# generic cell producers at off 0 (non-sp bases too): used to chase
+# vptr installs on call-returned objects, *(ret(0xT)+0) = vptr
+cell_xref = collections.defaultdict(list)
+for off, sites in xref.items():
+    if off != "0x0":
+        continue
+    for s in sites:
+        src = _ret_src_class(s["src"]) or s["src"]
+        cell_xref[(s["fn"], s["base"])].append(
+            {"pc": s["pc"], "src": src})
+D.CELL_XREF = cell_xref
 
 # --- callsite census: caller-directed r3/r5 binding ---
 import glob
@@ -239,6 +254,19 @@ for p in glob.glob(".scratch/callsite_k*.json"):
     for callee, sites in json.load(open(p)).items():
         callsite_map.setdefault(callee, []).extend(sites)
 print("callsite callees: %d" % len(callsite_map), file=sys.stderr)
+# caller-frame provenance for arg-spill slots: callee cell at flat
+# offset fo is the caller's cell at fo - stwu(callee)
+_inv = collections.defaultdict(set)
+for callee, sites in callsite_map.items():
+    for s in sites:
+        _inv[callee].add(s["caller"])
+D.CALLER_FRAME = {k: sorted(v) for k, v in _inv.items()}
+D.STWU = {}
+for fva in extents:
+    ins = text.ins(fva)
+    if ins and ins[0] == "stwu" and ins[1] == 1 and ins[2] == 1:
+        D.STWU[f"{fva:#x}"] = ins[3]
+
 # iterate: new r3 classes expose new caller-side resolutions;
 # merge propagated entries without discarding bound ones
 def merge_propagate():
