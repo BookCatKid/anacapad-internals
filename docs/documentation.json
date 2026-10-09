@@ -23861,7 +23861,7 @@
      ]
     },
     "SetSourceAreaIds": {
-     "description": "Sets the group's desired source-area ids via impl->v[+0x14] on r5-in. Handler fully decoded: DesiredSourceAreaIds via f_1056157c (string, required) -> req->v[+0x08] validate (fail -> 402) -> impl->v[+0x14] -> empty commit.",
+     "description": "Updates the GroupManagement SourceAreaIds string. The wrapper accepts one required string up to 1220 bytes, then calls gm_impl SetSourceAreaIds (f_10395564). The operation is allowed only while gm_impl is accepting group commands (+0xda4=1); when group commands are paused it returns UPnP error 807. On success the exact string is stored at gm_impl+0x5fc, propagated to the matching local topology member, and change notifications are queued. The direct SOAP path imposes no delimiter or ID grammar beyond the bounded string record.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10738550",
@@ -23897,7 +23897,7 @@
      },
      "inputs": {
       "DesiredSourceAreaIds": {
-       "description": "string, required - parsed by f_1056157c at handler 0x10738550",
+       "description": "Required SourceAreaIds text. The SOAP layer accepts a NUL-terminated string record with 1221-byte storage (maximum 1220 payload bytes); the gm_impl path does not parse or validate individual area identifiers and copies the text verbatim into its SourceAreaIds field.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -23906,29 +23906,39 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosBoolArg",
-       "format": "utf-8 text, buffer cap 1221 bytes (1220 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "opaque to handler (impl interprets)",
-       "range": "max 1220 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "source-area identifier list text",
+       "format": "UTF-8/textual C string; direct SetSourceAreaIds path treats contents as opaque and preserves them verbatim",
+       "unit": "none",
+       "accepted_values": "any string accepted by the request string parser; no additional content validation in f_10395564/f_1039549c",
+       "range": "0 to 1220 payload bytes before NUL terminator",
+       "special_values": "empty string is not rejected by the implementation and is stored/propagated like any other value",
        "required": true,
-       "default": "none - required argument",
-       "validation": "required; req->v[+0x1c] lookup + f_1056157c conversion; validate fail -> 402",
+       "default": "none; required argument",
+       "validation": "required TRequest string record via f_1056157c with cap 0x4c5; malformed/missing request data can fail TRequest validation with 402. After validation there is no syntax parse: gm_impl only checks its group-command acceptance flag.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10738550",
-         "notes": "handler arg parse"
+         "notes": "SOAP wrapper: fetches DesiredSourceAreaIds, configures a 0x4c5-byte string record, validates TRequest, calls gm_impl slot +0x14, forwards nonzero rc through TRequest +0x14 and commits success through +0x0c.",
+         "function": "0x10738550"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1056157c",
-         "notes": "parser helper"
+         "address": "0x1039549c",
+         "notes": "Successful worker copies the input verbatim to gm_impl+0x5fc with strlcpy cap 0x4c5, propagates it to topology, queues an internal descriptor, sets gm_impl+0x164 dirty, notifies, and returns 0.",
+         "function": "0x1039549c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10762ed4",
+         "notes": "Topology-member setter strcmp-compares input with member+0xee7; equal returns 0 and clears member+0x1f58, different copies up to 0x4c5 bytes, sets +0x1f58=1, and returns 1.",
+         "function": "0x10762ed4"
         }
        ],
        "notes": null,
@@ -23937,113 +23947,270 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "TRequest must validate the required string. Content is otherwise not syntax-checked by this action. After request validation, gm_impl+0xda4 must be nonzero (startAcceptingGroupCommands state); zero returns 807.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x10738550",
-        "notes": "wrapper decode"
+        "notes": "SOAP wrapper: fetches DesiredSourceAreaIds, configures a 0x4c5-byte string record, validates TRequest, calls gm_impl slot +0x14, forwards nonzero rc through TRequest +0x14 and commits success through +0x0c.",
+        "function": "0x10738550"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10395564",
+        "notes": "gm_impl SetSourceAreaIds entry bound at primary vtable 0x10ec2bc0 slot +0x14; tests the group-command acceptance byte +0xda4 and returns 807 when it is zero.",
+        "function": "0x10395564"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1039337c",
+        "notes": "stopAcceptingGroupCommands writes 0 to gm_impl+0xda4.",
+        "function": "0x10393344"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103933dc",
+        "notes": "startAcceptingGroupCommands writes 1 to gm_impl+0xda4.",
+        "function": "0x103933a4"
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r29 v[+0x14]",
+      "description": "Requires a valid DesiredSourceAreaIds request string and gm_impl to be accepting group commands. stopAcceptingGroupCommands sets +0xda4=0 and blocks the action with 807; startAcceptingGroupCommands sets it to 1.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738550",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x10738550",
+        "notes": "SOAP wrapper: fetches DesiredSourceAreaIds, configures a 0x4c5-byte string record, validates TRequest, calls gm_impl slot +0x14, forwards nonzero rc through TRequest +0x14 and commits success through +0x0c.",
+        "function": "0x10738550"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10395564",
+        "notes": "gm_impl SetSourceAreaIds entry bound at primary vtable 0x10ec2bc0 slot +0x14; tests the group-command acceptance byte +0xda4 and returns 807 when it is zero.",
+        "function": "0x10395564"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1039337c",
+        "notes": "stopAcceptingGroupCommands writes 0 to gm_impl+0xda4.",
+        "function": "0x10393344"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103933dc",
+        "notes": "startAcceptingGroupCommands writes 1 to gm_impl+0xda4.",
+        "function": "0x103933a4"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r29 v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r29 v[+0x14]",
+      "description": "Reads gm_impl+0xda4 (group-command acceptance). On success it replaces gm_impl+0x5fc (SourceAreaIds) and asks topology f_1011e9f0 to locate the local member using gm_impl+0x210 context. A found local member stores the same text at member+0xee7; if no local member is found, topology logs the condition but the SOAP action still succeeds.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738550",
-        "notes": "member vfunc calls: ['r29 v[+0x14]']"
+        "address": "0x10395564",
+        "notes": "gm_impl SetSourceAreaIds entry bound at primary vtable 0x10ec2bc0 slot +0x14; tests the group-command acceptance byte +0xda4 and returns 807 when it is zero.",
+        "function": "0x10395564"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1039549c",
+        "notes": "Successful worker copies the input verbatim to gm_impl+0x5fc with strlcpy cap 0x4c5, propagates it to topology, queues an internal descriptor, sets gm_impl+0x164 dirty, notifies, and returns 0.",
+        "function": "0x1039549c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1011e9f0",
+        "notes": "Topology propagation looks up the local member, logs and returns if it is absent/non-local, otherwise applies the supplied SourceAreaIds and notifies only when the member value changes.",
+        "function": "0x1011e9f0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10762ed4",
+        "notes": "Topology-member setter strcmp-compares input with member+0xee7; equal returns 0 and clears member+0x1f58, different copies up to 0x4c5 bytes, sets +0x1f58=1, and returns 1.",
+        "function": "0x10762ed4"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r29 v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r29 v[+0x14] (call-derived member-method semantics)",
+       "description": "On success, copies DesiredSourceAreaIds verbatim into gm_impl+0x5fc, propagates it to the local topology member when present, queues an internal in-process descriptor, sets gm_impl+0x164 dirty, and calls the shared notifier. If the topology member's previous value differs, its +0xee7 string is replaced and member+0x1f58 records the change.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10738550",
-         "notes": "delegate map ['r29 v[+0x14]']; notify-family calls []"
+         "address": "0x1039549c",
+         "notes": "Successful worker copies the input verbatim to gm_impl+0x5fc with strlcpy cap 0x4c5, propagates it to topology, queues an internal descriptor, sets gm_impl+0x164 dirty, notifies, and returns 0.",
+         "function": "0x1039549c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1011e9f0",
+         "notes": "Topology propagation looks up the local member, logs and returns if it is absent/non-local, otherwise applies the supplied SourceAreaIds and notifies only when the member value changes.",
+         "function": "0x1011e9f0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10762ed4",
+         "notes": "Topology-member setter strcmp-compares input with member+0xee7; equal returns 0 and clears member+0x1f58, different copies up to 0x4c5 bytes, sets +0x1f58=1, and returns 1.",
+         "function": "0x10762ed4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10395518",
+         "notes": "Successful gm_impl update calls shared notifier f_1067c6ec on gm_impl+8 after setting dirty byte +0x164.",
+         "function": "0x1039549c"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r29 v[+0x14] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Successful updates enqueue an internal in-process descriptor through f_1013f0f4 and call f_1067c6ec on gm_impl+8. When the local topology member's SourceAreaIds actually changes, f_1011e9f0 also runs the topology refresh/notify path. The UPnP SourceAreaIds state variable itself is declared sendEvents=no, so this is internal change propagation rather than a direct GENA SourceAreaIds event.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738550",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x10395508",
+        "notes": "Queues the internal two-word descriptor produced from gm_impl+0x280 with descriptor word 3 via f_1013f0f4.",
+        "function": "0x1039549c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10395518",
+        "notes": "Successful gm_impl update calls shared notifier f_1067c6ec on gm_impl+8 after setting dirty byte +0x164.",
+        "function": "0x1039549c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1011e9f0",
+        "notes": "Topology propagation looks up the local member, logs and returns if it is absent/non-local, otherwise applies the supplied SourceAreaIds and notifies only when the member value changes.",
+        "function": "0x1011e9f0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10762ed4",
+        "notes": "Topology-member setter strcmp-compares input with member+0xee7; equal returns 0 and clears member+0x1f58, different copies up to 0x4c5 bytes, sets +0x1f58=1, and returns 1.",
+        "function": "0x10762ed4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "notes": "GroupManagement1.xml declares SourceAreaIds sendEvents=no."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v[+0x14]",
+      "description": "No separate state-machine transition occurs. The accepted text becomes the current gm_impl SourceAreaIds value at +0x5fc; the matching local topology member is synchronized to the same value when found. Equality at the member setter is a no-change path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738550",
-        "notes": "no transition-literal/store pattern; member delegates: ['r29 v[+0x14]']"
+        "address": "0x1039549c",
+        "notes": "Successful worker copies the input verbatim to gm_impl+0x5fc with strlcpy cap 0x4c5, propagates it to topology, queues an internal descriptor, sets gm_impl+0x164 dirty, notifies, and returns 0.",
+        "function": "0x1039549c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1011e9f0",
+        "notes": "Topology propagation looks up the local member, logs and returns if it is absent/non-local, otherwise applies the supplied SourceAreaIds and notifies only when the member value changes.",
+        "function": "0x1011e9f0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10762ed4",
+        "notes": "Topology-member setter strcmp-compares input with member+0xee7; equal returns 0 and clears member+0x1f58, different copies up to 0x4c5 bytes, sets +0x1f58=1, and returns 1.",
+        "function": "0x10762ed4"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Returns SOAP fault 402 when TRequest validation fails. With a valid request, returns 807 if group commands are currently stopped (+0xda4=0). Otherwise f_1039549c performs the update and returns 0, after which the wrapper commits an empty success response. Missing/non-local topology membership does not change the success return.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738550",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x10738630",
+        "notes": "TRequest validation-failure branch loads literal 402 before the common fault emitter.",
+        "function": "0x10738550"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10395564",
+        "notes": "gm_impl SetSourceAreaIds entry bound at primary vtable 0x10ec2bc0 slot +0x14; tests the group-command acceptance byte +0xda4 and returns 807 when it is zero.",
+        "function": "0x10395564"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1039549c",
+        "notes": "Successful worker copies the input verbatim to gm_impl+0x5fc with strlcpy cap 0x4c5, propagates it to topology, queues an internal descriptor, sets gm_impl+0x164 dirty, notifies, and returns 0.",
+        "function": "0x1039549c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1011e9f0",
+        "notes": "Topology propagation looks up the local member, logs and returns if it is absent/non-local, otherwise applies the supplied SourceAreaIds and notifies only when the member value changes.",
+        "function": "0x1011e9f0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10738648",
+        "notes": "Zero implementation return reaches TRequest success commit slot +0x0c.",
+        "function": "0x10738550"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -24056,21 +24223,22 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x14); parse/req-layer",
-       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14]",
+       "code_expr": "literal 402 from TRequest validation-failure branch",
+       "meaning": "The required request argument did not pass TRequest validation.",
        "fault_sites": [
         "0x107385fc"
        ],
        "conditions": [
         {
-         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
+         "description": "TRequest +0x08 returned false after preparing DesiredSourceAreaIds.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10738550",
-           "notes": "0x192 literal in handler"
+           "address": "0x10738630",
+           "notes": "Validation-failure path loads 0x192 (402) and jumps to the common TRequest +0x14 fault emitter.",
+           "function": "0x10738550"
           }
          ]
         }
@@ -24081,13 +24249,74 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10738550",
-         "notes": "402 gate"
+         "notes": "SOAP wrapper: fetches DesiredSourceAreaIds, configures a 0x4c5-byte string record, validates TRequest, calls gm_impl slot +0x14, forwards nonzero rc through TRequest +0x14 and commits success through +0x0c.",
+         "function": "0x10738550"
+        }
+       ]
+      },
+      {
+       "code": 807,
+       "code_expr": "literal 0x327 from f_10395564 when gm_impl+0xda4 == 0",
+       "meaning": "GroupManagement is temporarily not accepting group commands.",
+       "fault_sites": [
+        "0x107385fc"
+       ],
+       "conditions": [
+        {
+         "description": "stopAcceptingGroupCommands has left gm_impl+0xda4 equal to 0. f_10395564 returns 807 without changing SourceAreaIds.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10395564",
+           "notes": "gm_impl SetSourceAreaIds entry bound at primary vtable 0x10ec2bc0 slot +0x14; tests the group-command acceptance byte +0xda4 and returns 807 when it is zero.",
+           "function": "0x10395564"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1039337c",
+           "notes": "stopAcceptingGroupCommands writes 0 to gm_impl+0xda4.",
+           "function": "0x10393344"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x103933dc",
+           "notes": "startAcceptingGroupCommands writes 1 to gm_impl+0xda4.",
+           "function": "0x103933a4"
+          }
+         ]
         }
        ],
-       "domain_note": "delegated-rc semantics: impl rc surfaced via req->v[+0x14]",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x14); parse/req-layer; sites: 0x107385fc).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10395564",
+         "notes": "gm_impl SetSourceAreaIds entry bound at primary vtable 0x10ec2bc0 slot +0x14; tests the group-command acceptance byte +0xda4 and returns 807 when it is zero.",
+         "function": "0x10395564"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1039337c",
+         "notes": "stopAcceptingGroupCommands writes 0 to gm_impl+0xda4.",
+         "function": "0x10393344"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103933dc",
+         "notes": "startAcceptingGroupCommands writes 1 to gm_impl+0xda4.",
+         "function": "0x103933a4"
+        }
        ]
       }
      ],
@@ -24110,14 +24339,13 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: dispatch to handler 0x10738550; impl resolves to gm_impl SetSourceAreaIds = f_10395564 (see architecture).",
-      "Residual: the impl linkage is unrecorded here and the area-id semantics inside f_10395564 untraced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
-      "Resolved: f_10395564 is the impl - the area-id list feeds the source-area model used by area-zone playback routing.",
-      "Resolved: f_10395564 is the impl - the area-id list feeds the source-area model used by area-zone playback routing."
-     ]
+      "gm_impl primary vtable 0x10ec2bc0 binds SetSourceAreaIds slot +0x14 to f_10395564.",
+      "gm_impl+0xda4 is the group-command acceptance flag: stopAcceptingGroupCommands writes 0 and startAcceptingGroupCommands writes 1; SetSourceAreaIds returns 807 while it is zero.",
+      "Successful updates copy the input verbatim to gm_impl+0x5fc, propagate to the local topology member through f_1011e9f0/f_10762ed4, mark/notify internal state, and return 0.",
+      "The topology member stores SourceAreaIds at +0xee7 and f_10762ed4 returns a boolean changed result after strcmp/copy; the direct SOAP action does not impose a delimiter grammar."
+     ],
+     "implementation_notes": "Complete static path: wrapper f_10738550 -> gm_impl vtable 0x10ec2bc0 slot +0x14 f_10395564 -> acceptance gate +0xda4 -> success worker f_1039549c -> topology f_1011e9f0 -> member setter f_10762ed4."
     }
    },
    "state_variables": {
@@ -24273,7 +24501,7 @@
     },
     "SourceAreaIds": {
      "evented": false,
-     "description": "non-evented GroupManagement state variable: read via action out-args, not pushed",
+     "description": "Current source-area identifier text for GroupManagement. SetSourceAreaIds stores the accepted string at gm_impl+0x5fc and synchronizes it to the matching local topology member at +0xee7. The SCPD marks this variable non-evented; internal topology/group notifications are used to propagate changes.",
      "data_type": "string",
      "allowed_values": null,
      "range": null,
@@ -24286,6 +24514,30 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "notes": "GroupManagement1.xml <stateVariable name=SourceAreaIds sendEvents=no>string: SCPD-advertised"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039549c",
+       "notes": "Successful worker copies the input verbatim to gm_impl+0x5fc with strlcpy cap 0x4c5, propagates it to topology, queues an internal descriptor, sets gm_impl+0x164 dirty, notifies, and returns 0.",
+       "function": "0x1039549c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011e9f0",
+       "notes": "Topology propagation looks up the local member, logs and returns if it is absent/non-local, otherwise applies the supplied SourceAreaIds and notifies only when the member value changes.",
+       "function": "0x1011e9f0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10762ed4",
+       "notes": "Topology-member setter strcmp-compares input with member+0xee7; equal returns 0 and clears member+0x1f58, different copies up to 0x4c5 bytes, sets +0x1f58=1, and returns 1.",
+       "function": "0x10762ed4"
       }
      ],
      "notes": null
