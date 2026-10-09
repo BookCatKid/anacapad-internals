@@ -126047,19 +126047,87 @@
    "gc_tx": "StopTransmissionToGroup 'couldn't find coordinator'"
   },
   "audiotap": {
-   "files": "datatap.cxx + audiotap_manager.cxx",
-   "http_errors": "AudioTap: {no tap specified, syntax error, invalid request, permission denied}",
-   "semantics": "raudiotapMutex; 'Datatap snapshot failed after %zu': SPDIF/audio tap sessions",
-   "todo": [
-    "Established: capacity field, bounds, block stride, names.",
-    "Residual: the SPDIF compression-mode detail inside tap setup - capacity proven; compression select is per-tap setup arg"
-   ],
-   "tap_internals": "Tap model decoded from audiotap_manager.cxx + datatap.cxx strings. WHO CAN TAP: eligibility is per-source-location - 'Location is not tappable' rejects ineligible sources, 'Location is already being tapped' dedups, and 'Max number of blocks already being tapped' / 'number of max taps exceeds the avaialable capacity' bound total taps. Tap lifecycle verbs: 'Active Tap %s' on attach, 'Closing Tap %s' on detach, 'No Active Taps to check if already tapped' on lookup. The SPDIF input is the canonical tappable source ('audiotap.spdif', '<SPDIFTap>' metadata element); the manager serializes access through 'audiotapMutex' and exposes 'audiotap.poll'. DATA PATH: datatap.cxx implements a 'rolling_data_tap' - a ring buffer holding the most recent tapped audio plus extracted metadata ('Error: failed to read metadata from buffer!'); a 'Datatap snapshot' serializes the rolling window plus '<SPDIFTap>...</SPDIFTap>' metadata XML, failing with 'Datatap snapshot failed after %zu' - i.e. taps feed a bounded rolling capture used for diagnostic audio snapshots, not a live stream-out.",
-   "resolved_findings": [
-    "Resolved: taps are location-gated (tappable check, no-dup, block cap), SPDIF is the canonical source via audiotap.spdif; data lands in a rolling_data_tap ring and 'Datatap snapshot' exports the window + <SPDIFTap> metadata for diagnostics.",
-    "Resolved: audiotap_manager.cxx. Taps attach to named DSP locations ({audiotap.poll, audiotap.spdif} + per-location names); guards: 'Location is not tappable', 'Location is already being tapped', 'Max number of blocks already being tapped', 'number of max taps exceeds the avaialable capacity' - a bounded active-tap table ('Active Tap %s'/'Closing Tap %s'). Access = 'AudioTap: permission denied' via capability-gated route; request errors {no tap specified, syntax error, invalid request}. Output: tap data described by debugParameters {channelname, vartype in {VAR_FLOAT,VAR_STRING,VAR_INT}, value formats %.04f/%.*f}; SPDIF path produces spdiftap.compressed retrievable via /snapshotspdiftap and /downloadspdiftap with <SPDIFTap> status XML.",
-    "Resolved: the tap-block bounds (audiotap_manager 0x10d92300) - 'Max number of blocks already being tapped' fires when *(mgr+0x244) used-count reaches *(mgr+0x240) capacity; both are runtime-initialized fields. The block array is 0xc0-stride at mgr+0x178, per-block busy word at block+0. 'Location is not tappable' gates on *(mgr+0xb8). The capacity is set at manager construction, not a literal.",
-    "Resolved: audiotapmanager ctor f_10d91ea8 proven - initializes 3 tap blocks at +0x0/+0xc0/+0x180 (stride 0xc0), writes capacity=2 at +0x240 and used=0 at +0x244, zeroes {+0xb8 tappable, +0x178, +0x238}, registers name \"audiotapmanager\" at +0x248. Setter f_10d91f74 accepts a caller-supplied capacity but rejects >=3 (cmplwi 3 -> error path) - so the tap cap is 2 simultaneous taps, hard-bounded."
+   "files": "audiotap_manager.cxx + datatap.cxx + compressed-file writer",
+   "semantics": "Bounded DSP tap attachment plus a25MB rolling SPDIF capture whose snapshots are always zlib-compressed before export.",
+   "description": "Diagnostic taps capture selected audio-processing locations without making them live network streams. The manager normally permits two taps and rejects duplicate or ineligible locations. A separate rolling SPDIF recorder keeps recent input, compresses a snapshot and can export it inside an XML element.",
+   "manager": "Constructor0x10d91ea8 initializes three descriptor blocks at offsets0,0xc0,0x180, capacity+0x240=2, used+0x244=0, mutex+0x248 named audiotapmanager, and source pointers at each block+0xb8=0. Setter0x10d91f74 accepts unsigned capacity0..3 inclusive; only>3 rejects. This corrects the earlier >=3 claim. There are three physical blocks, with a default maximum of two.",
+   "attachment": "0x10d92300 locks, cleans stale descriptors, and calls source vtable+0xc for eligibility (default0x105364c0 is the accepted fast path).0x10d921bc rejects matching source-name strings from source vtable+8. Capacity exhaustion rejects; otherwise find first block whose source pointer+0xb8 is0, store source there, store descriptor pointer in source+4, increment used and return descriptor. Tappability is a property of the source, not manager+0xb8. Block array begins+0, not+0x178; +0x178 is the second block's source pointer.",
+   "cleanup": "0x10d92024 scans the configured-capacity prefix. A descriptor with reference/activity count+0xa0=0 is stale: clear source+4 and descriptor+0xb8 and log Closing Tap. Nonzero count is retained/logged Active Tap and contributes to recomputed used count.0x10d91fec detaches all three physical source pointers irrespective of capacity. Lowering capacity does not itself detach blocks outside the new prefix. Requests0..3 are accepted without a used-count floor.",
+   "dsp_locations": "DSP controller0x10d72bb8 handles dspout as a dedicated output tap, configured through0x10535248. Other location paths are dot-separated; it uses the last token to locate a DSP block through0x10d681ac, then calls the manager attachment path. Missing block logs Block to tap not found under %s. The manager compares location names rather than pointer identity, so two objects with the same name are duplicates. Tap descriptors format/configure samples separately from rolling SPDIF compression.",
+   "rolling_capture": "SPDIF recorder constructor0x10342d18 embeds a25000000-byte ring at object+0x1bc, passes capacity0x17d7840, unit1 to base0x10342c5c, and constructs path <JFFSRoot>/spdiftap.compressed. Base fields: recursive mutex+8, ring+0x98, filename+0xb8. Vptr0x10ebb3e0 binds append+8=0x10342ea4, locked snapshot+c=0x10342be0, XML export+0x10=0x1034308c, free-space preparation+0x14=0x10343228, compressed snapshot+0x18=0x10343368. Append uses try-lock and skips a contended capture; free-space preparation discards oldest complete metadata/audio chunks rather than arbitrary partial samples. An incoming write larger than total capacity is refused.",
+   "compression": "Snapshot0x10342be0 locks and calls+0x18.0x10343368 creates compressed-file object0x103d1aec with level/default field-1 and opens the0600 output via0x103d1ca8. That writer ALWAYS calls deflateInit2_(level=-1,method=8,windowBits=12,memLevel=5,strategy=0); it is zlib-wrapped DEFLATE, not gzip, and there is no per-tap compression-mode argument. It consumes contiguous ring spans up to4096 bytes, deflates them with Z_NO_FLUSH, and advances ring only after successful writer return. On failure logs bytes already snapshotted and retains the failed/current span. Finalizer0x103d1b24 uses Z_FINISH, flushes remaining output, deflateEnd, fsync and close; completion errors are not propagated into the returned byte count. A partial compressed snapshot can therefore exist.",
+   "xml_export": "0x1034308c locks, writes <SPDIFTap>, opens the snapshot read-only and creates a16384-byte buffered file reader. That buffer is not a special metadata header. It base64-encodes the compressed file in up-to759-byte input chunks into1024-byte output buffers with a10-second timeval deadline, finalizes encoding, closes and unlinks the file, then writes </SPDIFTap>. Failed open yields an empty element. Export consumes the file even if deadline truncates reading. The binary audio packet metadata and playback reader are documented separately under audio_taps, whose remaining field semantics stay open.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d91ea8",
+     "notes": "Three physical blocks and default capacity2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d91f74",
+     "notes": "Raw unsigned compare3; only greater-than rejects."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d92300",
+     "notes": "Eligibility, duplicate-name and capacity guards; source backpointer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d92024",
+     "notes": "Descriptor activity-count cleanup and used-count recomputation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10342d18",
+     "notes": "25MB inline ring and spdiftap.compressed path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10342ea4",
+     "notes": "Try-lock append and capacity preparation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10343368",
+     "notes": "Destructive compressed snapshot and partial-error count."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103d1ca8",
+     "notes": "Fixed zlib DEFLATE settings, no per-tap mode."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103d1b24",
+     "notes": "Finish/flush/fsync/close behavior."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1034308c",
+     "notes": "Base64 of whole compressed file,10-second deadline and unlink."
+    }
    ]
   },
   "dropout_logging": {
@@ -135332,7 +135400,7 @@
    ]
   },
   "audio_taps": {
-   "summary": "PCM-capture tap subsystem (audiotap_manager.cxx + datatap.cxx): guarded /audio_tap /spdiftap /snapshotspdiftap /downloadspdiftap endpoints, versioned tap-file format with audio+metadata sections, SPDIF tap used to sync TV-input playback against the output tap; tap instances are typed rolling_data_tap objects; 'Datatap snapshot failed after %zu' + 'Error: failed to read metadata from buffer!'; datatap carries a format-version tag 'simple:v1' beside the rolling_data_tap type; empty <SPDIFTap></SPDIFTap> emitted when no tap attached",
+   "summary": "Diagnostic DSP and rolling SPDIF capture, plus a versioned packet-file reader used to replay captured input. SPDIF snapshots are zlib-compressed files exported as base64 inside <SPDIFTap>; the replayable uncompressed stream is a sequence of metadata/audio packets.",
    "anchors": [
     "audiotap_manager.cxx",
     "spdiftap.c",
@@ -135383,23 +135451,48 @@
      "build": "86.10-80260",
      "address": "0x10f26ea4",
      "notes": "TV input sample-rate mismatch vs audio tap"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107e1264",
+     "notes": "48-byte packet metadata, byte reversal, u16 frame count and loss bit0x80."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107e1e44",
+     "notes": "Repeated metadata/audio packet validation and valid-prefix retention."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103d1ca8",
+     "notes": "zlib DEFLATE configuration."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1034308c",
+     "notes": "Entire compressed snapshot base64 export; buffer size is not metadata schema."
     }
    ],
    "endpoints": "/audio_tap, /spdiftap, /snapshotspdiftap, /downloadspdiftap; request errors 'AudioTap: no tap specified', 'syntax error', 'invalid request', 'permission denied'",
-   "file_format": "tap files carry metadata+audio sections with a metadata version: 'Audio tap metadata version mismatch (tap: %d, expected: %d)', truncation checks ('last %zu audio bytes missing', 'last %zu metadata bytes missing'), 'Audio tap file valid (%zu/%zu)', rewind/start markers; snapshot file audiotap.spdif; compressed state 'spdiftap.compressed': 'Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!'",
+   "file_format": "Reader0x107e1264 reads48-byte metadata BEFORE each audio packet, not a single file trailer. Version byte0 must be1 during validation0x107e1e44. Byte reversal on this big-endian target decodes u32LE at1 and5, u16LE sample-frame count at9, u32LE at0xb; sample count*8 gives the following8-byte-frame audio size, stored reader+0x40. Signal-loss is byte0x27 bit0x80, not any nonzero flag value. Remaining metadata bytes are copied unchanged. Validation walks [48-byte metadata][count*8 audio] repeatedly and retains the valid prefix if at least one complete packet exists; it logs trailing audio/metadata truncation and rewinds to that valid size. Invalid first packet closes the file.",
    "tv_sync": "'Synchronize SPDIF tap playback with output tap (%s)', 'TV input sample rate mismatch with audio tap (tv:%u tap:%u)', 'TV input read error during audio tap playback': the SPDIF tap doubles as the TV-input capture path for lip-sync",
    "todo": [
-    "Residual: semantic names of the three u32BE counters and the flag bytes beyond signal-loss@+0x27 - internal tap-session metadata fields, positional-only in the image."
+    "Established: repeated48-byte metadata plus count*8 audio packets, little-endian scalar conversion, sample count and high-bit signal-loss flag; manager/compression/export behavior is complete under audiotap. Remaining: semantic roles of u32LE fields at1,5,0xb and other metadata bytes/flags, including their producer and playback-consumer chains. Trace the packet metadata writer and each reader of copied metadata at object+0x10; do not treat these words as unnamed counters or a file trailer."
    ],
    "resolved_findings": [
-    "Resolved: tap-file byte layout = the SPDIF tap snapshot is a raw PCM/S/PDIF frame dump - the writer (f_10240a6c chain from /snapshotspdiftap) serializes the rolling buffer verbatim with the <SPDIFTap> metadata XML header; .compressed variant for /downloadspdiftap is the same buffer gzip-wrapped. Tap must be uncompressed before snapshotting.",
-    "Tap resolved as a bounded diagnostic capture: datatap.cxx rolling_data_tap ring + extracted metadata; snapshot = window + <SPDIFTap> metadata XML. Eligibility per source location (Location is not tappable / already being tapped / Max number of blocks / max taps exceeds capacity), audiotapMutex serialized, audiotap.poll polled. On model 9 the SPDIF tap doubles as the TV-input capture for lip-sync (Synchronize SPDIF tap playback with output tap; TV input sample rate mismatch with audio tap (tv:%u tap:%u)). Container outer shape proven by parse guards: version int + audio section + metadata section (Audio tap metadata version mismatch / truncated messages), simple:v1 tag. /snapshotspdiftap handler f_100bd5e4 (snapshot vfunc f_100c3f5c; Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!), /downloadspdiftap handler f_100b9ed0 (gate f_1054bdc8, %s/spdiftap.compressed, streams via f_100b9d4c + f_10240a6c); routes at 0x10e76554/0x10e76568 in the 102-route table.",
-    "Resolved: datatap.cxx (0x10ebb414+) proves the snapshot serialization is XML - root element <SPDIFTap>...</SPDIFTap> wrapping a rolling_data_tap buffer plus a metadata section (\"Error: failed to read metadata from buffer!\", \"Datatap snapshot failed after %zu\"). Two HTTP endpoints serve it: /snapshotspdiftap (live snapshot render) and /downloadspdiftap (file download), both in the hidden debug route table at 0x10e76554-0x10e7657c. Tap-manager gate vocabulary (audiotap_manager.cxx 0x10feb6fc+): \"Location is not tappable\", \"Location is already being tapped\", \"Max number of blocks already being tapped\" - the 3-block cap from audiotapmanager is enforced at registration.",
-    "Resolved (snapshot payload section order): f_1034308c emits <SPDIFTap>, then open64's the tap backing file, reads the 0x4000-byte metadata head (f_1038689c+f_10387b7c; failure logs 'Error: failed to read metadata from buffer!'), then streams the rolling buffer through sonosBase64Enc {Reset, Update(0x400 chunks into 0x545c buf), Finalize} each chunk written via f_10769df4, bounded by a gettimeofday+timevalAddMs(0x2710)=10s deadline and the 'Datatap snapshot failed after %zu' counter; then close+UNLINK of the tap file (snapshot consumes it), f_10387b04, and </SPDIFTap>. Payload order is therefore {metadata head block, base64 rolling-data stream} under the XML root.",
-    "Deepened: 'Location is not tappable' is emitted by the tap-request validator ~f_10d92300 in audiotap_manager.cxx, which walks a block-descriptor array at mgr+0x178 (0xc0-byte stride, capacity mgr+0x240, used-count mgr+0x244) and tests each candidate block via a vtable call (mtctr/bctrl at 0x10d923f8) - so tappability is a per-block virtual predicate on the block object, not a static location table; a successful match stores the tap into a free descriptor slot (idx*0xc0+0xb8) and bumps the used count. There is no compiled tappable-location list for non-SPDIF sources; eligibility is whatever each block class's vfunc returns.",
-    "Metadata tail format proven at f_107e1264/f_107e1e44: the tap file ends with a 0x30-byte trailer record, fread as one block and decoded as byte-assembled big-endian integers (slwi/or chains over buf[1..14]+); byte[0] is a version field that must equal 1 ('Audio tap metadata version mismatch (tap: %d, expected: %d)'); object +0x40 holds the declared tail length validated against file size ('Audio tap truncated (last %zu metadata bytes missing)'); on success the reader logs 'Audio tap file valid (%zu/%zu)'.",
-    "Trailer field decode deepened (f_107e1264): the 0x30-byte tail parses as {u8 version @0 (must==1), u32BE @1, u32BE @5, u32BE @9, u16BE @0xd scaled x8 into obj+0x40 (the declared tail length, validated against file size), ..., u8 flag @0x27 read by f_107e1478 path - nonzero logs \"Encountered signal loss in the audio tap\"}. Parsed fields are re-packed into the object bytes +1..+0xe and +0x40. So trailer byte semantics now bound: version + 3 u32 counters + scaled tail-len + signal-loss flag + remaining opaque fields."
-   ]
+    "Reader0x107e1264 reads48-byte metadata BEFORE each audio packet, not a single file trailer. Version byte0 must be1 during validation0x107e1e44. Byte reversal on this big-endian target decodes u32LE at1 and5, u16LE sample-frame count at9, u32LE at0xb; sample count*8 gives the following8-byte-frame audio size, stored reader+0x40. Signal-loss is byte0x27 bit0x80, not any nonzero flag value. Remaining metadata bytes are copied unchanged. Validation walks [48-byte metadata][count*8 audio] repeatedly and retains the valid prefix if at least one complete packet exists; it logs trailing audio/metadata truncation and rewinds to that valid size. Invalid first packet closes the file.",
+    "DSP manager and rolling snapshot mechanics, fixed zlib compression and consumptive XML/base64 export are fully documented under shared_primitives/audiotap. The16384-byte buffer in0x1034308c is a general file-reader buffer, not a metadata head section. The base64 stream contains the whole compressed snapshot.",
+    "DSP capacity is three physical descriptors with default capacity2 and setter domain0..3 inclusive. Tappability is source vtable+0xc; manager+0xb8 stores the source pointer."
+   ],
+   "file_format_correction": "No XML queue or separate XML metadata header is written into the compressed snapshot. The XML wrapper is the export envelope only. Earlier claims of gzip, a trailing metadata block, big-endian packed fields, and a three-tap default are superseded by the concrete reader and compression paths."
   },
   "business_msp": {
    "summary": "Sonos-for-Business managed-service machinery: SOAP ops AddRemoveSonosBusinessMSP / Sync Sonos Business MSP / AddRemoveSfbMSP, /msprox + /msprox?uuid= proxy endpoints, three tier vocabulary (SFB_COMMERCIAL/ESSENTIALS/PREMIUM_MSP + commercial/essentials/premium-msp slugs), Backgrounds MSP add/remove, enableRemoveMSPCredentialsFromUPnP flag, voice-service MSP education keys (O_AMAZON/GOOGLE_SHOW_MSP_EDUCATION)",
