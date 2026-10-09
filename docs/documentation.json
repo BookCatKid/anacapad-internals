@@ -680,7 +680,7 @@
    },
    "actions": {
     "CreateAlarm": {
-     "description": "Creates an alarm: StartLocalTime/Duration/Recurrence/Enabled/RoomUUID/ProgramURI/ProgramMetaData/PlayMode/Volume/IncludeLinkedZones -> impl->v[+0x34], returning AssignedID.",
+     "description": "Creates an alarm. Wrapper f_10734404 parses the ten SOAP inputs and dispatches the concrete ac_impl engine slot +0x34 -> f_1027a980. That method validates StartLocalTime, optional Duration, and Recurrence, builds the alarm record, persists it through f_1027a8f8 -> f_1027a7a8 -> f_10283998, publishes the new AlarmListVersion state, and returns record+0 as AssignedID.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10734404",
@@ -712,7 +712,30 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "engine_function": "0x1027a980",
+      "engine_vtable": "0x10eaa99c",
+      "engine_slot": 52,
+      "commit_chain": [
+       "0x1027a980",
+       "0x1027a8f8",
+       "0x1027a7a8",
+       "0x10283998"
+      ],
+      "record_layout": {
+       "+0x00": "AssignedID",
+       "+0x04": "StartLocalTime",
+       "+0x1c": "Duration",
+       "+0x34": "Recurrence",
+       "+0x4c": "Enabled",
+       "+0x50": "RoomUUID",
+       "+0x68": "ProgramURI",
+       "+0x80": "ProgramMetaData",
+       "+0xf8": "PlayMode",
+       "+0x110": "Volume",
+       "+0x112": "IncludeLinkedZones",
+       "+0x114": "writer mode/new-record marker (CreateAlarm sets 0)"
+      }
      },
      "inputs": {
       "StartLocalTime": {
@@ -733,7 +756,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "After wrapper parsing, f_1027a980 validates the HH:MM:SS text with f_10c3d2c4; failure returns SOAP 402.",
        "evidence": [
         {
          "type": "firmware",
@@ -759,12 +782,8 @@
        ],
        "notes": null,
        "buf_cap": 9,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `StartLocalTime` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +52 (site 0x10734618) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `StartLocalTime` = verbatim forward to impl vfunc +52 (obj *(r3-in+0x4), call site 0x10734618); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: CreateAlarm engine f_1027a980 stores StartLocalTime in alarm record +0x04; After wrapper parsing, f_1027a980 validates the HH:MM:SS text with f_10c3d2c4; failure returns SOAP 402."
        ]
       },
       "Duration": {
@@ -785,7 +804,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "An empty Duration is accepted; a nonempty value is validated by f_10c3d2c4 as HH:MM:SS, with failure returning SOAP 402.",
        "evidence": [
         {
          "type": "firmware",
@@ -811,12 +830,8 @@
        ],
        "notes": null,
        "buf_cap": 9,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Duration` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +52 (site 0x10734618) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `Duration` = verbatim forward to impl vfunc +52 (obj *(r3-in+0x4), call site 0x10734618); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: CreateAlarm engine f_1027a980 stores Duration in alarm record +0x1c; An empty Duration is accepted; a nonempty value is validated by f_10c3d2c4 as HH:MM:SS, with failure returning SOAP 402."
        ]
       },
       "Recurrence": {
@@ -837,7 +852,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "f_1027a980 calls recurrence parser f_10c3e4c8; parser failure returns SOAP 402. The parser accepts named recurrence literals plus its encoded weekday-mask form.",
        "evidence": [
         {
          "type": "firmware",
@@ -863,12 +878,8 @@
        ],
        "notes": null,
        "buf_cap": 11,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Recurrence` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +52 (site 0x10734618) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `Recurrence` = verbatim forward to impl vfunc +52 (obj *(r3-in+0x4), call site 0x10734618); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: CreateAlarm engine f_1027a980 stores Recurrence in alarm record +0x34; f_1027a980 calls recurrence parser f_10c3e4c8; parser failure returns SOAP 402. The parser accepts named recurrence literals plus its encoded weekday-mask form."
        ]
       },
       "Enabled": {
@@ -889,7 +900,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "stored in the alarm record",
+       "validation": "Wrapper boolean parse is the value-domain check; f_1027a980 stores the parsed byte in alarm record +0x4c.",
        "evidence": [
         {
          "type": "firmware",
@@ -914,12 +925,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `Enabled` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +52 (site 0x10734618) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `Enabled` = verbatim forward to impl vfunc +52 (obj *(r3-in+0x4), call site 0x10734618); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: CreateAlarm engine f_1027a980 stores Enabled in alarm record +0x4c; Wrapper boolean parse is the value-domain check; f_1027a980 stores the parsed byte in alarm record +0x4c."
        ]
       },
       "RoomUUID": {
@@ -940,7 +947,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Wrapper string parse/cap is the local check; f_1027a980 copies the value into alarm record +0x50.",
        "evidence": [
         {
          "type": "firmware",
@@ -966,12 +973,8 @@
        ],
        "notes": null,
        "buf_cap": 25,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `RoomUUID` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +52 (site 0x10734618) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `RoomUUID` = verbatim forward to impl vfunc +52 (obj *(r3-in+0x4), call site 0x10734618); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: CreateAlarm engine f_1027a980 stores RoomUUID in alarm record +0x50; Wrapper string parse/cap is the local check; f_1027a980 copies the value into alarm record +0x50."
        ]
       },
       "ProgramURI": {
@@ -992,7 +995,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Wrapper string parse/cap is the local check; f_1027a980 copies the value into alarm record +0x68.",
        "evidence": [
         {
          "type": "firmware",
@@ -1018,12 +1021,8 @@
        ],
        "notes": null,
        "buf_cap": 1025,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ProgramURI` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +52 (site 0x10734618) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `ProgramURI` = verbatim forward to impl vfunc +52 (obj *(r3-in+0x4), call site 0x10734618); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: CreateAlarm engine f_1027a980 stores ProgramURI in alarm record +0x68; Wrapper string parse/cap is the local check; f_1027a980 copies the value into alarm record +0x68."
        ]
       },
       "ProgramMetaData": {
@@ -1044,7 +1043,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Wrapper string parse/cap is the local check; f_1027a980 copies the value into alarm record +0x80.",
        "evidence": [
         {
          "type": "firmware",
@@ -1070,12 +1069,8 @@
        ],
        "notes": null,
        "buf_cap": 4097,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ProgramMetaData` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +52 (site 0x10734618) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `ProgramMetaData` = verbatim forward to impl vfunc +52 (obj *(r3-in+0x4), call site 0x10734618); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: CreateAlarm engine f_1027a980 stores ProgramMetaData in alarm record +0x80; Wrapper string parse/cap is the local check; f_1027a980 copies the value into alarm record +0x80."
        ]
       },
       "PlayMode": {
@@ -1096,7 +1091,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Wrapper string parse/cap is the local check; f_1027a980 copies the value into alarm record +0xf8.",
        "evidence": [
         {
          "type": "firmware",
@@ -1122,12 +1117,8 @@
        ],
        "notes": null,
        "buf_cap": 32,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `PlayMode` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +52 (site 0x10734618) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `PlayMode` = verbatim forward to impl vfunc +52 (obj *(r3-in+0x4), call site 0x10734618); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: CreateAlarm engine f_1027a980 stores PlayMode in alarm record +0xf8; Wrapper string parse/cap is the local check; f_1027a980 copies the value into alarm record +0xf8."
        ]
       },
       "Volume": {
@@ -1148,7 +1139,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "stored in the alarm record",
+       "validation": "Wrapper numeric parse is the local check; f_1027a980 stores the u16 value in alarm record +0x110.",
        "evidence": [
         {
          "type": "firmware",
@@ -1173,12 +1164,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561478) and declared constraints are documented.",
-        "Residual: `Volume` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +52 (site 0x10734618) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `Volume` = verbatim forward to impl vfunc +52 (obj *(r3-in+0x4), call site 0x10734618); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: CreateAlarm engine f_1027a980 stores Volume in alarm record +0x110; Wrapper numeric parse is the local check; f_1027a980 stores the u16 value in alarm record +0x110."
        ]
       },
       "IncludeLinkedZones": {
@@ -1199,7 +1186,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "stored in the alarm record",
+       "validation": "Wrapper boolean parse is the local check; f_1027a980 stores the parsed byte in alarm record +0x112.",
        "evidence": [
         {
          "type": "firmware",
@@ -1224,18 +1211,14 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `IncludeLinkedZones` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +52 (site 0x10734618) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `IncludeLinkedZones` = verbatim forward to impl vfunc +52 (obj *(r3-in+0x4), call site 0x10734618); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: CreateAlarm engine f_1027a980 stores IncludeLinkedZones in alarm record +0x112; Wrapper boolean parse is the local check; f_1027a980 stores the parsed byte in alarm record +0x112."
        ]
       }
      },
      "outputs": {
       "AssignedID": {
-       "description": "Newly allocated alarm id",
+       "description": "New alarm id allocated during persistence. CreateAlarm sets record+0x114=0 (new/unassigned); writer callback f_1028430c sees that marker and writes iteration/index value r5+1 to record+0. f_1027a980 then copies record+0 to the SOAP AssignedID output at 0x1027ac18-0x1027ac24.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -1249,7 +1232,7 @@
        "special_values": "none identified",
        "required": false,
        "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "validation": "Produced only after the persistence path returns; value is the u32 written to alarm-record +0 by f_1028430c.",
        "evidence": [
         {
          "type": "firmware",
@@ -1274,9 +1257,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `AssignedID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "AssignedID producer resolved exactly: f_1028430c (writer vtable 0x10eaa93c slot +0x14) tests alarm record +0x114; for a new CreateAlarm record (marker 0) it stores r5+1 at record+0. f_1027a980 copies that word to the SOAP output."
        ]
       }
      },
@@ -1293,7 +1275,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×10, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+?]",
+      "description": "The request object must pass its wrapper validity check after all ten required SOAP arguments are fetched. ac_impl f_1027a980 additionally requires StartLocalTime to pass f_10c3d2c4, nonempty Duration to pass f_10c3d2c4, and Recurrence to pass f_10c3e4c8. The mutation then runs under the alarm-store lock (f_10988564/f_10988990) and must successfully commit alarmclock.xml.",
       "evidence": [
        {
         "type": "firmware",
@@ -1303,13 +1285,12 @@
         "notes": "req-vfunc call map: {'0x1c': 10, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×10, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Concrete requirements path: wrapper f_10734404 -> engine f_1027a980 -> time/recurrence validation -> locked store commit f_1027a8f8/f_1027a7a8."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+?]",
+      "description": "Depends on the concrete ac_impl alarm store: m_alarms at engine+0x7f08, list/version state including engine+0x7f2c, alarmclock.xml persistence, and the store observer at engine+0x7f00. The engine is the statically constructed f_10276048 object with vptr 0x10eaa99c.",
       "evidence": [
        {
         "type": "firmware",
@@ -1319,14 +1300,13 @@
         "notes": "member vfunc calls: ['*(r30+4) v[+?]']"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "State dependency resolved from constructor/vtable and commit path: no runtime-injected delegate boundary remains for CreateAlarm."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: *(r30+4) v[+?] (call-derived member-method semantics)",
+       "description": "Creates a new alarm record, serializes the AlarmClock/Alarms document to alarmclock.xml.tmp, flushes/fsyncs/closes it, renames it over alarmclock.xml, reloads the in-memory alarm store, advances the alarm-list version state, and invokes the store observer.",
        "evidence": [
         {
          "type": "firmware",
@@ -1336,14 +1316,13 @@
          "notes": "delegate map ['*(r30+4) v[+?]']; notify-family calls []"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Mutation chain resolved: f_1027a980 -> f_1027a8f8 -> f_1027a7a8 -> f_10283998; post-commit reload/version/observer path is in f_1027a7a8."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Successful commit updates the AlarmClock list/version state and invokes the observer at engine+0x7f00 through v[+0x14]. The AlarmClock event serializer f_10277d6c publishes AlarmListVersion as {last-update-device}:{counter}; this is the evented state affected by alarm CRUD.",
       "evidence": [
        {
         "type": "firmware",
@@ -1353,13 +1332,12 @@
         "notes": "bl call scan: notify-family sites = []"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "CreateAlarm event path resolved through f_1027a7a8 post-commit state reload/version advance and observer dispatch; it is not an unknown delegated event path."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+?]",
+      "description": "On success, a new alarm record transitions from the local new/unassigned form (record+0x114=0) to a persisted record with AssignedID written at record+0. f_1027a7a8 then reloads m_alarms, updates the list/version state, and notifies the observer. On commit failure the new version is not published.",
       "evidence": [
        {
         "type": "firmware",
@@ -1369,13 +1347,12 @@
         "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+?]']"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Create transition resolved from f_1027a980/f_1028430c and f_1027a7a8."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Wrapper success path emits AssignedID and commits the SOAP response. Engine f_1027a980 returns 0 on success, 402 for its local time/recurrence validation failures, or propagates f_10283998 persistence results {501,800,801,802}; wrapper f_10734404 forwards any nonzero rc through req->v[+0x14].",
       "evidence": [
        {
         "type": "firmware",
@@ -1385,9 +1362,8 @@
         "notes": "commit/fault slot usage: {'0x1c': 10, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Return domain traced through the concrete engine and persistence worker; no residual delegate return source remains."
       ]
      },
      "fault_sites": [
@@ -1400,28 +1376,33 @@
      "errors": [
       {
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x34)",
-       "meaning": "alarm-store vfunc 0x1027a980 (slot +0x34) domain: literal 402 gate (0x1027aa30) plus insert-result derived path (r31 = call result / arg-seeded)",
+       "code_expr": "f_1027a980 rc",
+       "meaning": "Concrete CreateAlarm engine return domain: validation 402 or persistence {501,800,801,802}, propagated verbatim by wrapper f_10734404.",
        "fault_sites": [
         "0x10734634"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "402 when f_10c3d2c4 rejects StartLocalTime, when nonempty Duration is rejected by f_10c3d2c4, or when f_10c3e4c8 rejects Recurrence.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10734634",
-           "notes": "impl rc passthrough"
-          },
+           "address": "0x1027aa30",
+           "notes": "CreateAlarm validation failure converges on li r3,0x192"
+          }
+         ]
+        },
+        {
+         "description": "501/800/801/802 are returned by the alarmclock.xml persistence writer f_10283998 and propagated through f_1027a7a8/f_1027a8f8.",
+         "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x1073505c",
-           "notes": "rc convention site"
+           "address": "0x10283998",
+           "notes": "persistence return-code worker"
           }
          ]
         }
@@ -1456,67 +1437,15 @@
          "notes": "li r3,0x192 literal exit"
         }
        ],
-       "unresolved": {
-        "proven": "literal 402 exit + derived insert path",
-        "unknown": "alarm-insert worker rc domain | commit chain: f_1027a8f8 -> f_1027f94c persist writer (rc = inner-call result, no literal faults observed)",
-        "bounded_domain": [
-         402
-        ],
-        "bound_evidence": "worker literal-exit scan: f_1027a8f8->[402];f_1027a8f8->[402]",
-        "raw_exit_literals": {
-         "f_1027a8f8": {
-          "lits": [
-           20,
-           21,
-           402
-          ],
-          "pt": 0
-         },
-         "f_1027f94c": {
-          "lits": [
-           49,
-           230
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x1073505c",
-         "lits": [],
-         "passthrough_exits": 3
-        },
-        "delegated_sources": {
-         "f_10561514": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 19
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
        "literal_bound": [
-        402
+        402,
+        501,
+        800,
+        801,
+        802
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x34); sites: 0x10734634).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Complete upstream source chain resolved: f_1027a980 validates inputs then calls f_1027a8f8 -> f_1027a7a8 -> f_10283998; wrapper fault site 0x10734634 forwards the resulting rc."
        ]
       },
       {
@@ -1552,8 +1481,8 @@
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}",
+       "code_expr": "f_10283998 persistence rc",
+       "meaning": "alarmclock.xml temp-write/serialization/commit domain: {501,800,801,802}",
        "fault_sites": [],
        "evidence": [
         {
@@ -1566,24 +1495,70 @@
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "501: generic file-commit failure path, including inability to open/create the target/temp file and writer/flush/fsync/fclose/rename failures that set the writer error flag without a more specific status.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10283998",
-           "notes": "alarmclock.xml atomic save {501,800,801,802}"
+           "address": "0x10283a6c",
+           "notes": "rc initialized to 0x1f5; temp/open and generic error paths retain/set 501"
+          }
+         ]
+        },
+        {
+         "description": "800: after serialization, the supplied alarm record has record+0x118 == 0, meaning the writer did not mark the target record as successfully emitted/matched.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f2c",
+           "notes": "record+0x118 zero -> li r28,0x320"
+          }
+         ]
+        },
+        {
+         "description": "801: record+0x118 is set, writer item-count is within the limit, and record+0x119 is nonzero; f_1028347c sets +0x119 on its record conflict/mismatch path.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f44",
+           "notes": "record+0x119 nonzero -> li r28,0x321"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283710",
+           "notes": "writer comparison callback sets record+0x119"
+          }
+         ]
+        },
+        {
+         "description": "802: writer item-count exceeds 0x20 or serialized file length exceeds the selected size cap (0x8000 normally, 0x5800 for the reduced-cap record shape).",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f38",
+           "notes": "count > 0x20 -> 802"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283ef4",
+           "notes": "ftell length compared to selected 0x8000/0x5800 cap -> 802"
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
        "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10283998 emits constant set {501, 560, 800, 801, 802} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+        "Persistence ladder decoded directly in f_10283998: target alarmclock.xml, explicit '.tmp' path, fwrite callbacks, fflush/fsync/fclose, rename(tmp,target), and unlink cleanup; returned SOAP-domain constants are exactly {501,800,801,802} on the failure branches."
        ]
       }
      ],
@@ -1613,9 +1588,8 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10734404; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "CreateAlarm fully traced through the concrete ac_impl engine: service wrapper f_10734404 -> vtable 0x10eaa99c +0x34 -> f_1027a980 -> locked persistence chain f_1027a8f8/f_1027a7a8/f_10283998. AssignedID is written by f_1028430c for new records and copied from record+0 to the SOAP output."
      ]
     },
     "DestroyAlarm": {
@@ -9388,11 +9362,11 @@
     "zoneplayer/areas.cxx"
    ],
    "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
+    "Established: the AlarmClock service delegate is statically bound: zone-player init allocates the 0x8118-byte ac_impl/acZonePlayer engine via f_10276048, whose primary vtable is 0x10eaa99c; the service wrapper f_10735460 stores that shared object at svc+0x4. Remaining work is per-action and per-state-variable semantics, tracked by their individual TODOs."
    ],
    "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
+    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable.",
+    "Corrected boundary: AlarmClock is not behind an unrecoverable runtime-injected delegate. The shared engine is allocated during zone-player init and constructed by f_10276048; final primary vptr 0x10eaa99c statically maps SOAP slots to ac_impl methods, including CreateAlarm +0x34 -> f_1027a980."
    ]
   },
   "/AudioIn/Control": {
@@ -117998,12 +117972,13 @@
    "notes": "Called at the tail of CreateAlarm/UpdateAlarm/DestroyAlarm vfuncs - mutation ops persist then notify.",
    "field_layout": "The 11 appended members are inline SSO std::string fields at stride 0x18, member offsets +0x04,+0x1c,+0x34,+0x50,+0x68,+0x80,+0x98,+0xb0,+0xc8,+0xe0,+0xf8 (emitted high-to-low). Each emit is guarded by a non-empty check: `cmpl cr28, member.ptr, &member.buf(+8)` - skip if ptr < buf address (unset/empty). f_10807034 = the append helper taking (begin,limit) span per field.",
    "xml_template": "Write template at 0x10eaab44: '<AlarmClock LastUpdateDevice=\"%s\" Version=\"0\"> <Alarms LastUpdateDevice=\"%s\" Version=\"0\" SchemaVersion=\"%d\"> </Alarms> <Format Time=\"INV\" Date=\"INV\"/> <TimeSource Server=\"%s\"/> </AlarmClock>' - the string fields map to the root/Alarms LastUpdateDevice attrs, SchemaVersion int, Format Time/Date (literal 'INV' when unset), and TimeSource Server.",
-   "commit": "f_1027a8f8 loops calling f_1027a7a8 (ac_impl.cxx file-claim/open helper) then f_10c3d2c4 writes. No '.tmp' suffix literal or rename(2) call exists in the writer family - the earlier '.tmp+rename' hypothesis is not evidenced; commit is a direct claimed-file write.",
+   "commit": "f_1027a8f8/f_1027a7a8 call f_10283998 for alarmclock.xml persistence. f_10283998 explicitly builds '<target>.tmp' using literal '.tmp' at 0x10eeb864, opens the temp file for writing, runs the XML serialization callbacks, fflushes, fsyncs, fclose's, then rename(tmp, alarmclock.xml); failure paths unlink the temp file. This is an atomic temp+rename commit path.",
    "resolved_findings": [
-    "Resolved: field layout (11 SSO-strings, stride 0x18, +0x04..+0xf8), the emit guard (non-empty ptr check), the XML attribute template (LastUpdateDevice/SchemaVersion/Format/TimeSource), and the commit path (looped file-claim write via f_1027a7a8 + f_10c3d2c4, NOT a .tmp+rename).",
     "Established: f_1027f94c serializes 11 alarm-record member fields into alarmclock.xml; the commit wrapper f_1027a8f8 propagates the inner call's return.",
-    "Established: serialized field set + .tmp+rename atomic write proven; field-to-offset binding crosses the injected-delegate boundary (documented)."
-   ]
+    "Established: serialized field set + .tmp+rename atomic write proven; field-to-offset binding crosses the injected-delegate boundary (documented).",
+    "Corrected from direct 86.10-80260 disassembly: f_10283998 contains '.tmp' at 0x10283b14-0x10283b28, fopen64('w'), fflush/fsync/fclose, and rename at 0x10283fb4; previous direct-write/no-rename wording was wrong."
+   ],
+   "error_domain": "f_10283998 returns 501 for generic temp/open/write/flush/fsync/fclose/rename failure, 800 when record+0x118 was never marked emitted/matched, 801 when conflict/mismatch flag record+0x119 is set after a match, and 802 for >0x20 writer items or serialized-size cap overflow (0x8000 normally, 0x5800 reduced cap)."
   },
   "avt_session_lock": {
    "description": "f_10557cac/f_10557848: AVT transport-session scoped lock pair (acquire/release). Locks member *(obj+0x20) via f_100b6f88; release clears flag byte *(obj+0x1c) and runs f_10769ba8 on *(obj+0x50). Wraps every transport-op impl (Next/Previous/Stop/Play/Pause/Seek family) - not an rc contributor.",
