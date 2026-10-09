@@ -3698,7 +3698,7 @@
      ]
     },
     "GetTimeServer": {
-     "description": "Returns CurrentTimeServer via impl->v[+0x8].",
+     "description": "Returns the current AlarmClock time-server string through concrete ac_impl slot +0x24 -> f_10273090. The getter locks the engine, loads the settings sub-object pointer at engine+0x240, copies the string at subobject+0x08 into the SOAP output buffer, unlocks, and returns 0.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10734c1c",
@@ -3742,26 +3742,30 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "engine_function": "0x10273090",
+      "engine_vtable": "0x10eaa99c",
+      "engine_slot": 36,
+      "backing_field": "*(engine+0x240)+0x08 time-server string"
      },
      "inputs": {},
      "outputs": {
       "CurrentTimeServer": {
-       "description": "Configured NTP time server",
+       "description": "Current configured time-server string copied from the AlarmClock settings sub-object at *(engine+0x240)+0x08.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
+       "semantic_type": "time-server endpoint/name string",
+       "format": "opaque NTP/time-server string as persisted by SetTimeServer",
        "unit": "none - boolean flag",
-       "accepted_values": "hostname/IP string",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": "any persisted string; getter does not validate",
+       "range": "bounded by the SOAP response buffer/copy cap",
+       "special_values": "none interpreted by this getter",
        "required": false,
        "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "validation": "None in getter; value is copied verbatim from the backing sub-object.",
        "evidence": [
         {
          "type": "firmware",
@@ -3786,9 +3790,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentTimeServer`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Producer resolved exactly: f_10273090 loads *(engine+0x240), adds +0x08, and copies that string into CurrentTimeServer via f_10906304 under the ac_impl mutex."
        ]
       }
      },
@@ -3805,7 +3808,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x24]",
+      "description": "No action inputs or mutable preconditions. The wrapper request must pass generic validity; f_10273090 only locks the engine, copies the existing time-server string, unlocks, and returns 0.",
       "evidence": [
        {
         "type": "firmware",
@@ -3815,13 +3818,12 @@
         "notes": "req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x24].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "No downstream worker, persistence, network access, or lexical validation occurs in the concrete getter."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x24]",
+      "description": "Reads the AlarmClock time-server settings sub-object pointer at engine+0x240 and the current string at subobject+0x08.",
       "evidence": [
        {
         "type": "firmware",
@@ -3831,14 +3833,13 @@
         "notes": "member vfunc calls: ['r4 v[+0x8]', '*(r30+4) v[+0x24]']"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x24].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Backing source proven directly in f_10273090."
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x24] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Read-only. The method only acquires/releases the ac_impl mutex and copies the current time-server string to the caller buffer.",
        "evidence": [
         {
          "type": "firmware",
@@ -3848,14 +3849,13 @@
          "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x24] -> out-arg (call-derived member-method semantics)"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x24] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "No state write, store commit, observer call, or event emission occurs in f_10273090."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. GetTimeServer is a pure read and has no notify/emitter path.",
       "evidence": [
        {
         "type": "firmware",
@@ -3865,13 +3865,12 @@
         "notes": "bl call scan: notify-family sites = []"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Concrete getter contains no event call."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x24]",
+      "description": "None; the backing time-server string is not modified.",
       "evidence": [
        {
         "type": "firmware",
@@ -3881,13 +3880,12 @@
         "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', '*(r30+4) v[+0x24]']"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x24].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "No state transition in f_10273090."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_10273090 always returns 0 after copying CurrentTimeServer. Wrapper f_10734c1c commits the output for every valid request; only wrapper/request-layer validation can fault.",
       "evidence": [
        {
         "type": "firmware",
@@ -3897,37 +3895,29 @@
         "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Complete engine return domain is {0}."
       ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": null,
-       "code_expr": "vret",
-       "meaning": "alarm-store vfunc 0x10273090 (slot +0x24) is single-exit \"li r3,0; blr\" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)",
+       "code_expr": "f_10273090 rc",
+       "meaning": "No engine fault domain: f_10273090 always returns 0.",
        "fault_sites": [
         "0x10734c1c"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "No nonzero engine branch exists; the current server string is copied and r3 is set to 0 after unlock.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10734c1c",
-           "notes": "impl rc passthrough"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x10733da8",
-           "notes": "rc convention site"
+           "address": "0x102730e4",
+           "notes": "getter success return r3=0"
           }
          ]
         }
@@ -3964,11 +3954,10 @@
        ],
        "domain_note": "delegated-rc semantics: impl vfunc rc surfaced; store vfunc domain fully bounded to {0} | worker literal bound [129] (ASCII-fragment constants filtered) (worker_err_literals.json)",
        "literal_bound": [
-        129
+        0
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734c1c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Concrete AlarmClock slot +0x24 is f_10273090; full method has no nonzero rc source."
        ]
       },
       {
@@ -4029,9 +4018,8 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10734c1c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "GetTimeServer fully traced: wrapper f_10734c1c -> ac_impl vtable 0x10eaa99c +0x24 -> f_10273090; output comes from *(engine+0x240)+0x08."
      ]
     },
     "GetTimeZone": {
@@ -9023,7 +9011,7 @@
     },
     "TimeServer": {
      "evented": true,
-     "description": "evented state variable: appears in AlarmClock LastChange/GENA event notifications",
+     "description": "Evented AlarmClock time-server string backed by the settings sub-object at engine+0x240; GetTimeServer reads subobject+0x08 directly and SetTimeServer persists/reloads the value.",
      "data_type": "string",
      "allowed_values": null,
      "range": null,
@@ -9039,7 +9027,11 @@
        "notes": "AlarmClock1.xml <stateVariable name=TimeServer sendEvents=yes>string: SCPD-advertised (evented)"
       }
      ],
-     "notes": null
+     "notes": null,
+     "backing_field": "*(ac_impl engine+0x240)+0x08",
+     "resolved_findings": [
+      "Backing field proven by GetTimeServer f_10273090 direct copy from *(engine+0x240)+0x08."
+     ]
     },
     "TimeGeneration": {
      "evented": true,
