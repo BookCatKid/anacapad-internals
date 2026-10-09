@@ -1,10 +1,10 @@
-# anacapad SOAP/UPnP internals — 86.10-80260 (model 9, Playbar)
+# anacapad SOAP/UPnP internals: 86.10-80260 (model 9, Playbar)
 
 Static reverse engineering of `opt/bin/anacapad` (32-bit big-endian PowerPC,
 stripped, 17 MB, .text @ 0x100698f8).  All addresses are VAs for this build.
 Confirmed = directly observed in code/data; **Hypothesis** = inferred.
 
-Verdict up front: **yes** — the SOAP layer is a generic registry of
+Verdict up front: **yes**. The SOAP layer is a generic registry of
 name-sorted action tables plus per-service dispatchers, and a fully static
 extractor (`extract_soap_api.py`) recovers every service, action, handler
 address, most argument names, and the registration/feature-gate data with
@@ -112,12 +112,13 @@ Router #2's 4 records (16-byte stride, objects via manager vfunc getters):
 `ctx+0xcdc` (router #1) / `this+0x934` (router #2).  **Note:** in the
 observed code path the flags word gates post-dispatch bookkeeping (the
 `"<Svc>.<method>.<rc>"` statistic string appended at 0x101957b0-0x101957e8),
-while *reachability* of an entry is gated by `enabled` byte (+16) — e.g.
+while *reachability* of an entry is gated by `enabled` byte (+16); for
+example,
 AudioIn's byte is loaded from `ctx+0x5704`, presumably 0 on line-in-less
 models like Playbar.  Most services use `!(ctx+0x571c)` (a booleanized
 "disabled" flag written during master init @0x1018dd6c); AlarmClock and
 RenderingControl use constant 1.  `ctx+0xcdc` is written from a `strtol`
-result during init (0x10199b0c) — a config-parsed capability mask — and
+result during init (0x10199b0c), a config-parsed capability mask, and
 constant 0x2000 at 0x10199ac8.
 Whether flags also suppress registration elsewhere is **unresolved**.
 
@@ -160,13 +161,13 @@ vptr=0x10f11d04; vptr+8 = 0x1073a11c = its dispatcher.  The router calls
 |---|---|
 | +0x08 | parse/validate args; nonzero rc -> fault 402 |
 | +0x0c | request property getter / commit variant |
-| +0x14 | `sendFault(code)` — emits SOAP-ENV:Fault, UPnPError `<errorCode>` |
-| +0x1c | `getInArg(name)` — in-arg record accessor |
+| +0x14 | `sendFault(code)`, emits SOAP-ENV:Fault, UPnPError `<errorCode>` |
+| +0x1c | `getInArg(name)`, in-arg record accessor |
 | +0x20 | `getInArg(name)` variant accessor (same calling pattern as +0x1c) |
-| +0x24 | `getOutArg(name)` — out-arg record accessor (result serialized by formatter helpers) |
+| +0x24 | `getOutArg(name)`, out-arg record accessor (result serialized by formatter helpers) |
 | +0x28 | `setOutArg` (string, older path) |
 | +0x30 | `setOutArg` (uint/other overload, older path) |
-| +0x38 | `commit()/sendResponse()` — always tail-called after dispatch |
+| +0x38 | `commit()/sendResponse()`, always tail-called after dispatch |
 | +0x3c | in-arg fetch (alternate) |
 | +0x64 | header/prefix read into stack buf (size 8) |
 
@@ -191,7 +192,7 @@ vptr=0x10f11d04; vptr+8 = 0x1073a11c = its dispatcher.  The router calls
 | RenderingControl | 0x10f11d88 | 0x1073a784 | 0x10f11d7c | 27 |
 | VirtualLineIn | 0x10f11ee0 | 0x1073ccc0 | 0x10f11ed4 | 8 |
 
-Every action-name set matches its `xml/<Svc>1.xml` SCPD 100% — the tables
+Every action-name set matches its `xml/<Svc>1.xml` SCPD 100%; the tables
 are exactly the implementation-side action list.  Two dispatch flavors:
 `direct` (handler fn ptr, e.g. AVTransport/RenderingControl) and `virtual`
 (`voff|1` entries resolved through the service vtable, e.g. the 0x10f11xxx
@@ -204,36 +205,36 @@ cluster).
   advertises exactly QPlayAuth.
 - **AudioIn**: registered (path + flag 0x100 + enabled byte ctx+0x5704) but
   the only matching dispatcher in the binary is a **reject-all stub**:
-  dispatcher @0x1073d8f8 unconditionally raises fault 401 — no table, no
+  dispatcher @0x1073d8f8 unconditionally raises fault 401; no table, no
   name checks.  Its vptr 0x10f11f70 is stored by ctor @0x1073d930 into a
   member of the lazily created audio-subsystem object (*(ctx+0x5714) -
   0x5594, store site 0x1019c22c).  The registration cell ctx+0xaa6c is
   populated from a getter result passed as a stack argument into
-  0x102c05d8 — the full inter-procedural chain to the stub is **inferred**,
+  0x102c05d8; the full inter-procedural chain to the stub is **inferred**,
   not yet proven by the extractor.  Either way `/AudioIn/Control` is a
-  registered-but-dead service in this build (every action faults 401) —
+  registered-but-dead service in this build (every action faults 401),
   matching `AudioIn1.xml` advertising actions that are not implemented.
 - **SpeakerGroup / smartspeaker-audio**: URN strings + strcmp code at
   0x1069f828 are *client-side* (outbound control of satellite devices), not
   a hosted service.
 - A third registration layer at 0x1043318c/0x104340c4 pairs each /Control
   path with its `urn:schemas-upnp-org:service:X:1` URN via registrar
-  0x1060b688 — service-type provenance, not dispatch.
+  0x1060b688: service-type provenance, not dispatch.
 
 ---
 
 ## 4. Hidden / gated actions
 
-- On this build **all extracted actions are in the SCPDs** — the SCPD is a
+- On this build **all extracted actions are in the SCPDs**; the SCPD is a
   complete action list; "hidden" actions in the sense of implemented-but-
   undescribed were *not found*.  Exhaustiveness argument: every dispatcher
   in the binary was found by sweeping for the `li r4,401` +
-  `req->vfunc[0x14]` fault signature — exactly 16 dispatchers exist (14
+  `req->vfunc[0x14]` fault signature: exactly 16 dispatchers exist (14
   table + QPlay strcmp + AudioIn reject-all).  A loose `{name,codeptr}`
   table scan at strides 8..24 found no additional action tables, and no
   handler performs literal sub-command dispatch on argument values.
 - Runtime-hidden surface instead comes from: (a) the per-entry `enabled`
-  byte in the service registry (AudioIn is the poster case — registered
+  byte in the service registry (AudioIn is the poster case: registered
   but reject-all), (b) `cap_flags` vs `ctx+0xcdc`, (c) handlers that
   internally no-op/fault per state.
 - Declared-but-dead: `ProvisionCredentialedTrialAccountX` (SCPD-advertised,
@@ -264,14 +265,14 @@ cluster).
 
 ## 5. Arguments, validation, state variables, errors
 
-- **Arg names + direction**: recovered per-handler — in-args via
+- **Arg names + direction**: recovered per-handler: in-args via
   `req->vfunc[0x1c]/[0x20]/[0x3c]` calls, out-args via `+0x24`; each fetch
   is paired with the following parse/format helper, which yields a type
   tag (rec+4 store) and buffer capacity where the helper sets them.
   138/199 actions have in-arg sites, 83 have out-arg sites.
 - **Arg descriptors**: rodata contains small `{char *name, ptr}` records
   (e.g. 0x10ec39a0: InstanceID/Channel/Master/DesiredVolume for
-  SetGroupVolume) — arg-name arrays exist, but a uniform
+  SetGroupVolume); arg-name arrays exist, but a uniform
   `{name,direction,type,default,range}` descriptor table was **not**
   confirmed; types/ranges appear enforced inside handlers and generic
   helpers (getArg @+0x1c, helper @0x105614e0) rather than in one table.
@@ -310,15 +311,15 @@ evidence addresses.
 
 **Not static-recoverable (needs runtime or manual work):**
 - enabled-byte values and the ctx+0xcdc capability mask (per-model runtime;
-  `0xcdc` is written from a `strtol` result — config-driven)
+  `0xcdc` is written from a `strtol` result, config-driven)
 - arg types/ranges/enums beyond type-tag inference (enforcement is in
   code, not tables)
 - computed fault codes' numeric values, error *text* mapping (binary uses
   numeric codes)
-- exact semantics of request vfuncs — offsets confirmed, names inferred
+- exact semantics of request vfuncs; offsets confirmed, names inferred
 - the SOAPACTION `"urn:...#Action"` -> action-name split site (upstream of
   the router; capture point confirmed at 0x105d4ff4)
-- AudioIn's object chain — ends in an out-param written by a callee;
+- AudioIn's object chain ends in an out-param written by a callee;
   the reject-all-stub association is inferred, not proven
 
 ## 7. Reproducing

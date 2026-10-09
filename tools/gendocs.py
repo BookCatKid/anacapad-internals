@@ -389,15 +389,21 @@ def render_architecture(m):
             continue
         out.append("### `%s` records" % addr)
         out.append("")
+        if r.get("notes"):
+            _details(out, [_para(r["notes"])])
         rows = []
         for rec in recs:
             en = rec.get("enabled") or {}
             rows.append(["`%s`" % rec.get("path"), _e(rec.get("name")),
                          "`%s`" % _e(rec.get("cap_flags")),
                          "%s (`%s`)" % (_e(en.get("kind")),
-                                        _e(en.get("raw_expr")))])
-        _table(out, ["Path", "Service", "Cap flags", "Enabled gate"], rows)
+                                        _e(en.get("raw_expr"))),
+                         _e(rec.get("obj"))])
+        _table(out, ["Path", "Service", "Cap flags", "Enabled gate", "Obj"],
+               rows)
         for rec in recs:
+            if rec.get("notes"):
+                _details(out, [_para(rec["notes"])])
             for t in _todo_lines(rec.get("todo")):
                 out.append("- **TODO:** %s" % t)
     if rt.get("router_chain"):
@@ -412,14 +418,17 @@ def render_architecture(m):
     if m.request_vtable:
         out += ["## Request object vtable", ""]
         _pt_add(m, out, "architecture", "request_vtable")
+        summary = m.request_vtable.get("summary")
+        if summary:
+            out += [_e(summary), ""]
         _details(out, ["Every action wrapper interacts with the request "
                        "through these vfunc slots."])
         for t in _todo_lines(m.request_vtable.get("todo")):
             out.append("- **TODO:** %s" % t)
         out.append("")
         rows = [["`%s`" % k, _e(v)] for k, v in m.request_vtable.items()
-                if k != "todo"]
-        _table(out, ["Slot", "Purpose"], rows)
+                if k not in ("todo", "summary")]
+        _table(out, ["Slot / field", "Purpose"], rows)
 
     if m.capabilities:
         out += ["## Capability fields", ""]

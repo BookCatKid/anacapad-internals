@@ -171,6 +171,7 @@ def _merge_args(doc_args, ext_args, direction, build):
             arg["primitive"] = {
                 "fmt_helper": a.get("fmt_helper"),
                 "fmt": a.get("fmt"),
+                "via_slot": a.get("slot"),
             }
         # register helper as internal function
         helper = a.get("parse_helper") if direction == "in" else a.get("fmt_helper")
@@ -377,7 +378,10 @@ def run_import(api_path, doc_path, build=None):
         "router_chain": api.get("router_chain"),
         "action_tables": api.get("action_tables"),
     }
-    doc["request_vtable"] = api.get("request_vtable")
+    # Seed the request-vtable model from extraction, but do not overwrite
+    # the manually reverse-engineered interface/lifetime record on later imports.
+    if not doc.get("request_vtable"):
+        doc["request_vtable"] = api.get("request_vtable")
     doc.setdefault("services", {})
     doc.setdefault("capabilities", {})
     doc.setdefault("internal_functions", {})
