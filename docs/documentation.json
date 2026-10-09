@@ -2021,7 +2021,7 @@
      ]
     },
     "GetDailyIndexRefreshTime": {
-     "description": "Returns CurrentDailyIndexRefreshTime via impl->v[+0x8].",
+     "description": "Returns the persisted DailyIndexRefreshTime from the concrete ac_impl engine slot +0x44 -> f_102730fc. The backing representation is {present:u8 at engine+0x7ee8, hour:u8 +0x7ee9, minute:u8 +0x7eea, second:u8 +0x7eeb}; absent state emits an empty string, present state is formatted as HH:MM:SS by f_10c3d264.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10734d18",
@@ -2065,26 +2065,36 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "engine_function": "0x102730fc",
+      "engine_vtable": "0x10eaa99c",
+      "engine_slot": 68,
+      "backing_state": {
+       "+0x7ee8": "presence byte (0 absent, nonzero present)",
+       "+0x7ee9": "hour",
+       "+0x7eea": "minute",
+       "+0x7eeb": "second"
+      },
+      "formatter": "0x10c3d264 (%02u:%02u:%02u)"
      },
      "inputs": {},
      "outputs": {
       "CurrentDailyIndexRefreshTime": {
-       "description": "Configured daily index refresh time",
+       "description": "Configured daily index refresh time. f_102730fc locks the ac_impl state, reads presence at +0x7ee8, returns an empty string when absent, or formats the {hour,minute,second} triple at +0x7ee9..+0x7eeb into the caller's 9-byte output buffer.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "HH:MM:SS time string",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "semantic_type": "optional HH:MM:SS time string",
+       "format": "HH:MM:SS when present; empty string when absent",
+       "unit": "time of day",
+       "accepted_values": "empty string or zero-padded 24-hour HH:MM:SS",
+       "range": "hour 0..23, minute 0..59, second 0..59 (same parser/formatter contract as f_10c3d2c4/f_10c3d264)",
+       "special_values": "empty string = no configured daily refresh time",
        "required": false,
        "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "validation": "Produced directly from the ac_impl backing state; no fallible engine-side validation on the getter.",
        "evidence": [
         {
          "type": "firmware",
@@ -2109,9 +2119,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentDailyIndexRefreshTime`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Backing producer resolved exactly: ac_impl f_102730fc reads engine+0x7ee8 as presence. If zero it writes NUL to the output. If nonzero it formats bytes +0x7ee9/+0x7eea/+0x7eeb via f_10c3d264 into the 9-byte result buffer."
        ]
       }
      },
@@ -2128,7 +2137,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x44]",
+      "description": "No action arguments or mutable preconditions. The wrapper request object must pass its generic validity check; f_102730fc only takes the ac_impl lock at engine+0x170, reads the DailyIndexRefreshTime backing bytes, unlocks, and returns 0.",
       "evidence": [
        {
         "type": "firmware",
@@ -2138,13 +2147,12 @@
         "notes": "req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x44].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Getter preconditions fully bounded: no inputs, no persistence access, no worker/delegate failure path; concrete engine method f_102730fc is single-success-domain {0}."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x44]",
+      "description": "Reads only the ac_impl DailyIndexRefreshTime block at engine+0x7ee8..+0x7eeb under the engine lock at +0x170. The presence byte is maintained by the alarmclock.xml reload parser f_10275edc; the time triple is the parsed HH:MM:SS value.",
       "evidence": [
        {
         "type": "firmware",
@@ -2154,14 +2162,13 @@
         "notes": "member vfunc calls: ['r4 v[+0x8]', '*(r30+4) v[+0x44]']"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x44].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "State source resolved from f_102730fc and reload comparator/parser f_10275edc."
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x44] -> out-arg via req->v[+0x24]); result emitted via out-arg; no state mutation in impl path",
+       "description": "Read-only getter. It acquires/releases the ac_impl mutex and writes only the caller's output buffer; it does not mutate AlarmClock state, persistence, counters, or event state.",
        "evidence": [
         {
          "type": "firmware",
@@ -2171,14 +2178,13 @@
          "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x44] -> out-arg via req->v[+0x24] (call-derived member-method semantics)"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x44] -> out-arg via req->v[+0x24]); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "f_102730fc contains only lock/read/format/copy/unlock operations and returns 0; no store or notifier call exists."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. GetDailyIndexRefreshTime is read-only and f_102730fc has no observer/notifier/event emission path.",
       "evidence": [
        {
         "type": "firmware",
@@ -2188,13 +2194,12 @@
         "notes": "bl call scan: notify-family sites = []"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "No event is emitted by the concrete engine getter; the evented state changes only when the setter/reload path updates the backing block."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x44]",
+      "description": "None. The getter reads the presence/time block without modifying it.",
       "evidence": [
        {
         "type": "firmware",
@@ -2204,13 +2209,12 @@
         "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', '*(r30+4) v[+0x44]']"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x44].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "No state transition or store occurs in f_102730fc."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_102730fc always returns 0. Wrapper f_10734d18 therefore emits CurrentDailyIndexRefreshTime and commits the SOAP response for every valid request; only the wrapper's generic request-validity failure can raise 402 before/around the engine call.",
       "evidence": [
        {
         "type": "firmware",
@@ -2220,37 +2224,29 @@
         "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Engine domain proven {0}: f_102730fc has one normal return and explicitly sets r3=0 after unlock."
       ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": null,
-       "code_expr": "vret",
-       "meaning": "alarm-store vfunc 0x102730fc (slot +0x44) is single-exit \"li r3,0; blr\" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)",
+       "code_expr": "f_102730fc rc",
+       "meaning": "No engine fault domain: f_102730fc always returns 0.",
        "fault_sites": [
         "0x10734d18"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "No nonzero engine condition exists; the method either writes empty output for absent state or formats the stored time, then returns 0.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10734d18",
-           "notes": "impl rc passthrough"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x10734b8c",
-           "notes": "rc convention site"
+           "address": "0x10273154",
+           "notes": "normal path sets r3=0 after unlock; all getter branches join this return"
           }
          ]
         }
@@ -2286,10 +2282,11 @@
         }
        ],
        "domain_note": "delegated-rc semantics: impl vfunc rc surfaced; store vfunc domain fully bounded to {0} | worker literal bound [] (ASCII-fragment constants filtered) (worker_err_literals.json)",
-       "literal_bound": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734d18).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "literal_bound": [
+        0
+       ],
+       "resolved_findings": [
+        "Concrete vtable slot +0x44 is f_102730fc; its complete control flow has no nonzero rc producer."
        ]
       },
       {
@@ -2350,9 +2347,8 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10734d18; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "GetDailyIndexRefreshTime fully traced: wrapper f_10734d18 -> ac_impl vtable 0x10eaa99c +0x44 -> f_102730fc. Backing state is the presence+HH:MM:SS byte block at +0x7ee8..+0x7eeb, maintained by f_10275edc."
      ]
     },
     "GetFormat": {
@@ -9127,7 +9123,7 @@
     },
     "DailyIndexRefreshTime": {
      "evented": true,
-     "description": "evented state variable: appears in AlarmClock LastChange/GENA event notifications",
+     "description": "Evented optional HH:MM:SS daily refresh time. ac_impl stores it as presence byte +0x7ee8 followed by parsed {hour,minute,second} bytes +0x7ee9..+0x7eeb; getter f_102730fc emits empty string when absent or formats the triple with f_10c3d264.",
      "data_type": "string",
      "allowed_values": null,
      "range": null,
@@ -9143,7 +9139,11 @@
        "notes": "AlarmClock1.xml <stateVariable name=DailyIndexRefreshTime sendEvents=yes>string: SCPD-advertised (evented)"
       }
      ],
-     "notes": null
+     "notes": null,
+     "backing_field": "ac_impl +0x7ee8 presence, +0x7ee9 hour, +0x7eea minute, +0x7eeb second",
+     "resolved_findings": [
+      "Backing representation proven by getter f_102730fc and reload/update comparator f_10275edc: empty persisted value clears presence; nonempty HH:MM:SS is parsed and copied into the three time bytes with presence=1."
+     ]
     },
     "TimeFormat": {
      "evented": true,
