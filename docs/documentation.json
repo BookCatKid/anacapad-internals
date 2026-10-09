@@ -142890,21 +142890,87 @@
    ]
   },
   "addrmon": {
-   "name": "netlink interface-address monitor",
-   "summary": "RTM_NEWLINK/RTM_GETLINK via netlink; {\"read error %d %s\",\"incorrect type\",\"unexpected message %X\"}; select events selthrd.RIfAddressMonitor.{reset,data,except,timeout}",
+   "name": "Netlink interface-address and Wi-Fi notification monitor",
+   "summary": "Parses local kernel address, bridge-link and Wi-Fi notifications and forwards them to one registered player callback owner. It has no ordered multi-subscriber list.",
+   "layout": "Constructor0x10537ad8 initializes vptr0x10ee6974, flags+4=0, select-thread owner+8=0, fd bookkeeping+0xc=-1, word+0x10=0, callback owner+0x14=0, rtnl handle+0x18=0 and interface names+0x1c/+0x2d empty. 0x10537b9c copies the two names into17-byte fields, allocates36-byte rtnl handle and opens group mask0x400011. Failure frees/nulls handle and returns0; success returns1. Destruction0x105378b0 closes/frees handle; deleting destructor tail-deletes64-byte monitor.",
+   "ownership": "Exactly one stored callback pointer+0x14, assigned by0x10537c40; this semantically tail-calls select-thread slot+8 to register monitor. Stop0x10537c6c clears callback first and tail-calls retained select-thread slot+0xc to unregister when available. There is no observer array, subscriber traversal or registration ordering. Sole direct start callsite0x1019a88c supplies outer player+0x3a8 callback and outer+0x4d8 select-thread; outer+0x3a8 has vptr0x10e98278. Sole open0x100c1668 supplies br0 and ath0.",
+   "select_interface": "Monitor vptr0x10ee6974: +0/+4 destructors, +8 returns event-name table0x11092540 for reset/data/except/timeout, +0xc returns rtnl fd, +0x10/+0x14 return0, +0x18 reads notifications0x105383cc, +0x1c writes timeval{INT_MAX,0}, +0x20 no-op, +0x24 returns0, +0x28 no-op. This implementation acts on data readiness; it does not periodically poll for address changes.",
+   "wire_parser": "0x105383cc recvfroms up to2048 bytes, requires sockaddr family16, and walks native-endian netlink headers with nlmsg_len>=16 and <=remaining. Each message advances align4(length). Dispatch uses sender nl_groups:16 accepts RTM_NEWADDR20/RTM_DELADDR21;1 accepts RTM_NEWLINK16/RTM_GETLINK18;0x400000 selects custom Wi-Fi events. Unsupported groups log unexpected message %X. Receive failure logs errno/string; non-netlink family logs incorrect type. Returned select timeout is INT_MAX seconds,0 usec.",
+   "address_notifications": "0x10537eb0 requires callback, type20/21 and address family2, resolves ifindex at message+0x14 via SIOCGIFNAME0x8910, then walks attributes at+0x18. Attribute type1 supplies IPv4 octets to0x10537a04, which formats dotted decimal and calls owner+8 for new address or+0xc for deletion. Unlike the link parser, this path does not compare the resolved interface name with br0. Attribute envelopes require len>=4 and <=remaining, but do not separately prove at least4 payload bytes before formatting.",
+   "link_notifications": "0x10537d30 requires callback, (type &0xfffd)==16, successful ifindex-name resolution and exact configured bridge-name match. Walk attributes at message+0x20; type1 calls owner+0x20 with RTM_NEWLINK/RTM_GETLINK text and raw address payload. Concrete player owner slot+0x20=0x1069039c resets the mDNS connection only when0x1068cec8 permits it. It does not notify four independent monitor subscribers.",
+   "wifi_notifications": "0x10538360 handles custom type0 via0x10537fe0, type4 via0x105381a0, and type3 via owner+0x18. Type0/4 attribute walks start+0x10: type0 attribute gives interface name (payload length0..16); six-byte MAC requires attr length10, type1 for custom0 or type6 for custom4. Both name and MAC must be present and name must equal ath0, then dispatch owner+0x10 or+0x1c. Concrete owner+0x10 is no-op; +0x18=0x1068f8cc updates the retained network object through0x1057d4cc and its slot+0x28; +0x1c=0x1068b7d0 tail-delegates owner+0x18. Attribute framing is aligned4, native endian.",
+   "downstream": "Concrete owner+8=0x101935f0 adjusts this and semantically tail-delegates the address-change worker documented under mdns_device. That worker drives rebinding/topology and advertisement lifecycle. Callback+0xc deletion and+0x10 association are no-op in this owner. These are downstream player behaviors, not direct netconfig/mDNS/SSDP/topology registrations on the monitor.",
    "evidence": [
     {
      "type": "firmware",
-     "address": "0x10ee69ac",
-     "notes": "addrmon"
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c1668",
+     "notes": "br0/ath0 names and group-mask opener."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1019a88c",
+     "notes": "Single callback owner and select-thread registration."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10537c40",
+     "notes": "Stores sole callback pointer, tail-registers select watcher."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105383cc",
+     "notes": "Netlink envelope/groups dispatch and error paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10537eb0",
+     "notes": "IPv4 address parser; no configured-name comparison."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10537d30",
+     "notes": "Bridge-link name predicate and owner slot+0x20."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10537fe0",
+     "notes": "Custom Wi-Fi MAC/name schema."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105381a0",
+     "notes": "Custom type4 schema."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1069039c",
+     "notes": "Link callback resets mDNS conditionally."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ee6974",
+     "notes": "Select watcher slots including no-op and infinite timeout."
     }
-   ],
-   "todo": [
-    "Residual: the exact subscriber list registration order (each consumer registers a callback; the 4 consumer identities are proven by their address-change behaviors)."
-   ],
-   "resolved_findings": [
-    "Resolved: notification fan-out = RTM_NEWLINK/RTM_GETLINK netlink events -> selthrd.RIfAddressMonitor.{reset,data,except,timeout} -> netconfig_fsm consumers.",
-    "Fan-out proven: RIfAddressMonitor is a select-thread registrant (selthrd.RIfAddressMonitor.{reset,data,except,timeout}) watching a netlink socket for RTM_NEWLINK/RTM_GETLINK; it formats changed addresses as %u.%u.%u.%u and rejects malformed messages ({read error %d %s, incorrect type, unexpected message %X}). An address/link change fans out to: the netconfig FSM (address re-apply + DHCP state transitions), mDNS (re-announce with new byebyereason sequence + re-resolve), SSDP discovery (rebind/re-notify on the new address), and the topology update (player Location/address fields). This is the link-change event source the other subsystems subscribe to."
    ]
   },
   "audiotap_manager": {
