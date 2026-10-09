@@ -126156,16 +126156,86 @@
    ]
   },
   "play_state_mgr": {
-   "impl": "play_state_mgr.cxx + media_player_{autoplay,mgr,vli_ctrl}.cxx",
-   "files": "/tmp/current_play_state + /tmp/crashed_play_state: crash-recovery state snapshots",
-   "semantics": "[play_state] debug block; media-player orchestration",
-   "todo": [
-    "Established: the crash-recovery state files and orchestration role are identified."
-   ],
-   "serialization": "Crash-recovery snapshot fully decoded. FILE: /tmp/current_play_state, written atomically via tmp+rename ('couldn't rename %s to %s - reason: %s', 'couldn't create %s', 'couldn't update (op %s) current play state file'). CONTENT: a compact XML - '<PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>' - the 32-bit play-state bitmask (transport/queue state), the running PlaybackCount, and InfoCount of attached info records. STATE FEED: the mgr observes bitmask transitions - 'got state change %04x -> %04x (%04x started, %04x stopped), aI %u aP %u' (%04x started/stopped = the per-bit enter/leave sets, aI/aP = active-info/active-play counts), under tag 'playstatemgr'. RESTORE: on restart the file lets the player reconstruct which play-state bits were live and how far the session had progressed - this is what the crash-recovery docs mean by 'state files'. Neighboring playback-policy keys (fullTrackOnly, allowShuffle, allowRepeat, cacheOnPause, stopOnError, clearOnEnd, pauseAtEnd, repeatLastTrack under 'hPlaybackPolicy') name the policy flags the play state is evaluated against.",
-   "resolved_findings": [
-    "Resolved: /tmp/current_play_state = atomic XML snapshot {PlayState 0x%08x, PlaybackCount, InfoCount}; the mgr watches state-bit transitions (started/stopped sets + aI/aP counts) and the hPlaybackPolicy flag vocabulary is named.",
-    "Resolved: snapshot = /tmp/current_play_state (runtime) + /tmp/crashed_play_state (crash residue consumed on next boot for restore). Persisted XML: <PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>. Restore path replays queue files: /trackqueue.rsq + per-playlist iterators {iterateASXPlayList(<ref href=/entryref>), iterateM3UPlayList, iterateWLPPlayList, iteratePLSPlayList}. Queue record fields {QueueID 'val'=%.20s, QueueOwnerID, QueueOwnerContext, QueuePolicy, EnqueuedURIsAndMetaData, CurrentTrackIndex, NewCurrentTrackIndices, UpdateID, Curated}; queue actions {AddURI, AddMultipleURIs, AttachQueue, Backup, CreateQueue, RemoveAllTracks, RemoveTrackRange, ReorderTracks, ReplaceAllTracks, SaveAsSonosPlaylist}; hPlaybackPolicy flags {fullTrackOnly, allowShuffle, allowRepeat, cacheOnPause, stopOnError, clearOnEnd, pauseAtEnd, repeatLastTrack}. Transition trace: 'got state change %04x -> %04x (%04x started, %04x stopped), aI %u aP %u'."
+   "impl": "play_state_mgr.cxx + audiotypes.cxx",
+   "semantics": "Tracks currently active audio-source bits and separate playback/informational counts, publishes state changes, and saves a four-byte crash-diagnostic activity mask.",
+   "description": "This manager remembers which kinds of audio are active, including TV, music-channel input, feedback and setup sounds. It updates activity counts and notifies listeners when the mask changes. A tiny file lets crash reports say what was playing when the player failed; it does not restore a queue or resume playback.",
+   "layout": "Constructor0x1045c4fc initializes event-subject bases, name playstatemgr, owner+0x28, PlaybackCount+0x2c=0, InfoCount+0x30=0, source mask+0x34=0, recursive mutex+0x38 and fd+0xc8=-1. It preserves a prior crash snapshot if appropriate, opens the current file and writes the zero mask. Destructor closes fd, destroys mutex/string and event-subject base. Queries0x1045c65c/+0x1045c740 test PlaybackCount/InfoCount!=0;0x1045c824 tests either nonzero;0x1045c8bc locks around that combined query.0x1045c934 independently formats status XML <PlayStateManager><PlayState>0x%08x</PlayState><PlaybackCount>%d</PlaybackCount><InfoCount>%d</InfoCount></PlayStateManager>. This XML is not the on-disk format.",
+   "source_mask": "Producer0x10673d34(sourceKind,laneByte) maps lane0 kinds0..10 to bits0..10, kind12 to bit11, kind13 to bit12, all other kinds to0. Kinds0..13 are named by table0x10effbec: TV, CHSNK, HTSNK, FEEDBACK, EXT_VOICE+CLIP, EXT_CHIRP, SIDEBAND_FEEDBACK, SETUP_CHIRP, SETUP_DISCOVERY, CHIME, SPEAKER_DETECT, UNKNOWN, TV_SAT, CHSNK_SAT. For lanes1/2/3, only CHSNK/EXT_VOICE+CLIP/EXT_CHIRP are supported: bits13/14/15,16/17/18,19/20/21 respectively. Other lanes return0. Lane masks at0x10effc24 are0x1fff,0xe000,0x70000,0x380000. Informational classification0x10673f28 is bit &0x36c7f8 !=0; all other bits count as playback, including caller-supplied bits outside the producer vocabulary.",
+   "updates": "Start0x1045d734 reads the caller lane byte, gets producer mask and ORs into current mask under mutex. Stop0x1045d7d0 ANDs its complement;0x1045d86c replaces the whole mask under mutex. Core0x1045d584 first ignores exactly equal masks. For all32 bits, newly set bits increment and cleared bits decrement the corresponding informational/playback count. Store new mask, then tail-branch0x1045d6c8 to0x1045c9c0; this is a semantic call and must not be discarded as a return. The prior aggregate-active Boolean is passed but not consumed by the notification worker, so changes within an already-active state also persist and publish.",
+   "events": "0x1045c9c0 writes the file first, then prepares PlaybackStateChangedEvent with new u32 mask and event sequence id (two-word8-byte payload). It queues the event through the configured in-process event loop. With no loop, it logs and records queue failure; the already-updated mask/counts/file are not rolled back. Event subject name comes from playstatemgr. No playback-start command, URI, queue entries, position or decoder state is serialized by this manager.",
+   "persistence": "0x1045c184 checks the JFFS app/debug/anacapad.dmp crash artifact or positive /tmp/backtrace size. If either exists, /tmp/crashed_play_state is absent and /tmp/current_play_state exists, rename current to crashed. Failure logs errno and continues. It opens current with flags0x241 (WRONLY|CREAT|TRUNC), mode0x180 (0600).0x1045c3c8, when fd!=-1, lseek64s to offset0/SEEK_SET, writes exactly4 bytes of the caller mask in native big-endian order, then fsyncs. Seek failure, short write or fsync failure logs the operation/error and does not propagate failure to the state transition. Updates write in place, not atomic replacement; there is no XML parser or restore path.",
+   "crash_consumer": "Crash uploader0x10253c40 reads exactly4 bytes from /tmp/crashed_play_state. It emits multipart field <prefix>[play_state] with classification priority: mask0 idle; CHSNK predicate chsnk; TV predicate tv; HTSNK predicate htsnk; informational mask predicate info; else unknown. Read failure logs expected-byte mismatch. The crash-file cleanup path unlinks crashed_play_state alongside successfully handled crash artifacts. The file is diagnostic evidence, not replayable playback state.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1045c4fc",
+     "notes": "Initial fields, constructor file handling and zero-mask write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10673d34",
+     "notes": "Complete kind/lane-to-bit producer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10effbec",
+     "notes": "Kind-name table and preceding lane masks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10673f28",
+     "notes": "Informational classification mask0x36c7f8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1045d584",
+     "notes": "Equal-mask guard and per-bit count updates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1045d6c8",
+     "notes": "Tail delegation into persistence/event worker."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1045c3c8",
+     "notes": "Seek/write4/fsync file update and error paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1045c184",
+     "notes": "Crash-preservation rename and0600 current file creation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10253c40",
+     "notes": "Four-byte crash snapshot consumer and report classification."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1045c934",
+     "notes": "Separate status XML serializer."
+    }
    ]
   },
   "reporting_policy": {
