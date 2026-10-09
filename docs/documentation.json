@@ -142542,21 +142542,75 @@
   },
   "mdns_controller": {
    "name": "mDNS service controller",
-   "summary": "Service lifecycle: register-once guard (\"Attempted to register ... twice\"), TXTRecord populate, value update/remove with dup guards (\"ignoring duplicate value\",\"ignoring removal of non-existant value\"), unregister; player discovery \"Unable to start mDNS player discovery; error %i\" + QueryRecord; local. domain; \"[%s] vs [%s]\" compare",
+   "summary": "Registers the player and Spotify discovery services, caches their TXT attributes, and updates or removes advertisements. The advertised port comes from each media player's listener configuration; there is no caller-supplied priority argument.",
    "evidence": [
     {
      "type": "firmware",
-     "address": "0x10f0671c",
-     "notes": "mdnscontroller region"
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106bca9c",
+     "notes": "Argument order, cache identity, TXT buffer and registration guards."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106c23e0",
+     "notes": "DNSServiceRegister: flags/interface index0; no priority parameter."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fc83c",
+     "notes": "Loads media-player secure/household secure listener ports for Sonos publisher."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105e083c",
+     "notes": "Stores secure ports at publisher+0x1a8/+0x1aa."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fad30",
+     "notes": "Spotify ctor gets media-player ordinary HTTP listener port+0x32."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10524e40",
+     "notes": "Stores Spotify advertised port+0xd0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10525130",
+     "notes": "Spotify registration loads stored port."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106bcf7c",
+     "notes": "Three update modes, duplicate suppression and commit after successful DNS update."
     }
    ],
-   "todo": [
-    "Residual: per-registration port and priority arguments (service types proven; socket args are call-site data)."
-   ],
    "resolved_findings": [
-    "Resolved: registration calls = the service lifecycle {register-once guard, TXTRecord populate, value update/remove with dup guards, unregister}; service records = the _sonos._tcp TXT set under mdns_device/mdns_stack.",
-    "Service census complete: exactly two service types are registered - _sonos._tcp (the player service, carrying the mdns_device TXT vocabulary) and _spotify-connect._tcp (the Spotify Connect zeroconf advertisement, spotify_zeroconf record); both publish on the local. domain via the register-once path (Attempted to register twice guard, TXTRecord populate, ignoring duplicate value / ignoring removal of non-existant value guards on updates, unregister on teardown). Player discovery uses DNSService Query/Browse (Unable to start mDNS player discovery; error %i; [%s] vs [%s] name compare for self-filtering)."
-   ]
+    "0x106bca9c receives (controller,outKey,instanceString,typeString,u16Port,TXTMap). Cache key is instance+type+decimalPort. Its adapter slot+8 call passes (refOut,instance,type,NULL domain,NULL host,u16Port,TXTlength,TXTbytes,controller). Adapter0x106c23e0 calls DNSServiceRegister(refOut,flags=0,interfaceIndex=0,instance,type,domain,host,port,TXTlength,TXTbytes,callback0x106c233c,context). The zero arguments in the controller call are domain and host, not priority or weight. Anacapad has no registration-priority parameter or setter. Port is passed unchanged on this big-endian target; no separate htons is required here.",
+    "Sonos publisher0x105e410c advertises _sonos._tcp. using u16 publisher+0x1a8, initialized by0x105e083c from constructor arg4. Its sole constructor call0x103fc938 supplies media-player+0x34 (configuration tuple+8, the secure listener port); publisher+0x1aa receives media-player+0x36 (tuple+10, household secure port) and is advertised in TXT hhsslport, not the SRV port. Spotify publisher0x10524f70 advertises _spotify-connect._tcp using u16 publisher+0xd0, stored from ctor arg4 by0x10524d7c at0x10524e40. Sole ctor call0x103fad40 supplies media-player+0x32 (tuple+6, ordinary HTTP listener port). Thus the service ports are configured u16 listener values, not one fixed1400 value for both services. The tuple is copied from the media-player constructor's supplied12-byte configuration; the controller adds no range or nonzero guard.",
+    "Main vptr0x10f066dc: register+8=0x106bca9c; update+0xc=0x106bcf7c; unregister+0x10=0x106bc898; start discovery+0x14=0x106bc5a0; stop discovery+0x18=0x106bc360 (tail-delegates0x106bf878); sequence increment/get+0x1c/+0x20; TXT population+0x24=0x106bc370. Registration uses a2048-byte TXT scratch buffer, locks+0x20, rejects duplicate cache keys and calls the DNS adapter. Errors clear output key and log population/registration error; TXT scratch always deallocates. Successful registration caches map and DNS ref.",
+    "0x106bcf7c modes0=upsert,1=remove named keys,2=replace entire map. Clone stored map, compare lengths and bytes, skip exact duplicate values/maps and absent removals. For a change, build TXT and call adapter+0x10=0x106c258c->DNSServiceUpdateRecord, then commit cache only on success. Unknown service or TXT/DNS error returns0; valid unchanged updates return1. Unregister removes cache entry and deallocates DNS ref. These operations do not bump sequence; the separate sequence and peer parser are fully documented under mdns_device."
+   ],
+   "registration_arguments": "0x106bca9c receives (controller,outKey,instanceString,typeString,u16Port,TXTMap). Cache key is instance+type+decimalPort. Its adapter slot+8 call passes (refOut,instance,type,NULL domain,NULL host,u16Port,TXTlength,TXTbytes,controller). Adapter0x106c23e0 calls DNSServiceRegister(refOut,flags=0,interfaceIndex=0,instance,type,domain,host,port,TXTlength,TXTbytes,callback0x106c233c,context). The zero arguments in the controller call are domain and host, not priority or weight. Anacapad has no registration-priority parameter or setter. Port is passed unchanged on this big-endian target; no separate htons is required here.",
+   "port_producers": "Sonos publisher0x105e410c advertises _sonos._tcp. using u16 publisher+0x1a8, initialized by0x105e083c from constructor arg4. Its sole constructor call0x103fc938 supplies media-player+0x34 (configuration tuple+8, the secure listener port); publisher+0x1aa receives media-player+0x36 (tuple+10, household secure port) and is advertised in TXT hhsslport, not the SRV port. Spotify publisher0x10524f70 advertises _spotify-connect._tcp using u16 publisher+0xd0, stored from ctor arg4 by0x10524d7c at0x10524e40. Sole ctor call0x103fad40 supplies media-player+0x32 (tuple+6, ordinary HTTP listener port). Thus the service ports are configured u16 listener values, not one fixed1400 value for both services. The tuple is copied from the media-player constructor's supplied12-byte configuration; the controller adds no range or nonzero guard.",
+   "lifecycle": "Main vptr0x10f066dc: register+8=0x106bca9c; update+0xc=0x106bcf7c; unregister+0x10=0x106bc898; start discovery+0x14=0x106bc5a0; stop discovery+0x18=0x106bc360 (tail-delegates0x106bf878); sequence increment/get+0x1c/+0x20; TXT population+0x24=0x106bc370. Registration uses a2048-byte TXT scratch buffer, locks+0x20, rejects duplicate cache keys and calls the DNS adapter. Errors clear output key and log population/registration error; TXT scratch always deallocates. Successful registration caches map and DNS ref.",
+   "txt_updates": "0x106bcf7c modes0=upsert,1=remove named keys,2=replace entire map. Clone stored map, compare lengths and bytes, skip exact duplicate values/maps and absent removals. For a change, build TXT and call adapter+0x10=0x106c258c->DNSServiceUpdateRecord, then commit cache only on success. Unknown service or TXT/DNS error returns0; valid unchanged updates return1. Unregister removes cache entry and deallocates DNS ref. These operations do not bump sequence; the separate sequence and peer parser are fully documented under mdns_device."
   },
   "overrideconfig": {
    "name": "/overrideconfig endpoint",
