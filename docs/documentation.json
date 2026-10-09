@@ -140961,23 +140961,142 @@
    ]
   },
   "ssl_sessions": {
-   "name": "mbedTLS session cache",
-   "summary": "{'Cached SSL session for %s:%d','Failed to cache SSL session','SSL connection not established','Received new session ticket during mbedtls_ssl_{read,write,handshake}.'}; client-cache file guards: 'SSL client cache file %s does not exist (%s)','SSL client cache file %s parse failed (%s)','SSL client cache %s name mismatch (%s)'",
+   "name": "Persisted TLS client session cache (standard and household partitions)",
+   "summary": "The speaker saves reusable TLS sessions so later secure connections can resume instead of performing a full handshake. Internet and household connections have separate caches, each limited to 32 sessions in this build. Sessions use the server ticket lifetime, or 24 hours when no lifetime is supplied. Saved cache files are consumed and deleted at startup; saving later recreates them. Household sessions can be refreshed while the device is idle.",
    "evidence": [
     {
      "type": "firmware",
-     "address": "0x10ee6c18",
-     "notes": "ssl session cache"
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105420e4",
+     "notes": "Actual startup call passes32 to singleton initializer"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10565934",
+     "notes": "Two partitions, capacity clamp, JFFS filenames, allocation layout and clocks"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10565dc8",
+     "notes": "Lookup, expiry equality and refresh exclusion predicates"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105693cc",
+     "notes": "Ticket/id identity, replacement, LRU, ticket lifetime or86400 fallback"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105432b8",
+     "notes": "Dataio tail branch reaches host+port invalidator"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1056bbf8",
+     "notes": "TLS invalidation tail branch reaches same primitive"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10565c50",
+     "notes": "Load both caches then unlink both files"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1056a034",
+     "notes": "Magic0x9f83, version1, variable name, count<=32"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1056a290",
+     "notes": "Packed entry fields, per-span bounds, hostname<=255, low-word timestamps"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1056b294",
+     "notes": "Exact sequential native-endian writer and mbedTLS blob dispatch"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105683bc",
+     "notes": "Persisted expiry converted to UTC; access retained as monotonic value"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10568f94",
+     "notes": "Loaded expiry converted back to monotonic; access replaced with load-order rank"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100b9948",
+     "notes": "Idle gate, one refresh within eight-hour lookahead,30-minute retry schedule"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10568524",
+     "notes": "Refresh HTTPS URL,10-second deadline and network/DNS errors"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105676ac",
+     "notes": "Snapshot diagnostic XML"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10566aa4",
+     "notes": "Hit/miss telemetry and counter reset"
     }
    ],
-   "todo": [
-    "Residual: the concrete values the cache config member (+0x28 cap) and per-entry expire times hold - both are config/server-populated fields, no in-image literal."
-   ],
    "resolved_findings": [
-    "Resolved: cache record = Cached SSL session for %s:%d entries + client-cache file guards + new-session-ticket handling during mbedtls ops.",
-    "Cache record format proven (mbedtls): entries keyed host:port (%s:%u) holding serialized mbedtls sessions (entry deserialize failed: -0x%04x on bad blobs); resumption matches by ticket OR id (cache store hit: ticket match / id match). The persisted client cache file (ssl_client_cache status page serves it) enforces a total size cap (too large %zu > %zu), skips expired and duplicate entries on load (skipping expired/duplicate entry for %s:%u), bounds in-memory entries (no space), and reports parsed-vs-stored counts. Live ops: Cached SSL session for %s:%d / Failed to cache SSL session / cache evicted [%s:%u] / SSL session refreshed on new tickets (Received new session ticket during mbedtls_ssl_*). Refresh is idle-gated: Skipping HH SSL cache refresh - device is not idle / next run in %ld seconds.",
-    "Resolved: the 'too large (%zu > %zu)' compare at 0x10568e40 - the cap is *(cacheobj+0x28) vs the serialized entry count at file-blob+8; the limit is a config-populated object member, not a rodata literal. The on-disk grammar is proven by the parse-error vocabulary: {magic number, format version, entry count} header + per-entry fields {port, hostname len+data, access time, expire time, sdxf flags, sdxf id, sdxf hhid, sdxf sonosId, session len+data} with pointer-range validation, plus refresh triggers 'per FCS' and 'after UTC time became available'."
-   ]
+    "dataio init 0x105420e4 calls singleton initializer 0x10567054(32,0,0); global pointer 0x11097390 owns new(0x8c8), ctor 0x10565934. Two caches at manager+4 (standard) and +8 (hh). Standard maximum=min(caller_limit,32); actual caller_limit=32. HH maximum is literal 32 at 0x10565b20. Each cache initially allocates 8 entries of stride 0x200 in a 0x1008 block, expanding in eight-entry blocks up to the configured entry limit. Paths are constructJFFSRootPath(sys/run/standard_ssl_client_cache.dat) and constructJFFSRootPath(sys/run/hh_ssl_client_cache.dat), buffers manager+0xc and +0x40c; shared mutex manager+0x810. Default monotonic-seconds clock is vtable 0x11089e3c slot+8=0x1098b4c0 via sonosClockGetTime(1); default UTC-seconds clock is vtable 0x11089e6c slot+8=0x1098b430 via gettimeofday. Clock interfaces can be injected via ctor args.",
+    "0x105661c4 caches only connections whose session at ssl_context+0x30 has nonzero id length(+0x10) or ticket length(+0x70); otherwise result0. It locks and calls 0x105693cc for the selected partition. Existing host+port: nonempty ticket is matched by length+memcmp; without a ticket use nonempty session ID length+memcmp. A same-session hit updates access time, clears refresh-in-progress and records last-refresh when needed, without extending expiry. Changed or new sessions use mbedtls_ssl_get_session. Expiry=monotonic_now+session.ticket_lifetime(+0x74), falling back to 0x15180=86400 seconds when zero. On capacity exhaustion, evict entry with smallest last-access time; comparison ties retain first encountered candidate. Free/unlink and zero the session on eviction or replacement failure. New-session get_session failure logs get session failed and returns1 before insertion; this success-like return does not prove a cached entry exists. Store callers include handshake/read/write paths 0x105433f4/0x1054441c, TV/data streams 0x104e9098/0x104e9314/0x104e94b4, and client TLS 0x1056bfc8/0x1056c028. Cache reuse is host+port keyed within each partition, not keyed by an HTTP request object.",
+    "Loader 0x10565c50 holds the manager mutex, loads standard then hh through 0x10568b7c, and unlinks BOTH filenames regardless of parse success. Reader 0x1056aac8 accepts file sizes 1..0x20000 (131072) and parses header 0x1056a034, then each entry via 0x1056a290. Header name must match partition name; declared entries <= cache max. Loader skips expiry <= UTC now and duplicate host+port entries; failure to allocate or mbedtls_ssl_session_load error skips that entry. Convert persisted expiry from UTC seconds to monotonic expiry: disk_expiry-UTC_now+monotonic_now. Last-access is assigned increasing load-order rank, not restored from the serialized access value. Parsed entry validator 0x1056b078 additionally requires nonzero port, first hostname byte, access, expiry, blob pointer, blob length. Save 0x10567d84 locks and saves both partitions, removing positive expiries <=monotonic_now first. Empty partitions do not write a new file. Expiry is serialized as expiry-monotonic_now+UTC_now; access is sign-extended current in-memory access (not converted to UTC). Writer 0x10569de4 initializes buffered file output, 0x1056b0e8 emits header, 0x1056b294 each entry, 0x1056b5ac serializes mbedTLS data. 0x10569cc4 queries required serialized size; 0x1056b5ac requires actual size==expected, uses stack buffer <=1024 else heap. Success 0x10569e9c flushes/fsyncs/closes; failure 0x10569ee4 closes and unlinks partial output. These files are not a continuously mirrored database.",
+    "0x10566f40 installs feature provider manager+0x8b0 and host eligibility callback+0x8b4. 0x105670f8 requires provider slot+0x58 enableSslClientCacheRefresh, snapshots unexpired HH entries under mutex and releases it before network work. Apply caller max-successful-refresh count and expiry lookahead cutoff; host predicate must accept. Mark matched entry refresh-in-progress under lock, then manager vtable+0 calls 0x10568524 with saved SDXF identity. This opens https://host:port with a 10000ms deadline and Sonos cert-validation configuration; network errors 0x80000007/0x80000025 and DNS 0x81000003 return failure, while an actual HTTP response can refresh the TLS state. The stored flag prevents resumption during refresh, and a subsequent store clears it. Timed job 0x100b9948 runs only when topology reports idle, calls refresh(max_successes=1,lookahead=0x7080=28800s), and schedules immediately after one success or 0x708=1800s later when none. An explicit nonempty job argument bypasses this idle refresh body and takes the normal 1800s schedule."
+   ],
+   "initialization": "dataio init 0x105420e4 calls singleton initializer 0x10567054(32,0,0); global pointer 0x11097390 owns new(0x8c8), ctor 0x10565934. Two caches at manager+4 (standard) and +8 (hh). Standard maximum=min(caller_limit,32); actual caller_limit=32. HH maximum is literal 32 at 0x10565b20. Each cache initially allocates 8 entries of stride 0x200 in a 0x1008 block, expanding in eight-entry blocks up to the configured entry limit. Paths are constructJFFSRootPath(sys/run/standard_ssl_client_cache.dat) and constructJFFSRootPath(sys/run/hh_ssl_client_cache.dat), buffers manager+0xc and +0x40c; shared mutex manager+0x810. Default monotonic-seconds clock is vtable 0x11089e3c slot+8=0x1098b4c0 via sonosClockGetTime(1); default UTC-seconds clock is vtable 0x11089e6c slot+8=0x1098b430 via gettimeofday. Clock interfaces can be injected via ctor args.",
+   "fields": "Cache +0x00=name, +4=monotonic clock, +8=UTC clock, +0xc/+0x10=ordered intrusive-list head/tail, +0x14=live count, +0x18..+0x27=allocated block pointers, +0x28=maximum entries, +0x2c=allocated block count, +0x30=hits, +0x34=misses. Entry +0=vptr, +4/+8/+0xc=next/previous/list owner, +0x10=u16 port, +0x12=256-byte hostname, +0x114=i32 last-access monotonic seconds, +0x118=i32 expiry monotonic seconds, +0x11c=i32 last-refresh time, +0x120=0x88-byte mbedTLS session, +0x1a8=0x54-byte SDXF identity/configuration, +0x1fc=refresh-in-progress flag. Vtable 0x10eec46c slots+8/+0xc are entry comparison functions 0x10568994/0x10568918: case-insensitive hostname followed by numeric port. Insertion places keys in descending comparator order; lookup stops when comparison <0.",
+   "lookup": "TLS context setup 0x1056d77c sets hostname and BIO before cache load 0x10565dc8 at 0x1056d87c. SDXF flag bit0 selects household vs standard. Under manager lock, lookup finds case-insensitive host+port; refresh-in-progress entries cannot resume. Expiry <=0 is treated as no expiry by live lookup; positive expiry <= monotonic_now is evicted, including equality. Otherwise update last-access, call mbedtls_ssl_set_session; only return0 from mbedTLS produces cache result1 and increments hits. Missing, refreshing, expired, or set-session failure returns0 and increments misses. Cache miss does not reject connection setup; full handshake remains available.",
+   "store": "0x105661c4 caches only connections whose session at ssl_context+0x30 has nonzero id length(+0x10) or ticket length(+0x70); otherwise result0. It locks and calls 0x105693cc for the selected partition. Existing host+port: nonempty ticket is matched by length+memcmp; without a ticket use nonempty session ID length+memcmp. A same-session hit updates access time, clears refresh-in-progress and records last-refresh when needed, without extending expiry. Changed or new sessions use mbedtls_ssl_get_session. Expiry=monotonic_now+session.ticket_lifetime(+0x74), falling back to 0x15180=86400 seconds when zero. On capacity exhaustion, evict entry with smallest last-access time; comparison ties retain first encountered candidate. Free/unlink and zero the session on eviction or replacement failure. New-session get_session failure logs get session failed and returns1 before insertion; this success-like return does not prove a cached entry exists. Store callers include handshake/read/write paths 0x105433f4/0x1054441c, TV/data streams 0x104e9098/0x104e9314/0x104e94b4, and client TLS 0x1056bfc8/0x1056c028. Cache reuse is host+port keyed within each partition, not keyed by an HTTP request object.",
+   "invalidation": "0x1056634c removes matching host+port from both partitions and frees its mbedTLS session. All three external delegates are semantic tail calls: dataio 0x105432b8, TLS layer 0x1056bbf8, and wrapper 0x1056c30c branch to this function. 0x105665cc clears both cache lists under lock; certificate/client-config changes call it at 0x1056d3d0/0x1056d568, plus tail delegate 0x1056e42c. Destructor 0x10565550 clears entries, frees all allocation blocks, and destroys stored refresh callback. 0x10567660 deletes singleton through manager vtable+8 and zeros the global. Manager vtable 0x10eec484: +0=refresh connection 0x10568524, +4=destructor 0x10565550, +8=deleting destructor 0x10565900.",
+   "persistence": "Loader 0x10565c50 holds the manager mutex, loads standard then hh through 0x10568b7c, and unlinks BOTH filenames regardless of parse success. Reader 0x1056aac8 accepts file sizes 1..0x20000 (131072) and parses header 0x1056a034, then each entry via 0x1056a290. Header name must match partition name; declared entries <= cache max. Loader skips expiry <= UTC now and duplicate host+port entries; failure to allocate or mbedtls_ssl_session_load error skips that entry. Convert persisted expiry from UTC seconds to monotonic expiry: disk_expiry-UTC_now+monotonic_now. Last-access is assigned increasing load-order rank, not restored from the serialized access value. Parsed entry validator 0x1056b078 additionally requires nonzero port, first hostname byte, access, expiry, blob pointer, blob length. Save 0x10567d84 locks and saves both partitions, removing positive expiries <=monotonic_now first. Empty partitions do not write a new file. Expiry is serialized as expiry-monotonic_now+UTC_now; access is sign-extended current in-memory access (not converted to UTC). Writer 0x10569de4 initializes buffered file output, 0x1056b0e8 emits header, 0x1056b294 each entry, 0x1056b5ac serializes mbedTLS data. 0x10569cc4 queries required serialized size; 0x1056b5ac requires actual size==expected, uses stack buffer <=1024 else heap. Success 0x10569e9c flushes/fsyncs/closes; failure 0x10569ee4 closes and unlinks partial output. These files are not a continuously mirrored database.",
+   "wire_format": {
+    "byte_order": "Target-native big-endian scalar writes, with no per-field alignment padding. mbedTLS blob is length-delimited library serialization; this cache never decodes its internal fields.",
+    "header": "u16BE magic 0x9f83; u8 version=1; u8 name_length; name bytes without NUL; u8 entry_count. Reader rejects count>32, wrong magic/version and out-of-range spans; writer requires name length1..255 and count<=255, while actual cache never exceeds32.",
+    "entry": "u16BE port; u16BE hostname_length; hostname bytes without NUL; i64BE access time; i64BE UTC expiry time; u8 SDXF flags; 25 bytes SDXF id; 33 bytes SDXF household id; 17 bytes SDXF Sonos id; u16BE session_blob_length; serialized session bytes. Total=98+hostname_length+blob_length. Reader retains low32 time words in its i32 fields; every span has pointer/base/end and subtraction-based length validation before access. Hostname length<=255 on read; writer allows1..65535 but its stored hostname is limited to255. Session length writer requires1..65535. No trailing-file exhaustion check exists after declared entries.",
+    "reader_record": "new parser object stores name at +4, declared count+0x104, list+0x108/+0x10c/count+0x110, 32 entry records stride0x178 starting+0x114, file buffer+0x3014/size+0x3018. Parsed entry +0x10=port,+0x12=hostname,+0x114=low access,+0x118=low expiry,+0x11c=SDXF,+0x170=blob pointer,+0x174=blob length. This differs from the live-entry layout."
+   },
+   "refresh": "0x10566f40 installs feature provider manager+0x8b0 and host eligibility callback+0x8b4. 0x105670f8 requires provider slot+0x58 enableSslClientCacheRefresh, snapshots unexpired HH entries under mutex and releases it before network work. Apply caller max-successful-refresh count and expiry lookahead cutoff; host predicate must accept. Mark matched entry refresh-in-progress under lock, then manager vtable+0 calls 0x10568524 with saved SDXF identity. This opens https://host:port with a 10000ms deadline and Sonos cert-validation configuration; network errors 0x80000007/0x80000025 and DNS 0x81000003 return failure, while an actual HTTP response can refresh the TLS state. The stored flag prevents resumption during refresh, and a subsequent store clears it. Timed job 0x100b9948 runs only when topology reports idle, calls refresh(max_successes=1,lookahead=0x7080=28800s), and schedules immediately after one success or 0x708=1800s later when none. An explicit nonempty job argument bypasses this idle refresh body and takes the normal 1800s schedule.",
+   "diagnostics": "0x105676ac snapshots both partitions under lock and emits SSLClientCache XML {Name,CurrentEntries,MaxEntries,Entry:{HostName,Port,LastAccessTime,ExpireTime,TimeSinceLastAccess,TimeToExpire,TimeSinceLastRefresh}}; it filters positive expiries <=now. HTTP status delegate at 0x105eb9d8 is a tail branch to this serializer. 0x10567b50 returns access/expiry/time-to-expire for one host+port, standard before hh, without evicting expiry. Telemetry 0x10566aa4 emits standard/hh hit+miss counts and refresh-enabled flag as PlayerSSLCache, then zeros counters; no event is emitted if all counters zero. Daily report wrapper 0x10566ecc reschedules now+86400s. Cache APIs return booleans or silent void plus ssl_client_cache logs; underlying mbedTLS deserialization codes are preserved as negative hex diagnostics. No SOAP fault or request dispatch is involved."
   },
   "http_client": {
    "name": "async HTTP client (curl multi + asio)",
