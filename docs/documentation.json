@@ -14238,7 +14238,7 @@
      ]
     },
     "GetButtonState": {
-     "description": "Returns button state via impl->v[+0x8].",
+     "description": "Returns the button-notify observation accumulator, not a simple current pressed/unpressed bit. A valid call while button-notify config mode is active returns up to four distinct observed input IDs, each formatted as NAME:PRESS_COUNT:AGE_SECONDS from the RZPDevicePropertiesStP observation table. Outside button-notify mode the implementation returns fault 401.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073799c",
@@ -14263,148 +14263,204 @@
      "inputs": {},
      "outputs": {
       "State": {
-       "description": "button lock/panel state read from device state by impl 0x107378d0 and emitted as 'State'",
+       "description": "Button-notify observation snapshot produced by RZPDevicePropertiesStP::GetButtonState (f_1035a7ec). The worker scans four 12-byte records at impl+0x1a4c and appends each occupied record as NAME:PRESS_COUNT:AGE_SECONDS.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "text",
-       "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "semantic_type": "button-observation snapshot string",
+       "format": "zero to four records concatenated directly with no inter-record delimiter; each record is NAME:PRESS_COUNT:AGE_SECONDS",
+       "unit": "PRESS_COUNT is a 16-bit event count; AGE_SECONDS is monotonic seconds since the most recent press",
+       "accepted_values": "NAME is selected from the event enum accepted by the recorder: AMP, LEDS, IR, HEADPHONE, SUBWOOFER, ORIENTATION, BUTTON_PLAYPAUSE, BUTTON_VOL_UP, BUTTON_VOL_DN, BUTTON_JOIN, BUTTON_MODE, BUTTON_POWER, BUTTON_MICMUTE, BUTTON_PAIRING, CAPZONEA, CAPZONEB, CAPZONEC, CAPZONEM. Empty string is valid when observation mode is active but no records are occupied.",
+       "range": "0 to 4 occupied records; PRESS_COUNT is stored as uint16; output buffer capacity is 0x400 bytes",
+       "special_values": "empty string means no recorded press/event entries since button-notify observation was started",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x10737924 inside impl 0x107378d0; emitted via the response writer",
+       "default": "empty string on successful query before any qualifying event has been recorded",
+       "validation": "No caller-supplied State value is parsed. f_107378d0 supplies a fixed 0x400-byte buffer to RZPDevicePropertiesStP vtable slot +0x68 (f_1035a7ec); the worker bounds every append with __snprintf_chk and faults with 501 if formatting reports failure or would consume the remaining capacity.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737924",
-         "notes": "'State' arg-name load in impl 0x107378d0"
+         "function": "0x1035a7ec",
+         "address": "0x1035a8c0",
+         "notes": "GetButtonState worker scans impl+0x1a4c..+0x1a7b and formats occupied records."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107378d0",
-         "notes": "impl emits this output"
+         "function": "0x1035a7ec",
+         "address": "0x1035a91c",
+         "notes": "__snprintf_chk call using format %s:%d:%ld, with name, uint16 count, and current-minus-record timestamp."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1035d1a0",
+         "address": "0x1035d2f4",
+         "notes": "Press-event updater writes event ID, increments uint16 count, and refreshes timestamp in a 12-byte record."
         }
        ],
-       "notes": null
+       "notes": "Record layout at impl+0x1a4c, stride 0x0c: +0 u32 event ID, +4 monotonic timestamp, +8 u16 press count. f_1035d1a0 updates at most four distinct IDs while observation flag impl+0x1a48 is set; a repeated ID increments its count and refreshes its timestamp. The getter computes AGE_SECONDS as sonosClockGetTime(1)-record.timestamp."
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "The wrapper f_1073799c first calls TRequest vtable +0x08 (f_10730414). f_10730414 returns success immediately when the request contains zero parsed input records, which is the normal shape for this no-input action. If parsed records exist, each is materialized/validated and a failed record returns false; the wrapper maps that false result to SOAP fault 402. On success the wrapper tail-calls f_107378d0, which invokes RZPDevicePropertiesStP slot +0x68.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1073799c",
-        "notes": "wrapper family decode"
+        "function": "0x1073799c",
+        "address": "0x107379c8",
+        "notes": "TRequest +0x08 validation call; false path loads 0x192 and faults at 0x10737a1c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730414",
+        "address": "0x1073051c",
+        "notes": "TRequest validateInputs returns true immediately when parsed-input count at request+0x3a68 is zero."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8]",
+      "description": "The device must be in DeviceProperties config mode 'button-notify'. EnterConfigMode's button-notify arm calls f_1035d0c8, which sets impl+0x1a48=1 and clears the 0x30-byte observation table. ExitConfigMode mode 2 calls f_1035d13c, which clears impl+0x1a48. GetButtonState returns 401 when that flag is not set.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073799c",
-        "notes": "req-vfunc call map: {'0x14': 1}"
+        "function": "0x10364848",
+        "address": "0x10364adc",
+        "notes": "button-notify EnterConfigMode arm calls f_1035d0c8."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10363050",
+        "address": "0x10363198",
+        "notes": "ExitConfigMode mode 2 logs exiting button-notify and calls f_1035d13c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1035a7ec",
+        "address": "0x1035a850",
+        "notes": "GetButtonState tests the observation-enable byte at impl+0x1a48."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8]",
+      "description": "Reads RZPDevicePropertiesStP observation flag +0x1a48 and the four-record table +0x1a4c..+0x1a7b under the class mutexes at +0x268 and +0x19b8. Each record is {u32 event_id, u32 monotonic_timestamp, u16 count}. The current monotonic time comes from sonosClockGetTime(1).",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073799c",
-        "notes": "member vfunc calls: ['r4 v[+0x8]']"
+        "function": "0x1035a7ec",
+        "address": "0x1035a844",
+        "notes": "Locks +0x268 and +0x19b8, checks +0x1a48, then scans +0x1a4c in 0x0c-byte strides."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1035d1a0",
+        "address": "0x1035d2f0",
+        "notes": "Updater accesses record count at +8, ID at +0, and timestamp at +4."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only; no delegate (inline member read; out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Read-only query with respect to the observation data. The worker acquires/releases two mutexes and writes only the caller-provided response buffer; it does not modify the observation flag, records, or device settings.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1073799c",
-         "notes": "impl vfunc delegate path: inline member read; out-arg (call-derived member-method semantics)"
+         "function": "0x1035a7ec",
+         "address": "0x1035a844",
+         "notes": "Worker locks/unlocks +0x268/+0x19b8; record fields are only loaded in this function."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only; no delegate (inline member read; out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "none. GetButtonState emits no GENA/settings/internal notification. Observation records are populated asynchronously by the input-event callback f_1017fcd4 -> f_1035d1a0, not by this query.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073799c",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1035a7ec",
+        "notes": "Complete worker call path contains locks, clock/name lookup, snprintf, and no notify-family call."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1017fcd4",
+        "address": "0x1017fce4",
+        "notes": "Zone-player event callback tail-calls f_1035d1a0 to populate observation records."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8]",
+      "description": "none in GetButtonState. Capture lifecycle is controlled separately: entering button-notify sets +0x1a48 and clears the table; exiting clears +0x1a48; qualifying press callbacks update table entries.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073799c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]']"
+        "function": "0x1035d0c8",
+        "address": "0x1035d104",
+        "notes": "Observation start sets +0x1a48=1 and memsets four records."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1035d13c",
+        "address": "0x1035d178",
+        "notes": "Observation stop clears +0x1a48."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Wrapper validation failure emits 402. After validation, f_107378d0 calls RZPDevicePropertiesStP::GetButtonState (f_1035a7ec) through delegate slot +0x68 with a 0x400-byte buffer. Worker rc 0 allocates/writes output 'State' via TRequest +0x24 and output-record +0x10, then commits via TRequest +0x0c. Any nonzero worker rc is passed verbatim to TRequest +0x14 at 0x10737990. Proven worker codes are 401 when button-notify observation is inactive and 501 on formatter failure/capacity exhaustion.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073799c",
-        "notes": "commit/fault slot usage: {'0x14': 1}"
+        "function": "0x107378d0",
+        "address": "0x1073790c",
+        "notes": "Calls delegate vtable +0x68 with stack buffer and capacity 0x400."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107378d0",
+        "address": "0x10737930",
+        "notes": "Success obtains output record 'State', writes buffer, then commits at 0x10737958."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107378d0",
+        "address": "0x10737990",
+        "notes": "Nonzero implementation rc is passed directly to TRequest fault slot +0x14."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -14417,33 +14473,30 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "const; TRequest validation",
+       "meaning": "TRequest input-record validation failed before the action implementation was entered.",
        "fault_sites": [
         "0x10737a1c"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "TRequest::validateInputs (f_10730414) returned false. The method short-circuits true when the parsed-input count is zero; if records exist, a record with failed validation flags returns false. A normal no-input GetButtonState request therefore takes the zero-record success path.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073799c",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x10730414",
+           "address": "0x107304cc",
+           "notes": "Failed per-record validation returns 0."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073799c",
-           "notes": "parse vcalls then fault path"
+           "function": "0x1073799c",
+           "address": "0x10737a00",
+           "notes": "Wrapper loads literal 0x192 after validateInputs returned false."
           }
          ]
         }
@@ -14453,35 +14506,94 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073799c",
-         "notes": "0x192 fault constant in handler"
-        },
+         "function": "0x1073799c",
+         "address": "0x10737a1c",
+         "notes": "Tail dispatch to TRequest fault slot +0x14 with code 402."
+        }
+       ]
+      },
+      {
+       "code": 401,
+       "code_expr": "vret(f_1035a7ec)",
+       "meaning": "Button-state observation is not active because the device is not in button-notify config mode.",
+       "fault_sites": [
+        "0x10737990"
+       ],
+       "conditions": [
+        {
+         "description": "RZPDevicePropertiesStP::GetButtonState sees impl+0x1a48 clear. The worker initializes rc=401 and returns that code without formatting records; f_107378d0 forwards it unchanged to TRequest +0x14.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1035a7ec",
+           "address": "0x1035a818",
+           "notes": "Worker initializes return code to 0x191 (401)."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1035a7ec",
+           "address": "0x1035a850",
+           "notes": "Observation-enable byte impl+0x1a48 gates the record-formatting path."
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073799c",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
          "function": "0x107378d0",
-         "lits": [],
-         "passthrough_exits": 4
+         "address": "0x10737990",
+         "notes": "Dynamic implementation rc passthrough to TRequest fault emitter."
         }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x10737a1c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
+      },
+      {
+       "code": 501,
+       "code_expr": "vret(f_1035a7ec)",
+       "meaning": "Formatting the State string failed or would exhaust the remaining caller-provided output capacity.",
+       "fault_sites": [
+        "0x10737990"
+       ],
+       "conditions": [
+        {
+         "description": "__snprintf_chk returned a negative value or a length not smaller than the remaining capacity; the worker sets rc=501. In this action the supplied capacity is 0x400 and there are only four bounded static-name records, so the length-overflow arm is defensive and cannot be reached by the documented record set.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1035a7ec",
+           "address": "0x1035a920",
+           "notes": "__snprintf_chk formats %s:%d:%ld into the remaining output capacity."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1035a7ec",
+           "address": "0x1035a940",
+           "notes": "Formatter failure/capacity branch sets 0x1f5 (501)."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107378d0",
+         "address": "0x1073790c",
+         "notes": "Action body supplies a fixed 0x400-byte buffer to the worker."
+        }
+       ],
+       "notes": "The 501 branch exists in the worker, but the static four-entry table and enum-name bounds are far below 0x400 bytes."
       }
      ],
      "firmware_differences": [],
@@ -14492,28 +14604,46 @@
        "build": "86.10-80260",
        "function": "0x1073799c",
        "address": "0x1073799c",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x10f11978",
-       "notes": "action dispatch table entry"
+       "notes": "Action wrapper: TRequest validation, 402 path, and success tail-call to f_107378d0."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x107378d0",
-       "notes": "impl vtable 0x10e98278 (no impl vfunc - handler-body impl); handler-body impl: parse via req v[+0x08] then tail f_107378d0"
+       "address": "0x1073790c",
+       "notes": "Handler body invokes DeviceProperties implementation delegate vtable slot +0x68."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1035e5ac",
+       "address": "0x1035e928",
+       "notes": "RZPDevicePropertiesStP constructor installs primary vtable 0x10ebd214."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ebd27c",
+       "notes": "RZPDevicePropertiesStP primary vtable slot +0x68 points to f_1035a7ec."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104d49e8",
+       "address": "0x104d4a80",
+       "notes": "DeviceProperties service binding copies the implementation shared_ptr into service+0x4/+0x8."
       }
      ],
-     "notes": null,
-     "implementation_notes": "Outputs recovered from arg-name string loads inside the impl function (extractor missed them).",
-     "todo": [
-      "Established: direct dispatch to handler 0x1073799c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "notes": "The old annotation that this action used an inline read or a runtime-injected delegate was incorrect. The full service-to-RZPDevicePropertiesStP binding and slot +0x68 worker are statically recoverable in this image.",
+     "implementation_notes": "Wrapper f_1073799c validates TRequest and tail-calls f_107378d0. Body f_107378d0 calls the concrete RZPDevicePropertiesStP implementation at vtable 0x10ebd214 slot +0x68 = f_1035a7ec. Implementation object binding: service+0x4 <- f_104d49e8(shared_ptr at media-player+0x19b8).",
+     "resolved_findings": [
+      "Concrete implementation binding recovered: DeviceProperties service+0x4 is populated by f_104d49e8 from media-player+0x19b8. That shared pointer holds an RZPDevicePropertiesStP object constructed by f_10351904/f_1035e5ac; primary vtable 0x10ebd214 slot +0x68 = f_1035a7ec, the GetButtonState worker.",
+      "Button-notify capture decoded: f_1035d0c8 enables impl+0x1a48 and clears four 12-byte records; f_1035d13c disables it; f_1017fcd4 -> f_1035d1a0 records press events (event+4==1) for IDs 1..18, reusing a matching/empty slot, incrementing a u16 count and updating the monotonic timestamp.",
+      "GetButtonState serialization decoded: each occupied record is appended as %s:%d:%ld = event-name:press-count:seconds-since-last-press, with no inter-record delimiter. Empty table returns an empty State string. Worker rc domain is {0,401,501}; wrapper also has TRequest-validation fault 402."
      ]
     },
     "GetHouseholdID": {
@@ -22252,11 +22382,11 @@
     "desired_attrs": "action params {DesiredIcon,DesiredConfiguration,DesiredTargetRoomName,DesiredButtonLockState,DesiredLEDState,KeepGrouped}; ops {SetZoneAttributes,SetButtonLockState,SetLEDState,AddHTSatellite,RemoveHTSatellite,AddBondedZone,RemoveBondedZones}; VliPropertiesChangedEvent processing"
    },
    "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
+    "Established: the service object, action dispatcher, and concrete RZPDevicePropertiesStP implementation binding are statically resolved; implementation vtable 0x10ebd214 is proven.",
+    "Residual: finish each remaining action record individually by tracing its wrapper/body to the corresponding RZPDevicePropertiesStP vtable slot and exhausting that worker's state, faults, side effects, and outputs. Do not treat the old runtime-injected-delegate boundary as valid for this service."
    ],
    "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
+    "DeviceProperties implementation binding is statically proven. The embedded service object is zone-player+0x3fa2c (getter f_1019db60; secondary-base adjustor f_1019db74). The service pointer is stored at media-player-manager+0xbc by f_1040c02c, passed into the media-player object at +0x220 by f_103fa434, and f_103fd65c calls f_104d49e8 with service=r3 and shared_ptr(media-player+0x19b8)=r5. f_104d49e8 copies that shared_ptr into service+0x4/+0x8. The pointed object is constructed by f_10351904 as RZPDevicePropertiesStP, whose final primary vtable is 0x10ebd214. Per-action delegate slots can therefore be resolved statically from that vtable."
    ]
   },
   "/GroupManagement/Control": {
