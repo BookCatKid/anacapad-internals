@@ -125259,18 +125259,51 @@
    ]
   },
   "usage_data_sharing": {
-   "key": "'share_usage' replicated setting -> RUsageDataSharing; 'usageDataSharing refreshed, optin changed to: %d': opt-in telemetry consent",
    "impl": "usagedatasharing.cxx",
-   "todo": [
-    "Established: the share_usage replicated key and opt-in toggle are identified."
-   ],
-   "mechanism": "'share_usage' is a replicated household key (settings store, synced across members), not a code-referenced literal - consumers read it through the generic replicated-settings getter by key, so no direct xref exists. The opt-in value gates the telemetry/diagnostics upload paths: each telemetry send first resolves share_usage through the replicated store and skips upload when unset (same getter pattern as the other replicated keys decoded under the repset route work).",
-   "optin_mechanics": "CORRECTION: 'share_usage' is a dead mntmgr.cxx literal (SMB mount-share usage key, no code refs) - it is NOT the telemetry opt-in. The real opt-in decoded at f_10577870 (usagedatasharing.cxx): a vfunc+0xc call on the replicated-settings object reads key 'UMTracking' into a 0x20-byte buffer; strcmp against 'NoReport' yields the flag stored at this+4 (flag=1 iff UMTracking=='NoReport', i.e. the field is the opt-OUT state). On change the new value is cached at this+9 and a change event posts. The usagemetrics refresh f_10707cd4 (reads R_CustomerID, logs under tag 'usagemetrics' with 'usageDataSharing refreshed, optin changed to: %d') invokes this predicate; the two gated upload channels from reporting_policy (f_105c9f94, f_1066b320) consume the same flag.",
-   "key_surface": "usagedatasharing.cxx string set: keys {RUsageDataSharing, UMTracking} both compared against 'NoReport' - RUsageDataSharing is the R_* system-property form; UMTracking the replicated-key form read via vfunc+0xc at f_10577870",
-   "value_vocabulary": "only distinguished value is 'NoReport' (opt-out sentinel) - any other/unset value opts in; no second literal appears in the module, so the accepted vocabulary is open-ended beyond the sentinel",
-   "resolved_findings": [
-    "Established: complete value vocabulary - 'NoReport' is the only distinguished literal; dual key surface {RUsageDataSharing R-prop, UMTracking replicated} both gated on the same sentinel.",
-    "Resolved: opt-in state object (usagedatasharing.cxx) layout {+4 isNoReport u32, +8 has-value byte, +9 opt-in string buf[0x20], +0x30 mutex}. Setter stores strcmp(buf,'NoReport') into +4 and buf[0]!=0 into +8. Getter f_105776d8 = isOptedIn = !*(+4). Gating callers proven: UsageMetrics periodic submission ('Checking for periodic submission','Skip submitting daily WD info'), event_reporter_v3 submissions (/tmp/event_reporter_v3, /jffs/sys/log/event_reporter_v3), reporting-domain submit paths (0x1055bad4/0x1055d168), watchdog/diag submit path (watchdog_log/watchdog_dmesg strings at 0x10253728 site), wifi slow-report path ('Wireless hops to first-wire' at 0x1069536c). Sibling getter f_10577748 returns +4-based flag to 7 sites incl. GCUUID zone-config and diag submit paths."
+   "semantics": "A mutex-protected, three-state usage-consent cache supplies separate strict upload and permissive collection predicates.",
+   "description": "Usage consent distinguishes an unread setting from permission and explicit refusal. Optional collectors may run before initialization, while ordinary uploads require permission. The exact string NoReport refuses sharing; other successfully read strings permit it.",
+   "key_surface": "UMTracking is read through the replicated-settings interface at vtable+0xc into a 32-byte buffer. RUsageDataSharing is the mutex name, not a second property read in this module. share_usage is unrelated SMB text and is not this consent key.",
+   "state_layout": "Singleton 0x10577408 constructs object 0x110a5710 with vptr 0x10eeec5c, signed state +4=-1 (uninitialized), initialization marker +8=0, cached string +9 empty, word +0x2c=2, mutex +0x30. States: -1 unread, 0 permitted, 1 explicitly refused. Destructor tail-calls mutex destruction; deleting destructor tail-calls sized delete (0xc0).",
+   "initialization": "0x10577520 returns +8 immediately when nonzero. Otherwise a successful UMTracking read, or a null settings interface, copies the initially empty/read buffer and sets +4=(strcmp(value,NoReport)==0), under the mutex and a second +8 check. +8 becomes (cached string is nonempty). A failed getter copies the empty buffer without changing +4. Thus empty successful values permit sharing but remain retryable; failure preserves the previous state.",
+   "writers": "0x10577664 stores callerConsent XOR 1 under the mutex, without changing string or marker. Reporting facade 0x105591b0 tail-calls that setter. This API expects a Boolean caller value; the setter itself does not normalize or validate it. Refresh 0x10577870 ignores null interfaces and failed reads, otherwise copies the string and stores the comparison result under the mutex, returning whether the numeric state changed. It does not set +8 or publish an event. Usagemetrics 0x10707cd4 consumes that change result only for logging.",
+   "predicates": "Strict 0x105776d8 returns state==0. Permissive 0x10577748 returns unsigned(state+1)<2, accepting -1 and 0. Invalid caller-written values outside {-1,0,1} fail both predicates unless their arithmetic wraps to those accepted states. Both predicates lock +0x30. Helpers 0x105777c4 and 0x1057783c perform mutex ownership assertions and return zero, not additional consent states.",
+   "consumers": "Strict: ordinary text/protobuf uploader submission 0x1055b9ec/0x1055d024 and usage metrics 0x1070aa1c. Permissive: text/protobuf event collection 0x1055be08/0x1055c254, watchdog file inspection 0x102536fc, report-field selection 0x101979a8/0x10695310, and playReport 0x104ca970 (service id 0x12f independently permits the playReport). Reporter bypass byte +0x43 and event class mask +0x30 are separate controls, documented under reporting_policy.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10577408",
+     "notes": "Singleton initialization and state layout."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10577520",
+     "notes": "Lazy getter, retry marker and empty/failure split."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10577664",
+     "notes": "Raw XOR 1 setter; tail-call wrapper at 0x105591d4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105776d8",
+     "notes": "Strict state==0; adjacent permissive getter accepts -1 and 0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10577870",
+     "notes": "Successful-read refresh and change result; no event publication."
+    }
    ]
   },
   "misc_mgrs": {
@@ -125827,15 +125860,56 @@
    ]
   },
   "reporting_policy": {
-   "impl": "reportuploader.cxx + usagedatasharing.cxx",
-   "semantics": "RReportUploader + RUsageDataSharing; 'usageDataSharing refreshed, optin changed to: %d': telemetry opt-in gate",
-   "todo": [
-    "Established: the uploader + opt-in gate pair is identified."
-   ],
-   "gated_callsites": "Call-site census complete. The opt-in predicate f_10577870 has exactly ONE caller: f_10707cd4, the consent-refresh gate - it resolves R_CustomerID via vfunc +0xc on the context, strlcpy's it into the uploader context at +0x150 under the +0x150-adjacent lock, runs the UDS accessors f_10577408/f_105776d8, and logs 'usageDataSharing refreshed, optin changed to: %d' under tag 'usagemetrics'; when f_10577870 reads 0 it returns early. f_10707cd4 in turn has exactly TWO callers, and both are report-submit entry points: f_105c9f94 (serializes a string payload via f_10831bc0 + writer fn 0x105ca6f8, submits through f_105cb5cc) and f_1066b320 (the second upload channel - builds the document via f_10669cbc/f_1066d22c pairs). Both invoke the gate only after the uploader's own f_10707914 enabled-check passes. Conclusion: opt-in does NOT filter by report type - it gates the SUBMIT BOUNDARY of both upload channels wholesale. Everything that flows through RReportUploader (crash dumps, telemetry docs, diagnostics payloads) is suppressed together when opted out; nothing bypasses the two entry points.",
-   "resolved_findings": [
-    "Resolved: exactly two callsites gate on consent - f_105c9f94 and f_1066b320, the two RReportUploader submit entries; opt-in suppression is all-or-nothing at the submit boundary, no per-report-type filtering exists.",
-    "Resolved: the suppressing value is the literal string 'NoReport' stored in the opt-in buffer (+9, 0x20 bytes); +4 caches strcmp==NoReport so isOptedIn()=!(+4). Suppressed report types: daily watchdog info ('Skip submitting daily WD info'), UsageMetrics periodic submissions, event_reporter_v3 uploads, reporting-domain submissions, wifi slow-report path. Opt-in refresh logs 'usageDataSharing refreshed, optin changed to: %d' (0x10707d98)."
+   "impl": "reporting.cxx + usagemetrics.cxx",
+   "semantics": "Consent policy is applied per reporter and per operation, with strict submission, permissive collection, explicit bypass reporters and independent event masks.",
+   "description": "The player separates collecting reports from sending them. Ordinary reports can collect while consent is unread, but wait for permission before uploading. Explicit refusal blocks optional collection and submission. Two initialized reporters bypass that check, and some diagnostic reports still run with fewer fields. Consent is not a universal network-upload switch.",
+   "policy": "For text events, 0x1055be08 requires reporter+0x43!=0 OR permissive consent, then requires eventMask & reporter+0x30!=0 under the +0x170 mutex. Protobuf collection 0x1055c254 applies the same predicates. Text submission 0x1055b9ec requires bypass OR strict consent, allocated buffer +0xc and pending byte +0x44. Protobuf submission 0x1055d024 requires bypass OR strict consent and nonempty protobuf storage at +0x168. Transport availability, event-class selection and scheduling remain independent of consent.",
+   "bypass_producers": "Uploader constructor 0x1055a384 initializes bypass byte +0x43=0 and class mask +0x30=1. Setter 0x1055a66c writes the caller byte directly. Reporting owner 0x1069d87c constructs four reporters at +0x12c48, +0x12e48, +0x13048, +0x13248. Callsites 0x1069dbc8/0x1069dbe0 set bypass=1 on the second and third; their constructor selectors at +0x158 are respectively 2 and 1. First/fourth remain ordinary consent-gated reporters. +0x41 independently controls retained-buffer behavior, not consent.",
+   "refresh_correction": "0x10707914 returns the singleton pointer DAT_11097918; it is not an enabled predicate. 0x10707cd4 refreshes R_CustomerID and UMTracking and optionally logs a consent change; it returns no allow/deny result. 0x105c9f94 and 0x1066b320 call this refresher if the singleton exists and continue preparing/submitting their report. Neither has the previously claimed early consent-return branch.",
+   "other_policy": "Usage metrics 0x1070aa1c drains/reset its accumulated event slots and counters under +0x150 before strict consent at 0x1070ac28; denied batches are not automatically retained there. 0x10695310 and 0x101979a8 use permissive consent to omit selected identifying/configuration fields, rather than cancelling the entire diagnostic report. 0x104ca970 allows playReport if permissive consent OR service id 0x12f. 0x105eb628 uses strict consent when deciding handling of event_reporter_v3 files. This record describes local enforcement, not remote retention or cloud policy.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1055be08",
+     "notes": "Permissive collection and event class mask; protobuf analogue 0x1055c254."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1055b9ec",
+     "notes": "Strict text submission; protobuf analogue 0x1055d024."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1069d87c",
+     "notes": "Four uploader constructions and two explicit bypass setter calls."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10707cd4",
+     "notes": "Identity/consent refresh is void; caller paths continue."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1070ac28",
+     "notes": "Strict metrics gate follows destructive snapshot of accumulated counters."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cacc0",
+     "notes": "Permissive playReport gate has service-id 0x12f exception."
+    }
    ]
   },
   "sounddev": {
