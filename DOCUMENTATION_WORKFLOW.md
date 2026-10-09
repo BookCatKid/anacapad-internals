@@ -204,6 +204,21 @@ cannot silently drift when the dataset changes. Write summaries for the
 reader implementing a client (what it does, argument semantics, quirks);
 never delete technical detail to make prose read better.
 
+The plain-English layer must describe behavior, not merely expand an identifier.
+Explain what the player does, which concrete information or operation is involved,
+what triggers it, and what the reader can observe afterwards. For example, replace
+"collects optional reports" with the actual recorded information, whether it is
+kept locally or sent, and the setting or event that controls each step. Distinguish
+collecting from uploading, requesting from completing, and advertised support
+from verified behavior. Explain acronyms when their meaning is necessary to follow
+the feature. Include useful examples only when supported by the technical record;
+do not invent app workflows, feature availability, purposes or cloud guarantees.
+Keep addresses, offsets and instruction details in the technical layer. When
+behavior is still unresolved, say what is established and what that limits the
+reader from concluding. A longer paragraph is appropriate when several conditions
+or exceptions matter; a renamed feature followed by "the machinery behind it"
+is not a sufficient explanation.
+
 Generation doubles as a consistency QA pass (`genmodel.qa()`):
 
 - declared `meta.counts` vs normalized-record counts (the declared totals
