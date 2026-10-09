@@ -126425,16 +126425,118 @@
    ]
   },
   "sounddev": {
-   "impl": "sounddev.cxx + mixing_threaded.cxx + audio_fifo.cxx",
-   "semantics": "<SoundDevice><Zones> doc; 'SoundDevice: setCoefficients to StdQ ASRC Coeffs': ASRC coefficient selection",
-   "todo": [
-    "Established: single StdQ ASRC coefficient set across all consumers; HQ alternate does not exist in this build."
-   ],
-   "asrc": "ASRC decode complete (sounddev.cxx f_107f53c8 + Audio Rate Controller f_107fa848). COEFFICIENT PROVENANCE: setCoefficients builds the table object (alloc 0x68 via f_10809f0c, init f_107c6b3c) from the static table at 0x110a54b0 plus a double parameter at 0x10eb4830, then logs 'setCoefficients to StdQ ASRC Coeffs' - there is NO quality-tier switch: every SRC instance uses the same StdQ set (searched HiQ/LowQ - absent). THREE SRC USERS share it: the main SoundDevice path ('SoundDevice: setCoefficients...'), the Audio Rate Controller drift-compensation loop ('Audio Rate Controller : setCoefficients...', 'Drift Measurement Error', 'adjust rate of 0'), and a dedicated Hi-Res music SRC ('Hi-Res music SRC: setCoefficients to StdQ ASRC Coeffs'). TRIGGER CONDITIONS: coefficient (re)programming happens on input-rate (re)configuration - 'Configured Audio Rate Controller to new Input Audio Sample Rate: %u' with 'ASRC will be reset. Sample Rate changed from: %u to: %u'; illegal rates are rejected up front ('Unsupported Input Audio Rate: %u', 'Unsupported Input Line Rate: %u', 'illegal sample frequency for Hi-Res music:%u', 'illegal number of channels for Hi-Res music:%u'). GATES: the JFFS flag file 'system/src_disable' (constructJFFSRootPath + sonosFileExists) bypasses SRC entirely - a dev override; Hi-Res additionally warns on models that shouldn't support it ('WARNING! This model shouldn't support Hi-Res Music: %s'). 'ASRC reset time %llu us'/'ASRC_ERROR' are perf/fault telemetry around resets.",
-   "resolved_findings": [
-    "Resolved: no runtime quality switch exists - all three SRC users (SoundDevice, Audio Rate Controller drift loop, dedicated Hi-Res SRC) program the same StdQ table from 0x110a54b0 + param 0x10eb4830; triggers are input-rate reconfig + reset, gated by legality checks, model support, and the system/src_disable JFFS override.",
-    "Resolved (partial): ASRC quality switch is explicit: on hi-res music source the code logs 'Hi-Res music SRC: setCoefficients to StdQ ASRC Coeffs' (0x10308650) and applies the StdQ coefficient param block at 0x10eb4830 (float pair {7.1729...,0,0.6393...,0}) via f_107c7334. ASRC auto-resets on sample-rate change ('ASRC will be reset. Sample Rate changed from: %u to: %u', 0x103086f0). Same StdQ path applies in SoundDevice (0x107f5464) and TV-ASRC (12 sites 0x107fa7ec-0x107fb2b0). 'ASRC reset time %llu us' logged for timing.",
-    "Resolved: all three ASRC consumers log the SAME coefficient set - \"Hi-Res music SRC: setCoefficients to StdQ ASRC Coeffs\" (0x10eb4960), \"SoundDevice: setCoefficients to StdQ ASRC Coeffs\" (0x10f2ad84), \"Audio Rate Controller : setCoefficients to StdQ ASRC Coeffs\" (0x10f2b648). No HQ-alternate literal exists in the image - StdQ is the only compiled coefficient set; \"hi-res\" is a marketing label on the same SRC path, not a separate table."
+   "impl": "sounddev.cxx + tv_asrc.cxx + chsnk.cxx + dsp_asrc",
+   "semantics": "SoundDevice, audio-rate controller and the32-bit music conversion path share one16-tap,31-phase StdQ ASRC table; rates, phase history and bypass are separate from coefficient selection.",
+   "description": "These audio paths convert samples to the player's output timing and adjust for clock differences. They use one common filter table, even on the path labelled Hi-Res. Changing a rate updates timing or resets history rather than selecting a different quality tier. A developer file can bypass the main SoundDevice converter only.",
+   "coefficient_provenance": "All three compiled callers of0x107c7378 are0x10308638 (music factory0x103085ec),0x107f5448 (SoundDevice factory0x107f53c8),0x107fa8e8 (rate-controller ctor0x107fa848). Each loads pointer0x110954b0, initialized to read-only float table0x10f228cc, and passes dimensions16/31. All references to the pointer are these three reads; no in-image quality selector writes it. The previous0x110a54b0 attribution was wrong. Double0x10eb4830 is44100.0 Hz, not a coefficient block or four-float quality parameter.",
+   "coefficient_layout": "ASRC ctor0x107c6b3c allocates104-byte state: max channels+0, active channels+4, taps+8, phases+0xc, coefficient buffer+0x10 sized16*(31+2)*4=2112 bytes, per-channel history+0x14 sized2*(16-1)*channels floats, pointer scratch+0x30 sized2*channels pointers.0x107c7378 requires matching dimensions else returns-1; it copies31 rows of16 floats, reverses each row, adds a one-sample-shifted first row at row31, and zeros row32 as interpolation scratch. Successful result0. SoundDevice logs a nonzero result but returns the object; other two ignore it. All three constructors supply matching16/31, so their ordinary path succeeds without a quality branch.",
+   "rate_state": "Initial phase accumulator double+0x18=0; input/output step doubles+0x20/+0x28=1; input Hz+0x40=44100; output Hz+0x48=44100; reciprocals+0x50/+0x58=1/44100; input-minus-output cumulative frame delta+0x38/+0x3c=0; equal-rate settling byte+0x60=0; fixed-input byte+0x61=0; bypass byte+0x62=0.0x107c72c4 sets input Hz/reciprocal unless fixed-input is set, and retains caller settling byte only when current input==output; otherwise clears it.0x107c7334 sets output Hz/reciprocal, clearing settling only on unequal rates.0x107c7484 sets fixed-input byte and, when nonzero, overwrites input Hz/reciprocal with44100 and1/44100.0x107c74bc directly sets bypass.",
+   "phase_updates": "0x107c7204 computes output/input ratio+0x28 and its reciprocal input/output step+0x20. With settling active, equal rates and zero phase, it temporarily uses1.0000001 and its reciprocal0.9999999000000099. When settling is active and abs(phase)<0.002 input frames, it clears settling and phase to0. Otherwise it retains phase. These small timing perturbations are not coefficient/quality changes. Reset0x107c6a8c clears15-sample-per-channel history, pointer scratch, fractional phase and cumulative frame delta without changing coefficients or frequency fields.",
+   "conversion": "0x107c6ccc takes planar float channel pointers, available input frames, an output-frame capacity and in/out frame-count pointer. For each output it truncates phase to an input index, scales fractional position by31, linearly interpolates adjacent16-coefficient rows and computes the16-tap dot product per active channel. Advance phase by input/output step; retain residual phase after subtracting input-frame span; write produced count.0x107c6ee8 supplies saved15-sample history, processes history and current-input portions, updates history and signed input-minus-output frame delta. Bypass instead memcpy-copies each channel's input-frame count unchanged and returns1; that branch ignores the separate output capacity.",
+   "capacity_quirk": "Kernel0x107c6ccc tests produced>capacity only after the output store at0x107c6e54 and increment0x107c6e6c. On overflow it reports failure0 and clamps the reported index/count to capacity while continuing to consume the remaining input positions; subsequent generated samples can overwrite the slot at index capacity. Thus the capacity parameter is not a pre-store bounds guard. Normal completion returns1. The rate-controller caller logs sample rate converter error on0; the music frontend uses the modified count without propagating that Boolean.",
+   "main_sounddevice": "0x107f53c8 always allocates an8-channel converter, installs the common table and sets input/output44100. It checks <JFFSRoot>/system/src_disable, and if present logs Running with SRC bypassed then sets this object's+0x62=1. It does not disable the independent music/rate-controller objects. Factory wrapper0x102a527c tail-delegates to this factory.",
+   "music_path": "Factory0x103085ec allocates8-channel ASRC and programs output44100.0.0x1030869c sets active channels and only when its saved rate+0x1c14 changes stores it, resets ASRC history, sets input Hz and recalculates ratio; it does not reinstall coefficients and its final ratio call is a tail branch. Frontend0x1030a6a4 passes44100 samples directly into an8-lane float layout, duplicating mono into left/right. For48000 it accepts only1/2 channels, duplicates mono to stereo, converts planar stereo to44100 via ASRC, then fills left/right of8-lane output. Other rates set output frame count0 and return0, logging only when the rejected rate changes; unsupported48000 channel count returns1. The Hi-Res name is not evidence of a distinct filter table or an additional accepted rate in this frontend.",
+   "audio_rate_controller": "0x107fa848 allocates the caller maximum-channel ASRC, initial channels2, line-rate sentinel-1 and audio rate44100, with caller output format and retained drift engine; output44100 is fixed at constructor. Channel checker0x107fab40 accepts unsigned1..max. Audio-rate checker0x107fabd0 accepts exactly32000/44100/48000; line-rate checker0x107fac0c additionally accepts176400/192000. Configuration0x107fae3c acts in order: validate/change channels, reset controller; validate/store changed line rate, zero callback counters; validate/change audio rate, set input/recompute ratio. A later rejected rate does not undo earlier channel/line changes. Generic0x107c74cc only enforces an upper channel bound and caps to max on excess; it does not reject zero/negative values itself.",
+   "drift_and_errors": "Controller reset0x107fad98 clears ASRC history and drift-engine state, marks lock/status0, clears produced/callback counters and restores stored channel count2. Processing0x107fb010 tracks callbacks, validates configuration, updates its drift engine, resets on loss/reacquisition of its ready state, and adjusts ASRC input rate through0x107fa998. Non-measured processing mode uses nominal input rate; measured mode2 uses returned measured float rate and rejects an exact zero result (adjust rate of0). Drift failure logs Drift Measurement Error; out-of-range excursion logs Over Excursion error; converter failure logs sample rate converter error. The output audio block receives produced frame count, configured output format and a copy of73 metadata bytes. These paths reuse coefficients; there is no HQ/StdQ switch.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x110954b0",
+     "notes": "Initialized pointer to sole StdQ table0x10f228cc; three read references."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107c6b3c",
+     "notes": "State dimensions, allocations and numeric44100 defaults."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107c7378",
+     "notes": "Dimension guard, row reversal, shifted row and zero scratch row."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107c6ccc",
+     "notes": "31-phase linear interpolation and16-tap FIR; post-store capacity test."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107c7204",
+     "notes": "SPE rate ratios,0.1ppm equal-rate perturbation and phase settling."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107c72c4",
+     "notes": "Input-rate/fixed-input/settling predicates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107f53c8",
+     "notes": "Main8-channel converter and JFFS bypass file."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103085ec",
+     "notes": "Music converter shares table;44100 output."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1030869c",
+     "notes": "Rate-change reset and semantic tail-call ratio update."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1030a6a4",
+     "notes": "Music44100/48000 paths, channel branch and error asymmetry."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107fae3c",
+     "notes": "Ordered controller configuration; partial mutations on later failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107fabd0",
+     "notes": "Actual validator start includes first xoris;32/44.1/48kHz."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107fac0c",
+     "notes": "Line rates include176.4/192kHz."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107fa998",
+     "notes": "Drift-mode split and zero measured-rate rejection."
+    }
    ]
   },
   "soap_client": {
