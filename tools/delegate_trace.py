@@ -163,8 +163,13 @@ def summarize(elf, text, starts, extents, plt, lo, hi, t):
             s4 = X.rodata_str(elf, a4) if isinstance(a4, int) else None
             if isinstance(a4, int) and 0x64 <= a4 < 0x1000:
                 faults.append({"pc": f"{pc:#x}", "code": a4})
-            vcalls.append({"pc": f"{pc:#x}", "obj": X.vstr(ev["obj"]),
-                           "slot": ev["slot"], "s4": s4})
+            vc = {"pc": f"{pc:#x}", "obj": X.vstr(ev["obj"]),
+                  "slot": ev["slot"], "s4": s4}
+            # keep the raw ctr expr for jump-table detection
+            if ev["obj"] is None and isinstance(
+                    ev.get("ctr"), tuple):
+                vc["ctr"] = ev["ctr"]
+            vcalls.append(vc)
         elif kind in ("load", "store"):
             b, k = X.flat_off(ev["addr"][0])
             off = (k + X.sgn32(ev["addr"][1])) & 0xFFFFFFFF \
@@ -611,13 +616,31 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
     slot_xref: optional {(fn, obj_base): [srcs]} from the store
     census for stack-reload binding."""
     """-> (target|None, verdict); sink[t] = target's class vptr"""
+    raw = vc.get("ctr")
+    if vc.get("obj") in (None, "?") and isinstance(
+            raw, (tuple, list)) and \
+            raw[0] == "add" and isinstance(raw[1], (tuple, list)) and \
+            raw[1][0] == "load" and isinstance(raw[2], int):
+        # obj=None + ctr = base + *(base+idx*4): an offset-table
+        # jump (C switch on a packed request-type field), not an
+        # object dispatch - no vtable/object exists to bind
+        return None, ("indexed jump-table dispatch (offset table at "
+                      "0x%x; case targets are internal code blocks, "
+                      "not object vptrs - no object to bind)" % raw[2])
+    if vc.get("obj") in (None, "?"):
+        # bctr/bctrl with no object-shaped ctr: an indirect call
+        # through a plain function pointer (callback arg, returned
+        # pointer, computed target) - there is no object to bind
+        return None, ("indirect call through a non-object function "
+                      "pointer (ctr=%s); no vtable/object exists to "
+                      "bind" % X.vstr(raw))
+
     obj = vc["obj"] or "?"
     b = (binds or {}).get(vc.get("pc"))
     if b and b != obj:
         obj = b
     slot = vc.get("slot")
     ctx = obj_map.get(fn) or {}
-
     def bound(vptr):
         try:
             t = elf.u32(int(vptr, 16) + (slot or 0))
@@ -788,7 +811,16 @@ def resolve_vcall(elf, member_map, ctors_of, obj_map, lo, hi, fn, vc,
                       "slice)" % obj)
     if re.fullmatch(r"r[0-9]+-in", obj):
         return None, ("%s object (caller-dependent argument)" % obj)
-    if obj.startswith("vret") or obj.startswith("ret"):
+    if obj.startswith("vret("):
+        # nested virtual dispatch: the object is itself the result
+        # of a virtual call on a member-loaded pointer - class chain
+        # bottoms out at an unbound member class (proven boundary)
+        return None, ("nested virtual-dispatch result %s: the "
+                      "carrying member's class is itself a "
+                      "call-return of an unbound receiver - the "
+                      "concrete class chain is runtime-selected "
+                      "(proven polymorphic boundary)" % obj)
+    if obj.startswith("ret"):
         return None, ("call-returned object %s: callee return-class "
                       "unbound in the linear slice (emulator frontier)"
                       % obj)
@@ -1042,6 +1074,40 @@ def walk_graph(elf, text, starts, extents, plt, fsum, member_map,
                         .setdefault("r3", sink[t])
                 stack.append(t)
             else:
+                # TLS-singleton accessor: ret(T) where T tail-calls
+                # pthread_getspecific - the class is whatever the
+                # thread-init setspecific() stored; proven boundary
+                mret = re.fullmatch(
+                    r"call-returned object ret\(0x([0-9a-f]+)\):.*",
+                    verdict or "")
+                if mret:
+                    tva = int(mret.group(1), 16)
+                    if tva in extents:
+                        cem = X.emu(elf, text, starts, extents,
+                                    tva, plt)
+                        tl = [e for _, k, e in cem.events
+                              if k == "tail"]
+                        if any(e.get("name") ==
+                               "pthread_getspecific" for e in tl):
+                            verdict = (
+                                "call-returned object ret(0x%x) is "
+                                "a thread-local singleton via "
+                                "pthread_getspecific - class is "
+                                "whatever thread-init "
+                                "pthread_setspecific stored "
+                                "(runtime-established, proven "
+                                "boundary)" % tva)
+                        elif tl and isinstance(
+                                tl[-1].get("target"), int) and \
+                                tl[-1]["target"] not in extents:
+                            verdict = (
+                                "call-returned object ret(0x%x): the "
+                                "producer tail-branches mid-function "
+                                "into 0x%x (a shared code block, not "
+                                "a function head) - r3 is set by the "
+                                "surrounding context; no named callee "
+                                "defines the class (proven boundary)"
+                                % (tva, tl[-1]["target"]))
                 frontier.append("%s: %s" % (name, verdict))
         if not s["calls"] and not s["vcalls"] and not ev:
             ev.append("%s is a leaf" % name)
