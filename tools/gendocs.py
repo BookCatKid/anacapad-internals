@@ -418,14 +418,17 @@ def render_architecture(m):
     if m.request_vtable:
         out += ["## Request object vtable", ""]
         _pt_add(m, out, "architecture", "request_vtable")
+        summary = m.request_vtable.get("summary")
+        if summary:
+            out += [_e(summary), ""]
         _details(out, ["Every action wrapper interacts with the request "
                        "through these vfunc slots."])
         for t in _todo_lines(m.request_vtable.get("todo")):
             out.append("- **TODO:** %s" % t)
         out.append("")
         rows = [["`%s`" % k, _e(v)] for k, v in m.request_vtable.items()
-                if k != "todo"]
-        _table(out, ["Slot", "Purpose"], rows)
+                if k not in ("todo", "summary")]
+        _table(out, ["Slot / field", "Purpose"], rows)
 
     if m.capabilities:
         out += ["## Capability fields", ""]

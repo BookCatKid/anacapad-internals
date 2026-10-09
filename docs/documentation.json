@@ -597,28 +597,33 @@
   ]
  },
  "request_vtable": {
-  "0x08": "parse/validate args (rc -> 402)",
-  "0x0c": "commit response",
-  "0x14": "raise fault (r4 = code)",
-  "0x1c": "get in-arg record by name",
-  "0x20": "get in-arg record by name (variant accessor)",
-  "0x24": "get/create out-arg record by name",
-  "0x38": "finalize",
-  "0x3c": "in-arg fetch (alternate)",
-  "0x34": "request -> zone/session context accessor; returns the request's owning zone-context object (callers check obj+0x6c non-null then read +0x178 for the zone-group impl) - proven consumer GetZoneGroupAttributes at 0x107338b0",
-  "todo": [
-   "Residual: the request object's ctor (the arg-accessor vtable carrier) is not statically reachable - it is built inside the UPnP httpd action layer which invokes the zp router through vfunc slot +0xc8 on *(dispatch_ctx+0xbb0); all 811 vptr+0xc8 call sites image-wide are generic vfunc dispatches and no .text store installs the request vtable, so the producing frame remains unlocated. Slot semantics stand from callsite evidence."
-  ],
-  "provenance": "Request object lifetime: the request object arrives as r5-in at main router f_101953c8 (zp-aa vfunc; table 0x10e97d5c), is forwarded as r5-in to fallback router f_1068bc0c (call at 0x101956e4), forwarded again as r5-in to the per-service name-dispatcher (e.g. ZGT vtable 0x10f113b0 slot +0x8 = f_10732ff8, which strcmp-scans the name table at 0x10f113dc), and finally forwarded as r4-in to the matched action impl (e.g. GetZoneGroupAttributes f_10733878 at slot +0x24). Per-service dispatch vtables carry one slot per action (ZGT: 11 slots). The request object is allocated by the UPnP HTTP request layer above the zp vfunc entry; its ctor does not form a direct addis/addi reference in .text.",
-  "resolved_findings": [
-   "Resolved at boundary: no .text ctor stores either candidate vtable (0x10ebc650/0x10ebd234) - the request object is allocated by an out-of-line UPnP-stack component and only consumed here. Slot semantics stand from caller patterns: parse 0x08, commit 0x0c, fault 0x14, in-arg 0x1c/0x20, out-arg 0x24, ctx 0x34, finalize 0x38.",
-   "Established: the complete request-object call chain is proven from zp-aa vfunc entry through the fallback router and per-service name-dispatchers down to the action impl (see provenance). Per-service dispatch vtables are mapped (e.g. ZGT 0x10f113b0, 11 action slots, name table 0x10f113dc).",
-   "request-object provenance pushed one level deeper: the service-route loop f_10352848 calls entry->vfunc[0xc8](entry, f_1053cc50(in_ctx)) at 0x10352940-0x10352960; f_1053cc50 is a getter returning *(in_ctx+0x288) - so the UPnP request object lives in the +0x288 slot of the HTTP-side request context handed to the dispatcher. Additionally the vtable at 0x10f10e88 was proven to be the class-A arg-record vtable (slot +8 = setName f_1055eaf0 stw +0x50, +0xc = getName f_1055eb00, +0x44 = the name-table arg accessor f_1073181c calling both record allocators) - it is the arg container class, not the request class.",
-   "CORRECTION: the 'request object at httpd_ctx+0x288' claim is disproven - +0x288 inside the route-binding container class is its name buffer (f_1053c234 passes container+0x288 as the strcmp target to by-name finder f_1053dba0) and doubles as an iteration cursor (f_1053cc5c advances +0x288 against *(+0x4) count). f_1053cc50 is only a thunk to element accessor f_1053db64 (bounds-checked, 40-byte-stride array at container+0x14). The iterated 'element' is the route binding record {+8: control-URL path strcmp'd by f_101953c8 against a 13-entry service table whose per-entry enable byte is zp+0x571c XOR 1, +0x70: action-name string consumed by the per-service name-dispatcher's binary search}. The request object proper reaches the name-dispatcher as r5-in (ZGT f_10732ff8 raises 401 via req->v[+0x14] on name miss, tail-calls v[+0x38] finalize)."
-  ],
-  "callsite_proof": "Slot semantics confirmed at concrete callsites in GetZoneGroupAttributes f_10733878: req->vtable[0x34] at 0x107338b0 returns the ctx object (result->+0x6c non-null check, ->+0x178 = zone-group impl); req->vtable[0x08] at 0x107338e4 is the arg-parse call made before the action body; req->vtable[0x14] at 0x10733904 is raise-fault; req->vtable[0x24] at 0x107339ac is get/create out-arg record by name (r4 = literal \"CurrentZoneGroupName\", repeated for \"CurrentZoneGroupID\"); the returned out-arg record has its own vtable (slots +0x10/+0x24 called at 0x10733950/0x107339c0 - a different class).",
-  "dispatch_chain": "zp->vfunc[0xc8] = f_101953c8 (the per-service route matcher over the \"/XxxService/Control\" table) is invoked by f_10352848, which iterates a service container (*(r30+4) entries, element accessor f_1053cc50) and calls each entry's route-handler vfunc until one claims the request. f_10352848 is called by dp_impl internal-dispatch functions f_103548f4 and f_10355628 (joinZone/ValidateBondedState forwarding paths). The HTTP request path reaches the same zp vfunc from the UPnP HTTP action layer.",
-  "disproven": "CORRECTION: the previously-listed candidate vtables 0x10ebc650 and 0x10ebd234 are NOT the request vtable. Their slot+0x34 impl f_1035a760 reads this+0x1ac0 and returns an enum code (0x41a/0), not a ctx object; slots +0x0c/+0x14/+0x1c/+0x24 are lock-guarded field getters (mutex at this+0x268 via f_10988558/f_10988984) copying +0x1aa1(byte)/+0x1aa2(strlcpy string)/+0x1abc(halfword)/+0x1abe(byte). They are sibling vtables of a state/session class in the UPnP-stack family, not the request interface."
+  "summary": "For every inbound SOAP control call, the firmware builds a temporary TRequest object on the UPnP worker's stack. Action wrappers do not parse the raw HTTP request directly. They use TRequest to consume input arguments in order, allocate output argument records, validate the parsed request, send SOAP faults, and serialize the final response.",
+  "vtable": "0x10f10f20. f_107310c8 installs this address into TRequest+0x0 at 0x1073114c.",
+  "constructor": "f_107310c8. The tunneled-control path constructs TRequest at caller sp+0xd8 at callsite 0x10696404, immediately before f_1069388c dispatches it at 0x10696428. The constructor initializes fields through +0x3a78; deleting destructor f_10730b90 passes size 0x3a80 to the deallocator, proving the complete object size.",
+  "destructor": "f_10730a94 is the ordinary destructor; f_10730b90 is the deleting destructor. The stack-resident request is destroyed by f_10730a94 at 0x1069649c after dispatch returns.",
+  "0x00": "f_10730a94: ordinary TRequest destructor.",
+  "0x04": "f_10730b90: deleting destructor; destroys TRequest then passes size 0x3a80 to the deallocator.",
+  "0x08": "f_10730414: validate/materialize the queued input-argument records. Returns 1 when validation succeeds and 0 on a record-level failure.",
+  "0x0c": "f_10730524: serialize and commit the SOAP success response through the response backend stored at TRequest+0x3a78.",
+  "0x10": "f_10730714: alias thunk to f_10730524, the same success-response commit path.",
+  "0x14": "f_1073029c: emit a non-success UPnP/SOAP result using the code supplied in r4 through the response backend at +0x3a78; action wrappers use this for faults such as 402.",
+  "0x18": "f_10730354: fixed-code wrapper around +0x14 that supplies code 1000.",
+  "0x1c": "f_1073017c: advance/allocate the next input-argument record from the TRequest input pool. The function is order-based and does not consume the argument-name pointer passed by wrappers.",
+  "0x20": "f_1073017c: same input-argument allocator as +0x1c.",
+  "0x24": "f_107300dc: advance/allocate the next output-argument record from the TRequest output pool. It is order-based; wrapper name literals document the intended output but are not looked up by this function.",
+  "0x28": "f_107301ec: alternate output-record allocator; additionally binds record+0x48 to the request subinterface at TRequest+0x2c4c.",
+  "0x2c": "f_1073167c: return TRequest+0x410, a 25-byte constructor-copied metadata string used by the tunneled request path. No canonical SOAP action wrapper calls this slot.",
+  "0x30": "f_1073168c: return the u32 at TRequest+0x42c. Its constructor source is the first halfword of the 3-halfword descriptor produced by f_10759f1c; no canonical SOAP action wrapper calls this slot.",
+  "0x34": "f_1073169c: return the embedded request/zone context at TRequest+0x430. GetZoneGroupAttributes proves its consumer shape: ctx+0x6c must be non-null and ctx+0x178 supplies the zone-group implementation object.",
+  "0x38": "f_107316ac: return the current 16-bit request result/status field at TRequest+0x3a70. Service dispatchers use it after raising an action-name fault.",
+  "0x3c": "f_10731670: no-op hook.",
+  "0x40": "f_10730268: auxiliary 8-byte descriptor normalizer. It rewrites the first byte from its high bits, stores {0x54,1} in bytes 1..2, clears the word at +4, and returns true. No canonical SOAP action wrapper calls it.",
+  "0x44": "f_10731660: constant-true auxiliary hook. No canonical SOAP action wrapper calls it.",
+  "layout": "Key TRequest fields: +0x3168 input-record pool; +0x34e8 output-record pool; +0x3a68 input cursor/count; +0x3a6c output cursor/count; +0x3a70 current 16-bit result/status; +0x3a74 input/argument backend; +0x3a78 response backend; +0x410 tunneled metadata string; +0x42c descriptor word; +0x430 embedded request/zone context.",
+  "dispatch_chain": "Inbound control path: f_106960f8 constructs stack TRequest via f_107310c8 at 0x10696404 -> f_1069388c performs SOAPAction/security handling -> (zp+0x3a8)->vtable[0x40] = f_10195810, an adjustor thunk that subtracts 0x3a8 and tail-calls the 13-service router f_101953c8 -> matched service vfunc +0x08 (for ZoneGroupTopology, f_10732ff8) -> matched action wrapper receives TRequest as r4. The request is destroyed after dispatch at 0x1069649c.",
+  "callsite_proof": "GetZoneGroupAttributes f_10733878 directly verifies the externally relevant slots: +0x34 at 0x107338b0 returns the embedded context; +0x08 at 0x107338e4 validates inputs; +0x14 at 0x10733904 raises fault 402 on parse failure; +0x24 at 0x107339ac and following sites allocates output records; +0x0c at 0x10733a64 commits the success response. ZoneGroupTopology dispatcher f_10732ff8 raises 401 through +0x14 on an action-name miss, then tail-dispatches +0x38 to return the stored request result.",
+  "binary_evidence": "Verified against rootfs-86.10-80260-1-9/opt/bin/anacapad, SHA-256 f60262a152aac48bd39bf0285d17d080e6820e37be12d0af9de7bffee8d3e257, version string 86.10-80260-dev-secbuild-20260826.",
+  "corrections": "Earlier candidate request vtables 0x10ebc650/0x10ebd234 and the claimed request-at-route-container+0x288 were disproven. The exact constructor f_107310c8 and vptr store at 0x1073114c supersede those guesses. The old labels for +0x1c/+0x20/+0x24 as name lookups were also too strong: their bodies allocate records sequentially, and +0x38 is a status accessor rather than a finalize method."
  },
  "services": {
   "/AlarmClock/Control": {

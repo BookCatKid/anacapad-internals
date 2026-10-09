@@ -163,8 +163,10 @@ overwrites human text:
 - machine-owned: `handler`, `handler_func`, `dispatch`, `implementation`,
   `req_vcalls`, `fault_sites`, argument `primitive`, `registration`,
   `object`, `dispatcher`, `availability.enabled_source`/`cap_flags`,
-  capability `loads`/`stores`, dispatch-candidate fields, `meta`,
-  `routing`, `request_vtable`
+  capability `loads`/`stores`, dispatch-candidate fields, `meta`, `routing`
+- seeded-then-human-owned: `request_vtable` is initially seeded by extraction,
+  then preserved once the concrete request interface/lifetime has been manually
+  reverse engineered; later imports must not overwrite that semantic record
 - human-owned: `description`, `meaning`, `conditions`, `requirements`,
   `side_effects`, `semantic_type`, `visibility`, `todo`, `notes`, ...
 
