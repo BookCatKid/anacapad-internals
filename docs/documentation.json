@@ -13581,7 +13581,7 @@
      ]
     },
     "GetAutoplayVolume": {
-     "description": "Returns CurrentVolume used for autoplay via impl->v[+0x1c].",
+     "description": "Returns the persisted autoplay volume. Source is required by the SOAP surface but the concrete worker does not use it to select a per-source value: RZPDevicePropertiesStP slot +0x3c (f_1035a6a8) locks the object and returns the single u16 field at impl+0x1abc. The wrapper formats that value as CurrentVolume and, as an implementation quirk, also allocates an output record named Source and echoes the parsed Source string even though the SCPD declares Source as input-only.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107370ac",
@@ -13593,68 +13593,121 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "RZPDevicePropertiesStP",
+      "impl_vtable": "0x10ebd214",
+      "worker": "0x1035a6a8",
+      "worker_slot": "0x3c",
+      "volume_field": "RZPDevicePropertiesStP+0x1abc (u16 AutoplayVolume)",
       "calls": [
        {
         "site": "0x10737104",
-        "obj": "r4-in",
+        "obj": "TRequest (r4-in)",
         "slot": 28,
-        "arg4": "Source"
+        "purpose": "allocate/fetch required Source input record"
        },
        {
         "site": "0x10737130",
-        "obj": "r4-in",
+        "obj": "TRequest (r4-in)",
         "slot": 8,
-        "arg4": "?"
+        "purpose": "validate/materialize Source"
        },
        {
         "site": "0x10737154",
-        "obj": "r5-in",
+        "obj": "RZPDevicePropertiesStP (r5-in)",
         "slot": 60,
-        "arg4": "sp-0x2e"
+        "target": "0x1035a6a8",
+        "purpose": "read global AutoplayVolume u16; Source is passed as r5 but ignored by worker"
        },
        {
         "site": "0x10737170",
-        "obj": "r4-in",
+        "obj": "TRequest (r4-in)",
         "slot": 20,
-        "arg4": "vret(r5-in,+0x3c)"
+        "purpose": "emit SOAP fault if validation/worker rc is nonzero"
+       },
+       {
+        "site": "0x107371cc",
+        "obj": "TRequest (r4-in)",
+        "slot": 36,
+        "purpose": "allocate CurrentVolume response record"
+       },
+       {
+        "site": "0x107371d4",
+        "obj": "CurrentVolume record",
+        "purpose": "format u16 as decimal via f_1055fc4c"
+       },
+       {
+        "site": "0x107371ec",
+        "obj": "TRequest (r4-in)",
+        "slot": 36,
+        "purpose": "allocate extra response record named Source (not declared as output by SCPD)"
        },
        {
         "site": "0x10737200",
-        "obj": "vret(*(sp-0x40+0x3c),+0x24)",
+        "obj": "Source response record",
         "slot": 16,
-        "arg4": "*(sp-0x40+0x38)"
-       }
-      ],
-      "req_vcalls": [
-       {
-        "site": "0x107371ec",
-        "slot": 36,
-        "purpose": "other"
+        "purpose": "echo parsed Source text"
        },
        {
         "site": "0x10737214",
+        "obj": "TRequest (r4-in)",
         "slot": 12,
-        "purpose": "commit"
+        "purpose": "commit success response"
        }
-      ]
+      ],
+      "response_quirk": "The implementation serializes Source back into the response after CurrentVolume even though DeviceProperties1.xml declares Source only as an input argument.",
+      "persistence": {
+       "setter_worker": "0x10360484",
+       "setter_slot": "0x38",
+       "field_store": "0x1036055c stores accepted Volume to impl+0x1abc",
+       "config_key": "AutoplayVolume",
+       "persistence_call": "0x10360584 through the settings object at impl+0x960",
+       "range_check": "f_10360484 accepts Volume <= 100; values >100 return 402"
+      }
      },
      "inputs": {
       "Source": {
        "direction": "in",
-       "format": "utf-8 text, buffer cap 5 bytes (4 chars + NUL)",
+       "format": "type-tag-7 text record, 5-byte buffer (maximum 4 payload bytes plus NUL)",
        "type": "",
        "accepted": "impl-side grammar applies",
        "required": true,
        "parse_helper": "req->v[+0x1c] (required-arg parser)",
-       "description": "autoplay source identifier string (which line-in/source the autoplay volume applies to)",
-       "unit": "n/a",
+       "description": "Required autoplay-source text. It is parsed and later echoed by the wrapper, but f_1035a6a8 ignores it when selecting the volume.",
+       "unit": "none - source identifier",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107370d0",
-         "notes": "in-arg name load + req->v[+0x1c] parse call"
+         "address": "0x10737104",
+         "notes": "Source input record requested from TRequest"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10737114",
+         "notes": "f_1056157c configures type-tag 7 with buffer capacity 5"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073711c",
+         "notes": "marks Source record required"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1035a6a8",
+         "notes": "worker uses only r3 impl and r4 output pointer; r5 Source is never read"
+        },
+        {
+         "type": "firmware",
+         "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
+         "build": "86.10-80260",
+         "notes": "GetAutoplayVolume declares Source as input related to non-evented AutoplaySource"
         }
        ],
        "primitive": {
@@ -13664,203 +13717,251 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "range": "max 4 chars",
-       "special_values": "none identified",
-       "default": "none - required argument",
-       "validation": "consumed by the impl vfunc",
-       "accepted_values": "impl-side grammar applies",
+       "semantic_type": "autoplay source identifier string",
+       "range": "maximum 4 parsed payload bytes plus NUL",
+       "special_values": "No source value changes the returned volume in this build",
+       "default": "none; required input",
+       "validation": "TRequest type-7 parsing plus required-record validation. The concrete volume worker receives the parsed Source pointer as r5 but never reads it.",
+       "accepted_values": "any text accepted by the capped type-7 parser; no SCPD lexical whitelist",
        "buf_cap": 5
       }
      },
      "outputs": {
       "CurrentVolume": {
-       "description": "Configured autoplay volume",
+       "description": "Single persisted autoplay-volume setting stored as u16 at RZPDevicePropertiesStP+0x1abc.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
         "fmt": null
        },
-       "semantic_type": "unsigned int16",
-       "format": "%u decimal",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "u16 volume member value",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "semantic_type": "autoplay volume percentage/level",
+       "format": "ui2 serialized as decimal",
+       "unit": "Sonos volume level",
+       "accepted_values": "integer 0 through 100",
+       "range": "0..100 inclusive",
+       "special_values": "none",
        "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via the response object vfuncs",
+       "default": "current persisted AutoplayVolume field",
+       "validation": "Getter reads the field verbatim; sibling setter f_10360484 rejects values above 100 before storing it.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107371cc",
-         "notes": "out-arg access site"
+         "address": "0x1035a6d4",
+         "notes": "loads u16 AutoplayVolume from impl+0x1abc under mutex"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f08d18",
-         "notes": "argument name string"
+         "address": "0x107371d0",
+         "notes": "wrapper loads u16 result before decimal formatter f_1055fc4c"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10188024",
-         "notes": "impl member read"
+         "address": "0x103604d0",
+         "notes": "SetAutoplayVolume compares requested value against 100"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1036055c",
+         "notes": "accepted setter value stored to same impl+0x1abc field"
+        },
+        {
+         "type": "firmware",
+         "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
+         "build": "86.10-80260",
+         "notes": "AutoplayVolume ui2 allowedValueRange is 0..100 and sendEvents=no"
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentVolume`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Source is required and must pass TRequest validation. The implementation does not validate Source semantically or use it to choose a volume. f_1035a6a8 itself cannot fail.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x107370ac",
-        "notes": "wrapper family decode"
+        "address": "0x1073711c",
+        "notes": "required flag set on parsed Source record"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10737130",
+        "notes": "TRequest +0x08 validation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1035a6a8",
+        "notes": "worker ignores Source and always returns 0"
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r28 v[+0x3c]",
+      "description": "Requires a materialized Source argument and successful TRequest validation. There is no implementation-side source lookup or other state precondition.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x107370ac",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}"
+        "notes": "Source parse/required validation is the only pre-worker condition"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1035a6a8",
+        "notes": "direct mutex-protected field getter with no condition branches"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r28 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r28 v[+0x3c]",
+      "description": "Reads the persisted global AutoplayVolume u16 at RZPDevicePropertiesStP+0x1abc. The value is not indexed by Source in this build.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107370ac",
-        "notes": "member vfunc calls: ['r28 v[+0x3c]']"
+        "address": "0x1035a6d4",
+        "notes": "only state read in worker is impl+0x1abc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1036055c",
+        "notes": "SetAutoplayVolume stores to the same field"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1036056c",
+        "notes": "setter uses configuration key literal AutoplayVolume for persistence"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r28 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate (obj->v[+0x3c] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Read-only. The worker locks DeviceProperties state, copies the u16 AutoplayVolume field, unlocks, and does not mutate state.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x107370ac",
-         "notes": "impl vfunc delegate path: obj->v[+0x3c] -> out-arg (call-derived member-method semantics)"
+         "address": "0x1035a6d0",
+         "notes": "mutex lock f_10988558 on impl+0x268"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035a6e0",
+         "notes": "mutex unlock f_10988984 after u16 copy"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate (obj->v[+0x3c] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. AutoplayVolume and AutoplaySource are both declared sendEvents=no; getter contains no notification path.",
       "evidence": [
+       {
+        "type": "firmware",
+        "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
+        "build": "86.10-80260",
+        "notes": "AutoplaySource and AutoplayVolume state variables both have sendEvents=no"
+       },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107370ac",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1035a6a8",
+        "notes": "worker only locks, reads field, unlocks, returns 0"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r28 v[+0x3c]",
+      "description": "None. GetAutoplayVolume observes the current persisted volume without changing it.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107370ac",
-        "notes": "no transition-literal/store pattern; member delegates: ['r28 v[+0x3c]']"
+        "function": "0x1035a6a8",
+        "notes": "no state stores or transition calls"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r28 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "After Source passes TRequest validation, f_1035a6a8 always returns 0. The wrapper serializes CurrentVolume, additionally echoes Source in an extra output record, then commits success. The only reachable SOAP fault is validation 402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107370ac",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}"
+        "address": "0x1035a6ec",
+        "notes": "worker sets r3=0 before return"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107371ec",
+        "notes": "allocates implementation-only Source response record"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10737214",
+        "notes": "success response commit"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
-     "fault_sites": [],
+     "fault_sites": [
+      {
+       "site": "0x10737170",
+       "code": 402,
+       "code_expr": "const"
+      }
+     ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret; parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "const; TRequest validation",
+       "meaning": "Required Source was missing or its request record failed TRequest validation before the volume worker ran.",
        "fault_sites": [
-        "0x107370ac"
+        "0x10737170"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "TRequest::validateInputs (+0x08) returned false after parsing required Source.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107370ac",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "address": "0x10737130",
+           "notes": "validation result tested immediately after this call"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107370ac",
-           "notes": "parse vcalls then fault path"
+           "address": "0x107371b0",
+           "notes": "false path loads literal 0x192 (402)"
           }
          ]
         }
@@ -13870,22 +13971,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107370ac",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x107370ac",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10737170",
+         "notes": "TRequest +0x14 fault-emitter call"
         }
-       ],
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "domain_note": "domain fully bounded: impl 0x10188024 exits=[28, 200]; impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; parse/req-layer; sites: 0x107370ac).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -13897,28 +13985,38 @@
        "build": "86.10-80260",
        "function": "0x107370ac",
        "address": "0x107370ac",
-       "notes": "action wrapper handler"
+       "notes": "SOAP action wrapper"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11960",
-       "notes": "action dispatch table entry"
+       "address": "0x10ebd214",
+       "notes": "RZPDevicePropertiesStP primary vtable; slot +0x3c = f_1035a6a8"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10188024",
-       "notes": "impl vtable 0x10e98278 slot +0x3c; secondary-base trampoline via 0x10188180"
+       "function": "0x1035a6a8",
+       "notes": "concrete GetAutoplayVolume worker"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10360484",
+       "notes": "sibling SetAutoplayVolume validates <=100, stores impl+0x1abc and persists key AutoplayVolume"
+      },
+      {
+       "type": "firmware",
+       "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
+       "build": "86.10-80260",
+       "notes": "GetAutoplayVolume declares CurrentVolume output and Source input; AutoplayVolume range 0..100"
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x107370ac; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "The older extractor attribution to f_10188024 was incorrect. Concrete RZPDevicePropertiesStP vtable 0x10ebd214 maps slot +0x3c to f_1035a6a8. The worker ignores Source and reads a single u16 field at +0x1abc. The wrapper nevertheless echoes Source through a TRequest output record even though the SCPD marks Source input-only."
     },
     "GetButtonLockState": {
      "description": "Returns whether the speaker's physical controls are locked. After TRequest validation, the wrapper calls RZPDevicePropertiesStP slot +0x70 (f_105b4874). That worker reads property selector 0x20001 through the backend at impl+0x950 and returns literal 'Off' when the byte is zero or 'On' when it is nonzero.",
