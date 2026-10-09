@@ -5998,7 +5998,7 @@
      ]
     },
     "SetFormat": {
-     "description": "Sets DesiredTimeFormat/DesiredDateFormat via impl->v[+0x8].",
+     "description": "Sets AlarmClock display formats through the concrete ac_impl engine slot +0x08 -> f_1027a410. Empty DesiredTimeFormat or DesiredDateFormat preserves that field's current value. Nonempty TimeFormat must be 12H or 24H; nonempty DateFormat must be MDY, DMY, or YMD. Valid values are persisted in alarmclock.xml, reloaded into engine+0x2dc/+0x2e0, and the AlarmClock notification/version path runs.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10733c8c",
@@ -6030,7 +6030,15 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "engine_function": "0x1027a410",
+      "engine_vtable": "0x10eaa99c",
+      "engine_slot": 8,
+      "backing_fields": {
+       "+0x2dc": "TimeFormat string",
+       "+0x2e0": "DateFormat string"
+      },
+      "persistence_worker": "0x10283998"
      },
      "inputs": {
       "DesiredTimeFormat": {
@@ -6046,12 +6054,16 @@
        "semantic_type": "string argument",
        "format": "utf-8 text, buffer cap 4 bytes (3 chars + NUL)",
        "unit": "none - boolean flag",
-       "accepted_values": "string within the request parse cap; impl-side grammar applies",
+       "accepted_values": [
+        "",
+        "12H",
+        "24H"
+       ],
        "range": "max 3 chars",
-       "special_values": "none identified",
+       "special_values": "empty string = preserve current value",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Empty string is accepted as no change. Nonempty input is compared directly against ['12H', '24H']; any other value returns SOAP 402 before persistence.",
        "evidence": [
         {
          "type": "firmware",
@@ -6077,12 +6089,8 @@
        ],
        "notes": null,
        "buf_cap": 4,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `DesiredTimeFormat` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +8 (site 0x10733d38) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `DesiredTimeFormat` = verbatim forward to impl vfunc +8 (obj *(r3-in+0x4), call site 0x10733d38); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: f_1027a410 validates DesiredTimeFormat against ['12H', '24H'] when nonempty; empty input substitutes existing engine+0x2dc."
        ]
       },
       "DesiredDateFormat": {
@@ -6098,12 +6106,17 @@
        "semantic_type": "string argument",
        "format": "utf-8 text, buffer cap 4 bytes (3 chars + NUL)",
        "unit": "none - boolean flag",
-       "accepted_values": "string within the request parse cap; impl-side grammar applies",
+       "accepted_values": [
+        "",
+        "MDY",
+        "DMY",
+        "YMD"
+       ],
        "range": "max 3 chars",
-       "special_values": "none identified",
+       "special_values": "empty string = preserve current value",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Empty string is accepted as no change. Nonempty input is compared directly against ['MDY', 'DMY', 'YMD']; any other value returns SOAP 402 before persistence.",
        "evidence": [
         {
          "type": "firmware",
@@ -6129,12 +6142,8 @@
        ],
        "notes": null,
        "buf_cap": 4,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `DesiredDateFormat` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +8 (site 0x10733d38) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `DesiredDateFormat` = verbatim forward to impl vfunc +8 (obj *(r3-in+0x4), call site 0x10733d38); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: f_1027a410 validates DesiredDateFormat against ['MDY', 'DMY', 'YMD'] when nonempty; empty input substitutes existing engine+0x2e0."
        ]
       }
      },
@@ -6152,7 +6161,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v[+0x8]",
+      "description": "Both required SOAP strings must parse at the wrapper layer. Engine f_1027a410 accepts empty strings as preserve-current sentinels; otherwise TimeFormat must be {12H,24H} and DateFormat must be {MDY,DMY,YMD}. The atomic alarmclock.xml commit must succeed.",
       "evidence": [
        {
         "type": "firmware",
@@ -6162,13 +6171,12 @@
         "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "All engine predicates are explicit strcmp gates in f_1027a410; invalid nonempty enum values produce 402."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x8]",
+      "description": "Reads current TimeFormat at engine+0x2dc and DateFormat at engine+0x2e0 when either desired input is empty. Successful persistence reloads those same fields from alarmclock.xml.",
       "evidence": [
        {
         "type": "firmware",
@@ -6178,14 +6186,13 @@
         "notes": "member vfunc calls: ['*(r30+4) v[+0x8]']"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Format backing fields and preserve-current behavior are directly visible in f_1027a410 and GetFormat f_10272f90."
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to *(impl+0x4)->v[+0x08]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Atomically rewrites alarmclock.xml with the selected TimeFormat/DateFormat values, reloads AlarmClock settings, copies changed format strings into engine+0x2dc/+0x2e0, increments the shared change/version state, and invokes the AlarmClock observer.",
        "evidence": [
         {
          "type": "firmware",
@@ -6195,14 +6202,13 @@
          "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x08] (call-derived member-method semantics)"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v[+0x08]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Mutation path: f_1027a410 -> f_10283998 -> f_10279c0c reload -> common observer/version sequence at 0x1027a604-0x1027a640."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Format changes are evented. Reload f_10279c0c compares the parsed TimeFormat/DateFormat strings with engine+0x2dc/+0x2e0, copies changed values, marks AlarmClock event state dirty through f_1067c6ec, and the common observer/version call follows. Event serializer f_10277d6c explicitly emits TimeFormat and DateFormat.",
       "evidence": [
        {
         "type": "firmware",
@@ -6212,13 +6218,12 @@
         "notes": "bl call scan: notify-family sites = []"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Event literals TimeFormat/DateFormat occur in f_10277d6c; reload comparison/copy is at 0x1027a294-0x1027a3a8 with dirty-notify path in the same reload flow."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x8]",
+      "description": "Each empty desired value preserves the corresponding current field. Each valid nonempty value replaces its field after persistence/reload. Invalid enum text leaves state unchanged and returns 402. Successful changed values become the new evented TimeFormat/DateFormat and advance the shared AlarmClock change/version state.",
       "evidence": [
        {
         "type": "firmware",
@@ -6228,13 +6233,12 @@
         "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x8]']"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Transition semantics proven by f_1027a410 input substitution/validation and f_10279c0c reload comparisons."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_1027a410 returns 0 on success, 402 for invalid nonempty format strings, or propagates persistence {501,802}. Its writer context has +0x18 null, so alarm-record-specific 800/801 checks are unreachable. Wrapper f_10733c8c forwards any nonzero rc through req->v[+0x14].",
       "evidence": [
        {
         "type": "firmware",
@@ -6244,9 +6248,8 @@
         "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Concrete engine domain is {0,402,501,802}; the previously attributed 401 format-validation fault is not part of f_1027a410."
       ]
      },
      "fault_sites": [
@@ -6259,28 +6262,59 @@
      "errors": [
       {
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x8)",
-       "meaning": "alarm-store vfunc 0x1027a410 (slot +0x8) domain: accumulator r31 in {0, call result} - DesiredFormat strings validated via five strcmp gates, then stored via strlcpy; no literal fault exit observed",
+       "code_expr": "f_1027a410 rc",
+       "meaning": "Concrete SetFormat engine domain: {402,501,802}",
        "fault_sites": [
         "0x10733d54"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "402 when nonempty DesiredTimeFormat is neither 12H nor 24H, or nonempty DesiredDateFormat is none of MDY/DMY/YMD.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10733d54",
-           "notes": "impl rc passthrough"
+           "address": "0x1027a5b8",
+           "notes": "TimeFormat strcmp gates for 12H/24H; reject accumulator 402"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x10733b44",
-           "notes": "rc convention site"
+           "address": "0x1027a564",
+           "notes": "DateFormat strcmp gates for MDY/DMY/YMD; reject accumulator 402"
+          }
+         ]
+        },
+        {
+         "description": "501 for generic alarmclock.xml atomic commit failure from f_10283998.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283998",
+           "notes": "shared alarm persistence worker"
+          }
+         ]
+        },
+        {
+         "description": "802 when the serialized alarmclock.xml exceeds the 0x8000-byte cap. SetFormat supplies writer-context +0x18 == 0, bypassing 800/801 target-record checks.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283e8c",
+           "notes": "null target selects whole-document cap"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f20",
+           "notes": "null target bypasses per-record 800/801 branch"
           }
          ]
         }
@@ -6308,81 +6342,17 @@
          "notes": "store vfunc slot +0x8 -> 0x1027a410; alarm-store object vptr 0x10eaa99c (ctor f_10276048 overwrite at 0x102761e8; obj new(0x8118) via shared_ptr -> svc+0x4)"
         }
        ],
-       "unresolved": {
-        "proven": "strcmp validation gates present; r31 domain {0, call-derived}",
-        "unknown": "which code (if any) the reject path produces - likely 402 via accumulator",
-        "knowledge": "; impl f_10733b44: literal 401 after strcmp gates",
-        "return_path": "DesiredTimeFormat/DesiredDateFormat settings worker - settings rc",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_10733b44": {
-          "lits": [],
-          "pt": 3
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x10733b44",
-         "lits": [],
-         "passthrough_exits": 3
-        },
-        "delegated_sources": {
-         "f_1056157c": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 18
-         },
-         "f_10561514": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 19
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
        "literal_bound": [
-        401
+        402,
+        501,
+        802
        ],
        "worker_literal_bound": [
         401,
         401
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x8); sites: 0x10733d54).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Complete f_1027a410 predicate/worker chain resolved; invalid enum is 402, not 401."
        ]
       },
       {
@@ -6417,41 +6387,9 @@
        ]
       },
       {
-       "code": 401,
-       "meaning": "format-string validation gate",
-       "conditions": [
-        {
-         "description": "format-string validation gate",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10733c10",
-           "notes": "literal path in impl"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10733c10",
-         "notes": "impl literal"
-        }
-       ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 401; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      },
-      {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}",
+       "code_expr": "f_10283998 with writer-context +0x18 == 0",
+       "meaning": "SetFormat persistence domain: {501,802}",
        "fault_sites": [],
        "evidence": [
         {
@@ -6464,24 +6402,39 @@
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "501: generic temp/open/write/flush/fsync/fclose/rename failure.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x10283998",
-           "notes": "alarmclock.xml atomic save {501,800,801,802}"
+           "notes": "atomic alarmclock.xml writer"
+          }
+         ]
+        },
+        {
+         "description": "802: serialized alarmclock.xml length exceeds 0x8000 bytes; null target context skips all 800/801 per-alarm status logic.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10284078",
+           "notes": "null target cap=0x8000"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f20",
+           "notes": "null target jumps past target status checks"
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
        "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10283998 emits constant set {501, 560, 800, 801, 802} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+        "Setter-specific reachability corrected: only 501/802 from the shared writer are possible on SetFormat."
        ]
       }
      ],
@@ -6511,9 +6464,8 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10733c8c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "SetFormat fully traced: wrapper f_10733c8c -> ac_impl +0x08 f_1027a410 -> enum validation/preserve-current substitution -> atomic persistence -> format-field reload and event/version notification."
      ]
     },
     "SetTimeNow": {
@@ -9176,7 +9128,8 @@
      "notes": null,
      "backing_field": "ac_impl engine+0x2dc",
      "resolved_findings": [
-      "Backing field proven by GetFormat f_10272f90 direct copy from engine+0x2dc; SetFormat f_1027a410 provides the accepted literal vocabulary."
+      "Backing field proven by GetFormat f_10272f90 direct copy from engine+0x2dc; SetFormat f_1027a410 provides the accepted literal vocabulary.",
+      "Setter path proven: SetFormat f_1027a410 validates/persists the enum; reload f_10279c0c updates the backing string and event state when changed."
      ]
     },
     "DateFormat": {
@@ -9204,7 +9157,8 @@
      "notes": null,
      "backing_field": "ac_impl engine+0x2e0",
      "resolved_findings": [
-      "Backing field proven by GetFormat f_10272f90 direct copy from engine+0x2e0; SetFormat f_1027a410 provides the accepted literal vocabulary."
+      "Backing field proven by GetFormat f_10272f90 direct copy from engine+0x2e0; SetFormat f_1027a410 provides the accepted literal vocabulary.",
+      "Setter path proven: SetFormat f_1027a410 validates/persists the enum; reload f_10279c0c updates the backing string and event state when changed."
      ]
     }
    },
