@@ -2352,7 +2352,7 @@
      ]
     },
     "GetFormat": {
-     "description": "Returns CurrentTimeFormat/CurrentDateFormat via impl->v[+0x8].",
+     "description": "Returns the current AlarmClock display formats from the concrete ac_impl engine slot +0x0c -> f_10272f90. The getter locks the engine, copies TimeFormat from engine+0x2dc and DateFormat from engine+0x2e0 into the two SOAP output buffers, unlocks, and returns 0.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10734f28",
@@ -2402,26 +2402,36 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "engine_function": "0x10272f90",
+      "engine_vtable": "0x10eaa99c",
+      "engine_slot": 12,
+      "backing_fields": {
+       "+0x2dc": "TimeFormat string: 12H or 24H",
+       "+0x2e0": "DateFormat string: MDY, DMY, or YMD"
+      }
      },
      "inputs": {},
      "outputs": {
       "CurrentTimeFormat": {
-       "description": "Configured time format",
+       "description": "Current time-display format copied directly from ac_impl engine+0x2dc.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
+       "semantic_type": "time-format enum string",
+       "format": "12H or 24H",
        "unit": "none - boolean flag",
-       "accepted_values": "format enum string",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": [
+        "12H",
+        "24H"
+       ],
+       "range": "enum {12H,24H}",
+       "special_values": "none",
        "required": false,
        "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "validation": "Getter-side none; source field is maintained by the SetFormat validation/persistence path.",
        "evidence": [
         {
          "type": "firmware",
@@ -2446,27 +2456,30 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentTimeFormat`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Producer resolved exactly: f_10272f90 passes engine+0x2dc to strlcpy-like helper f_10906304 and writes the result to the CurrentTimeFormat output buffer. SetFormat f_1027a410 accepts only literals 12H and 24H for nonempty updates."
        ]
       },
       "CurrentDateFormat": {
-       "description": "Configured date format",
+       "description": "Current date-display format copied directly from ac_impl engine+0x2e0.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
+       "semantic_type": "date-format enum string",
+       "format": "MDY, DMY, or YMD",
        "unit": "none - boolean flag",
-       "accepted_values": "format enum string",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": [
+        "MDY",
+        "DMY",
+        "YMD"
+       ],
+       "range": "enum {MDY,DMY,YMD}",
+       "special_values": "none",
        "required": false,
        "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "validation": "Getter-side none; source field is maintained by the SetFormat validation/persistence path.",
        "evidence": [
         {
          "type": "firmware",
@@ -2491,9 +2504,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentDateFormat`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Producer resolved exactly: f_10272f90 passes engine+0x2e0 to f_10906304 and writes the result to the CurrentDateFormat output buffer. SetFormat f_1027a410 accepts only literals MDY, DMY, and YMD for nonempty updates."
        ]
       }
      },
@@ -2510,7 +2522,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×2, raise-fault×1, out-arg write×2, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0xc]",
+      "description": "No action inputs or mutable preconditions. The wrapper request must pass its generic validity check; f_10272f90 only acquires the ac_impl mutex, copies the two backing strings, releases the mutex, and returns 0.",
       "evidence": [
        {
         "type": "firmware",
@@ -2520,13 +2532,12 @@
         "notes": "req-vfunc call map: {'0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×2, raise-fault×1, out-arg write×2, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Concrete getter has no downstream worker, persistence, or value-validation requirement."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0xc]",
+      "description": "Reads only the ac_impl format strings at engine+0x2dc (TimeFormat) and +0x2e0 (DateFormat) under the engine lock.",
       "evidence": [
        {
         "type": "firmware",
@@ -2536,14 +2547,13 @@
         "notes": "member vfunc calls: ['r4 v[+0x8]', '*(r30+4) v[+0xc]']"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Both backing fields resolved from direct loads/copy calls in f_10272f90 and cross-checked against SetFormat f_1027a410's literal validators."
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x0c] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Read-only. The engine method only locks, copies the two strings to caller buffers, and unlocks.",
        "evidence": [
         {
          "type": "firmware",
@@ -2553,14 +2563,13 @@
          "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x0c] -> out-arg (call-derived member-method semantics)"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x0c] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "No store, observer, event, or state write occurs in f_10272f90."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. GetFormat is read-only and has no notify/emitter call in f_10272f90.",
       "evidence": [
        {
         "type": "firmware",
@@ -2570,13 +2579,12 @@
         "notes": "bl call scan: notify-family sites = []"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "No event path exists in the concrete getter."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0xc]",
+      "description": "None; the TimeFormat and DateFormat backing strings are not modified.",
       "evidence": [
        {
         "type": "firmware",
@@ -2586,13 +2594,12 @@
         "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', '*(r30+4) v[+0xc]']"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "f_10272f90 contains no state write."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_10272f90 always returns 0 after copying both output strings. Wrapper f_10734f28 therefore commits both outputs for every valid request; only wrapper/request-layer validation can fault.",
       "evidence": [
        {
         "type": "firmware",
@@ -2602,37 +2609,29 @@
         "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Engine return domain proven exactly {0} from the complete f_10272f90 control flow."
       ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": null,
-       "code_expr": "vret",
-       "meaning": "alarm-store vfunc 0x10272f90 (slot +0xc) is single-exit \"li r3,0; blr\" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)",
+       "code_expr": "f_10272f90 rc",
+       "meaning": "No engine fault domain: f_10272f90 always returns 0.",
        "fault_sites": [
         "0x10734f28"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "No nonzero engine condition exists; the method copies engine+0x2dc/+0x2e0 and returns 0.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10734f28",
-           "notes": "impl rc passthrough"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x10733c8c",
-           "notes": "rc convention site"
+           "address": "0x10273000",
+           "notes": "getter sets r3=0 after unlock"
           }
          ]
         }
@@ -2668,10 +2667,11 @@
         }
        ],
        "domain_note": "delegated-rc semantics: impl vfunc rc surfaced; store vfunc domain fully bounded to {0} | worker literal bound [] (ASCII-fragment constants filtered) (worker_err_literals.json)",
-       "literal_bound": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734f28).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "literal_bound": [
+        0
+       ],
+       "resolved_findings": [
+        "Concrete ac_impl slot +0x0c is f_10272f90; complete method contains no nonzero rc producer."
        ]
       },
       {
@@ -2732,9 +2732,8 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10734f28; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "GetFormat fully traced: wrapper f_10734f28 -> ac_impl vtable 0x10eaa99c +0x0c -> f_10272f90; output sources are engine+0x2dc TimeFormat and +0x2e0 DateFormat."
      ]
     },
     "GetHouseholdTimeAtStamp": {
@@ -9155,9 +9154,12 @@
     },
     "TimeFormat": {
      "evented": true,
-     "description": "evented state variable: appears in AlarmClock LastChange/GENA event notifications",
+     "description": "Evented AlarmClock TimeFormat string backed by ac_impl engine+0x2dc; GetFormat reads it directly and SetFormat validates/persists its enum vocabulary.",
      "data_type": "string",
-     "allowed_values": null,
+     "allowed_values": [
+      "12H",
+      "24H"
+     ],
      "range": null,
      "related_actions": [
       "GetFormat",
@@ -9171,13 +9173,21 @@
        "notes": "AlarmClock1.xml <stateVariable name=TimeFormat sendEvents=yes>string: SCPD-advertised (evented)"
       }
      ],
-     "notes": null
+     "notes": null,
+     "backing_field": "ac_impl engine+0x2dc",
+     "resolved_findings": [
+      "Backing field proven by GetFormat f_10272f90 direct copy from engine+0x2dc; SetFormat f_1027a410 provides the accepted literal vocabulary."
+     ]
     },
     "DateFormat": {
      "evented": true,
-     "description": "evented state variable: appears in AlarmClock LastChange/GENA event notifications",
+     "description": "Evented AlarmClock DateFormat string backed by ac_impl engine+0x2e0; GetFormat reads it directly and SetFormat validates/persists its enum vocabulary.",
      "data_type": "string",
-     "allowed_values": null,
+     "allowed_values": [
+      "MDY",
+      "DMY",
+      "YMD"
+     ],
      "range": null,
      "related_actions": [
       "GetFormat",
@@ -9191,7 +9201,11 @@
        "notes": "AlarmClock1.xml <stateVariable name=DateFormat sendEvents=yes>string: SCPD-advertised (evented)"
       }
      ],
-     "notes": null
+     "notes": null,
+     "backing_field": "ac_impl engine+0x2e0",
+     "resolved_findings": [
+      "Backing field proven by GetFormat f_10272f90 direct copy from engine+0x2e0; SetFormat f_1027a410 provides the accepted literal vocabulary."
+     ]
     }
    },
    "events": {
