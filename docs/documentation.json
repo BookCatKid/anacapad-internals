@@ -1593,7 +1593,7 @@
      ]
     },
     "DestroyAlarm": {
-     "description": "Deletes alarm ID via impl->v[+0x3c].",
+     "description": "Deletes one alarm by ID. Wrapper f_10734954 parses the u32 ID and dispatches the concrete ac_impl engine slot +0x3c -> f_1027b134. The engine builds a delete-mode record (record+0x114=2) and commits it through f_1027a8f8 -> f_1027a7a8 -> f_10283998. During document rewrite, f_1028347c omits the matching alarm and preserves every non-target alarm.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10734954",
@@ -1625,7 +1625,22 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "engine_function": "0x1027b134",
+      "engine_vtable": "0x10eaa99c",
+      "engine_slot": 60,
+      "commit_chain": [
+       "0x1027b134",
+       "0x1027a8f8",
+       "0x1027a7a8",
+       "0x10283998"
+      ],
+      "record_layout": {
+       "+0x00": "ID (alarm to delete)",
+       "+0x114": "writer mode marker = 2 (delete)",
+       "+0x118": "target-ID found/deleted flag",
+       "+0x119": "unused conflict flag; initialized 0 and never set on delete-mode path"
+      }
      },
      "inputs": {
       "ID": {
@@ -1646,7 +1661,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Wrapper f_105614e0 parses the required u32 ID. f_1027b134 stores it at delete record+0. Writer callback f_1028347c compares that value against each existing alarm ID; no match causes rc 800.",
        "evidence": [
         {
          "type": "firmware",
@@ -1671,12 +1686,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `ID` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +60 (site 0x107349d0) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `ID` = verbatim forward to impl vfunc +60 (obj *(r3-in+0x4), call site 0x107349d0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: f_1027b134 stores ID at delete record+0 and sets mode record+0x114=2. In f_1028347c, mode 2 compares the parsed existing ID with this target; equality suppresses that record from output and sets record+0x118=1."
        ]
       }
      },
@@ -1694,7 +1705,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x3c]",
+      "description": "The wrapper must parse the required ID and pass request validation. The target ID must occur in the current alarm document so delete-mode writer callback f_1028347c can set record+0x118; otherwise the persistence worker returns 800. The mutation runs under the alarm-store lock and must successfully commit alarmclock.xml.",
       "evidence": [
        {
         "type": "firmware",
@@ -1704,13 +1715,12 @@
         "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Concrete requirements path: wrapper f_10734954 -> engine f_1027b134 -> delete-mode record -> locked f_1027a8f8/f_1027a7a8 persistence."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x3c]",
+      "description": "Depends on the current ac_impl alarm list/document, target ID at record+0, delete mode marker record+0x114=2, found flag record+0x118, AlarmListVersion state, and the post-commit observer at engine+0x7f00.",
       "evidence": [
        {
         "type": "firmware",
@@ -1720,14 +1730,13 @@
         "notes": "member vfunc calls: ['*(r30+4) v[+0x3c]']"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Delete state is statically resolved through f_1027b134 and f_1028347c; no runtime-injected delegate boundary remains."
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to *(impl+0x4)->v[+0x3c]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Atomically rewrites alarmclock.xml while omitting the alarm whose ID equals the requested ID. Non-target alarm records are serialized unchanged. A successful commit reloads m_alarms, advances AlarmListVersion, and invokes the alarm-store observer.",
        "evidence": [
         {
          "type": "firmware",
@@ -1737,14 +1746,13 @@
          "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x3c] (call-derived member-method semantics)"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v[+0x3c]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Delete mutation resolved: f_1027b134 creates mode-2 record, f_1028347c skips the matching ID and marks +0x118, then f_1027a7a8 performs post-commit reload/version notification."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Successful deletion advances AlarmListVersion and invokes the observer at engine+0x7f00 through v[+0x14]. AlarmClock serializer f_10277d6c publishes the evented AlarmListVersion as {last-update-device}:{counter}.",
       "evidence": [
        {
         "type": "firmware",
@@ -1754,13 +1762,12 @@
         "notes": "bl call scan: notify-family sites = []"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "DestroyAlarm event path resolved through the common successful alarm CRUD post-commit sequence in f_1027a7a8."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x3c]",
+      "description": "f_1027b134 builds a delete-mode record with ID at +0 and marker +0x114=2. In f_1028347c, each parsed alarm ID is compared with the target: nonmatches are emitted, while equality sets target+0x118=1 and emits nothing for that record. If no equality occurs, f_10283998 returns 800. Success is followed by store reload/version advance/observer notification.",
       "evidence": [
        {
         "type": "firmware",
@@ -1770,13 +1777,12 @@
         "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x3c]']"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Delete-mode transition is directly visible in f_1027b134 and the mode-2 branch of f_1028347c."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Engine f_1027b134 returns 0 on successful deletion or propagates persistence results {501,800,802}. Delete mode never sets record+0x119, so the writer's 801 conflict return is unreachable here. Wrapper f_10734954 separately uses 402 for request parse failure and forwards nonzero engine rc through req->v[+0x14].",
       "evidence": [
        {
         "type": "firmware",
@@ -1786,9 +1792,8 @@
         "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "DestroyAlarm engine domain traced through f_1027b134 -> f_1027a8f8 -> f_1027a7a8 -> f_10283998; delete mode has no 801 path."
       ]
      },
      "fault_sites": [
@@ -1801,28 +1806,59 @@
      "errors": [
       {
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x3c)",
-       "meaning": "alarm-store vfunc 0x1027b134 (slot +0x3c) domain: accumulator r31 = remove-call result only (f_1027a8f8 / f_1027f94c) - no literal fault code observed",
+       "code_expr": "f_1027b134 rc",
+       "meaning": "Concrete DestroyAlarm engine domain: persistence {501,800,802}, propagated verbatim by wrapper f_10734954.",
        "fault_sites": [
         "0x107349ec"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "501: generic alarmclock.xml temp/open/write/flush/fsync/fclose/rename failure in f_10283998.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107349ec",
-           "notes": "impl rc passthrough"
+           "address": "0x10283a6c",
+           "notes": "generic persistence rc initialized to 0x1f5"
+          }
+         ]
+        },
+        {
+         "description": "800: requested alarm ID was not found. Mode-2 callback f_1028347c sets record+0x118 only when an existing parsed ID equals delete record+0; f_10283998 returns 800 if +0x118 remains zero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283648",
+           "notes": "delete-mode ID compare; equal path sets +0x118 and suppresses target emission"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x107346ac",
-           "notes": "rc convention site"
+           "address": "0x10283f2c",
+           "notes": "+0x118==0 -> rc 0x320"
+          }
+         ]
+        },
+        {
+         "description": "802: writer item-count exceeds 0x20 or serialized file length exceeds the selected 0x8000/0x5800 cap.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f38",
+           "notes": "item-count limit"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283ef4",
+           "notes": "serialized-length cap"
           }
          ]
         }
@@ -1850,89 +1886,13 @@
          "notes": "store vfunc slot +0x3c -> 0x1027b134; alarm-store object vptr 0x10eaa99c (ctor f_10276048 overwrite at 0x102761e8; obj new(0x8118) via shared_ptr -> svc+0x4)"
         }
        ],
-       "unresolved": {
-        "proven": "rc is fully call-derived",
-        "unknown": "remove/commit worker rc domain | commit chain: f_1027a8f8 -> f_1027f94c persist writer (rc = inner-call result, no literal faults observed)",
-        "bounded_domain": [
-         402
-        ],
-        "bound_evidence": "worker literal-exit scan: f_1027a8f8->[402];f_1027a8f8->[402]",
-        "raw_exit_literals": {
-         "f_1027a8f8": {
-          "lits": [
-           20,
-           21,
-           402
-          ],
-          "pt": 0
-         },
-         "f_1027f94c": {
-          "lits": [
-           49,
-           230
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x107346ac",
-         "lits": [],
-         "passthrough_exits": 3
-        },
-        "delegated_sources": {
-         "f_10561444": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 22
-         },
-         "f_105614e0": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 20
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
        "literal_bound": [
-        1025,
-        4097
+        501,
+        800,
+        802
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x3c); sites: 0x107349ec).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Complete delete rc source resolved: f_1027b134 creates a mode-2 record then returns f_1027a8f8/f_1027a7a8/f_10283998 result. Mode 2 cannot set the +0x119 conflict byte, so 801 is unreachable."
        ]
       },
       {
@@ -1968,8 +1928,8 @@
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}",
+       "code_expr": "f_10283998 delete persistence rc",
+       "meaning": "DestroyAlarm persistence domain: {501,800,802}; 801 is unreachable in mode 2.",
        "fault_sites": [],
        "evidence": [
         {
@@ -1982,24 +1942,51 @@
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "501: generic temp/open/write/flush/fsync/fclose/rename failure.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x10283998",
-           "notes": "alarmclock.xml atomic save {501,800,801,802}"
+           "notes": "shared atomic alarm persistence worker"
+          }
+         ]
+        },
+        {
+         "description": "800: no existing alarm ID matched the requested ID, leaving record+0x118 zero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283648",
+           "notes": "delete ID match sets found byte; mismatch preserves record"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f2c",
+           "notes": "found byte zero -> 800"
+          }
+         ]
+        },
+        {
+         "description": "802: resulting writer count/serialized length exceeds its hard limit.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283ef4",
+           "notes": "size limit path"
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
        "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10283998 emits constant set {501, 560, 800, 801, 802} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+        "Delete-specific semantics: writer mode 2 only matches/removes the requested ID and sets +0x118; it never executes the update/create schedule-conflict branch that can set +0x119, therefore rc 801 is excluded."
        ]
       }
      ],
@@ -2029,9 +2016,8 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10734954; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "DestroyAlarm fully traced: wrapper f_10734954 -> ac_impl vtable 0x10eaa99c +0x3c -> f_1027b134 -> common locked persistence. Writer mode 2 skips the matching record, sets the found flag, and preserves all others."
      ]
     },
     "GetDailyIndexRefreshTime": {
