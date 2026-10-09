@@ -23516,7 +23516,7 @@
      ]
     },
     "ReportTrackBufferingResult": {
-     "description": "Member feedback path: reports MemberID's buffering ResultCode to the coordinator via impl->v[+0x10] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required), ResultCode via f_10561514 (int, required) -> req->v[+0x08] validate (fail -> 402) -> impl->v[+0x10] -> empty commit. Impl f_105c53d0 unconditionally returns 402: the action is a non-functional stub in this build.",
+     "description": "Advertised and callable, but intentionally non-functional in firmware 86.10-80260. The wrapper requires MemberID and ResultCode, validates the TRequest, then dispatches gm_impl slot +0x10. That slot is statically bound to f_105c53d0, which ignores both arguments and unconditionally returns UPnP error 402. The wrapper therefore never reaches its success-response commit in this build.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107388a4",
@@ -23552,7 +23552,7 @@
      },
      "inputs": {
       "MemberID": {
-       "description": "string, required - parsed by f_1056157c at handler 0x107388a4",
+       "description": "Required string member identifier, parsed into a 25-byte request record. The reachable implementation stub does not inspect the parsed value.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -23564,12 +23564,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text, buffer cap 25 bytes (24 chars + NUL)",
        "unit": "n/a - text",
-       "accepted_values": "opaque to handler (impl interprets)",
+       "accepted_values": "any value accepted by the request string parser; ignored by the implementation stub",
        "range": "max 24 chars",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "required; req->v[+0x1c] lookup + f_1056157c conversion; validate fail -> 402",
+       "validation": "required; TRequest allocates the next input record and f_1056157c configures the 25-byte string record; TRequest validation failure emits 402 before implementation dispatch",
        "evidence": [
         {
          "type": "firmware",
@@ -23590,7 +23590,7 @@
        "buf_cap": 25
       },
       "ResultCode": {
-       "description": "int, required - parsed by f_10561514 at handler 0x107388a4",
+       "description": "Required numeric request argument using parser record type tag 5. The reachable implementation stub does not inspect the parsed value.",
        "direction": "in",
        "primitive": {
         "type_tag": 5,
@@ -23599,15 +23599,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "opaque to handler (impl interprets)",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none observed in this build",
+       "semantic_type": "numeric request argument (type tag 5)",
+       "format": "decimal numeric lexical form accepted by request type tag 5",
+       "unit": "none",
+       "accepted_values": "any value accepted by request type tag 5; ignored by the implementation stub",
+       "range": "parser-defined numeric range; no narrower implementation constraint because the stub never reads it",
+       "special_values": "none in the reachable implementation",
        "required": true,
        "default": "none - required argument",
-       "validation": "required; req->v[+0x1c] lookup + f_10561514 conversion; validate fail -> 402",
+       "validation": "required; TRequest allocates the next input record and f_10561514 configures request type tag 5; TRequest validation failure emits 402 before implementation dispatch",
        "evidence": [
         {
          "type": "firmware",
@@ -23641,101 +23641,121 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0x10]",
+      "description": "Both MemberID and ResultCode must be present and pass TRequest validation. There is no implementation-side precondition: once validation succeeds, gm_impl slot +0x10 immediately returns 402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x107388a4",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x1073894c",
+        "notes": "After both inputs parse and TRequest validation succeeds, the wrapper dispatches gm_impl slot +0x10 and forwards any nonzero return code to TRequest fault slot +0x14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ec2bd0",
+        "notes": "gm_impl primary vtable 0x10ec2bc0 slot +0x10 contains f_105c53d0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105c53d0",
+        "address": "0x105c53d4",
+        "notes": "Reachable implementation is a four-instruction stub that loads r3=0x192 (402) and returns; it reads no arguments or object state."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x10]",
+      "description": "none in the reachable implementation; f_105c53d0 reads neither gm_impl state nor either parsed argument",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107388a4",
-        "notes": "member vfunc calls: ['r30 v[+0x10]']"
+        "function": "0x105c53d0",
+        "address": "0x105c53d4",
+        "notes": "Reachable implementation is a four-instruction stub that loads r3=0x192 (402) and returns; it reads no arguments or object state."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x10] (call-derived member-method semantics)",
+       "description": "none; f_105c53d0 returns 402 without writing state, emitting events, or consuming the buffering report",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x107388a4",
-         "notes": "delegate map ['r30 v[+0x10]']; notify-family calls []"
+         "function": "0x105c53d0",
+         "address": "0x105c53d4",
+         "notes": "Reachable implementation is a four-instruction stub that loads r3=0x192 (402) and returns; it reads no arguments or object state."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x10] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "none; the reachable implementation is an immediate 402-return stub",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107388a4",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x105c53d0",
+        "address": "0x105c53d4",
+        "notes": "Reachable implementation is a four-instruction stub that loads r3=0x192 (402) and returns; it reads no arguments or object state."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x10]",
+      "description": "none; the reachable implementation returns 402 before any state-machine or member update",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107388a4",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x10]']"
+        "function": "0x105c53d0",
+        "address": "0x105c53d4",
+        "notes": "Reachable implementation is a four-instruction stub that loads r3=0x192 (402) and returns; it reads no arguments or object state."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "TRequest validation failure emits 402. If validation succeeds, the wrapper calls gm_impl slot +0x10, which is f_105c53d0 and always returns 402; that value is forwarded verbatim through TRequest +0x14 at 0x10738968. The wrapper contains a success commit through TRequest +0x0c at 0x107389b0, but it is unreachable in this build because the implementation can never return zero.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10ec2bd0",
+        "notes": "gm_impl primary vtable 0x10ec2bc0 slot +0x10 contains f_105c53d0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105c53d0",
+        "address": "0x105c53d4",
+        "notes": "Reachable implementation is a four-instruction stub that loads r3=0x192 (402) and returns; it reads no arguments or object state."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x107388a4",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x10738968",
+        "notes": "Common fault-emission site receives either validation literal 402 or the implementation return code."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107388a4",
+        "address": "0x107389b0",
+        "notes": "Success-response commit exists structurally but requires implementation rc==0, impossible for f_105c53d0."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -23748,33 +23768,42 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x10); parse/req-layer; vret(gm_impl,+0x10)",
-       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14] | impl stub: unconditional 402 regardless of args",
+       "code_expr": "TRequest validation literal 402 or gm_impl f_105c53d0 literal 402",
+       "meaning": "The request is rejected. Malformed/missing required input can fail TRequest validation with 402; a well-formed request also receives 402 because the reachable gm_impl method is an unconditional stub.",
        "fault_sites": [
         "0x10738968"
        ],
        "conditions": [
         {
-         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
+         "description": "TRequest validation returned false after the two required input records were prepared.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107388a4",
-           "notes": "0x192 literal in handler"
+           "function": "0x107388a4",
+           "address": "0x10738998",
+           "notes": "Validation-failure branch loads literal 0x192 before jumping to the common TRequest fault emitter."
           }
          ]
         },
         {
-         "description": "impl f_105c53d0 always returns 0x192",
+         "description": "TRequest validation succeeded; gm_impl slot +0x10 then executed f_105c53d0, which unconditionally returned 402.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x105c53d0",
-           "notes": "4-instruction stub: li r3,0x192; blr"
+           "address": "0x10ec2bd0",
+           "notes": "gm_impl primary vtable 0x10ec2bc0 slot +0x10 contains f_105c53d0."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x105c53d0",
+           "address": "0x105c53d4",
+           "notes": "Reachable implementation is a four-instruction stub that loads r3=0x192 (402) and returns; it reads no arguments or object state."
           }
          ]
         }
@@ -23784,21 +23813,25 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107388a4",
-         "notes": "402 gate"
+         "address": "0x10ec2bd0",
+         "notes": "gm_impl primary vtable 0x10ec2bc0 slot +0x10 contains f_105c53d0."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x105c53d0",
-         "notes": "unconditional 402"
+         "function": "0x105c53d0",
+         "address": "0x105c53d4",
+         "notes": "Reachable implementation is a four-instruction stub that loads r3=0x192 (402) and returns; it reads no arguments or object state."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107388a4",
+         "address": "0x10738968",
+         "notes": "Common TRequest +0x14 fault call."
         }
-       ],
-       "domain_note": "delegated-rc semantics: impl rc surfaced via req->v[+0x14]",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x10); parse/req-layer; vret(gm_impl,+0x10); sites: 0x10738968).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -23821,13 +23854,10 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: dispatch to handler 0x107388a4; impl resolves to gm_impl ReportTrackBufferingResult = f_105c53d0, an unconditional-402 stub (see architecture).",
-      "Residual: whether the 402 stub is reachable in practice and what the action would do on a build where it is implemented. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
-      "Resolved: the 402 stub IS the reachable path - the impl returns fault 402 unconditionally after parsing {MemberID,ResultCode}; no caller depends on success in this build (dead per SCPD-vs-binary parity work).",
-      "Resolved: the 402 stub IS the reachable path - the impl returns fault 402 unconditionally after parsing {MemberID,ResultCode}; no caller depends on success in this build (dead per SCPD-vs-binary parity work)."
+      "gm_impl primary vtable 0x10ec2bc0 binds ReportTrackBufferingResult slot +0x10 directly to f_105c53d0.",
+      "f_105c53d0 is the reachable implementation and unconditionally returns 402 without reading MemberID, ResultCode, or object state.",
+      "The wrapper's success commit exists only as dead control flow in this build because the bound implementation cannot return zero."
      ]
     },
     "SetSourceAreaIds": {
