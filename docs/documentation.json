@@ -23170,7 +23170,7 @@
      ]
     },
     "RemoveMember": {
-     "description": "Removes MemberID from the group via impl->v[+0xc] on r5-in. Handler fully decoded: MemberID via f_1056157c (string, required, 25-char capacity) -> req->v[+0x08] validate (fail -> 402) -> impl->v[+0xc] -> empty commit via req->v[+0x0c].",
+     "description": "Removes one exact MemberID from the coordinator's GroupManagement member table. The direct SOAP path enters gm_impl through vtable slot +0x0c (f_10395b0c -> f_10395854), rejects an empty ID with 402, then case-sensitively scans up to 32 fixed 25-byte member records at gm_impl+0x288. A match is removed from the membership and dependent topology structures, group-size-dependent state is recomputed, a GroupResize notification is published with reason 'Remove', related VLI linkage is cleared when it refers to the removed ID, and the active AVTransport URI path is reset with empty URI/metadata. A non-member ID returns 800.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10738460",
@@ -23206,7 +23206,7 @@
      },
      "inputs": {
       "MemberID": {
-       "description": "string, required, 25-char capacity - parsed by f_1056157c at handler 0x10738460",
+       "description": "Required member identifier. The wrapper allocates a 25-byte string record (maximum 24 payload characters plus NUL). gm_impl requires the resulting string to be nonempty and compares it case-sensitively with each populated member slot.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -23215,29 +23215,31 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 25 bytes (24 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "opaque to handler (impl interprets)",
-       "range": "max 24 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "group member identifier",
+       "format": "UTF-8/textual member ID, exact case-sensitive match",
+       "unit": "none",
+       "accepted_values": "a nonempty ID exactly matching one of the current GroupManagement member records",
+       "range": "1 to 24 payload characters after request parsing",
+       "special_values": "empty string is rejected with 402; an otherwise valid ID absent from all 32 member slots returns 800",
        "required": true,
-       "default": "none - required argument",
-       "validation": "required; req->v[+0x1c] lookup + f_1056157c conversion; validate fail -> 402",
+       "default": "none; required",
+       "validation": "TRequest string record via f_1056157c with cap 0x19, followed by TRequest +0x08 validation. The gm_impl worker separately rejects null/empty text and exact strcmp-scans 32 records at +0x288 with 0x19-byte stride.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10738460",
-         "notes": "handler arg parse"
+         "notes": "SOAP wrapper prepares MemberID, validates TRequest, calls gm_impl slot +0x0c, forwards nonzero rc through TRequest +0x14, and commits success through +0x0c.",
+         "function": "0x10738460"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1056157c",
-         "notes": "parser helper"
+         "address": "0x10395854",
+         "notes": "RemoveMember core: rejects null/empty MemberID with 402, exact strcmp-scans 32 member records at gm_impl+0x288 with stride 0x19, removes a matching slot, and returns 800 on a complete miss.",
+         "function": "0x10395854"
         }
        ],
        "notes": null,
@@ -23247,113 +23249,248 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "MemberID must be present, fit the 25-byte request record, pass TRequest validation, and be nonempty. A successful operation additionally requires an exact case-sensitive match in the 32-slot gm_impl member table.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x10738460",
-        "notes": "wrapper decode"
+        "notes": "SOAP wrapper prepares MemberID, validates TRequest, calls gm_impl slot +0x0c, forwards nonzero rc through TRequest +0x14, and commits success through +0x0c.",
+        "function": "0x10738460"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10395854",
+        "notes": "RemoveMember core: rejects null/empty MemberID with 402, exact strcmp-scans 32 member records at gm_impl+0x288 with stride 0x19, removes a matching slot, and returns 800 on a complete miss.",
+        "function": "0x10395854"
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0xc]",
+      "description": "Requires a current member whose 25-byte record exactly matches MemberID. No runtime-injected delegate remains on the direct SOAP path: the bound gm_impl entry is f_10395b0c and the full mutation worker is f_10395854.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738460",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x10395b0c",
+        "notes": "gm_impl vtable 0x10ec2bc0 slot +0x0c is f_10395b0c; the direct SOAP entry supplies flag 0 and tail-calls f_10395854.",
+        "function": "0x10395b0c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10395854",
+        "notes": "RemoveMember core: rejects null/empty MemberID with 402, exact strcmp-scans 32 member records at gm_impl+0x288 with stride 0x19, removes a matching slot, and returns 800 on a complete miss.",
+        "function": "0x10395854"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0xc]",
+      "description": "Reads the 32-slot member table at gm_impl+0x288, coordinator ID at +0x120, group ID at +0x139, VirtualLineInGroupID at +0x5c1, and the current AVTransport/session object behind gm_impl+0x220. The remaining-member count and transport-associated identifier determine the follow-up synchronization work.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738460",
-        "notes": "member vfunc calls: ['r30 v[+0xc]']"
+        "address": "0x10395854",
+        "notes": "RemoveMember core: rejects null/empty MemberID with 402, exact strcmp-scans 32 member records at gm_impl+0x288 with stride 0x19, removes a matching slot, and returns 800 on a complete miss.",
+        "function": "0x10395854"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10391dd8",
+        "notes": "Recounts the 32 member slots and synchronizes group/transport state that depends on current membership count.",
+        "function": "0x10391dd8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10392c7c",
+        "notes": "Builds and publishes zpGrouping eventType=GroupResize with gc=gm_impl+0x120, gid=gm_impl+0x139, mcount=remaining member count, and reason='Remove'.",
+        "function": "0x10392c7c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1039561c",
+        "notes": "When the transport-associated 25-byte identifier equals the removed MemberID, this path clears the gm_impl VirtualLineInGroupID string at +0x5c1, marks +0x164 dirty, notifies, and updates dependent topology/VLI state.",
+        "function": "0x1039561c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dcb88",
+        "notes": "After a successful member removal, invokes the active AVTransport SetAVTransportURI-equivalent with empty URI/metadata; the default class-A slot is f_102dcb58/f_102dc81c and alternate transport classes dispatch their own slot +0x08.",
+        "function": "0x102dcb88"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0xc] (call-derived member-method semantics)",
+       "description": "Removes the matched member record and dependent membership mappings, clears the slot, recomputes membership-count-dependent state, publishes GroupResize(reason='Remove'), conditionally clears VirtualLineInGroupID when the transport-associated identifier equals the removed MemberID, and resets the active AVTransport URI/metadata path after the removal.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10738460",
-         "notes": "delegate map ['r30 v[+0xc]']; notify-family calls []"
+         "address": "0x10392b84",
+         "notes": "Given the matched index, removes the 25-byte member record from dependent membership/topology structures, clears the record's first byte, and refreshes the group-side auxiliary structure at gm_impl+0xac8.",
+         "function": "0x10392b84"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10391dd8",
+         "notes": "Recounts the 32 member slots and synchronizes group/transport state that depends on current membership count.",
+         "function": "0x10391dd8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10392c7c",
+         "notes": "Builds and publishes zpGrouping eventType=GroupResize with gc=gm_impl+0x120, gid=gm_impl+0x139, mcount=remaining member count, and reason='Remove'.",
+         "function": "0x10392c7c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1039561c",
+         "notes": "When the transport-associated 25-byte identifier equals the removed MemberID, this path clears the gm_impl VirtualLineInGroupID string at +0x5c1, marks +0x164 dirty, notifies, and updates dependent topology/VLI state.",
+         "function": "0x1039561c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dcb88",
+         "notes": "After a successful member removal, invokes the active AVTransport SetAVTransportURI-equivalent with empty URI/metadata; the default class-A slot is f_102dcb58/f_102dc81c and alternate transport classes dispatch their own slot +0x08.",
+         "function": "0x102dcb88"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0xc] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Publishes a zpGrouping GroupResize event containing the coordinator ID, group ID, new member count, and reason 'Remove'. The VLI-clear branch and membership recomputation also use the existing internal dirty/notifier paths. These are internal/group topology notifications, not a newly invented GENA event for this SOAP action.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738460",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x10392c7c",
+        "notes": "Builds and publishes zpGrouping eventType=GroupResize with gc=gm_impl+0x120, gid=gm_impl+0x139, mcount=remaining member count, and reason='Remove'.",
+        "function": "0x10392c7c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1039561c",
+        "notes": "When the transport-associated 25-byte identifier equals the removed MemberID, this path clears the gm_impl VirtualLineInGroupID string at +0x5c1, marks +0x164 dirty, notifies, and updates dependent topology/VLI state.",
+        "function": "0x1039561c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10391dd8",
+        "notes": "Recounts the 32 member slots and synchronizes group/transport state that depends on current membership count.",
+        "function": "0x10391dd8"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0xc]",
+      "description": "On success, one populated member slot becomes empty and all dependent group-size state is recomputed from the remaining slots. If the removed ID matches the current transport-associated identifier, VirtualLineInGroupID is cleared. The transport URI path is then reset with empty URI/metadata. A missing member causes no mutation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738460",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0xc]']"
+        "address": "0x10395854",
+        "notes": "RemoveMember core: rejects null/empty MemberID with 402, exact strcmp-scans 32 member records at gm_impl+0x288 with stride 0x19, removes a matching slot, and returns 800 on a complete miss.",
+        "function": "0x10395854"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10392b84",
+        "notes": "Given the matched index, removes the 25-byte member record from dependent membership/topology structures, clears the record's first byte, and refreshes the group-side auxiliary structure at gm_impl+0xac8.",
+        "function": "0x10392b84"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10391dd8",
+        "notes": "Recounts the 32 member slots and synchronizes group/transport state that depends on current membership count.",
+        "function": "0x10391dd8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1039561c",
+        "notes": "When the transport-associated 25-byte identifier equals the removed MemberID, this path clears the gm_impl VirtualLineInGroupID string at +0x5c1, marks +0x164 dirty, notifies, and updates dependent topology/VLI state.",
+        "function": "0x1039561c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dcb88",
+        "notes": "After a successful member removal, invokes the active AVTransport SetAVTransportURI-equivalent with empty URI/metadata; the default class-A slot is f_102dcb58/f_102dc81c and alternate transport classes dispatch their own slot +0x08.",
+        "function": "0x102dcb88"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Reachable direct-SOAP result domain is exactly {0,402,800}. TRequest validation failure or a null/empty MemberID returns 402. A full 32-slot scan with no exact match returns 800. A matched member runs the removal/synchronization helpers and explicitly returns 0; helper return values are not propagated as additional SOAP fault codes.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738460",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x1073852c",
+        "notes": "Wrapper validation-failure branch loads literal 402 and enters the common TRequest fault emitter.",
+        "function": "0x10738460"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10395854",
+        "notes": "RemoveMember core: rejects null/empty MemberID with 402, exact strcmp-scans 32 member records at gm_impl+0x288 with stride 0x19, removes a matching slot, and returns 800 on a complete miss.",
+        "function": "0x10395854"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103959f0",
+        "notes": "Found-member path explicitly initializes the direct-SOAP return register to 0 after removal/synchronization work begins.",
+        "function": "0x10395854"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10395aac",
+        "notes": "Complete 32-slot miss sets the return value to 0x320 (800).",
+        "function": "0x10395854"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -23366,33 +23503,35 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0xc); parse/req-layer; vret(gm_impl,+0x0c)",
-       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14] | empty MemberID ('Removing member failed - invalid argument')",
+       "code_expr": "wrapper validation literal 402 or f_10395854 empty-argument literal 402",
+       "meaning": "The required MemberID request is invalid or empty.",
        "fault_sites": [
         "0x107384fc"
        ],
        "conditions": [
         {
-         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
+         "description": "TRequest +0x08 validation failed after MemberID was prepared.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10738460",
-           "notes": "0x192 literal in handler"
+           "address": "0x1073852c",
+           "notes": "Validation-failure branch loads literal 0x192 before the common TRequest +0x14 fault path.",
+           "function": "0x10738460"
           }
          ]
         },
         {
-         "description": "*(MemberID)==0 -> return 0x192",
+         "description": "The gm_impl core received a null MemberID pointer or a string whose first byte is NUL.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103958ac",
-           "notes": "default rc r30=0x192; empty-arg log site 0x103958bc"
+           "address": "0x1039588c",
+           "notes": "Null/empty checks lead to r30=0x192 and the 'Removing member failed - invalid argument' path.",
+           "function": "0x10395854"
           }
          ]
         }
@@ -23403,39 +23542,37 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10738460",
-         "notes": "402 gate"
+         "notes": "SOAP wrapper prepares MemberID, validates TRequest, calls gm_impl slot +0x0c, forwards nonzero rc through TRequest +0x14, and commits success through +0x0c.",
+         "function": "0x10738460"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10395854",
-         "notes": "worker entry: empty MemberID -> 402"
+         "notes": "RemoveMember core: rejects null/empty MemberID with 402, exact strcmp-scans 32 member records at gm_impl+0x288 with stride 0x19, removes a matching slot, and returns 800 on a complete miss.",
+         "function": "0x10395854"
         }
-       ],
-       "domain_note": "delegated-rc semantics: impl rc surfaced via req->v[+0x14]",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0xc); parse/req-layer; vret(gm_impl,+0x0c); sites: 0x107384fc).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 800,
-       "code_expr": "vret(gm_impl,+0x0c)",
-       "meaning": "MemberID not in member list ('failed (not a member before?)')",
+       "code_expr": "literal 0x320 after exhausting the 32 member slots",
+       "meaning": "MemberID is not a current group member.",
        "fault_sites": [
         "0x107384fc"
        ],
        "conditions": [
         {
-         "description": "member-list scan this+0x288 (0x19-stride, <=0x20) found no strcmp match",
+         "description": "All 32 records at gm_impl+0x288, stride 0x19, failed the exact strcmp against MemberID.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x10395aac",
-           "notes": "li r30,0x320 in f_10395854 after not-found path"
+           "notes": "After the scan reaches index 31 without a match, f_10395854 loads r30=0x320 (800).",
+           "function": "0x10395854"
           }
          ]
         }
@@ -23445,45 +23582,10 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10395aac",
-         "notes": "800 on not-found"
+         "address": "0x10395854",
+         "notes": "RemoveMember core: rejects null/empty MemberID with 402, exact strcmp-scans 32 member records at gm_impl+0x288 with stride 0x19, removes a matching slot, and returns 800 on a complete miss.",
+         "function": "0x10395854"
         }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "group-membership rc domain reachable {800} plus internal codes via gm_impl chain",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10394d10",
-         "notes": "gm_impl block"
-        }
-       ],
-       "conditions": [
-        {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10394d10",
-           "notes": "gm_impl block"
-          }
-         ]
-        }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10394d10 emits constant set {648, 800, 801, 802, 803, 804, 806, 807, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
        ]
       }
      ],
@@ -23506,14 +23608,13 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: dispatch to handler 0x10738460; impl resolves to the gm_impl class with RemoveMember impl f_10395b0c->f_10395854 (see architecture).",
-      "Residual: per-action impl linkage not recorded here; the member-removal semantics inside f_10395854 untraced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
-      "Resolved: f_10395b0c is the removal impl - removes the member record and propagates the topology change; f_10395854 is the member-state sibling in the same gm worker cluster.",
-      "Resolved: f_10395b0c is the removal impl - removes the member record and propagates the topology change; f_10395854 is the member-state sibling in the same gm worker cluster."
-     ]
+      "The direct SOAP implementation is fully statically bound: gm_impl slot +0x0c = f_10395b0c, which supplies flag 0 and tail-calls f_10395854.",
+      "f_10395854 uses a fixed 32-entry member table at gm_impl+0x288 with 25-byte records and exact strcmp matching.",
+      "The direct SOAP return domain is exactly success 0, invalid/empty 402, and member-not-found 800; the previous generic store-commit error ladder did not belong to this action.",
+      "A successful removal publishes GroupResize with reason 'Remove', updates dependent membership state, conditionally clears VirtualLineInGroupID, and resets the active AVTransport URI path."
+     ],
+     "implementation_notes": "Complete direct SOAP chain: wrapper f_10738460 -> gm_impl vtable 0x10ec2bc0 slot +0x0c f_10395b0c -> core f_10395854 -> member removal f_10392b84 -> membership recompute f_10391dd8 -> GroupResize emitter f_10392c7c; optional VLI cleanup uses f_1039561c and successful removal finishes by invoking f_102dcb88 to reset the active AVTransport URI path."
     },
     "ReportTrackBufferingResult": {
      "description": "Advertised and callable, but intentionally non-functional in firmware 86.10-80260. The wrapper requires MemberID and ResultCode, validates the TRequest, then dispatches gm_impl slot +0x10. That slot is statically bound to f_105c53d0, which ignores both arguments and unconditionally returns UPnP error 402. The wrapper therefore never reaches its success-response commit in this build.",
