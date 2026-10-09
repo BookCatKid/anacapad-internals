@@ -6880,7 +6880,7 @@
      ]
     },
     "SetTimeServer": {
-     "description": "Sets the NTP time server via impl->v[+0x20].",
+     "description": "Sets the AlarmClock time-server string through concrete ac_impl slot +0x20 -> f_1027a64c. The engine performs no lexical validation of the string: it is passed as the dedicated TimeServer argument to f_10283998, persisted in alarmclock.xml, reloaded into the time-server sub-object at engine+0x240, and then the AlarmClock change/version observer path runs.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10733da8",
@@ -6912,7 +6912,13 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "engine_function": "0x1027a64c",
+      "engine_vtable": "0x10eaa99c",
+      "engine_slot": 32,
+      "persistence_worker": "0x10283998",
+      "persistence_context_field": "+0x14 = TimeServer string",
+      "backing_field": "*(engine+0x240)+0x08"
      },
      "inputs": {
       "DesiredTimeServer": {
@@ -6928,12 +6934,12 @@
        "semantic_type": "string argument",
        "format": "utf-8 text, buffer cap 129 bytes (128 chars + NUL)",
        "unit": "none - boolean flag",
-       "accepted_values": "string within the request parse cap; impl-side grammar applies",
+       "accepted_values": "opaque string accepted by the SOAP string parser/buffer cap",
        "range": "max 128 chars",
-       "special_values": "none identified",
+       "special_values": "empty string is not rejected by ac_impl; no additional semantic interpretation is performed here",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "No engine-side lexical validation. After wrapper string parsing, f_1027a64c forwards the value verbatim as the TimeServer persistence argument; empty and nonempty strings are both accepted by this method.",
        "evidence": [
         {
          "type": "firmware",
@@ -6959,12 +6965,8 @@
        ],
        "notes": null,
        "buf_cap": 129,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `DesiredTimeServer` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +32 (site 0x10733e28) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `DesiredTimeServer` = verbatim forward to impl vfunc +32 (obj *(r3-in+0x4), call site 0x10733e28); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: f_1027a64c stores DesiredTimeServer on its stack and passes it as f_10283998 arg5, which becomes writer-context +0x14. There is no strcmp/parser gate in the engine method."
        ]
       }
      },
@@ -6982,7 +6984,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x20]",
+      "description": "The required SOAP string must pass the wrapper parse/buffer contract. ac_impl imposes no additional value restriction. The alarmclock.xml atomic persistence call must succeed.",
       "evidence": [
        {
         "type": "firmware",
@@ -6992,13 +6994,12 @@
         "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x20].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "f_1027a64c contains no value predicate between input and persistence; its only fallible operation is f_10283998."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x20]",
+      "description": "Persists the TimeServer field and reloads the time-server settings sub-object at engine+0x240. CurrentTimeServer is stored at subobject+0x08 and is what GetTimeServer f_10273090 returns.",
       "evidence": [
        {
         "type": "firmware",
@@ -7008,14 +7009,13 @@
         "notes": "member vfunc calls: ['*(r30+4) v[+0x20]']"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x20].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "End-to-end state source resolved by pairing SetTimeServer f_1027a64c with GetTimeServer f_10273090 and the f_10279c0c reload comparison/update path."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: *(r30+4) v[+0x20] (call-derived member-method semantics)",
+       "description": "Atomically rewrites alarmclock.xml with the TimeServer string, reloads AlarmClock settings, updates the engine+0x240 time-server sub-object if the string changed, advances the shared AlarmClock change/version state, and invokes the observer.",
        "evidence": [
         {
          "type": "firmware",
@@ -7025,14 +7025,13 @@
          "notes": "delegate map ['*(r30+4) v[+0x20]']; notify-family calls []"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v[+0x20] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Mutation path is f_1027a64c -> f_10283998 -> f_10279c0c. The reload compares the parsed time-server string with subobject+0x08 and calls its update helper on mismatch."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "A changed TimeServer participates in the AlarmClock reload change flag; the reload ultimately marks AlarmClock event state dirty through f_1067c6ec. The setter's successful commit also increments the shared change/version counter and invokes the observer with event code 5. Event serializer f_10277d6c explicitly emits TimeServer.",
       "evidence": [
        {
         "type": "firmware",
@@ -7042,13 +7041,12 @@
         "notes": "bl call scan: notify-family sites = []"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "TimeServer is an explicit AlarmClock event field in f_10277d6c; setter success follows the same reload + observer/version path as the other AlarmClock settings setters."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x20]",
+      "description": "On successful commit/reload, the persisted TimeServer string becomes the value at *(engine+0x240)+0x08. If it differs from the previous value, the reload updates the time-server sub-object and records an AlarmClock settings change; failed persistence leaves the backing state unchanged.",
       "evidence": [
        {
         "type": "firmware",
@@ -7058,13 +7056,12 @@
         "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x20]']"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x20].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Time-server transition is resolved from f_1027a64c plus the engine+0x240 reload branch in f_10279c0c."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_1027a64c returns 0 on successful persistence/reload or propagates f_10283998 results {501,802}. The writer context has +0x18 null, so record-specific 800/801 are unreachable. Wrapper f_10733da8 separately handles request/parse-layer faults and forwards nonzero engine rc through req->v[+0x14].",
       "evidence": [
        {
         "type": "firmware",
@@ -7074,9 +7071,8 @@
         "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Concrete engine domain is {0,501,802}; no engine-side 402 or other lexical-validation fault exists."
       ]
      },
      "fault_sites": [
@@ -7089,28 +7085,40 @@
      "errors": [
       {
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x20)",
-       "meaning": "alarm-store vfunc 0x1027a64c (slot +0x20) domain: accumulator r29/r30 seeded from arg/call results - no literal fault exit observed",
+       "code_expr": "f_1027a64c rc",
+       "meaning": "Concrete SetTimeServer engine domain: {501,802}",
        "fault_sites": [
         "0x10733e44"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "501: generic alarmclock.xml temp/open/write/flush/fsync/fclose/rename failure from f_10283998.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10733e44",
-           "notes": "impl rc passthrough"
+           "address": "0x10283998",
+           "notes": "shared atomic persistence worker"
+          }
+         ]
+        },
+        {
+         "description": "802: serialized alarmclock.xml exceeds the 0x8000-byte cap. SetTimeServer passes writer-context +0x18 == 0, so record-specific 800/801 checks are skipped.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1027a6dc",
+           "notes": "setter initializes persistence context target fields to zero before f_10283998"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x107341cc",
-           "notes": "rc convention site"
+           "address": "0x10283f20",
+           "notes": "null target branches past 800/801 status logic"
           }
          ]
         }
@@ -7138,64 +7146,12 @@
          "notes": "store vfunc slot +0x20 -> 0x1027a64c; alarm-store object vptr 0x10eaa99c (ctor f_10276048 overwrite at 0x102761e8; obj new(0x8118) via shared_ptr -> svc+0x4)"
         }
        ],
-       "unresolved": {
-        "proven": "rc call-derived",
-        "unknown": "lookup/store worker rc domain",
-        "impl_exit_literals": {
-         "function": "0x107341cc",
-         "lits": [],
-         "passthrough_exits": 3
-        },
-        "delegated_sources": {
-         "f_10561514": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 19
-         },
-         "f_10561444": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 22
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "literal_bound": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x20); sites: 0x10733e44).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "literal_bound": [
+        501,
+        802
+       ],
+       "resolved_findings": [
+        "Complete engine source resolved: f_1027a64c has no lexical reject branch and returns only the shared persistence rc."
        ]
       },
       {
@@ -7231,8 +7187,8 @@
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}",
+       "code_expr": "f_10283998 with writer-context +0x18 == 0",
+       "meaning": "SetTimeServer persistence domain: {501,802}",
        "fault_sites": [],
        "evidence": [
         {
@@ -7245,24 +7201,39 @@
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "501: generic atomic temp-file/commit failure.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x10283998",
-           "notes": "alarmclock.xml atomic save {501,800,801,802}"
+           "notes": "alarmclock.xml writer"
+          }
+         ]
+        },
+        {
+         "description": "802: final serialized document length exceeds 0x8000 bytes. Null per-alarm target context bypasses 800/801 logic.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10284078",
+           "notes": "null target selects 0x8000 cap"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f20",
+           "notes": "null target skips per-record status checks"
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
        "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10283998 emits constant set {501, 560, 800, 801, 802} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+        "Setter-specific reachability proven: only 501/802 are reachable from f_10283998 for TimeServer."
        ]
       }
      ],
@@ -7292,9 +7263,8 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10733da8; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "SetTimeServer fully traced: wrapper f_10733da8 -> ac_impl +0x20 f_1027a64c -> writer-context +0x14 TimeServer -> atomic persistence -> reload of *(engine+0x240)+0x08 -> event/version notification."
      ]
     },
     "SetTimeZone": {
@@ -9030,7 +9000,8 @@
      "notes": null,
      "backing_field": "*(ac_impl engine+0x240)+0x08",
      "resolved_findings": [
-      "Backing field proven by GetTimeServer f_10273090 direct copy from *(engine+0x240)+0x08."
+      "Backing field proven by GetTimeServer f_10273090 direct copy from *(engine+0x240)+0x08.",
+      "Setter path proven: f_1027a64c persists the opaque TimeServer string and f_10279c0c reloads it into the engine+0x240 sub-object; event serializer f_10277d6c emits TimeServer."
      ]
     },
     "TimeGeneration": {
