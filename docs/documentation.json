@@ -4023,7 +4023,7 @@
      ]
     },
     "GetTimeZone": {
-     "description": "Returns Index/AutoAdjustDst via impl->v[+0x8].",
+     "description": "Returns the current AlarmClock timezone index and AutoAdjustDst flag through concrete ac_impl slot +0x14 -> f_10273020. The getter locks the engine, copies the u32 field at engine+0x218 and the u8 flag at engine+0x21c to the two SOAP outputs, unlocks, and returns 0.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10734e14",
@@ -4061,26 +4061,33 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "engine_function": "0x10273020",
+      "engine_vtable": "0x10eaa99c",
+      "engine_slot": 20,
+      "backing_fields": {
+       "+0x218": "timezone index",
+       "+0x21c": "AutoAdjustDst boolean byte"
+      }
      },
      "inputs": {},
      "outputs": {
       "Index": {
-       "description": "Timezone response field Index",
+       "description": "Current timezone-table index read directly from ac_impl engine+0x218.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
         "fmt": null
        },
-       "semantic_type": "signed int32",
-       "format": "%d decimal",
+       "semantic_type": "timezone table index (u32 backing field)",
+       "format": "decimal integer",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "u32 timezone-table index",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": "current index as stored by SetTimeZone",
+       "range": "bounded by the timezone table accepted by SetTimeZone; getter performs no range check",
+       "special_values": "none interpreted by this getter",
        "required": false,
        "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "validation": "None in getter; copied verbatim from engine+0x218.",
        "evidence": [
         {
          "type": "firmware",
@@ -4112,27 +4119,29 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `Index`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Producer resolved exactly: f_10273020 loads engine+0x218 and stores the word to the Index output pointer under the ac_impl mutex."
        ]
       },
       "AutoAdjustDst": {
-       "description": "Timezone response field AutoAdjustDst",
+       "description": "Current automatic-DST adjustment flag read directly from ac_impl engine+0x21c.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": "boolean ('0'/'1')",
-       "format": "'0'/'1' literal",
+       "semantic_type": "boolean",
+       "format": "0/1",
        "unit": "n/a - text",
-       "accepted_values": "DST auto-adjust flag from the timezone record",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": [
+        0,
+        1
+       ],
+       "range": "boolean byte",
+       "special_values": "none",
        "required": false,
        "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "validation": "None in getter; copied verbatim from engine+0x21c.",
        "evidence": [
         {
          "type": "firmware",
@@ -4157,9 +4166,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `AutoAdjustDst`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Producer resolved exactly: f_10273020 loads byte engine+0x21c and stores it to the AutoAdjustDst output pointer."
        ]
       }
      },
@@ -4176,7 +4184,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, out-arg write×2, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x14]",
+      "description": "No action inputs or mutable preconditions. The request must pass wrapper validity; f_10273020 only locks, reads engine+0x218/+0x21c, unlocks, and returns 0.",
       "evidence": [
        {
         "type": "firmware",
@@ -4186,13 +4194,12 @@
         "notes": "req-vfunc call map: {'0x14': 1, '0x24': 2, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, out-arg write×2, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Concrete getter has no downstream worker, persistence, or validation branch."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x14]",
+      "description": "Reads only ac_impl timezone state at engine+0x218 (Index) and engine+0x21c (AutoAdjustDst) under the engine mutex.",
       "evidence": [
        {
         "type": "firmware",
@@ -4202,14 +4209,13 @@
         "notes": "member vfunc calls: ['r4 v[+0x8]', '*(r30+4) v[+0x14]']"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Both backing fields are direct loads in f_10273020."
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x14] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Read-only. The engine method acquires/releases the mutex and writes only the caller's output locations.",
        "evidence": [
         {
          "type": "firmware",
@@ -4219,14 +4225,13 @@
          "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x14] -> out-arg (call-derived member-method semantics)"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x14] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "No state mutation, persistence, observer, or event path exists in f_10273020."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. GetTimeZone is read-only and contains no event/notifier call.",
       "evidence": [
        {
         "type": "firmware",
@@ -4236,13 +4241,12 @@
         "notes": "bl call scan: notify-family sites = []"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "No event emission in the concrete getter."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x14]",
+      "description": "None; timezone index and AutoAdjustDst are not modified.",
       "evidence": [
        {
         "type": "firmware",
@@ -4252,13 +4256,12 @@
         "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', '*(r30+4) v[+0x14]']"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "No state write in f_10273020."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_10273020 always returns 0 after copying both fields. Wrapper f_10734e14 commits Index and AutoAdjustDst for every valid request; only wrapper/request-layer validation can fault.",
       "evidence": [
        {
         "type": "firmware",
@@ -4268,37 +4271,29 @@
         "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 2, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Complete engine return domain is {0}."
       ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": null,
-       "code_expr": "vret",
-       "meaning": "alarm-store vfunc 0x10273020 (slot +0x14) is single-exit \"li r3,0; blr\" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)",
+       "code_expr": "f_10273020 rc",
+       "meaning": "No engine fault domain: f_10273020 always returns 0.",
        "fault_sites": [
         "0x10734e14"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "No nonzero engine path exists; the two backing fields are copied and r3 is set to 0 after unlock.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10734e14",
-           "notes": "impl rc passthrough"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x107342f0",
-           "notes": "rc convention site"
+           "address": "0x1027306c",
+           "notes": "getter success return path after field copies"
           }
          ]
         }
@@ -4334,10 +4329,11 @@
         }
        ],
        "domain_note": "delegated-rc semantics: impl vfunc rc surfaced; store vfunc domain fully bounded to {0} | worker literal bound [] (ASCII-fragment constants filtered) (worker_err_literals.json)",
-       "literal_bound": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734e14).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "literal_bound": [
+        0
+       ],
+       "resolved_findings": [
+        "Concrete AlarmClock slot +0x14 is f_10273020; full method has no nonzero rc producer."
        ]
       },
       {
@@ -4398,9 +4394,8 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10734e14; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "GetTimeZone fully traced: wrapper f_10734e14 -> ac_impl vtable 0x10eaa99c +0x14 -> f_10273020; outputs are engine+0x218 Index and +0x21c AutoAdjustDst."
      ]
     },
     "GetTimeZoneAndRule": {
@@ -8977,7 +8972,11 @@
        "notes": "AlarmClock1.xml <stateVariable name=TimeZone sendEvents=yes>string: SCPD-advertised (evented)"
       }
      ],
-     "notes": null
+     "notes": null,
+     "backing_field": "ac_impl engine+0x218",
+     "resolved_findings": [
+      "Backing field proven by GetTimeZone f_10273020 direct read from engine+0x218."
+     ]
     },
     "TimeServer": {
      "evented": true,
