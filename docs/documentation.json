@@ -7802,7 +7802,7 @@
      ]
     },
     "UpdateAlarm": {
-     "description": "Updates an existing alarm by ID with the same field set via impl->v[+0x38].",
+     "description": "Updates an existing alarm by ID. Wrapper f_107346ac parses ID plus the ten alarm fields and dispatches the concrete ac_impl engine slot +0x38 -> f_1027ac80. The engine validates StartLocalTime, optional Duration, and Recurrence, builds an update-mode alarm record (record+0x114=1), and commits it through f_1027a8f8 -> f_1027a7a8 -> f_10283998. The writer replaces the record whose ID matches and preserves all other alarms.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107346ac",
@@ -7834,7 +7834,32 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "engine_function": "0x1027ac80",
+      "engine_vtable": "0x10eaa99c",
+      "engine_slot": 56,
+      "commit_chain": [
+       "0x1027ac80",
+       "0x1027a8f8",
+       "0x1027a7a8",
+       "0x10283998"
+      ],
+      "record_layout": {
+       "+0x00": "ID (target alarm id)",
+       "+0x04": "StartLocalTime",
+       "+0x1c": "Duration",
+       "+0x34": "Recurrence",
+       "+0x4c": "Enabled",
+       "+0x50": "RoomUUID",
+       "+0x68": "ProgramURI",
+       "+0x80": "ProgramMetaData",
+       "+0xf8": "PlayMode",
+       "+0x110": "Volume",
+       "+0x112": "IncludeLinkedZones",
+       "+0x114": "writer mode marker = 1 (update)",
+       "+0x118": "target-ID match/emitted flag",
+       "+0x119": "schedule-conflict flag"
+      }
      },
      "inputs": {
       "ID": {
@@ -7855,7 +7880,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Wrapper u32 parse is the local type check. f_1027ac80 stores ID at record+0; the persistence comparison callback uses it as the replacement key. If no existing alarm has that ID, commit returns 800.",
        "evidence": [
         {
          "type": "firmware",
@@ -7880,12 +7905,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `ID` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `ID` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores ID in alarm update record +0x00; Wrapper u32 parse is the local type check. f_1027ac80 stores ID at record+0; the persistence comparison callback uses it as the replacement key. If no existing alarm has that ID, commit returns 800."
        ]
       },
       "StartLocalTime": {
@@ -7906,7 +7927,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "f_1027ac80 validates the HH:MM:SS text with f_10c3d2c4; failure returns SOAP 402.",
        "evidence": [
         {
          "type": "firmware",
@@ -7932,12 +7953,8 @@
        ],
        "notes": null,
        "buf_cap": 9,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `StartLocalTime` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `StartLocalTime` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores StartLocalTime in alarm update record +0x04; f_1027ac80 validates the HH:MM:SS text with f_10c3d2c4; failure returns SOAP 402."
        ]
       },
       "Duration": {
@@ -7958,7 +7975,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "An empty Duration is accepted; a nonempty value is validated by f_10c3d2c4 as HH:MM:SS, with failure returning SOAP 402.",
        "evidence": [
         {
          "type": "firmware",
@@ -7984,12 +8001,8 @@
        ],
        "notes": null,
        "buf_cap": 9,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Duration` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `Duration` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores Duration in alarm update record +0x1c; An empty Duration is accepted; a nonempty value is validated by f_10c3d2c4 as HH:MM:SS, with failure returning SOAP 402."
        ]
       },
       "Recurrence": {
@@ -8010,7 +8023,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "f_1027ac80 calls recurrence parser f_10c3e4c8; parser failure returns SOAP 402. The parsed recurrence is also used by the writer's schedule-conflict test.",
        "evidence": [
         {
          "type": "firmware",
@@ -8036,12 +8049,8 @@
        ],
        "notes": null,
        "buf_cap": 11,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Recurrence` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `Recurrence` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores Recurrence in alarm update record +0x34; f_1027ac80 calls recurrence parser f_10c3e4c8; parser failure returns SOAP 402. The parsed recurrence is also used by the writer's schedule-conflict test."
        ]
       },
       "Enabled": {
@@ -8062,7 +8071,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "stored in the alarm record",
+       "validation": "Wrapper boolean parse is the value-domain check; f_1027ac80 stores the parsed byte in update record +0x4c.",
        "evidence": [
         {
          "type": "firmware",
@@ -8087,12 +8096,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `Enabled` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `Enabled` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores Enabled in alarm update record +0x4c; Wrapper boolean parse is the value-domain check; f_1027ac80 stores the parsed byte in update record +0x4c."
        ]
       },
       "RoomUUID": {
@@ -8113,7 +8118,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Wrapper string parse/cap is the local check; f_1027ac80 stores the value in update record +0x50. The writer compares it when detecting schedule conflicts.",
        "evidence": [
         {
          "type": "firmware",
@@ -8139,12 +8144,8 @@
        ],
        "notes": null,
        "buf_cap": 25,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `RoomUUID` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `RoomUUID` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores RoomUUID in alarm update record +0x50; Wrapper string parse/cap is the local check; f_1027ac80 stores the value in update record +0x50. The writer compares it when detecting schedule conflicts."
        ]
       },
       "ProgramURI": {
@@ -8165,7 +8166,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Wrapper string parse/cap is the local check; f_1027ac80 stores the value in update record +0x68.",
        "evidence": [
         {
          "type": "firmware",
@@ -8191,12 +8192,8 @@
        ],
        "notes": null,
        "buf_cap": 1025,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ProgramURI` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `ProgramURI` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores ProgramURI in alarm update record +0x68; Wrapper string parse/cap is the local check; f_1027ac80 stores the value in update record +0x68."
        ]
       },
       "ProgramMetaData": {
@@ -8217,7 +8214,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Wrapper string parse/cap is the local check; f_1027ac80 stores the value in update record +0x80.",
        "evidence": [
         {
          "type": "firmware",
@@ -8243,12 +8240,8 @@
        ],
        "notes": null,
        "buf_cap": 4097,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ProgramMetaData` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `ProgramMetaData` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores ProgramMetaData in alarm update record +0x80; Wrapper string parse/cap is the local check; f_1027ac80 stores the value in update record +0x80."
        ]
       },
       "PlayMode": {
@@ -8269,7 +8262,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Wrapper string parse/cap is the local check; f_1027ac80 stores the value in update record +0xf8.",
        "evidence": [
         {
          "type": "firmware",
@@ -8295,12 +8288,8 @@
        ],
        "notes": null,
        "buf_cap": 32,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `PlayMode` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `PlayMode` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores PlayMode in alarm update record +0xf8; Wrapper string parse/cap is the local check; f_1027ac80 stores the value in update record +0xf8."
        ]
       },
       "Volume": {
@@ -8321,7 +8310,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "stored in the alarm record",
+       "validation": "Wrapper numeric parse is the local check; f_1027ac80 stores the u16 value in update record +0x110.",
        "evidence": [
         {
          "type": "firmware",
@@ -8346,12 +8335,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561478) and declared constraints are documented.",
-        "Residual: `Volume` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `Volume` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores Volume in alarm update record +0x110; Wrapper numeric parse is the local check; f_1027ac80 stores the u16 value in update record +0x110."
        ]
       },
       "IncludeLinkedZones": {
@@ -8372,7 +8357,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "stored in the alarm record",
+       "validation": "Wrapper boolean parse is the local check; f_1027ac80 stores the parsed byte in update record +0x112.",
        "evidence": [
         {
          "type": "firmware",
@@ -8397,12 +8382,8 @@
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `IncludeLinkedZones` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +56 (site 0x107348e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `IncludeLinkedZones` = verbatim forward to impl vfunc +56 (obj *(r3-in+0x4), call site 0x107348e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer: UpdateAlarm engine f_1027ac80 stores IncludeLinkedZones in alarm update record +0x112; Wrapper boolean parse is the local check; f_1027ac80 stores the parsed byte in update record +0x112."
        ]
       }
      },
@@ -8420,7 +8401,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×11, validate×1, commit×1); member delegates: *(r30+4) v[+?]",
+      "description": "The wrapper must parse all eleven required SOAP inputs and pass req validation. ac_impl f_1027ac80 requires StartLocalTime to pass f_10c3d2c4, nonempty Duration to pass f_10c3d2c4, and Recurrence to pass f_10c3e4c8. The target alarm ID must exist for the update writer to mark record+0x118; the mutation runs under the alarm-store lock and must successfully commit alarmclock.xml.",
       "evidence": [
        {
         "type": "firmware",
@@ -8430,13 +8411,12 @@
         "notes": "req-vfunc call map: {'0x1c': 11, '0x8': 1, '0x14': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×11, validate×1, commit×1); member delegates: *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Concrete requirements path: wrapper f_107346ac -> engine f_1027ac80 -> input validation -> update-mode record -> locked f_1027a8f8/f_1027a7a8 persistence."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+?]",
+      "description": "Depends on the concrete ac_impl alarm list at engine+0x7f08, the target ID stored at update record+0, AlarmListVersion state, alarmclock.xml persistence, and the observer at engine+0x7f00. The writer scans existing alarm records and replaces only the one whose parsed ID matches the requested ID.",
       "evidence": [
        {
         "type": "firmware",
@@ -8446,14 +8426,13 @@
         "notes": "member vfunc calls: ['*(r30+4) v[+?]']"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "UpdateAlarm state dependency is statically resolved through f_1027ac80 and writer comparison callback f_1028347c; no runtime-injected delegate boundary remains."
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to *(impl+0x4)->v[...]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Rewrites alarmclock.xml atomically through the shared temp+fsync+rename writer. During serialization, f_1028347c preserves non-target alarms and emits the replacement record when the existing ID matches. Successful commit reloads m_alarms, advances AlarmListVersion, and invokes the alarm-store observer.",
        "evidence": [
         {
          "type": "firmware",
@@ -8463,14 +8442,13 @@
          "notes": "impl vfunc delegate path: *(impl+0x4)->v[...] (call-derived member-method semantics)"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v[...]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Update mutation path resolved: f_1027ac80 -> f_1027a8f8 -> f_1027a7a8 -> f_10283998, with per-record replacement logic in f_1028347c."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "A successful update advances the same AlarmListVersion state used by alarm CRUD and invokes the observer at engine+0x7f00 through v[+0x14]. f_10277d6c publishes AlarmListVersion as {last-update-device}:{counter}.",
       "evidence": [
        {
         "type": "firmware",
@@ -8480,13 +8458,12 @@
         "notes": "bl call scan: notify-family sites = []"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "UpdateAlarm event path resolved through the post-commit reload/version/observer sequence in f_1027a7a8."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+?]",
+      "description": "The local update record is marked mode 1 at record+0x114. While rewriting the alarm document, f_1028347c compares each existing alarm ID with record+0; on a match it emits the replacement and sets record+0x118=1. If no match occurs the operation terminates with 800. A successful replacement is followed by store reload, version advance, and observer notification.",
       "evidence": [
        {
         "type": "firmware",
@@ -8496,13 +8473,12 @@
         "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+?]']"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Update state transition and target-match flag are directly visible in f_1028347c/f_10283998."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Engine f_1027ac80 returns 0 on successful replacement, 402 for local time/recurrence validation failure, or propagates persistence results {501,800,801,802}. Wrapper f_107346ac forwards any nonzero rc through req->v[+0x14] and commits the response only on zero.",
       "evidence": [
        {
         "type": "firmware",
@@ -8512,9 +8488,8 @@
         "notes": "commit/fault slot usage: {'0x1c': 11, '0x8': 1, '0x14': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Return domain traced through concrete engine f_1027ac80 and shared writer f_10283998."
       ]
      },
      "fault_sites": [
@@ -8527,28 +8502,33 @@
      "errors": [
       {
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x38)",
-       "meaning": "alarm-store vfunc 0x1027ac80 (slot +0x38) domain: literal 402 gate (0x1027ad34) plus accumulator r31 seeded from arg r5 / call results",
+       "code_expr": "f_1027ac80 rc",
+       "meaning": "Concrete UpdateAlarm engine domain: validation 402 or persistence {501,800,801,802}, propagated verbatim by wrapper f_107346ac.",
        "fault_sites": [
         "0x10734900"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "402 when f_10c3d2c4 rejects StartLocalTime, when nonempty Duration is rejected by f_10c3d2c4, or when f_10c3e4c8 rejects Recurrence.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10734900",
-           "notes": "impl rc passthrough"
-          },
+           "address": "0x1027ad34",
+           "notes": "all three UpdateAlarm validation failures converge on rc 0x192"
+          }
+         ]
+        },
+        {
+         "description": "501/800/801/802 come from f_10283998 after serializing the update-mode record and are propagated by f_1027a7a8/f_1027a8f8.",
+         "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x10734404",
-           "notes": "rc convention site"
+           "address": "0x10283998",
+           "notes": "alarm persistence return-code worker"
           }
          ]
         }
@@ -8583,104 +8563,15 @@
          "notes": "li r3,0x192 literal exit"
         }
        ],
-       "unresolved": {
-        "proven": "literal 402 exit + derived paths",
-        "unknown": "update worker rc domain (f_10273bb8/f_10273ac0 field setters, f_1027a8f8 commit) | commit chain: f_1027a8f8 -> f_1027f94c persist writer (rc = inner-call result, no literal faults observed)",
-        "bounded_domain": [
-         0,
-         402
-        ],
-        "bound_evidence": "worker literal-exit scan: f_10273bb8->[0];f_10273ac0->[0];f_1027a8f8->[402];f_1027a8f8->[402];f_10273bb8->[0];f_10273ac0->[0];f_1027a8f8->[402];f_1027a8f8->[402]",
-        "raw_exit_literals": {
-         "f_10273bb8": {
-          "lits": [
-           0
-          ],
-          "pt": 2
-         },
-         "f_10273ac0": {
-          "lits": [
-           0,
-           14180
-          ],
-          "pt": 2
-         },
-         "f_1027a8f8": {
-          "lits": [
-           20,
-           21,
-           402
-          ],
-          "pt": 0
-         },
-         "f_1027f94c": {
-          "lits": [
-           49,
-           230
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x10734404",
-         "lits": [],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_10561444": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 22
-         },
-         "f_105614e0": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 20
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
        "literal_bound": [
         402,
-        1025,
-        4097
+        501,
+        800,
+        801,
+        802
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x38); sites: 0x10734900).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Complete upstream chain resolved: f_1027ac80 validates the update and calls f_1027a8f8 -> f_1027a7a8 -> f_10283998; fault site 0x10734900 forwards its rc."
        ]
       },
       {
@@ -8716,8 +8607,8 @@
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}",
+       "code_expr": "f_10283998 update persistence rc",
+       "meaning": "UpdateAlarm persistence domain: {501,800,801,802}",
        "fault_sites": [],
        "evidence": [
         {
@@ -8730,24 +8621,84 @@
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "501: generic temp/open/write/flush/fsync/fclose/rename failure in the shared alarmclock.xml atomic writer.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10283998",
-           "notes": "alarmclock.xml atomic save {501,800,801,802}"
+           "address": "0x10283a6c",
+           "notes": "writer initializes generic failure rc 0x1f5"
+          }
+         ]
+        },
+        {
+         "description": "800: target ID not found. Update mode is record+0x114==1; f_1028347c sets record+0x118 only when parsed existing ID equals target record+0. f_10283998 returns 800 if +0x118 remains zero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283660",
+           "notes": "update-mode ID compare; equal path emits replacement and sets +0x118"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f2c",
+           "notes": "+0x118==0 -> rc 0x320"
+          }
+         ]
+        },
+        {
+         "description": "801: schedule conflict with another alarm. For non-target records, f_1028347c compares StartLocalTime, recurrence overlap via f_10c3e4c8, and RoomUUID; a collision sets update record+0x119, which f_10283998 maps to 801.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028369c",
+           "notes": "StartLocalTime/Recurrence/RoomUUID conflict comparison"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283710",
+           "notes": "collision sets record+0x119"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f44",
+           "notes": "+0x119 -> rc 0x321"
+          }
+         ]
+        },
+        {
+         "description": "802: writer item-count exceeds 0x20 or serialized file length exceeds the selected 0x8000/0x5800 cap.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f38",
+           "notes": "item-count limit"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283ef4",
+           "notes": "serialized-length cap"
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
        "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10283998 emits constant set {501, 560, 800, 801, 802} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+        "Update-specific writer semantics resolved: mode 1 matches target ID, preserves non-target records, marks +0x118 on replacement, and sets +0x119 on a same-room/time/overlapping-recurrence conflict."
        ]
       }
      ],
@@ -8777,9 +8728,8 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x107346ac; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "UpdateAlarm fully traced through ac_impl: wrapper f_107346ac -> vtable 0x10eaa99c +0x38 -> f_1027ac80 -> shared locked persistence chain. Writer callback f_1028347c provides exact target-ID replacement and schedule-conflict predicates."
      ]
     }
    },
