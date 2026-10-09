@@ -16301,7 +16301,7 @@
      ]
     },
     "GetZoneInfo": {
-     "description": "Returns zone info via impl->v[+0x8].",
+     "description": "Returns the player identity/status tuple used by DeviceProperties GetZoneInfo. Wrapper 0x10737750 validates the no-input TRequest and tail-dispatches to f_10737470; the body calls the statically bound RZPDevicePropertiesStP implementation at primary-vtable slot +0x5c (f_1035ac84), which fills all ten outputs via f_105b4cf8 plus the live TV-input-format field.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10737750",
@@ -16315,10 +16315,10 @@
      "implementation": {
       "calls": [
        {
-        "site": "0x1073777c",
-        "obj": "r4-in",
-        "slot": 8,
-        "arg4": "r4-in"
+        "site": "0x10737518",
+        "obj": "r4-in (RZPDevicePropertiesStP)",
+        "slot": 92,
+        "arg4": "SerialNumber output buffer; remaining output buffers/capacities and HTAudioIn/Flags pointers follow in registers/stack"
        }
       ],
       "req_vcalls": []
@@ -16326,41 +16326,42 @@
      "inputs": {},
      "outputs": {
       "SerialNumber": {
-       "description": "device serial number emitted by impl 0x10737470",
+       "description": "Sonos serial derived from the six-byte device MAC by the firmware serial formatter.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "response field",
-       "format": "text",
+       "format": "text; MAC-derived Sonos serial (AA-BB-CC-DD-EE-FF:X style)",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
+       "accepted_values": "firmware-generated serial string",
+       "range": "bounded by the 0x41-byte output buffer",
        "special_values": "none identified",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x10737530 inside impl 0x10737470; emitted via the response writer",
+       "default": "generated on every successful call",
+       "validation": "f_1055e918 reads the device MAC and formats the Sonos serial representation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737530",
-         "notes": "'SerialNumber' arg-name load in impl 0x10737470"
+         "function": "0x105b4cf8",
+         "address": "0x105b4d80",
+         "notes": "Calls f_1055e918 for SerialNumber."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737470",
-         "notes": "impl emits this output"
+         "function": "0x1055e59c",
+         "notes": "Shared MAC/serial formatter uses %02X components; serial mode uses '-' separators and the Sonos suffix form."
         }
        ],
-       "notes": null
+       "notes": "The suffix character is firmware-generated; this record does not guess its algorithm."
       },
       "SoftwareVersion": {
-       "description": "running software version string emitted by impl 0x10737470",
+       "description": "Running firmware software-version string from the canonical device software-version provider.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -16369,32 +16370,33 @@
        "semantic_type": "response field",
        "format": "text",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
+       "accepted_values": "running firmware version string",
+       "range": "bounded by the 0x41-byte output buffer",
        "special_values": "none identified",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x1073755c inside impl 0x10737470; emitted via the response writer",
+       "default": "provider value on every successful call",
+       "validation": "f_1090b078 copies the canonical software-version provider output.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073755c",
-         "notes": "'SoftwareVersion' arg-name load in impl 0x10737470"
+         "function": "0x105b4cf8",
+         "address": "0x105b4e40",
+         "notes": "Calls f_1090b078 with the SoftwareVersion buffer/capacity."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737470",
-         "notes": "impl emits this output"
+         "function": "0x1090b078",
+         "notes": "Shared software-version copier used by device-info/version surfaces."
         }
        ],
-       "notes": null
+       "notes": "This firmware image is build 86.10-80260; the binary also contains the detailed build string 86.10-80260-dev-secbuild-20260826."
       },
       "DisplaySoftwareVersion": {
-       "description": "user-facing software version emitted by impl 0x10737470",
+       "description": "User-facing software version string; this build returns the static literal 17.2.7.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -16403,134 +16405,118 @@
        "semantic_type": "response field",
        "format": "text",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": "17.2.7 (build 86.10-80260)",
+       "range": "fixed build literal",
+       "special_values": "none",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x1073758c inside impl 0x10737470; emitted via the response writer",
+       "default": "17.2.7",
+       "validation": "f_105b4cf8 passes literal 0x10ef31f0 to the bounded string copier.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073758c",
-         "notes": "'DisplaySoftwareVersion' arg-name load in impl 0x10737470"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10737470",
-         "notes": "impl emits this output"
+         "function": "0x105b4cf8",
+         "address": "0x105b4e4c",
+         "notes": "Loads static literal '17.2.7' for DisplaySoftwareVersion."
         }
        ],
        "notes": null
       },
       "HardwareVersion": {
-       "description": "hardware version string emitted by impl 0x10737470",
+       "description": "Hardware revision formatted from six fields in the global device-info singleton.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "response field",
-       "format": "text",
+       "format": "%u.%u.%u.%u-%u.%u",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
+       "accepted_values": "six-component numeric hardware revision",
+       "range": "six unsigned integer components",
        "special_values": "none identified",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x107375bc inside impl 0x10737470; emitted via the response writer",
+       "default": "device-info singleton value",
+       "validation": "f_1090ad98 formats singleton fields +0x108/+0x10c/+0x110/+0x114/+0x120/+0xe8.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107375bc",
-         "notes": "'HardwareVersion' arg-name load in impl 0x10737470"
+         "function": "0x105b4cf8",
+         "address": "0x105b4d84",
+         "notes": "Gets global device-info singleton."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737470",
-         "notes": "impl emits this output"
+         "function": "0x105b4cf8",
+         "address": "0x105b4d94",
+         "notes": "Calls f_1090ad98 to format HardwareVersion."
         }
        ],
        "notes": null
       },
       "IPAddress": {
-       "description": "player IP address emitted by impl 0x10737470",
+       "description": "First active, non-loopback IPv4 address discovered from the player's network interfaces.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "response field",
-       "format": "text",
+       "format": "IPv4 dotted-decimal text",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": "active non-loopback AF_INET address",
+       "range": "IPv4",
+       "special_values": "0.0.0.0 when no qualifying interface/address is found",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x107375ec inside impl 0x10737470; emitted via the response writer",
+       "default": "0.0.0.0 before interface enumeration",
+       "validation": "f_100a8580 uses SIOCGIFCONF/SIOCGIFFLAGS, requires IFF_UP, rejects IFF_LOOPBACK/127.0.0.1, and copies inet_ntoa output.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107375ec",
-         "notes": "'IPAddress' arg-name load in impl 0x10737470"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10737470",
-         "notes": "impl emits this output"
+         "function": "0x105b4cf8",
+         "address": "0x105b4e68",
+         "notes": "Calls f_100a8580 to overwrite the scratch buffer with current IPv4 text before copying it to IPAddress."
         }
        ],
        "notes": null
       },
       "MACAddress": {
-       "description": "player MAC address emitted by impl 0x10737470",
+       "description": "Device six-byte MAC address rendered in conventional colon-separated uppercase hexadecimal.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "response field",
-       "format": "text",
+       "format": "AA:BB:CC:DD:EE:FF",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
+       "accepted_values": "six-byte device MAC",
+       "range": "48-bit MAC address",
        "special_values": "none identified",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x1073761c inside impl 0x10737470; emitted via the response writer",
+       "default": "device MAC",
+       "validation": "f_1055e918 formats the global MAC bytes with ':' separators.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073761c",
-         "notes": "'MACAddress' arg-name load in impl 0x10737470"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10737470",
-         "notes": "impl emits this output"
+         "function": "0x105b4cf8",
+         "address": "0x105b4e90",
+         "notes": "Calls f_1055e918 in colon-separated MAC mode."
         }
        ],
        "notes": null
       },
       "CopyrightInfo": {
-       "description": "copyright/version notice emitted by impl 0x10737470",
+       "description": "Build copyright notice from firmware string-table entry 0x15.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -16539,241 +16525,494 @@
        "semantic_type": "response field",
        "format": "text",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": "© 2003-2026, Sonos, Inc. All rights reserved.",
+       "range": "fixed build string",
+       "special_values": "none",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x1073764c inside impl 0x10737470; emitted via the response writer",
+       "default": "© 2003-2026, Sonos, Inc. All rights reserved.",
+       "validation": "f_106744fc(0x15) returns the copyright table entry, copied to the output buffer.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073764c",
-         "notes": "'CopyrightInfo' arg-name load in impl 0x10737470"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10737470",
-         "notes": "impl emits this output"
+         "function": "0x105b4cf8",
+         "address": "0x105b4e94",
+         "notes": "Loads table index 0x15 before f_106744fc; result is copied at 0x105b4ea8."
         }
        ],
        "notes": null
       },
       "ExtraInfo": {
-       "description": "extra info blob emitted by impl 0x10737470",
+       "description": "Platform/manufacturing extra information obtained from /dev/audioctl and returned as an OTP-prefixed string.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "response field",
-       "format": "text",
+       "format": "OTP: %.32s",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": "up to 32 bytes returned by audioctl request 0x4020fc2d; a leading 'U-Boot ' prefix is omitted",
+       "range": "bounded by the action's 0x801-byte destination and %.32s formatter",
+       "special_values": "empty string when /dev/audioctl cannot be opened",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x1073767c inside impl 0x10737470; emitted via the response writer",
+       "default": "empty on audioctl-open failure",
+       "validation": "f_105b4cf8 seeds a 32-byte scratch buffer, issues ioctl 0x4020fc2d, conditionally skips a seven-byte 'U-Boot ' prefix, then formats 'OTP: %.32s'.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073767c",
-         "notes": "'ExtraInfo' arg-name load in impl 0x10737470"
+         "function": "0x105b4cf8",
+         "address": "0x105b4db0",
+         "notes": "Opens /dev/audioctl."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737470",
-         "notes": "impl emits this output"
+         "function": "0x105b4cf8",
+         "address": "0x105b4dec",
+         "notes": "Issues ioctl 0x4020fc2d with the 32-byte scratch buffer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b4cf8",
+         "address": "0x105b4df8",
+         "notes": "Compares returned text against 'U-Boot ' for seven bytes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b4cf8",
+         "address": "0x105b4e18",
+         "notes": "Loads 'OTP: %.32s' format string."
         }
        ],
-       "notes": null
+       "notes": "The ioctl request is unique in this binary; no symbolic command name is statically present, so the numeric request is retained rather than guessed."
       },
       "HTAudioIn": {
-       "description": "home-theater audio-in descriptor emitted by impl 0x10737470",
+       "description": "Current home-theater TV input-format code, read directly from the AVTransport/queue-engine tvInputFormat field.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "response field",
-       "format": "text",
+       "format": "ui4; raw/packed TV input-format identifier",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": "32-bit tvInputFormat code produced by the HT-audio provider; field initializes to 0 and provider-unavailable fallback is 0x15",
+       "range": "0..0xffffffff",
+       "special_values": "0 at queue-engine construction; 0x15 is the explicit f_1023d358 fallback when no live provider is available",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x107376ac inside impl 0x10737470; emitted via the response writer",
+       "default": "0 at queue-engine construction",
+       "validation": "RZPDevicePropertiesStP+0x1a88 is the queue engine (zp+0x1934); f_1035ac84 loads queue_engine+0x594. f_102b07fc is the producer and logs 'setting tvInputFormat %08x' before storing changed values.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107376ac",
-         "notes": "'HTAudioIn' arg-name load in impl 0x10737470"
+         "function": "0x1035ac84",
+         "address": "0x1035ad00",
+         "notes": "Loads the queue-engine dependency from impl+0x1a88."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737470",
-         "notes": "impl emits this output"
+         "function": "0x1035ac84",
+         "address": "0x1035ad04",
+         "notes": "Loads queue_engine+0x594 into HTAudioIn."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102c05d8",
+         "address": "0x102c10a8",
+         "notes": "Queue-engine base constructor initializes +0x594 to 0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b07fc",
+         "address": "0x102b0870",
+         "notes": "Producer log literal is 'setting tvInputFormat %08x'."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b07fc",
+         "address": "0x102b0890",
+         "notes": "Stores changed tvInputFormat at +0x594."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1023d358",
+         "address": "0x1023d378",
+         "notes": "HT-audio format getter initializes output to fallback 0x15 before consulting provider+0x188."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107d5380",
+         "address": "0x107d5398",
+         "notes": "Live provider getter locks state and copies provider+0xf2c via f_107dde90."
         }
        ],
-       "notes": null
+       "notes": "The SOAP field exposes the raw firmware code, the same quantity surfaced as HTAudioInCode in status XML; GetZoneInfo does not translate it to a codec name."
       },
       "Flags": {
-       "description": "capability flag word emitted by impl 0x10737470",
+       "description": "Reserved GetZoneInfo flags word. This build explicitly returns 0.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "response field",
-       "format": "text",
+       "format": "ui4",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": "0 (build 86.10-80260)",
+       "range": "fixed zero",
+       "special_values": "0",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x107376d0 inside impl 0x10737470; emitted via the response writer",
+       "default": "0",
+       "validation": "f_105b4cf8 explicitly writes zero to both trailing ui4 pointers; f_1035ac84 subsequently overwrites only HTAudioIn, leaving Flags zero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107376d0",
-         "notes": "'Flags' arg-name load in impl 0x10737470"
+         "function": "0x105b4cf8",
+         "address": "0x105b4ec8",
+         "notes": "Writes zero to the trailing Flags output pointer."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737470",
-         "notes": "impl emits this output"
+         "function": "0x1035ac84",
+         "address": "0x1035ad04",
+         "notes": "Worker overwrites HTAudioIn only, then returns."
         }
        ],
        "notes": null
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "GetZoneInfo has no SOAP input arguments. The wrapper calls TRequest::validateInputs through slot +0x08; a normal zero-input request takes the validator's zero-record success path. A false validation result is the only wrapper fault and emits SOAP 402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10737750",
-        "notes": "wrapper family decode"
+        "function": "0x10737750",
+        "address": "0x1073777c",
+        "notes": "Wrapper calls TRequest vtable +0x08 and branches on its boolean result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730414",
+        "address": "0x107304cc",
+        "notes": "TRequest validator returns false only for a present parsed-input record whose validation flags fail; zero parsed inputs short-circuit successfully."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8]",
+      "description": "No action arguments or mutable preconditions. The request must be a valid no-input TRequest. Identity providers may fall back independently: IPAddress becomes 0.0.0.0 when no qualifying IPv4 interface is found, ExtraInfo is empty if /dev/audioctl cannot be opened, and the TV-input-format provider has its own fallback code 0x15.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10737750",
-        "notes": "req-vfunc call map: {'0x14': 1}"
+        "address": "0x10737750",
+        "notes": "No argument lookup/parsing occurs before TRequest validation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4cf8",
+        "address": "0x105b4f24",
+        "notes": "/dev/audioctl-open failure clears/skips ExtraInfo rather than failing the action."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100a8580",
+        "notes": "IPAddress helper initializes output to 0.0.0.0 before enumerating active non-loopback AF_INET interfaces."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1023d358",
+        "address": "0x1023d378",
+        "notes": "HT input-format producer initializes the returned code to 0x15 before consulting the live provider."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8]",
+      "description": "Reads static/runtime device identity plus two live status sources. SerialNumber and MACAddress derive from the six-byte device MAC; SoftwareVersion comes from the canonical firmware-version provider; DisplaySoftwareVersion is the build literal 17.2.7; HardwareVersion is formatted from six device-info fields as %u.%u.%u.%u-%u.%u. IPAddress is the first active non-loopback IPv4 address found by interface enumeration. ExtraInfo comes from a 32-byte /dev/audioctl ioctl result formatted as OTP: %.32s (stripping a leading 'U-Boot ' when present). HTAudioIn reads queue_engine+0x594, the AVTransport tvInputFormat word; Flags is fixed to 0 in this build.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737750",
-        "notes": "member vfunc calls: ['r4 v[+0x8]']"
+        "function": "0x105b4cf8",
+        "address": "0x105b4d80",
+        "notes": "Calls the Sonos serial formatter from the device MAC."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4cf8",
+        "address": "0x105b4d84",
+        "notes": "Obtains the global device-info singleton used by hardware/software identity helpers."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4cf8",
+        "address": "0x105b4d94",
+        "notes": "f_1090ad98 formats HardwareVersion from device-info fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4cf8",
+        "address": "0x105b4e40",
+        "notes": "f_1090b078 copies the canonical running software-version string."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4cf8",
+        "address": "0x105b4e4c",
+        "notes": "Copies static DisplaySoftwareVersion literal '17.2.7'."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4cf8",
+        "address": "0x105b4e68",
+        "notes": "f_100a8580 refreshes the scratch buffer with the current active non-loopback IPv4 address."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4cf8",
+        "address": "0x105b4e90",
+        "notes": "Formats MACAddress from the same six device MAC bytes using ':' separators."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4cf8",
+        "address": "0x105b4e98",
+        "notes": "String-table index 0x15 resolves to the build copyright notice."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1035ac84",
+        "address": "0x1035ad00",
+        "notes": "Loads RZPDevicePropertiesStP+0x1a88, the queue-engine dependency."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1035ac84",
+        "address": "0x1035ad04",
+        "notes": "Loads queue_engine+0x594 directly into HTAudioIn."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b07fc",
+        "address": "0x102b0890",
+        "notes": "AVTransport tvInputFormat setter stores the new format code at queue_engine+0x594."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4cf8",
+        "address": "0x105b4eb8",
+        "notes": "Common helper initializes first trailing ui4 output to zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4cf8",
+        "address": "0x105b4ec8",
+        "notes": "Common helper initializes second trailing ui4 output (Flags) to zero; f_1035ac84 overwrites only HTAudioIn."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only; no delegate (inline member read; out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Read-only with respect to persistent/player state. The query performs transient observation I/O: it opens /dev/audioctl, issues the sole binary request 0x4020fc2d with a 32-byte buffer and closes it; it also opens an AF_INET datagram socket and uses SIOCGIFCONF/SIOCGIFFLAGS to discover the active IPv4 address. It does not change settings, queue state, tvInputFormat, or DeviceProperties state.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10737750",
-         "notes": "impl vfunc delegate path: inline member read; out-arg (call-derived member-method semantics)"
+         "function": "0x105b4cf8",
+         "address": "0x105b4db0",
+         "notes": "Opens /dev/audioctl read-only for ExtraInfo collection."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b4cf8",
+         "address": "0x105b4dec",
+         "notes": "Issues ioctl 0x4020fc2d against a 32-byte scratch buffer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b4cf8",
+         "address": "0x105b4e34",
+         "notes": "Closes the audioctl descriptor."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100a8580",
+         "notes": "Uses socket/ioctl interface enumeration only to fill the caller-provided IPv4 text buffer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1035ac84",
+         "address": "0x1035ad04",
+         "notes": "HTAudioIn path only loads queue_engine+0x594; it does not mutate the field."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only; no delegate (inline member read; out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "none. GetZoneInfo itself emits no GENA, WSS, settings, or internal notification. The tvInputFormat producer is separate: f_102b07fc marks/wakes AVTransport eventing when it changes queue_engine+0x594; this query only reads that cached value.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737750",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1035ac84",
+        "address": "0x1035acf4",
+        "notes": "Concrete worker calls the common information helper, optionally reads tvInputFormat, then returns 0; there is no notify call."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b07fc",
+        "address": "0x102b0894",
+        "notes": "Producer-side tvInputFormat setter calls f_1067c6ec after a changed value; this is outside GetZoneInfo."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8]",
+      "description": "none. GetZoneInfo snapshots identity/network/TV-input-format state and serializes it. The only state transition relevant to one returned field occurs asynchronously in AVTransport: f_102b07fc updates tvInputFormat and its dirty byte when the detected TV format changes.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737750",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]']"
+        "function": "0x1035ac84",
+        "address": "0x1035ac84",
+        "notes": "Worker contains no stores to RZPDevicePropertiesStP state; its only post-helper state access is the tvInputFormat load."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b07fc",
+        "address": "0x102b088c",
+        "notes": "Producer sets queue_engine+0x59c dirty byte before storing changed tvInputFormat."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b07fc",
+        "address": "0x102b0890",
+        "notes": "Producer writes queue_engine+0x594; GetZoneInfo is only a consumer."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "On a valid no-input request, f_10737470 calls RZPDevicePropertiesStP slot +0x5c (f_1035ac84). The worker always returns 0 after filling the outputs, so the body writes SerialNumber, SoftwareVersion, DisplaySoftwareVersion, HardwareVersion, IPAddress, MACAddress, CopyrightInfo, ExtraInfo, HTAudioIn, and Flags through TRequest output records and commits the normal SOAP response. The body's generic nonzero-worker fault arm is statically unreachable with this bound worker. Wrapper validation failure emits 402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10737470",
+        "address": "0x10737518",
+        "notes": "Invokes RZPDevicePropertiesStP primary-vtable slot +0x5c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1035ac84",
+        "address": "0x1035acf4",
+        "notes": "Calls common output helper f_105b4cf8."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1035ac84",
+        "address": "0x1035ad10",
+        "notes": "Concrete worker sets return value to 0 unconditionally before returning."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10737470",
+        "address": "0x10737528",
+        "notes": "Success path begins fetching/writing named TRequest output records."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10737750",
-        "notes": "commit/fault slot usage: {'0x14': 1}"
+        "address": "0x107377d0",
+        "notes": "Wrapper validation-failure path emits literal SOAP fault 402."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -16786,33 +17025,30 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "const; TRequest validation",
+       "meaning": "TRequest input-record validation failed before the GetZoneInfo body was entered.",
        "fault_sites": [
         "0x107377d0"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "TRequest::validateInputs returned false. GetZoneInfo declares no input arguments, so a normal request has zero parsed input records and succeeds; this branch only applies if a malformed/unexpected parsed record exists and fails validation.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10737750",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x10730414",
+           "address": "0x107304cc",
+           "notes": "Failed validation of a present parsed-input record returns false."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10737750",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10737750",
+           "address": "0x107377a4",
+           "notes": "Wrapper branches to the 402 fault arm when TRequest +0x08 returns zero."
           }
          ]
         }
@@ -16822,47 +17058,10 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737750",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10737750",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10737750",
+         "address": "0x107377d0",
+         "notes": "Tail dispatches TRequest fault slot +0x14 with literal 0x192 (402)."
         }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
-         "function": "0x10737470",
-         "lits": [],
-         "passthrough_exits": 2
-        },
-        "delegated_sources": {
-         "f_1055fcbc": {
-          "lits": [
-           0,
-           1,
-           48,
-           88,
-           27180
-          ],
-          "pt": 13
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x107377d0).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -16874,29 +17073,74 @@
        "build": "86.10-80260",
        "function": "0x10737750",
        "address": "0x10737750",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x10f119b4",
-       "notes": "action dispatch table entry"
+       "notes": "Action wrapper: TRequest validation, 402 failure arm, success tail-call to f_10737470."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x10737470",
-       "notes": "impl vtable 0x10e98278 (no impl vfunc - handler-body impl); handler-body impl: parse then tail f_10737470"
+       "address": "0x10737518",
+       "notes": "Action body invokes the DeviceProperties implementation object through primary-vtable slot +0x5c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ebd270",
+       "notes": "RZPDevicePropertiesStP primary vtable 0x10ebd214 +0x5c points to f_1035ac84."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1035e5ac",
+       "address": "0x1035e928",
+       "notes": "RZPDevicePropertiesStP constructor installs primary vtable 0x10ebd214."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104d49e8",
+       "address": "0x104d4a80",
+       "notes": "DeviceProperties service binding copies the concrete implementation shared_ptr into service +0x4/+0x8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1035ac84",
+       "address": "0x1035acf4",
+       "notes": "Concrete GetZoneInfo worker delegates identity/network collection to f_105b4cf8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1035ac84",
+       "address": "0x1035ad04",
+       "notes": "Concrete worker reads queue_engine+0x594 into HTAudioIn."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102c05d8",
+       "address": "0x102c10a8",
+       "notes": "Queue-engine base constructor initializes tvInputFormat (+0x594) to 0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b07fc",
+       "address": "0x102b0890",
+       "notes": "AVTransport update path logs 'setting tvInputFormat %08x' and stores the new code at +0x594."
       }
      ],
      "notes": null,
-     "implementation_notes": "Outputs recovered from arg-name string loads inside the impl function (extractor missed them).",
-     "todo": [
-      "Established: direct dispatch to handler 0x10737750; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Outputs recovered from arg-name string loads inside the impl function (extractor missed them)."
     },
     "RemoveBondedZones": {
      "description": "Removes bonded zones (ChannelMapSet, KeepGrouped flag) via impl->v[+0x1c].",
