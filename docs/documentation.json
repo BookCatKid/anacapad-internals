@@ -19934,7 +19934,7 @@
      ]
     },
     "SetLEDState": {
-     "description": "Sets DesiredLEDState via impl->v[+0x10].",
+     "description": "Sets the user-visible status-light enable flag. The wrapper fetches required DesiredLEDState into a type-7 4-byte text record, validates the TRequest, then calls RZPDevicePropertiesStP slot +0x10 (f_105b49b0). The worker trims the parsed text, maps exact case-sensitive 'Off' to 0 and every other parsed string to 1, and writes that byte through backend impl+0x950 selector 0x20000.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10735d5c",
@@ -19946,31 +19946,53 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "RZPDevicePropertiesStP",
+      "impl_vtable": "0x10ebd214",
+      "worker": "0x105b49b0",
+      "worker_slot": "0x10",
       "calls": [
        {
+        "site": "0x10735d9c",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate/fetch required DesiredLEDState input record"
+       },
+       {
+        "site": "0x10735dbc",
+        "obj": "TRequest (r4-in)",
+        "slot": 8,
+        "purpose": "validate/materialize parsed input"
+       },
+       {
         "site": "0x10735ddc",
-        "obj": "r5-in",
+        "obj": "RZPDevicePropertiesStP (r5-in)",
         "slot": 16,
-        "arg4": "sp-0x18"
+        "target": "0x105b49b0",
+        "purpose": "apply LED enable setting"
+       },
+       {
+        "site": "0x10735df8",
+        "obj": "TRequest (r4-in)",
+        "slot": 20,
+        "purpose": "emit SOAP fault on validation/worker failure"
        },
        {
         "site": "0x10735e40",
-        "obj": "*(sp-0x30+0x2c)",
+        "obj": "TRequest (r4-in)",
         "slot": 12,
-        "arg4": 402
+        "purpose": "commit success response"
        }
       ],
-      "req_vcalls": [
-       {
-        "site": "0x10735dbc",
-        "slot": 8,
-        "purpose": "parse"
-       }
-      ]
+      "backend": {
+       "field": "RZPDevicePropertiesStP+0x950",
+       "selector": "0x20000",
+       "writer": "0x10bf76c0",
+       "provenance": "The backend pointer is constructor argument 8 to f_105b66f0, passed unchanged through f_1035e5ac/f_10351904; f_103fa434 obtains it from its owner object's +0x284 field."
+      }
      },
      "inputs": {
       "DesiredLEDState": {
-       "description": "Desired LED state enum string (parsed but IGNORED: impl 0x10537870 is a 2-insn no-op)",
+       "description": "User status-light setting. SCPD advertises 'On' and 'Off'. The concrete worker treats exact case-sensitive 'Off' as disabled and every other parsed value as enabled.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -19979,36 +20001,66 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string argument (type-tag-7 record)",
-       "format": "utf-8 text, buffer cap 4 bytes (3 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "any string; impl never reads it",
-       "range": "max 3 chars",
-       "special_values": "none - arg has no effect",
+       "semantic_type": "LED enable enum string",
+       "format": "type-tag-7 text record, 4-byte buffer (maximum 3 payload bytes plus NUL); whitespace is trimmed by the worker",
+       "unit": "none - boolean setting encoded as text",
+       "accepted_values": [
+        "On",
+        "Off"
+       ],
+       "range": "SCPD: On|Off; implementation parser accepts capped text and the worker only special-cases 'Off'",
+       "special_values": "Exact 'Off' -> backend byte 0; any other parsed text -> byte 1",
        "required": true,
        "default": "none; required input",
-       "validation": "none observable: impl is a no-op stub",
+       "validation": "TRequest type-7 parsing caps the text at 3 bytes plus NUL and does not enforce the SCPD allowed-value list. f_105b49b0 trims the text, then performs a case-sensitive strcmp against 'Off'.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10735d9c",
-         "notes": "in-arg access site"
+         "notes": "DesiredLEDState TRequest input-record fetch"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10ebc9e4",
-         "notes": "argument name string"
+         "address": "0x10735da8",
+         "notes": "f_1056157c configures type-tag 7 with buffer capacity 4"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10537870",
-         "notes": "stwu r1,-0x10; addi r1,0x10; blr: arg dead on arrival"
+         "address": "0x10560ab4",
+         "notes": "type-tag 7 bypasses numeric/boolean conversion; no allowed-value-list validation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b49e0",
+         "notes": "worker trims parsed text with sonosTrimWhitespace"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b49f0",
+         "notes": "case-sensitive strcmp against literal 'Off'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4a00",
+         "notes": "isel r5,0,1,cr7eq: Off maps 0, any non-Off value maps 1"
+        },
+        {
+         "type": "firmware",
+         "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
+         "build": "86.10-80260",
+         "notes": "DeviceProperties1.xml LEDState declares sendEvents=no and advertises allowed values On and Off."
         }
        ],
        "notes": null,
@@ -20017,152 +20069,192 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "DesiredLEDState is required. TRequest materializes it as a type-tag-7 capped string and must validate successfully. The request layer does not enforce the SCPD On/Off enum; the implementation's own only semantic test is exact case-sensitive comparison with 'Off'.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10735d5c",
-        "notes": "wrapper family decode"
+        "address": "0x10735d9c",
+        "notes": "required input record requested by name"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10735dbc",
+        "notes": "TRequest +0x08 validation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "notes": "type-tag 7 is retained as capped text; conversion switch handles only tags 0-6"
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x10]",
+      "description": "Requires a materialized DesiredLEDState argument and successful TRequest validation. No configuration-mode or other DeviceProperties state precondition is checked.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10735d5c",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "only pre-worker flow is input fetch plus TRequest validation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b49b0",
+        "notes": "worker contains no state/precondition rejection path"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x10]",
+      "description": "Mutates the same user LED-enable property read by GetLEDState: backend pointer at RZPDevicePropertiesStP+0x950, selector 0x20000.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10735d5c",
-        "notes": "member vfunc calls: ['r30 v[+0x10]']"
+        "address": "0x105b49f4",
+        "notes": "loads backend pointer from impl+0x950"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b4a04",
+        "notes": "loads selector 0x20000"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b4a08",
+        "notes": "writes selected 0/1 value via f_10bf76c0"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to impl->v[+0x10]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Writes the user status-light enable property through the generic backend at impl+0x950. 'Off' writes 0; all other parsed strings write 1. This is the persistent/user-facing on/off setting, separate from temporary LED animation-mode selection.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10735d5c",
-         "notes": "impl vfunc delegate path: impl->v[+0x10] (call-derived member-method semantics)"
+         "function": "0x105b49b0",
+         "notes": "trim -> Off comparison -> selector 0x20000 backend write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10bf76c0",
+         "notes": "packages selector/value and calls backend vtable +0x28 setter"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to impl->v[+0x10]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No GENA event is emitted: DeviceProperties.LEDState is declared sendEvents=no. The worker itself contains no notify-family call; any hardware application is owned by the property backend.",
       "evidence": [
+       {
+        "type": "firmware",
+        "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
+        "build": "86.10-80260",
+        "notes": "DeviceProperties1.xml LEDState declares sendEvents=no and advertises allowed values On and Off."
+       },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10735d5c",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x105b49b0",
+        "notes": "complete worker has no GENA/settings-notify call"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x10]",
+      "description": "The user LED-enable property transitions to 0 for exact 'Off' and 1 otherwise. No DeviceProperties mode/state-machine transition occurs.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10735d5c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x10]']"
+        "address": "0x105b4a00",
+        "notes": "isel produces 0 or 1 from Off comparison"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b4a08",
+        "notes": "selected value written to property selector 0x20000"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_105b49b0 always returns 0 after issuing the backend write; the wrapper then commits the empty success response. The only reachable SOAP fault in this action is 402 when TRequest validation fails.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10735d5c",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x105b4a24",
+        "notes": "worker explicitly sets r3=0 after backend setter call"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10735e40",
+        "notes": "zero worker rc reaches TRequest +0x0c success commit"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10735e2c",
+        "notes": "validation-failure path loads literal 402"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10735df8",
-       "code": null,
-       "code_expr": "vret(r5-in,+0x10)"
+       "code": 402,
+       "code_expr": "const"
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x10); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "const; TRequest validation",
+       "meaning": "DesiredLEDState was missing or the request record failed TRequest validation before f_105b49b0 ran.",
        "fault_sites": [
         "0x10735df8"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "TRequest::validateInputs (+0x08) returned false after parsing DesiredLEDState.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10735d5c",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "address": "0x10735dbc",
+           "notes": "validation result tested"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10735d5c",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10735e2c",
+           "notes": "false path loads 0x192 (402)"
           }
          ]
         }
@@ -20172,40 +20264,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735d5c",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10735d5c",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10735df8",
+         "notes": "TRequest +0x14 fault emitter call"
         }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
-         "function": "0x10537870",
-         "lits": [
-          0,
-          1,
-          2,
-          28,
-          9536
-         ],
-         "passthrough_exits": 7
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x10); parse/req-layer; sites: 0x10735df8).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -20217,28 +20278,31 @@
        "build": "86.10-80260",
        "function": "0x10735d5c",
        "address": "0x10735d5c",
-       "notes": "action wrapper handler"
+       "notes": "SOAP action wrapper"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11a2c",
-       "notes": "action dispatch table entry"
+       "address": "0x10ebd214",
+       "notes": "RZPDevicePropertiesStP primary vtable; slot +0x10 = f_105b49b0"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10537870",
-       "notes": "impl vtable 0x10e98278 slot +0x10; NULL STUB: 2-insn empty function - action is a no-op in this build"
+       "function": "0x105b49b0",
+       "notes": "concrete SetLEDState worker"
+      },
+      {
+       "type": "firmware",
+       "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
+       "build": "86.10-80260",
+       "notes": "DeviceProperties1.xml LEDState declares sendEvents=no and advertises allowed values On and Off."
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10735d5c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Concrete implementation binding supersedes the older extractor claim that SetLEDState was a no-op through f_10537870. The real RZPDevicePropertiesStP primary vtable is 0x10ebd214 and slot +0x10 is f_105b49b0. The selector 0x20000 belongs to this generic property backend and must not be conflated with the unrelated R_LED_WAC bit that happens to use the same numeric value in the LED-animation engine."
     },
     "SetUseAutoplayVolume": {
      "description": "Sets UseVolume flag (+Source) via impl->v[+0x40].",
