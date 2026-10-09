@@ -117362,50 +117362,288 @@
    ]
   },
   "sonos_packed_object_id": {
-   "description": "Packed playback-resume token:100 hexadecimal characters from15 conversions, followed by64 characters containing a space-padded audio-framer bookmark. Serializer0x1032d59c and parser0x1032d7f8 operate on the channel-source resume record. The trailer is AFC context, not a processName, and the record is not a telemetry counter window.",
+   "description": "Fixed164-character channel-source state snapshot for playback handoff/resumption: a100-character hexadecimal header followed by64 characters of space-padded AFC bookmark. The header carries playlist/shuffle ordinal, stream byte position, source state, transmitter packet cursor, frame playback time, relative track and seek positions, and current/required group capabilities. It is a chanSrcStateSnapBase-derived object with asynchronous worker completion, not a telemetry window or content-directory identifier.",
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x1032d59c",
-     "notes": "15-conversion header plus padded AFC trailer"
+     "notes": "Exact15-field layout, scalar formatting and64-character AFC trailer"
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x1032d7f8",
-     "notes": "Exact164-byte length and trimmed AFC parse"
+     "notes": "Exact164-character input, conversion count, fixed trailer and partial mutation"
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x1045fbac",
-     "notes": "Resume-state wrapper records context and byte offset"
+     "address": "0x10257184",
+     "notes": "Complete snapshot worker producer for STOPPED/PLAYING/PAUSED"
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x1045fd04",
-     "notes": "Returns pointer to resume+0x34, not a proved telemetry time"
+     "address": "0x10ea8534",
+     "notes": "Source-state names0..9, not guessed from neighboring strings"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1025c2b8",
+     "notes": "Single pending snapshot pointer, protected by CHSRC mutex"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1066ef64",
+     "notes": "chanSrcStateSnapBase mutex and condition identities"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1066f058",
+     "notes": "Wait for ready byte without timeout"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10636bc8",
+     "notes": "Packet index/offset/source offset/frame time producer"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10637170",
+     "notes": "Packet cursor restore and resetting to pkt/off log"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1034071c",
+     "notes": "Metadata ordinal, elapsed-time and selector outputs"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10341b9c",
+     "notes": "SPE argument spills/reloads preserve output positions"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1025d04c",
+     "notes": "Pending seek time producer: relative/absolute,zero clip,duration cap"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1025f020",
+     "notes": "Available groupcap mask capture or reuse from resume record"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103a8794",
+     "notes": "Groupcaps getter with optional atmos-bit suppression"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10268e48",
+     "notes": "Explicit reset of required group caps, names the second mask"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1025c30c",
+     "notes": "Restore cursor predicate, seek pair and required mask"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1032d66c",
+     "notes": "Signed selector bound on serialization"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1032d944",
+     "notes": "Unsigned selector bound on parsing"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1032d9f0",
+     "notes": "Snapshot equality excludes ordinal and clone flag"
     }
    ],
    "fields": [
-    "Header conversion widths4,8,8,8,4,2,8,8,8,8,8,8,8,8,2 (15 conversions,100 characters)",
-    "Trailer at character100:64-byte AFC text, whitespace-trimmed and parsed through1045fbac->10804114->10803f38",
-    "Header field2 is resume byte position returned by1045fcd4; field15 is framer selector returned by1045fcf4, clamped to0 when>17",
-    "Header fields9/10 are the two words at resume+0x34 returned as a pointer by1045fd04; fields13/14 come from resume+0x3c/+0x40 getters1045fd14/24; semantic identities still require producer/consumer tracing"
+    {
+     "field": 1,
+     "text_offset": 0,
+     "width": 4,
+     "type": "u16",
+     "object_offset": "+0xea",
+     "meaning": "Track ordinal in the metadata playlist/shuffle order. Playing producer reads metadata-history+0x28e; stopped fallback is1 if current playlist has any tracks, otherwise0; paused uses CHSRC+0x326cc. Zero is an empty/default ordinal; normal ordinals are one-based."
+    },
+    {
+     "field": 2,
+     "text_offset": 4,
+     "width": 8,
+     "type": "u32",
+     "object_offset": "+0xf0",
+     "meaning": "Stream byte offset from nodetx getLocationAtTime frame-header source offset; same value as resume-state getter0x1045fcd4. Separate from transmitter packet cursor and HLS segment sequence."
+    },
+    {
+     "field": 3,
+     "text_offset": 12,
+     "width": 8,
+     "type": "u32 enum",
+     "object_offset": "+0x138",
+     "meaning": "Source-state snapshot. Normal worker writes1=STOPPED,5=PLAYING,8=PAUSED. Full source-state names0..9 are given below; parser does not restrict state values."
+    },
+    {
+     "field": 4,
+     "text_offset": 20,
+     "width": 8,
+     "type": "u32",
+     "object_offset": "+0x13c",
+     "meaning": "Transmitter packet number from nodetx getLocationAtTime. If no suitable data, next packet number is last_packet+1, with last_packet=0xffffffff producing1. It is not a queue-track index."
+    },
+    {
+     "field": 5,
+     "text_offset": 28,
+     "width": 4,
+     "type": "u16",
+     "object_offset": "+0x140",
+     "meaning": "Byte offset within the1024-byte transmitter packet; nodetx location walker produces offsets below0x400. Empty/no-data snapshot uses0. Parser does not enforce that bound."
+    },
+    {
+     "field": 6,
+     "text_offset": 32,
+     "width": 2,
+     "type": "u8 predicate",
+     "object_offset": "+0x154",
+     "meaning": "Preserve transmitter cursor flag: restore skips nodetx reset when nonzero. Clone helper sets1 and converts source states5..9 to8; fresh snapshot initializes0. Raw parser retains the byte, with no boolean normalization."
+    },
+    {
+     "field": 7,
+     "text_offset": 34,
+     "width": 8,
+     "type": "i32 bits",
+     "object_offset": "+0x144",
+     "meaning": "Frame playback timestamp seconds from the nodetx frame header on the synchronized playback timeline;0 in no-data paths. Not UTC wall-clock time or track elapsed seconds."
+    },
+    {
+     "field": 8,
+     "text_offset": 42,
+     "width": 8,
+     "type": "i32 bits",
+     "object_offset": "+0x148",
+     "meaning": "Frame playback timestamp microseconds; pairs with field7."
+    },
+    {
+     "field": 9,
+     "text_offset": 50,
+     "width": 8,
+     "type": "i32 bits",
+     "object_offset": "+0x124 (resume+0x34)",
+     "meaning": "Track-relative elapsed seconds derived by metadata-history0x1034071c from stored elapsed time and current playback timestamp. Invalid/negative stored elapsed values normalize to0 before capture."
+    },
+    {
+     "field": 10,
+     "text_offset": 58,
+     "width": 8,
+     "type": "i32 bits",
+     "object_offset": "+0x128 (resume+0x38)",
+     "meaning": "Track-relative elapsed microseconds; playing history adds timestamp delta and normalizes >=1000000 to seconds."
+    },
+    {
+     "field": 11,
+     "text_offset": 66,
+     "width": 8,
+     "type": "i32 bits",
+     "object_offset": "+0x14c",
+     "meaning": "Pending seek/start-position seconds copied from CHSRC+0x35184. Setter0x1025d04c computes absolute/relative target, clips negatives to0 and caps at known track duration. Playing snapshot clears this goal pair."
+    },
+    {
+     "field": 12,
+     "text_offset": 74,
+     "width": 8,
+     "type": "i32 bits",
+     "object_offset": "+0x150",
+     "meaning": "Pending seek/start-position microseconds from CHSRC+0x35188; pairs with field11."
+    },
+    {
+     "field": 13,
+     "text_offset": 82,
+     "width": 8,
+     "type": "u32 mask",
+     "object_offset": "+0x12c (resume+0x3c)",
+     "meaning": "Group capability mask captured when CHSRC starts, or retained from a valid previous resume token.0x1025f020 reads provider slot+8, bound through group-manager subinterface+0x168 to0x102e7f9c->0x103a8794. That getter clears atmos bit0x2 if spatial audio is disabled. Copied via CHSRC+0x3cc80."
+    },
+    {
+     "field": 14,
+     "text_offset": 90,
+     "width": 8,
+     "type": "u32 mask",
+     "object_offset": "+0x130 (resume+0x40)",
+     "meaning": "Required group capabilities for the current stream, copied via CHSRC+0x3cc84. Restored by0x1025c30c; cleared on fresh construction and the explicit Resetting required group caps path0x10268e48. Distinct from the available group-capability mask."
+    },
+    {
+     "field": 15,
+     "text_offset": 98,
+     "width": 2,
+     "type": "u32 selector narrowed to byte",
+     "object_offset": "+0x120 (resume+0x30)",
+     "meaning": "Framer identifier from metadata-history+0x34c, carried with AFC. Normal domain0..17; unknown parsed values>17 become0. Source recovery specifically uses AFC/latest-context fallback for IDs7,12,16. This is not a window-duration or time field."
+    }
    ],
    "resolved_findings": [
-    "0x1032d7f8 requires strlen==0xa4 and sscanf count15. It copies64 bytes from input+100, appends NUL, trims whitespace, clamps the final selector to0 when raw>17, and invokes0x1045fbac. 0x1032d59c obtains AFC from resume+8, formats through0x10803dac, pads to64 with spaces and NUL-terminates after164 characters. A serializer truncation logs AFC truncated!.",
-    "The prior telemetry-window/processName attribution and14-field count are disproved by the immediate producer and consumer chains. Remaining header fields are kept open individually rather than inferred from adjacent strings."
+    "Serializer helper0x1039b92c builds the0x200-byte snapshot object with vptr0x10eb83c0, initializes its resume fields, calls0x1025c2b8 to install a single pending snapshot pointer at CHSRC+0x32808 under CHSRC mutex+0x208, then waits through0x1066f058 on snapshot mutex+8/condition+0x98 until ready byte+0xe8 becomes1. Worker0x10257184 fills the record according to source state and calls0x1066f0c8 to set ready, broadcast, and clear the pending pointer. There is no queued snapshot list or timeout in these primitives; overlapping requests require caller coordination. vtable0x10eb83c0 slots+0/+4 destruct/delete (delete size0x200),+8 serialize0x1032d59c,+0xc parse0x1032d7f8. Base ctor0x1066ef64 names mutex and condition chanSrcStateSnapBase.",
+    "Running worker calls nodetx vtable0x10efb75c slot+0x38=0x10636bc8(getLocationAtTime): out packet number+0x13c, in-packet offset+0x140, source byte offset, and frame timestamp+0x144/+0x148. nodetx walks1024-byte stored packets and16-byte frame headers copied by0x1063311c; locator returns the last frame at/before query time, with resync handling. Worker uses that frame timestamp to select metadata and AFC history. Wrapper0x10341b9c preserves r5..r10 using SPE evstdd/evldd, advances metadata history, then calls0x1034071c; the snapshot ordinal receives history+0x28e, elapsed position receives history+0x298/+0x29c, selector receives history+0x34c. In PAUSED, worker copies stored resume state and pending seek target. In STOPPED/no-buffer cases it creates an empty resume context plus next-packet cursor. Restore0x1025c30c resets nodetx through slot+0x44=0x10637294->0x10637170 unless preserve-cursor byte is nonzero, restores the seek pair and required mask, stores the incoming goal snapshot, and records whether desired source state is STOPPED. Actual nodetx reset log is resetting to pkt:%u off:%u.",
+    "Parser0x1032d7f8 requires strlen==0xa4 and sscanf return15, copies trailer at offset100 into a65-byte temporary buffer, trims whitespace, and passes it through0x1045fbac->0x10804114 (tail branch0x1080411c)->0x10803f38. Header conversions use scanf maximum widths, accept ordinary %X lexical forms (including lower-case hex and signs/whitespace), and have no per-field range, time normalization, state-enum or packet-offset check. Parsed selector uses unsigned cmplwi17 at0x1032d944 and clamps>17 to0. Serializer uses signed cmpwi17 at0x1032d66c, then low-byte mask0x57a7063e and isel; ordinary positive IDs>17 become0, but a high-bit-set u32 viewed as negative emits its low byte. Therefore malformed selector normalization is asymmetric. Header fields are written before AFC validation; a failed trailer is not transactional.0x1045fbac clears resume validity/mask on failure, but old AFC bytes remain. Formatter logs AFC truncated! if context render fails. No SOAP fault number is produced by these primitives.",
+    "0x1032d9f0 compares resume-state through0x1045fed8 plus source state, packet cursor, frame time and pending seek pair. It does not compare ordinal+0xea or preserve-cursor byte+0x154. Resume equality compares stream byte offset, all AFC bytes/mask, selector, elapsed pair, both capability masks, and validity byte. Initial/reset0x1032d970 zeros ordinal/header/flag and resets resume via0x1045fa28; that reset clears AFC mask but preserves old AFC payload bytes."
    ],
-   "todo": [
-    "Established: fixed164-character playback token with15-field hex header and64-byte AFC trailer, parser gates and selector clamp. Remaining: name the unbound header fields at outer record+0xea/+0x138/+0x13c/+0x140/+0x144/+0x148/+0x14c/+0x150/+0x154 and resume+0x34/+0x3c/+0x40, including their units/value domains. Trace their setters and resume consumers, starting with0x1032d59c/0x1032d7f8 and getters0x1045fd04/14/24; the trailer interpretation is resolved."
-   ]
+   "source_state_values": {
+    "0": "INVALID",
+    "1": "STOPPED",
+    "2": "TRAN_STOPPED",
+    "3": "DEFER_PLAYING",
+    "4": "TRAN_DEFER_PLAY",
+    "5": "PLAYING",
+    "6": "PLAYING_START",
+    "7": "TRAN_PLAYING",
+    "8": "PAUSED",
+    "9": "TRAN_PAUSED"
+   },
+   "capability_values": "Both masks use the groupcapability namespace: bit0=widevine,bit1=atmos,bit3=voice,bit7=portable,bit15=tv_in,bit31=hlsv7, from sparse pointer table0x10ec4410. Other bit positions have no names in this table. The token parser preserves all32 bits and does not apply the separate strict capability-string validator.",
+   "snapshot_lifecycle": "Serializer helper0x1039b92c builds the0x200-byte snapshot object with vptr0x10eb83c0, initializes its resume fields, calls0x1025c2b8 to install a single pending snapshot pointer at CHSRC+0x32808 under CHSRC mutex+0x208, then waits through0x1066f058 on snapshot mutex+8/condition+0x98 until ready byte+0xe8 becomes1. Worker0x10257184 fills the record according to source state and calls0x1066f0c8 to set ready, broadcast, and clear the pending pointer. There is no queued snapshot list or timeout in these primitives; overlapping requests require caller coordination. vtable0x10eb83c0 slots+0/+4 destruct/delete (delete size0x200),+8 serialize0x1032d59c,+0xc parse0x1032d7f8. Base ctor0x1066ef64 names mutex and condition chanSrcStateSnapBase.",
+   "producer_consumer_chains": "Running worker calls nodetx vtable0x10efb75c slot+0x38=0x10636bc8(getLocationAtTime): out packet number+0x13c, in-packet offset+0x140, source byte offset, and frame timestamp+0x144/+0x148. nodetx walks1024-byte stored packets and16-byte frame headers copied by0x1063311c; locator returns the last frame at/before query time, with resync handling. Worker uses that frame timestamp to select metadata and AFC history. Wrapper0x10341b9c preserves r5..r10 using SPE evstdd/evldd, advances metadata history, then calls0x1034071c; the snapshot ordinal receives history+0x28e, elapsed position receives history+0x298/+0x29c, selector receives history+0x34c. In PAUSED, worker copies stored resume state and pending seek target. In STOPPED/no-buffer cases it creates an empty resume context plus next-packet cursor. Restore0x1025c30c resets nodetx through slot+0x44=0x10637294->0x10637170 unless preserve-cursor byte is nonzero, restores the seek pair and required mask, stores the incoming goal snapshot, and records whether desired source state is STOPPED. Actual nodetx reset log is resetting to pkt:%u off:%u.",
+   "wire_format": "Header format at0x10eb83d0 is %04hX%08X%08X%08X%04hX%02hhX followed by eight %08X conversions and %02X:15 conversions totaling100 canonical characters. Add AFC serialized through0x10803dac, pad with spaces to64 characters, append NUL after164. Output is hexadecimal text of scalar bits, not a packed binary struct. No endian transformation is applied beyond numeric hexadecimal rendering. Frame/elapsed/seek time pairs are separate32-bit seconds/microseconds words, not a single64-bit integer. The trailer follows payload_formats.sonos_hex_blob_line.",
+   "validation": "Parser0x1032d7f8 requires strlen==0xa4 and sscanf return15, copies trailer at offset100 into a65-byte temporary buffer, trims whitespace, and passes it through0x1045fbac->0x10804114 (tail branch0x1080411c)->0x10803f38. Header conversions use scanf maximum widths, accept ordinary %X lexical forms (including lower-case hex and signs/whitespace), and have no per-field range, time normalization, state-enum or packet-offset check. Parsed selector uses unsigned cmplwi17 at0x1032d944 and clamps>17 to0. Serializer uses signed cmpwi17 at0x1032d66c, then low-byte mask0x57a7063e and isel; ordinary positive IDs>17 become0, but a high-bit-set u32 viewed as negative emits its low byte. Therefore malformed selector normalization is asymmetric. Header fields are written before AFC validation; a failed trailer is not transactional.0x1045fbac clears resume validity/mask on failure, but old AFC bytes remain. Formatter logs AFC truncated! if context render fails. No SOAP fault number is produced by these primitives.",
+   "equality": "0x1032d9f0 compares resume-state through0x1045fed8 plus source state, packet cursor, frame time and pending seek pair. It does not compare ordinal+0xea or preserve-cursor byte+0x154. Resume equality compares stream byte offset, all AFC bytes/mask, selector, elapsed pair, both capability masks, and validity byte. Initial/reset0x1032d970 zeros ordinal/header/flag and resets resume via0x1045fa28; that reset clears AFC mask but preserves old AFC payload bytes."
   },
   "sonos_iv_token": {
    "description": "The IV attribute of the HLS '#EXT-X-KEY' playlist tag, parsed inside the 'hlsaudio' key-extraction worker f_103c0364. Grammar: literal 'IV=' (strstr), mandatory '0x' prefix (strncmp at 0x103c0584), then a byte-wise loop sscanf'ing '%02hhX' (0x10ec6414) until ',' or NUL - exactly one conversion required per byte. The sibling attributes METHOD= {AES-128, SAMPLE-AES, AES} (strncasecmp ladder), URI= ('URI=data' inline vs 'URI=\"' quoted, <=0x400 bytes), and KEYFORMAT= fill the same key record: key bytes at +0x401 (0x400 buffer), a flag byte at +0xc03 set when the IV tail terminates on ',' or NUL, and the method enum at +0xc14 ('Key extracted. method=%d').",
