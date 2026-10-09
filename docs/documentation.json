@@ -13921,7 +13921,7 @@
      ]
     },
     "GetButtonLockState": {
-     "description": "Returns CurrentButtonLockState via impl->v[+0x8].",
+     "description": "Returns whether the speaker's physical controls are locked. After TRequest validation, the wrapper calls RZPDevicePropertiesStP slot +0x70 (f_105b4874). That worker reads property selector 0x20001 through the backend at impl+0x950 and returns literal 'Off' when the byte is zero or 'On' when it is nonzero.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107377d4",
@@ -13933,229 +13933,283 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "RZPDevicePropertiesStP",
+      "impl_vtable": "0x10ebd214",
+      "worker": "0x105b4874",
+      "worker_slot": "0x70",
       "calls": [
        {
         "site": "0x1073780c",
-        "obj": "r4-in",
+        "obj": "TRequest (r4-in)",
         "slot": 8,
-        "arg4": "r4-in"
+        "purpose": "validate/materialize inputs"
        },
        {
         "site": "0x10737830",
-        "obj": "r5-in",
+        "obj": "RZPDevicePropertiesStP (r5-in)",
         "slot": 112,
-        "arg4": "sp-0x18"
+        "target": "0x105b4874",
+        "purpose": "read button-lock state into 4-byte stack buffer"
        },
        {
         "site": "0x1073784c",
-        "obj": "r4-in",
+        "obj": "TRequest (r4-in)",
         "slot": 20,
-        "arg4": "vret(r5-in,+0x70)"
+        "purpose": "emit SOAP fault if validation/worker rc is nonzero"
+       },
+       {
+        "site": "0x1073789c",
+        "obj": "TRequest (r4-in)",
+        "slot": 36,
+        "purpose": "allocate CurrentButtonLockState output record"
        },
        {
         "site": "0x107378b0",
-        "obj": "vret(*(sp-0x30+0x2c),+0x24)",
+        "obj": "output record",
         "slot": 16,
-        "arg4": "sp+0x18"
-       }
-      ],
-      "req_vcalls": [
+        "purpose": "write On/Off text"
+       },
        {
         "site": "0x107378c4",
+        "obj": "TRequest (r4-in)",
         "slot": 12,
-        "purpose": "commit"
+        "purpose": "commit success response"
        }
-      ]
+      ],
+      "backend": {
+       "field": "RZPDevicePropertiesStP+0x950",
+       "selector": "0x20001",
+       "reader": "0x10bf2c28",
+       "setter_sibling": "f_105b4a3c (SetButtonLockState) writes the same selector; exact 'On' maps to 1, every other worker input maps to 0.",
+       "provenance": "Same backend dependency as Get/SetLEDState: constructor argument 8 to f_105b66f0, threaded through f_1035e5ac/f_10351904 from the media-player/controller dependency at owner+0x284."
+      }
      },
      "inputs": {},
      "outputs": {
       "CurrentButtonLockState": {
-       "description": "Button-lock state string read from the impl member pair and written to the response",
+       "description": "Physical-button lock setting returned by f_105b4874.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "enum string built from the lock-state member pair at this+0x5730/0x5734",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "semantic_type": "button-lock enable state",
+       "format": "enum string",
+       "unit": "none - boolean setting encoded as text",
+       "accepted_values": [
+        "On",
+        "Off"
+       ],
+       "range": "exactly 'On' or 'Off'",
+       "special_values": "Off when selector 0x20001 reads zero; On when nonzero",
        "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via the response object vfuncs",
+       "default": "none; always written on a successful call",
+       "validation": "f_105b4874 reads one byte for selector 0x20001 through backend impl+0x950 and maps it directly to Off/On.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073789c",
-         "notes": "out-arg access site"
+         "address": "0x105b4888",
+         "notes": "loads property backend from RZPDevicePropertiesStP+0x950"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f08c20",
-         "notes": "argument name string"
+         "address": "0x105b4890",
+         "notes": "loads selector 0x20001 before f_10bf2c28 property read"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x101a07dc",
-         "notes": "impl reads *(this+0x5730/+0x5734) into the out record"
+         "address": "0x105b48b0",
+         "notes": "zero byte path selects literal 'Off'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b48d8",
+         "notes": "nonzero byte path selects literal 'On'"
+        },
+        {
+         "type": "firmware",
+         "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
+         "build": "86.10-80260",
+         "notes": "ButtonLockState allowedValueList advertises On and Off and sendEvents=no"
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentButtonLockState`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "No action arguments exist. TRequest::validateInputs (+0x08) must succeed; validation failure produces SOAP 402 before the worker runs.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x107377d4",
-        "notes": "wrapper family decode"
+        "address": "0x1073780c",
+        "notes": "TRequest +0x08 validation call"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10737880",
+        "notes": "validation-failure path loads literal 402"
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], r30 v[+0x70]",
+      "description": "No configuration-mode or other DeviceProperties state precondition. Only TRequest validation is required.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x107377d4",
-        "notes": "req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "notes": "only pre-worker predicate is TRequest validation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4874",
+        "notes": "worker has no rejection branch and always returns 0"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], r30 v[+0x70].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], r30 v[+0x70]",
+      "description": "Reads the user physical-button lock property from backend impl+0x950 selector 0x20001. SetButtonLockState uses the same selector, independently binding zero=Off/unlocked and one=On/locked.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107377d4",
-        "notes": "member vfunc calls: ['r4 v[+0x8]', 'r30 v[+0x70]']"
+        "address": "0x105b4898",
+        "notes": "f_10bf2c28 reads selector 0x20001"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b4a7c",
+        "notes": "SetButtonLockState worker selects 1 for exact On and 0 otherwise"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b4a80",
+        "notes": "setter writes same selector 0x20001 through f_10bf76c0"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], r30 v[+0x70].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate (impl->v[+0x70] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Read-only. The worker reads one backend property byte, copies literal On or Off into the caller buffer, and performs no state mutation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x107377d4",
-         "notes": "impl vfunc delegate path: impl->v[+0x70] -> out-arg (call-derived member-method semantics)"
+         "function": "0x105b4874",
+         "notes": "complete worker is property read + On/Off string copy + return 0"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate (impl->v[+0x70] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. ButtonLockState is declared sendEvents=no and the getter worker emits no notification.",
       "evidence": [
+       {
+        "type": "firmware",
+        "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
+        "build": "86.10-80260",
+        "notes": "ButtonLockState stateVariable has sendEvents=no"
+       },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107377d4",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x105b4874",
+        "notes": "worker contains no notify/event call"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], r30 v[+0x70]",
+      "description": "None. GetButtonLockState only observes the current lock flag.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107377d4",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', 'r30 v[+0x70]']"
+        "function": "0x105b4874",
+        "notes": "no stores to implementation or backend state"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], r30 v[+0x70].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "After successful TRequest validation, f_105b4874 always returns 0, the wrapper writes CurrentButtonLockState, and commits success. The sole reachable action fault is validation 402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107377d4",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "address": "0x105b48c0",
+        "notes": "Off path sets worker return r3=0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b48e8",
+        "notes": "On path sets worker return r3=0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107378c4",
+        "notes": "success response commit"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
-     "fault_sites": [],
+     "fault_sites": [
+      {
+       "site": "0x1073784c",
+       "code": 402,
+       "code_expr": "const"
+      }
+     ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret; parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | impl is a lwz pair into out -> real worker shared_ptr copy accessor | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "const; TRequest validation",
+       "meaning": "TRequest validation failed before the button-lock worker ran.",
        "fault_sites": [
-        "0x107377d4"
+        "0x1073784c"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "TRequest::validateInputs (+0x08) returned false.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107377d4",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "address": "0x1073780c",
+           "notes": "validation result is tested immediately after this call"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107377d4",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10737880",
+           "notes": "false path loads 0x192 (402)"
           }
          ]
         }
@@ -14165,44 +14219,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107377d4",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x101a07dc",
-         "notes": "impl resolves to shared_ptr copy accessor (lwz pair into out)"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x107377d4",
-         "notes": "wrapper parse + fault path"
+         "address": "0x1073784c",
+         "notes": "TRequest +0x14 fault-emitter call"
         }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
-         "function": "0x101a07dc",
-         "lits": [
-          0,
-          24
-         ],
-         "passthrough_exits": 5
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; parse/req-layer; sites: 0x107377d4).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -14214,28 +14233,31 @@
        "build": "86.10-80260",
        "function": "0x107377d4",
        "address": "0x107377d4",
-       "notes": "action wrapper handler"
+       "notes": "SOAP action wrapper"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f1196c",
-       "notes": "action dispatch table entry"
+       "address": "0x10ebd214",
+       "notes": "RZPDevicePropertiesStP primary vtable; slot +0x70 = f_105b4874"
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x101a07dc",
-       "notes": "impl vtable 0x10e98278 slot +0x70; secondary-base trampoline via 0x101a0840 (this in r4)"
+       "function": "0x105b4874",
+       "notes": "concrete GetButtonLockState worker"
+      },
+      {
+       "type": "firmware",
+       "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
+       "build": "86.10-80260",
+       "notes": "ButtonLockState allowed values On/Off; sendEvents=no"
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x107377d4; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "The older extractor attribution to f_101a07dc / fields +0x5730/+0x5734 was incorrect. The service's concrete RZPDevicePropertiesStP vtable 0x10ebd214 maps slot +0x70 directly to f_105b4874, which reads backend selector 0x20001 from impl+0x950."
     },
     "GetButtonState": {
      "description": "Returns the button-notify observation accumulator, not a simple current pressed/unpressed bit. A valid call while button-notify config mode is active returns up to four distinct observed input IDs, each formatted as NAME:PRESS_COUNT:AGE_SECONDS from the RZPDevicePropertiesStP observation table. Outside button-notify mode the implementation returns fault 401.",
