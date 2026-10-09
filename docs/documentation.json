@@ -125824,15 +125824,80 @@
    "injection": "injectdropout + 'Injected dropout error': test-only dropout injection"
   },
   "healthcheck": {
-   "impl": "healthcheck.cxx -> healthchecker",
-   "semantics": "periodic self-check: 'Next healthcheck scheduled to run in %u h %u m %u s', timer pop, reschedule",
-   "todo": [
-    "Established: the periodic self-check and reschedule strings are identified."
-   ],
-   "check_semantics": "healthcheck.cxx is a SELF-MONITORING scheduler job, not a service checklist. f_103ae548 is the timer loop: waits on the +0x90 timer-queue (f_1098761c/f_10987584) with period 0x493e0 = 300,000 ms (5 minutes), gated by enable byte +0x189; each pop runs the probe f_103add58, logs 'Healthcheck timer pop' then 'Rescheduling next healthcheck' under tag 'healthcheck', clears one-shot byte +0x18b, and re-arms. The check itself (f_103add58) is a LIVENESS probe: difftime(sonosClockGetTime, +0x190 last-run timestamp) compared against a 0.5 constant - it detects a stale/missed timer and the 'failure action' is simply re-arming the schedule (the +0x18b byte marks a forced reschedule). The scheduler entry f_103ade20 stores next-run at +0x190/+0x194 and logs 'Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)'. So healthcheck verifies that the daemon's timer machinery keeps firing on cadence; recovery is automatic re-arm, no restart or alert path in this module.",
-   "resolved_findings": [
-    "Resolved: the job probes scheduler liveness - difftime vs last-run +0x190 on a 5-min timer, self-heals by re-arming ('Rescheduling next healthcheck'); no external service checklist exists in this module.",
-    "Resolved: healthcheck (zoneplayer/healthcheck.cxx, domain 'healthcheck') is the periodic diagnostics phone-home. A timer fires ('Healthcheck timer pop'), schedules next run logging 'Next healthcheck scheduled to run in %u h %u m %u s' (interval split via mulli 0xe10 hours / *60 minutes at 0x103adfd8), then GETs '<server>/ws/diag/diag_instructions.xml?hhid=<hhid>' ('Contacting server for instructions: %s', 0x103ae9c8). The reply XML is SAX-parsed for exactly {SubmitPermission, ServerDiagInstructions}: SubmitPermission text must strncmp 'yes' to permit submit; ServerDiagInstructions text (<=0x20 bytes) is the remote command to run. Errors: I/O / 'Incomplete instruction file' / 'Instruction file too large' / 'Failed to parse instruction file'. A six-field gate ('Not scheduling: %d %d %d %d %d %d' at 0x103ae094) suppresses scheduling when unset."
+   "impl": "zoneplayer/healthcheck.cxx",
+   "semantics": "Deadline scheduling and a compiled diagnostics-permission fetcher. The timer body in this build only waits and logs; it does not perform a liveness test or invoke the HTTP fetcher.",
+   "description": "The player maintains a diagnostic-check deadline, normally one day ahead, and lets update scheduling or group changes move it. In this build the background timer records timer pops and schedule changes but does not itself run a test or upload diagnostics. A separate compiled helper reads a short server instruction file and remembers whether submission is permitted.",
+   "layout": "0x103ae3f0 initializes mutex+0, condition variable+0x90, worker thread+0xe0, retained owner shared_ptr+0x180/+0x184, permission+0x188=0, stop request+0x189=0, stop acknowledgement+0x18a=0, reschedule handshake+0x18b=0, periodic marker+0x18c=0, suppression byte+0x18d=0, absolute clock-id1 seconds+0x190=0 and reason pointer+0x194=0. Credit limiter+0x198 starts with capacity3, period86400000ms and minimum interval900000ms. Constructor calls 0x103ae370, marking periodic and requesting now+86400 seconds.",
+   "deadline": "0x103add58 is a remaining-time getter, not a probe: difftime(deadline,clock-id1 seconds), return0 when <=0, otherwise truncate seconds*1000 to u32 milliseconds, saturating at 0x418937 (4294967) when seconds>4294967. SPE comparisons/multiply/conversion at 0x103adda8/0x103ade08 establish this; the constants are doubles0,4294967,1000 at 0x10e87718/0x10ec4530/0x10ea2398.",
+   "schedule": "0x103ade20 assumes mutex ownership. Let earlier=(new<old), overdue=(old<now), periodicArg=r5, forcedWake=r6, reason=r7. It accepts ((earlier OR overdue) AND !creditDepleted AND !suppression) OR (periodicArg AND oldPeriodicMarker). Otherwise returns0 with the six-field Not scheduling log. Accepted deadlines more than86400 seconds ahead clamp to fresh now+86400; other absolute deadlines, including past ones, are retained. Store deadline+0x190 and reason+0x194, optionally set handshake+0x18b and signal/wait in5000ms intervals until cleared or wait returns nonzero, then store periodic marker from r5 and return1. 0x103ae14c locks and requests forcedWake=1; 0x103ae1e8 schedules now+caller seconds with periodicArg0.",
+   "limiter": "Eligibility query 0x1098c798 preserves the Boolean result of 0x1098c650 despite the misleading void decompilation. It estimates available float credits without consuming them: clamp elapsed milliseconds >=0; when enabled minimum spacing has not elapsed, report depleted; otherwise add elapsed/period*capacity to current credits and compare estimate<1. Constructor stores3 credits and current time, spacing flag0. No healthcheck body consumes credits or sets the suppression byte beyond constructor zero.",
+   "worker": "0x103adca4 starts thread trampoline0x103ae6d4->0x103ae548. Under the mutex the worker condition-waits300000ms, checks stop, then clears/signals a reschedule handshake and reads remaining time, or logs Healthcheck timer pop if the remaining-time getter returns0. It loops without running diagnostics, changing the deadline or invoking the retained owner. Stop0x103adcdc sets+0x189, signals/waits5000ms for+0x18a, then joins; worker sets acknowledgement and semantically tail-calls mutex unlock. Destructor releases owner, thread, condition and mutex.",
+   "instruction_fetcher": "Separately compiled 0x103ae8d0 constructs /ws/diag/diag_instructions.xml plus ?hhid=<household> only when nonempty, resolves URL through0x10540238 into a1025-byte buffer, and GETs through0x10546520 with a120000ms deadline. Requires known content length <1024 and exactly that many bytes read. SAX callbacks0x103ae75c/0x103ae7f8 recognize ServerDiagInstructions and nested SubmitPermission; character callback0x103ae894 accumulates only while both flags are active, bounded to31 bytes plus NUL via tail delegate0x10c3a06c. It stores+0x188=(strncmp(text,yes,3)==0), so yes-prefixed text is allowed, absent text denies, and unrelated remote command execution is absent. Success returns1; failures return0 and preserve previous permission. Errors distinguish I/O/HTTP result, unknown length, >=1024 bytes, short read and XML parse failure. No direct/tail caller or pointer-table entry references this helper in this binary; it is not called by the timer.",
+   "callers": "Auto-update scheduling0x102a77a8 requests a periodic health deadline1800 seconds before an update check;0x102a7c68 tail-delegates the equivalent scheduling path. Group-membership work0x1034389c requests45 seconds with periodicArg0 and a reason pointer. These are deadline changes, not direct HTTP fetch calls.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103ae3f0",
+     "notes": "Layout, one-day default and 3-credit limiter configuration."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103add58",
+     "notes": "SPE remaining-time conversion, not liveness probe."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103ade20",
+     "notes": "Complete accept predicate, one-day clamp and reschedule handshake."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103ae548",
+     "notes": "Condition-wait300000ms and log-only timer body; unlock tail branches."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103ae8d0",
+     "notes": "120-second HTTP request, bounded body and permission parser."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103ae894",
+     "notes": "Character data tail call to bounded append helper."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1098c650",
+     "notes": "SPE float credit comparison; query does not consume credits."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102a78dc",
+     "notes": "Update scheduler deadline call."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103439a0",
+     "notes": "Group-change45-second deadline call."
+    }
    ]
   },
   "assoctracker": {
