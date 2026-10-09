@@ -116564,7 +116564,7 @@
    "resolved_findings": [
     "Mask prefix %02X: at0x10f2c884. If bit0 set, append %08X:%08X:%016llX: (0x10f2c88c); if bit1 set, append %02X repeated8 then :%04X:%04X (0x10f2c8a0). Canonical text lengths for masks0/1/2/3 are3/38/29/64 characters. Serializer0x10803dac returns1 only if each snprintf result is positive and strictly smaller than remaining capacity; maximum canonical capacity is65 including NUL. The u64 is a scalar hex conversion, not bytewise network layout. Calls use0x41-byte buffers; the full mask3 string is exactly64 printable bytes.",
     "0x10803f38 requires non-null text, strlen>2 and text[2]==colon. It sscanf-parses prefix with conversion count1, rejects raw prefix value>3, stores valid mask BEFORE parsing sections. Bit0 parses three conversions from text+3; bit1 parses ten conversions from text+3 when bit0 absent, otherwise from fixed text+0x26. Identity octets and u16s are truncated when stored. Each width is sscanf maximum width, not an exact lexical-length requirement; no end-of-input check exists, so trailing text and variable-width forms can be accepted. Mask0 accepts any suffix after the valid prefix. There is no58-character length check. Early null/short/colon rejection leaves destination unchanged; failed prefix conversion/out-of-range mask clears only mask; later section failure can leave a valid mask and partially updated payload. Caller should use returned boolean. Resume wrapper0x1045fbac clears mask and validity on failure but does not erase old context bytes.",
-    "Initializer0x108039cc zeroes all32 payload bytes and mask. Copy/assignment0x10803a60/0x10803b7c/0x10803c98 copy mask and all32 bytes. Clear0x108042d4 clears mask only. Empty test0x108042b4 is mask==0, not mask!=0. Primary presence0x10804120 raw0x546307fe is rlwinm SH0 MB31 ME31 (=mask&1), although the local linear decoder prints srwi; secondary presence0x10804134 is(mask>>1)&1. Setter0x1080422c ORs bit0 and writes two words plus u64 from r4/r5/r7/r8. Getter0x10804148 checks bit0 and non-null first/u64 output pointers, then copies words/u64 (second output pointer is used without a separate null check). Secondary setter0x10804254/getter0x108041a4 write/read8 bytes and two u16s under bit1. Both have no direct/tail callers, loadable pointer words, or lis/low-part references in this image. Their secondary tuple is therefore an opaque received compatibility value; naming it as a node identifier or timing counters is unsupported. Equality0x108042e8 first compares masks then memcmp all32 bytes via0x10804300, including absent-section payload and non-wire bytes. Stale bytes can make cleared contexts unequal.",
+    "Initializer0x108039cc zeroes all32 payload bytes and mask. Copy/assignment0x10803a60/0x10803b7c copy mask and all32 bytes;0x10803c98 copies payload only and leaves the destination mask untouched. Clear0x108042d4 clears mask only. Empty test0x108042b4 is mask==0. Primary presence0x10804120 raw0x546307fe is rlwinm SH0 MB31 ME31 (=mask&1), although the local decoder prints srwi; secondary presence0x10804134 is(mask>>1)&1. Setter0x1080422c ORs bit0 and writes words/u64 from r4/r5/r7/r8. Getter0x10804148 checks bit0 and non-null first/u64 output pointers, then copies (second output pointer is not separately checked). Secondary setter0x10804254/getter0x108041a4 write/read8 bytes and two u16s under bit1; neither has direct/tail callers, loadable pointer words, or lis/low references in this image. Secondary tuple is an opaque received compatibility discriminator, with no in-image node-ID/timing interpretation. Equality0x108042e8 compares masks then all32 payload bytes via0x10804300, including absent-section and non-wire bytes. Stale bytes can make cleared contexts unequal.",
     "HLS consumer0x103b9328 logs starting at bitrate %u stream %u segment %llu after primary getter; its context delegate0x103bd4d0 tail-branches at0x103bd4e0 to setter0x1080422c and forwards arguments. HLS playlist path0x103beff4 extracts segment sequence, and0x103bd1f4 selects bitrate/stream with an index-bound check. Segmented-audio producer0x1047f850 attaches a new context to notifyFrame when its pending byte+0x15 is set, then clears the byte. Ogg fallback0x1045a2f4 and generic segmented fallback0x104833ac seed primary wordA from stream state, wordB=0 and position=0. CHSRC0x10256f3c asks frame-history0x10315f48 for the bookmark corresponding to a timestamp and wraps it with byte offset via0x1045fb18. Seven formatter callers include CHSRC recovery/flush, frame-history add/pop/flush, and packed playback-token serializer0x1032d59c. That serializer pads AFC text with spaces into its final64-byte field; paired parser0x1032d7f8 trims and passes it through0x1045fbac->0x10804114, whose branch0x1080411c is a semantic tail call to0x10803f38. No clock or latency producer supplies these fields.",
     "Adjacent function0x1080396c independently retrieves X-Sonos-Latency by name through0x10551344 and tail-branches at0x108039a8 to paranoid_atoui. Adjacency of that header literal to AFC format strings does not bind the two formats."
    ],
@@ -116607,7 +116607,7 @@
    ],
    "wire_format": "Mask prefix %02X: at0x10f2c884. If bit0 set, append %08X:%08X:%016llX: (0x10f2c88c); if bit1 set, append %02X repeated8 then :%04X:%04X (0x10f2c8a0). Canonical text lengths for masks0/1/2/3 are3/38/29/64 characters. Serializer0x10803dac returns1 only if each snprintf result is positive and strictly smaller than remaining capacity; maximum canonical capacity is65 including NUL. The u64 is a scalar hex conversion, not bytewise network layout. Calls use0x41-byte buffers; the full mask3 string is exactly64 printable bytes.",
    "parser": "0x10803f38 requires non-null text, strlen>2 and text[2]==colon. It sscanf-parses prefix with conversion count1, rejects raw prefix value>3, stores valid mask BEFORE parsing sections. Bit0 parses three conversions from text+3; bit1 parses ten conversions from text+3 when bit0 absent, otherwise from fixed text+0x26. Identity octets and u16s are truncated when stored. Each width is sscanf maximum width, not an exact lexical-length requirement; no end-of-input check exists, so trailing text and variable-width forms can be accepted. Mask0 accepts any suffix after the valid prefix. There is no58-character length check. Early null/short/colon rejection leaves destination unchanged; failed prefix conversion/out-of-range mask clears only mask; later section failure can leave a valid mask and partially updated payload. Caller should use returned boolean. Resume wrapper0x1045fbac clears mask and validity on failure but does not erase old context bytes.",
-   "operations": "Initializer0x108039cc zeroes all32 payload bytes and mask. Copy/assignment0x10803a60/0x10803b7c/0x10803c98 copy mask and all32 bytes. Clear0x108042d4 clears mask only. Empty test0x108042b4 is mask==0, not mask!=0. Primary presence0x10804120 raw0x546307fe is rlwinm SH0 MB31 ME31 (=mask&1), although the local linear decoder prints srwi; secondary presence0x10804134 is(mask>>1)&1. Setter0x1080422c ORs bit0 and writes two words plus u64 from r4/r5/r7/r8. Getter0x10804148 checks bit0 and non-null first/u64 output pointers, then copies words/u64 (second output pointer is used without a separate null check). Secondary setter0x10804254/getter0x108041a4 write/read8 bytes and two u16s under bit1. Both have no direct/tail callers, loadable pointer words, or lis/low-part references in this image. Their secondary tuple is therefore an opaque received compatibility value; naming it as a node identifier or timing counters is unsupported. Equality0x108042e8 first compares masks then memcmp all32 bytes via0x10804300, including absent-section payload and non-wire bytes. Stale bytes can make cleared contexts unequal.",
+   "operations": "Initializer0x108039cc zeroes all32 payload bytes and mask. Copy/assignment0x10803a60/0x10803b7c copy mask and all32 bytes;0x10803c98 copies payload only and leaves the destination mask untouched. Clear0x108042d4 clears mask only. Empty test0x108042b4 is mask==0. Primary presence0x10804120 raw0x546307fe is rlwinm SH0 MB31 ME31 (=mask&1), although the local decoder prints srwi; secondary presence0x10804134 is(mask>>1)&1. Setter0x1080422c ORs bit0 and writes words/u64 from r4/r5/r7/r8. Getter0x10804148 checks bit0 and non-null first/u64 output pointers, then copies (second output pointer is not separately checked). Secondary setter0x10804254/getter0x108041a4 write/read8 bytes and two u16s under bit1; neither has direct/tail callers, loadable pointer words, or lis/low references in this image. Secondary tuple is an opaque received compatibility discriminator, with no in-image node-ID/timing interpretation. Equality0x108042e8 compares masks then all32 payload bytes via0x10804300, including absent-section and non-wire bytes. Stale bytes can make cleared contexts unequal.",
    "producers_consumers": "HLS consumer0x103b9328 logs starting at bitrate %u stream %u segment %llu after primary getter; its context delegate0x103bd4d0 tail-branches at0x103bd4e0 to setter0x1080422c and forwards arguments. HLS playlist path0x103beff4 extracts segment sequence, and0x103bd1f4 selects bitrate/stream with an index-bound check. Segmented-audio producer0x1047f850 attaches a new context to notifyFrame when its pending byte+0x15 is set, then clears the byte. Ogg fallback0x1045a2f4 and generic segmented fallback0x104833ac seed primary wordA from stream state, wordB=0 and position=0. CHSRC0x10256f3c asks frame-history0x10315f48 for the bookmark corresponding to a timestamp and wraps it with byte offset via0x1045fb18. Seven formatter callers include CHSRC recovery/flush, frame-history add/pop/flush, and packed playback-token serializer0x1032d59c. That serializer pads AFC text with spaces into its final64-byte field; paired parser0x1032d7f8 trims and passes it through0x1045fbac->0x10804114, whose branch0x1080411c is a semantic tail call to0x10803f38. No clock or latency producer supplies these fields.",
    "header_distinction": "Adjacent function0x1080396c independently retrieves X-Sonos-Latency by name through0x10551344 and tail-branches at0x108039a8 to paranoid_atoui. Adjacency of that header literal to AFC format strings does not bind the two formats."
   },
@@ -141588,22 +141588,94 @@
    ]
   },
   "csfcm": {
-   "name": "channel-source frame-context manager",
-   "summary": "csfcm; pool {'marking (t:%d)','add %d.%06d %zu %s %d/%d free','NO FREE CONTEXTS','flushing (t:%d)','flushed %d.%06d %s','popping %d.%06d %s (%d.%06d < %d.%06d) %d/%d free'}; log fmt '%s:%05d [%s] pos:%u/%u hint:%s/nextState:%s/reqOp:%s/itemID:%s'",
+   "name": "Audio-framer bookmark history (csfcm)",
+   "summary": "This keeps a short history of audio-stream bookmarks so the player can recover the correct stream position for a playback time. It stores at most128 distinct contexts, avoids adding consecutive identical bookmarks, and preserves a marked boundary during cleanup. If the history fills up, it stops accepting and returning contexts until flushing clears the exhaustion state; playback recovery can then fall back to the latest saved position.",
    "evidence": [
     {
      "type": "firmware",
-     "address": "0x10eb5f04",
-     "notes": "csfcm"
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10316190",
+     "notes": "128-node constructor,0x38 stride, free-list and control fields"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1025f538",
+     "notes": "CHSRC constructs history at+0x960"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10315d94",
+     "notes": "Deduplicated append and persistent exhaustion flag"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10315f48",
+     "notes": "Timestamp lookup, mark boundary and mask-clear failure"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105a8fd4",
+     "notes": "Comparator is >=, including equal microseconds"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103163a8",
+     "notes": "Pop retains successor exactly at cutoff and marked head"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10316230",
+     "notes": "Partial marked flush vs full flush and exhaustion reset"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103163a4",
+     "notes": "Flush semantic tail call"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103160e8",
+     "notes": "Latest-context fallback"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10315be4",
+     "notes": "Adjacent denylist constructor has distinct0x220 service-table layout"
     }
    ],
-   "todo": [
-    "Residual: what CSFCM expands to (the acronym itself is internal; the pool role and denylist policy are proven)."
-   ],
    "resolved_findings": [
-    "Resolved: pool owner = the csfcm log domain; context struct = {marking t, add timestamp size %d/%d free, NO FREE CONTEXTS, flushing/flushed, popping} fields.",
-    "Owner and role proven: csfcm is the per-service content-stream flow-context manager - a bounded context pool (add %d.%06d %zu %s %d/%d free / NO FREE CONTEXTS / marking (t:%d) / flushing (t:%d) / flushed %d.%06d %s / popping %d.%06d %s (%d.%06d < %d.%06d) %d/%d free) keyed by service id. Per-service guards: Added listener for service %u registers consumers; stream limit exceeded for service %u caps concurrent streams per service; too many failures, denylisted service %u deny-lists failing services; clearing all denylists and stream limits / resetting all denylist error counters are the reset ops. Log lines identify the content being tracked: %s:%05d [%s] pos:%u/%u with {hint, nextState, reqOp, itemID} variants - playback-queue items with requested op and state transitions. Adjacent: chsrc_state_events + the tvLocalPlay/timeToPlayUSec timing fields + Hi-Res model guard (WARNING! This model shouldnt support Hi-Res Music: %s (%s))."
-   ]
+    "Embedded in CHSRC at+0x960, initialized by0x1025f538->0x10316190. Plain object with128 inline nodes of stride0x38, no vtable, allocator, serializer or internal mutex. Node +0=next link,+4/+8=signed seconds/microseconds timestamp,+0xc=unused word,+0x10=32-byte AFC payload,+0x30=AFC mask, remaining node bytes padding. Manager +0x1c00=free-list head,+0x1c04=history head,+0x1c08=history tail,+0x1c0c=marked tail,+0x1c10=exhausted byte,+0x1c14=free count. Constructor initializes every AFC payload/mask and builds a LIFO free list with count128. Node release0x10316158 clears link, timestamp and mask; payload bytes remain until assignment.",
+    "0x10315d94(manager,timestamp*,reported_byte_offset,context*) appends only when not exhausted and tail is absent or AFC inequality holds. It compares through0x108042e8, which includes mask and all32 payload bytes. The reported byte offset is logged but not stored in a node. Take node from free list, decrement free count, write timestamp, copy AFC via0x10803b7c, and link after tail (initialize head/tail when empty). With no free node, log NO FREE CONTEXTS and set exhausted=1; no eviction occurs automatically. Consecutive equal contexts suppress insertion even when their timestamps differ.",
+    "0x10315f48(manager,query_time*,context_out*,ignore_mark,timestamp_out*) returns the last visited history node whose timestamp <= query_time. Comparator0x105a8fd4 performs signed seconds comparison then microseconds>= at equality of seconds; the lookup calls it as query>=node. ignore_mark==0 stops after considering the marked node; nonzero searches beyond mark. Success copies the AFC and optionally timestamp, returns1; missing history/match or exhaustion clears output mask and returns0. Latest-context0x103160e8 copies tail AFC and timestamp when tail exists, otherwise returns0 without clearing outputs. CHSRC recovery0x10256f3c/0x10257184 combines this context with separately obtained stream position, and falls back to last saved resume location when appropriate.",
+    "Mark0x10315d04 saves current tail into+0x1c0c and logs whether it is non-null. Pop0x103163a8 does nothing when exhausted; otherwise removes oldest nodes only while a successor exists, the current head is not the mark, and successor.timestamp < cutoff. Equality is retained: a successor exactly at cutoff stops popping. Each removed node increments free count and returns to free list. Flush0x10316230 removes nodes through the marked node if a mark exists; it clears mark and returns immediately when later nodes remain. Without a mark it empties history. When history becomes empty it clears tail and exhausted. If a partial marked flush leaves nodes, the exhaustion byte is not reset. Forwarder0x1031639c tail-branches at0x103163a4 to flush and must be treated as a call.",
+    "Append/pop are paired in CHSRC notifyFrame0x1026a0bc: calls0x1026a3b4/0x1026aabc pop older contexts then0x1026a3d0/0x1026aad8 append current AFC. Flush callers include0x10259524,0x10261b9c,0x1026bbc8 and0x1026cb0c plus tail delegate0x103163a4. Formatter calls in append/pop/flush are diagnostic descriptions of the AFC, not a separate latency protocol. Empty/exhaustion behavior is expressed as boolean results and mask clearing, with no SOAP fault translation or wire event.",
+    "The literal short name csfcm has no expanded identifier in this image; its measured role is timestamped audio-framer context history. Adjacent denylist functions0x103157ec..0x10315cf0 operate on a separate service-id record set and callback table, not this128-node pool. The earlier content-stream flow-context expansion and per-service denylist attribution are withdrawn; no acronym expansion is inferred."
+   ],
+   "fields": "Embedded in CHSRC at+0x960, initialized by0x1025f538->0x10316190. Plain object with128 inline nodes of stride0x38, no vtable, allocator, serializer or internal mutex. Node +0=next link,+4/+8=signed seconds/microseconds timestamp,+0xc=unused word,+0x10=32-byte AFC payload,+0x30=AFC mask, remaining node bytes padding. Manager +0x1c00=free-list head,+0x1c04=history head,+0x1c08=history tail,+0x1c0c=marked tail,+0x1c10=exhausted byte,+0x1c14=free count. Constructor initializes every AFC payload/mask and builds a LIFO free list with count128. Node release0x10316158 clears link, timestamp and mask; payload bytes remain until assignment.",
+   "append": "0x10315d94(manager,timestamp*,reported_byte_offset,context*) appends only when not exhausted and tail is absent or AFC inequality holds. It compares through0x108042e8, which includes mask and all32 payload bytes. The reported byte offset is logged but not stored in a node. Take node from free list, decrement free count, write timestamp, copy AFC via0x10803b7c, and link after tail (initialize head/tail when empty). With no free node, log NO FREE CONTEXTS and set exhausted=1; no eviction occurs automatically. Consecutive equal contexts suppress insertion even when their timestamps differ.",
+   "lookup": "0x10315f48(manager,query_time*,context_out*,ignore_mark,timestamp_out*) returns the last visited history node whose timestamp <= query_time. Comparator0x105a8fd4 performs signed seconds comparison then microseconds>= at equality of seconds; the lookup calls it as query>=node. ignore_mark==0 stops after considering the marked node; nonzero searches beyond mark. Success copies the AFC and optionally timestamp, returns1; missing history/match or exhaustion clears output mask and returns0. Latest-context0x103160e8 copies tail AFC and timestamp when tail exists, otherwise returns0 without clearing outputs. CHSRC recovery0x10256f3c/0x10257184 combines this context with separately obtained stream position, and falls back to last saved resume location when appropriate.",
+   "retention": "Mark0x10315d04 saves current tail into+0x1c0c and logs whether it is non-null. Pop0x103163a8 does nothing when exhausted; otherwise removes oldest nodes only while a successor exists, the current head is not the mark, and successor.timestamp < cutoff. Equality is retained: a successor exactly at cutoff stops popping. Each removed node increments free count and returns to free list. Flush0x10316230 removes nodes through the marked node if a mark exists; it clears mark and returns immediately when later nodes remain. Without a mark it empties history. When history becomes empty it clears tail and exhausted. If a partial marked flush leaves nodes, the exhaustion byte is not reset. Forwarder0x1031639c tail-branches at0x103163a4 to flush and must be treated as a call.",
+   "callers": "Append/pop are paired in CHSRC notifyFrame0x1026a0bc: calls0x1026a3b4/0x1026aabc pop older contexts then0x1026a3d0/0x1026aad8 append current AFC. Flush callers include0x10259524,0x10261b9c,0x1026bbc8 and0x1026cb0c plus tail delegate0x103163a4. Formatter calls in append/pop/flush are diagnostic descriptions of the AFC, not a separate latency protocol. Empty/exhaustion behavior is expressed as boolean results and mask clearing, with no SOAP fault translation or wire event.",
+   "scope": "The literal short name csfcm has no expanded identifier in this image; its measured role is timestamped audio-framer context history. Adjacent denylist functions0x103157ec..0x10315cf0 operate on a separate service-id record set and callback table, not this128-node pool. The earlier content-stream flow-context expansion and per-service denylist attribution are withdrawn; no acronym expansion is inferred."
   },
   "perf_counters": {
    "name": "perfcounter schema",
