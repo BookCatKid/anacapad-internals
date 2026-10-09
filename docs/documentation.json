@@ -124110,15 +124110,89 @@
    "settings_update": "LocationSettingsUpdateManager: <LocationSettingsUpdate> doc; pcEvt_{holdoff,running,exiting,waiting} states; setLocationSettings(%s|%s) versioned writes: household-replicated location settings"
   },
   "circuitbreaker": {
-   "semantics": "circuitBreakerTelemetry: breaker pattern on outbound paths w/ telemetry",
-   "todo": [
-    "Established: the circuit-breaker pattern with telemetry is identified; ctor call sites now pin the defaults {trip=6, probe_cap=2, window bounds 30000/120000} - the flag byte +0x38 is literal 1 at one site and a runtime-computed value at the other."
-   ],
-   "state_machine": "Fully decoded at 0x109d91ec (report) / 0x109d9470 (gate) / 0x109d90cc (close). States at +0x1c: 0=OPEN, 1=SEMI_OPEN, 2=CLOSED, logged with tag 'cb' and messages '%s CB state transition to [OPEN|SEMI_OPEN|CLOSED]'. report(success!=0) always forces CLOSED (f_109d90cc): folds window counter +0x18 into cumulative +0x130, clears +0x18, notifies via the +0x120 epoch object (f_109d9670). report(failure==0): pushes a timestamp into the 8-byte event ring at +0x50, increments +0x130; then: SEMI_OPEN -> +0x18++ and compare vs probe cap +0x24 (exceed -> trip path); CLOSED -> if sliding-window flag +0x38 set, slide the window (drop events older than the +0x40/+0x44 span via f_109bc8c0/f_109bc9c0 on the +0x48 container) then count vs trip threshold +0x20; on exceed -> state=OPEN, open-until deadline +0x30/+0x34 = last-event + 0xf4240 (1,000,000 us = 1 s; clock f_1086d504 is clock_gettime(CLOCK_MONOTONIC) in us), trip counter +0x120++, last-open stamp +0x140/+0x144. gate f_109d9470: non-OPEN states allow; OPEN blocks until the +0x30 deadline, then transitions to SEMI_OPEN (+0x134++ transition counter). Field map: +0x00 name, +0x18 window count, +0x1c state, +0x20 trip threshold, +0x24 half-open probe cap, +0x28/+0x2c last event, +0x30/+0x34 open-until, +0x38 sliding-mode byte, +0x40/+0x44 window span, +0x48 time-window container (f_109bc8xx), +0x4c config idx, +0x50 event ring, +0x90 mutex, +0x120 open-trip counter/epoch notifier, +0x130 cumulative failures, +0x134 semi-open count, +0x140/+0x144 last open. Which failures count: whatever each caller passes as the success arg - the CB itself is outcome-agnostic.",
+   "semantics": "Shared circuit breaker for the UCS and Thor outbound clients: stop new attempts after six failures in two minutes, reopen after 30 seconds, and let a successful result clear the failure history.",
+   "state_machine": "State +0x1c: OPEN=0, SEMI_OPEN=1, CLOSED=2; ctor initializes CLOSED. 0x109d91ec locks mutex +0x90 and reports an outcome. Nonzero success calls 0x109d90cc: clear +0x18, add its previous value to +0x130, empty timestamp history via 0x109bc8a4, account interval via 0x109d9670 if previously non-CLOSED, then CLOSED. Zero failure appends monotonic timestamp to six-slot circular history (+0x48 control,+0x60..0x8f storage), increments +0x130. In CLOSED with +0x38 !=0, remove oldest timestamps only while age > window_ms(+0x40/+0x44)*1000000. Equality remains in window. Normal trip predicate is history_count >= threshold(+0x20), unsigned compare at 0x109d92b0/0x109d92b4. In SEMI_OPEN, increment failed-retry count +0x18; counts below +0x24 bypass normal trip check; once count >= +0x24, evaluate normal history threshold. Thus +0x24 counts failures, not concurrent requests or an admission quota. OPEN reports can still append failures and rearm the deadline if caller submits them. Trip writes OPEN and deadline(+0x30/+0x34)=now_ns+hold_ms(+0x28/+0x2c)*1000000, increments open counter +0x120, saves interval start +0x140/+0x144. 0x109d9470 lazily transitions OPEN to SEMI_OPEN when now >= deadline, folds failed-retry count into +0x130, resets +0x18, increments +0x134; no background timer is armed. Public locked gate 0x109d957c returns state==OPEN (1 means BLOCKED), not an allow flag. Success clears the retained pre-trip history; opening and half-opening do not.",
    "resolved_findings": [
-    "Resolved: states {OPEN=0,SEMI_OPEN=1,CLOSED=2}; trip = windowed failure count > +0x20 with optional sliding window (+0x38/+0x40); OPEN holds for a fixed 1,000,000us deadline then auto-SEMI_OPEN; half-open probe cap +0x24; success always closes.",
-    "Fields pinned: failure counter increments at obj+0x130 (0x109d9284); trip compares counter vs member +0x20 (0x109d92b0); OPEN transition arms half-open deadline at +0x30 = clock + 0xf0000 ticks (0x109d92e4); telemetry exported via 'circuitBreakerTelemetry' muse hook (0x10e7479c) with fields {timeInOpenStateMS, circuitBreakerOpenedCount, totalFailures, totalSuccessfulRetries, totalFailedRetries}.",
-    "Resolved (config defaults pinned at ctor sites): ctor f_109d8ecc(name_str, trip, probe_cap, rec_a, rec_b) stores {+0x20=r5, +0x24=r6, +0x28/+0x2c=*(r7+0)/+4, +0x38=*(r8+0) flag byte, +0x40/+0x44=*(r8+8)/+0xc}. Both static callsites (0x1008455c, 0x1008e3f4) build identical records: r5=6 -> +0x20 trip threshold = 6 failures; r6=2 -> +0x24 SEMI_OPEN probe cap = 2; r7 record {0, 0x7530} -> +0x28/+0x2c = 30000 window bound; r8 record {flag, _, 0, 0x1d4c0} -> +0x38 sliding-window flag (1 at site1, runtime reg at site2), +0x40/+0x44 = 120000 second bound. The 1,000,000us OPEN hold was already proven; these defaults show the trip rule is '6 failures within the window' with 2 probes allowed while half-open."
+    "Both static constructor callers are constant configurations, not runtime flag cases: UCS at 0x1008455c (global 0x110a45a0, name ucs), Thor at 0x1008e3f4 (global 0x110a6b58, name thor). Both pass threshold=6, failed-retry threshold=2, signed i64 hold_ms=30000, sliding_enabled=1, signed i64 window_ms=120000. 0x1008e190 sets r28=1 before stb r28 at 0x1008e3bc. Durations convert milliseconds to nanoseconds: 0x1086d504 uses CLOCK_MONOTONIC, converts seconds to chrono nanoseconds via 0x1086d12c->0x1086d220->0x1086d174 and adds tv_nsec via 0x1086d2a8/0x1086d358. 0xf4240 is the ms-to-ns multiplier, not a fixed OPEN timeout.",
+    "State +0x1c: OPEN=0, SEMI_OPEN=1, CLOSED=2; ctor initializes CLOSED. 0x109d91ec locks mutex +0x90 and reports an outcome. Nonzero success calls 0x109d90cc: clear +0x18, add its previous value to +0x130, empty timestamp history via 0x109bc8a4, account interval via 0x109d9670 if previously non-CLOSED, then CLOSED. Zero failure appends monotonic timestamp to six-slot circular history (+0x48 control,+0x60..0x8f storage), increments +0x130. In CLOSED with +0x38 !=0, remove oldest timestamps only while age > window_ms(+0x40/+0x44)*1000000. Equality remains in window. Normal trip predicate is history_count >= threshold(+0x20), unsigned compare at 0x109d92b0/0x109d92b4. In SEMI_OPEN, increment failed-retry count +0x18; counts below +0x24 bypass normal trip check; once count >= +0x24, evaluate normal history threshold. Thus +0x24 counts failures, not concurrent requests or an admission quota. OPEN reports can still append failures and rearm the deadline if caller submits them. Trip writes OPEN and deadline(+0x30/+0x34)=now_ns+hold_ms(+0x28/+0x2c)*1000000, increments open counter +0x120, saves interval start +0x140/+0x144. 0x109d9470 lazily transitions OPEN to SEMI_OPEN when now >= deadline, folds failed-retry count into +0x130, resets +0x18, increments +0x134; no background timer is armed. Public locked gate 0x109d957c returns state==OPEN (1 means BLOCKED), not an allow flag. Success clears the retained pre-trip history; opening and half-opening do not.",
+    "UCS outcome at 0x104d0f8c is HTTP response code >0, so an HTTP error response can count as a successful connection. Thor reports at 0x105fc7a4 and 0x105ff0bc likewise use response status >0; applicability is additionally conditioned on the request bookkeeping check at 0x105fc33c. Gate callers 0x104cf450 and 0x105fcb90 treat returned 1 as OPEN/blocked. This primitive has no SOAP fault number or wire parser; callers choose their own failure mapping.",
+    "0x109d95f4 copies the 0x28-byte telemetry record starting +0x120; in OPEN/SEMI_OPEN it first calls 0x109d9670. That helper accumulates now minus interval-start into +0x128/+0x12c and clears +0x140/+0x144, so snapshotting is a state mutation. It is not an epoch notifier. Thor publisher 0x10600790 snapshots global 0x110a6b58 then passes to 0x106cc7e0. Counters describe exactly the mutations above; +0x134 is not a success count. No callback or vtable controls the breaker states."
+   ],
+   "configuration": "Both static constructor callers are constant configurations, not runtime flag cases: UCS at 0x1008455c (global 0x110a45a0, name ucs), Thor at 0x1008e3f4 (global 0x110a6b58, name thor). Both pass threshold=6, failed-retry threshold=2, signed i64 hold_ms=30000, sliding_enabled=1, signed i64 window_ms=120000. 0x1008e190 sets r28=1 before stb r28 at 0x1008e3bc. Durations convert milliseconds to nanoseconds: 0x1086d504 uses CLOCK_MONOTONIC, converts seconds to chrono nanoseconds via 0x1086d12c->0x1086d220->0x1086d174 and adds tv_nsec via 0x1086d2a8/0x1086d358. 0xf4240 is the ms-to-ns multiplier, not a fixed OPEN timeout.",
+   "fields": "+0x00 std::string name; +0x18 failed-retry count; +0x1c state; +0x20 threshold; +0x24 failed-retry threshold; +0x28 i64 hold milliseconds; +0x30 i64 monotonic deadline nanoseconds; +0x38 sliding enable; +0x40 i64 window milliseconds; +0x48 history control (count +0x4c, producer +0x50, oldest +0x54, overwrite enable +0x58); +0x60 six i64 timestamps; +0x90 recursive mutex; +0x120 OPEN count; +0x128 i64 accumulated interval time; +0x130 failure accounting (every failed report plus folded failed-retry count); +0x134 SEMI_OPEN transition count; +0x138 initialized zero with no writer in breaker bodies; +0x140 i64 interval start.",
+   "consumers": "UCS outcome at 0x104d0f8c is HTTP response code >0, so an HTTP error response can count as a successful connection. Thor reports at 0x105fc7a4 and 0x105ff0bc likewise use response status >0; applicability is additionally conditioned on the request bookkeeping check at 0x105fc33c. Gate callers 0x104cf450 and 0x105fcb90 treat returned 1 as OPEN/blocked. This primitive has no SOAP fault number or wire parser; callers choose their own failure mapping.",
+   "telemetry": "0x109d95f4 copies the 0x28-byte telemetry record starting +0x120; in OPEN/SEMI_OPEN it first calls 0x109d9670. That helper accumulates now minus interval-start into +0x128/+0x12c and clears +0x140/+0x144, so snapshotting is a state mutation. It is not an epoch notifier. Thor publisher 0x10600790 snapshots global 0x110a6b58 then passes to 0x106cc7e0. Counters describe exactly the mutations above; +0x134 is not a success count. No callback or vtable controls the breaker states.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d8ecc",
+     "notes": "Constructor layout and CLOSED initialization"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1008455c",
+     "notes": "UCS literal 6/2/30000/1/120000 constructor arguments"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1008e3f4",
+     "notes": "Thor same literal configuration; r28 producer is constant 1"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d92b0",
+     "notes": "Unsigned history_count >= threshold trip predicate; retain equality in window"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d9430",
+     "notes": "Failed-retry count >= +0x24 enables normal trip check"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d92d0",
+     "notes": "Hold milliseconds multiplied by 1000000 before addition to monotonic ns clock"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d95d4",
+     "notes": "cntlzw/rlwinm returns state==0, OPEN means blocked"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d9670",
+     "notes": "Interval accumulation and clearing of last-open stamp"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104d0f8c",
+     "notes": "UCS success is response status >0, independent of HTTP 2xx"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105fc7a4",
+     "notes": "Thor outcome producer uses response status >0"
+    }
    ]
   },
   "noncehandler": {
@@ -141446,22 +141520,82 @@
   },
   "circuit_breaker": {
    "name": "circuit breaker FSM",
-   "summary": "\"%s CB state transition to [CLOSED]\"/[OPEN]/[SEMI_OPEN]; musecommand; history.h",
+   "summary": "Shared circuit breaker for the UCS and Thor outbound clients: stop new attempts after six failures in two minutes, reopen after 30 seconds, and let a successful result clear the failure history.",
    "evidence": [
     {
      "type": "firmware",
-     "address": "0x10f94550",
-     "notes": "CB FSM"
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d8ecc",
+     "notes": "Constructor layout and CLOSED initialization"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1008455c",
+     "notes": "UCS literal 6/2/30000/1/120000 constructor arguments"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1008e3f4",
+     "notes": "Thor same literal configuration; r28 producer is constant 1"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d92b0",
+     "notes": "Unsigned history_count >= threshold trip predicate; retain equality in window"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d9430",
+     "notes": "Failed-retry count >= +0x24 enables normal trip check"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d92d0",
+     "notes": "Hold milliseconds multiplied by 1000000 before addition to monotonic ns clock"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d95d4",
+     "notes": "cntlzw/rlwinm returns state==0, OPEN means blocked"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d9670",
+     "notes": "Interval accumulation and clearing of last-open stamp"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104d0f8c",
+     "notes": "UCS success is response status >0, independent of HTTP 2xx"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105fc7a4",
+     "notes": "Thor outcome producer uses response status >0"
     }
    ],
    "resolved_findings": [
-    "Resolved: trip/reset = %s CB state transition to [CLOSED]/[OPEN]/[SEMI_OPEN]; protected call = the musecommand dispatch path.",
-    "Mechanism proven (sonos-muse/src/sonos/muse/common/circuitbreaker.cxx): a standard circuit breaker wraps outbound cloud-command execution inside musecommand - %s CB state transition to [CLOSED]/[OPEN]/[SEMI_OPEN] marks trips and probes; telemetry fields {circuitBreakerOpenedCount, circuitBreakerTelemetry} expose trip counts. SEMI_OPEN is the cooldown probe state between OPEN and CLOSED. Adjacent muse grammar confirmations: command envelope = JSON array [header, body] (muse command must be formatted as an array containing a header object followed by a body object / missing the body object / failed to parse json body (offset: %u): %s); audiences v1.api.smartspeaker.audio + v2.api.smartspeaker.audio; credential types {apikey, mtls, guest_token, guest_token_pin}; Policy key permissions length exceeds maximum size! bounds authz policy keys.",
-    "Cooldown arm proven: OPEN stores deadline +0x30 = clock + 0xf0000 ticks before logging transition (0x109d92d8..0x109d930c); state word at +0x1c; failure counter +0x130; trip threshold member +0x20.",
-    "Resolved: the CB telemetry counter schema is literal - group museCircuitBreaker carries {timeInOpenStateMS, circuitBreakerOpenedCount, totalFailures, totalSuccessfulRetries, totalFailedRetries} (0x10f07da4-0x10f07dfc); state names are exactly {CLOSED, OPEN, SEMI_OPEN} via \"%s CB state transition to [%s]\" logs (0x10f94550-0x10f94598, source sonos-muse/common/circuitbreaker.cxx). Adjacent museSecuritySettings keys {guestAccessAllowed, unauthCtrlAllowed} and the MuseChaos fault-injection verbs (namespace/command/interval/delayMs, \"chaos: delaying/dropping request\") live in the same table run.",
-    "Resolved: the +0x30 open-until deadline is monotonic us, not 0xf0000-ticks - f_109d91ec stores last-event + 0xf4240 (1,000,000 us = 1 s) via clock_gettime(CLOCK_MONOTONIC) (see circuitbreaker record state_machine decode at 0x109d91ec/0x109d9470/0x109d90cc). Trip threshold (+0x20), half-open probe cap (+0x24) and window span (+0x40/+0x44) are config members populated at musecommand dispatch init.",
-    "Resolved: the breaker defaults are literal, not muse-dispatch data - Configure (f_109d8ecc, stores args to obj+0x20..+0x2c and +0x40/+0x44) is invoked from exactly two sites with identical config: 0x1008455c (breaker name 'ucs') and 0x1008e3f4 (breaker name 'thor'). Args: (name*, 6, 2, &u64(30000), &flags{1}, 1, 0, 30000, stack u64 120000) - i.e. trip threshold 6, probe cap 2, and two time windows 30000 and 120000 (ms).",
-    "Established: 1s open-until deadline in monotonic us; telemetry counter schema."
+    "Uses the fully decoded shared_primitives.circuitbreaker engine. Both ucs and thor instances have six-failure/two-minute windows, 30-second open holds, and a two-failed-retry threshold. Failure count equality trips; a reported success clears history. State polling performs timed reopening; no timer callback exists.",
+    "UCS outcome at 0x104d0f8c is HTTP response code >0, so an HTTP error response can count as a successful connection. Thor reports at 0x105fc7a4 and 0x105ff0bc likewise use response status >0; applicability is additionally conditioned on the request bookkeeping check at 0x105fc33c. Gate callers 0x104cf450 and 0x105fcb90 treat returned 1 as OPEN/blocked. This primitive has no SOAP fault number or wire parser; callers choose their own failure mapping."
    ]
   },
   "common_logger": {
