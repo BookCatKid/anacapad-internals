@@ -5586,7 +5586,7 @@
      ]
     },
     "SetDailyIndexRefreshTime": {
-     "description": "Sets the daily music-index refresh time via impl->v[+0x40].",
+     "description": "Sets or clears the persisted DailyIndexRefreshTime. Wrapper f_107340dc parses DesiredDailyIndexRefreshTime and dispatches ac_impl vtable 0x10eaa99c slot +0x40 -> f_1027d0c4. Empty string clears the value; nonempty input must parse as HH:MM:SS via f_10c3d2c4. The value is committed to alarmclock.xml as the literal DailyIndexRefresh element, reloaded into engine+0x7ee8..+0x7eeb, then the AlarmClock change/version observer path runs.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107340dc",
@@ -5618,7 +5618,18 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "engine_function": "0x1027d0c4",
+      "engine_vtable": "0x10eaa99c",
+      "engine_slot": 64,
+      "persistence_worker": "0x10283998",
+      "persisted_element": "DailyIndexRefresh",
+      "backing_state": {
+       "+0x7ee8": "presence byte",
+       "+0x7ee9": "hour",
+       "+0x7eea": "minute",
+       "+0x7eeb": "second"
+      }
      },
      "inputs": {
       "DesiredDailyIndexRefreshTime": {
@@ -5634,12 +5645,12 @@
        "semantic_type": "string argument",
        "format": "utf-8 text, buffer cap 9 bytes (8 chars + NUL)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "string within the request parse cap; impl-side grammar applies",
-       "range": "max 8 chars",
-       "special_values": "none identified",
+       "accepted_values": "empty string or zero-padded 24-hour HH:MM:SS",
+       "range": "hour 0..23, minute 0..59, second 0..59 when nonempty",
+       "special_values": "empty string = clear DailyIndexRefreshTime",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Empty string is valid and clears the configured refresh time. Nonempty input is parsed by f_10c3d2c4 as HH:MM:SS; invalid hour/minute/second or malformed text returns SOAP 402 before persistence.",
        "evidence": [
         {
          "type": "firmware",
@@ -5665,12 +5676,8 @@
        ],
        "notes": null,
        "buf_cap": 9,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `DesiredDailyIndexRefreshTime` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +64 (site 0x1073415c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `DesiredDailyIndexRefreshTime` = verbatim forward to impl vfunc +64 (obj *(r3-in+0x4), call site 0x1073415c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete ac_impl consumer resolved: f_1027d0c4 inspects the first byte, accepts empty string directly, or parses nonempty text with f_10c3d2c4. It then passes the original string into the alarmclock.xml writer and reloads the parsed presence+time block."
        ]
       }
      },
@@ -5688,7 +5695,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x40]",
+      "description": "The required SOAP string must parse at the wrapper layer. Engine f_1027d0c4 additionally requires any nonempty value to satisfy f_10c3d2c4 HH:MM:SS bounds. The atomic alarmclock.xml writer must complete; empty input is explicitly supported and clears the stored field.",
       "evidence": [
        {
         "type": "firmware",
@@ -5698,13 +5705,12 @@
         "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x40].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Preconditions resolved directly in f_1027d0c4: empty -> commit; nonempty -> f_10c3d2c4 or 402; successful persistence -> reload/update notification."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x40]",
+      "description": "Writes the persisted alarmclock.xml DailyIndexRefresh field and, after reload, the ac_impl backing block {present at +0x7ee8, hour/minute/second at +0x7ee9..+0x7eeb}. The reload parser f_10279c0c delegates this field to f_10275edc.",
       "evidence": [
        {
         "type": "firmware",
@@ -5714,14 +5720,13 @@
         "notes": "member vfunc calls: ['*(r30+4) v[+0x40]']"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x40].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "State path resolved end-to-end: SOAP string -> f_1027d0c4 -> f_10283998 DailyIndexRefresh element -> f_10279c0c -> f_10275edc -> engine+0x7ee8..+0x7eeb."
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to *(impl+0x4)->v[+0x40]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Atomically rewrites alarmclock.xml using the shared .tmp + flush/fsync/close + rename path. On success it reloads the AlarmClock settings, updates the DailyIndexRefreshTime backing block, increments the shared AlarmClock change/version state, and calls the observer at engine+0x7f00 with event code 5.",
        "evidence": [
         {
          "type": "firmware",
@@ -5731,14 +5736,13 @@
          "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x40] (call-derived member-method semantics)"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v[+0x40]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Mutation path resolved in f_1027d0c4: f_10283998 commit -> f_10279c0c reload -> post-reload version/observer update."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "When the reloaded DailyIndexRefresh value changes, f_10275edc reports the change and f_10279c0c calls f_1067c6ec(engine+8), marking the AlarmClock event state dirty. f_1027d0c4 then also increments the shared change/version counter and invokes the engine+0x7f00 observer with event code 5.",
       "evidence": [
        {
         "type": "firmware",
@@ -5748,13 +5752,12 @@
         "notes": "bl call scan: notify-family sites = []"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Concrete event path: DailyIndexRefresh parser branch at 0x1027a2c4 calls f_10275edc; changed result reaches f_1067c6ec at 0x1027a2e8. Setter success later performs its explicit observer/version call at 0x1027d214-0x1027d240."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x40]",
+      "description": "Absent/cleared state is presence=0 at engine+0x7ee8. A nonempty valid HH:MM:SS becomes presence=1 with parsed {hour,minute,second} in +0x7ee9..+0x7eeb. f_10275edc compares the reloaded value and reports whether the state changed; successful setter completion then runs the AlarmClock notification/version path.",
       "evidence": [
        {
         "type": "firmware",
@@ -5764,13 +5767,12 @@
         "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x40]']"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x40].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Presence/time transition semantics proven by f_10275edc and getter f_102730fc."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_1027d0c4 returns 0 on success, 402 for invalid nonempty HH:MM:SS, or propagates persistence results {501,802}. Because this setter supplies no per-alarm target record at writer-context +0x18, the writer's 800/801 target/conflict checks are unreachable. Wrapper f_107340dc forwards nonzero rc via req->v[+0x14].",
       "evidence": [
        {
         "type": "firmware",
@@ -5780,9 +5782,8 @@
         "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Setter-specific domain proven {0,402,501,802}; f_10283998 sees context+0x18 == 0 and skips the 800/801 per-record branch."
       ]
      },
      "fault_sites": [
@@ -5795,28 +5796,52 @@
      "errors": [
       {
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x40)",
-       "meaning": "alarm-store vfunc 0x1027d0c4 (slot +0x40) domain: literal 402 gate (0x1027d1f0) plus derived accumulator r30",
+       "code_expr": "f_1027d0c4 rc",
+       "meaning": "Concrete SetDailyIndexRefreshTime engine domain: {402,501,802}",
        "fault_sites": [
         "0x10734178"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "402 when a nonempty DesiredDailyIndexRefreshTime fails f_10c3d2c4 HH:MM:SS parsing/bounds.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10734178",
-           "notes": "impl rc passthrough"
+           "address": "0x1027d1e0",
+           "notes": "nonempty parse; failure reaches li r3,0x192 at 0x1027d1f0"
+          }
+         ]
+        },
+        {
+         "description": "501 for generic atomic alarmclock.xml temp/open/write/flush/fsync/fclose/rename failure propagated from f_10283998.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283998",
+           "notes": "shared atomic persistence worker"
+          }
+         ]
+        },
+        {
+         "description": "802 when the serialized alarmclock.xml exceeds the 0x8000-byte cap. This action passes writer-context +0x18 == 0, so per-record 800/801 checks are skipped.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283e8c",
+           "notes": "null target branch selects 0x8000 cap; oversized ftell path returns 0x322"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x10734954",
-           "notes": "rc convention site"
+           "address": "0x10283f20",
+           "notes": "context+0x18==0 branches past 800/801 target checks"
           }
          ]
         }
@@ -5851,45 +5876,13 @@
          "notes": "li r3,0x192 literal exit"
         }
        ],
-       "unresolved": {
-        "proven": "literal 402 + derived",
-        "unknown": "store worker rc domain",
-        "impl_exit_literals": {
-         "function": "0x10734954",
-         "lits": [],
-         "passthrough_exits": 5
-        },
-        "delegated_sources": {
-         "f_105614e0": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 20
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
        "literal_bound": [
-        402
+        402,
+        501,
+        802
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x40); sites: 0x10734178).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Complete engine predicate chain resolved; no runtime-injected delegate remains and no 800/801 path is reachable for this setter."
        ]
       },
       {
@@ -5925,8 +5918,8 @@
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}",
+       "code_expr": "f_10283998 with writer-context +0x18 == 0",
+       "meaning": "SetDailyIndexRefreshTime persistence domain: {501,802}",
        "fault_sites": [],
        "evidence": [
         {
@@ -5939,24 +5932,39 @@
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "501: generic atomic temp-file/commit failure.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x10283998",
-           "notes": "alarmclock.xml atomic save {501,800,801,802}"
+           "notes": "alarmclock.xml writer"
+          }
+         ]
+        },
+        {
+         "description": "802: final serialized document length exceeds 0x8000 bytes. Null target context bypasses all record-specific 800/801/count checks.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10284078",
+           "notes": "null target selects 0x8000 size cap"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10283f20",
+           "notes": "null target -> 0x10283f88, skipping target status checks"
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
        "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10283998 emits constant set {501, 560, 800, 801, 802} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+        "Setter-specific reachability corrected: shared worker contains {501,800,801,802}, but this call has writer-context +0x18 null, so only 501/802 are reachable."
        ]
       }
      ],
@@ -5986,9 +5994,8 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x107340dc; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "SetDailyIndexRefreshTime fully traced: wrapper f_107340dc -> ac_impl slot +0x40 f_1027d0c4 -> DailyIndexRefresh atomic persistence -> reload through f_10275edc -> event dirty mark + observer/version notification."
      ]
     },
     "SetFormat": {
@@ -9142,7 +9149,8 @@
      "notes": null,
      "backing_field": "ac_impl +0x7ee8 presence, +0x7ee9 hour, +0x7eea minute, +0x7eeb second",
      "resolved_findings": [
-      "Backing representation proven by getter f_102730fc and reload/update comparator f_10275edc: empty persisted value clears presence; nonempty HH:MM:SS is parsed and copied into the three time bytes with presence=1."
+      "Backing representation proven by getter f_102730fc and reload/update comparator f_10275edc: empty persisted value clears presence; nonempty HH:MM:SS is parsed and copied into the three time bytes with presence=1.",
+      "Setter path proven: f_1027d0c4 persists literal DailyIndexRefresh; reload f_10279c0c/f_10275edc applies empty/nonempty state and marks the AlarmClock event state dirty when the value changes."
      ]
     },
     "TimeFormat": {
@@ -98442,8 +98450,8 @@
    }
   },
   "0x934": {
-   "description": "Shared layout offset used by unrelated classes plus stack-frame canary slots; NOT a single capability field",
-   "effect": "No single capability field exists at +0x934. The only proven gate is the zoneImpl service-capability mask (0x1068bde8, ANDed with route cap_flags). Every other site is a different class member: two container begin pointers, a lazy-init ptr, DIDL flag bytes, bonded-layout u32, chproc audio-state field, a 0x21-char name buffer, curl members, topology_base member, zp field, and stack-canary frame slots.",
+   "description": "Offset catalogue corrected against raw instructions: unrelated object members, stack-frame slots, and several incorrectly attributed offsets.",
+   "effect": "These locations do different jobs in different objects. They hold service availability, playback format information, performance-counter handles, optional text, network bytes and audio settings. Treating them as one capability flag would give incorrect results. Several previously listed locations do not access +0x934 at all.",
    "loads": [
     {
      "pc": "0x101f330c",
@@ -98597,82 +98605,84 @@
      "notes": "load site inside function 0x1035c43c"
     }
    ],
-   "notes": "CORRECTION: catalogue entries whose src mentions r2+0xffff8ff8 (e.g. the stw at 0x103619b8 in f_10360ea4) are stack-protector canary slots at sp+0x934 inside large frames, not object members. The 0x10aacb34 store (*(*(arg)+0x68)+1) is a refcount or index increment on another class.",
+   "notes": "Raw instruction audit on ELF SHA-256 f60262a152aac48bd39bf0285d17d080e6820e37be12d0af9de7bffee8d3e257. Corrections supersede earlier per-class guesses. zoneImpl: u32 service-capability mask, already resolved by existing route-mask evidence Evidence: 0x1068bde8 = 0x813d0934, lwz r9,0x934(r29). Existing router result retained; no dispatch-lineage edits. SMAPI subscription/playback object: start pointer of an owned sequence; +0x93c is compared against the advancing cursor during element destruction Evidence: 0x101f330c / 0x101f4a64 load +0x934; allocation ownership is established by per-element cleanup followed by delete. This is not a boolean. chsrc perf_counter_table embedded at +0x900: shared_ptr control-block slot for a registered counter, not a lazy scalar Evidence: 0x1026329c loads the control block at +0x934, tests it, decrements strong count at block+4 and then weak count at block+8. Four paired counter-handle members are released here. DIDL media metadata: optional engagement byte at +0x934 with value at +0x935; value is the l field of r:streamInfo (bd:bit depth,sr:sample rate,c:channel field,l:lossless,d:DSD). Parallel +0x936/+0x937 supplies d. Absent fields serialize as 0. Evidence: 0x104492dc..0x1044930c selects optional values then calls 0x10c38f90 with r6=0, r7=l, r8=d. 0x10c390d8 formats bd:%u,sr:%u,c:%u,l:%u,d:%u (literal 0x10fb12c0); 0x10449644 emits r:streamInfo. This is not the chapter/episode/track-number binder. netsettings object: byte 4 of a zero-initialized 16-byte network-settings value at +0x930; not an independent flag Evidence: 0x1062741c..0x10627458 zero the bytes. 0x10629270.. copies all 16 bytes into the outgoing settings record, including +0x934 at 0x10629278. Exact 16-byte value identity remains to be bound. zp aggregate: pointer to a 4-byte DNS-SD service-registration adapter; zero only during construction Evidence: 0x10692420 writes 0 and 0x10692c20 installs r26 after new(4) and ctor 0x106c265c. vptr=0x10f07118; slots +8/+0xc/+0x10 are DNSServiceRegister (0x106c23e0), DNSServiceRefDeallocate (0x106c2554), DNSServiceUpdateRecord (0x106c258c). 0x10692bb8/cc8 actually write +0x92c, the adjacent shared_ptr managed object, not +0x934. chproc: zero-initialized word at +0x934 in pending audio-state record +0x930, copied to active record +0x978 at +4 Evidence: 0x107dcc20 writes r9 loaded from 0x10eb9ed0, whose raw value is 0; not a format-string pointer. 0x107dbfac loads this word; 0x107dbe3c copies it to +0x97c and passes the active record to 0x10d80464, which invokes each registered processor slot +8. Individual parameter identity remains open. schema object destroyed by 0x10ad1198 / 0x10ad1ba0: engagement byte for an optional std::string: 0 means no constructed string, 1 means constructed; heap release additionally requires string data pointer != inline buffer Evidence: 0x10ad1398 / 0x10ad1da0 test +0x934; +0x938=data pointer, +0x93c=length, +0x940=inline buffer or heap capacity. delete occurs only when engaged and data != this+0x940. +0x940 is not a vector end pointer. Owning schema property remains open. eSDK cache restriction/group metadata: inline NUL-terminated text, bounded copy of 33 bytes into group descriptor +0x193 Evidence: 0x10d017c0 tests first byte at config+0x934; 0x10d017d0 passes config+0x934 to bounded copy 0x10d32010 with size 0x21. No boolean capability interpretation. topology getGroupProperties output, incorrectly catalogued: not +0x934: +0x8d8 is std::string inline storage / heap-capacity union for the string starting +0x8d0 Evidence: 0x107491c0 raw 0x913f08d8 stores the moved string storage word. Producer is topology member +0x580 slot +0x18 returning the stack string at sp+0x14; data +0x8d0 and length +0x8d4 move with it. The inline-address equality check and std::string::_M_assign branch at 0x1074918c prove storage semantics. bundled libcurl, incorrectly catalogued: not +0x934 and not a bit flag: +0x8d8 is lowest HTTP version observed, 0=unset, 10=HTTP/1.0,11=HTTP/1.1,20=HTTP/2,30=HTTP/3 Evidence: 0x10955570 reads existing byte; 0x10955578..84 updates only if unset or current version lower. 0x10955630 raw 0x993f08d8 copies current version from +0xad. 0x109534b8 compares with decimal 10; connection +0x140 and response-info +0x8f0 also receive current HTTP version. other incorrectly catalogued operations: 0x107962f4/fc shifts an audio word addressed as -4(r4); 0x1035c4f8 and 0x10aacdb4 access +0x964, not +0x934 Evidence: raw words 0x8144fffc / 0x9164fffc = load/store at -4(r4), sraw by r31. 0x1035c4f8=0x807e0964; 0x10aacdb4=0x913e0964. The latter two are unrelated to this offset. Stack slots at 0x103619b8 and 0x10362fc8 use r1 as base and are not object members; their frame-specific contents must not be interpreted as a capability.",
    "todo": [
-    "Residual: the +0x934 catalogue is proven to mix unrelated class layouts, but several per-class members remain only structurally classified rather than semantically named: topology_base's u32 initialized from a stack argument, the zp MAC-format object's u32 written at 0x10692bb8/0x10692cc8, bundled libcurl's bit flag, and any remaining generic flag-byte guard. Next: trace each member's writers into its downstream branch/formatter consumers and bind each value domain independently."
+    "Established: topology stack-derived word is string storage, zp +0x934 is the DNS-SD adapter pointer, libcurl byte is minimum HTTP version, and generic destructor guards are optional-string engagement. Remaining: bind the netsettings 16-byte value name, the chproc pending audio-state word +4 to its actual processor parameter, and the schema property whose optional-string engagement is at +0x934. Trace the netsettings serializer, pending-state producer/processor slots, and schema constructor/parser individually; no scalar capability remains to be guessed."
    ],
    "resolved_findings": [
-    "Established: every catalogued +0x934 site is classified - zoneImpl capability mask (fully proven), two container begin/end pointer fields, a three-byte flag cluster, two flag-byte-guarded containers, a 0x21-byte char field, and a lazy-init pointer; no single shared field exists at this offset. Still unknown: the exact flag semantics inside each cluster (what each bool enables) - the fields themselves are typed and located. Next step: name each flag via its consumer's branch target (done per-site as needed).",
-    "f_10262ed8 owner decoded: it is a destructor that releases four shared_ptr member slots at +0x924/+0x92c/+0x934/+0x93c - each pointer is null-checked, then refcount-decremented via an lwarx/stwcx. atomic loop at 0x10263240/0x10263280/0x102632c0/0x10263300 with a conditional delete path (release thunk at 0x11098b00). +0x934 is the third refcounted member slot, not a lazily-created scalar.",
-    "f_103625a8 owner identified by module string: dp_zpimpl.cxx (device-properties zoneplayer impl).",
-    "f_10aacb34 owner identified by its JSON key ladder: a music-service content-metadata record parsed via keys {contentType,imageUrl,linkUrl,mediaUrl,name,releaseDate,tags,type}.",
-    "f_1062727c owner identified by module string: netsettings; its +0x934 is inside a 16-byte field at +0x930..+0x93f zeroed byte-by-byte at init (0x1062741c-0x10627458).",
-    "DIDL flag-byte cluster decoded: the +0x934/+0x936 (and parallel +0x8fc/+0x8fe/+0x910) bytes are has-present flags guarding optional attribute value bytes. In f_10448f38 the emitter reads lbz +0x934 gating lbz +0x935, lbz +0x936 gating lbz +0x937 - {has-flag, value} pairs passed as r7/r8 args into attribute setter f_10c38f90; the +0x8fe/+0x8ff pair gates the r:isAd literal emit and +0x8fc/+0x8fd gates a %u numeric emit.",
-    "chproc correction: the const stored into the RCStates u32 field is 0x10ec9ed0 = format string encoder %s, bit depth %u, sample rate %u - it is the RCStates log format, not a 0x04050607 byte table. The +0x934 member is a u32 in that encoder/RCStates audio-state record.",
-    "DIDL optional-pair attrs resolved: the f_10c38f90 record is {vptr, i32 val, i32 aux, bool x3} (16B) and the call site at 0x1044930c carries the names {r:chapterNum, r:episodeNumber, upnp:originalTrackNumber} - three optional integer DIDL attributes emitted through the binder. f_10c38f90 record shape: +0=vptr(GOT), +4/+8 ints, +0xc..+0xe flag bytes.",
-    "chsrc +0x900 sub-object identified: f_10262ed8 is the dtor of the chsrc (channel-source) class whose ctor f_1025f19c constructs at +0x900 a perf_counter registry (f_10317374, registers CHSRC Fill Level + frames/number of frames processed counters, perf_counter_table literal, NO DESCRIPTION PROVIDED default text). The four shared_ptr members released at +0x924/+0x92c/+0x934/+0x93c are therefore counter-registry handle slots inside that perf table, not top-level chsrc members. chsrc domain confirmed by ctor literals chsrc + chsrc-state-change.",
-    "chsrc +0x924/+0x92c/+0x934/+0x93c counter identities: f_10317374 (perf_counter_table registrar) registers exactly four named perf_counters - \"frames\" (number of frames processed), \"accumTime\" (aggregate audio of processed frames), \"accumBytes\" (aggregate size of processed frames), \"aheadTime\" (amount of audio prebuffered). The four shared_ptr slots released by the dtor are these four counter handles in registration order; the optional fifth literal \"queue expiration time\" at 0x10eb80e8 is a sibling stat, not a table-registered counter."
+    "zoneImpl: u32 service-capability mask, already resolved by existing route-mask evidence Evidence: 0x1068bde8 = 0x813d0934, lwz r9,0x934(r29). Existing router result retained; no dispatch-lineage edits.",
+    "SMAPI subscription/playback object: start pointer of an owned sequence; +0x93c is compared against the advancing cursor during element destruction Evidence: 0x101f330c / 0x101f4a64 load +0x934; allocation ownership is established by per-element cleanup followed by delete. This is not a boolean.",
+    "chsrc perf_counter_table embedded at +0x900: shared_ptr control-block slot for a registered counter, not a lazy scalar Evidence: 0x1026329c loads the control block at +0x934, tests it, decrements strong count at block+4 and then weak count at block+8. Four paired counter-handle members are released here.",
+    "DIDL media metadata: optional engagement byte at +0x934 with value at +0x935; value is the l field of r:streamInfo (bd:bit depth,sr:sample rate,c:channel field,l:lossless,d:DSD). Parallel +0x936/+0x937 supplies d. Absent fields serialize as 0. Evidence: 0x104492dc..0x1044930c selects optional values then calls 0x10c38f90 with r6=0, r7=l, r8=d. 0x10c390d8 formats bd:%u,sr:%u,c:%u,l:%u,d:%u (literal 0x10fb12c0); 0x10449644 emits r:streamInfo. This is not the chapter/episode/track-number binder.",
+    "netsettings object: byte 4 of a zero-initialized 16-byte network-settings value at +0x930; not an independent flag Evidence: 0x1062741c..0x10627458 zero the bytes. 0x10629270.. copies all 16 bytes into the outgoing settings record, including +0x934 at 0x10629278. Exact 16-byte value identity remains to be bound.",
+    "zp aggregate: pointer to a 4-byte DNS-SD service-registration adapter; zero only during construction Evidence: 0x10692420 writes 0 and 0x10692c20 installs r26 after new(4) and ctor 0x106c265c. vptr=0x10f07118; slots +8/+0xc/+0x10 are DNSServiceRegister (0x106c23e0), DNSServiceRefDeallocate (0x106c2554), DNSServiceUpdateRecord (0x106c258c). 0x10692bb8/cc8 actually write +0x92c, the adjacent shared_ptr managed object, not +0x934.",
+    "chproc: zero-initialized word at +0x934 in pending audio-state record +0x930, copied to active record +0x978 at +4 Evidence: 0x107dcc20 writes r9 loaded from 0x10eb9ed0, whose raw value is 0; not a format-string pointer. 0x107dbfac loads this word; 0x107dbe3c copies it to +0x97c and passes the active record to 0x10d80464, which invokes each registered processor slot +8. Individual parameter identity remains open.",
+    "schema object destroyed by 0x10ad1198 / 0x10ad1ba0: engagement byte for an optional std::string: 0 means no constructed string, 1 means constructed; heap release additionally requires string data pointer != inline buffer Evidence: 0x10ad1398 / 0x10ad1da0 test +0x934; +0x938=data pointer, +0x93c=length, +0x940=inline buffer or heap capacity. delete occurs only when engaged and data != this+0x940. +0x940 is not a vector end pointer. Owning schema property remains open.",
+    "eSDK cache restriction/group metadata: inline NUL-terminated text, bounded copy of 33 bytes into group descriptor +0x193 Evidence: 0x10d017c0 tests first byte at config+0x934; 0x10d017d0 passes config+0x934 to bounded copy 0x10d32010 with size 0x21. No boolean capability interpretation.",
+    "topology getGroupProperties output, incorrectly catalogued: not +0x934: +0x8d8 is std::string inline storage / heap-capacity union for the string starting +0x8d0 Evidence: 0x107491c0 raw 0x913f08d8 stores the moved string storage word. Producer is topology member +0x580 slot +0x18 returning the stack string at sp+0x14; data +0x8d0 and length +0x8d4 move with it. The inline-address equality check and std::string::_M_assign branch at 0x1074918c prove storage semantics.",
+    "bundled libcurl, incorrectly catalogued: not +0x934 and not a bit flag: +0x8d8 is lowest HTTP version observed, 0=unset, 10=HTTP/1.0,11=HTTP/1.1,20=HTTP/2,30=HTTP/3 Evidence: 0x10955570 reads existing byte; 0x10955578..84 updates only if unset or current version lower. 0x10955630 raw 0x993f08d8 copies current version from +0xad. 0x109534b8 compares with decimal 10; connection +0x140 and response-info +0x8f0 also receive current HTTP version.",
+    "other incorrectly catalogued operations: 0x107962f4/fc shifts an audio word addressed as -4(r4); 0x1035c4f8 and 0x10aacdb4 access +0x964, not +0x934 Evidence: raw words 0x8144fffc / 0x9164fffc = load/store at -4(r4), sraw by r31. 0x1035c4f8=0x807e0964; 0x10aacdb4=0x913e0964. The latter two are unrelated to this offset."
    ],
    "per_class": [
     {
-     "owner": "zoneImpl (zone service impl)",
-     "evidence": "load at 0x1068bde8 in f_1068bc0c: mask AND against route cap_flags in the SOAP router",
-     "field": "u32 service-capability mask gating the four fallback services - fully proven"
+     "owner": "zoneImpl",
+     "field": "u32 service-capability mask, already resolved by existing route-mask evidence",
+     "evidence": "0x1068bde8 = 0x813d0934, lwz r9,0x934(r29). Existing router result retained; no dispatch-lineage edits."
     },
     {
-     "owner": "SMAPI subscription/playback object (vtable 0x10e9f6e8)",
-     "evidence": "loads at 0x101f330c (f_101f2328) and 0x101f4a64 (f_101f3a80) - same class as the 0xcdc cluster",
-     "field": "container begin pointer (+0x934 begin vs +0x93c end; delete-d pair)"
+     "owner": "SMAPI subscription/playback object",
+     "field": "start pointer of an owned sequence; +0x93c is compared against the advancing cursor during element destruction",
+     "evidence": "0x101f330c / 0x101f4a64 load +0x934; allocation ownership is established by per-element cleanup followed by delete. This is not a boolean."
     },
     {
-     "owner": "a second container object (f_10796080)",
-     "evidence": "load 0x107962f4 + store src sraw(*(r3+0x938-4)) is a vector size() computation",
-     "field": "begin/end pointer pair, end at +0x93c"
+     "owner": "chsrc perf_counter_table embedded at +0x900",
+     "field": "shared_ptr control-block slot for a registered counter, not a lazy scalar",
+     "evidence": "0x1026329c loads the control block at +0x934, tests it, decrements strong count at block+4 and then weak count at block+8. Four paired counter-handle members are released here."
     },
     {
-     "owner": "lazily-created object (f_10262ed8)",
-     "evidence": "load 0x1026329c null-checks before pthread setup",
-     "field": "pointer, created on first use"
+     "owner": "DIDL media metadata",
+     "field": "optional engagement byte at +0x934 with value at +0x935; value is the l field of r:streamInfo (bd:bit depth,sr:sample rate,c:channel field,l:lossless,d:DSD). Parallel +0x936/+0x937 supplies d. Absent fields serialize as 0.",
+     "evidence": "0x104492dc..0x1044930c selects optional values then calls 0x10c38f90 with r6=0, r7=l, r8=d. 0x10c390d8 formats bd:%u,sr:%u,c:%u,l:%u,d:%u (literal 0x10fb12c0); 0x10449644 emits r:streamInfo. This is not the chapter/episode/track-number binder."
     },
     {
-     "owner": "DIDL/metadata object",
-     "evidence": "f_10448f38: 'upnp:class', 'dc:creator', 'res' literals",
-     "field": "flag-byte cluster +0x934/+0x935/+0x936 - three consecutive bools"
+     "owner": "netsettings object",
+     "field": "byte 4 of a zero-initialized 16-byte network-settings value at +0x930; not an independent flag",
+     "evidence": "0x1062741c..0x10627458 zero the bytes. 0x10629270.. copies all 16 bytes into the outgoing settings record, including +0x934 at 0x10629278. Exact 16-byte value identity remains to be bound."
     },
     {
-     "owner": "zone-configuration/bonded-layout object",
-     "evidence": "f_1035c43c: 'Stereo pair', 'Solo ZP', ' + SUB', 'nothing' literals",
-     "field": "u32 read while formatting the bonded-layout name"
+     "owner": "zp aggregate",
+     "field": "pointer to a 4-byte DNS-SD service-registration adapter; zero only during construction",
+     "evidence": "0x10692420 writes 0 and 0x10692c20 installs r26 after new(4) and ctor 0x106c265c. vptr=0x10f07118; slots +8/+0xc/+0x10 are DNSServiceRegister (0x106c23e0), DNSServiceRefDeallocate (0x106c2554), DNSServiceUpdateRecord (0x106c258c). 0x10692bb8/cc8 actually write +0x92c, the adjacent shared_ptr managed object, not +0x934."
     },
     {
-     "owner": "chproc / RC audio-state object",
-     "evidence": "f_107dbe3c: 'chproc' log + 'RCStates: dspZone=%d, bNightMode=%d, dialogEnhancementLevel=%d, speechExtraction=%d'",
-     "field": "u32 in the audio-state record; f_107dcba8 stores the r2-relative const at 0x10ec9ed0 (0x04050607-byte table) into it"
+     "owner": "chproc",
+     "field": "zero-initialized word at +0x934 in pending audio-state record +0x930, copied to active record +0x978 at +4",
+     "evidence": "0x107dcc20 writes r9 loaded from 0x10eb9ed0, whose raw value is 0; not a format-string pointer. 0x107dbfac loads this word; 0x107dbe3c copies it to +0x97c and passes the active record to 0x10d80464, which invokes each registered processor slot +8. Individual parameter identity remains open."
     },
     {
-     "owner": "music-service state object",
-     "evidence": "f_10d01674: 'UNAVAILABLE', 'NONE', 'WMP', 'default' literals",
-     "field": "0x21-byte inline char field at +0x934 - a short name/id string (max 32 chars)"
+     "owner": "schema object destroyed by 0x10ad1198 / 0x10ad1ba0",
+     "field": "engagement byte for an optional std::string: 0 means no constructed string, 1 means constructed; heap release additionally requires string data pointer != inline buffer",
+     "evidence": "0x10ad1398 / 0x10ad1da0 test +0x934; +0x938=data pointer, +0x93c=length, +0x940=inline buffer or heap capacity. delete occurs only when engaged and data != this+0x940. +0x940 is not a vector end pointer. Owning schema property remains open."
     },
     {
-     "owner": "flag-byte-guarded container (f_10ad1198/f_10ad1ba0)",
-     "evidence": "loads 0x10ad1398/0x10ad1da0 gate access to a ptr at +0x938 with end at +0x940",
-     "field": "bool byte guarding lazily-built container"
+     "owner": "eSDK cache restriction/group metadata",
+     "field": "inline NUL-terminated text, bounded copy of 33 bytes into group descriptor +0x193",
+     "evidence": "0x10d017c0 tests first byte at config+0x934; 0x10d017d0 passes config+0x934 to bounded copy 0x10d32010 with size 0x21. No boolean capability interpretation."
     },
     {
-     "owner": "bundled libcurl structs",
-     "evidence": "f_109530f4/f_109547e4: 'User-Agent', 'HTTP/', 'Lying server, not serving HTTP/2'",
-     "field": "curl-internal member; the stb rlwimi(0x1) store at 0x10955630 sets one bit in a byte flag word"
+     "owner": "topology getGroupProperties output, incorrectly catalogued",
+     "field": "not +0x934: +0x8d8 is std::string inline storage / heap-capacity union for the string starting +0x8d0",
+     "evidence": "0x107491c0 raw 0x913f08d8 stores the moved string storage word. Producer is topology member +0x580 slot +0x18 returning the stack string at sp+0x14; data +0x8d0 and length +0x8d4 move with it. The inline-address equality check and std::string::_M_assign branch at 0x1074918c prove storage semantics."
     },
     {
-     "owner": "topology_base (topology_base.cxx)",
-     "evidence": "f_10748f7c: '../anacapa-1.0/oc/zone/common/topology/topology_base.cxx' + getGroupProperties log",
-     "field": "u32 member initialized from a stack arg at 0x107491c0"
+     "owner": "bundled libcurl, incorrectly catalogued",
+     "field": "not +0x934 and not a bit flag: +0x8d8 is lowest HTTP version observed, 0=unset, 10=HTTP/1.0,11=HTTP/1.1,20=HTTP/2,30=HTTP/3",
+     "evidence": "0x10955570 reads existing byte; 0x10955578..84 updates only if unset or current version lower. 0x10955630 raw 0x993f08d8 copies current version from +0xad. 0x109534b8 compares with decimal 10; connection +0x140 and response-info +0x8f0 also receive current HTTP version."
     },
     {
-     "owner": "zp object (MAC-format path)",
-     "evidence": "f_10691e00: 'zp' log + 'format MAC address from event'",
-     "field": "u32 init 0 at 0x10692420 then written at 0x10692bb8/0x10692cc8"
+     "owner": "other incorrectly catalogued operations",
+     "field": "0x107962f4/fc shifts an audio word addressed as -4(r4); 0x1035c4f8 and 0x10aacdb4 access +0x964, not +0x934",
+     "evidence": "raw words 0x8144fffc / 0x9164fffc = load/store at -4(r4), sraw by r31. 0x1035c4f8=0x807e0964; 0x10aacdb4=0x913e0964. The latter two are unrelated to this offset."
     }
    ]
   },
