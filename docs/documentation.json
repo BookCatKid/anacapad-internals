@@ -126145,14 +126145,79 @@
    ]
   },
   "assoctracker": {
-   "semantics": "Wi-Fi station-association tracking",
-   "todo": [
-    "Established: Wi-Fi station-association tracking exists."
-   ],
-   "tracked_data": "assoctracker.cxx (f_10587b9c/7c34/7fc4/808c, in the zone/common network cluster beside arping) tracks ASSOCIATING CONTROLLERS, not generic stations: on a controller-association trigger it opens 'a new record for associating controller at %s' and STUFFS THE ARP TABLE - 'Stuffing %s %02X:%02X:%02X:%02X:%02X:%02X to ARP table' - pre-loading the controller's MAC->IP binding into the local ARP cache so first traffic to that controller skips the ARP resolution round-trip (bounded: 'ARP stuffing records are full'). Association discovery comes through the ZGT channel ('ZGT Notification to %s is invalid event' is the reject path), and each stuffing emits a 'CrAssoc' internal event ('Reporting CrAssoc event for %s'). The neighboring timing keys arpscstime/arpsnum/ddtime1-2/zstime1-2/zntime1-2/znstate are its telemetry fields - ARP-scan duration, ARP count, and zone-notification timing buckets. Feeds other subsystems by warming the ARP cache ahead of controller traffic.",
-   "resolved_findings": [
-    "Resolved: tracks associating controllers (via ZGT notifications), maintains a bounded ARP-stuffing record table, stuffs controller MAC->IP into the ARP cache to cut first-contact latency, emits CrAssoc events + arps*/zs*/zn* timing telemetry.",
-    "Resolved: assoctracker (common/assoctracker.cxx) measures controller-association health. A new record opens when a controller associates ('Starting a new record for associating controller at %s'); per-phase fields: ms* = media-server session {mssr,msss,mstime1,mstime2,msnum,msrs,msrf,msre}, arp* = ARP reachability {arpscstime,arpatt,arpscs,arpsnum} plus proactive ARP stuffing ('Stuffing %s %MAC to ARP table', table-full cap logged), dd* = device-discovery {ddtime1,ddtime2,ddnum}, zs*/zn* = zone-state/zoned-notify {zstime1,zstime2,zsnum,zntime1,zntime2,znnum,znscs,znstate}. Completed records are reported to the cloud as 'CrAssoc' events ('Reporting CrAssoc event for %s'; invalid ones skipped)."
+   "impl": "common/assoctracker.cxx",
+   "semantics": "Correlates controller discovery and connection progress by IPv4 address, then reports a bounded30-second CrAssoc diagnostic record.",
+   "description": "The player watches a controller's early discovery requests, ARP reachability, device-description requests, zone-state requests and group notifications. It combines them into a short connection-health report. This measures a controller finding and connecting to the player, not a Wi-Fi station authenticating with an access point.",
+   "layout": "0x1058771c constructs four0xb0-byte records at+0,+0xb0,+0x160,+0x210, uploader+0x2c0=0 and recursive mutex+0x2c8. Setter0x105876ac installs uploader under lock. Each record has IPv4 key+0 (zero=free), five16-byte phase structures at+4,+0x14,+0x24,+0x34,+0x44, copied28-byte M-SEARCH context+0x54, ARP result byte+0x70, maximum ARP failures+0x74, ZGT success byte+0x78, zone-state+0x7c, validity byte+0x80 initialized1, distinct MAC count+0x84 and four6-byte MACs+0x88, cached controller model+0xa0=-1, reply successes+0xa4=0, reply failures+0xa8=0, last failure+0xac=0. Record constructor0x105874bc zeroes phase timestamps/counts, resets context integer sentinels to-1 and clears MAC bytes. Reset0x10587648 reconstructs/copies the full record.",
+   "start_and_expiry": "0x1058808c accepts M-SEARCH context only when signed session-seconds context+0x14>=0 (0x10555708). It sweeps expired records, finds matching IP, or allocates the first free of four only if session seconds<=10 (0x105556e8 tests>10). Full table or missing/negative session age produces no new record. Existing records accept later session ages. IP0 remains the free sentinel. Each M-SEARCH stamps phase+4, copies context, and caches model when>=0. Context+0x10/+0x14/+0x18 comes from decimal X-SONOS-SESSIONRETRIES/SESSIONSECONDS/MDPMODEL parsed by0x10555a54; these are not a media-server session state.0x10587fc4 expires only when first M-SEARCH time+30<now, reports then resets regardless of upload result. Phase activity does not extend that first-time deadline.",
+   "phase_engine": "0x105873e8 sets first timestamp only if zero, always sets last timestamp, increments count and schedules sweep callback0x1058863c for current seconds+30 through global timedjob manager slot+0xc. Each mutation is under+0x2c8; sweep is also exposed through0x105885d4. Callback resolves the tracker from player slot+0xc0, sweeps and returns INT_MAX as its next-job deadline. No polling thread or external station-association vtable exists inside the tracker.",
+   "writers": "M-SEARCH caller0x1057f56c supplies source IPv4 and parsed context.0x10587cd0 records M-SEARCH reply success when result0, otherwise increments failure count and retains last error.0x10587d84 deduplicates6-byte MACs and stores at most4; it only records ARP stuffing, while caller0x1057f03c performs the actual SIOCSARP0x8955 operation.0x10588268 stamps ARP phase only while result byte is0, ORs result byte on that first path, and stores max(previousFailures,callerFailures); resolved-ARP caller0x10584ec0 passes result1.0x10588348 stamps device-description phase; caller0x105e987c.0x105883e4 stamps zone-state phase; caller0x1067eb3c.0x10588480 accepts ZGT notification only after description count, zone-state count and ARP result are nonzero; then stamps notification phase and stores zone state/success. Otherwise clears validity+0x80 permanently until reset and logs invalid event; caller0x1068346c.",
+   "report_schema": "0x10587798 requires uploader nonnull, latest session-seconds>10, and validity byte1. It builds CrAssoc with addr (inet_ntop, fallback0.0.0.0), optional crm (cached model!=-1), optional mssr (session retries>=0), msss (session seconds), mstime1/mstime2/msnum (M-SEARCH first/last/count), msrs (reply successes), optional msrf/msre when failure count!=0, optional arpscstime (ARP last time when result byte nonzero), arpatt (max failures), arpscs (ARP result Boolean), arpsnum only when distinct MAC count>1. Description phase when first!=0 emits ddtime1/ddtime2/ddnum; zone-state phase similarly zstime1/zstime2/zsnum; notification phase similarly zntime1/zntime2/znnum plus znscs and znstate. It submits through0x1055c248(uploader,CrAssoc,map,1). There is no tracker-owned retry queue; consent and delivery policy belong to the uploader.",
+   "errors_and_limits": "No uploader logs pUploader is invalid. Invalid post-notification chain logs/skips the event. MAC-table exhaustion logs and ignores additional distinct MACs. Missing stages are omitted from CrAssoc rather than invented as failures. All four records can be discarded on expiry even if consent filtering or upload preparation refuses the report. The counters and timestamps are local observed progress, while session-age/retry/model integers are supplied by the controller headers.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1058771c",
+     "notes": "Four records, uploader and lock construction."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1058808c",
+     "notes": "Start predicate/session-age<=10; existing-record update."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10555a54",
+     "notes": "SESSIONRETRIES, SESSIONSECONDS and MDPMODEL header producers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105873e8",
+     "notes": "First/last/count writer and30-second timed job."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10587fc4",
+     "notes": "Strict first-time+30<now expiry, report then reset."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10587d84",
+     "notes": "Four-entry MAC dedup; no ARP ioctl in tracker."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584fa0",
+     "notes": "ARP checker tail-delegates resolved result to tracker."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10588480",
+     "notes": "Description+zone-state+ARP conjunction for valid ZGT notification."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10587798",
+     "notes": "Complete CrAssoc field producer, omission predicates and submission."
+    }
    ]
   },
   "play_state_mgr": {
