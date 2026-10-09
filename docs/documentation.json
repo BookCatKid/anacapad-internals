@@ -144122,24 +144122,47 @@
   },
   "eventloop_perf": {
    "name": "inprocess eventloop + perf counters",
-   "summary": "\"Eventloop %p configured/removed\"; inprocess-events-loop; \"%s callback in observer %s exceeded duration threshold %lldms > %lldms\"; counters {\"Unique identifier for a set of counters\",\"In-Process Event Subjects\",\"The number of events queued\",perf_counter_keyed,queueFail=\"events that failed to queue\",\"The event size in bytes\",dispatchDelay=\"time waiting to dispatch\",\"In-Process Event Observers\",cbTime=\"observer handler duration. Warn if over threshold\"}",
+   "summary": "Measures event queue failures, sizes, queue delay and observer execution time. Callbacks taking more than 100 ms produce diagnostics; warning logs are throttled for each observer.",
    "evidence": [
     {
      "type": "firmware",
-     "address": "0x10faf178",
-     "notes": "eventloop"
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bbb374",
+     "notes": "Duration checker: strict >100000us, 600-second warning throttle, per-occurrence report."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bbb4b8",
+     "notes": "Warning string loaded through GOT2 0x1108d768; RHS is immediate 100."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bbbaf8",
+     "notes": "Counter registration and description format with immediate 100ms."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10faf364",
+     "notes": "cbTime name and adjoining duration description."
     }
    ],
-   "todo": [
-    "Residual: the numeric cbTime warn threshold value - bound to the counter's thresh attribute at registration; observers register at runtime"
-   ],
    "resolved_findings": [
-    "Resolved: export path = the counter registry {Unique identifier for a set of counters, In-Process Event Subjects, number of events}; threshold = the exceeded duration threshold %lldms > %lldms bound.",
-    "Export path proven: perf counters are registered objects under the perf-counters category with sections In-Process Event Subjects and In-Process Event Observers; counter kinds {queueFail (events that failed to queue), dispatchDelay (queue wait time), cbTime (handler duration), event size in bytes} plus perf_counter_keyed identity rows (\"Unique identifier for a set of counters\"). The warning compares against a runtime %lld threshold (%s callback in observer %s exceeded duration threshold %lldms > %lldms) - the value is a config/code constant in the observer registration.",
-    "Evidence: the '%s callback in observer %s exceeded duration threshold %lldms > %lldms' format string (0x10faf1d0) is referenced through GOT2 slot 0x1108d768 - the emit site is live code reached via r2-relative got2 loads, not an inline lis/addi pair; the threshold operand (%lldms RHS) is compared per-callback.",
-    "Resolved: the event-loop perf-counter schema is literal - subject \"In-Process Event Subjects\" with group key perf_counter_keyed carries counters {queueFail=\"The number of events that failed to queue\", event size=\"The event size in bytes\", dispatchDelay=\"The amount of time an event spent waiting to be dispatched\"} (0x10faf260-0x10faf30c, pointed at by \"Check perf counters for details\" in the threshold log). The loop is named inprocess-events-loop (0x10faf1a8) and logs \"Eventloop %p configured/removed\".",
-    "Resolved: the compared threshold belongs to counter cbTime under subject \"In-Process Event Observers\" - description \"The duration of observer handlers. Warn if over threshold (%lldms)\" (0x10faf348-0x10faf36c). So the %lldms RHS in the exceeded-duration log is the cbTime counter's registered warn threshold, a per-registration counter attribute."
-   ]
+    "Callback checker 0x10bbb374 reads signed high word and unsigned low word of a 64-bit microsecond duration. It returns zero for negative durations or 0..100000 us, including exactly 100 ms; positive high words or low word >=100001 trigger slow-handler handling. Conversion 0x10982360 divides the duration by 1000 for the displayed integer milliseconds. A handler of 100001 us therefore exceeds the test but can print 100ms > 100ms after truncation. This is a code constant, not a registration-supplied threshold.",
+    "0x10bbb374 gets clock-id1 time, checks the observer counter-state timestamp at *(observer+0x30)+0x38, and logs on first occurrence (timestamp zero) or elapsed seconds >600. It stores current seconds before checking whether the log domain is enabled. The callback/event name and observer name come from observer descriptor +0x18 and +0. Return1 means the duration exceeded the threshold even when the log was suppressed; it does not abort or undo the observer callback.",
+    "Every over-threshold call, including warning-throttled calls, builds the report through 0x10c5c2f4, supplies observer/event identity through report vtable+8, duration through +0xc, and submits through +0x14. The report object is deleted through +4 afterwards.",
+    "0x10bbbaf8 constructs subject and observer counter groups, including queueFail, event size, dispatchDelay and cbTime. At the cbTime description construction it formats the same literal 64-bit 100 milliseconds into The duration of observer handlers. Warn if over threshold (...ms). This describes the hardcoded callback checker; no threshold attribute is read by 0x10bbb374."
+   ],
+   "threshold": "Callback checker 0x10bbb374 reads signed high word and unsigned low word of a 64-bit microsecond duration. It returns zero for negative durations or 0..100000 us, including exactly 100 ms; positive high words or low word >=100001 trigger slow-handler handling. Conversion 0x10982360 divides the duration by 1000 for the displayed integer milliseconds. A handler of 100001 us therefore exceeds the test but can print 100ms > 100ms after truncation. This is a code constant, not a registration-supplied threshold.",
+   "warning_throttle": "0x10bbb374 gets clock-id1 time, checks the observer counter-state timestamp at *(observer+0x30)+0x38, and logs on first occurrence (timestamp zero) or elapsed seconds >600. It stores current seconds before checking whether the log domain is enabled. The callback/event name and observer name come from observer descriptor +0x18 and +0. Return1 means the duration exceeded the threshold even when the log was suppressed; it does not abort or undo the observer callback.",
+   "diagnostic_side_effect": "Every over-threshold call, including warning-throttled calls, builds the report through 0x10c5c2f4, supplies observer/event identity through report vtable+8, duration through +0xc, and submits through +0x14. The report object is deleted through +4 afterwards.",
+   "registration": "0x10bbbaf8 constructs subject and observer counter groups, including queueFail, event size, dispatchDelay and cbTime. At the cbTime description construction it formats the same literal 64-bit 100 milliseconds into The duration of observer handlers. Warn if over threshold (...ms). This describes the hardcoded callback checker; no threshold attribute is read by 0x10bbb374."
   },
   "upnputil": {
    "name": "UPnP utility layer",
