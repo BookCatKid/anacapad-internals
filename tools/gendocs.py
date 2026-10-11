@@ -1256,6 +1256,40 @@ def _subsystem_body(out, n, s):
         _details(out, tech)
 
 
+def render_shared_primitives(m):
+    """Publish non-request primitives absent from the existing topic pages."""
+    covered = set(_SOAP_PRIM_KEYS) | set(_HTTP_KEYS)
+    request_adapters = {
+        "deviceproperties_impl_vtable", "audioin_impl", "queue_engine",
+        "queue_engine_object", "avt_session_lock", "device_state_store",
+        "alarm_store_object", "sp_store_object", "runtime_policy",
+        "rmd_op_worker_class", "ibt_engine", "lechmere_cmds",
+        "muse_upnp_bridge_actions", "action_dispatch_records",
+        "service_impl_vtables", "http_request_security",
+    }
+    records = [(name, record)
+               for name, record in sorted(m.shared_primitives.items())
+               if name not in covered | request_adapters
+               and isinstance(record, dict)]
+    out = ["# Shared primitives", "",
+           "Reusable audio, networking, storage, timing and reporting "
+           "components that are not expanded on the architecture or "
+           "HTTP topic pages. Each explanation is followed by its "
+           "technical evidence and any remaining TODO.", ""]
+    _table(out, ["Primitive"], [["[`%s`](#%s)" % (name, name)]
+                               for name, _ in records])
+    for name, record in records:
+        out += ["## `%s`" % name, ""]
+        if record.get("client_summary"):
+            out += [_para(record["client_summary"]), ""]
+        for todo in _todo_lines(record.get("todo")):
+            out += ["- **TODO:** %s" % todo, ""]
+        _details(out, _generic_lines({key: value
+                                     for key, value in record.items()
+                                     if key not in ("client_summary", "todo")}))
+    return {"subsystems/shared-primitives.md": "\n".join(out)}
+
+
 def render_subsystems(m):
     files = {}
     subs = sorted(m.subsystems.items())
@@ -1999,6 +2033,7 @@ def render_all(m, outdir):
     files.update(render_http_api(m))
     files.update(render_muse(m))
     files.update(render_subsystems(m))
+    files.update(render_shared_primitives(m))
     for fn in (render_artifacts, render_muse_spec_streams):
         try:
             out = fn(m)
