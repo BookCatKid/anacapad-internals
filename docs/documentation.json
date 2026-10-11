@@ -140923,7 +140923,7 @@
   },
   "healthcheck": {
    "name": "healthcheck: periodic health probe",
-   "summary": "schedule \"Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)\" + \"Not scheduling: %d %d %d %d %d %d\" 6-gate + \"Healthcheck timer pop\"/reschedule; fields {SubmitPermission,ServerDiagInstructions}; instructions fetched /ws/diag/diag_instructions.xml?hhid= ; errors {I/O+HTTP Result,Indeterminate length,Incomplete,parse fail,too large}; instruction-file fetch taxonomy: 'Unable to retrieve instruction file. I/O Error: 0x%x. HTTP Result: %d','Indeterminate instruction file length','Incomplete instruction file','Failed to parse instruction file','Instruction file too large'; cache update 'Updating history cache: [status=%s] [key=%s] [etag=%s] [cache-control=%s]'",
+   "summary": "Maintains a diagnostic-check deadline, initially one day ahead. Update scheduling can request a deadline 30 minutes before an update check, and a group change can request one 45 seconds later. In this firmware the background worker waits, handles rescheduling and shutdown, and logs when the deadline has expired. It does not perform a self-test, fetch server instructions or submit diagnostics. The name can therefore be misleading: the recovered timer is deadline bookkeeping rather than proof that the player periodically tests its own health.",
    "evidence": [
     {
      "type": "firmware",
@@ -140940,9 +140940,7 @@
     }
    ],
    "resolved_findings": [
-    "Resolved: merged with healthcheck_contact - instruction-file schema = the yes-flag directive doc executed via muse message dispatch.",
-    "Merged duplicate pair (healthcheck.cxx): the healthcheck timer pops on a server-learned cadence (Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s) / Rescheduling next healthcheck; the 6-int Not scheduling gate is the enable/shutdown/quiet condition set). On pop it GETs /ws/diag/diag_instructions.xml?hhid= (Contacting server for instructions: %s) - the instruction file is an XML doc listing which diagnostic bundles to submit; fetch/parse taxonomy {I/O Error 0x%x + HTTP Result %d, Indeterminate instruction file length, Incomplete instruction file, Failed to parse instruction file, Instruction file too large}; parsed instructions fill SubmitPermission + ServerDiagInstructions fields consumed by the diagnostics submitQueuedDiagnostic path.",
-    "Established: the instruction-file grammar is fully decoded - it is a SAX parse (f_10c3fd88 with handlers f_103ae888/f_103ae7ec/f_103adb5c) recognizing exactly two elements: <SubmitPermission> whose text is strncmp'd against literal 'yes' at 0x103aec2c to gate the diagnostics submission, and <ServerDiagInstructions> whose text is captured (bounded, cap 0x20) into ctx+8 by the characters handler while context flag ctx+0x28 is set. All other elements are ignored - the client-side grammar is closed."
+    "Correction from the complete shared_primitives/healthcheck trace: worker0x103ae548 waits300000ms and only handles stop/reschedule or logs expiry; it does not call HTTP helper0x103ae8d0. The separate helper has no direct/tail caller or pointer-table reference in this binary. It accepts known length<1024, exact read and nested ServerDiagInstructions/SubmitPermission text bounded to31 bytes; strncmp(text,yes,3)==0 stores permission+0x188. Fetch/parse failures preserve the prior flag. No remote-command executor is present. See shared_primitives/healthcheck for scheduler predicates, caller timings and evidence."
    ]
   },
   "history_mgr": {
@@ -141619,7 +141617,7 @@
   },
   "healthcheck_contact": {
    "name": "healthcheck: server instructions",
-   "summary": "schedule \"Next healthcheck scheduled to run in %u h %u m %u s\" + \"Not scheduling: %d %d %d %d %d %d\" + \"Healthcheck timer pop\" + \"Rescheduling next healthcheck\"; server /ws/diag/diag_instructions.xml?hhid= + SubmitPermission + ServerDiagInstructions + \"Contacting server for instructions\"; errors {I/O Error + HTTP Result,Indeterminate length,Incomplete file,Failed to parse,too large}",
+   "summary": "Contains a separate compiled helper for reading a server's diagnostic-submission permission. It requests a household-specific XML file with a two-minute deadline, requires a known body length below 1,024 bytes and an exact read, then accepts nested SubmitPermission text beginning with yes. A successful parse updates the remembered permission; a download or parsing failure leaves its previous value intact. No caller of this helper was found in this binary, and the health-check timer does not invoke it. The response is a permission value, rather than a general channel for executing remote maintenance commands.",
    "evidence": [
     {
      "type": "firmware",
@@ -141636,9 +141634,7 @@
     }
    ],
    "resolved_findings": [
-    "Resolved: merged with healthcheck - instruction schema = the yes-flag directive doc; executor = the muse message dispatch path.",
-    "Merged duplicate pair (healthcheck.cxx): the healthcheck timer pops on a server-learned cadence (Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s) / Rescheduling next healthcheck; the 6-int Not scheduling gate is the enable/shutdown/quiet condition set). On pop it GETs /ws/diag/diag_instructions.xml?hhid= (Contacting server for instructions: %s) - the instruction file is an XML doc listing which diagnostic bundles to submit; fetch/parse taxonomy {I/O Error 0x%x + HTTP Result %d, Indeterminate instruction file length, Incomplete instruction file, Failed to parse instruction file, Instruction file too large}; parsed instructions fill SubmitPermission + ServerDiagInstructions fields consumed by the diagnostics submitQueuedDiagnostic path.",
-    "Established: the instruction-file grammar is fully decoded - it is a SAX parse (f_10c3fd88 with handlers f_103ae888/f_103ae7ec/f_103adb5c) recognizing exactly two elements: <SubmitPermission> whose text is strncmp'd against literal 'yes' at 0x103aec2c to gate the diagnostics submission, and <ServerDiagInstructions> whose text is captured (bounded, cap 0x20) into ctx+8 by the characters handler while context flag ctx+0x28 is set. All other elements are ignored - the client-side grammar is closed."
+    "Correction from the complete shared_primitives/healthcheck trace: worker0x103ae548 waits300000ms and only handles stop/reschedule or logs expiry; it does not call HTTP helper0x103ae8d0. The separate helper has no direct/tail caller or pointer-table reference in this binary. It accepts known length<1024, exact read and nested ServerDiagInstructions/SubmitPermission text bounded to31 bytes; strncmp(text,yes,3)==0 stores permission+0x188. Fetch/parse failures preserve the prior flag. No remote-command executor is present. See shared_primitives/healthcheck for scheduler predicates, caller timings and evidence."
    ]
   },
   "hls_audio": {
