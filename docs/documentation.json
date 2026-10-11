@@ -134348,9 +134348,8 @@
    "schedule": "\"Next healthcheck scheduled to run in %u hour(s), %u minute(s), %u second(s)\"; skip conditions \"Not scheduling: %d %d %d %d %d %d\"",
    "note": "Worker0x103ae548 condition-waits300000ms, checks stop request+0x189, acknowledges shutdown through+0x18a, and clears/signals reschedule handshake+0x18b when requested. Otherwise0x103add58 calculates remaining milliseconds until the deadline; a zero result causes the Healthcheck timer pop log. The worker neither performs a liveness probe nor calls0x103ae8d0 to fetch or submit diagnostic instructions. Its Rescheduling next healthcheck log belongs to handshake handling, not an unconditional new-deadline write. Actual deadline updates, acceptance predicates and caller timings are documented under healthcheck.",
    "resolved_findings": [
-    "Established: reschedule interval lives in object members {flags +0x18b..+0x18d, last/next time +0x190}; log h/m/s comes from magic-division of total seconds; self-chaining re-arm.",
-    "Established: the schedule log and skip-condition pattern are catalogued.",
-    "Established: check + failure semantics via member fields {flags +0x18b..+0x18d, last/next}."
+    "Worker0x103ae548 condition-waits300000ms, acknowledges stop through+0x18a and clears/signals the reschedule handshake+0x18b. Otherwise it reads remaining time via0x103add58 and logs expiry when the result is0. It does not test liveness, fetch instructions, submit diagnostics or unconditionally re-arm its deadline.",
+    "Deadline writes and accept predicates are in0x103ade20; update scheduling requests1800 seconds before an update check, and group-membership work requests45 seconds. See shared_primitives/healthcheck for the complete producer and caller trace."
    ]
   },
   "timezone_table": {
@@ -134440,9 +134439,9 @@
    "description": "/ws/diag/diag_instructions.xml fetched with ?hhid=: ServerDiagInstructions/SubmitPermission; \"Contacting server for instructions: %s\"; I/O+HTTP error paths",
    "note": "The actual HTTP fetcher is0x103ae8d0. It sets a120000ms deadline, accepts known content length<1024, requires an exact read and parses a nested SubmitPermission text value through callbacks0x103ae75c/0x103ae7f8/0x103ae894.0x103ae894 is the bounded character-data callback, not a fetch/execute job. A successful parse stores permission byte+0x188 iff strncmp(text,yes,3)==0; errors leave the prior flag intact. There is no general remote-command executor in this path and no timer call to the fetcher. The earlier attribution of an opaque Muse command and watchdog/liveness test was incorrect; see healthcheck for the verified worker, scheduler and call census.",
    "resolved_findings": [
-    "Established: GET /ws/diag/diag_instructions.xml?hhid= with length caps; parsed doc drives a 'yes' strncmp; yes + gate ok -> muse message dispatched (f_109bbcfc/0x109bbdb0/0x109bbd10).",
-    "Established: the /ws/diag/diag_instructions.xml fetch with hhid, the ServerDiagInstructions/SubmitPermission flow, and error paths are documented.",
-    "Established: GET /ws/diag/diag_instructions.xml?hhid= + length caps + parsed-doc execution."
+    "Compiled fetch helper0x103ae8d0 GETs /ws/diag/diag_instructions.xml with a household query when nonempty, using a120000ms deadline and requiring a known content length<1024 and exact body read.",
+    "SAX callbacks0x103ae75c/0x103ae7f8/0x103ae894 collect at most31 characters plus NUL only inside nested ServerDiagInstructions/SubmitPermission. Successful parse stores permission+0x188=(strncmp(text,yes,3)==0); failures preserve the prior value.",
+    "No direct/tail caller or pointer-table reference to the helper was found in this binary. The timer does not invoke it, and no general remote-command executor is present. These findings replace the earlier opaque-Muse-dispatch attribution; see shared_primitives/healthcheck for evidence."
    ]
   },
   "muse_upnp_bridge_actions": {
