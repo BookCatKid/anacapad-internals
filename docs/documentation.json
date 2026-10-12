@@ -137830,6 +137830,90 @@
      "build": "86.10-80260",
      "address": "0x10ea7cc0",
      "notes": "per-daemon .dmp/.properties/backtrace crash files"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d30fc",
+     "notes": "Mutex-protected fd getter+0x18c aliases context+0x70."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3410",
+     "notes": "InitializeIPCContext role2 on embedded context+0x11c."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x12c4",
+     "notes": "AF_UNIX/SOCK_STREAM socket producer and context fd store."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1338",
+     "notes": "Role2 client connect requires immediate zero result."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1210",
+     "notes": "Close,fd=-1 and role-dependent path unlink."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101998d4",
+     "notes": "Actual player startup calls netstartd IPC start with select thread."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d364c",
+     "notes": "Local socket path and semantic tail call to generic start."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3610",
+     "notes": "Registration with connection-produced timeout."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3480",
+     "notes": "Failure produces5-second timeout."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3510",
+     "notes": "Success produces60-second timeout and clears retries."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d37f0",
+     "notes": "Registered reconnect is deferred with reset flag and saved timeval."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d31bc",
+     "notes": "Compiled helper unregisters before CloseIPCContext; live caller still unresolved."
     }
    ],
    "ipc_routes": "/anacapad-external, /btmanager-external, /netstartd-external, /sonosledmgrd-external, /sonospowercoordinator-external, tpapi-external-endsong",
@@ -137853,7 +137937,16 @@
     "Resolved (IPC header semantics via shipped libsonosutils.so.1): the shared IPC frame is {u32 hdr_len=0xc, u32 version=1, u32 body_len, u32 msg_id, payload[]} - proven in SendIPCMessageWithData (lib @0x1658): writes {0xc,1,data_len+4,msg_id} then payload; ctx+0x70 is the socket fd, payload cap cmplwi 0x800 (returns -9 over 0x800, -1 on dead fd). ReadIPCHeader (@0x1508) reads 0xc bytes, rejects if buf[0] <= 0xb (ret -10) or arg bufsz <= 0xb (ret -9), then reads buf[0]-12 trailing header bytes in 0x40-byte __read_chk chunks - buf[0] is the header-block length, so the msg_id word + body are read by the caller per words[2]=body_len. The earlier '{type,length,seq}' guess is corrected: the 3 fixed words are {hdr_len,version,body_len} and 'Bad IPC message received (%d %d %d)' prints those three.",
     "Resolved (anacapad->netstartd msg-id vocabulary + payload grammars, from shipped /wifi/netstartd): the IPC handler f_1000886c dispatches msg_id via a 0x2a-entry self-relative jump table at 0x1002f6f4 (ids 0x00-0x29; default arm 0x10008990 silently drops 0,13-17,25,31-38,40). Wire payload sits at msg+0x10 with body_len (u32be @+8) == payload_len+4 checked per arm. Map: 1='anacapa hello' (full subsystem re-init sequence), 2='anacapa byebye' (logs byebye then re-runs init), 3=small command (body 0x8, payload word 4), 4/5='Entering WAC open mode', 6=netsettings push: memcpy 0x69-byte blob msg+0x10 -> staged @0x1005543e (id u32be @+0x21, string @+0x25), 7=0x44-byte blob -> 0x100555e0 (PSK record), 8=0x25-byte blob -> 0x100557e0 (37B, Muse HHID), 9=commit: copies {msg+0x10->0x100551e0 (33B), msg+0x25->0x10055624 (65B)} and moves staged blobs into active slots, 10/11/12='Deferring WAC timeout' variants, 18='Anacapa triggering joinhh' (household join), 19='join cancel', 20=0x6c8-byte payload -> f_10013da4 (large config/scan blob), 21='Disabling wifi for start of test', 22/23/24/26='Enabling wifi for end of test' family, 27/28=disable-for-test family, 29='MeshDisable: new=%d' + ath0 scangetresults, 30=Muse HHID resend + match check, 39=SonosNet frequency set ('setting SonosNet frequency to %u in %u.%u seconds', WifiFuncsIsFreqSupported gate), 41=SonosNet enable/disable ('SonosNet already %s'). Staging globals {0x1005543e:105B, 0x100555e0:68B, 0x100557e0:37B} are memset on IPC reset (f_10008714), which also clears connected flag 0x10050104 and unlinks netsettings_check.txt.",
     "Resolved: wire format, header field semantics (via libsonosutils.so.1), netstartd-side msg-id table + per-msg payload sizes proven. Residual: payload layouts on the /X-external HTTP routes and the remaining per-handler field parses on the anacapad side (outbound msg bodies are formed in per-call site code)."
-   ]
+   ],
+   "ipc_select_transport": {
+    "vtable_and_descriptor": "Concrete RIPCHandler vtable0x10ef5f10 binds fd+c=0x105d30fc,data+0x18=0x105d3954,timeout+0x1c=0x105d3874 and reset+0x28=0x105d36bc. fd getter locks handler mutex+0x88,reads handler+0x18c and unlocks before returning. Constructor0x105d3288 sets fd+0x18c=-1. The field aliases IPCContext+0x70 because the embedded context begins at handler+0x11c; it is not a second independently owned socket.",
+    "producer": "Connect helper0x105d33a4 closes the previous context when fd is not-1,then0x105d3410 calls InitializeIPCContext(context=handler+0x11c,role=2,path). libsonosutils.so.1:0x1264 stores role at context+0x74,fd=-1 at+0x70,clears110-byte sockaddr_un,requires nonnull path and length<=107,opens socket(AF_UNIX=1,SOCK_STREAM=1,protocol0) at0x12c4,and stores fd at+0x70. It obtains fcntl F_GETFL flags and uses F_SETFL flags|0x800 for nonblocking I/O. Family1 is written at sockaddr+0; path is copied at+2 with108-byte capacity. Role2 takes connect(fd,sockaddr_un,110) at0x1338 and requires return0; it does not accept a deferred connect result as success.",
+    "context_error_and_close": "InitializeIPCContext returns0 on success. Proven error returns: null context-1,unsupported role-2,null/too-long path-3,socket failure-4,bind failure-5,listen failure-6,connect failure-7,F_SETFL failure-11. Bind/listen arms belong to role1 and are not the watcher's role2 producer. Each nonnull-context failure reaches CloseIPCContext through0x136c. libsonosutils0x11e8 closes a nonnegative context fd at0x1210,stores-1 at+0x70,and clears role+0x74. It unlinks the stored local path only for role1; role2 client cleanup does not unlink the daemon's socket path. The library has conditional bclr guards at entry; disassembler blr text must not be interpreted as unconditional early return.",
+    "live_start": "Player startup0x101998d4 calls0x105d364c with the IPC handler and player select interface retained in r21 (player+0x4d8). Helper0x105d364c supplies /tmp/netstartd.ipc and hello-enabled1,then semantically tail-calls0x105d3574. That helper copies the path into handler+0x1a,stores notification/context pointer+0x118,connects under the mutex and registers via supplied select interface slot+8 at0x105d3610. It passes the connect-produced timeval rather than rejecting registration on failed connection.",
+    "connection_and_timer": "Connect helper0x105d33a4 returns timeout{5,0} on InitializeIPCContext error and{60,0} on success. Successful connection clears retry count+0x194 and,when requested,tail-calls hello slot+0x40 (concrete0x105d3d0c). Timeout0x105d3874 initially writes{60,0}; if retained fd is-1,it increments retry count+0x194 and invokes reconnect helper0x105d3770. Registered reconnect sets reset byte+4=1 and saves desired timeout at+0x19c/+0x1a0; with no owner,it immediately tail-calls the connect helper. Reset callback0x105d36bc reconnects using the saved timeout storage then clears reset byte+4. Thus changing the socket is deferred to the selector reset phase when registered.",
+    "close_helper_and_limit": "Compiled close path0x105d3234 calls concrete goodbye slot+0x44=0x105d3d58,then semantically tail-calls0x105d3164. That helper releases the handler mutex before calling retained select owner+8,slot+0xc,then reacquires it and calls CloseIPCContext at0x105d31d4. It establishes unregister-before-close behavior for callers of this helper. The actual live parent shutdown caller has not yet been bound,so the helper alone is not proof of live teardown ordering. Concrete destructor0x105d412c only destroys mutex storage; it does not substitute for this close/unregister sequence.",
+    "meaning": "This is the local stream connection by which the player communicates with the network-start daemon. Failed connection setup produces a disconnected descriptor and a short retry delay,while successful setup produces a longer maintenance timeout. The framed-message parser and daemon-specific message semantics are distinct from the watched descriptor ownership."
+   }
   },
   "muse_semantics": {
    "summary": "the muse API is the real product surface: 525 route strings, organized as households(282)/players(176)/groups(46)/playbackSessions(12)/users/devices/services namespaces; every SOAP service is mirrored as an upnp* proxy namespace; native resources cover settings, playback, hardwareStatus, positioning, homeTheater, pinewood, zones, authorization, timers, virtualLineIn, playerVolume, trueroom, trueplay, playlists, musicServiceAccounts, voice, systemReporting, localContentLibrary, networkTest, alarms, diagnostics, groupVolume",
@@ -146104,10 +146197,94 @@
      "build": "86.10-80260",
      "address": "0x104c0710",
      "notes": "Semantic tail bctr to owner slot+0xc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d30fc",
+     "notes": "Mutex-protected fd getter+0x18c aliases context+0x70."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3410",
+     "notes": "InitializeIPCContext role2 on embedded context+0x11c."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x12c4",
+     "notes": "AF_UNIX/SOCK_STREAM socket producer and context fd store."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1338",
+     "notes": "Role2 client connect requires immediate zero result."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1210",
+     "notes": "Close,fd=-1 and role-dependent path unlink."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101998d4",
+     "notes": "Actual player startup calls netstartd IPC start with select thread."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d364c",
+     "notes": "Local socket path and semantic tail call to generic start."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3610",
+     "notes": "Registration with connection-produced timeout."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3480",
+     "notes": "Failure produces5-second timeout."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3510",
+     "notes": "Success produces60-second timeout and clears retries."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d37f0",
+     "notes": "Registered reconnect is deferred with reset flag and saved timeval."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d31bc",
+     "notes": "Compiled helper unregisters before CloseIPCContext; live caller still unresolved."
     }
    ],
    "todo": [
-    "Established:19-slot selector registry and generic members; ARPingManager packet socket; RIfAddressMonitor route-netlink; RIRDecoder /dev/ir fd and imported infinite timeout; ArpChecker local wakeup pipe; RHWEvtHandlerZP HW_EVQ socket; both discovery UDP sockets and ownership/reset chains; RTrackPlayMonitor timer-only registration with constant fd-2,one-second callback and live start/stop (no watched socket). Remaining: concrete fd-producing fields,open/close and registration owner for RIPCHandler; additionally verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Follow getters and constructor/caller chains,including semantic tail calls. Runtime descriptor integers and dynamically assigned netlink ids are not missing constants."
+    "Established:19-slot registry and generic members; descriptor production and registration for ARPingManager,RIfAddressMonitor,RIRDecoder,ArpChecker,RHWEvtHandlerZP,both discovery watchers and RIPCHandler; RTrackPlayMonitor is timer-only (fd-2,one-second callback). IPC now has the Unix-stream producer,shared context/fd alias,local path,cleanup,error returns,connect-produced5/60-second delays and deferred reset reconnect. Remaining: bind the actual live IPC parent shutdown caller to its compiled unregister-before-close helper; verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Trace parent stop/destruction callsites,including semantic tail calls,and match the retained select owners. Runtime fd numbers and dynamically assigned netlink ids are not missing constants."
    ],
    "resolved_findings": [
     "Resolved: watcher registrations = {epollAddFD, selthrd, RSelectThreadMutex, SelthrdUpdateMutex, epollReset} + user-FD guards per subsystem.",
@@ -146187,6 +146364,15 @@
     "repeated_timer": "Timeout callback0x104c261c calls0x104c228c(this,0) at0x104c2634,then writes output timeval{1,0} at0x104c263c/0x104c2644. Therefore normal timeout callbacks re-arm a relative one-second interval after processing,not a fixed absolute wall-clock tick. The interval comes from this callback,not a socket read or a hardware packet rate. Helper0x104c228c obtains current playback snapshot through provider retained at monitor+0xac,slot+0xc,then works under monitor mutex+0x18 on recorded entries starting+0xb0. Detailed reporting/state semantics remain in track_play_monitor.",
     "live_stop": "Parent stop0x103fe9cc calls0x104c06c4 on parent+0x1904. It first calls0x104c3a74 on embedded recorder at monitor+0x9cb8,then if select owner+8 is nonnull semantically tail-calls owner slot+0xc with the monitor at0x104c0710. Watch removal cancels the periodic callback registration; it does not close a TPM feed socket. Destructors0x104003e8/0x10404e28 release monitor storage and embedded recording state,but there is no fd ownership in this select interface.",
     "meaning": "Playback records are processed periodically by a timer registered with the shared event thread. The registry uses the same callback interface for I/O watchers and timer-only users; a handler name in the registry is not evidence of a corresponding network or device descriptor."
+   },
+   "ipc_watcher_binding": {
+    "vtable_and_descriptor": "Concrete RIPCHandler vtable0x10ef5f10 binds fd+c=0x105d30fc,data+0x18=0x105d3954,timeout+0x1c=0x105d3874 and reset+0x28=0x105d36bc. fd getter locks handler mutex+0x88,reads handler+0x18c and unlocks before returning. Constructor0x105d3288 sets fd+0x18c=-1. The field aliases IPCContext+0x70 because the embedded context begins at handler+0x11c; it is not a second independently owned socket.",
+    "producer": "Connect helper0x105d33a4 closes the previous context when fd is not-1,then0x105d3410 calls InitializeIPCContext(context=handler+0x11c,role=2,path). libsonosutils.so.1:0x1264 stores role at context+0x74,fd=-1 at+0x70,clears110-byte sockaddr_un,requires nonnull path and length<=107,opens socket(AF_UNIX=1,SOCK_STREAM=1,protocol0) at0x12c4,and stores fd at+0x70. It obtains fcntl F_GETFL flags and uses F_SETFL flags|0x800 for nonblocking I/O. Family1 is written at sockaddr+0; path is copied at+2 with108-byte capacity. Role2 takes connect(fd,sockaddr_un,110) at0x1338 and requires return0; it does not accept a deferred connect result as success.",
+    "context_error_and_close": "InitializeIPCContext returns0 on success. Proven error returns: null context-1,unsupported role-2,null/too-long path-3,socket failure-4,bind failure-5,listen failure-6,connect failure-7,F_SETFL failure-11. Bind/listen arms belong to role1 and are not the watcher's role2 producer. Each nonnull-context failure reaches CloseIPCContext through0x136c. libsonosutils0x11e8 closes a nonnegative context fd at0x1210,stores-1 at+0x70,and clears role+0x74. It unlinks the stored local path only for role1; role2 client cleanup does not unlink the daemon's socket path. The library has conditional bclr guards at entry; disassembler blr text must not be interpreted as unconditional early return.",
+    "live_start": "Player startup0x101998d4 calls0x105d364c with the IPC handler and player select interface retained in r21 (player+0x4d8). Helper0x105d364c supplies /tmp/netstartd.ipc and hello-enabled1,then semantically tail-calls0x105d3574. That helper copies the path into handler+0x1a,stores notification/context pointer+0x118,connects under the mutex and registers via supplied select interface slot+8 at0x105d3610. It passes the connect-produced timeval rather than rejecting registration on failed connection.",
+    "connection_and_timer": "Connect helper0x105d33a4 returns timeout{5,0} on InitializeIPCContext error and{60,0} on success. Successful connection clears retry count+0x194 and,when requested,tail-calls hello slot+0x40 (concrete0x105d3d0c). Timeout0x105d3874 initially writes{60,0}; if retained fd is-1,it increments retry count+0x194 and invokes reconnect helper0x105d3770. Registered reconnect sets reset byte+4=1 and saves desired timeout at+0x19c/+0x1a0; with no owner,it immediately tail-calls the connect helper. Reset callback0x105d36bc reconnects using the saved timeout storage then clears reset byte+4. Thus changing the socket is deferred to the selector reset phase when registered.",
+    "close_helper_and_limit": "Compiled close path0x105d3234 calls concrete goodbye slot+0x44=0x105d3d58,then semantically tail-calls0x105d3164. That helper releases the handler mutex before calling retained select owner+8,slot+0xc,then reacquires it and calls CloseIPCContext at0x105d31d4. It establishes unregister-before-close behavior for callers of this helper. The actual live parent shutdown caller has not yet been bound,so the helper alone is not proof of live teardown ordering. Concrete destructor0x105d412c only destroys mutex storage; it does not substitute for this close/unregister sequence.",
+    "meaning": "This is the local stream connection by which the player communicates with the network-start daemon. Failed connection setup produces a disconnected descriptor and a short retry delay,while successful setup produces a longer maintenance timeout. The framed-message parser and daemon-specific message semantics are distinct from the watched descriptor ownership."
    }
   },
   "leds_zp": {
