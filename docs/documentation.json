@@ -141937,7 +141937,7 @@
   },
   "hw_events": {
    "name": "hwevt_handler: button/orientation/thermal",
-   "summary": "hwmessagelib + NetLink multicastGrp + repeat interval; events selthrd.RHWEvtHandlerZP.{reset,data,except,timeout}; readEvent {overflow,unknown,readNextMsg ERROR}; button forwarding {'Forwarding button events','Disabling button event forwarding'} to private-IP-only target {Unable to translate address,Host not private IP,Invalid host IP,Invalid port no,socket errors}; FSM states {NOT_IN_HOUSEHOLD,PROCESSING_PLAYBACK,IN_DEMO_MODE,IN_RDM_MODE,IN_BUTTON_OBSERVATION_MODE,IN_TRANSFER_MODE,PROCESSING_JOIN,JOIN_CHIME_UNAVAILABLE,REGISTRATION_CHIME_UNAVAILABLE,BUTTONS_LOCKED,DAT_IN_BUTTONLESS_SETUP_MODE,DAT_IN_SETUP_DISCOVERY}; setup combo {VOL_DN|VOL_UP starts timer → setup-ready on pop, VOL_UP+VOL_DN timer popped}; '%s press/release count = %zu'; '%s ignored in notify mode'; 'Disallowed action (%d - %s) because (%d - %s)'; 'inline action'; allowPlaybackRequests; 'collecting triggered diags'; 'enter %s household mode'; 'cancel join household mode'; PLAYPAUSE; '%s button pressed (cid)'; 'Play button held'; orientation {old->new,orientation_change,syslib orient}; led_diags {'Diag mode:%u, leftMS:%u; timeMS:%u; next mode: %u','set diag mode:%d'}; setup {'join hh','enabling wifi and %s','signaling netstartd (%s) %s',openap}",
+   "summary": "Receives kernel hardware notifications over one Generic Netlink connection to HW_EVQ,subscribed to nine event groups. The player registers this input with its shared event thread and explicitly unregisters it before stopping the button job manager. Button and sensor notifications feed mode-dependent interpretation for playback,setup,household joining,orientation and diagnostics. Connection or group-subscription failure disables the initialization-success byte,but startup registration does not itself prove that the hardware input is usable.",
    "status_schema": "<HW Name=\"CurrentStatus\"><Orientation/></HW> + <HWMembers Name=\"Members\"><State/><Flags/><MicFlags/></HWMembers>",
    "version": "7.31.0-test",
    "evidence": [
@@ -141945,6 +141945,97 @@
      "type": "firmware",
      "address": "0x10ec6db8",
      "notes": "hwevt block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ec6d10",
+     "notes": "Hardware watcher vtable,descriptor getter and callback bindings."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c4aa0",
+     "notes": "Tail delegation to getReadFD for embedded connection+0x80."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c5200",
+     "notes": "Nine requested group rows and group-failure handling."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018e4b4",
+     "notes": "Player stores owned hardware handler at+0xaa30."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1019a438",
+     "notes": "Live registration follows button manager start without hardware-ready-byte test."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101937d0",
+     "notes": "Live stop reaches unregister and button timed-job manager stop."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103cb8f8",
+     "notes": "Destructor destroys embedded connection."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x2c2c",
+     "notes": "Family HW_EVQ reached through GOT relocation; runtime family-id producer."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x2f2c",
+     "notes": "Loads owned nl_sock and tail-delegates descriptor getter."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x2e88",
+     "notes": "Connection destruction frees socket and clears pointer."
+    },
+    {
+     "type": "firmware",
+     "binary": "libnl-genl-3.so.200",
+     "build": "86.10-80260",
+     "address": "0x2e90",
+     "notes": "Tail call supplies NETLINK_GENERIC protocol16."
+    },
+    {
+     "type": "firmware",
+     "binary": "libnl-3.so.200",
+     "build": "86.10-80260",
+     "address": "0x12ad0",
+     "notes": "Actual AF_NETLINK raw/cloexec socket producer and descriptor store."
+    },
+    {
+     "type": "firmware",
+     "binary": "libnl-3.so.200",
+     "build": "86.10-80260",
+     "address": "0x15c80",
+     "notes": "Socket destructor closes nonnegative descriptor."
     }
    ],
    "resolved_findings": [
@@ -141956,7 +142047,17 @@
     "hwevent_queue.ko has full symtab. Multicast group name table recovered from hwevtq_mcgrp_names (.data+0x20c, resolved via .rela.data): 12 groups in order {reserved, hwevtq_audio, hwevtq_battery, hwevtq_button, hwevtq_btnpwr, hwevtq_capzone, hwevtq_ht, hwevtq_led, hwevtq_sensor, hwevtq_temp, hwevtq_wakeup, hwevtq_switch}. Kernel export surface proven: {hwevtq_register_source, hwevtq_register_event, hwevtq_register_all, hwevtq_send_event, hwevtq_send_event_defer, hwevtq_unregister_event, hwevtq_get_event, hwevtq_get_event_string, hwevtq_get_source_string, hwevtq_last_info, hwevtq_get_mcgrp_from_source} + genl family hwevtq_genl_family, hwevtq_fops, hwevtq_mcgrps.",
     "Master hw-event descriptor table recovered at 0x10ef4ed0 (.rodata, 147 names): source enum {NO_SOURCE, AMP, LEDS, IR, HEADPHONE, SUBWOOFER, ORIENTATION, BUTTON_PLAYPAUSE, BUTTON_VOL_UP, BUTTON_VOL_DN, BUTTON_JOIN, BUTTON_MODE, BUTTON_POWER, BUTTON_MICMUTE, BUTTON_PAIRING, CAPZONEA..CAPZONECAT, LINEIN, DAC, ADC, CPU, SOC, SONGLE, POWER, AVTRIGGER, LIGHT_SENSOR, LINEOUT, SPDIF_OUT, HDMI, BANANA_PLUG, NFC, MOTION_DETECTOR, BLE, WIFI, LAN, BATTERY, CHARGER, RTC, FUEL_GAUGE, MICMUTE_SWITCH, LEAN_UI_JOIN, LEAN_UI_OPENAP_DIAG, LEAN_UI_PREV, LEAN_UI_NEXT, LEAN_UI_SLIDER, SCI_BOARD, PSOC, CEC, UART, PMU, MCU1_AMP_L/R..MCU4_AMP_L/R}, event vocab {NO_EVENT, PRESSED, RELEASED, REPEATED, CONNECTED, DISCONNECTED, SWIPED, ...}, orientation sub-enum {HORIZONTAL, TABLE, VERTICAL, VERTICAL_LEFT, VERTICAL_RIGHT, WALL_ABOVE, WALL_BELOW, HORIZONTAL_WALL, ..., FACEDOWN, INVERTED, INVALID}, thermal {HW_ERROR, HW_OK, TEMP_WARNING, TEMP_FAULT, TEMP_OK}, battery {ON_BATTERY, ON_CHARGER, LOW_BATTERY, CRIT_BATTERY}, and high-level button-event vocabulary {VOLUME_UP, VOLUME_UP_REPEAT, VOLUME_DOWN, VOLUME_DOWN_REPEAT, VOLUME_DOWN_FAST_RAMP, VOLUME_SLIDE_UP, VOLUME_SLIDE_DOWN, PLAYPAUSE, JOIN_HH, JOIN_HH_CHIME, JOIN_HH_CANCEL, OPEN_AP, NEXT_TRACK, PREV_TRACK, PLAY_RECENT, BECOME_STANDALONE, LED_DIAG_MODE_START/STOP, ORIENTATION_*, FAST_VOLUME_ZERO_ON/OFF, PREPARE_SWAP, PERFORM_SWAP, ENTER_SETUP_READY, INITIAL, BUTTON_*_PRESSED/HELD, DIAG_MODE}.",
     "Hw-event source enum at 0x10facd4c: {HEALTHCHECK=1, SERVER=2, USER=3, SNF=4, FEEDBACK=5, EXTRALOCAL=6}."
-   ]
+   ],
+   "select_transport": {
+    "vtable": "RHWEvtHandlerZP primary select interface uses vtable0x10ec6d10: label+8=0x103c4a78,fd+c=0x103c4aa0,interest predicate+0x10=0x103cba48 (constant1),data+0x18=0x103caf98,timeout+0x1c=0x103c9e08. The label getter returns table0x11091a14 containing selthrd.RHWEvtHandlerZP.",
+    "descriptor_chain": "Getter0x103c4aa0 adds0x80 to the primary object and semantically tail-calls hwmessagelib_connection_getReadFD through PLT0x11099268. libhwmessagelib.so.1:0x2f2c loads connection+0 (owned nl_sock pointer),then tail-calls nl_socket_get_fd; libnl-3.so.200:0x16300 loads nl_sock+0x18. This descriptor is the hardware Generic Netlink socket,not the optional button-forwarding descriptor at handler+0x938.",
+    "producer": "Constructor0x103c4e64 initializes the embedded20-byte connection through0x103c5200. libhwmessagelib.so.1:0x2a40 allocates one nl_sock,disables sequence checking and automatic acknowledgments,then genl_connect at0x2b84. The alternate allocation callsites0x2b60 and0x2d30 join the same owned-socket path; they are not two simultaneous sockets. libnl-genl-3.so.200:0x2e90 supplies protocol16 and tail-calls nl_connect. libnl-3.so.200:0x12ad0 calls socket(AF_NETLINK=16,SOCK_RAW|SOCK_CLOEXEC=0x80003,NETLINK_GENERIC=16) and stores the returned fd at nl_sock+0x18 at0x12ad8; the bind is at0x12b5c.",
+    "family_and_subscriptions": "genl_ctrl_resolve at libhwmessagelib0x2c2c uses the literal HW_EVQ and stores the runtime family id at connection+4. The literal is verified through PIC base0x27a94,GOT slot0x1fb18 and R_PPC_RELATIVE relocation addend0x4984. anacapad0x103c5188..0x103c51cc builds nine8-byte {groupName,status} rows for AUDIO,BATTERY,BUTTON,CAPZONE,HT,LED,SENSOR,TEMP,SWITCH;0x103c51f4 supplies count9. libhwmessagelib resolves each group via0x2cac and adds membership via0x2da4. Its broader exported group vocabulary includes BUTTON_POWER and WAKEUP,but this constructor does not request those two groups.",
+    "failure_and_availability": "Hardware initialization byte+0x7c is set1 at0x103c5144. A zero connection-init result logs failure and clears it; any nonzero failed-group count at sp+0x20 logs the failed rows,destroys the connection at0x103c5298 and clears the byte at0x103c52a0. Library setup failure frees the nl_sock and nulls connection+0 at0x2bbc..0x2bc4. The live registration block0x1019a424..0x1019a438 has no+0x7c test,and the fd getter has no null check. Registration therefore is not evidence that all subscriptions succeeded. The null-socket failure path is not a documented safe -1 fd fallback; no runtime crash or recovery behavior is asserted.",
+    "live_ownership": "Player construction allocates0x948 bytes at0x1018e468,constructs the handler at0x1018e480 and stores its pointer at player+0xaa30 at0x1018e4b4. Startup0x1019a424 starts its embedded button timed-job manager through0x103c556c,then0x1019a438 calls RSelectThread::addUser(0x10c5d20c) with this handler and null optional timeout. Live stop0x101937d0 calls0x103c5584. That helper calls retained select owner at handler+8,slot+0xc,with the handler,then tail-calls0x10571eec to stop the embedded timed-job manager at+0x6c0. The explicit stop sequence removes the watch; socket destruction is a separate lifetime operation.",
+    "read_and_close": "Data callback0x103caf98 uses the fd getter (with a devirtualized default path at0x103cafe8),then readEvent helper0x103c6718 passes the same embedded connection to hwmessagelib_connection_readNextMsg at0x103c674c. Destructor0x103cb898 calls connection_destroy at0x103cb8f8. libhwmessagelib0x2e88 frees a nonnull nl_sock and0x2e90 clears connection+0. libnl-3.so.200:0x15c74..0x15c80 closes nl_sock+0x18 when nonnegative,then releases callback state and tail-calls free. The button-forwarding fd has separate cleanup and is not the watched hardware input.",
+    "meaning": "The event thread waits on a kernel-to-user hardware-notification subscription. Physical button and sensor notifications arrive through the same subscribed connection that was created during handler construction. Unregistering stops delivery to the select callback; destroying the connection closes the underlying socket."
+   }
   },
   "telemetry": {
    "name": "telemetry: event schema",
@@ -145573,10 +145674,101 @@
      "build": "86.10-80260",
      "address": "0x10584430",
      "notes": "Destructor closes retained pipe ends."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ec6d10",
+     "notes": "Hardware watcher vtable,descriptor getter and callback bindings."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c4aa0",
+     "notes": "Tail delegation to getReadFD for embedded connection+0x80."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c5200",
+     "notes": "Nine requested group rows and group-failure handling."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018e4b4",
+     "notes": "Player stores owned hardware handler at+0xaa30."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1019a438",
+     "notes": "Live registration follows button manager start without hardware-ready-byte test."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101937d0",
+     "notes": "Live stop reaches unregister and button timed-job manager stop."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103cb8f8",
+     "notes": "Destructor destroys embedded connection."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x2c2c",
+     "notes": "Family HW_EVQ reached through GOT relocation; runtime family-id producer."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x2f2c",
+     "notes": "Loads owned nl_sock and tail-delegates descriptor getter."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x2e88",
+     "notes": "Connection destruction frees socket and clears pointer."
+    },
+    {
+     "type": "firmware",
+     "binary": "libnl-genl-3.so.200",
+     "build": "86.10-80260",
+     "address": "0x2e90",
+     "notes": "Tail call supplies NETLINK_GENERIC protocol16."
+    },
+    {
+     "type": "firmware",
+     "binary": "libnl-3.so.200",
+     "build": "86.10-80260",
+     "address": "0x12ad0",
+     "notes": "Actual AF_NETLINK raw/cloexec socket producer and descriptor store."
+    },
+    {
+     "type": "firmware",
+     "binary": "libnl-3.so.200",
+     "build": "86.10-80260",
+     "address": "0x15c80",
+     "notes": "Socket destructor closes nonnegative descriptor."
     }
    ],
    "todo": [
-    "Established:19-slot selector registry and generic handler members; ARPingManager packet-socket binding; RIfAddressMonitor netlink subscription; RIRDecoder /dev/ir fd production/read/close and imported infinite timeout; ArpChecker nonblocking wakeup pipe,live registration/unregistration and staged descriptor replacement. Remaining: concrete fd-producing fields,open/close and registration owners for RHWEvtHandlerZP,RIPCHandler,RMSearchNotifyHandler and RTrackPlayMonitor; additionally verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Follow getters and constructor/caller chains,including semantic tail calls. Runtime descriptor integers are not missing constants."
+    "Established:19-slot selector registry and generic handler members; ARPingManager packet socket; RIfAddressMonitor route-netlink subscription; RIRDecoder /dev/ir production/read/close and imported infinite timeout; ArpChecker local wakeup pipe and staged descriptor replacement; RHWEvtHandlerZP HW_EVQ Generic Netlink socket, nine requested groups, actual player-owned registration and stop plus library close chain. Remaining: concrete fd-producing fields,open/close and registration owners for RIPCHandler,RMSearchNotifyHandler and RTrackPlayMonitor; additionally verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Follow getters and constructor/caller chains,including semantic tail calls. Runtime descriptor integers and dynamically assigned netlink family/group ids are not missing constants."
    ],
    "resolved_findings": [
     "Resolved: watcher registrations = {epollAddFD, selthrd, RSelectThreadMutex, SelthrdUpdateMutex, epollReset} + user-FD guards per subsystem.",
@@ -145629,6 +145821,16 @@
     "temporary_query_socket": "Helper0x10584d98 opens socket(AF_INET=2,SOCK_DGRAM=2,protocol0),fills an arpreq for the target and configured interface,performs ioctl SIOCGARP0x8954,copies returned flags and closes this temporary fd before returning. Consumers test flag0x2 (complete/resolved) at0x10585224. The helper socket never becomes checker+0x104 and is not the descriptor registered with epoll.",
     "close": "Destructor0x10584430 closes retained read and write ends when opened+0x110 is set. The live stop call unregisters before object destruction; rebuild also handles the previous write end and pending read replacement.",
     "meaning": "A local wakeup pipe coordinates delayed inspections of kernel neighbor-resolution state. It is distinct from ARPingManager,which sends and validates raw ARP frames."
+   },
+   "hardware_watcher_binding": {
+    "vtable": "RHWEvtHandlerZP primary select interface uses vtable0x10ec6d10: label+8=0x103c4a78,fd+c=0x103c4aa0,interest predicate+0x10=0x103cba48 (constant1),data+0x18=0x103caf98,timeout+0x1c=0x103c9e08. The label getter returns table0x11091a14 containing selthrd.RHWEvtHandlerZP.",
+    "descriptor_chain": "Getter0x103c4aa0 adds0x80 to the primary object and semantically tail-calls hwmessagelib_connection_getReadFD through PLT0x11099268. libhwmessagelib.so.1:0x2f2c loads connection+0 (owned nl_sock pointer),then tail-calls nl_socket_get_fd; libnl-3.so.200:0x16300 loads nl_sock+0x18. This descriptor is the hardware Generic Netlink socket,not the optional button-forwarding descriptor at handler+0x938.",
+    "producer": "Constructor0x103c4e64 initializes the embedded20-byte connection through0x103c5200. libhwmessagelib.so.1:0x2a40 allocates one nl_sock,disables sequence checking and automatic acknowledgments,then genl_connect at0x2b84. The alternate allocation callsites0x2b60 and0x2d30 join the same owned-socket path; they are not two simultaneous sockets. libnl-genl-3.so.200:0x2e90 supplies protocol16 and tail-calls nl_connect. libnl-3.so.200:0x12ad0 calls socket(AF_NETLINK=16,SOCK_RAW|SOCK_CLOEXEC=0x80003,NETLINK_GENERIC=16) and stores the returned fd at nl_sock+0x18 at0x12ad8; the bind is at0x12b5c.",
+    "family_and_subscriptions": "genl_ctrl_resolve at libhwmessagelib0x2c2c uses the literal HW_EVQ and stores the runtime family id at connection+4. The literal is verified through PIC base0x27a94,GOT slot0x1fb18 and R_PPC_RELATIVE relocation addend0x4984. anacapad0x103c5188..0x103c51cc builds nine8-byte {groupName,status} rows for AUDIO,BATTERY,BUTTON,CAPZONE,HT,LED,SENSOR,TEMP,SWITCH;0x103c51f4 supplies count9. libhwmessagelib resolves each group via0x2cac and adds membership via0x2da4. Its broader exported group vocabulary includes BUTTON_POWER and WAKEUP,but this constructor does not request those two groups.",
+    "failure_and_availability": "Hardware initialization byte+0x7c is set1 at0x103c5144. A zero connection-init result logs failure and clears it; any nonzero failed-group count at sp+0x20 logs the failed rows,destroys the connection at0x103c5298 and clears the byte at0x103c52a0. Library setup failure frees the nl_sock and nulls connection+0 at0x2bbc..0x2bc4. The live registration block0x1019a424..0x1019a438 has no+0x7c test,and the fd getter has no null check. Registration therefore is not evidence that all subscriptions succeeded. The null-socket failure path is not a documented safe -1 fd fallback; no runtime crash or recovery behavior is asserted.",
+    "live_ownership": "Player construction allocates0x948 bytes at0x1018e468,constructs the handler at0x1018e480 and stores its pointer at player+0xaa30 at0x1018e4b4. Startup0x1019a424 starts its embedded button timed-job manager through0x103c556c,then0x1019a438 calls RSelectThread::addUser(0x10c5d20c) with this handler and null optional timeout. Live stop0x101937d0 calls0x103c5584. That helper calls retained select owner at handler+8,slot+0xc,with the handler,then tail-calls0x10571eec to stop the embedded timed-job manager at+0x6c0. The explicit stop sequence removes the watch; socket destruction is a separate lifetime operation.",
+    "read_and_close": "Data callback0x103caf98 uses the fd getter (with a devirtualized default path at0x103cafe8),then readEvent helper0x103c6718 passes the same embedded connection to hwmessagelib_connection_readNextMsg at0x103c674c. Destructor0x103cb898 calls connection_destroy at0x103cb8f8. libhwmessagelib0x2e88 frees a nonnull nl_sock and0x2e90 clears connection+0. libnl-3.so.200:0x15c74..0x15c80 closes nl_sock+0x18 when nonnegative,then releases callback state and tail-calls free. The button-forwarding fd has separate cleanup and is not the watched hardware input.",
+    "meaning": "The event thread waits on a kernel-to-user hardware-notification subscription. Physical button and sensor notifications arrive through the same subscribed connection that was created during handler construction. Unregistering stops delivery to the select callback; destroying the connection closes the underlying socket."
    }
   },
   "leds_zp": {
