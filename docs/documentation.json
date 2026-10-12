@@ -140021,7 +140021,7 @@
   },
   "track_play_monitor": {
    "name": "RTrackPlayMonitor/trackPlayRecorder: play-segment recording",
-   "summary": "per-track log entries {Track Or Station URI,Extra Md,Context URI,CQ Auth Token,SMAPI Device Id,CloudQueueVersion,CQ Context Version,CQ Playback Id,API Key,Framer Name}; play line \"%s play time %fs @%d.%06d (pkt:%u,act:0x%x,off:%lld%s,err:%u,uri:%s)\"; segments \"seg start @ %d.%06d (packetId: %u), end ...\"; PlaybackId remap; string-pool bounded (pool %d%% full, \"Resetting due to no free RTrackLogEntries\"); states In progress/Final/LSE; selthrd.RTrackPlayMonitor thread",
+   "summary": "Processes playback-segment records on a one-second timer registered with the shared event thread. It owns no watched input socket: its descriptor getter returns-2 and data/reset callbacks are no-ops. Stream and playback events supply track identity,metadata,position and errors to bounded recording storage; the periodic worker obtains current playback information and updates entries. The live stop path stops the embedded recorder and unregisters the timer.",
    "events": "R_STREAM_OP_{SAMPLE(publish segment),OPEN(offset),CLOSE(packetId),INTERRUPT(act,offset),ACK(act,packetId),ERROR,IMMED_RESYNC,SCHED_RESYNC,BOUNDARY,ORIGIN_TIME_SELECTED,QUALITY_SELECTED(bd,sr,c,br,nc,a,fmt)} + R_PLAY_OP_{SAMPLE,BOUNDARY,RESYNC(immed|sched),ERROR,CHANGE_SRC,CODEC_SELECTED,ORIGIN_TIME_SELECTED}; sources {REMOTE,CHSRC,Virtual Line-In}; errors {NO_ERROR,CLOUD_QUEUE_ERROR}",
    "recorder": "segment containers: streams/playback/canceled per lifecycle {(init),(finalize),(RESYNC),(RESYNCED),(RESYNCING),(SCHED RESYNC)}; full-container overwrite; zero-sample cancel; memory-pressure relief falls back to canceled; \"Overwriting stream error\"",
    "evidence": [
@@ -140029,13 +140029,91 @@
      "type": "firmware",
      "address": "0x10ed8350",
      "notes": "trackplaymonitor/recorder region"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ed8134",
+     "notes": "Primary track-play watcher vtable."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c28c8",
+     "notes": "Raw li r3,-2 proves no descriptor field or getter delegation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5de28",
+     "notes": "Raw record-form mr sets CR0 for signed negative-fd branch that skips epoll."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fafb4",
+     "notes": "Parent retains allocated track monitor at+0x1904."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fdad8",
+     "notes": "Live registration supplied select interface from parent+0x18cc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c0698",
+     "notes": "Initial one-second timeout passed to registration slot+8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c261c",
+     "notes": "Timeout processes records then returns next relative one-second interval."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c22f8",
+     "notes": "Timeout worker obtains snapshot from retained provider+0xac,slot+0xc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fe9cc",
+     "notes": "Live stop reaches recorder stop followed by select unregister tail call."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c0710",
+     "notes": "Semantic tail bctr to owner slot+0xc."
     }
    ],
    "resolved_findings": [
     "Resolved: entry FSM = {track-start -> position updates (TPM update for track uri/pos/calc/final) -> track-complete or abandon}; report handoff passes the completed entry to the play-history pipeline.",
-    "Entry lifecycle decoded (trackplaymonitor.cxx, tpm tag): start track allocates an RTrackLogEntry from the string pool (start track (%s) -- pool has %d strings (%d%% full); Resetting due to no free RTrackLogEntries + Detected memory pressure and trying to recover as pool-pressure paths; pool errors: String pool is not large enough to store %s / Failed to allocate memory buffer of size %zu / Failed to resize memory buffer). Entry states {In progress, Final} plus a , LSE (last-state-event) marker; entries carry cloud-queue bound fields {Track Or Station URI, Extra Md, Context URI, CQ Auth Token, SMAPI Device Id, CloudQueueVersion, CQ Context Version, CQ Playback Id, API Key, Framer Name}. PlaybackId remap: Updated PlaybackId for %s to %s in %zu entries - the CQ playback id can arrive after entry creation and is backfilled across live entries. End-of-play report line: %s play time %fs @%d.%06d (pkt:%u,act:0x%x,off:%lld%s,err:%u,uri:%s) feeding the play_report submission (reporting record). selthrd.RTrackPlayMonitor.reset is the pool-reset entry.",
+    "Entry lifecycle decoded (trackplaymonitor.cxx, tpm tag): start track allocates an RTrackLogEntry from the string pool (start track (%s) -- pool has %d strings (%d%% full); Resetting due to no free RTrackLogEntries + Detected memory pressure and trying to recover as pool-pressure paths; pool errors: String pool is not large enough to store %s / Failed to allocate memory buffer of size %zu / Failed to resize memory buffer). Entry states {In progress, Final} plus a , LSE (last-state-event) marker; entries carry cloud-queue bound fields {Track Or Station URI, Extra Md, Context URI, CQ Auth Token, SMAPI Device Id, CloudQueueVersion, CQ Context Version, CQ Playback Id, API Key, Framer Name}. PlaybackId remap: Updated PlaybackId for %s to %s in %zu entries - the CQ playback id can arrive after entry creation and is backfilled across live entries. End-of-play report line: %s play time %fs @%d.%06d (pkt:%u,act:0x%x,off:%lld%s,err:%u,uri:%s) feeding the play_report submission (reporting record). The select-thread reset slot is0x10c5d148,a no-op; pool resets use separate monitor methods. The select registration runs the timeout worker once per relative one-second interval.",
     "Resolved (finalized-entry sink): end-of-track processing stores the sink object pointer at monitor+0xe30 and memcpy's the finalized entry into it (0x104c1fc4-0x104c2038); the sink is RPlayReportSubmitter - its notify path logs 'RPlayReportSubmitter::notify: playEntry is a final report' (0x10ed90d8) and 'submitting play report for uuid: %s' (0x10ed9144), emitting via submitPlayReport/playReport with member names {serviceType, activatedAccountCode, errorStatus, errorType, multiAccountId, codec, originDelay, outputDelay, endReason, skippedTrack, nowplaying} and 'periodic report interval set to %lld seconds'. LSE state suppresses the playhead: 'Omitting playhead from report due to LSE'. So the Final-state entries go to the play_report cloud route, not the history recorder."
-   ]
+   ],
+   "select_timer_transport": {
+    "vtable": "RTrackPlayMonitor primary interface vtable0x10ed8134 binds label+8=0x104bf2d0,fd+c=0x104c28c4,interest+0x10=0x104c28d4,data+0x18=0x104c28e4,timeout+0x1c=0x104c261c,exception+0x20=0x10c5d11c,exception predicate+0x24=0x1024df04 and reset+0x28=0x10c5d148. fd getter returns constant-2,interest returns1,and data/reset/exception are no-ops. Label table0x110924f0 contains selthrd.RTrackPlayMonitor.",
+    "no_descriptor_producer": "Raw0x3860fffe at0x104c28c8 is li r3,-2. The getter reads no object field and invokes no callee,so there is no watched feed socket,fd writer,open or close chain to recover for this interface. Constructor0x104c0aa8 initializes generic cached watch+c=-1 and event mask+0x10=0; these inherited members are not an owned TPM descriptor. Generic installation0x10c5de28 raw0x7c7d1b79 is mr. r29,r3 (record condition bits),and0x10c5de2c branches on CR0.lt to skip epoll installation for the negative getter. This is a timer-only registration.",
+    "live_registration": "Parent allocation0x103faf68 reserves0xa7f8 bytes,constructs the monitor at0x103faf80 and stores it at parent+0x1904 at0x103fafb4. Start0x103fdad0 loads select interface from parent+0x18cc and0x103fdad8 calls0x104c0654 with monitor. That helper passes initial timeval{1,0} from sp+0x14 to select interface slot+8 at0x104c0698,so the first callback is scheduled after one second rather than waiting for a packet.",
+    "repeated_timer": "Timeout callback0x104c261c calls0x104c228c(this,0) at0x104c2634,then writes output timeval{1,0} at0x104c263c/0x104c2644. Therefore normal timeout callbacks re-arm a relative one-second interval after processing,not a fixed absolute wall-clock tick. The interval comes from this callback,not a socket read or a hardware packet rate. Helper0x104c228c obtains current playback snapshot through provider retained at monitor+0xac,slot+0xc,then works under monitor mutex+0x18 on recorded entries starting+0xb0. Detailed reporting/state semantics remain in track_play_monitor.",
+    "live_stop": "Parent stop0x103fe9cc calls0x104c06c4 on parent+0x1904. It first calls0x104c3a74 on embedded recorder at monitor+0x9cb8,then if select owner+8 is nonnull semantically tail-calls owner slot+0xc with the monitor at0x104c0710. Watch removal cancels the periodic callback registration; it does not close a TPM feed socket. Destructors0x104003e8/0x10404e28 release monitor storage and embedded recording state,but there is no fd ownership in this select interface.",
+    "meaning": "Playback records are processed periodically by a timer registered with the shared event thread. The registry uses the same callback interface for I/O watchers and timer-only users; a handler name in the registry is not evidence of a corresponding network or device descriptor."
+   }
   },
   "mpegts_id3": {
    "name": "MPEG-TS demuxer + timed ID3 (HLS radio metadata)",
@@ -145956,14 +146034,84 @@
      "build": "86.10-80260",
      "address": "0x10c5d128",
      "notes": "Timeout callback returns infinite delay."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ed8134",
+     "notes": "Primary track-play watcher vtable."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c28c8",
+     "notes": "Raw li r3,-2 proves no descriptor field or getter delegation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5de28",
+     "notes": "Raw record-form mr sets CR0 for signed negative-fd branch that skips epoll."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fafb4",
+     "notes": "Parent retains allocated track monitor at+0x1904."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fdad8",
+     "notes": "Live registration supplied select interface from parent+0x18cc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c0698",
+     "notes": "Initial one-second timeout passed to registration slot+8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c261c",
+     "notes": "Timeout processes records then returns next relative one-second interval."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c22f8",
+     "notes": "Timeout worker obtains snapshot from retained provider+0xac,slot+0xc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fe9cc",
+     "notes": "Live stop reaches recorder stop followed by select unregister tail call."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c0710",
+     "notes": "Semantic tail bctr to owner slot+0xc."
     }
    ],
    "todo": [
-    "Established:19-slot selector registry and generic handler members; ARPingManager packet socket; RIfAddressMonitor route-netlink subscription; RIRDecoder /dev/ir production/read/close and imported infinite timeout; ArpChecker local wakeup pipe and staged descriptor replacement; RHWEvtHandlerZP HW_EVQ socket and live ownership; both RMSearchNotifyHandler UDP socket producers,ports1901/1900,multicast membership and reset/start/stop/destruction chains. Remaining: concrete fd-producing fields,open/close and registration owners for RIPCHandler and RTrackPlayMonitor; additionally verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Follow getters and constructor/caller chains,including semantic tail calls. Runtime descriptor integers and dynamically assigned netlink family/group ids are not missing constants."
+    "Established:19-slot selector registry and generic members; ARPingManager packet socket; RIfAddressMonitor route-netlink; RIRDecoder /dev/ir fd and imported infinite timeout; ArpChecker local wakeup pipe; RHWEvtHandlerZP HW_EVQ socket; both discovery UDP sockets and ownership/reset chains; RTrackPlayMonitor timer-only registration with constant fd-2,one-second callback and live start/stop (no watched socket). Remaining: concrete fd-producing fields,open/close and registration owner for RIPCHandler; additionally verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Follow getters and constructor/caller chains,including semantic tail calls. Runtime descriptor integers and dynamically assigned netlink ids are not missing constants."
    ],
    "resolved_findings": [
     "Resolved: watcher registrations = {epollAddFD, selthrd, RSelectThreadMutex, SelthrdUpdateMutex, epollReset} + user-FD guards per subsystem.",
-    "Watcher census complete (event_loop record): the select-thread layer exposes named registrants selthrd.<name>.{reset, data, except, timeout}; the full in-image set is {ARPingManager, ArpChecker, RHWEvtHandlerZP, RIPCHandler, RIRDecoder, RIfAddressMonitor, RMSearchNotifyHandler, RTrackPlayMonitor} - each binds fd sets (data/except/timeout callbacks per select loop). RMSearchNotifyHandler is the SSDP socket watcher (dev_disc), RIPCHandler the IPC socket (multi_daemon_boundary), RIfAddressMonitor the netlink watcher (addrmon), RHWEvtHandlerZP the hw-event socket (hw_events), RIRDecoder the IR fd (ir_decoder), RTrackPlayMonitor the TPM feed, ARPingManager/ArpChecker the ARP layer."
+    "Watcher census complete (event_loop record): the select-thread layer exposes named registrants selthrd.<name>.{reset, data, except, timeout}; the full in-image set is {ARPingManager, ArpChecker, RHWEvtHandlerZP, RIPCHandler, RIRDecoder, RIfAddressMonitor, RMSearchNotifyHandler, RTrackPlayMonitor} - each binds fd sets (data/except/timeout callbacks per select loop). RMSearchNotifyHandler is the SSDP socket watcher (dev_disc), RIPCHandler the IPC socket (multi_daemon_boundary), RIfAddressMonitor the netlink watcher (addrmon), RHWEvtHandlerZP the hw-event socket (hw_events), RIRDecoder the IR fd (ir_decoder), RTrackPlayMonitor a timer-only user with constant fd-2 and a one-second callback, ARPingManager/ArpChecker the ARP layer."
    ],
    "handler_storage": "RSelectThread registration0x10c5d20c scans19 handler slots at owner+4+i*4. Associated callback-label pointers are at+0x50+i*4 and timeouts at+0x9c+i*8. It stores the owner into handler+8 before looking for a free slot; full-table path logs Error in addUser - too many users and returns0 after RabortIfUnlocked. Success initializes handler+c=-1 and+0x10=0. handler+c is the actual fd cached after epoll installation,not a capability. handler+0x10 stores returned readiness/error bits,cleared before the wait pass. FD getter changes are coordinated through remove/add helpers; data or exception callbacks are checked against the original getter value by0x10c5d7a4/0x10c5d850, with0x10c5d600 logging an improperly changed FD and tail-calling RabortIfUnlocked.",
    "arp_watcher_binding": {
@@ -146031,6 +146179,14 @@
     "reset_and_failures": "Reset0x105550b8 closes old socket+0x14 when it is not-1,then calls the concrete setup slot+0x2c. It stores (setupResult^1)&0xff into reset byte+4; raw0x5463063e at0x10555104 is a low-byte mask,not an8-bit shift. On success,last-failure-log seconds+0x18 is cleared. On failure,the code compares lastLog+3600 against clock-id1 seconds and logs only if lastLog+3600<now; equality suppresses the log. This comparison throttles failure logs,not socket-retry scheduling. Independently of whether a log is emitted,a newly allocated failed fd is closed and+0x14 is set-1 at0x10555170..0x10555184. Direct setup calls return failure without doing this close themselves; their live startup callers still register the watcher.",
     "read_and_timeout": "Data callback0x10555a54 sets its optional timeout output to{INT_MAX,0},reads one datagram via recvmsg0x10555b4c with payload capacity0x7ff and24-byte ancillary-control capacity,then enters the discovery parser. Stored errno+0x2c is cleared before the read. A-1 socket getter sets it to9 at0x10556008; a negative recvmsg result stores actual errno at0x10556018. The timeout slot0x10c5d128 also returns{INT_MAX,0}; neither constant creates a periodic discovery-socket poll. The multicast socket requests IP_PKTINFO,which the data path identifies using cmsg level0,type8 and reads the destination IPv4 at cmsg+0x14. Parser/signing semantics are separate from this descriptor ownership trace.",
     "meaning": "Unicast discovery and multicast announcements are independent registered UDP inputs. Socket setup success,multicast subscription success and select-thread registration are distinct outcomes. Watch removal occurs before select-thread stop; connection reset and later object destruction own descriptor closure."
+   },
+   "track_monitor_watcher_binding": {
+    "vtable": "RTrackPlayMonitor primary interface vtable0x10ed8134 binds label+8=0x104bf2d0,fd+c=0x104c28c4,interest+0x10=0x104c28d4,data+0x18=0x104c28e4,timeout+0x1c=0x104c261c,exception+0x20=0x10c5d11c,exception predicate+0x24=0x1024df04 and reset+0x28=0x10c5d148. fd getter returns constant-2,interest returns1,and data/reset/exception are no-ops. Label table0x110924f0 contains selthrd.RTrackPlayMonitor.",
+    "no_descriptor_producer": "Raw0x3860fffe at0x104c28c8 is li r3,-2. The getter reads no object field and invokes no callee,so there is no watched feed socket,fd writer,open or close chain to recover for this interface. Constructor0x104c0aa8 initializes generic cached watch+c=-1 and event mask+0x10=0; these inherited members are not an owned TPM descriptor. Generic installation0x10c5de28 raw0x7c7d1b79 is mr. r29,r3 (record condition bits),and0x10c5de2c branches on CR0.lt to skip epoll installation for the negative getter. This is a timer-only registration.",
+    "live_registration": "Parent allocation0x103faf68 reserves0xa7f8 bytes,constructs the monitor at0x103faf80 and stores it at parent+0x1904 at0x103fafb4. Start0x103fdad0 loads select interface from parent+0x18cc and0x103fdad8 calls0x104c0654 with monitor. That helper passes initial timeval{1,0} from sp+0x14 to select interface slot+8 at0x104c0698,so the first callback is scheduled after one second rather than waiting for a packet.",
+    "repeated_timer": "Timeout callback0x104c261c calls0x104c228c(this,0) at0x104c2634,then writes output timeval{1,0} at0x104c263c/0x104c2644. Therefore normal timeout callbacks re-arm a relative one-second interval after processing,not a fixed absolute wall-clock tick. The interval comes from this callback,not a socket read or a hardware packet rate. Helper0x104c228c obtains current playback snapshot through provider retained at monitor+0xac,slot+0xc,then works under monitor mutex+0x18 on recorded entries starting+0xb0. Detailed reporting/state semantics remain in track_play_monitor.",
+    "live_stop": "Parent stop0x103fe9cc calls0x104c06c4 on parent+0x1904. It first calls0x104c3a74 on embedded recorder at monitor+0x9cb8,then if select owner+8 is nonnull semantically tail-calls owner slot+0xc with the monitor at0x104c0710. Watch removal cancels the periodic callback registration; it does not close a TPM feed socket. Destructors0x104003e8/0x10404e28 release monitor storage and embedded recording state,but there is no fd ownership in this select interface.",
+    "meaning": "Playback records are processed periodically by a timer registered with the shared event thread. The registry uses the same callback interface for I/O watchers and timer-only users; a handler name in the registry is not evidence of a corresponding network or device descriptor."
    }
   },
   "leds_zp": {
