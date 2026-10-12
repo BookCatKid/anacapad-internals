@@ -125932,7 +125932,7 @@
    "impl": "arping.cxx: 0x140-byte select-handler manager, 0x50-byte per-probe request and 18-byte meaningful result",
    "semantics": "Concurrent local Ethernet/IPv4 ARP probing, scheduled retries and deadlines, asynchronous callback or compiled synchronous result delivery. This lower packet manager uses a supplied select-thread owner, not its own worker thread.",
    "description": "Checks which hardware address is using a local-network IP address by sending ARP queries. A caller supplies the target IP, the spacing between probes and how long the attempt may run. The manager can keep several attempts pending on one packet socket and return a success record containing the observed IP, MAC address and reception time, or an empty failure record when an attempt expires or the socket is reset. An asynchronous caller receives a callback; the compiled synchronous interface waits for completion and returns the same record.\n\nThe important quirk is what counts as evidence: the receiver accepts either an ARP query or an ARP reply sent by the target IP. It does not require a reply addressed to this speaker or check the sender MAC against the expected player identity. The topology callback performs that second comparison, so observing traffic from an IP and confirming the expected speaker are separate steps. A single packet can finish several attempts for the same IP. A socket error resets pending work, and a brief reset-pending state can refuse a new asynchronous attempt. This primitive checks local address reachability; it does not authenticate Wi-Fi association or prove that a reachable speaker can play audio.",
-   "manager_layout": "Constructor0x10585ecc stores vptr0x10ef0060, needsReset+4=0, retained select-owner+8=0, opaque inherited word+c=-1, inherited+0x10=0, supplied select interface+0x14=r4, interface name+0x18 copied with strlcpy cap16, socket+0x28=-1, lastErrno+0x2c=0, source IPv4+0x30=0, sockaddr_ll at+0x34 (family17,protocol0x0806,ifindex+0x38,hatype1 at+0x3c,pkttype1 at+0x3e,halen6 at+0x3f,MAC+0x40..+0x45), pending head+0x48=0,tail+0x4c=0,count+0x50=0,recursive mutex+0x58,condition variable+0xe8 and resetAll+0x138=0. Tail0x10585fdc calls supplied select interface slot+8 to register this handler; registration is a semantic call, not constructor termination without registration.",
+   "manager_layout": "Constructor0x10585ecc stores vptr0x10ef0060, needsReset+4=0, retained select-owner+8=0, watched/cached fd+c=-1, returned epoll event mask+0x10=0, supplied select interface+0x14=r4, interface name+0x18 copied with strlcpy cap16, socket+0x28=-1, lastErrno+0x2c=0, source IPv4+0x30=0, sockaddr_ll at+0x34 (family17,protocol0x0806,ifindex+0x38,hatype1 at+0x3c,pkttype1 at+0x3e,halen6 at+0x3f,MAC+0x40..+0x45), pending head+0x48=0,tail+0x4c=0,count+0x50=0,recursive mutex+0x58,condition variable+0xe8 and resetAll+0x138=0. Tail0x10585fdc calls supplied select interface slot+8 to register this handler; registration is a semantic call, not constructor termination without registration.",
    "virtual_interface": "Manager vtable0x10ef0060 has11 slots: +0=destructor0x1058660c,+4=deleting destructor0x10586770,+8=label accessor0x105857dc returning0x11092708,+0xc=locked fd getter0x105857f0,+0x10=zero-return0x10538638,+0x14=zero-return0x1024def4,+0x18=read-ready handler0x10586f08,+0x1c=timeout handler0x10586e54,+0x20=no-op0x10c5d11c,+0x24=locked errno getter0x10585858,+0x28=reset handler0x1058720c. 0x10585fe0 semantically tail-calls retained select-owner slot+0xc to unregister if owner+8 is nonnull. Destructor drains pending requests with empty results, calls supplied select interface slot+0xc and destroys condition/mutex. Deleting destructor tail-deletes0x140 bytes.",
    "probe_layout": "Constructor0x105859f4 installs vptr0x10ef004c, next+4=0,prev+8=0,ownerLink+c=0,synchronous+0x10 from r4,done+0x11=0,target IPv4+0x14=*r5,nextSendMs+0x18/+0x1c,expiryMs+0x20/+0x24,intervalMs+0x28/+0x2c,result+0x30..+0x41,callback+0x44 and cookie+0x48. Raw arithmetic0x10585a84..0x10585b08 converts clock-id1 timeval to signed-expanded64-bit milliseconds sec*1000+usec/1000; next send starts at now and expiry=now+duration. Its low-word carries were checked against raw addc/adde/subfc/subfe instructions. Request vtable+0=empty destructor0x1058738c,+4=deleting destructor0x105873a8 (tail-delete0x50),+8=zero-return0x10587398. The list is dynamically allocated rather than a fixed probe-slot array.",
    "entrypoints": "Asynchronous0x10586a94(manager,ipText,intervalU32ms,durationU32ms,callback,cookie) uses inet_aton; parse failure returns0. It allocates a0x50-byte request with synchronous=0, zero high words for interval/duration, and under the manager mutex rejects needsReset+4!=0, deleting the request. Enqueue0x10586978 ensures a usable socket, rejects an already-owned request (ownerLink+c!=0), appends to head/tail, increments count, stores ownerLink=&manager.head, processes scheduled work, updates supplied select interface slot+0x18 with the next timeout and explicitly sends a probe; return1 means accepted, not successful reachability. Compiled synchronous0x10586c3c parses ipText, allocates synchronous=1 through0x10585bf4, enqueues and waits on+0xe8 until request.done+0x11. It copies18 meaningful result bytes then deletes the request; return1 means the wait completed, with result.valid carrying success. It does not have the asynchronous wrapper's explicit needsReset check. Zero intervals/durations are not rejected by these wrappers.",
@@ -125942,7 +125942,7 @@
    "result_format": "18 meaningful bytes in20-byte aligned storage: +0 valid byte (0=empty failure,1=observed packet),+1..+3 padding,+4 native u32 clock-id1 reception seconds,+8 four network-order sender-IP bytes,+0xc six sender-MAC bytes. Empty-result initializer0x105858c0 clears valid,time,IP and MAC, but does not initialize padding. Constructor0x10585934 fills the same fields. Receive0x10587100 reads reception time;0x10587128..0x10587198 writes request.result then completion0x105864a4 delivers it. No error-kind enum is embedded in a failure result; the manager errno getter is a separate channel.",
    "scheduling": "Per-request tick0x10585c8c converts clock-id1 timeval to milliseconds. A request remains live iff expiry>now (strict unsigned64 comparison); expiry==now completes with an empty result. For live requests, nextSend<=now sets the send-due output and advances nextSend by exactly one interval, not a loop that jumps directly past now. It returns timeout=max(0,min(nextSend,expiry)-now), split into seconds and microseconds through division/remainder by1000. Manager work0x105867a4 visits the linked list, completes expired requests, sends due requests and chooses the minimum remaining timeout through timevalMinimize. Timeout0x10586e54 invokes that work under the mutex. Enqueue invokes it before an explicit send, so a new still-live request can send twice initially. Zero duration can complete during insertion before the later explicit-send path; this code has no minimum-duration guard. These are instruction-level behaviors, not a runtime packet-count experiment.",
    "completion_and_reset": "Completion0x105864a4 unlinks a queued request, repairs head/tail/next/prev, decrements count and clears its links. Asynchronous mode invokes callback(cookie,&result) when nonnull then request vtable+4 deletes it. Synchronous mode sets done+0x11=1 and signals condition+0xe8, leaving deletion to the waiter. If the list empties, select interface slot+0x18 receives null timeout and needsReset+4 becomes1. Reset0x1058720c cancels all requests with empty results only when resetAll+0x138 is set, then clears that flag, closes the socket and clears needsReset; ordinary last-request cleanup also closes the socket. Receive result-1 stores errno; errno11 (EAGAIN) leaves pending work and reset flags alone, while other errno values set both flags. Result delivery is under the manager's recursive mutex. Requests have no separate cancellation-name operation in this lower class.",
-   "callers_and_identity": "Player constructor0x1018fac8 calls manager ctor0x10585ecc. Whole-.text direct/unconditional/conditional-tail scan found one asynchronous starter caller, topology0x1074124c, using interval300ms,duration1000ms,callback0x1073ea64,cookie=topology owner. No caller,aligned non-text function pointer,or lis/low address formation was found for compiled synchronous entry0x10586c3c or async factory0x10585b48. This documents their compiled semantics without claiming an active call path. Topology callback0x1073ea64 checks result.valid; formats result.IP+8, parses observed MAC+0xc, finds active or vanished devices by IP and compares expected MAC through0x10551d04 at0x1073ebc8/0x1073ec70. Only the appropriate match reaches successful-active/successful-vanished branches; mismatch logs0x10f1263c,empty result logs arping unsuccessful. A packet seen from an IP is therefore not independently authenticated by this primitive.",
+   "callers_and_identity": "Player constructor0x1018fac8 calls manager ctor0x10585ecc with interface-name literal br0 at0x10e75170. Whole-.text direct/unconditional/conditional-tail scan found one asynchronous starter caller, topology0x1074124c, using interval300ms,duration1000ms,callback0x1073ea64,cookie=topology owner. No caller,aligned non-text function pointer,or lis/low address formation was found for compiled synchronous entry0x10586c3c or async factory0x10585b48. This documents their compiled semantics without claiming an active call path. Topology callback0x1073ea64 checks result.valid; formats result.IP+8, parses observed MAC+0xc, finds active or vanished devices by IP and compares expected MAC through0x10551d04 at0x1073ebc8/0x1073ec70. Only the appropriate match reaches successful-active/successful-vanished branches; mismatch logs0x10f1263c,empty result logs arping unsuccessful. A packet seen from an IP is therefore not independently authenticated by this primitive.",
    "scope_correction": "The earlier scheduling paragraph merged distinct objects: writes at0x1058940c to+0xf9/+0xfc/+0x104 and the0x10588xxx query family belong to the separate higher-level ARPingManager/monitor object, not the0x140-byte packet manager above (+0xf9 is inside this manager's condition-variable storage). Those offsets are not fields or scheduling APIs of this primitive. The packet manager is driven by the supplied select interface and its readiness/timeout/reset callbacks. ARP checker statistics and controller-association telemetry have separate records.",
    "evidence": [
     {
@@ -126077,8 +126077,51 @@
      "build": "86.10-80260",
      "address": "0x1073ea64",
      "notes": "Consumer separates observed-IP success from expected-MAC identity match."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5d290",
+     "notes": "Select registration stores handler+8 owner; initializes cached fd+c and event mask+0x10."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5dec4",
+     "notes": "Epoll installation records the actual getter-produced watched fd."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5dbd0",
+     "notes": "Epoll removal sets watched fd back to-1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5e310",
+     "notes": "Selector consumes handler+0x10 returned event mask; readable low bit and exceptional0x201a."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x11092708",
+     "notes": "Four callback-name pointers identify ARPingManager watcher."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018fabc",
+     "notes": "Caller supplies br0 interface to ARP manager construction."
     }
-   ]
+   ],
+   "select_bookkeeping": "The supplied select interface is RSelectThread. Registration0x10c5d20c stores the thread in handler+8 at0x10c5d290, initializes cached watched fd+c=-1 at0x10c5d370 and eventMask+0x10=0 at0x10c5d378. Its19 slots hold handlers at thread+4+i*4,callback-label pointers at+0x50+i*4 and timeout pairs at+0x9c+i*8. FD installation0x10c5ddd4 calls handler vtable+0xc, registers the returned fd through sonos_epoll_add_data at0x10c5deb8 and stores it into handler+c at0x10c5dec4. Removal0x10c5db6c removes cached fd and resets+c=-1 at0x10c5dbd0. Select loop0x10c5e144 clears each handler eventMask before polling; its result dispatch reads the stored mask at0x10c5e310,tests0x201a for exceptional conditions and its low bit for readable data. Thus +c and+0x10 are concrete generic watcher state rather than opaque ARP words. ARP label table0x11092708 points to selthrd.ARPingManager.{reset,data,except,timeout}; instance construction0x1018fabc supplies interface name br0."
   },
   "muse_authhelper": {
    "impl": "museclient_authhelper.cxx",
@@ -145115,21 +145158,90 @@
   },
   "select_thread": {
    "name": "RSelectThread epoll wrapper",
-   "summary": "{epollAddFD,selthrd,RSelectThreadMutex,SelthrdUpdateMutex,epollReset}; errors {\"Error in addUser - too many users\",\"Error adding/removing interrupt fd to epoll\",\"%s improperly changed its FD to %d (watching %d)\",\"Error in eventfd (%d)\",\"Error removing fd %d for %p %s (%s)\",\"%s: %p %s already watching fd %d, removing it first\",\"Error adding fd %d\",\"Update error stu %p not in st %p\",\"Error %d in epoll wait (%s)\"}; sonos-concurrency cond API {sonosCondCreate,sonosCondWait,sonosCondWaitFor,sonosCondWaitUntil,sonosCondNotifyOne,sonosCondNotifyAll} (cond_impl.cxx); mainSonosThread; UnrecoverableError_int; thread-dump fmt '%5lu %30s(%3d,%3d)[%02X]: ' + 'waiting on %s %s (%d),'; registered fd-handler names incl selthrd.{RIRDecoder,RHWEvtHandlerZP,RTrackPlayMonitor,RIfAddressMonitor,RMSearchNotifyHandler,ArpChecker,ARPingManager,RIPCHandler}.{reset,data,except,timeout}",
+   "summary": "Shared descriptor-readiness thread with19 handler slots,per-handler callback labels and timeouts. It caches each watched descriptor,dispatches returned readiness bits and detects callbacks that change a descriptor without updating registration. The ARPingManager watcher is concretely bound to the br0 ARP packet socket; other watcher fd lifecycles remain under investigation.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10fba020",
      "notes": "select thread"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5d20c",
+     "notes": "19-slot registerUser scan and handler ownership/cache initialization."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5ddd4",
+     "notes": "Getter-produced fd -> epoll registration -> handler cached fd."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5db6c",
+     "notes": "Remove the cached watched descriptor and return it to-1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5d7a4",
+     "notes": "Data dispatch preserves original fd and checks for uncoordinated change."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5d850",
+     "notes": "Exception dispatch preserves/checks descriptor similarly."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5e310",
+     "notes": "Readable/exception returned-mask dispatch."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105857f0",
+     "notes": "Concrete ARP watcher fd getter reads manager+0x28 under mutex."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018fac8",
+     "notes": "Concrete manager registration owner and br0 name construction."
     }
    ],
    "todo": [
-    "Residual: per-watcher fd bindings (which socket each select set watches - the registrant census is complete; fd numbers are runtime data)."
+    "Established: the19-slot selector registry,handler owner/watched-fd/event-mask members,and the ARPingManager br0 packet-socket binding and four callbacks are traced. Remaining: recover the concrete fd-producing fields,open/close lifecycle and registration owner for ArpChecker,RHWEvtHandlerZP,RIPCHandler,RIRDecoder,RIfAddressMonitor,RMSearchNotifyHandler and RTrackPlayMonitor. Trace each handler vtable+0xc back through its constructor and writers,and join it to the registration caller; runtime descriptor numbers themselves are not unresolved enum constants."
    ],
    "resolved_findings": [
     "Resolved: watcher registrations = {epollAddFD, selthrd, RSelectThreadMutex, SelthrdUpdateMutex, epollReset} + user-FD guards per subsystem.",
     "Watcher census complete (event_loop record): the select-thread layer exposes named registrants selthrd.<name>.{reset, data, except, timeout}; the full in-image set is {ARPingManager, ArpChecker, RHWEvtHandlerZP, RIPCHandler, RIRDecoder, RIfAddressMonitor, RMSearchNotifyHandler, RTrackPlayMonitor} - each binds fd sets (data/except/timeout callbacks per select loop). RMSearchNotifyHandler is the SSDP socket watcher (dev_disc), RIPCHandler the IPC socket (multi_daemon_boundary), RIfAddressMonitor the netlink watcher (addrmon), RHWEvtHandlerZP the hw-event socket (hw_events), RIRDecoder the IR fd (ir_decoder), RTrackPlayMonitor the TPM feed, ARPingManager/ArpChecker the ARP layer."
-   ]
+   ],
+   "handler_storage": "RSelectThread registration0x10c5d20c scans19 handler slots at owner+4+i*4. Associated callback-label pointers are at+0x50+i*4 and timeouts at+0x9c+i*8. It stores the owner into handler+8 before looking for a free slot; full-table path logs Error in addUser - too many users and returns0 after RabortIfUnlocked. Success initializes handler+c=-1 and+0x10=0. handler+c is the actual fd cached after epoll installation,not a capability. handler+0x10 stores returned readiness/error bits,cleared before the wait pass. FD getter changes are coordinated through remove/add helpers; data or exception callbacks are checked against the original getter value by0x10c5d7a4/0x10c5d850, with0x10c5d600 logging an improperly changed FD and tail-calling RabortIfUnlocked.",
+   "arp_watcher_binding": {
+    "name": "ARPingManager",
+    "interface": "br0",
+    "socket": "AF_PACKET(17),SOCK_RAW(3),protocol0x0806; manager+0x28 is-1 before lazy open and after reset",
+    "getter": "manager vtable+0xc ->0x105857f0; RSelectThread uses this returned fd and caches it at handler+c",
+    "read_callback": "manager vtable+0x18 ->0x10586f08; recv42 bytes with nonblocking flag0x40,ARP validation and request completion",
+    "timeout_callback": "manager vtable+0x1c ->0x10586e54; process probe expiry/retry deadlines",
+    "exception_callback": "manager vtable+0x20 ->0x10c5d11c,no-op",
+    "reset_callback": "manager vtable+0x28 ->0x1058720c; cancel pending work if resetAll is set and close socket",
+    "labels": "0x11092708 points to selthrd.ARPingManager.reset/.data/.except/.timeout",
+    "proof": "Concrete constructor0x1018fac8 and raw vtable0x10ef0060 join interface name,fd producer and all four callbacks. Actual descriptor integer is assigned by socket(),so it is intentionally not a constant."
+   }
   },
   "leds_zp": {
    "name": "LED engine (leds_zp)",
