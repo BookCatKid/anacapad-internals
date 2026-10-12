@@ -139830,6 +139830,97 @@
      "type": "firmware",
      "address": "0x10ef1d08",
      "notes": "ddthrd.cxx"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eea178",
+     "notes": "Concrete unicast watcher vtable and setup slot."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eea1b0",
+     "notes": "Concrete multicast watcher vtable and setup slot."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10555094",
+     "notes": "Getter reads owned UDP socket+0x14."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105552ac",
+     "notes": "Unicast IPv4 UDP producer,nonblocking configuration and wildcard port1901 bind."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10555510",
+     "notes": "Multicast UDP producer,packet info and port1900 bind."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10555400",
+     "notes": "239.255.255.250 membership and exact errno98 drop/re-add branch."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105550b8",
+     "notes": "Reset closes old fd,attempts setup and closes failed new fd; hour comparison only controls logging."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10199884",
+     "notes": "Live unicast registration using player+0x4d8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101998b0",
+     "notes": "Live multicast registration despite unchecked setup result."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10193874",
+     "notes": "Live stop unregisters both watchers before select-thread stop."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10192c00",
+     "notes": "Destructor closes multicast socket,then unicast socket."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10555b4c",
+     "notes": "One recvmsg datagram and stored errno chain."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5d128",
+     "notes": "Timeout callback returns infinite delay."
     }
    ],
    "resolved_findings": [
@@ -139847,7 +139938,16 @@
     "M-SEARCH rx handler f_105a4f30 (RGroupAdvertiser, 'advert' domain) decoded - builds a discovered-peer record: +0x0=class tag (vfunc+0xc result), +0x4=version 1, +0x8=sin_addr/+0xc=sin_port (sockaddr_in r5 arg), +0x10..+0x18=three request words, +0x1c=name string <=0x80 (r26=*r29 first header value), +0x154..+0x163=16-byte peer UUID; then f_105a4d38 dispatches the record. Log: 'rx MSEARCH %s from %s:%d (%zd %d %d)'. The household/deviceid match data lands at record +0x154 (16B UUID) and +0x1c; the useragent/SERVER value arrives inside the +0x10..+0x18 word triple.",
     "Record fields +0x10/+0x14 bound: they are derived service ports, not the useragent/household strings. Builder f_105a51d4 copies via accessors on the source record: +0x10 = (src+0x444 != 0 ? src+0x444 : src+0x442 + 43); +0x14 = (src+0x446 != 0 ? src+0x446 : src+0x442 + 443) - an explicit-port-else-derived-port pair off a base port at src+0x442. Strings live at +0x1c(<=0x80), +0x9c(<=0x80), +0x11c(<=0x19) via strlcpy-class copies; +0x8=src+0x414, +0xc=src+0x424, +0x4=version {1,2} via f_1054aad4 isel.",
     "Established: rx record member map bound - class tag +0x0, sockaddr +0x8/+0xc, 3-word request block +0x10..+0x18, name +0x1c (<=0x80), 16-byte peer UUID +0x154..+0x163; dispatch via f_105a4d38."
-   ]
+   ],
+   "select_socket_transport": {
+    "instances_and_slots": "Two0x30-byte RMSearchNotifyHandler instances are embedded at player+0x9d04 and+0x9d34. Constructor0x10555720 initializes socket+0x14=-1,reset byte+4=0,owner+8=0,cached watch+c=-1,event mask+0x10=0,last-failure-log seconds+0x18=0 and stored errno+0x2c=0. Player construction0x1018e0dc/0x1018e0f8 installs vtables0x10eea178 (unicast) and0x10eea1b0 (multicast). Both use getter+c=0x10555094 (reads socket+0x14),label+8=0x105550a4 (table0x110925c8),data+0x18=0x10555a54,timeout+0x1c=0x10c5d128,exception predicate+0x24=0x10556b48 (stored errno+0x2c),reset+0x28=0x105550b8. Their setup slot+0x2c differs:0x10555278 versus0x105554dc.",
+    "unicast_producer": "Setup0x10555278 opens socket(AF_INET=2,SOCK_DGRAM=2,protocol0) at0x105552ac and stores fd+0x14. It calls fcntl F_GETFL=3 then F_SETFL=4 with flags|0x800 for nonblocking I/O. bind0x10555314 uses16-byte sockaddr_in {family2,port0x076d=1901,address0},so it binds all local IPv4 addresses on port1901. It sets IP_MULTICAST_TTL (level0,option0x21) to one-byte4,then requires a firmware SOL_SOCKET option0x29 with four-byte value8 to succeed. Failure returns0; success returns1. No multicast-membership call occurs in this unicast setup.",
+    "multicast_producer": "Setup0x105554dc opens the same socket family/type at0x10555510,sets nonblocking,reuse-address (level1,option2,value1) and IPv4 packet-info delivery (level0,option8,value1). bind0x105555c4 uses wildcard IPv4 port0x076c=1900. It requires the same SOL_SOCKET option0x29,value8,then invokes0x10555400 to join239.255.255.250 with interface address0 via IP_ADD_MEMBERSHIP (level0,option0x23,8-byte ip_mreq). A successful join returns1. For a failed join whose errno is exactly0x62=98,the helper attempts IP_DROP_MEMBERSHIP (option0x24),ignores that result and retries ADD once; the retry result is converted to1 for nonnegative and0 for negative. Other join errors return0 directly. Option0x29 is documented numerically because its kernel-side interpretation has not been established here; its failure is a concrete setup rejection,not an optional optimization.",
+    "live_registration_and_stop": "Live startup calls the unicast and multicast setups at0x10199864 and0x1019988c,then registers both at0x10199884 and0x101998b0 through0x10555824. r21 is player+0x4d8,established at0x101988b4 and retained through both calls. Register helper null-checks the supplied select interface and semantically tail-calls its slot+8 with watcher and null optional timeout. The startup block does not branch on either setup result. Live stop0x10193874/0x1019387c calls0x10555858 for each watcher; that helper uses retained owner+8 and tail-calls slot+0xc. The player then stops the select thread at0x10193884. Destruction0x10192c00/0x10192c14 closes retained sockets through0x10555770,whose close is also a semantic tail call.",
+    "reset_and_failures": "Reset0x105550b8 closes old socket+0x14 when it is not-1,then calls the concrete setup slot+0x2c. It stores (setupResult^1)&0xff into reset byte+4; raw0x5463063e at0x10555104 is a low-byte mask,not an8-bit shift. On success,last-failure-log seconds+0x18 is cleared. On failure,the code compares lastLog+3600 against clock-id1 seconds and logs only if lastLog+3600<now; equality suppresses the log. This comparison throttles failure logs,not socket-retry scheduling. Independently of whether a log is emitted,a newly allocated failed fd is closed and+0x14 is set-1 at0x10555170..0x10555184. Direct setup calls return failure without doing this close themselves; their live startup callers still register the watcher.",
+    "read_and_timeout": "Data callback0x10555a54 sets its optional timeout output to{INT_MAX,0},reads one datagram via recvmsg0x10555b4c with payload capacity0x7ff and24-byte ancillary-control capacity,then enters the discovery parser. Stored errno+0x2c is cleared before the read. A-1 socket getter sets it to9 at0x10556008; a negative recvmsg result stores actual errno at0x10556018. The timeout slot0x10c5d128 also returns{INT_MAX,0}; neither constant creates a periodic discovery-socket poll. The multicast socket requests IP_PKTINFO,which the data path identifies using cmsg level0,type8 and reads the destination IPv4 at cmsg+0x14. Parser/signing semantics are separate from this descriptor ownership trace.",
+    "meaning": "Unicast discovery and multicast announcements are independent registered UDP inputs. Socket setup success,multicast subscription success and select-thread registration are distinct outcomes. Watch removal occurs before select-thread stop; connection reset and later object destruction own descriptor closure."
+   }
   },
   "cloud_synchronizer": {
    "name": "RCloudSynchronizer",
@@ -145765,10 +145865,101 @@
      "build": "86.10-80260",
      "address": "0x15c80",
      "notes": "Socket destructor closes nonnegative descriptor."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eea178",
+     "notes": "Concrete unicast watcher vtable and setup slot."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eea1b0",
+     "notes": "Concrete multicast watcher vtable and setup slot."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10555094",
+     "notes": "Getter reads owned UDP socket+0x14."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105552ac",
+     "notes": "Unicast IPv4 UDP producer,nonblocking configuration and wildcard port1901 bind."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10555510",
+     "notes": "Multicast UDP producer,packet info and port1900 bind."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10555400",
+     "notes": "239.255.255.250 membership and exact errno98 drop/re-add branch."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105550b8",
+     "notes": "Reset closes old fd,attempts setup and closes failed new fd; hour comparison only controls logging."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10199884",
+     "notes": "Live unicast registration using player+0x4d8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101998b0",
+     "notes": "Live multicast registration despite unchecked setup result."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10193874",
+     "notes": "Live stop unregisters both watchers before select-thread stop."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10192c00",
+     "notes": "Destructor closes multicast socket,then unicast socket."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10555b4c",
+     "notes": "One recvmsg datagram and stored errno chain."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5d128",
+     "notes": "Timeout callback returns infinite delay."
     }
    ],
    "todo": [
-    "Established:19-slot selector registry and generic handler members; ARPingManager packet socket; RIfAddressMonitor route-netlink subscription; RIRDecoder /dev/ir production/read/close and imported infinite timeout; ArpChecker local wakeup pipe and staged descriptor replacement; RHWEvtHandlerZP HW_EVQ Generic Netlink socket, nine requested groups, actual player-owned registration and stop plus library close chain. Remaining: concrete fd-producing fields,open/close and registration owners for RIPCHandler,RMSearchNotifyHandler and RTrackPlayMonitor; additionally verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Follow getters and constructor/caller chains,including semantic tail calls. Runtime descriptor integers and dynamically assigned netlink family/group ids are not missing constants."
+    "Established:19-slot selector registry and generic handler members; ARPingManager packet socket; RIfAddressMonitor route-netlink subscription; RIRDecoder /dev/ir production/read/close and imported infinite timeout; ArpChecker local wakeup pipe and staged descriptor replacement; RHWEvtHandlerZP HW_EVQ socket and live ownership; both RMSearchNotifyHandler UDP socket producers,ports1901/1900,multicast membership and reset/start/stop/destruction chains. Remaining: concrete fd-producing fields,open/close and registration owners for RIPCHandler and RTrackPlayMonitor; additionally verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Follow getters and constructor/caller chains,including semantic tail calls. Runtime descriptor integers and dynamically assigned netlink family/group ids are not missing constants."
    ],
    "resolved_findings": [
     "Resolved: watcher registrations = {epollAddFD, selthrd, RSelectThreadMutex, SelthrdUpdateMutex, epollReset} + user-FD guards per subsystem.",
@@ -145831,6 +146022,15 @@
     "live_ownership": "Player construction allocates0x948 bytes at0x1018e468,constructs the handler at0x1018e480 and stores its pointer at player+0xaa30 at0x1018e4b4. Startup0x1019a424 starts its embedded button timed-job manager through0x103c556c,then0x1019a438 calls RSelectThread::addUser(0x10c5d20c) with this handler and null optional timeout. Live stop0x101937d0 calls0x103c5584. That helper calls retained select owner at handler+8,slot+0xc,with the handler,then tail-calls0x10571eec to stop the embedded timed-job manager at+0x6c0. The explicit stop sequence removes the watch; socket destruction is a separate lifetime operation.",
     "read_and_close": "Data callback0x103caf98 uses the fd getter (with a devirtualized default path at0x103cafe8),then readEvent helper0x103c6718 passes the same embedded connection to hwmessagelib_connection_readNextMsg at0x103c674c. Destructor0x103cb898 calls connection_destroy at0x103cb8f8. libhwmessagelib0x2e88 frees a nonnull nl_sock and0x2e90 clears connection+0. libnl-3.so.200:0x15c74..0x15c80 closes nl_sock+0x18 when nonnegative,then releases callback state and tail-calls free. The button-forwarding fd has separate cleanup and is not the watched hardware input.",
     "meaning": "The event thread waits on a kernel-to-user hardware-notification subscription. Physical button and sensor notifications arrive through the same subscribed connection that was created during handler construction. Unregistering stops delivery to the select callback; destroying the connection closes the underlying socket."
+   },
+   "discovery_watcher_binding": {
+    "instances_and_slots": "Two0x30-byte RMSearchNotifyHandler instances are embedded at player+0x9d04 and+0x9d34. Constructor0x10555720 initializes socket+0x14=-1,reset byte+4=0,owner+8=0,cached watch+c=-1,event mask+0x10=0,last-failure-log seconds+0x18=0 and stored errno+0x2c=0. Player construction0x1018e0dc/0x1018e0f8 installs vtables0x10eea178 (unicast) and0x10eea1b0 (multicast). Both use getter+c=0x10555094 (reads socket+0x14),label+8=0x105550a4 (table0x110925c8),data+0x18=0x10555a54,timeout+0x1c=0x10c5d128,exception predicate+0x24=0x10556b48 (stored errno+0x2c),reset+0x28=0x105550b8. Their setup slot+0x2c differs:0x10555278 versus0x105554dc.",
+    "unicast_producer": "Setup0x10555278 opens socket(AF_INET=2,SOCK_DGRAM=2,protocol0) at0x105552ac and stores fd+0x14. It calls fcntl F_GETFL=3 then F_SETFL=4 with flags|0x800 for nonblocking I/O. bind0x10555314 uses16-byte sockaddr_in {family2,port0x076d=1901,address0},so it binds all local IPv4 addresses on port1901. It sets IP_MULTICAST_TTL (level0,option0x21) to one-byte4,then requires a firmware SOL_SOCKET option0x29 with four-byte value8 to succeed. Failure returns0; success returns1. No multicast-membership call occurs in this unicast setup.",
+    "multicast_producer": "Setup0x105554dc opens the same socket family/type at0x10555510,sets nonblocking,reuse-address (level1,option2,value1) and IPv4 packet-info delivery (level0,option8,value1). bind0x105555c4 uses wildcard IPv4 port0x076c=1900. It requires the same SOL_SOCKET option0x29,value8,then invokes0x10555400 to join239.255.255.250 with interface address0 via IP_ADD_MEMBERSHIP (level0,option0x23,8-byte ip_mreq). A successful join returns1. For a failed join whose errno is exactly0x62=98,the helper attempts IP_DROP_MEMBERSHIP (option0x24),ignores that result and retries ADD once; the retry result is converted to1 for nonnegative and0 for negative. Other join errors return0 directly. Option0x29 is documented numerically because its kernel-side interpretation has not been established here; its failure is a concrete setup rejection,not an optional optimization.",
+    "live_registration_and_stop": "Live startup calls the unicast and multicast setups at0x10199864 and0x1019988c,then registers both at0x10199884 and0x101998b0 through0x10555824. r21 is player+0x4d8,established at0x101988b4 and retained through both calls. Register helper null-checks the supplied select interface and semantically tail-calls its slot+8 with watcher and null optional timeout. The startup block does not branch on either setup result. Live stop0x10193874/0x1019387c calls0x10555858 for each watcher; that helper uses retained owner+8 and tail-calls slot+0xc. The player then stops the select thread at0x10193884. Destruction0x10192c00/0x10192c14 closes retained sockets through0x10555770,whose close is also a semantic tail call.",
+    "reset_and_failures": "Reset0x105550b8 closes old socket+0x14 when it is not-1,then calls the concrete setup slot+0x2c. It stores (setupResult^1)&0xff into reset byte+4; raw0x5463063e at0x10555104 is a low-byte mask,not an8-bit shift. On success,last-failure-log seconds+0x18 is cleared. On failure,the code compares lastLog+3600 against clock-id1 seconds and logs only if lastLog+3600<now; equality suppresses the log. This comparison throttles failure logs,not socket-retry scheduling. Independently of whether a log is emitted,a newly allocated failed fd is closed and+0x14 is set-1 at0x10555170..0x10555184. Direct setup calls return failure without doing this close themselves; their live startup callers still register the watcher.",
+    "read_and_timeout": "Data callback0x10555a54 sets its optional timeout output to{INT_MAX,0},reads one datagram via recvmsg0x10555b4c with payload capacity0x7ff and24-byte ancillary-control capacity,then enters the discovery parser. Stored errno+0x2c is cleared before the read. A-1 socket getter sets it to9 at0x10556008; a negative recvmsg result stores actual errno at0x10556018. The timeout slot0x10c5d128 also returns{INT_MAX,0}; neither constant creates a periodic discovery-socket poll. The multicast socket requests IP_PKTINFO,which the data path identifies using cmsg level0,type8 and reads the destination IPv4 at cmsg+0x14. Parser/signing semantics are separate from this descriptor ownership trace.",
+    "meaning": "Unicast discovery and multicast announcements are independent registered UDP inputs. Socket setup success,multicast subscription success and select-thread registration are distinct outcomes. Watch removal occurs before select-thread stop; connection reset and later object destruction own descriptor closure."
    }
   },
   "leds_zp": {
