@@ -143698,7 +143698,7 @@
   "addrmon": {
    "name": "Netlink interface-address and Wi-Fi notification monitor",
    "summary": "Parses local kernel address, bridge-link and Wi-Fi notifications and forwards them to one registered player callback owner. It has no ordered multi-subscriber list.",
-   "layout": "Constructor0x10537ad8 initializes vptr0x10ee6974, flags+4=0, select-thread owner+8=0, fd bookkeeping+0xc=-1, word+0x10=0, callback owner+0x14=0, rtnl handle+0x18=0 and interface names+0x1c/+0x2d empty. 0x10537b9c copies the two names into17-byte fields, allocates36-byte rtnl handle and opens group mask0x400011. Failure frees/nulls handle and returns0; success returns1. Destruction0x105378b0 closes/frees handle; deleting destructor tail-deletes64-byte monitor.",
+   "layout": "Constructor0x10537ad8 initializes vptr0x10ee6974, flags+4=0, select-thread owner+8=0, cached watched fd+0xc=-1, returned epoll event mask+0x10=0, callback owner+0x14=0, rtnl handle+0x18=0 and interface names+0x1c/+0x2d empty. 0x10537b9c copies the two names into17-byte fields, allocates36-byte rtnl handle and opens group mask0x400011. Failure frees/nulls handle and returns0; success returns1. Destruction0x105378b0 closes/frees handle; deleting destructor tail-deletes64-byte monitor.",
    "ownership": "Exactly one stored callback pointer+0x14, assigned by0x10537c40; this semantically tail-calls select-thread slot+8 to register monitor. Stop0x10537c6c clears callback first and tail-calls retained select-thread slot+0xc to unregister when available. There is no observer array, subscriber traversal or registration ordering. Sole direct start callsite0x1019a88c supplies outer player+0x3a8 callback and outer+0x4d8 select-thread; outer+0x3a8 has vptr0x10e98278. Sole open0x100c1668 supplies br0 and ath0.",
    "select_interface": "Monitor vptr0x10ee6974: +0/+4 destructors, +8 returns event-name table0x11092540 for reset/data/except/timeout, +0xc returns rtnl fd, +0x10/+0x14 return0, +0x18 reads notifications0x105383cc, +0x1c writes timeval{INT_MAX,0}, +0x20 no-op, +0x24 returns0, +0x28 no-op. This implementation acts on data readiness; it does not periodically poll for address changes.",
    "wire_parser": "0x105383cc recvfroms up to2048 bytes, requires sockaddr family16, and walks native-endian netlink headers with nlmsg_len>=16 and <=remaining. Each message advances align4(length). Dispatch uses sender nl_groups:16 accepts RTM_NEWADDR20/RTM_DELADDR21;1 accepts RTM_NEWLINK16/RTM_GETLINK18;0x400000 selects custom Wi-Fi events. Unsupported groups log unexpected message %X. Receive failure logs errno/string; non-netlink family logs incorrect type. Returned select timeout is INT_MAX seconds,0 usec.",
@@ -143776,8 +143776,61 @@
      "build": "86.10-80260",
      "address": "0x10ee6974",
      "notes": "Select watcher slots including no-op and infinite timeout."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1053789c",
+     "notes": "Netlink watcher fd getter: monitor.handle+0x18 -> handle.fd+0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10537b9c",
+     "notes": "36-byte handle,group mask0x400011 and opener error handling."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x1d04",
+     "notes": "NETLINK_ROUTE socket/bind/getsockname validation and close-on-failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x1ce4",
+     "notes": "Nonnegative descriptor tail-close."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10537c40",
+     "notes": "Callback owner and select registration tail."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10537c6c",
+     "notes": "Callback clear then select unregistration tail."
     }
-   ]
+   ],
+   "fd_producer": {
+    "name": "RIfAddressMonitor",
+    "vtable": "0x10ee6974",
+    "getter": "slot+0xc=0x1053789c -> monitor+0x18 rtnl handle -> handle+0 fd",
+    "socket_producer": "libwifi.so.1 rtnl_open0x1d04 clears36-byte handle,calls socket(16,3,0),stores result at handle+0,binds sockaddr_nl{family16,pid0,groups=callerMask} at handle+4 and validates getsockname length12/family16. Monitor opener0x10537b9c supplies mask0x400011.",
+    "open_errors": "Socket failure returns-1. Bind/getsockname failure or invalid returned family/length closes fd and stores-1. Monitor frees/nulls handle on any nonzero rtnl_open result.",
+    "registration": "0x10537c40 stores callback owner+0x14 and semantically tail-calls supplied select interface slot+8. Live caller0x1019a88c supplies the player callback and select thread.",
+    "stop_and_close": "0x10537c6c clears callback then tail-calls retained select owner slot+0xc to unregister. Destruction0x105378b0 calls libwifi rtnl_close0x1ce4,which tail-closes a nonnegative handle fd,then frees36-byte handle.",
+    "callbacks": "data+0x18=0x105383cc (netlink receive/parser),timeout+0x1c=0x10c5d128 (INT_MAX seconds,0 usec),exception+0x20=0x10c5d11c no-op,reset+0x28=0x10c5d148 no-op",
+    "meaning": "Kernel address,bridge-link and custom Wi-Fi message subscription. It is not an ARP socket or recurring address-poll timer."
+   }
   },
   "audiotap_manager": {
    "name": "audiotap async requests",
@@ -145220,10 +145273,129 @@
      "build": "86.10-80260",
      "address": "0x1018fac8",
      "notes": "Concrete manager registration owner and br0 name construction."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1053789c",
+     "notes": "Netlink watcher fd getter: monitor.handle+0x18 -> handle.fd+0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10537b9c",
+     "notes": "36-byte handle,group mask0x400011 and opener error handling."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x1d04",
+     "notes": "NETLINK_ROUTE socket/bind/getsockname validation and close-on-failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x1ce4",
+     "notes": "Nonnegative descriptor tail-close."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10537c40",
+     "notes": "Callback owner and select registration tail."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10537c6c",
+     "notes": "Callback clear then select unregistration tail."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea6458",
+     "notes": "IR select interface at primary+8 and all11 slots."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10244444",
+     "notes": "IR getter adjustment and cached fd+0x54e34."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10247e04",
+     "notes": "IR constructor initializes cached fd-1 and handle0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102436e0",
+     "notes": "Parent startup supplies decoder+0x218 and select argument."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10248e08",
+     "notes": "Hardware open/get-fd then select registration even on error."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "address": "0xeec",
+     "notes": "IR handle allocation,/dev/ir open and driver-type ioctl."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "address": "0x106c",
+     "notes": "IR descriptor getter validates handle and driver type."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "address": "0x10b8",
+     "notes": "IR close,free and pointer clear."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10245170",
+     "notes": "Compiled unregister tail helper; branch caller census found no calls."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1109b008",
+     "notes": "timevalInf dynamic symbol and R_PPC_COPY relocation."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-time-c.so.1",
+     "build": "86.10-80260",
+     "address": "0x20018",
+     "notes": "Defining timevalInf constant{INT_MAX,0}."
     }
    ],
    "todo": [
-    "Established: the19-slot selector registry,handler owner/watched-fd/event-mask members,and the ARPingManager br0 packet-socket binding and four callbacks are traced. Remaining: recover the concrete fd-producing fields,open/close lifecycle and registration owner for ArpChecker,RHWEvtHandlerZP,RIPCHandler,RIRDecoder,RIfAddressMonitor,RMSearchNotifyHandler and RTrackPlayMonitor. Trace each handler vtable+0xc back through its constructor and writers,and join it to the registration caller; runtime descriptor numbers themselves are not unresolved enum constants."
+    "Established:19-slot selector registry and owner/watched-fd/event-mask members; ARPingManager br0 packet-socket binding and callbacks; RIfAddressMonitor netlink socket,group mask,registration/unregistration and close; RIRDecoder embedded interface,/dev/ir fd production,read/close and imported infinite timeout. Remaining: concrete descriptor-producing fields,open/close and registration owners for ArpChecker,RHWEvtHandlerZP,RIPCHandler,RMSearchNotifyHandler and RTrackPlayMonitor; additionally verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Follow each getter and constructor/caller chain,including semantic tail calls. Runtime fd integers are not missing constants."
    ],
    "resolved_findings": [
     "Resolved: watcher registrations = {epollAddFD, selthrd, RSelectThreadMutex, SelthrdUpdateMutex, epollReset} + user-FD guards per subsystem.",
@@ -145241,6 +145413,28 @@
     "reset_callback": "manager vtable+0x28 ->0x1058720c; cancel pending work if resetAll is set and close socket",
     "labels": "0x11092708 points to selthrd.ARPingManager.reset/.data/.except/.timeout",
     "proof": "Concrete constructor0x1018fac8 and raw vtable0x10ef0060 join interface name,fd producer and all four callbacks. Actual descriptor integer is assigned by socket(),so it is intentionally not a constant."
+   },
+   "netlink_watcher_binding": {
+    "name": "RIfAddressMonitor",
+    "vtable": "0x10ee6974",
+    "getter": "slot+0xc=0x1053789c -> monitor+0x18 rtnl handle -> handle+0 fd",
+    "socket_producer": "libwifi.so.1 rtnl_open0x1d04 clears36-byte handle,calls socket(16,3,0),stores result at handle+0,binds sockaddr_nl{family16,pid0,groups=callerMask} at handle+4 and validates getsockname length12/family16. Monitor opener0x10537b9c supplies mask0x400011.",
+    "open_errors": "Socket failure returns-1. Bind/getsockname failure or invalid returned family/length closes fd and stores-1. Monitor frees/nulls handle on any nonzero rtnl_open result.",
+    "registration": "0x10537c40 stores callback owner+0x14 and semantically tail-calls supplied select interface slot+8. Live caller0x1019a88c supplies the player callback and select thread.",
+    "stop_and_close": "0x10537c6c clears callback then tail-calls retained select owner slot+0xc to unregister. Destruction0x105378b0 calls libwifi rtnl_close0x1ce4,which tail-closes a nonnegative handle fd,then frees36-byte handle.",
+    "callbacks": "data+0x18=0x105383cc (netlink receive/parser),timeout+0x1c=0x10c5d128 (INT_MAX seconds,0 usec),exception+0x20=0x10c5d11c no-op,reset+0x28=0x10c5d148 no-op",
+    "meaning": "Kernel address,bridge-link and custom Wi-Fi message subscription. It is not an ARP socket or recurring address-poll timer."
+   },
+   "ir_watcher_binding": {
+    "name": "RIRDecoder",
+    "interface_slice": "Primary decoder+8 has vptr0x10ea6458. Cache fields live at primary+0x10 owner,+0x14 watched fd,+0x18 event mask.",
+    "getter": "slot+0xc=0x10244444 adjusts this-8 and tail-calls0x10244430,which loads primary+0x54e34. Constructor0x102473fc initializes fd=-1 at0x10247e04 and HAL handle+0x54e30=0 at0x10247e14.",
+    "socket_producer": "It is a character-device fd,not a socket. Startup0x10248e08 calls hal_ir_open(&primary+0x54e30) then hal_ir_get_fd(handle,&primary+0x54e34). libsyslib_hal.so.1 hal_ir_open0xeec allocates16-byte handle,opens /dev/ir with flags0x80002 and ioctl0x4004f400 identifies the driver type. Path is proven by .rela.dyn R_PPC_RELATIVE addend0x227c at GOT entry0x1ff0c. hal_ir_get_fd0x106c requires nonnull handle,marker5 at handle+c and device type1 at handle+4,then copies handle.fd+0.",
+    "startup_failure": "The primary initializes fd=-1. Open/get-fd errors are logged,and get-fd failure explicitly writes-1 at0x10248f30. The same select registration tail at0x10248edc executes after success or failure,so a registered IR handler is not proof of an open IR device.",
+    "registration": "Live parent function0x1024369c passes decoder=parent+0x218 and its unchanged r4 select-interface argument to0x10248e08 at0x102436e0. Startup tail-calls that interface slot+8 with handler=primary+8; RSelectThread fills handler+8 (primary+0x10) with owner.",
+    "callbacks": "data+0x18=0x1024deec adjusts-8 then tail-delegates0x1024dee0->0x1024dd38. Read builds a buffer at primary+0x56 and calls hal_ir_read with handle+0x54e30 at0x1024dd8c. timeout+0x1c=0x1024448c adjusts-8 and tail-calls0x10244468 to copy timevalInf. exception+0x20 is no-op0x10c5d11c; reset+0x28 is no-op0x10c5d148.",
+    "timeout_constant": "Main .dynsym names0x1109b008 as timevalInf,size8,and .rela.dyn contains R_PPC_COPY(type19). The defining symbol in libsonos-time-c.so.1 at0x20018 holds{2147483647,0}. These are not uninitialized zero globals or a periodic IR polling interval.",
+    "close": "Primary destructor0x10244fd0 calls hal_ir_close at0x10245028 when the handle is nonnull. HAL0x10b8 validates marker5,closes handle.fd,frees16-byte handle and clears the caller pointer. Compiled unregister helper0x10245170 uses primary+0x10 retained owner and semantically tail-calls its slot+0xc with primary+8; no direct or conditional/tail call to that helper was found in the whole text. Parent teardown/registration sequencing must still be traced before claiming that path runs in normal shutdown."
    }
   },
   "leds_zp": {
