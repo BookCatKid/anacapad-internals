@@ -125929,15 +125929,155 @@
    ]
   },
   "arping": {
-   "impl": "arping.cxx -> ARPingManager thread",
-   "semantics": "{async,sync} arping for <ip>, every <ms> for <ms>: ARP probing for connectivity/IP-conflict checks",
-   "todo": [
-    "Established: the ARPingManager thread and probe grammar are identified."
-   ],
-   "scheduling": "The ARPingManager lives as a zp-aa member (constructed in the zp mega-ctor f_1018d27c, torn down in f_101921a0). Probe scheduling goes through f_1058940c, the kick API: mutex -> store enable byte +0xf9, store the param word +0xfc, optionally clock_gettime the start stamp +0x104, then signal the +0xa8 wait-queue the manager thread blocks on - i.e. callers do not run ARP themselves, they arm the manager and its thread performs the probe. External callers cluster into two families: the zone-side monitor family at 0x10222xxx (f_10222f54/2e58/42ec/44d8/4574 call the kick/reset APIs f_1058940c/f_10589f64/f_1058964c/f_10589eec/f_1058a1d4/f_1058a07c/f_1058a23c) and the playback/stream-side family at 0x104dbxxx-0x104e6xxx (same entry points, plus f_105888fc/f_105887d0/f_105886e4 result queries). Result flow: the module keeps per-probe pending state - 'arping for %s, pending reset in progress' shows results resolving a pending-reset flag rather than pushing verdicts; the monitor that armed the probe reads the outcome via the f_10588xxx query functions on its next cycle and applies its own connectivity decision (retry vs reset). Additional single callers: f_105e9694 (f_10588348), f_1067e4d8 (f_105883e4), f_1068108c (f_10588480), f_107411a0 (f_10586a94).",
-   "resolved_findings": [
-    "Resolved: probes are armed via f_1058940c (enable +0xf9, param +0xfc, start +0x104, signal +0xa8) - monitors kick, the manager thread probes; consumers are the zone-monitor family (0x10222xxx) and the playback/stream-monitor family (0x104dbxxx..0x104e6xxx) which read results through the f_10588xxx query functions.",
-    "Resolved: ARP probes are scheduled by the topology layer - the async starter f_10586a94 ('async arping started for %s, every %u ms for %u ms') is called once from topology_base.cxx at 0x1074124c (sync variant 'sync arping started' at 0x10586d6c). Results classify against the tracked-device table at f_1073ea64: {arping successful for active device, arping successful for vanished device, arping ip address matched but not mac address, arping unsuccessful} - feeding zone-membership/connectivity decisions. A pending reset blocks new probes ('cannot start async arping for %s, pending reset in progress')."
+   "impl": "arping.cxx: 0x140-byte select-handler manager, 0x50-byte per-probe request and 18-byte meaningful result",
+   "semantics": "Concurrent local Ethernet/IPv4 ARP probing, scheduled retries and deadlines, asynchronous callback or compiled synchronous result delivery. This lower packet manager uses a supplied select-thread owner, not its own worker thread.",
+   "description": "Checks which hardware address is using a local-network IP address by sending ARP queries. A caller supplies the target IP, the spacing between probes and how long the attempt may run. The manager can keep several attempts pending on one packet socket and return a success record containing the observed IP, MAC address and reception time, or an empty failure record when an attempt expires or the socket is reset. An asynchronous caller receives a callback; the compiled synchronous interface waits for completion and returns the same record.\n\nThe important quirk is what counts as evidence: the receiver accepts either an ARP query or an ARP reply sent by the target IP. It does not require a reply addressed to this speaker or check the sender MAC against the expected player identity. The topology callback performs that second comparison, so observing traffic from an IP and confirming the expected speaker are separate steps. A single packet can finish several attempts for the same IP. A socket error resets pending work, and a brief reset-pending state can refuse a new asynchronous attempt. This primitive checks local address reachability; it does not authenticate Wi-Fi association or prove that a reachable speaker can play audio.",
+   "manager_layout": "Constructor0x10585ecc stores vptr0x10ef0060, needsReset+4=0, retained select-owner+8=0, opaque inherited word+c=-1, inherited+0x10=0, supplied select interface+0x14=r4, interface name+0x18 copied with strlcpy cap16, socket+0x28=-1, lastErrno+0x2c=0, source IPv4+0x30=0, sockaddr_ll at+0x34 (family17,protocol0x0806,ifindex+0x38,hatype1 at+0x3c,pkttype1 at+0x3e,halen6 at+0x3f,MAC+0x40..+0x45), pending head+0x48=0,tail+0x4c=0,count+0x50=0,recursive mutex+0x58,condition variable+0xe8 and resetAll+0x138=0. Tail0x10585fdc calls supplied select interface slot+8 to register this handler; registration is a semantic call, not constructor termination without registration.",
+   "virtual_interface": "Manager vtable0x10ef0060 has11 slots: +0=destructor0x1058660c,+4=deleting destructor0x10586770,+8=label accessor0x105857dc returning0x11092708,+0xc=locked fd getter0x105857f0,+0x10=zero-return0x10538638,+0x14=zero-return0x1024def4,+0x18=read-ready handler0x10586f08,+0x1c=timeout handler0x10586e54,+0x20=no-op0x10c5d11c,+0x24=locked errno getter0x10585858,+0x28=reset handler0x1058720c. 0x10585fe0 semantically tail-calls retained select-owner slot+0xc to unregister if owner+8 is nonnull. Destructor drains pending requests with empty results, calls supplied select interface slot+0xc and destroys condition/mutex. Deleting destructor tail-deletes0x140 bytes.",
+   "probe_layout": "Constructor0x105859f4 installs vptr0x10ef004c, next+4=0,prev+8=0,ownerLink+c=0,synchronous+0x10 from r4,done+0x11=0,target IPv4+0x14=*r5,nextSendMs+0x18/+0x1c,expiryMs+0x20/+0x24,intervalMs+0x28/+0x2c,result+0x30..+0x41,callback+0x44 and cookie+0x48. Raw arithmetic0x10585a84..0x10585b08 converts clock-id1 timeval to signed-expanded64-bit milliseconds sec*1000+usec/1000; next send starts at now and expiry=now+duration. Its low-word carries were checked against raw addc/adde/subfc/subfe instructions. Request vtable+0=empty destructor0x1058738c,+4=deleting destructor0x105873a8 (tail-delete0x50),+8=zero-return0x10587398. The list is dynamically allocated rather than a fixed probe-slot array.",
+   "entrypoints": "Asynchronous0x10586a94(manager,ipText,intervalU32ms,durationU32ms,callback,cookie) uses inet_aton; parse failure returns0. It allocates a0x50-byte request with synchronous=0, zero high words for interval/duration, and under the manager mutex rejects needsReset+4!=0, deleting the request. Enqueue0x10586978 ensures a usable socket, rejects an already-owned request (ownerLink+c!=0), appends to head/tail, increments count, stores ownerLink=&manager.head, processes scheduled work, updates supplied select interface slot+0x18 with the next timeout and explicitly sends a probe; return1 means accepted, not successful reachability. Compiled synchronous0x10586c3c parses ipText, allocates synchronous=1 through0x10585bf4, enqueues and waits on+0xe8 until request.done+0x11. It copies18 meaningful result bytes then deletes the request; return1 means the wait completed, with result.valid carrying success. It does not have the asynchronous wrapper's explicit needsReset check. Zero intervals/durations are not rejected by these wrappers.",
+   "socket_setup": "Open0x10586148 calls socket(17,3,0x0806): AF_PACKET/SOCK_RAW/ARP on this big-endian target. Helper0x10586014 queries the configured interface through ioctls0x8933 (index),0x8927 (hardware address),0x8915 (IPv4 address), filling manager+0x38,+0x40,+0x30. Any query failure closes the temporary socket through tail branch0x10586238 and leaves manager.fd=-1; a successful open stores it at+0x28. No bind/filter installation occurs in this setup path. Close0x1058623c closes a nonnegative retained fd then stores-1.",
+   "wire_emit": "0x105862d4 sends a42-byte Ethernet+ARP frame from sp+0x42 using sendto(fd,buffer,0x2a,0,&manager.sockaddr_ll,0x14). Wire layout: bytes0..5 broadcast ff:ff:ff:ff:ff:ff from constant0x10ef008c;6..11 local MAC;12..13 EtherType0x0806;14..15 hardware type1;16..17 protocol type0x0800;18 hardware length6;19 protocol length4;20..21 opcode1;22..27 sender/local MAC;28..31 sender/local IPv4;32..37 target hardware address also broadcast ff bytes;38..41 requested target IPv4. u16/u32 fields are emitted in network order on PPC. A sendto result-1 stores errno+0x2c and sets resetAll+0x138 and needsReset+4; other returns are not checked for an exact42-byte send.",
+   "wire_acceptance": "Read-ready0x10586f08 calls recv(fd,sp+0x52,42,0x40). It requires the returned count==42, EtherType0x0806,ARP hardware type1,protocol type0x0800,hlen6,plen4 and opcode1 or2. Raw0x5529043e at0x10587080 masks (opcode-1) to low16, then unsigned comparison at0x10587084 accepts<=1; the local disassembler's srwi label is incorrect. This is requests and replies, not replies only. A frame longer than42 can supply its first42 bytes because recv does not request MSG_TRUNC; a short frame is ignored. No Ethernet source/destination consistency,ARP target-IP or target-MAC check,receive-interface check or expected-player-MAC check occurs in this handler. It matches the ARP sender IPv4 at bytes28..31 to each request.target+0x14; all matching pending requests receive the same observed MAC from bytes22..27 and can complete. It checks no expiry timestamp on this receive path, so removal by scheduled-work processing is separate from packet matching.",
+   "result_format": "18 meaningful bytes in20-byte aligned storage: +0 valid byte (0=empty failure,1=observed packet),+1..+3 padding,+4 native u32 clock-id1 reception seconds,+8 four network-order sender-IP bytes,+0xc six sender-MAC bytes. Empty-result initializer0x105858c0 clears valid,time,IP and MAC, but does not initialize padding. Constructor0x10585934 fills the same fields. Receive0x10587100 reads reception time;0x10587128..0x10587198 writes request.result then completion0x105864a4 delivers it. No error-kind enum is embedded in a failure result; the manager errno getter is a separate channel.",
+   "scheduling": "Per-request tick0x10585c8c converts clock-id1 timeval to milliseconds. A request remains live iff expiry>now (strict unsigned64 comparison); expiry==now completes with an empty result. For live requests, nextSend<=now sets the send-due output and advances nextSend by exactly one interval, not a loop that jumps directly past now. It returns timeout=max(0,min(nextSend,expiry)-now), split into seconds and microseconds through division/remainder by1000. Manager work0x105867a4 visits the linked list, completes expired requests, sends due requests and chooses the minimum remaining timeout through timevalMinimize. Timeout0x10586e54 invokes that work under the mutex. Enqueue invokes it before an explicit send, so a new still-live request can send twice initially. Zero duration can complete during insertion before the later explicit-send path; this code has no minimum-duration guard. These are instruction-level behaviors, not a runtime packet-count experiment.",
+   "completion_and_reset": "Completion0x105864a4 unlinks a queued request, repairs head/tail/next/prev, decrements count and clears its links. Asynchronous mode invokes callback(cookie,&result) when nonnull then request vtable+4 deletes it. Synchronous mode sets done+0x11=1 and signals condition+0xe8, leaving deletion to the waiter. If the list empties, select interface slot+0x18 receives null timeout and needsReset+4 becomes1. Reset0x1058720c cancels all requests with empty results only when resetAll+0x138 is set, then clears that flag, closes the socket and clears needsReset; ordinary last-request cleanup also closes the socket. Receive result-1 stores errno; errno11 (EAGAIN) leaves pending work and reset flags alone, while other errno values set both flags. Result delivery is under the manager's recursive mutex. Requests have no separate cancellation-name operation in this lower class.",
+   "callers_and_identity": "Player constructor0x1018fac8 calls manager ctor0x10585ecc. Whole-.text direct/unconditional/conditional-tail scan found one asynchronous starter caller, topology0x1074124c, using interval300ms,duration1000ms,callback0x1073ea64,cookie=topology owner. No caller,aligned non-text function pointer,or lis/low address formation was found for compiled synchronous entry0x10586c3c or async factory0x10585b48. This documents their compiled semantics without claiming an active call path. Topology callback0x1073ea64 checks result.valid; formats result.IP+8, parses observed MAC+0xc, finds active or vanished devices by IP and compares expected MAC through0x10551d04 at0x1073ebc8/0x1073ec70. Only the appropriate match reaches successful-active/successful-vanished branches; mismatch logs0x10f1263c,empty result logs arping unsuccessful. A packet seen from an IP is therefore not independently authenticated by this primitive.",
+   "scope_correction": "The earlier scheduling paragraph merged distinct objects: writes at0x1058940c to+0xf9/+0xfc/+0x104 and the0x10588xxx query family belong to the separate higher-level ARPingManager/monitor object, not the0x140-byte packet manager above (+0xf9 is inside this manager's condition-variable storage). Those offsets are not fields or scheduling APIs of this primitive. The packet manager is driven by the supplied select interface and its readiness/timeout/reset callbacks. ARP checker statistics and controller-association telemetry have separate records.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10585ecc",
+     "notes": "Manager layout and constructor tail registration."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ef0060",
+     "notes": "Eleven virtual slots independently read; default zero/no-op methods inspected."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105859f4",
+     "notes": "Request members, mode/callback and raw64-bit clock arithmetic."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10585c8c",
+     "notes": "Strict deadline, due predicate, one-interval advance and wait-time calculation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10586014",
+     "notes": "Interface-index/MAC/IPv4 ioctl chain."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10586148",
+     "notes": "Packet socket open and tail-close on interface setup failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105862d4",
+     "notes": "Complete42-byte Ethernet/ARP serializer and send-error flags."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ef008c",
+     "notes": "Six constant ff bytes used in both destination hardware fields."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10586978",
+     "notes": "Queue insertion, scheduled-work call, timeout update and explicit send."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10586a94",
+     "notes": "Asynchronous IPv4 parser, pending-reset guard and acceptance return."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10586c3c",
+     "notes": "Synchronous allocation, completion wait,18-byte copy and deletion."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10586f08",
+     "notes": "Nonblocking42-byte receive,complete header predicates and matching loop."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10587080",
+     "notes": "Raw0x5529043e is AND0xffff; opcode1/2 guard."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105871e4",
+     "notes": "EAGAIN11 distinguishes transient receive condition from reset-triggering errors."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105864a4",
+     "notes": "List unlink,callback or condition signal and empty-list reset mark."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1058720c",
+     "notes": "Reset cancellation, socket close and reset-byte clearing."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105858c0",
+     "notes": "Meaningful result fields and uncleared padding."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1074124c",
+     "notes": "Topology caller supplies300ms interval,1000ms duration and callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1073ea64",
+     "notes": "Consumer separates observed-IP success from expected-MAC identity match."
+    }
    ]
   },
   "muse_authhelper": {
