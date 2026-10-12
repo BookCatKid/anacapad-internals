@@ -125943,7 +125943,7 @@
    "scheduling": "Per-request tick0x10585c8c converts clock-id1 timeval to milliseconds. A request remains live iff expiry>now (strict unsigned64 comparison); expiry==now completes with an empty result. For live requests, nextSend<=now sets the send-due output and advances nextSend by exactly one interval, not a loop that jumps directly past now. It returns timeout=max(0,min(nextSend,expiry)-now), split into seconds and microseconds through division/remainder by1000. Manager work0x105867a4 visits the linked list, completes expired requests, sends due requests and chooses the minimum remaining timeout through timevalMinimize. Timeout0x10586e54 invokes that work under the mutex. Enqueue invokes it before an explicit send, so a new still-live request can send twice initially. Zero duration can complete during insertion before the later explicit-send path; this code has no minimum-duration guard. These are instruction-level behaviors, not a runtime packet-count experiment.",
    "completion_and_reset": "Completion0x105864a4 unlinks a queued request, repairs head/tail/next/prev, decrements count and clears its links. Asynchronous mode invokes callback(cookie,&result) when nonnull then request vtable+4 deletes it. Synchronous mode sets done+0x11=1 and signals condition+0xe8, leaving deletion to the waiter. If the list empties, select interface slot+0x18 receives null timeout and needsReset+4 becomes1. Reset0x1058720c cancels all requests with empty results only when resetAll+0x138 is set, then clears that flag, closes the socket and clears needsReset; ordinary last-request cleanup also closes the socket. Receive result-1 stores errno; errno11 (EAGAIN) leaves pending work and reset flags alone, while other errno values set both flags. Result delivery is under the manager's recursive mutex. Requests have no separate cancellation-name operation in this lower class.",
    "callers_and_identity": "Player constructor0x1018fac8 calls manager ctor0x10585ecc with interface-name literal br0 at0x10e75170. Whole-.text direct/unconditional/conditional-tail scan found one asynchronous starter caller, topology0x1074124c, using interval300ms,duration1000ms,callback0x1073ea64,cookie=topology owner. No caller,aligned non-text function pointer,or lis/low address formation was found for compiled synchronous entry0x10586c3c or async factory0x10585b48. This documents their compiled semantics without claiming an active call path. Topology callback0x1073ea64 checks result.valid; formats result.IP+8, parses observed MAC+0xc, finds active or vanished devices by IP and compares expected MAC through0x10551d04 at0x1073ebc8/0x1073ec70. Only the appropriate match reaches successful-active/successful-vanished branches; mismatch logs0x10f1263c,empty result logs arping unsuccessful. A packet seen from an IP is therefore not independently authenticated by this primitive.",
-   "scope_correction": "The earlier scheduling paragraph merged distinct objects: writes at0x1058940c to+0xf9/+0xfc/+0x104 and the0x10588xxx query family belong to the separate higher-level ARPingManager/monitor object, not the0x140-byte packet manager above (+0xf9 is inside this manager's condition-variable storage). Those offsets are not fields or scheduling APIs of this primitive. The packet manager is driven by the supplied select interface and its readiness/timeout/reset callbacks. ARP checker statistics and controller-association telemetry have separate records.",
+   "scope_correction": "The earlier scheduling paragraph merged distinct objects: writes at0x1058940c to+0xf9/+0xfc/+0x104 and the0x10588xxx query family belong to a separate monitor object,not the0x140-byte packet manager above (+0xf9 is inside this manager's condition-variable storage). Those offsets are not fields or scheduling APIs of this primitive. The packet manager is driven by the supplied select interface and its readiness/timeout/reset callbacks. ArpChecker is also separate: its watched fd is a local wakeup pipe,and its temporary socket performs SIOCGARP cache queries. See select_thread and arp_assoc for that concrete producer chain. Controller-association telemetry has its own record.",
    "evidence": [
     {
      "type": "firmware",
@@ -141453,12 +141453,96 @@
   },
   "arp_assoc": {
    "name": "arpchecker+arping+assoctracker: L2 connectivity",
-   "summary": "arpchecker \"ARP failure: %d consecutive attempts for %s failed: groupcast problem suspected\" + \"ARP to %s resolved after %d failures\" + source_ip/msreplyfailure; arping {async,sync} \"started for %s, every %u ms for %u ms\" + reset-on-data + timeout adjust + \"pending reset in progress\" guard; assoctracker CrAssoc metrics {mstime1,mstime2,msnum,arpscstime,arpatt,arpscs,arpsnum,ddtime1,ddtime2,ddnum} + \"Skip reporting invalid CrAssoc event\"; async arping 'cannot start async arping for %s, pending reset in progress','async arping started for %s, every %u ms for %u ms'/'sync arping started for %s, every %u ms for %u ms','timeout, new timeout %d s, %d us','got data, needs reset: %d, new timeout %d s, %d us'",
+   "summary": "Local reachability diagnostics combine two different mechanisms: ArpChecker queues delayed kernel-ARP-cache checks through a local pipe,while ARPingManager sends raw ARP queries and returns observed sender IP/MAC data. Controller-association tracking adds discovery and description-request timings. These are observations of local connectivity,not Wi-Fi authentication or proof of successful audio playback.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10eefee8",
      "notes": "arp/assoc blocks"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eefd58",
+     "notes": "ArpChecker watcher vtable and all callback bindings."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105845e8",
+     "notes": "Getter reads local pipe fd+0x104."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1058476c",
+     "notes": "Pipe fd initialization and four-entry storage."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584a38",
+     "notes": "Pipe creation and nonblocking flag setup."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584b1c",
+     "notes": "Write-end replacement and pending read-end staging."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105844d0",
+     "notes": "Reset closes watched read end and promotes staged replacement."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10585254",
+     "notes": "One-byte NUL wakeup write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584650",
+     "notes": "Read one local wakeup byte and return derived delay."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584d98",
+     "notes": "Separate AF_INET datagram socket,SIOCGARP query and close."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101988cc",
+     "notes": "Concrete player+0xa90 watcher and player+0x4d8 registration owner."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101937e0",
+     "notes": "Live watcher stop -> unregister helper."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584430",
+     "notes": "Destructor closes retained pipe ends."
     }
    ],
    "resolved_findings": [
@@ -141468,7 +141552,20 @@
     "Negative evidence: the 0x110a5448 uploader singleton lives in .bss (0x1109b000..0x110c9eb8) - no pointer word or code address-formation to it exists anywhere in the image, so the object is reached only via runtime-installed pointers/SDA-relative addressing whose anchor is initialized at startup. The +0x118 setter target therefore cannot be enumerated statically; boundary confirmed.",
     "Singleton census complete: 0x110a5448 is initialized solely by f_10559024 (registered via __cxa_atexit). The ctor seeds vtable 0x10eeae78 (+0x8), flag bytes, and zeroes +0x118/+0x120/+0x124/+0x128/+0x12c/+0x150. No pointer slot holds the singleton address and no other .text references it - +0x118 is never written non-zero inside anacapad, so the uploader object is never installed by this binary.",
     "Boundary closed: +0x118 is a private member of the anacapad-internal Meyers singleton (0x110a5448) and stays 0 for the process lifetime - no sibling process or library can write it, and the only setter caller passes that member, so pUploader installs null. The CrAssoc emit path therefore has no uploader in build 86.10-80260; the class is unbound in-image, not deferred to a sibling daemon."
-   ]
+   ],
+   "cache_checker_transport": {
+    "name": "ArpChecker",
+    "vtable": "0x10eefd58",
+    "getter": "slot+0xc=0x105845e8 reads checker+0x104 under mutex. This is a local pipe read end,not the socket used to query ARP.",
+    "initial_state": "Constructor0x1058476c sets pipeRead+0x104,pipeWrite+0x108,pendingReplacementRead+0x10c to-1,opened+0x110=0,resetRequested+4=0 and owner+8=0. Four20-byte tracked entries start+0xa8; the neighboring delay+0x100 is outside that array.",
+    "producer": "Setup0x1058481c obtains the current interface name into+0x111 and local address+0xfc through0x100a8580. It reads retrans_time_ms or legacy retrans_time from /proc/sys/net/ipv4/neigh/<interface>/...,converts legacy ticks using sysconf(2),reads mcast_solicit,and stores checkDelayMs=retransMs*mcastSolicit+500 at+0x100. pipe() at0x10584a38 creates two fds; fcntl(F_SETFL=4,0x800) makes both ends nonblocking. Failed pipe/fcntl setup returns failure and closes newly created ends.",
+    "descriptor_change": "Successful setup closes the previous write end if valid and installs the new write fd at+0x108. When no read fd is installed,it stores the new read end at+0x104. Otherwise it closes any older pending read end,stores the replacement at+0x10c and sets resetRequested+4=1. Reset callback+0x28=0x105844d0 closes the old+0x104,promotes+0x10c and clears pending/reset. Thus descriptor replacement occurs in the select reset phase after old-watch removal,not silently in a data callback.",
+    "registration": "Live player startup0x101988c0 initializes checker at player+0xa90,then0x101988cc registers it through0x10584b78 using player+0x4d8 select thread. Registration tail-calls supplied interface slot+8. Stop0x101937e0 calls0x10584ba0,whose tail-call invokes retained owner slot+0xc.",
+    "read_and_timer": "Request path0x105850dc can track a target IPv4 among four entries and writes one NUL byte to pipeWrite+0x108 at0x10585254. Read-ready slot+0x18=0x10584650 reads one byte from pipeRead then returns timeout checkDelayMs/1000 seconds and(checkDelayMs%1000)*1000 usec. It does not parse an ARP frame from the pipe; even a logged read error reaches the timeout calculation. Timeout slot+0x1c=0x105856d8 semantically tail-delegates0x105853b0,which checks tracked entries against the kernel ARP cache.",
+    "temporary_query_socket": "Helper0x10584d98 opens socket(AF_INET=2,SOCK_DGRAM=2,protocol0),fills an arpreq for the target and configured interface,performs ioctl SIOCGARP0x8954,copies returned flags and closes this temporary fd before returning. Consumers test flag0x2 (complete/resolved) at0x10585224. The helper socket never becomes checker+0x104 and is not the descriptor registered with epoll.",
+    "close": "Destructor0x10584430 closes retained read and write ends when opened+0x110 is set. The live stop call unregisters before object destruction; rebuild also handles the previous write end and pending read replacement.",
+    "meaning": "A local wakeup pipe coordinates delayed inspections of kernel neighbor-resolution state. It is distinct from ARPingManager,which sends and validates raw ARP frames."
+   }
   },
   "audio_fifo": {
    "name": "audiofifo: record-based circular audio buffer (eSDK)",
@@ -145392,10 +145489,94 @@
      "build": "86.10-80260",
      "address": "0x20018",
      "notes": "Defining timevalInf constant{INT_MAX,0}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eefd58",
+     "notes": "ArpChecker watcher vtable and all callback bindings."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105845e8",
+     "notes": "Getter reads local pipe fd+0x104."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1058476c",
+     "notes": "Pipe fd initialization and four-entry storage."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584a38",
+     "notes": "Pipe creation and nonblocking flag setup."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584b1c",
+     "notes": "Write-end replacement and pending read-end staging."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105844d0",
+     "notes": "Reset closes watched read end and promotes staged replacement."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10585254",
+     "notes": "One-byte NUL wakeup write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584650",
+     "notes": "Read one local wakeup byte and return derived delay."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584d98",
+     "notes": "Separate AF_INET datagram socket,SIOCGARP query and close."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101988cc",
+     "notes": "Concrete player+0xa90 watcher and player+0x4d8 registration owner."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101937e0",
+     "notes": "Live watcher stop -> unregister helper."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10584430",
+     "notes": "Destructor closes retained pipe ends."
     }
    ],
    "todo": [
-    "Established:19-slot selector registry and owner/watched-fd/event-mask members; ARPingManager br0 packet-socket binding and callbacks; RIfAddressMonitor netlink socket,group mask,registration/unregistration and close; RIRDecoder embedded interface,/dev/ir fd production,read/close and imported infinite timeout. Remaining: concrete descriptor-producing fields,open/close and registration owners for ArpChecker,RHWEvtHandlerZP,RIPCHandler,RMSearchNotifyHandler and RTrackPlayMonitor; additionally verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Follow each getter and constructor/caller chain,including semantic tail calls. Runtime fd integers are not missing constants."
+    "Established:19-slot selector registry and generic handler members; ARPingManager packet-socket binding; RIfAddressMonitor netlink subscription; RIRDecoder /dev/ir fd production/read/close and imported infinite timeout; ArpChecker nonblocking wakeup pipe,live registration/unregistration and staged descriptor replacement. Remaining: concrete fd-producing fields,open/close and registration owners for RHWEvtHandlerZP,RIPCHandler,RMSearchNotifyHandler and RTrackPlayMonitor; additionally verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Follow getters and constructor/caller chains,including semantic tail calls. Runtime descriptor integers are not missing constants."
    ],
    "resolved_findings": [
     "Resolved: watcher registrations = {epollAddFD, selthrd, RSelectThreadMutex, SelthrdUpdateMutex, epollReset} + user-FD guards per subsystem.",
@@ -145435,6 +145616,19 @@
     "callbacks": "data+0x18=0x1024deec adjusts-8 then tail-delegates0x1024dee0->0x1024dd38. Read builds a buffer at primary+0x56 and calls hal_ir_read with handle+0x54e30 at0x1024dd8c. timeout+0x1c=0x1024448c adjusts-8 and tail-calls0x10244468 to copy timevalInf. exception+0x20 is no-op0x10c5d11c; reset+0x28 is no-op0x10c5d148.",
     "timeout_constant": "Main .dynsym names0x1109b008 as timevalInf,size8,and .rela.dyn contains R_PPC_COPY(type19). The defining symbol in libsonos-time-c.so.1 at0x20018 holds{2147483647,0}. These are not uninitialized zero globals or a periodic IR polling interval.",
     "close": "Primary destructor0x10244fd0 calls hal_ir_close at0x10245028 when the handle is nonnull. HAL0x10b8 validates marker5,closes handle.fd,frees16-byte handle and clears the caller pointer. Compiled unregister helper0x10245170 uses primary+0x10 retained owner and semantically tail-calls its slot+0xc with primary+8; no direct or conditional/tail call to that helper was found in the whole text. Parent teardown/registration sequencing must still be traced before claiming that path runs in normal shutdown."
+   },
+   "arp_cache_watcher_binding": {
+    "name": "ArpChecker",
+    "vtable": "0x10eefd58",
+    "getter": "slot+0xc=0x105845e8 reads checker+0x104 under mutex. This is a local pipe read end,not the socket used to query ARP.",
+    "initial_state": "Constructor0x1058476c sets pipeRead+0x104,pipeWrite+0x108,pendingReplacementRead+0x10c to-1,opened+0x110=0,resetRequested+4=0 and owner+8=0. Four20-byte tracked entries start+0xa8; the neighboring delay+0x100 is outside that array.",
+    "producer": "Setup0x1058481c obtains the current interface name into+0x111 and local address+0xfc through0x100a8580. It reads retrans_time_ms or legacy retrans_time from /proc/sys/net/ipv4/neigh/<interface>/...,converts legacy ticks using sysconf(2),reads mcast_solicit,and stores checkDelayMs=retransMs*mcastSolicit+500 at+0x100. pipe() at0x10584a38 creates two fds; fcntl(F_SETFL=4,0x800) makes both ends nonblocking. Failed pipe/fcntl setup returns failure and closes newly created ends.",
+    "descriptor_change": "Successful setup closes the previous write end if valid and installs the new write fd at+0x108. When no read fd is installed,it stores the new read end at+0x104. Otherwise it closes any older pending read end,stores the replacement at+0x10c and sets resetRequested+4=1. Reset callback+0x28=0x105844d0 closes the old+0x104,promotes+0x10c and clears pending/reset. Thus descriptor replacement occurs in the select reset phase after old-watch removal,not silently in a data callback.",
+    "registration": "Live player startup0x101988c0 initializes checker at player+0xa90,then0x101988cc registers it through0x10584b78 using player+0x4d8 select thread. Registration tail-calls supplied interface slot+8. Stop0x101937e0 calls0x10584ba0,whose tail-call invokes retained owner slot+0xc.",
+    "read_and_timer": "Request path0x105850dc can track a target IPv4 among four entries and writes one NUL byte to pipeWrite+0x108 at0x10585254. Read-ready slot+0x18=0x10584650 reads one byte from pipeRead then returns timeout checkDelayMs/1000 seconds and(checkDelayMs%1000)*1000 usec. It does not parse an ARP frame from the pipe; even a logged read error reaches the timeout calculation. Timeout slot+0x1c=0x105856d8 semantically tail-delegates0x105853b0,which checks tracked entries against the kernel ARP cache.",
+    "temporary_query_socket": "Helper0x10584d98 opens socket(AF_INET=2,SOCK_DGRAM=2,protocol0),fills an arpreq for the target and configured interface,performs ioctl SIOCGARP0x8954,copies returned flags and closes this temporary fd before returning. Consumers test flag0x2 (complete/resolved) at0x10585224. The helper socket never becomes checker+0x104 and is not the descriptor registered with epoll.",
+    "close": "Destructor0x10584430 closes retained read and write ends when opened+0x110 is set. The live stop call unregisters before object destruction; rebuild also handles the previous write end and pending read replacement.",
+    "meaning": "A local wakeup pipe coordinates delayed inspections of kernel neighbor-resolution state. It is distinct from ARPingManager,which sends and validates raw ARP frames."
    }
   },
   "leds_zp": {
