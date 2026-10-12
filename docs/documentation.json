@@ -151888,24 +151888,98 @@
   },
   "bin_frcheck": {
    "name": "frcheck",
-   "summary": "Factory-reset checker (/sbin/frcheck): a 20KB one-shot run once per boot by /etc/Configure that decides whether this boot continues normally or enters a reset. Pure decision component, no daemon.",
+   "summary": "At each normal startup, frcheck decides whether this Playbar should keep its saved configuration, perform a settings reset or perform a full factory reset. A persisted request whose first four bytes are SOFT selects the settings reset; an empty, unreadable or different request selects a full reset. It attempts to delete the request file after reading, before the hardware check; the deletion result is ignored. Holding the play/pause button overrides a soft request and selects a full reset. The checker only returns a decision: the boot script shows the reset light and asks the network-startup daemon to carry it out. It does not itself erase storage, validate the filesystem or reboot the player.",
    "artifacts": [
     "sbin/frcheck"
    ],
    "resolved_findings": [
-    "Resolved (boundary): verifies rootfs integrity (squashfs/partition consistency) at boot/update; exit contract = nonzero aborts the boot sequence stage.",
-    "Invocation site: /etc/Configure calls /sbin/frcheck right after mounting JFFS and touching /var/run/sonosledmgrd.flash_booting_led, before networking modules load.",
-    "Exit contract proven from Configure: rc=0 -> 'sonosledmgrd --fr' + 'netstartd --hard-reset' (full factory reset); rc=2 -> 'sonosledmgrd --fr' + 'netstartd --soft-reset' (settings-only reset); rc=1 -> normal boot continues.",
-    "Decision inputs from strings+dyn syms: reads /jffs/app/run/factoryReset.txt looking for the SOFT token (soft reset request persisted across reboot), samples front-panel button state via hal_inputs_get_buttons_state (button-held reset), and touches /dev/audioctl; prints 'APUinfo'.",
-    "Resolved: frcheck's two inputs are literal: sonosFileExists+sonosFileReadPartial on /jffs/app/run/factoryReset.txt (the persisted reset request written pre-reboot) and hal_inputs_get_buttons_state over /dev/audioctl (the power-on button-hold read). The rc contract {0=hard reset,1=normal boot,2=soft reset} is chosen by combining the file contents with the held-button mask; /dev/audioctl is the only device node it touches.",
-    "Resolved: decision logic from the .text (main 0x10000544+): rc starts 1 (normal). If /jffs/app/run/factoryReset.txt exists: sonosFileReadPartial reads 4 bytes + NUL; strcmp=='SOFT' -> rc=2 (soft reset); read<=0 or non-SOFT content -> rc=0 (hard reset); file is unlinked after reading either way (one-shot semantics). Then /dev/audioctl is opened and f_10000904 reads the button-state word into a 4-byte stack buf; if the probed byte ==1 -> rc=0 (hard reset) - a held panel button forces factory reset independent of the file. So: hard=empty/foreign file OR button-held; soft='SOFT' file; normal otherwise.",
-    "Resolved (boundary narrowed): hal_inputs_get_buttons_state (libsyslib_hal.so.1 @0x13cc) fills an 8-word (0x20-byte) output struct copied verbatim from a single ioctl 0x40F4FC3E on the button/input device (opened via a PIC-loaded path global; the only device literals in the lib are /dev/ir and /dev/audioctl). There is no GPIO->button-name table in the lib - the 8 words are the raw kernel-driver state word array, so byte-1 slot identity is kernel-module layout, confirmed opaque at this layer. Ioctl magic 0xF4 cmd 0x3E is the driver-defined read-state request.",
-    "hal_inputs_get_buttons_state proven (libsyslib_hal.so.1 @0x13cc): ioctl(fd, 0x40F4FC3E, buf) fills 8 u32 words copied verbatim to the out array (word[i]=stack[0x18+4i]); on primary-device failure it retries on a second device fd with ioctl 0x80000002. So the frcheck byte-1 slot is index 1 of the 8-word button-state vector - the per-index button identity is assigned in the kernel input driver, not userspace.",
-    "audiodev.ko has full symtab. Button name vocabulary recovered from button_sim_matches (.data+0x300, 72B = 8x{name_ptr,id} pairs via .rela.data): {mute, play-pause, volup, voldn, join, join, demo, demo} - the user-facing button names are {mute, play-pause, volup, voldn, join, demo}. audioctl_get_button_state (.text+0x4820) delivers a 0xf4-byte (61-word) button-state block to userland via hal_inputs_get_buttons_state.",
-    "Partially narrowed: audiodev.ko button_sim_matches rows are {name*, event_id u32} with ids in {7,8,9} (mute:7, play-pause:7, volup:8, voldn:9, join:7, join:8, demo:7, demo:9); button_sim_process_cmd stores the id byte into the queued event at +0x17, so the id column is a button-event class, not a GPIO word index - the 8-word->physical-button order remains board layout."
+    "Full decision chain verified: first-four-byte request parsing, one-shot unlink attempt, normal/soft/full result selection, device-open/read failures, three exact u32 predicates and boot-script consumers.",
+    "The previously unresolved eight-word button map is now resolved against the shipped kernel producer: indices0..2 are play/pause,volume-up,volume-down states1=pressed/2=released; indices3..7 are zero placeholders. frcheck tests0,3,7 and therefore only the live play/pause input can force a reset on model9.",
+    "Corrections: frcheck is not a filesystem-integrity checker; its predicate is not byte1; the HAL extracts words7..14 from a244-byte ioctl output, not the first eight words; the alternative path uses the same ioctl, with0x80002 as open flags. button_sim_matches ids are source ids, not event classes."
    ],
-   "todo": [
-    "Residual: the 8 frcheck word->physical-button binding is the GPIO/board ordering inside audiodev.ko's button_state block - the name vocabulary is proven but the bit->physical-button order is board-layout data, not a named table."
+   "decision_flow": "frcheck main0x10000544 initializes result=1. sonosFileExists(/jffs/app/run/factoryReset.txt) at0x10000578 gates a four-byte read at0x1000063c into sp+0x104 with a NUL initialized at+0x108. Read>0 and strcmp(firstFourBytes,SOFT)==0 selects2 via isel0x10000660 (0x7feaf79e: r31=CR7.eq?r10:r30, r10=2,r30=0); failed/empty or other content selects0. Bytes after the first four are not read. unlink at0x10000668 consumes the request regardless of unlink result; an unlink failure can leave it present for a later boot. Then open64(/dev/audioctl,O_RDONLY) at0x10000594; open failure retains the file/default result. Helper0x10000904 returns0 on HAL success or-1 on failure. Negative result at0x100005b0 retains the decision; a successful read compares u32 words at main sp+0x2c,sp+0x38,sp+0x48 with1, corresponding to returned button indices0,3,7. First two matches branch to result0; the final isel0x100005dc (0x7fe0ff9e: r31=CR7.eq?0:r31) handles index7. File-derived result remains when no tested word is1. The opened fd is closed on every successful-open path. It is not passed through to the HAL call: wrapper replaces r3 with its own output pointer.",
+   "button_adapter": "frcheck helper0x10000904 passes sp+0x1c to hal_inputs_get_buttons_state at0x10000928, then copies eight u32 values into caller output+0x1c..+0x38. It does not inspect byte1. libsyslib_hal.so.1 hal_inputs_get_buttons_state0x13cc issues ioctl0x40f4fc3e into a244-byte block at sp+0x18, then copies block+0x1c,+0x20,+0x24,+0x28,+0x2c,+0x30,+0x34,+0x38 to the eight-word output (loads0x1450..0x1488). These are block words7..14, not the first eight words. With a retained HAL descriptor it reuses that fd; otherwise0x14fc opens the input-device path with flags0x80002, performs the same ioctl and closes the temporary fd. 0x80002 is an open flag combination, not a second ioctl. HAL failure is converted by the frcheck wrapper to-1, so it cannot override the previously selected reset result.",
+   "kernel_field_map": "audiodev.ko audioctl_get_button_state .text+0x4820 rejects output sizes<=0xf3 with-22, zeroes all61 u32 words of its244-byte output, fills orientation at block+0x18 through audioctl_get_orient, and calls fpga_get_state at0x486c with destinations block+0x1c,block+0x20,block+0x24,block+0x0c. fpga_get_state .text+0x6578 reads cached FPGA register0x20 byte at .bss+0x244+0x60. Raw masks0x552bfffe/0x552be7fe/0x552b07fe extract input bits1,4,0; the last is rlwinm sh0,mb31,me31 (AND1), not the printed srwi. isel at0x65b4/0x65b8/0x65bc returns1 when each bit is clear and2 when set. Thus HAL indices0,1,2 are primary/play-pause,volume-up,volume-down, and indices3..7 remain zero in this shipped driver. The fourth FPGA output classifies whether ((cachedCursorA-cachedCursorB)&0x3ff)==0 at block+0x0c and does not enter the HAL button vector. Its meaning is not needed by frcheck. Driver user-copy failures return-14.",
+   "button_identity_evidence": "fpga_PostDebounceEvents .text+0x6370 compares the new register byte with cached+0x60. Bit0x2 emits source7,bit0x10 source8,bit0x1 source9; zero-bit transitions emit event1 (pressed) and set-bit transitions event2 (released). hwevent_queue.ko .rodata relocation table maps source7 at+0x1c to BUTTON_PLAYPAUSE,source8 at+0x20 to BUTTON_VOL_UP,source9 at+0x24 to BUTTON_VOL_DN, and event1/event2 at+0xfc/+0x100 to PRESSED/RELEASED. This independently proves the physical-name mapping rather than guessing from button_sim_matches. Those simulator records use source ids, not GPIO indices or event classes. Of frcheck indices0,3,7, only0 has a live button producer on this model, so volume-up/down alone do not trigger this reset decision.",
+   "sampling": "fpga_init .text+0x7b88..0x7ba4 seeds cached+0x60 by reading register0x20 for one byte; if the read result is not1 it substitutes0x13, making all three active-low buttons released. The later debounce path updates the same byte at0x6468. frcheck takes one cached-state snapshot and has no retry, hold-duration timer, two-button combination or live GPIO polling loop. A failed sample preserves the file/default decision, and a hardware-init read failure defaults the relevant button state to released.",
+   "caller_side_effects": "Model9 /etc/Configure lines39..51 runs frcheck after loading audiodev.ko and before Wi-Fi modules. Exit1 continues normal boot. For any result!=1 it invokes sonosledmgrd --fr; result0 invokes netstartd --hard-reset and result2 invokes netstartd --soft-reset. The checker itself only consumes the request file and opens/closes device access; destructive reset behavior belongs to the daemon invoked by the script. Other results, e.g. signal termination, enter the reset-light branch but do not match either reset-daemon option in this script. No request/service dispatcher or vtable participates in this standalone program.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "frcheck",
+     "build": "86.10-80260",
+     "address": "0x10000544",
+     "notes": "Complete main: read/unlink request, device-open/read outcome and reset result."
+    },
+    {
+     "type": "firmware",
+     "binary": "frcheck",
+     "build": "86.10-80260",
+     "address": "0x100005b4",
+     "notes": "u32 indices0/3/7 and raw isel0x7fe0ff9e at0x100005dc."
+    },
+    {
+     "type": "firmware",
+     "binary": "frcheck",
+     "build": "86.10-80260",
+     "address": "0x10000624",
+     "notes": "Four-byte request and NUL sentinel; raw isel0x7feaf79e at0x10000660."
+    },
+    {
+     "type": "firmware",
+     "binary": "frcheck",
+     "build": "86.10-80260",
+     "address": "0x10000904",
+     "notes": "Eight-word adapter copied to caller+0x1c..+0x38; HAL failure ->-1."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "address": "0x13cc",
+     "notes": "244-byte ioctl buffer, output extraction and temporary/retained-fd paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "address": ".text+0x4820",
+     "notes": "Zero61 words; fill orientation and FPGA fields; output-size/user-copy errors."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "address": ".text+0x6578",
+     "notes": "Active-low bits1/4/0 -> button states1/2; remaining HAL indices zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "address": ".text+0x6370",
+     "notes": "Bit masks -> hwevtq sources7/8/9 and pressed/released event1/2."
+    },
+    {
+     "type": "firmware",
+     "binary": "hwevent_queue.ko",
+     "build": "86.10-80260",
+     "address": ".rodata+0x1c",
+     "notes": "Relocation-backed source-name rows for play/pause,volume-up,volume-down; event names at+0xfc/+0x100."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "address": ".text+0x7b88",
+     "notes": "Cached register0x20 init and released-state fallback0x13."
+    },
+    {
+     "type": "firmware",
+     "binary": "etc/Configure",
+     "build": "86.10-80260",
+     "notes": "Lines39..51: exit-code consumers invoke reset LED and hard/soft network reset."
+    }
    ]
   },
   "bin_sddpd": {
