@@ -155974,7 +155974,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Residual: the per-message field layouts inside each NS2_MSG_* payload (msg ids and state ids are proven; the field decoders are per-handler code)"
+    "Established: NS2 opcode/setup-mode/state catalogs, daemon transport/IPC roles, control command13 behavior, and CLIENT_HELLO typed-field framing/schema/widths/defaults/duplicates/trailing-byte quirk plus its two receiver callsites. Remaining: fully trace CLIENT_HELLO verification derivation0x10027734, response-builder semantics and resulting setup state effects; decode remaining NS2_MSG_* payloads and their per-handler validation/state transitions individually. Follow each parser/producer/consumer before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156033,8 +156033,109 @@
      "build": "86.10-80260",
      "address": "0x10008990",
      "notes": "Command13 reaches only canary check/register restore/return, without semantic effect."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10036214",
+     "notes": "CLIENT_HELLO five-field schema and required modes."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002934c",
+     "notes": "Greeting parser requires opcode2 and delegates typed field reads."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002d908",
+     "notes": "Three-byte tag/BE-length framing guard."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002dd98",
+     "notes": "Known nonrepeatable duplicates invalidate the cursor."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002dc90",
+     "notes": "Finalizer requires mandatory fields and defaults missing optional values."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002de7c",
+     "notes": "Iterator header failure leaves valid flag unchanged, permitting ignored malformed tail after required fields."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001ea50",
+     "notes": "Post-parse setup verification is a separate gate."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001f250",
+     "notes": "Stateful receiver stores parsed protocol version."
     }
-   ]
+   ],
+   "setup_client_hello_payload": {
+    "message_and_parser": "NS2_MSG_SETUP_CLIENT_HELLO is opcode2. Generic cursor initialization0x1002dab0 validates the leading opcode byte via0x10028ddc (allowed0..23), advances past it, then hello parser0x1002934c additionally requires opcode2. Fields follow as u8 tag,u16BE value-byte length,value bytes. Header reader0x1002d898 requires at least3 remaining bytes and declared value length<=remaining-3. It copies tag/length to out-params without advancing. Advancement0x1002dcdc accounts for exactly3+length bytes and tracks recognized-field occurrences.",
+    "schema": [
+     {
+      "tag": 0,
+      "name": "protocol_version",
+      "required": true,
+      "wire": "exactly2 bytes,u16BE",
+      "consumer": "logged at0x1001ea78; stored into session+2a4 at0x1001f250"
+     },
+     {
+      "tag": 1,
+      "name": "software_version",
+      "required": true,
+      "wire": "0..47 bytes in these callers; copied with bounded %.*s into48-byte destination",
+      "consumer": "logged; stateful handler stores display text at session+a96"
+     },
+     {
+      "tag": 2,
+      "name": "capabilities",
+      "required": true,
+      "wire": "exactly4 bytes,u32BE",
+      "consumer": "logged; first handler tests bit0x40 to choose response-builder flag"
+     },
+     {
+      "tag": 8,
+      "name": "setup_verification_blob",
+      "required": false,
+      "wire": "0..32 raw bytes when output requested; length out-param controls copy",
+      "consumer": "first handler passes bytes/length into0x100232b8; deeper cryptographic/source meaning remains open"
+     },
+     {
+      "tag": 31,
+      "name": "session_text",
+      "required": false,
+      "wire": "0..32 bytes copied into33-byte output; empty default when absent",
+      "consumer": "nonempty text stored at session+a63 and logged as Netstart2 session %s"
+     }
+    ],
+    "schema_evidence": "Five {tag,required-mode} rows at0x10036214 are {0,1},{1,1},{2,1},{8,0},{31,0}. Parser builds five28-byte runtime descriptors referencing these rows, with occurrence counters initially0. At0x1002957c/0x100295a4/0x10029590 it invokes u16/string/u32 readers for tags0/1/2; optional31 and8 have separate arms. PIC GOT base0x10057e34 and table pointer at GOT-7fec establish the schema table independently of adjacent literals.",
+    "validation_and_defaults": "Fixed-width readers invalidate the cursor for a wrong tag or wrong2/4-byte width. String reader0x1002e1bc requires length+1<=destination capacity, uses %.*s (no UTF8/content validation), and can display a shorter string if a value containsNUL. Blob reader0x1002e2c8 rejects declared length beyond caller-supplied capacity; on success it copies and updates the length output. Advancer invalidates the cursor on a second occurrence of any of these five fields (their schema modes are0/1, not repeatable2). Finalizer0x1002db94 rejects missing required tags and initializes absent optional outputs to zero/empty. Unknown tags are skipped without a presence requirement, including tags40..255. The decoded protocol value is not range-checked by this field parser.",
+    "trailing_frame_quirk": "When header parsing0x1002d898 cannot read a complete field header/value, iterator0x1002de0c returns0 without clearing the cursor-valid byte. The hello loop then runs the finalizer. Consequently, after valid required fields have appeared, incomplete/malformed trailing bytes can be ignored and the parser can still succeed. This differs from a fully encountered recognized field with the wrong width/oversize output, which its typed reader marks invalid. Full byte consumption is not a prerequisite for this parser success.",
+    "consumer_branches": "First receiver0x1001e988 passes protocol/software/capability outputs plus optional blob/session outputs. Parser failure returns immediately. On parse success it invokes0x100232b8 with registration context session+4 and optional verification blob. That helper accepts setup modes1..3 without blob verification, rejects mode<1 or>6, and for modes4..6 requires exactly32 blob bytes and compares them against32 locally derived bytes via ZZ0199; it caches the comparison boolean at context+2d4. Derivation0x10027734 still needs full analysis. Failed comparison logs SETUP_CLIENT_HELLO rejected, reports bad SETUP_CLIENT_HELLO and invokes0x100265a0 with reason1. Successful comparison logs greeting fields, caches optional session text, calls response builder0x1001e4d0 and writes its result via0x10026798 when construction succeeds. Capabilities&0x40 controls the builder argument as inverted-bit boolean; the complete response-layout meaning remains open.",
+    "stateful_receiver": "Handler0x1001f138 has an opcode2 branch using the same parser. It stores protocol/software fields and optional session text, then calls0x100232b8 with null/zero verification bytes and invokes response construction with fixed flag1. It has distinct opcode7/18 branches that remain outside this greeting-field analysis. Parser acceptance alone does not establish completion of authentication, response transmission or a household setup transition."
+   }
   },
   "bin_wacd": {
    "name": "wacd (wireless access config)",
