@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors and output cleanup. Remaining: trace envelope metadata semantics and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish envelope caller/setup-mode and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish envelope caller/setup-mode and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156493,6 +156493,41 @@
      "build": "86.10-80260",
      "address": "0x4611c",
      "notes": "Padding0 tail-calls actual PKCS1-v1.5 decrypt."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x40e0",
+     "notes": "Unknown negative raw type rejects; high-bit-clear unknown types advance successfully."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xcee0",
+     "notes": "Indexed parser table binds type2 digest/type3+6 width4/type4 width1."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x9004",
+     "notes": "Known digest selector accepts exactly1; type2 requires33 bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x4148",
+     "notes": "Special normalized type5 tail-calls ZZ0179 rather than ordinary value parser."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x3f80",
+     "notes": "Special array byte-span uses wrapping count shifts without independent count bound."
     }
    ],
    "setup_client_hello_payload": {
@@ -156625,6 +156660,40 @@
     "fallback_entry": "ZZ0100 at0x8d04 tail-branches to0x8ac4 with r6=0 (private-key layout). The sibling public-key wrapper at0x8cf4 sets r6=1. Private mode requires input length>=0x2c4(708); public mode>=0x104(260). It copies exactly that fixed length to stack scratch and accepts first BE word0x00000400 or0x00040000. These are accepted markers, not separately enforced RSA modulus bit counts. Remaining input beyond the fixed extent is not used by this fallback. The code does not infer a format from a filename.",
     "component_layout": "After the four-byte marker, mbedtls_mpi_read_binary imports unsigned big-endian components. Public layout has N at+4 length128 and E at+84 length128. Private layout additionally has D at+104 length128,P at+184 length64,Q at+1c4 length64,DP at+204 length64,DQ at+244 length64,QP at+284 length64. These offsets sum to708 bytes. The fallback writes RSA context length+4 from actual mbedtls_mpi_size(N), rather than trusting the marker or forcing128. Component slots are RSA context+8/+10/+18/+20/+28/+30/+38/+40 respectively.",
     "validation_and_cleanup": "Fallback requires successful pk_setup and every MPI import. Failure frees the pk context, wipes the708-byte stack scratch and returns0; success wipes that scratch and returns1. The private handle outer ZZ0183 then requires RSA type, checks mbedtls_rsa_check_privkey and exports N/P/Q/D/E to its legacy MPI fields for wrap1. Successful raw imports alone therefore do not bypass private-key consistency validation. The standard parser is tried first and this fixed-layout fallback only runs on its failure. A parse failure may still produce null output while the manufacturing provider reports its separate extraction success, as already documented."
+   },
+   "setup_envelope_metadata_contract": {
+    "shared_parser": "Envelope parser ZZ0053 invokes shared entry parser ZZ0026 at0x3fd4, once per metadata entry, with the actual input-end pointer and caller cursor. It stores entries in264-byte(0x108) slots beginning parsed-object+10. The declared metadata count is<=8, duplicates have no separate rejection, and count0 is accepted. The same entry parser supplies signed developer statements; findings are shared parser behavior, while each consumer interpretation remains individual.",
+    "ordinary_entry": "Entry starts with u32BE raw type. The decoder normalizes type by clearing high bit0x80000000 but stores the raw word. For ordinary entries it reads u32BE value length<=256, checks value extent against actual end, and copies value bytes into slot+8. Known normalized types1..6 pass specific validation. Unknown raw types with high bit clear, including0, are skipped successfully after copying their bounded value. Unknown raw types with high bit set fail. This required/optional unknown-type behavior is concrete: ZZ0069 says whether normalized type is1..6; raw signed cmpwi at0x40e0 rejects negative unknown types. There is no duplicate-type policy in ZZ0026.",
+    "known_value_domains": [
+     {
+      "type": 1,
+      "domain": "Any ordinary value length0..256; no content check in this parser."
+     },
+     {
+      "type": 2,
+      "domain": "Value must be33 bytes, first byte exactly1 via ZZ0118; remaining32 bytes are copied without further local check. The developer-statement verifier separately interprets this as a SHA256 digest. Setup decrypt does not compare it."
+     },
+     {
+      "type": 3,
+      "domain": "Exactly4 bytes; no numeric range check here."
+     },
+     {
+      "type": 4,
+      "domain": "Exactly1 byte; no byte-value range check here."
+     },
+     {
+      "type": 5,
+      "domain": "Special marker/format/count/borrowed-array representation, not an ordinary bounded value."
+     },
+     {
+      "type": 6,
+      "domain": "Exactly4 bytes; no numeric range check here."
+     }
+    ],
+    "type5_layout": "After raw type5 or0x80000005, the next four bytes are copied to slot+4 as a metadata word. ZZ0026 immediately tail-branches to ZZ0179 at0x3d24, preserving its semantic call and return. It does not apply ordinary value-length<=256 to that word. The following bytes must be31-byte marker56ea9f16215431a5ba0f50abf164fa176dabb010c4b5719e333159c682ba4c,u8 format1..3,u32BE count,then array bytes. Format1 consumes8 bytes per entry,2 consumes6,3 consumes16. Count0 passes. Validator copies a40-byte internal descriptor into slot+8, including a borrowed array pointer, and advances cursor; it neither copies array data nor validates individual elements.",
+    "type5_bounds_quirk": "ZZ0179 bounds-checks the36-byte marker/format/count prefix and computed array end. Array-size shifts/subtraction wrap modulo2^32, with no independent count bound or multiplication overflow check. Format1 count2^29,format2 count2^31 andformat3 count2^28 each compute byte span0 and can pass this local end-pointer check without their mathematical array extent. This documents static arithmetic/branches; array strides alone do not establish IPv4/IPv6/MAC or any other element role.",
+    "setup_consumer_effect": "ZZ0051 recipient/key unwrap and payload decrypt read recipient descriptors,cipher selector,length and ciphertext pointer; they do not read metadata count or slots. Netstartd0x100233b0 parses then decrypts but likewise does not extract these metadata values. Thus in this specific path metadata validity can reject an otherwise decryptable envelope, but a parsed metadata field does not independently select a key, verify a digest, authenticate a sender or change a setup-mode predicate. Unknown-type high-bit rejection is a parser gate, not proof of a permission policy. Developer-mode digest interpretation is separately documented and is not transferred to network setup.",
+    "remaining_boundary": "Names/purposes of numeric metadata types1/3/4/6 and special-array elements require consumers outside this setup decrypt path. Their accepted value domains and their absence of use here are established; no type name is inferred from width alone."
    }
   },
   "bin_wacd": {
