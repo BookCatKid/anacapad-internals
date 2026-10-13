@@ -125919,7 +125919,7 @@
   "noncehandler": {
    "semantics": "Tracks Muse authentication challenges as one-use nonce records,with concrete300-second expiry and a three-binding cache. The Muse16-character challenge is separate from the6-byte-derived nonce in the HTTP signing-credentials helper.",
    "todo": [
-    "Established: Muse provider/clocks,boot-sequence and RDM/MTM policy,300-second expiry,one-use consumption and three-binding pruning; signing blob input,digest/signature/base64 format and guards; private key provenance from MDP2 or configuredRoot/private.key,cache state,708-byte legacy RSA field layout,parser validation and actual modulus-derived signature sizing. Remaining: identify the Muse caller binding-string producer/value domain and verify Muse base64/JSON accepted lexical details. Trace those helpers individually without touching SOAP request objects or service dispatch records."
+    "Established: Muse provider/clocks,boot-sequence and RDM/MTM policy,300-second expiry,one-use consumption and three-binding pruning; signing input/digest/signature/key provenance and raw RSA layout; Muse standard-base64 decoder alphabet,whitespace/NUL behavior,padding rules,noncanonical pad-bit acceptance and post-padding quartets. Remaining: identify the Muse caller binding-string producer/value domain and verify the decoded JSON envelope's accepted lexical/field rules. Trace those specific helpers without touching SOAP request objects or service dispatch records."
    ],
    "lifecycle": "The two previously combined pipelines are distinct. HTTP signing helper0x105ccad4 formats six device-MAC bytes,an embedded16-byte salt and the caller credential C string,hashes them with SHA-1,and RSA-PKCS1-v1.5-signs the20-byte digest. Its nonce output is the base64 signature;0x105cccbc inserts that into credentials/nonce/keyType JSON and base64-encodes the JSON. There is no entropy draw at0x1090ad44/0x10909630; those obtain the static device-info singleton and its MAC field. Muse nonce creation is0x10b99b38: it calls ZZ0154 to produce16 characters from the62-character alphabet0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ and records per-binding expiry/context. Muse validation0x10b996b4 base64-decodes and parses credentials/nonce,checks current credentials,then looks up and consumes the matching cached nonce through0x10b995a8. Record flags+0x18 and+0x28 are optional-value presence flags,not valid-slot/consumed flags. Consumption is hash-node erasure,not a byte written to+0x28.",
    "resolved_findings": [
@@ -126260,6 +126260,62 @@
      "build": "86.10-80260",
      "address": "0x8cdc",
      "notes": "Actual modulus byte size is computed,not taken blindly from nominal marker."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d1e50",
+     "notes": "Semantic tail transfer from nonce span wrapper to standard Base64 decoder."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d1df8",
+     "notes": "Declared-length allocation and standard sonosBase64Decode call."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosminiutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x513c",
+     "notes": "Decode state starts valid with URL mode disabled."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosminiutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x48b0",
+     "notes": "Standard alphabet and explicit URL-alphabet rejection."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosminiutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x5230",
+     "notes": "Whitespace skipping,declared length and first-NUL stop."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosminiutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x496c",
+     "notes": "Quartet padding/output masks and absence of canonical pad-bit test."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosminiutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x4a5c",
+     "notes": "Padded quartet clears pending count but does not terminate the stream."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosminiutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x542c",
+     "notes": "Standard decoder rejects incomplete final quartet."
     }
    ],
    "generation_mode": "Mode producer is the concrete interface installed at settings object+0x12c by0x10126270,using vtable0x10e8b1f4. Live Muse init0x1019ab98 passes that slice as host argument8;host+0xbc retains it. Challenge creation at0x109f99ec calls its slot+0x14=0x1073e7c0;that thunk adjusts-0x12c then semantically tail-calls0x1073e7b4 -> tail0x105ad9cc. The predicate returns an RDM-or-MTM household classification:0x105ad62c requires global gate byte0x110974e8 nonzero and nonnull household-name provider0x110974f0,then tests the exact case-sensitive10-byte prefix Sonos_RDM_ via0x10c3c134. If false,0x105ad8c8 tests Sonos_MTM_ via0x10c3c188 with the same name provider but without that RDM gate. Prefix literals were resolved through PIC GOT slots0x10c3c158/0x10c3c1ac. A nonzero result skips the wall-clock deadline in nonce creation and uses the boot-sequence/monotonic snapshot path. Other households create wall-clock expiry plus the same fallback snapshot. Raw record-form mr.0x7c7f1b79 at0x105ada00 supplies the short-circuit CR0 test.",
@@ -126270,7 +126326,7 @@
     "signature_and_nonce": "0x105ccc50 calls0x10bb94bc with digest kind3,digest length20,512-byte signature buffer and keyType output pointer. Wrapper obtains a signing key through0x10bb93f4 ->0x10bb9280 ->ZZ0098,then calls ZZ0104 at0x10bb951c with private-sign mode1. libsonoscrypto ZZ0104 export0x8d38 reaches mbedtls_rsa_rsassa_pkcs1_v15_sign at0x8e7c;digest-kind3 selects mbedtls digest enum5 in this build. Signing wrapper frees the loaded key through ZZ0077 and returns the normalized low-byte success flag. On success,the signature bytes are encoded via0x1053c0c0 and checked with sonosBase64EncIsValid at0x105cccb0. The nonce string is this base64 RSA signature,not the raw SHA-1 digest and not the Muse random16-character token. The key source,raw layout and signature-length domain are bound in key_loading below. Actual per-device key bytes and MPI values are runtime manufacturing/configuration data,not constants in this image.",
     "outer_envelope": "0x105cccbc accepts a credential byte span of length<=256,copies it into257-byte storage and NUL-terminates it. It calls the signing helper with345-byte nonce-output capacity. The template at0x10ef4bfc is {\"credentials\": \"%s\", \"nonce\": \"%s\", \"keyType\": %d};729-byte JSON storage is checked with return-minus1 unsigned<=727. No JSON escaping is applied to the inserted credential C string. The outerJSON C string is base64-encoded into973-byte storage at owner+0xc314. The keyType out-param starts-1 at0x105cccf8;0x10bb93f4 clears a nonnull pointer to0 at0x10bb941c and has no later write to that pointer. The traced successful signer therefore emits keyType0. Embedded NUL in the supplied byte span truncates the credential used in signing and JSON formatting,even though the whole declared span was copied.",
     "key_loading": {
-     "cache": "Global cache base0x110ba3b0 holds708-byte private-key blob at+0,128-byte public-modulus area+0x2c4,public byte count+0x344,initialization busy byte+0x348,and initialized/success byte+0x349.0x10bb8fc0 rejects null root path,atomically acquires busy using the containing word,and returns0 if another initializer is busy. If already initialized,it returns1;otherwise it calls loader0x10bb8d9c,publishes its boolean result at+0x349 and clears busy. Readers0x10bb9280 require capacity>=708,initialized nonzero and the first four private bytes not all zero; they copy exactly708 bytes and set the returned length. These readers do not initiate loading. Raw0x5529063e-style low-byte masks in flag handling are not8-bit shifts.",
+     "cache": "Global cache base0x110ba3b0 holds708-byte private-key blob at+0,128-byte public-modulus area+0x2c4,public byte count+0x344,initialization busy byte+0x348,and initialized/success byte+0x349.0x10bb8fc0 rejects null root path,atomically acquires busy using the containing word,and returns0 if another initializer is busy. If already initialized,it returns1;otherwise it calls loader0x10bb8d9c,publishes its boolean result at+0x349 and clears busy. Readers0x10bb9280 require capacity>=708,initialized nonzero and the first four private bytes not all zero; they copy exactly708 bytes and set the returned length. These readers do not initiate loading. Raw0x5529063e at0x10bb930c is the loaded-flag low-byte mask,not an8-bit shift.",
      "flash_source": "Loader0x10bb8d9c first calls hal_flash_get_mdp2_wrapper at0x10bb8dcc. libflash.so.1 wrapper0x2474 creates a fresh flash-info handle,gets MDP2,then releases it. hal_flash_get_mdp2 at0x23c0 reads4096 bytes from flash offset info+0x50 plus info+0x40 via read_from_offset;it checks MDP2 magic and zeroes the output on an error. The player accepts a successful wrapper result and payload length at buffer+4>=708;it copies private bytes from buffer+8 into the cache at0x10bb8f04. If remaining payload after those708 bytes is>=128,it copies128 public-modulus bytes from buffer+8+708 and stores public length128. Otherwise it keeps public length0 while returning successful private-key load. Flash content format is not RSA-validated during this loader stage.",
      "file_fallback": "A flash read failure or flash payload shorter than708 bytes selects %s/private.key,using the supplied root. Startup0x105e7788 supplies the result of0x1068a70c. The latter starts with configured root pointer0x1109b024 and appends its component array. At this call the component count is0: raw SPE words0x11484b00 at0x105e7768 and0x11484b20 at0x105e7778 copy the{pointer,0} pair from sp+0x28 to sp+0x10;the builder therefore adds no subdirectory. The path is configuredRoot/private.key,or /private.key when the configured root is empty. These doubleword transfer encodings were checked against the NXP e500 manual Appendix B opcode rows for evlddx and evstddx (https://www.nxp.com/docs/en/reference-manual/E500CORERM.pdf). The firmware dataflow,not the manual,supplies the zero-count and path behavior.",
      "file_checks_and_failure": "The file path buffer is1024 bytes;the loader does not test snprintf's returned length before stat. It requires successful stat and a size comparison>=836 bytes (private708+public128),opens rb,and requires each fread(size708,count1) and fread(size128,count1) to return1. It ignores additional trailing file bytes. Successful file loading overwrites the first private word with0x00040000 from0x10faf078,stores public length128 and returns1. Failed file loading calls ZZ0038 on both private and public areas,clears public length and returns0. A flash payload of adequate size does not fall back to the file merely because its key is empty or fails the later cryptographic parser. The published cache success flag can therefore be true while a subsequent private-key read/parse fails.",
@@ -126278,6 +126334,14 @@
      "legacy_private_layout": "Legacy private parse requires input length>=708 and accepts leading u32 marker0x00000400 or0x00040000 at0x8b88..0x8b9c. It imports big-endian MPI byte arrays through mbedtls_mpi_read_binary: N offset4 length128,E offset0x84 length128,D offset0x104 length128,P offset0x184 length64,Q offset0x1c4 length64,DP offset0x204 length64,DQ offset0x244 length64,QP offset0x284 length64. End offset is0x2c4=708. The two leading markers are accepted encodings for this1024-bit-capacity format;no byte-reversal is applied to the MPI arrays. The parser computes actual modulus byte length with mbedtls_mpi_size at0x8cdc and stores it in the RSA context. Leading zero bytes therefore do not force actual key length128. The generic encoded-key attempt and actual MPI values must not be replaced with a claim that every loaded key is exactly1024 bits.",
      "signature_size": "ZZ0104 asks ZZ0106 for the parsed RSA byte length,requires it<=512 and no greater than the supplied output capacity,and uses that length as the returned signature size on success. The legacy raw N slot limits that representation to128 modulus bytes. The higher nonce encoder supplies345 bytes;base64 size/validity remains a separate gate after RSA signing. The optional cached public-modulus blob is not used to generate the signature;the signing path uses the parsed private key."
     }
+   },
+   "muse_base64_input": {
+    "call_chain": "Nonce wrapper0x10b996b4 calls0x109d1e50,which loads{input pointer,length} and semantically tail-delegates0x109d1d90. That helper allocates3*floor(inputLength/4)+1 output bytes,then calls sonosBase64Decode at0x109d1df8. On success it resizes the output std::string to the returned decoded length. It uses the standard decoder,not sonosBase64UrlDecode.",
+    "state_and_alphabet": "libsonosminiutils.so.1 sonosBase64Decode0x55d0 resets a10-byte decode state through0x513c: pending count+4=0,valid byte+8=1,URL-mode byte+9=0. One-shot body0x5388 calls stream update0x5230 and final validity0x5190. Character mapper0x48b0 accepts A-Z,a-z,0-9,+,/ in standard mode;it explicitly rejects - and _. Invalid characters clear valid+8. Quartet pending bytes occupy state+0..3. The low-byte arithmetic at0x48d0/0x4940/0x4954/0x4960 is rlwinm masking,not the disassembler's shift-like rendering.",
+    "whitespace_and_nul": "Stream update0x5230 skips bytes whose current __ctype_b_loc classification has whitespace bit0x20. It stops at input length or the first NUL byte;it does not require consuming the entire declared span after that NUL. A complete valid prefix followed by NUL and arbitrary trailing bytes can therefore decode successfully. Empty or whitespace-only input produces an empty decoded string with valid base64 state;the subsequent JSON layer still must accept the decoded bytes.",
+    "padding_and_finalization": "Standard one-shot decode rejects a nonempty pending tail at0x542c,so non-whitespace input must finish in complete quartets. URL-only unpadded-tail logic at0x53e0..0x5470 is not selected for this nonce call. Quartet decoder0x496c permits = in the third/fourth positions with the expected one-/two-byte output shape;= in either first position is invalid,and a third-position = with a non-= fourth byte is invalid. It does not test discarded low bits of the last data character for canonical zero values. Thus TR== and TQ== both produce the byte M;TWF= and TWE= both produce Ma. These are static arithmetic examples,not a live-device experiment.",
+    "padding_does_not_end_stream": "After a valid padded quartet,the decoder resets pending count+4 to0 at0x4a5c and preserves valid+8;it does not mark an end-of-stream state. It therefore accepts another complete quartet after padding,e.g.TQ==TQ== decodes to MM. Such bytes still have to form the required JSON envelope and pass current credentials/nonce validation;base64 permissiveness is not authentication success.",
+    "errors": "Invalid alphabet,invalid quartet shape or insufficient output capacity clears valid+8. Partial output may have been written before the failure. The nonce wrapper rejects a false decode result with code4 and does not enter cached-nonce matching/consumption for that input. The caller buffer-size calculation depends on declared encoded length,not on the number of non-whitespace characters."
    }
   },
   "arping": {
