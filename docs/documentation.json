@@ -125764,7 +125764,7 @@
   "devmode": {
    "obj": "RDevMode + <DevMode>%s</DevMode> var: dev-mode flag",
    "todo": [
-    "Established: statement/envelope framing and crypto, firmware/model/manufacturing-identifier guards, specialized type5 parser, payload bitmap encoding, developer/SSH capability indices, startup retention, submission statuses and write ordering, direct persistence/runtime file IO, clear/unlink/callback ordering and notification-byte asymmetry. Remaining: join type5 array consumers and copied envelope flags/primary metadata meanings; trace other grant-bit consumers and concrete callback objects at manager+4a8/+4ac to establish notification delivery/effects. Follow actual consumers and raw predicates before removing this TODO."
+    "Established: statement/envelope/bitmap/lifecycle contracts, firmware/model/identifier guards, type5 parser and notification-byte asymmetry; both callback installation sites, first callback IPC endpoint/subobject, shipped IPC interface command13 implementation,16-byte frame and transport return semantics. Remaining: join the main-owner concrete callback tables, trace the control command13 daemon handler and second callback receiver/effects; join type5 array consumers and envelope flags/primary metadata meanings; trace other grant-bit consumers. Follow the exact installed objects and consumers before removing this TODO."
    ],
    "mechanism": "Developer mode is gated by a verified statement payload bitmap. The manager-held bit0 enables developer-mode permission; bit47 is the separately tested SSH public-key-install permission. Persistence uses a direct truncated write to persistent-root/debug/devmode.bin plus a separate runtime/tmp/devmode.tmp.bin output. File and callback failures do not roll back the already-replaced in-memory statement.",
    "resolved_findings": [
@@ -126016,6 +126016,48 @@
      "build": "86.10-80260",
      "address": "0x1054bfe8",
      "notes": "Longer new payload arm copies old payload then reads beyond its bitmap span in common loop."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101998e0",
+     "notes": "Callback+4a8 points to secondary interface of IPC object configured for/tmp/netstartd.ipc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101998f8",
+     "notes": "Second callback installed as owner+c8c; concrete table not yet bound."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ef5f6c",
+     "notes": "Shipped IPC callback slot+8 points to thunk105d3070."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3074",
+     "notes": "Tail branch subtracts secondary-interface offset and reaches command13 method."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3c44",
+     "notes": "Zero-payload control frame is u32[12,1,4,13]."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105d3c2c",
+     "notes": "Partial-write loop returns transport completion, with no negative/EINTR retry."
     }
    ],
    "signature_envelope_contract": {
@@ -126056,6 +126098,13 @@
    "grant_notification_bytes": {
     "mechanism": "0x1054beb0 clears the caller output buffer using its supplied capacity. New payload length0 copies the old bitmap and reports its length, supplying removal bytes. Equal old/new lengths with equal bytes reports length0. Otherwise it reports max(old_length,new_length), zeroes a255-byte stack workspace, then XORs that workspace with bytes read from the old manager payload. The callback interpretation of this byte array remains untraced.",
     "alignment_and_quirk": "When old length>=new length, it right-aligns the new payload in the zeroed workspace then XORs all old bytes, producing a big-endian-aligned difference. When old length<new length,0x1054bfe8 instead copies the old payload into the right-aligned workspace, then the common loop at0x1054bf90 still reads max-length bytes from the old manager payload. It does not read the supplied new payload in this arm and can read into the following statement bytes. This asymmetry is established from the copy and loop arguments; do not describe this helper as an always-correct old-XOR-new delta. Both outer payload lengths are byte-sized, keeping the workspace span<=255 in these callers."
+   },
+   "notification_ipc_contract": {
+    "installation": "Owner initialization0x101998d8..0x101998f8 installs manager callback+4a8=owner+8d4 and callback+4ac=owner+c8c. The first pointer is the+14 secondary interface of the IPC object at owner+8c0, configured immediately beforehand by0x105d364c with endpoint/tmp/netstartd.ipc. Callback setters0x1054c738/0x1054c748 only store the object pointers, with no retain operation or null check in these setters.",
+    "shipped_interface_method": "The concrete shipped IPC secondary table0x10ef5f64 has slot+8=0x105d3070, a thunk that subtracts0x14 from this and tail-branches to0x105d304c. The method ignores the change-buffer arguments and sets command13,payload pointer0,payload length0, then tail-dispatches primary slot+34. For the corresponding primary table0x10ef5f10, that slot is0x105d3c7c, which locks IPC+88 and delegates to0x105d3b10. The full main-owner installation of this concrete primary/secondary table pair still needs joining before treating the installed callback as proved to take this exact implementation.",
+    "frame": "For command13 with zero payload,0x105d3b10 emits exactly16 bytes with four u32 words [12,1,4,13], in the native big-endian representation of this PPC build. The fields are built at0x105d3c44..0x105d3c60. No capability bitmap bytes follow them. It sends a control-IPC command; this is distinct from the NS2 over-the-air opcode13(GET_PSK). The daemon-side meaning/handler of the control command remains untraced.",
+    "transport_result": "The send helper rejects fd+18c<0 and payload lengths beyond the virtual limit(default2048). A zero-payload frame uses the common write loop. It accumulates partial positive writes until all16 bytes are sent, returns0 on that completion and-1 for zero/negative write or unusable connection. Unlike the statement-file writer, this loop has no EINTR retry. The return proves transport write completion, not daemon acknowledgement, statement reload or grant application. The manager treats-1 as notification failure.",
+    "second_callback_boundary": "The second installed pointer(owner+c8c) and its invocation slot+8 are proved, but its concrete table/receiver still needs tracing. The developer-mode event-generator label alone is insufficient to assign it that role. Existing state clear/submission callback ordering remains as documented; no delivery/event effect is inferred from the label."
    }
   },
   "mod_zp": {
