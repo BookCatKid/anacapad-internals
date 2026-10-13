@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; registration authorization gates,daemon-side registered/lock triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; pending settings/external snapshot field producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157067,6 +157067,41 @@
      "build": "86.10-80260",
      "address": "0x10020e60",
      "notes": "Null/0 clear notification precedes record wipe and persistence;return ignored."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002d2b4",
+     "notes": "No-field LOCK_REGISTRATION finalizer reached without payload iteration."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001bd2c",
+     "notes": "External pointed words and pending settings predicates control rotation eligibility."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001bd3c",
+     "notes": "Second pending predicate is text first byte at record+8,not proof completion."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001bd80",
+     "notes": "Registered byte selects denial status0x8011 before key rotation."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10021660",
+     "notes": "Pending-record clear tail-calls whole-record memset after sensitive spans wiped."
     }
    ],
    "setup_client_hello_payload": {
@@ -157379,7 +157414,7 @@
     "serializer_and_clear": "Serializer0x10026ebc requires output capacity>64 and delegates raw-to-hex helper using stored length. Settings writer supplies65. Encoding failure wipes the entire supplied output capacity; successful output is retained for writing. Record clear0x10026e28 explicitly wipes36 bytes and then tail-calls memset over36. Persistent writer emits RegSigningKey only when settings+d4(length) is nonzero and excludes that owned field when copying old settings. Its other field errors/rename limitations remain applicable.",
     "rotation_transaction": "Rotation path0x1001bd84 first snapshots session+110 into a36-byte stack record,then generates new secret into the live record. Generation success attempts settings persistence at0x1001bee0. Writer false logs and restores snapshot via0x1001bf08 before constructing status0x8012. Generator failure constructs the same status with live old key unchanged. When status serialization succeeds it is sent,then control rejoins0x1001bde0 rather than ending the key path. That join wipes snapshot,invokes configured callback+8c with current live key/length when callback exists,and attempts REGISTRATION_KEY response. Consequently an error path can send the restored old key afterward; status/key construction and send calls still have separate result conventions. Writer true uses the new key on this join. Initial setup authorization/lock predicates around this path remain unresolved.",
     "registration_key_wire": "Serializer0x1002d2c4 emits NS2 opcode23 REGISTRATION_KEY and tag37 raw key bytes using the common tag/u16BE-length/value encoding. Caller supplies live record pointer and length. It sends through0x10026798 only when finalization succeeds and ignores send return. This is distinct from local control command23 that replaces cached PSKs. Another daemon path0x10020c60 delivers the same stored key to callback+8c only when length nonzero. Concrete callback sends local IPC command52 as joined below; external receiver/signing use remains protected and unresolved.",
-    "remaining": "Resolve registration authorization/lock field producers,daemon-side registered flag triggers and clear teardown. Callback+8c frame/write behavior is joined in registration_key_notification_and_clear; external receiver/signing use remains protected."
+    "remaining": "Resolve pending-settings/external snapshot semantic field producers,daemon-side registered triggers and teardown. Exact LOCK_REGISTRATION parser and predicates are joined below. External signing receiver remains protected."
    },
    "registration_key_notification_and_clear": {
     "callback_binding": "Main config base stack+1c receives callback0x1000ac9c at config+8c via store0x10002f9c(stack+a8). It is the exact callback used by key rotation0x1001be1c and stored-key announcement0x10020c90. It rejects unsigned length>32,zeroes36-byte stack payload using SPE clear/four eight-byte stores,optionally copies length bytes into its first32 bytes,and stores u32 length at payload+20. Length0 with null key is an explicit clear notification. No RSA/HMAC/signing operation occurs inside this callback.",
@@ -157388,6 +157423,13 @@
     "registered_flag": "Setter0x10020d9c uses requested boolean to maintain session byte+1ac. Zero logs registered:false and stores0 without clearing the secret. Nonzero logs registered:true,stores1,and if existing registration key lengthsession+130!=0 invokes callback+8c with null/0 before wiping36-byte key recordsession+110 and attempting settings persistence. When key length isalready0 it returns without another clear notification or persistence call. Thus registered=true causes this concrete nonempty-key cleanup; it is not a blind identity-name inference.",
     "clear_failure_order": "Clear callback occurs before live record wipe and file rewrite. Its failure boolean is ignored; the daemon still clears live record. Settings-write failure logs and does not restore the wiped key or registered flag. Therefore recipient notification,persistent removal and live clearing are independent outcomes. A failed clear write can leave receiver state unconfirmed; a failed file rewrite can retain the old key on disk despite live length0. The parser/load behavior for that old file remains as previously documented.",
     "remaining": "Trace daemon-side registered flag triggers/authorization,initial callback timing and teardown. External IPC receiver and its signing use remain protected and unresolved in this lane; no claim about a specific authentication algorithm follows from the name RegSigningKey."
+   },
+   "lock_registration_parser_and_gates": {
+    "message_entry": "State-message handler calls0x1002d22c for NS2 opcode22 LOCK_REGISTRATION,then invokes0x1001bcd0 only on parser success. Parser passes null schema/count0 to common initializer,requires extracted opcode22 and calls finalizer directly without iterating remaining fields. It does not require input length exactly1 or validate/consume trailing bytes. A valid leading opcode22 with any remaining bytes accepted by initializer can pass; this is not a strict empty-payload validator.",
+    "rotation_predicate": "0x1001bcd0 loads external snapshot pointer session+58. It dereferences pointer at snapshot+8 and reads its firstu32(A). If A==0,it requires pending byte session+1b0!=0 and pending text first byte session+1b8!=0. If A!=0,it also reads firstu32 from pointer snapshot+0(B);B!=0 bypasses that pending test,whileB==0 requires the same two pending predicates. Exact eligibility is (A!=0 AND B!=0) OR (pendingValid!=0 AND pendingText[0]!=0). Failure logs and sends status0x8005 via common status serializer. These two external pointed-value semantic names remain open; they are not invented from offsets.",
+    "registered_gate": "After the eligibility predicate,session+1ac must0. Nonzero takes separate log/status0x8011 return path,without key generation. Setter0x10020d9c normalizes that byte according to registered state and its true path clears a nonempty secret as documented. Successful gates enter previously traced key snapshot/random rotation/persistence rollback. They do not themselves verify a signature,digest or client HMAC.",
+    "pending_record_join": "Pending record starts session+1b0,size0xe4. Registration gate text atsession+1b8 is pending record+8,not a completion/proof flag. Settings-apply consumer0x10021668 measures this string,requires it within its length budget and copies it into an external configured buffer with a corresponding length output. Record clear0x100215fc wipes sensitive spans+5f length16 and+9c length64,then tail-calls memset of the whole0xe4 bytes,thereby clearing validity and text used by the registration predicate. Failure helper0x1002156c clears record byte+1 and updates settings status but does not set either predicate tested here. Getter0x10021538 reads record byte0 thenbyte1;registration instead independently testsbyte0 and text+8. No equivalence between that getter and this gate is inferred.",
+    "scope_limit": "Trace pending-record parser/setters and external snapshot+0/+8 producer names before claiming a full registration authorization model. State-table routing and secure transport reachability remain separate. Parser acceptance,gating,rotation and response delivery are different stages; sender/request/service records remain untouched."
    }
   },
   "bin_wacd": {
