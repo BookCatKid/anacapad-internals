@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish PIN proof identifier provenance/getter caller joins and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish EC-JPAKE branch/ciphersuites/handshake and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156633,6 +156633,48 @@
      "build": "86.10-80260",
      "address": "0x60e0",
      "notes": "SPE zero pair/store followed by first-byte1 supplies compact fixed IV; IV is not output-prefixed."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100228d4",
+     "notes": "Factory identifier output pointer is setup context+12c; output length stored+134 only on success."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000a454",
+     "notes": "Factory callback copies six raw MDP1 identity bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001ecac",
+     "notes": "Session+4c installs PIN-getter wrapper; config begins session+8."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001c218",
+     "notes": "PIN callback wrapper tail-branches to actual getter, preserving semantic call."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025da4",
+     "notes": "Transport invokes configured PIN getter with concrete setup context."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025df8",
+     "notes": "PIN becomes EC-JPAKE handshake password after getter mode mutation."
     }
    ],
    "setup_client_hello_payload": {
@@ -156841,7 +156883,15 @@
     "chirp_plaintext": "0x1002384c requires nonnull output pointer and output-length pointer. It SHA256-hashes identifier bytes at context+12c with length+134, checking hash success. It copies the first two digest bytes into a6-byte plaintext. It then reads strlen(PIN),calls hex decoder0x100271c8 with capacity4 to fill plaintext+2 and requires decoder success. For a generated eight-digit decimal PIN, each two digits are treated as hexadecimal, e.g.12345678 becomes bytes12,34,56,78; it is not converted to one binary decimal integer. Hex decoder requires even input length, sufficient capacity and both characters in each pair to be hexadecimal. General decoder accepts upper/lower hex; this consumer normally supplies the generated decimal PIN. The helper does not independently require the decoder returned exactly4 bytes before encrypting the fixed6-byte plaintext; abnormal shorter stored PINs leave the remainder outside a proved initialized span.",
     "chirp_compact_cipher": "After deriving16 setup_pin key bytes,0x10023978 invokes ZZ0204 selector3(AES128-GCM with4-byte tag),encrypt option1,empty additional data,6-byte plaintext. ZZ0204 at0x5fe0 prepares fixed12-byte IV01 followed by11 zero bytes, proven clear-pair words0x114a5216/0x115f0321 at0x60e0/+e4 and stb1 at0x60f0. It sets output capacity requirement plaintext_length+4 through ZZ0205, encrypts into caller output without prefixing that IV, obtains final tag with ZZ0148 and appends it. This specific successful proof is6 encrypted bytes plus4-byte tag,10 bytes total, not the full leading-IV frame accepted by ZZ0043. Nonzero cipher error yieldsfalse; the daemon wipes derived key after the call. No separate plaintext/hash scratch wipe occurs in this daemon helper.",
     "pin_getter_and_active_mode": "0x10023728 first requires strlen(storedPIN)==8, otherwise logs Invalid PIN and returns0. It then uses10 base-relative offsets at0x10035228 with preserved lwzx base. Requested modes1,2,5,8 write active greeting-verification mode+2cc=5;3,6,7 write4;4 writes6. Modes0 and9 enter logging/failure. Requested mode>9 bypasses the table and returns1 without changing active mode. Success returns a borrowed pointer to PIN storage. These active-mode numbers control the separately documented greeting HMAC proof gate. The string-length predicate alone does not establish a decimal PIN, so the authenticated client-provided eight-byte path can accept nondecimal content if it has no NUL.",
-    "remaining": "Bind identifier producer+12c/+134 and PIN-getter callers to the whole setup FSM; finish received proof-field grammar, response transport/callback and rejection cleanup before closing the subsystem TODO."
+    "remaining": "Finish received proof-field grammar, response transport/callback, complete EC-JPAKE/ciphersuite selection and setup-FSM/rejection cleanup. Identifier producer and PIN-getter transport binding are joined below."
+   },
+   "setup_pin_identity_and_dtls_join": {
+    "identifier_producer": "Setup constructor0x100227d8 zeroes its0x30c-byte context. It invokes daemon configuration+38 callback0x1000a35c with output pointer context+12c and length pointer stack+28 initialized6. This concrete callback reads MDP1 and copies exactly six identity bytes at MDP1+14 into that output, then writes length6. Constructor stores the returned length into context+134 at0x100228f0 only on callback success. Compact CHIRP proof0x100238a4 SHA256-hashes this exact pointer/length, and uses the first two digest bytes. The input is raw binary factory identity, not SERIAL_ID text, hexadecimal formatting, a serial suffix, the household ID or current network-interface text.",
+    "identifier_failure": "If factory callback returns0, constructor does not store the length, leaves zeroed context+134=0, writes byte+14c=0 and continues to the key-provider call. Thus the constructor can return a context with an empty identifier span; it does not fail the entire context solely on this callback failure. The proof builder has no separate six-byte-length guard before calling the hash helper. Successful factory read supplies six bytes; the broader zero-length/hash-failure behavior stays governed by the hash helper rather than an invented mandatory-ID predicate.",
+    "callback_installation": "Session construction0x1001ec10 calls setup-context constructor and stores its result at session+4. The DTLS configuration begins at session+8, passed in r3 to0x100262a0 at0x1001ecb4. GOT cell0x1004fb64 points to wrapper0x1001c210; load0x1001ec8c installs it at session+4c(configuration+44). Session+50(configuration+48) holds setup-context pointer r9, the callback argument. Wrapper0x1001c218 tail-branches to0x10023728, so the PIN getter and its active-mode writes are part of the actual transport callback, not a disconnected accessor.",
+    "transport_consumer": "DTLS initialization stores configuration pointer at transport+0. After SSL setup/BIO selection,0x10025cf4 tests transport+164==1. Only that branch requests this password callback:0x10025d8c loads configuration+44 and invokes it at0x10025da4 with context configuration+48 and output string-pointer address. Getter success leads to strlen at0x10025de8, then mbedtls_ssl_set_hs_ecjpake_password at0x10025df8 with SSL context transport+8 and those exact PIN bytes/length. This is EC-JPAKE password input, not a direct ssl_conf_psk key assignment. The callback itself has already changed active verification mode+2cc according to requested setup method before password installation is attempted.",
+    "failure_order": "Missing callback or getter failure returns-1 through the transport failure branch, optionally invokes transport teardown helper0x100247c0 when transport state+170 is nonzero, and does not call password installation. A nonzero EC-JPAKE password-installation result enters its separate logged failure path; there is no local restore of setup-context+2cc. On library success, initialization continues through0x100258f4. Full handshake completion, selected ciphersuites, peer confirmation and later setup FSM transitions remain unresolved. Callback/password setup success is not documented as completed peer authentication.",
+    "practical_join": "The generated or authenticated client PIN supplies the DTLS EC-JPAKE password in this concrete configuration branch. The raw manufacturing identity contributes two digest bytes to the separately generated compact CHIRP proof. These are distinct roles joined through their exact producers/consumers; the identity bytes are not themselves the DTLS password."
    }
   },
   "bin_wacd": {
