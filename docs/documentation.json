@@ -134716,10 +134716,10 @@
    ]
   },
   "platform_details": {
-   "notes": "Platform descriptor files and a seven-field device-status key/value container. The parser at0x105bc570 accepts name:value entries, not boot-environment key=value strings. Bootloader/OTP handling is a separate chain requiring its own verification.",
+   "notes": "Platform descriptor files, seven-field MoreInfo device status, and a separate audioctl diagnostic/output chain. KV entries use name:value. The boot diagnostic removes an optional U-Boot prefix;17.2.7 is a copied output literal, not a version gate.",
    "build": "dual toolchain: crosstool-NG 1.24.0 GCC 5.5.0 objects + legacy GCC 4.3.2 objects (.comment); debuglink 'anacapad' CRC32 0xd61b897d; PPC EMB apuinfo present; patched-GCC __ptr_guard wrappers + ZZxxxx scrubbed ordinals (see linked_libraries)",
    "todo": [
-    "Established: rootfs platform descriptors and53-flag vocabulary; seven case-sensitive device-status keys, colon grammar, escaped-comma decoding, owned string slots, last-valid-duplicate behavior, numeric defaults and exact CHARGING consumer; local TargetRoomName update join. Remaining: trace SPID/BtSrcName and complete TargetRoomName consumers, battery producer domains and temperature scale, serializer list-builder escaping/overflow and outgoing-message chain; independently audit bootloader/OTP claims around0x105b4cf8 instead of attributing them to this status parser. Follow each producer and consumer before removing this TODO."
+    "Established: platform files/53-flag vocabulary; all seven MoreInfo keys, parsing/storage/duplicate behavior, serializer ordering and escaping, truncation and one-byte escape cycle, outgoing MoreInfo element, battery cache/default/CHARGING consumers, local TargetRoomName set/clear and local-only topology update; boot diagnostic prefix selection and copied17.2.7 literal corrected. Remaining: trace SPID/BtSrcName consumers, battery producer domains and temperature scale, remaining room-name effects and deeper topology notification calls0x10766064/0x1067c6ec; join other platform-output helpers independently rather than treating diagnostic labels as hardware validation. Follow each producer/consumer before removing this TODO."
    ],
    "keys_read": "The recovered parser matches exactly SPID, RawBattPct, BattPct, BattChg, BattTmp, TargetRoomName and BtSrcName using the table0x10ef33f0. These are device-status strings, not manufacturing serial/fuse keys. Received data at source+134 is parsed at0x10763504; numeric battery fields and the exact CHARGING string update cached receiver fields. A separate local producer updates TargetRoomName at0x105b8530. Manufacturing identity/fuse layouts are documented independently in mdp_flash/bin_mdputil; this parser does not establish any bootloader-version or OTP gate.",
    "resolved_findings": [
@@ -134762,8 +134762,12 @@
     "storage": "Container is seven32-bit string pointers at offsets0..18. 0x105bc74c zeros28 bytes then tail-branches into the list decoder. Setter0x105bc23c compares an existing value: equal text returns0 without allocation; different text frees the old value, mallocs strlen+1, stores the new pointer via raw stwx0x7c7ce92e at0x105bc2c8, copies includingNUL and returns1. No allocation-failure branch or index bound is present in this setter. Repeated valid keys therefore keep the last value; unknown entries do not clear previous values. Generic decode0x105bc68c merges into an existing container; the zeroing wrapper starts fresh.",
     "accessors": "String accessor0x105bc384 returns the indexed pointer, possiblynull. Numeric accessor0x105bc398 invokes paranoid_atoi when a value exists; absent or rejected numeric text returns the caller-provided default, accepted text returns the parsed integer. No key-specific battery range is enforced by this accessor. Exact lexical behavior belongs to paranoid_atoi and is not inferred from these callsites. Numeric setter0x105bc2f8 formats%i into12 bytes then delegates to the string setter. Clear-one0x105bc414 frees and nulls a present slot, returning1, or returns0 for an absent slot.",
     "receiver": "At0x107634fc..0x10763504, source record+134 supplies the list. A changed list is copied with strlcpy cap512 into receiver+95c and parsed into a temporary seven-slot container. RawBattPct(index1),BattPct(index2),BattTmp(index4) are read with default-100 at0x10763514/+528/+53c and stored into receiver+2544,+2548,+254c only when not-100. Thus literal parsed-100 is also treated as unavailable and leaves prior cached values. BattChg(index3) updates byte+2550 only when the string exists; exact CHARGING sets1, every other present string sets0. Missing charging text leaves the byte unchanged. Temporary strings are freed at0x1076359c via0x105bc1f0. This block consumes battery status, not a boot configuration gate.",
-    "room_name_producer": "Local update0x105b84fc recognizes TargetRoomName, sets local update marker+94c, and uses the cache at object+994. Nonempty value calls setter(index5) at0x105b8530. Its changed result controls call0x1074facc with the cached container; unchanged text skips this notification. The empty-value handling branch0x105b86b0 and downstream room-name/SPID/Bluetooth consumers still require tracing.",
-    "serialization_boundary": "0x105bc484 visits all seven slots in enum order, formats present values as%s:%s into a512-byte buffer, and appends through shared list-builder0x10c39b10. It returns a boolean indicating at least one nonnull slot. Exact builder escaping/overflow and the complete outgoing-message chain remain to be joined before declaring the whole round trip complete."
+    "room_name_producer": "Local update0x105b84fc recognizes TargetRoomName, sets marker+94c and uses the seven-pointer cache at object+994. Nonempty input calls setter(index5) at0x105b8530. Empty input branches0x105b852c to0x105b86b0 and calls clear-one0x105bc414. Changed set/clear results call0x1074facc with UUID object+25c and the cache; unchanged values do not call it. An absent slot cleared again returns0 and emits no change. This local clearing behavior differs from incoming empty name:value, which the parser skips.",
+    "serialization_boundary": "0x105bc484 visits the seven slots in enum order and formats each nonnull slot as%s:%s into512 bytes with snprintf, then appends through0x10c39b10. It ignores both formatting length and append return. It returns whether at least one slot was nonnull, not whether all values were emitted. The builder is initialized with caller destination/capacity at0x10c39af8;0x10c39abc is an empty cleanup helper. Present empty-string slots serialize as name:, although this is rejected by the single-entry parser. Per-entry formatting can truncate to511 bytes before escaping. The separate builder escape/space behavior is recorded below.",
+    "escaped_list_builder": "Builder fields are destination+0,capacity+4,used length+8,first-entry byte+c. Reset0x10c39ac8 sets used0 and first1, and writes initialNUL only for nonzero capacity. Append0x10c39b10 clears first on its initial call; later calls insert a comma when used+1<capacity. Input comma/backslash is prefixed with backslash. Colon is not escaped. The ordinary path reserves one byte for trailingNUL, updates used and returns the number of input bytes copied, excluding added escapes/separators. Null input substitutes a static empty string. It may append an empty token/trailing comma. Ordinary exhaustion yields a terminated prefix, not a hard failure; the enclosing status serializer does not detect incomplete output. These described bounded calls supply512-byte capacity; the append helper has no general zero-capacity rejection.",
+    "escape_boundary_cycle": "At0x10c39b84 cmplwi cr0,r10,1 records whether exactly one output byte remains before the reserved terminator. Comma or backslash branches to0x10c39bf0. Raw word0x41a2ff88 is BO13/BI2, branching on CR0.EQ back to0x10c39b78. That path performs only comparisons/branches and does not change input pointer, output pointer, remaining count or character. With remaining1 and a nonzero comma/backslash, it repeats indefinitely. A raw-word branch walk verified the cycle for both bytes44 and92. This is static binary verification, not a reproduced live-device hang. Other ordinary characters can consume the final available byte and then stop normally.",
+    "outgoing_moreinfo": "Device-description emitter0x105b6370..0x105b63b0 opens MoreInfo, serializes cache object+994 into512-byte stack output at0x105b6394, emits the text via0x10676cf8 and closes the element. Thus the status list is an outgoing MoreInfo value, not a boot-environment string. The receiver already documented consumes the corresponding list at source-record+134.",
+    "local_topology_update": "Function0x1074facc is named updateLocalMoreInfo by its diagnostic at0x10f12188. It takes the topology lock at manager+318, serializes the supplied container into512 bytes, and looks up the UUID through0x10765a00 on manager+5a8. Missing record or local byte+14f8 clear logs uuid not local or was not found and calls RabortIfUnlocked; it does not update that record. For a found local record, equal text at+95c does nothing. Different text is copied with strlcpy512, invokes0x10766064 on the table, then0x1067c6ec on manager+8 before releasing the lock. Deeper notification effects remain untraced; the change gate and local-only cached update are proven."
    },
    "evidence": [
     {
@@ -134814,8 +134818,69 @@
      "build": "86.10-80260",
      "address": "0x105b8530",
      "notes": "Local TargetRoomName changes update index5 and trigger change notification."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c39bf0",
+     "notes": "Raw BO13/BI2 branch forms unchanged-input cycle when an escaped byte needs two spaces but only one remains."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105bc504",
+     "notes": "Per-entry snprintf length is ignored before escaped append; return describes nonnull-slot presence."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b6394",
+     "notes": "Serialize seven-field cache inside outgoing MoreInfo element."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b86b0",
+     "notes": "Empty local TargetRoomName calls clear-one, then shares changed-value notification gate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1074fb34",
+     "notes": "updateLocalMoreInfo requires found local record; compare controls copy/notification."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b4e14",
+     "notes": "Raw isel selects diagnostic substring after optional U-Boot prefix."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b4e54",
+     "notes": "17.2.7 goes to bounded-copy helper, not a version comparison."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b4f24",
+     "notes": "Open failure leaves later-used stack string uninitialized; return remains0."
     }
-   ]
+   ],
+   "boot_diagnostic_contract": {
+    "source": "0x105b4cf8 opens /dev/audioctl read-only, initializes a32-byte stack string to?, then issues ioctl0x4020fc2d with that buffer. It does not branch on the ioctl return. strncasecmp(...,U-Boot ,7) at0x105b4e00 tests only the prefix. Raw isel0x7d08ff9e at0x105b4e14 selects buffer+7 on a match and the original buffer otherwise. That selected text is formatted as OTP: %.32s into the caller output. The literal OTP labels the diagnostic; this path alone does not prove a decoded fuse/OTP identity or validation gate.",
+    "version_literal": "At0x105b4e44..0x105b4e54, literal17.2.7 is passed as the source to bounded-copy helper0x10906304 with caller destination/capacity. The helper loops copying bytes and terminating them; it is not a compare against the returned boot string. The previous exact-version/early-boot-gate explanation was incorrect. Other function outputs have independent helper joins and are not inferred from this literal.",
+    "open_failure": "Open result-1 branches0x105b4f24, writes an empty diagnostic into its caller buffer and resumes at0x105b4e38. It skips initializing the stack string atsp+2c, but later passes that stack region to0x100a8580 and strlcpy at0x105b4e78. Those later copies can therefore receive uninitialized string data. The function returns0 at0x105b4edc; no open/ioctl status is propagated as its return. A successful return is not evidence that device metadata was obtained."
+   }
   },
   "boot_reasons": {
    "enum": [
