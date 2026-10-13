@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK reload/reset/new-key persistence triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer binding/units and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156913,6 +156913,48 @@
      "build": "86.10-80260",
      "address": "0x100222e0",
      "notes": "Rename result supplies writer boolean; earlier flush/close errors ignored."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10036668",
+     "notes": "GET_PSK has required tag19 u8 restricted to0."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001d91c",
+     "notes": "GET_PSK always generates a replacement default credential using factory identity/method."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001da04",
+     "notes": "Persistence failure rejoins outgoing response/scheduling path."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10036314",
+     "notes": "PSK response requires selector,identity string and raw key blob."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001d990",
+     "notes": "Concrete discard callback0x1001d4f8 scheduled with raw delay14400000."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001d550",
+     "notes": "Expiry clears live credential before persistence,without failure rollback."
     }
    ],
    "setup_client_hello_payload": {
@@ -157203,6 +157245,14 @@
     "setup_method_join": "Credential u32+ac is the remembered setup-method number,parsed from the second sonos.device component for format>1 and set by generator input1..8. Getter0x10023d2c reads active authentication mode+2cc:mode2(default PSK) returns default record+ac;mode1 and3 return0; modes4..6 return requested setup-mode+2f4 only if cached proof byte+2d4 istrue,otherwise0;other modes return0. The method value therefore describes setup provenance through the active authentication path; it is not the cipher selector or boot count. File parser admits0..9 while generator emits1..8.",
     "write_operation": "Writer formats final path<directory>/netstart2.txt and temporary<directory>/netstart2.txt.tmp,opens temporary in modew,writes VERSION2,new PSK when eligible,and optional registration-signing record,then parses old file to copy other named settings while skipping owned fields. It calls fflush/fclose but ignores their return values,renames temporary to final and defines final boolean from rename result,then unlinks the temporary name. It makes no fsync call in this path. Some serialization/old-file parse errors only log and writing/rename continue,so true result is rename success rather than proof all desired fields and bytes were durably stored.",
     "remaining": "Trace reload/reset and new-key persistence callers,registration-signing field and unrelated settings individually. Complete application notification/callback effects remain outside these numeric-field joins."
+   },
+   "get_psk_generation_and_expiry": {
+    "request_parser": "NS2 opcode13 GET_PSK is parsed by0x1002c0c0 with one required schema row at0x10036668:{tag19,mode1}. Typed getter0x1002df08 requires value width1; parser then requires value exactly0. Missing tag,wrong width,duplicate known tag or nonzero value fails. Other tags are skipped through common cursor. As with the independently audited greeting parser,common iterator/header failure can stop the loop without clearing valid flag,so required-field-complete messages may ignore malformed trailing framing. Selector0 is the proved accepted domain; no unverified selector name is invented.",
+    "generation_trigger": "Common handler0x1001d6d4 enters GET_PSK path only for opcode13 and parser success. It retrieves factory identifier pointer/length via0x10023d10 and setup provenance method via0x10023d2c,then always calls generator0x10026ca4 targeting default recordsession+60. There is no existing-key reuse branch before generation. Generator requires identity length6 and method1..8,so provenance0 or9 and unavailable factory identity prevent this new credential. Successful generation replaces live default record before settings persistence. The handler logs retrieval failure and returns if parsing/generation fails; full state-machine reachability/authorization remains separate.",
+    "persistence_failure": "After generation,0x1001d930 invokes settings writer. False logs unable to update internal settings at0x1001d9f0,then branches back to0x1001d93c,which is the same response/scheduling path as success. It does not restore previous live key or suppress outgoing PSK solely for write failure. A peer may therefore receive a fresh usable live credential even when it is absent from persistent storage. The settings writer boolean itself is rename-based as documented separately.",
+    "response_wire": "Serializer0x1002c23c writes opcode14 PSK,using three required schema rows0x10036314:{19,1},{20,1},{21,1}. It emits tag19 u8 request selector0,tag20 string=new default identity,tag21 blob=default raw key with record length32. Fields use shared u8tag/u16BE-length/value framing. Handler output capacity1414;typed writer results are ignored until common finalizer checks cursor/required fields and stores length. It sends only on serializer success through0x10026798 and ignores that send result. The32-byte key is represented as raw bytes in this NS2 response,unlike the64-character hex form used in settings persistence. Construction is not proof of delivery.",
+    "expiry_binding": "On generated-key path,configuration+24 may cancel the previous registration of callback0x1001d4f8 for this session,then configuration+20 may schedule that callback with raw delay0x00dbba00(14400000),session argument and extra0. Callback0x1001d4f8 clears/wipes live default record through0x1002691c,then writes settings to omit PSK. Write failure logs and returns without restoring the cleared key. Timer API units/concrete scheduler and cancel side effects remain to be joined; a four-hour expiry is not asserted merely from the numeric delay. Startup-loaded key also schedules this same callback through0x1001edb8..0x1001ede4.",
+    "limits": "This completes local request grammar,generation,live-versus-persistent key effects,response fields and expiry callback ordering. Trace timer binding/units and transport/state authorization separately; no service request-object or anacapad dispatcher changes are made."
    }
   },
   "bin_wacd": {
