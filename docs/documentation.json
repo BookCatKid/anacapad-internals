@@ -125919,9 +125919,9 @@
   "noncehandler": {
    "semantics": "Tracks Muse authentication challenges as one-use nonce records,with concrete300-second expiry and a three-binding cache. The Muse16-character challenge is separate from the6-byte-derived nonce in the HTTP signing-credentials helper.",
    "todo": [
-    "Established: concrete Muse provider,16-character challenge and300-second expiry; wall-clock gettimeofday source; unsigned-decimal BootSequenceManager context and monotonic fallback; RDM/MTM mode producer and exact prefix/gate predicates; equality differences; matching-record consumption and three-binding pruning. Remaining: identify the caller binding-string producer and its value domain; verify the base64/JSON accepted lexical details and the separate HTTP signing helper's exact digest/output algorithm. Trace these specific producers/helpers without touching SOAP request objects or service dispatch records."
+    "Established: concrete Muse provider/clocks,boot-sequence context,RDM/MTM policy,300-second expiry,equality differences,one-use erasure and three-binding pruning; separate signing helper now binds device MAC and embedded salt,SHA-1 digest,RSA-PKCS1-v1.5 signature,base64 nonce/JSON envelope,keyType0 and concrete size/escaping guards. Remaining: identify the Muse caller binding-string producer/value domain; verify Muse base64/JSON accepted lexical details; bind the signing key source and size behind0x10bb9280/ZZ0098. Trace these specific producers/helpers without touching SOAP request objects or service dispatch records."
    ],
-   "lifecycle": "The two previously combined pipelines are distinct. HTTP signing helper0x105ccad4 formats six random bytes and two context strings,then hashes that input;0x105cccbc packages credentials/nonce/keyType and base64-encodes the signing blob. Muse nonce creation is0x10b99b38: it calls ZZ0154 to produce16 characters from the62-character alphabet0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ and records per-binding expiry/context. Muse validation0x10b996b4 base64-decodes and parses credentials/nonce,checks current credentials,then looks up and consumes the matching cached nonce through0x10b995a8. Record flags+0x18 and+0x28 are optional-value presence flags,not valid-slot/consumed flags. Consumption is hash-node erasure,not a byte written to+0x28.",
+   "lifecycle": "The two previously combined pipelines are distinct. HTTP signing helper0x105ccad4 formats six device-MAC bytes,an embedded16-byte salt and the caller credential C string,hashes them with SHA-1,and RSA-PKCS1-v1.5-signs the20-byte digest. Its nonce output is the base64 signature;0x105cccbc inserts that into credentials/nonce/keyType JSON and base64-encodes the JSON. There is no entropy draw at0x1090ad44/0x10909630; those obtain the static device-info singleton and its MAC field. Muse nonce creation is0x10b99b38: it calls ZZ0154 to produce16 characters from the62-character alphabet0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ and records per-binding expiry/context. Muse validation0x10b996b4 base64-decodes and parses credentials/nonce,checks current credentials,then looks up and consumes the matching cached nonce through0x10b995a8. Record flags+0x18 and+0x28 are optional-value presence flags,not valid-slot/consumed flags. Consumption is hash-node erasure,not a byte written to+0x28.",
    "resolved_findings": [
     "The Muse delegate is concrete: player+0x56c0 -> initialization argument7 -> host+0xb8 -> handler+0xac -> vtable0x10f986e8. Creation0x10b99b38 supplies16 alphanumeric characters and300-second deadlines.",
     "Nonce record+0x18/+0x28 are optional deadline/snapshot presence bytes. Invalid predicate0x10b9917c chooses optional provider-time expiry or snapshot fallback; they are not consumed-state flags.",
@@ -126120,9 +126120,79 @@
      "build": "86.10-80260",
      "address": "0x10c3c1ac",
      "notes": "PIC GOT literal Sonos_MTM_,10-byte case-sensitive comparison."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10909630",
+     "notes": "Pure device-info+0x118 MAC getter,not an entropy source."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105cc938",
+     "notes": "Independent X-Sonos-Mac consumer of the same six-byte field."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105ccb30",
+     "notes": "Embedded salt constructed as fixed bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105ccc10",
+     "notes": "129-byte digest-input buffer and raw return-length guard."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x6bec",
+     "notes": "Digest algorithm3 is SHA-1 via imported mbedtls functions."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x8e7c",
+     "notes": "Concrete RSA-PKCS1-v1.5 signing call."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105ccca8",
+     "notes": "Signature base64 encoder produces the signing nonce."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105cccbc",
+     "notes": "Separate signing JSON/base64 envelope and concrete buffer domains."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb941c",
+     "notes": "Signing-key helper sets nonnull keyType output to0."
     }
    ],
-   "generation_mode": "Mode producer is the concrete interface installed at settings object+0x12c by0x10126270,using vtable0x10e8b1f4. Live Muse init0x1019ab98 passes that slice as host argument8;host+0xbc retains it. Challenge creation at0x109f99ec calls its slot+0x14=0x1073e7c0;that thunk adjusts-0x12c then semantically tail-calls0x1073e7b4 -> tail0x105ad9cc. The predicate returns an RDM-or-MTM household classification:0x105ad62c requires global gate byte0x110974e8 nonzero and nonnull household-name provider0x110974f0,then tests the exact case-sensitive10-byte prefix Sonos_RDM_ via0x10c3c134. If false,0x105ad8c8 tests Sonos_MTM_ via0x10c3c188 with the same name provider but without that RDM gate. Prefix literals were resolved through PIC GOT slots0x10c3c158/0x10c3c1ac. A nonzero result skips the wall-clock deadline in nonce creation and uses the boot-sequence/monotonic snapshot path. Other households create wall-clock expiry plus the same fallback snapshot. Raw record-form mr.0x7c7f1b79 at0x105ada00 supplies the short-circuit CR0 test."
+   "generation_mode": "Mode producer is the concrete interface installed at settings object+0x12c by0x10126270,using vtable0x10e8b1f4. Live Muse init0x1019ab98 passes that slice as host argument8;host+0xbc retains it. Challenge creation at0x109f99ec calls its slot+0x14=0x1073e7c0;that thunk adjusts-0x12c then semantically tail-calls0x1073e7b4 -> tail0x105ad9cc. The predicate returns an RDM-or-MTM household classification:0x105ad62c requires global gate byte0x110974e8 nonzero and nonnull household-name provider0x110974f0,then tests the exact case-sensitive10-byte prefix Sonos_RDM_ via0x10c3c134. If false,0x105ad8c8 tests Sonos_MTM_ via0x10c3c188 with the same name provider but without that RDM gate. Prefix literals were resolved through PIC GOT slots0x10c3c158/0x10c3c1ac. A nonzero result skips the wall-clock deadline in nonce creation and uses the boot-sequence/monotonic snapshot path. Other households create wall-clock expiry plus the same fallback snapshot. Raw record-form mr.0x7c7f1b79 at0x105ada00 supplies the short-circuit CR0 test.",
+   "signing_blob": {
+    "identity_input": "0x105ccb1c calls0x1090ad44,the lazily initialized device-info singleton at0x110b8150;0x105ccb20 calls0x10909630,which merely returns singleton+0x118. Six bytes are loaded there. Independent consumer0x105cc8d4 uses that same getter to emit X-Sonos-Mac at0x105cc938,proving the byte role. The singleton constructor0x10909fcc fills manufacturing data at object+0x104 through HAL flash wrappers; the selected MAC occupies that block+0x14. No random generator is called by these two helpers.",
+    "formatted_digest_input": "The helper builds embedded salt *7^!Ah7y#2F%d2z! byte-by-byte at sp+0x40..0x4f,and appends NUL from0x10ef4bf8 at sp+0x50. Format0x10ef4bc8 is %02x%02x%02x%02x%02x%02x%s%s:12 lowercase MAC hex characters,salt,then caller credential C string. snprintf into129 bytes at0x105ccc08 must return1..128 (raw return-minus1 unsigned<=127 guard at0x105ccc10); longer or negative/zero output fails. For a nonembedded-NUL caller string,this leaves at most100 bytes after the12+16 fixed characters. The helper zeros output[0] before work. Salt percent-d bytes are data appended with %s,not a second formatting operation.",
+    "digest": "0x105ccc30 calls libsonoscrypto.so.3 ZZ0058 with algorithm3,input strlen length and20-byte digest buffer. Its export0x6ce8 calls hash-init ZZ0062 at0x6b30,whose algorithm3 branch0x6bec imports mbedtls_sha1_init/starts;finish ZZ0061 algorithm3 branch0x6cc0 imports mbedtls_sha1_finish. Algorithm3 is therefore SHA-1,not a guessed SHA-256 or MD5 mode. Caller does not check the ZZ0058 return before attempting signing.",
+    "signature_and_nonce": "0x105ccc50 calls0x10bb94bc with digest kind3,digest length20,512-byte signature buffer and keyType output pointer. Wrapper obtains a signing key through0x10bb93f4 ->0x10bb9280 ->ZZ0098,then calls ZZ0104 at0x10bb951c with private-sign mode1. libsonoscrypto ZZ0104 export0x8d38 reaches mbedtls_rsa_rsassa_pkcs1_v15_sign at0x8e7c;digest-kind3 selects mbedtls digest enum5 in this build. Signing wrapper frees the loaded key through ZZ0077 and returns the normalized low-byte success flag. On success,the signature bytes are encoded via0x1053c0c0 and checked with sonosBase64EncIsValid at0x105cccb0. The nonce string is this base64 RSA signature,not the raw SHA-1 digest and not the Muse random16-character token. The exact key material source and size remain to be traced.",
+    "outer_envelope": "0x105cccbc accepts a credential byte span of length<=256,copies it into257-byte storage and NUL-terminates it. It calls the signing helper with345-byte nonce-output capacity. The template at0x10ef4bfc is {\"credentials\": \"%s\", \"nonce\": \"%s\", \"keyType\": %d};729-byte JSON storage is checked with return-minus1 unsigned<=727. No JSON escaping is applied to the inserted credential C string. The outerJSON C string is base64-encoded into973-byte storage at owner+0xc314. The keyType out-param starts-1 at0x105cccf8;0x10bb93f4 clears a nonnull pointer to0 at0x10bb941c and has no later write to that pointer. The traced successful signer therefore emits keyType0. Embedded NUL in the supplied byte span truncates the credential used in signing and JSON formatting,even though the whole declared span was copied."
+   }
   },
   "arping": {
    "impl": "arping.cxx: 0x140-byte select-handler manager, 0x50-byte per-probe request and 18-byte meaningful result",
