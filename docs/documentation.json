@@ -125764,7 +125764,7 @@
   "devmode": {
    "obj": "RDevMode + <DevMode>%s</DevMode> var: dev-mode flag",
    "todo": [
-    "Established: outer statement framing/model/identity/packed-manager constraint bounds; embedded2048-bit RSA trust key and SHA1 fingerprint; signature-envelope header/lists/record limits, duplicate-type rejection, RSA/SHA256 selectors and direct-versus-metadata signing layouts; persistent reader and callsite joins. Remaining: trace nested metadata type5 via ZZ0179 and consumers of copied envelope flags/primary metadata; trace manager+49d/+49e producers and device-ID helper0x1054c850; decode developer-grant payload grammar/capability consumers and audit persistence/removal/notification paths individually. Follow actual delegates and raw predicates before removing this TODO."
+    "Established: exact outer statement framing/model/12-character manufacturing identifier, firmware86.10 compatibility bounds, embedded RSA trust key/fingerprint, signature-envelope framing/algorithms/signing layouts/candidate failure behavior, and specialized type5 marker/format/count/array parser including its32-bit span arithmetic. Remaining: join type5 array consumers and copied envelope flags/primary metadata meanings; decode developer-grant payload grammar/capability consumers and audit persistence/removal/notification paths individually. Follow actual consumers and raw predicates before removing this TODO."
    ],
    "mechanism": "Dev mode is CODE-UNLOCKED, not a compile flag: a web form ('DevMode Code: <textarea>', 'devmode' method=POST with a csrf hidden input) accepts an unlock code; the code is validated and persisted as 'devmode.bin' via an atomic 'devmode.tmp.bin'->rename write (devmode.cxx). State surfaces through 'DevModeEventGenerator' and the '<DevMode>%s</DevMode>' status var. The RDevMode object holds the flag; gated code paths read it from the devmode manager, not a fixed global - the store key is 'devmode'.",
    "resolved_findings": [
@@ -125775,8 +125775,8 @@
    ],
    "statement_outer_format": {
     "parser": "ZZ0137 at libsonoscrypto.so.3:0xca14(size604) parses an unaligned byte buffer(r3) and byte length(r4). Words are copied bytewise to a stack word before comparison, giving big-endian fields on this PPC target. It returns0 on any local rejection and delegates cryptographic acceptance to ZZ0121 -> ZZ0123 -> ZZ0126 -> ZZ0125. No NUL-terminated capability scan occurs in this outer parser.",
-    "header": "Bytes0..3 must be0x28721e71, proven xoris0x2872 plus positive cmpwi0x1e71. Word+4 must equal caller r5; anacapad passes device-info MODEL from manager+498 (constructor0x1054bc74/0x1054bc78 calls getter0x10909550). Bytes+8..17 are part of the signed prefix but have no individual outer-parser guard. Word+18 is an inclusive lower bound and word+1c inclusive upper bound on constraint c=((r8<<16)&0xffff0000)|r9. Callsites supply manager bytes+49d/+49e. Their producer and precise compatibility meaning remain open; no wall-clock value is used in these comparisons.",
-    "identity_and_payload": "Byte+20 is identifier length n. It must exactly equal caller r7; n bytes at+21 must memcmp-equal caller identifier r6. The two callers pass manager string+414 and length+494. Constructor0x1054bc58 fills that string with0x1054c850 then strlen-caches its length. Byte at+21+n is payload length k; payload starts+22+n and ends+22+n+k. The parser bounds-checks each required area against total length. Remaining bytes after that end are passed as a signature envelope to ZZ0121. The prefix from byte0 through the payload end is the signed-data input passed through ZZ0123; trailing signature metadata is separate.",
+    "header": "Bytes0..3 must be0x28721e71, proven xoris0x2872 plus positive cmpwi0x1e71. Word+4 must equal caller r5; anacapad passes device-info MODEL from manager+498 (constructor0x1054bc74/0x1054bc78 calls getter0x10909550). Bytes+8..17 are part of the signed prefix but have no individual outer-parser guard. Word+18 is an inclusive lower bound and word+1c inclusive upper bound on constraint c=((r8<<16)&0xffff0000)|r9. Callsites supply manager bytes+49d/+49e. Constructor0x1054bbfc..0x1054bc08 writes major86/minor10 into these bytes, so the value is firmware version86.10 packed as0x0056000a. This is an inclusive firmware-compatibility interval, not a timestamp interval.",
+    "identity_and_payload": "Byte+20 is identifier length n. It must exactly equal caller r7; n bytes at+21 must memcmp-equal caller identifier r6. The two callers pass manager string+414 and length+494. Constructor0x1054bc58 fills that string with0x1054c850 then strlen-caches its length. This helper reaches cached manufacturing bytes through0x10909630 and formats six bytes as exactly12 uppercase hexadecimal characters with no separator or serial check suffix; see identifier_contract. Byte at+21+n is payload length k; payload starts+22+n and ends+22+n+k. The parser bounds-checks each required area against total length. Remaining bytes after that end are passed as a signature envelope to ZZ0121. The prefix from byte0 through the payload end is the signed-data input passed through ZZ0123; trailing signature metadata is separate.",
     "outputs": "Optional lower/upper-bound outputs are written when those fields have passed their local range checks. Payload length and byte offset are written only when both supplied outputs are nonnull, before signature-envelope parse/verification. These output writes can occur before a later rejection; callers must require the final success return before treating them as accepted grants. The parser does not allocate a new payload string or insert a terminator.",
     "callsites": "anacapad load0x1054c2ec and submission-validation0x1054c4f4 pass the same model, identifier and two-byte constraint. The loader reads at most1024 bytes from constructJFFSRootPath(debug/devmode.bin) via0x1054c8d0. That helper retries EINTR and accumulates partial reads, requires the stat size fit caller capacity, and distinguishes complete read from failure; it does not itself verify signatures."
    },
@@ -125918,15 +125918,79 @@
      "build": "86.10-80260",
      "address": "0xa5ac",
      "notes": "Matching-key signature failure exits via0xa438; only unmatched-key lookup advances candidates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054bc00",
+     "notes": "Manager firmware major86/minor10 constants produce statement compatibility value0x0056000a."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10564b50",
+     "notes": "Identifier comes from cached six manufacturing bytes, not a file-selected identifier."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1055e6e0",
+     "notes": "Six uppercase hexadecimal components; devmode mode has empty separator and suffix."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x3ebc",
+     "notes": "Specialized type5 marker compare uses31 complemented constant bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x3f30",
+     "notes": "Format selector validator accepts exactly1..3."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x3f80",
+     "notes": "32-bit stride/count calculation has no independent count/overflow rejection."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x3fac",
+     "notes": "Successful type5 parse advances cursor and stores pointer descriptor, without per-element interpretation."
     }
    ],
    "signature_envelope_contract": {
     "header": "ZZ0121 at libsonoscrypto0x9e14 parses a big-endian envelope into a zeroed0x22c0-byte context. Header: u32 magic0x621da74d at+0, u32 declared size at+4, u16 format version1 at+8, u16 field at+a copied without a local value predicate, u32 primary-metadata count at+c. Magic derives from raw xoris0x9de2 and signed cmpwi0xffffa74d. Provided bytes must cover declared size. Parsing ultimately requires consumed bytes<=declared size rather than exact equality, so unconsumed declared padding and extra provided trailing bytes are not rejected by this parser alone.",
-    "metadata_lists": "After the16-byte header come0..8 primary entries, then a u32 secondary count and0..8 secondary entries. ZZ0026 parses entries into0x108-byte slots. Ordinary entry layout is u32 type,u32 value length and value bytes (length<=256). Type identity is low31 bits; high bit supplies required/optional treatment for unrecognized types. ZZ0057 at0x3b1c rejects duplicate normalized types within either list and across both lists. Known ordinary shapes: type1 arbitrary bytes;type2 digest descriptor;type3 four bytes;type4 one byte;type6 four bytes. Type5 follows a separate nested delegate ZZ0179 whose detailed grammar remains open. The digest descriptor(type2) must carry byte1 followed by32 SHA256 bytes, since its validator ZZ0118 only accepts selector1; alternative digest-size arms in ZZ0026 cannot pass that validator.",
+    "metadata_lists": "After the16-byte header come0..8 primary entries, then a u32 secondary count and0..8 secondary entries. ZZ0026 parses entries into0x108-byte slots. Ordinary entry layout is u32 type,u32 value length and value bytes (length<=256). Type identity is low31 bits; high bit supplies required/optional treatment for unrecognized types. ZZ0057 at0x3b1c rejects duplicate normalized types within either list and across both lists. Known ordinary shapes: type1 arbitrary bytes;type2 digest descriptor;type3 four bytes;type4 one byte;type6 four bytes. Type5 follows the fixed-marker/format/count/array delegate ZZ0179, described in type5_metadata_contract. The digest descriptor(type2) must carry byte1 followed by32 SHA256 bytes, since its validator ZZ0118 only accepts selector1; alternative digest-size arms in ZZ0026 cannot pass that validator.",
     "signature_records": "A one-byte signature count follows the lists and must be1 or2, proven unsigned(count-1)<=1 at0xa0d4/0xa0e0. Each record is u32 key-ID length(max2047),u8 key-ID algorithm(valid1..5 via ZZ0119),key-ID bytes,u8 digest algorithm(required1 via ZZ0118),u32 signature algorithm(required1 via ZZ0120),u32 signature length(max256),signature bytes. Parser checks every segment against provided end. The developer trust callback further requires key-ID algorithm3 and length20 matching the embedded key SHA1 fingerprint. The embedded RSA key is2048 bits, so verifier ZZ0109 additionally requires signature length256 exactly.",
     "signed_data_choice": "ZZ0126 computes a32-byte SHA256 digest of the outer statement prefix through ZZ0063; this callback rejects any requested digest selector other than1. ZZ0125 then iterates signature records and reloads a matching trust key for each candidate. If the secondary list is empty, ZZ0117/0x906c uses the supplied outer-prefix bytes as the final hash input. If the secondary list is nonempty, it requires secondary type2 digest descriptor, checks its selector1 and compares its32-byte digest against the already-computed prefix digest. The final hash input instead becomes the contiguous secondary u32 count plus encoded entries, tracked at context+1094/+1098. Thus the outer data is bound directly in the first layout and through its checked digest in the second.",
     "acceptance_and_cleanup": "Final verification reaches ZZ0110 -> ZZ0109 -> mbedtls_rsa_rsassa_pkcs1_v15_verify with SHA256 and RSA selector1. A successful candidate returns1. A null trust-key result advances to the next candidate, but after a key matches, a digest/integrity/signature failure branches directly to cleanup/return0 at0xa438. The second candidate is not tried after such a failure. Exhausting unmatched candidates returns0. Loaded keys are released through ZZ0078; the preliminary key lookup in the two-signature path is also released before the second-stage verification reloads candidates. Metadata retrieval/digest-length/digest-selector/signature verification failures reject. ZZ0123 passes optional expected metadata counter0 for this developer-mode path, so the generic nonzero-counter comparison branch does not impose an additional developer counter requirement.",
-    "limits": "Structural parse success is distinct from cryptographic success. Parser validates framing, selector domains and duplicate metadata types before the verifier validates trust binding and digest/signature relationships. It does not itself interpret developer capabilities. The copied u16+a field, nested type5 semantics and unused primary metadata meanings still require consumer/delegate joins. No HTTP request-object or service-dispatch records were needed for these library contracts."
+    "limits": "Structural parse success is distinct from cryptographic success. Parser validates framing, selector domains and duplicate metadata types before the verifier validates trust binding and digest/signature relationships. It does not itself interpret developer capabilities. The copied u16+a field, type5 array meaning/consumers and unused primary metadata meanings still require consumer joins. No HTTP request-object or service-dispatch records were needed for these library contracts."
+   },
+   "identifier_contract": {
+    "source": "0x1054c850 creates a temporary formatted identity via0x10564b18, strlcpy-copies it with caller capacity128, calls no-op cleanup0x10564bdc and returns1. The intermediate helper calls device singleton0x1090ad44 then getter0x10909630, which returns device-info+118: its cached MDP1+104 plus identity offset14. It copies exactly six manufacturing identity bytes before formatting.",
+    "encoding": "0x10564b18 calls0x1055e59c with capacity20, suffix-enabled flag0 and separator0. Raw isel0x7cc04f9e at0x10564b8c selects separator0 when the flag is0. Formatter0x1055e67c writes an empty suffix; isprint(0) selects an empty separator. Format0x10eebb64 emits six%02X components, yielding12 uppercase hex digits andNUL. The same formatter has other suffix/separator modes, but this devmode call uses neither. No modulo17 character from the displayed SERIAL is appended. Constructor caches strlen12 at+494; the outer statement compares identifier length and these ASCII bytes exactly.",
+    "limitations": "The identity wrapper always returns1 after its copy; it does not report a missing/invalid manufacturing identity or destination truncation. A matching statement identifier therefore means equality with the cached formatted bytes used here, not an additional hardware identity validation."
+   },
+   "firmware_compatibility_contract": {
+    "producer": "Manager constructor0x1054bbb4 first advances r3 to manager+4b0. It stores0x56 at offset-13(absolute+49d) at0x1054bc00 and0x0a at-12(+49e) at0x1054bc08. Load and submission callsites read those bytes and pass them as r8/r9 to ZZ0137.",
+    "predicate": "ZZ0137 packs major<<16 | minor. Word+18 must be<=that value and word+1c must be>=it, using unsigned comparisons. For this build the tested value is0x0056000a(86.10). Equality to either endpoint passes that range gate. Capability grant/expiry decisions elsewhere remain separate and are not inferred from these firmware bounds."
+   },
+   "type5_metadata_contract": {
+    "delegate_and_marker": "ZZ0026 recognizes normalized type5 and treats its next word as a copied metadata word, then tail-branches to ZZ0179 at0x3d24 with cursor immediately after that word. This is a specialized representation, not the ordinary length-prefixed TLV value. ZZ0179 requires31 marker bytes equal56ea9f16215431a5ba0f50abf164fa176dabb010c4b5719e333159c682ba4c. The library reconstructs them by complementing31 rodata bytes at0xcefc; the initial first byte is hard-coded0xa9 before the complement loop.",
+    "wire_fields": "Following that31-byte marker is u8 format at+1f, then u32BE entry count at+20 and the array at+24. Validator ZZ0181(0x9050) accepts formats1..3 by unsigned(format-1)<=2. Format1 computes8 bytes per entry,format2 computes6,format3 computes16. Count0 is locally accepted. The routine checks header availability and array-end against the supplied end pointer, copies a40-byte internal descriptor containing marker/format/count and array pointer into entry+8, advances the caller cursor to the computed array end and returns1. Marker/format/bounds failures return0. It does not copy or inspect individual array contents.",
+    "arithmetic_quirk": "The array-span operations at0x3f80,0x3fb4..0x3fbc and0x3fc4 use32-bit shifts/subtraction. There is no independent upper bound on entry count and no overflow check. Computed span is stride*count modulo2^32. For example format1 count2^29,format2 count2^31 andformat3 count2^28 each compute span0. A large count can therefore satisfy this local byte-span gate with fewer array bytes than its unbounded mathematical size. This is a static instruction/boundary audit, not a live-device exploit or observation.",
+    "semantic_boundary": "The parse establishes marker, three format selectors, count, strides and pointer descriptor. It supplies no names for array element roles and performs no per-element validation. Its developer-mode consumers and any meaning attached to those formats remain to be joined; no IPv4/IPv6/MAC element interpretation is asserted from stride alone."
    }
   },
   "mod_zp": {
