@@ -127349,9 +127349,9 @@
    "read_contract": {
     "physical_sizes_and_headers": "libflash.so.1 hal_flash_get_mdp0x2120 reads512 bytes;hal_flash_get_mdp2 at0x23c0 reads4096 bytes. The first magic is0xce10e47d. Raw xoris at0x21bc XORs high0x31ef;cmpwi at0x21c0 compares against sign-extended0xffffe47d,so solving the comparison gives high0xce10,not0x31ef. The default mdputil template also starts0xce10e47d. MDP2 accepts0xca989b4a or0xfa87b921,not the XOR operand fragments. Reads use flash-info-derived offsets;MDP1 offset info+0x50,and MDP2 offset info+0x50+info+0x40.",
     "io_and_status": "read_from_offset at libflash0x1f78 opens read-only,checks the64-bit seek result when offset is nonzero,and accumulates partial reads until the requested count is reached. It retries read errno4(EINTR). Return0 means the full requested read;1=open failure,2=seek mismatch,3=short/failed read. MDP readers add9=null flash context and12=bad page magic. MDP1 failure clears its512-byte output then supplies Vendor1,Region1 and the library's current-model value;the original error is still returned. MDP2 failure clears4096 bytes. mdputil does not treat these library fallback values as proof that a valid stored page exists.",
-    "normalization": "For valid MDP1 magic,FLAGS&4 absent clears HWFEATURES+0x68. FLAGS&0x10 absent clears+0x70/+74/+78/+7c/+80. The reader then computes a version for normalization:old+70 when old>5,otherwise nonzero new+84 or old. Version<=1 clears+84/+88/+8c;<=2 clears+90..+97;<=3 clears SERIES_ID+98..+9b. For later versions it retains SERIES_ID only if first byte isA-Z and the next three are digits. Version<=5 clears+a0 and then+a4..+ab/+ac;version6 clears+a4..+ab/+ac;version7 clears+ac;later versions retain those tail areas. This is in-memory normalization,not a flash write. Unprinted tail fields still need semantic consumer joins.",
+    "normalization": "For valid MDP1 magic,FLAGS&4 absent clears HWFEATURES+0x68. FLAGS&0x10 absent clears+0x70/+74/+78/+7c/+80. The reader then computes a version for normalization:old+70 when old<=5; for old>5, nonzero new+84 or old. Version<=1 clears+84/+88/+8c;<=2 clears+90..+97;<=3 clears SERIES_ID+98..+9b. For later versions it retains SERIES_ID only if first byte isA-Z and the next three are digits. Version<=5 clears+a0 and then+a4..+ab/+ac;version6 clears+a4..+ab/+ac;version7 clears+ac;later versions retain those tail areas. This is in-memory normalization,not a flash write. Unprinted tail fields still need semantic consumer joins.",
     "checksum_limitation": "hal_flash_get_mdp invokes crc32(seed0,buffer,508) at0x2298 but neither compares its result with stored+0x1fc nor stores it;the result is discarded before returning the read status. The underlying read_from_offset does not validate CRC either. In contrast,mdputil preparation helper0x10002bf8 stores computed CRC at+0x1fc at0x10002c7c and its alternate branches. Basic read success therefore establishes length/magic and normalization,not CRC/signature acceptance.",
-    "printing": "COPYRIGHT is forcibly terminated at+0x63. Effective MDPVERSION selection is old+70 unless old<=5 and new+84 is nonzero. WIFITYPE=N is a literal output line,not a radio-type probe. Invalid DATECODE values are zeroed only in the display buffer. VARIANT,SERIALSIG,UNITSIG,FSN and NANDID are derived helper results and are not interchangeable with fixed MDP1 byte fields."
+    "printing": "COPYRIGHT is forcibly terminated at+0x63. Effective MDPVERSION selection is old+70 unless old>5 and new+84 is nonzero. WIFITYPE=N is a literal output line,not a radio-type probe. Invalid DATECODE values are zeroed only in the display buffer. VARIANT,SERIALSIG,UNITSIG,FSN and NANDID are derived helper results and are not interchangeable with fixed MDP1 byte fields."
    },
    "application_flag_consumer": {
     "source": "anacapad getter0x10909620 loads cached device-info+0x168,which is its MDP buffer+0x104 plus FLAGS offset0x64. It is an MDP flags word,not a capability word.",
@@ -154170,9 +154170,9 @@
   },
   "bin_mdputil": {
    "name": "mdputil",
-   "summary": "Reads,prints and stages edits to factory identity and hardware configuration. MDP1 is512 bytes;MDP2 has a separate4096-byte read buffer. The decoded fields,header checks,read-time normalization,hardware-manifest addressing and boot consumers are now bound. CLI write/key-bundle paths remain under analysis;basic page-read success is not cryptographic validation.",
+   "summary": "Reads factory identity/configuration, stages command-line edits, checks imported manufacturing bundles and erases/writes manufacturing flash. The original512-byte page and4096-byte second page have distinct layouts. Option parsing, boot repair, version preparation and flash failure behavior are traced; cryptographic bundle internals and remaining hardware-field consumers still require work.",
    "todo": [
-    "Established: page sizes/magics,printed MDP1 fields and widths,read-status/normalization/CRC contracts,series and certification-variant source/return conventions,manifest indices and ranges,REGION option semantics and application flag-cleanup predicate. Remaining: complete each CLI option's numeric/lexical/write behavior,including-B repair and unsupported getopt entries;trace the key-bundle/cipher/signature helpers0x100024c4/0x10002928/0x10002a5c and flash commit/error paths;bind unprinted tail fields and individual hardware-selection code meanings to their consumers. Inspect raw instruction words and actual call/fall-through chains before removing this TODO."
+    "Established: original/staged data separation, all getopt dispatch targets, numeric/serial/series/flag/manifest edits, boot repair and option-order behavior, bundle read sizes and validation call order, version/CRC preparation, erase/write sequence and errors. Remaining: fully reverse cryptographic helpers0x100024c4/0x10002928/0x10002a5c; trace /dev/chk ioctl0x8004f302 and flash geometry producers; bind unprinted tail fields, wildcard override final consumer and individual manifest hardware-code meanings. Follow these producer/consumer chains and raw branch predicates before removing this TODO."
    ],
    "artifacts": [
     "bin/mdputil"
@@ -154184,7 +154184,7 @@
     "The 0x104 check at0x10002960 requires r6 exactly260 bytes for a signature-verification block. It is not an index bound or a260-entry field-name table. The same helper requires signature size128 at0x100029b0;its full signed-data/crypto role remains under analysis.",
     "Hardware-manifest output is one-based1..8. Editable indices are1..7 with per-entry numeric ranges;0 and8 reject. Null-check printer wrapper uses conditional bclr and fall-through,not a dead delegate.",
     "REGION edit is option-e:0x10000eb4 stores the supplied value at staged MDP1+0x1c. Thus the documented command mdputil -fwe 2 supplies new REGION value2;2 is not a field index.",
-    "/etc/Configure line74 invokes mdputil -B and line76 consumes the first12 SERIAL characters for hostname Sonos-<serial12>. The exact-B repair/write behavior remains to be traced;it must not be described as merely boot-manifest printing.",
+    "/etc/Configure line74 invokes mdputil-B. At0x10001190 the option can check existing MDP2 through/dev/chk, then requests a forced write when original old-version>6. Otherwise it exits early unless-w has already appeared. It is not merely a printing option.",
     "Application MDP flag cleanup has the concrete predicate and bit effects in application_flag_consumer. It clears printk/console bits and sets marker0x20;it is not an inverted capability predicate."
    ],
    "binary_identity": {
@@ -154288,7 +154288,7 @@
     {
      "name": "MDP_NEW_VERSION",
      "offset": "0x84",
-     "representation": "u32 used when old version<=5 and this is nonzero",
+     "representation": "u32 used when old version>5 and this is nonzero; old versions0..5 are used directly",
      "consumer": "0x10001888"
     },
     {
@@ -154314,6 +154314,12 @@
      "offset": "0xa0",
      "representation": "u32 printed when effective version>5",
      "consumer": "0x10001a74"
+    },
+    {
+     "name": "wildcard_color_override",
+     "offset": "0x9c",
+     "representation": "u32 set by-V only when original certification variant is11; decimal strtol result stored without a local color-range check",
+     "consumer": "0x10000f7c..0x10000f9c"
     },
     {
      "name": "DATECODE",
@@ -154349,13 +154355,13 @@
    "read_contract": {
     "physical_sizes_and_headers": "libflash.so.1 hal_flash_get_mdp0x2120 reads512 bytes;hal_flash_get_mdp2 at0x23c0 reads4096 bytes. The first magic is0xce10e47d. Raw xoris at0x21bc XORs high0x31ef;cmpwi at0x21c0 compares against sign-extended0xffffe47d,so solving the comparison gives high0xce10,not0x31ef. The default mdputil template also starts0xce10e47d. MDP2 accepts0xca989b4a or0xfa87b921,not the XOR operand fragments. Reads use flash-info-derived offsets;MDP1 offset info+0x50,and MDP2 offset info+0x50+info+0x40.",
     "io_and_status": "read_from_offset at libflash0x1f78 opens read-only,checks the64-bit seek result when offset is nonzero,and accumulates partial reads until the requested count is reached. It retries read errno4(EINTR). Return0 means the full requested read;1=open failure,2=seek mismatch,3=short/failed read. MDP readers add9=null flash context and12=bad page magic. MDP1 failure clears its512-byte output then supplies Vendor1,Region1 and the library's current-model value;the original error is still returned. MDP2 failure clears4096 bytes. mdputil does not treat these library fallback values as proof that a valid stored page exists.",
-    "normalization": "For valid MDP1 magic,FLAGS&4 absent clears HWFEATURES+0x68. FLAGS&0x10 absent clears+0x70/+74/+78/+7c/+80. The reader then computes a version for normalization:old+70 when old>5,otherwise nonzero new+84 or old. Version<=1 clears+84/+88/+8c;<=2 clears+90..+97;<=3 clears SERIES_ID+98..+9b. For later versions it retains SERIES_ID only if first byte isA-Z and the next three are digits. Version<=5 clears+a0 and then+a4..+ab/+ac;version6 clears+a4..+ab/+ac;version7 clears+ac;later versions retain those tail areas. This is in-memory normalization,not a flash write. Unprinted tail fields still need semantic consumer joins.",
+    "normalization": "For valid MDP1 magic,FLAGS&4 absent clears HWFEATURES+0x68. FLAGS&0x10 absent clears+0x70/+74/+78/+7c/+80. The reader then computes a version for normalization:old+70 when old<=5; for old>5, nonzero new+84 or old. Version<=1 clears+84/+88/+8c;<=2 clears+90..+97;<=3 clears SERIES_ID+98..+9b. For later versions it retains SERIES_ID only if first byte isA-Z and the next three are digits. Version<=5 clears+a0 and then+a4..+ab/+ac;version6 clears+a4..+ab/+ac;version7 clears+ac;later versions retain those tail areas. This is in-memory normalization,not a flash write. Unprinted tail fields still need semantic consumer joins.",
     "checksum_limitation": "hal_flash_get_mdp invokes crc32(seed0,buffer,508) at0x2298 but neither compares its result with stored+0x1fc nor stores it;the result is discarded before returning the read status. The underlying read_from_offset does not validate CRC either. In contrast,mdputil preparation helper0x10002bf8 stores computed CRC at+0x1fc at0x10002c7c and its alternate branches. Basic read success therefore establishes length/magic and normalization,not CRC/signature acceptance.",
-    "printing": "COPYRIGHT is forcibly terminated at+0x63. Effective MDPVERSION selection is old+70 unless old<=5 and new+84 is nonzero. WIFITYPE=N is a literal output line,not a radio-type probe. Invalid DATECODE values are zeroed only in the display buffer. VARIANT,SERIALSIG,UNITSIG,FSN and NANDID are derived helper results and are not interchangeable with fixed MDP1 byte fields."
+    "printing": "COPYRIGHT is forcibly terminated at+0x63. Effective MDPVERSION selection is old+70 unless old>5 and new+84 is nonzero. WIFITYPE=N is a literal output line,not a radio-type probe. Invalid DATECODE values are zeroed only in the display buffer. VARIANT,SERIALSIG,UNITSIG,FSN and NANDID are derived helper results and are not interchangeable with fixed MDP1 byte fields."
    },
    "series_and_variant": {
-    "series": "sonosGetSeriesID at libsonos-mdp0xcb0 uses stored four-byte+0x98 when the old/new version eligibility path permits it and the first byte is nonzero;otherwise it derives a four-character code from model/submodel/revision. Return1 denotes stored;0 denotes derived. mdputil appends(dynamic) to the derived path at0x100016a0,not to stored data. sonosSetSeriesID0xe64 checks the first characterA-Z and next three digits,then stores those four bytes. It does not require the next input byte to beNUL,so a valid four-character prefix can be stored from a longer argument.",
-    "variant": "sonosGetCertColorVariant at libsonos-mdp0x964 takes MDP1 and MDP2 as separate pointers. For MDP2 magic0xca989b4a,it requires MDP1+74<=3 and reads MDP2+0x44c. For0xfa87b921,it requires+74<=4 and reads MDP2+0xa10. Accepted value domain is0..18. It returns0 on failure and optionally writes status-2(bad pointer),-3(unknown magic),-4(unsupported version),-5(index out of range);these are not negative color return values. mdputil0x100018f4 passes a null error-output pointer,so VARIANT=0 alone cannot distinguish color0 from decoder failure."
+    "series": "sonosGetSeriesID at libsonos-mdp0xcb0 uses stored four-byte+0x98 when effective version>=4 and the first byte is nonzero;otherwise it derives a four-character code from model/submodel/revision. Return1 denotes stored;0 denotes derived. mdputil appends(dynamic) to the derived path at0x100016a0,not to stored data. sonosSetSeriesID0xe64 checks the first characterA-Z and next three digits,then stores those four bytes. It does not require the next input byte to beNUL,so a valid four-character prefix can be stored from a longer argument.",
+    "variant": "sonosGetCertColorVariant at libsonos-mdp0x964 takes MDP1 and MDP2 as separate pointers. For MDP2 magic0xca989b4a,it requires MDP1+74>3 (minimum4) and reads MDP2+0x44c. For0xfa87b921,it requires+74>4 (minimum5) and reads MDP2+0xa10. Accepted value domain is0..18. It returns0 on failure and optionally writes status-2(bad pointer),-3(unknown magic),-4(unsupported version),-5(index out of range);these are not negative color return values. mdputil0x100018f4 passes a null error-output pointer,so VARIANT=0 alone cannot distinguish color0 from decoder failure."
    },
    "manifest_addressing": {
     "layout": "Header+0xb0=0x7a61670e;40-byte area starts+b4. Display indices1..8 are LED at+b5,AMP+b6,TEMP_SENSOR(AMP)+b7,TEMP_SENSOR(CPU)+b8,ALS+b9,ACCELEROMETER+ba,FUEL_GAUGE+bb,RADIO+bc. Printer0x10002218 increments the base before loading each entry.",
@@ -154493,8 +154499,97 @@
      "build": "86.10-80260",
      "address": "0x105e65f8",
      "notes": "Clear numeric0x1/0x2,set0x20,persist new MDP flags."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x1000130c",
+     "notes": "Original-page/write/force predicates and output source."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10000f80",
+     "notes": "Wildcard certification variant11 required for-V."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10001190",
+     "notes": "Boot check, repair and early-exit option ordering."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002bf8",
+     "notes": "Prepare versions6/8, presence bits and CRC."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002f54",
+     "notes": "Erase ioctl0x80084d02 precedes writes."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002dd8",
+     "notes": "One-shot flash write; short writes fail."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x22a8",
+     "notes": "Raw unsigned comparison/BO branch selects direct legacy version only for old<=5."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0x9c4",
+     "notes": "Raw branch rejects CA989B4A certification versions<=3."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0x9d8",
+     "notes": "Raw branch rejects FA87B921 certification versions<=4."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10000ebc",
+     "notes": "Colon-token DCOFS broadcast and successive per-channel replacement, not manifest editing."
     }
-   ]
+   ],
+   "cli_edit_contract": {
+    "selection_and_output": "Option string0x10003688 is Aa:whfv:V:M:m:r:Nn:e:s:S:Ik:F:C:P:T:i:d:D:Bpj:u. Table0x10003214 is base-relative. Edits target sp+0x21c; ordinary no-write field output uses original r28. -w requests writing; overwriting a valid original requires-f, but initializing an absent original does not. No original and no write returns1. -k without a write returns1. -h increments the ignore-key-validation-error counter, not a help flag. -p is a recognized no-op; A,a,j,u dispatch to unsupported and return1.",
+    "decimal_fields": "strtol(arg,NULL,10) stores-v VENDOR+4,-M MODEL+8,-m SUBMODEL+c,-r REVISION+10,-e REGION+1c,-D DATECODE+ac; -i stores the low byte at+6c. No end-pointer, errno or range check follows these conversions. Numeric prefixes can be accepted despite trailing text; no numeric prefix produces0. Signed values are stored in the destination width. -V stores+9c after original MDP1/MDP2 certification variant equals11 at0x10000f80; no local0..18 range check. Importing a later-k bundle does not change that original-data eligibility test.",
+    "serial_and_series": "-s clears8 bytes at staged+14 and accepts hexadecimal digits with colon/hyphen separators. It processes at most13 nibbles, does not require12, and ignores remaining input after that limit; the13th nibble occupies the high half of+1a beyond the six identity bytes. Invalid nonhex input before the limit returns1. -S accepts an uppercase letter followed by three digits through sonosSetSeriesID; a longer argument with that valid prefix also succeeds.",
+    "flag_operations": "Helper0x10002190 parses strtoul(NULL endptr,base0). Leading| means OR with the original word; leading& means AND with the original word; otherwise replacement. Repeated-F/-T recompute from original values rather than accumulating earlier staged operations. -T changes HWFEATURES and sets flag4 iff the new word is nonzero. -F preserves currently staged bits0x14 while replacing other bits; a plain replacement is deprecated but accepted. -P/-C enable printk1/console2 for any nonzero strtoul result, clear them for0. Option order therefore matters: a later-F may overwrite earlier-P/-C.",
+    "reset_and_manifest": "-I copies the default512-byte template into the stage only, discarding preceding edits but retaining original read pointers. -N and-n show print the staged manifest immediately; -n clear and-n index=value edit it. None requests a flash write by itself. Manifest numeric parsing uses sscanf with two conversions and does not require end-of-input.",
+    "dc_offsets": "-d parses colon-separated decimal tokens with strtok, delimiter at0x10003610. First token initializes all four DCOFS words+100/+104/+108/+10c. A second token replaces+104 and+10c; a third replaces+108; a fourth replaces+10c. Thus one value broadcasts, two become[a,b,a,b], three become[a,b,c,b], four become[a,b,c,d]. Extra tokens are ignored. Conversions use strtol(NULL,10) without range/end checks. The first strtok result is passed to strtol without a null guard, so an empty/all-separator argument is not safely rejected by this path. These edits are allowed independently of model; only model17 prints them."
+   },
+   "boot_repair_contract": {
+    "check": "At0x10001190, original MDP1 plus original MDP2 with successful helper0x100024c4 validation leads to open(/dev/chk,O_RDWR), ioctl0x8004f302 with pointer to word0x1996, then close. Open or ioctl failure returns1. Missing/invalid MDP2 skips this device check. The driver-side meaning of that command remains untraced.",
+    "repair_and_order": "Unsigned original old-version+70>6 branches0x10001208 to0x100013ac, prints Fixing bad MDP version and increments both write and force counters. Version<=6 prints MDP version ok. If write count is still0, -B returns0 immediately and skips later options. Thus-Bw exits before-w for old<=6, while-wB proceeds. Missing original also exits0 at-B unless a preceding-w requested creation. Repair uses the common preparation/write path rather than a dedicated single-word patch."
+   },
+   "write_contract": {
+    "preparation": "0x10002bf8 sets FLAGS|0x10, old-version+70=6, new-version+84=8 and PAGESPRESENT bit1. With MDP2 it sets low page bits3; if MDP2 version is0 it infers1 from payload length836 or2 from964, otherwise retains the version. Without MDP2 it clears page bit2 and version+74. It stores crc32(seed0,MDP1,508) at+1fc. This mutates the caller staging buffer before data is written.",
+    "erase": "0x10002fac builds descriptor words from flash-info+3c,+40,+50; byte+20c==3 substitutes first-page write span512. 0x10002ef0 opens/dev/mtd/0 read/write and issues ioctl0x80084d02 with two words: offset(info+50) and erase length(info+3c). Returns1 for open failure,5 for ioctl failure,0 for success. It closes the descriptor. Geometry provenance remains to be traced.",
+    "write": "After successful erase,0x10002d58 opens/dev/mtd/0 read/write, checks both halves of lseek64 against the requested offset, then prepares MDP1. A span>512 allocates a zeroed span and copies512 bytes; smaller/equal spans use MDP1 directly. It makes one write for the span, then one4096-byte write if MDP2 is present. Negative or short writes fail; there is no retry/partial-write loop. It frees padding storage and closes the file.",
+    "errors": "Writer statuses1=open,2=seek mismatch,4=write failure,15=padding allocation failure. Outer wrapper returns9 for null flash context and collapses erase/write failures to14. Main prints mdp_write failed and returns1 on failure. Erase occurs first, so later failure can leave erased or partially replaced manufacturing data; no rollback path is present.",
+    "bundle_import": "-k - removes the second page from the write. Other filenames require an original MDP1. One read of up to4088 bytes into prepared MDP2+8 must return836,964,1092 or1096; corresponding MDP2 versions are1,2,3,4. Header is0xca989b4a; payload length is836 for the first format and964 for the others. Validation0x100024c4 binds against original serial+14, even after staged-s edits. Version>3 additionally calls0x10002a5c. -h permits continuation after these validation failures. Full cipher/signature internals remain open."
+   }
   },
   "bin_frcheck": {
    "name": "frcheck",
