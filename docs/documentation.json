@@ -127414,9 +127414,36 @@
      "build": "86.10-80260",
      "address": "0x105e65f8",
      "notes": "Clear numeric0x1/0x2,set0x20,persist new MDP flags."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x1c30",
+     "notes": "Probe /dev/mtd8; copy size, erase/write geometry and type into flash context."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x1c1c",
+     "notes": "Open failure falls through uninitialized stack geometry path and returns0."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x23f4",
+     "notes": "Second-page address is erase-block size plus write-page size."
     }
    ],
-   "signature_consumers": "Standalone mdputil has two separately keyed MD5/RSA PKCS#1 v1.5 checks: original serial plus complement-validated hardware flash serial, signature MDP2+34c; and26-byte model/submodel/serial/color header plus260-byte payload, signature MDP2+3cc. See bin_mdputil.bundle_signature_contract for exact layout, key fingerprints, return domains and edit asymmetry. These checks are distinct from the basic read/CRC contract and from the signing-key consumer in noncehandler."
+   "signature_consumers": "Standalone mdputil has two separately keyed MD5/RSA PKCS#1 v1.5 checks: original serial plus complement-validated hardware flash serial, signature MDP2+34c; and26-byte model/submodel/serial/color header plus260-byte payload, signature MDP2+3cc. See bin_mdputil.bundle_signature_contract for exact layout, key fingerprints, return domains and edit asymmetry. These checks are distinct from the basic read/CRC contract and from the signing-key consumer in noncehandler.",
+   "flash_geometry_contract": {
+    "producer": "libflash.so.1 SHA256454a6c5e2bde42f0f6fa64854dc738a3d1b4731a99f4af6c9272576ca2ff641d: hal_flash_info_init0x1ba8 takes an output-pointer address, sets it null, allocates a zeroed0x210-byte object and stores the geometry-device pathname at+208. PIC GOT reconstruction uses LR anchor0x1bb4, addend loaded at0x1ba4 and R_PPC_RELATIVE GOT addend0x3bec, which resolves /dev/mtd8. This is distinct from the /dev/mtd/0 used by page reads and mdputil writes.",
+    "geometry_fields": "After opening /dev/mtd8 read-only, ioctl0x40244d01 receives a stack information structure at sp+18. Successful extraction maps info[0]=returned u32 at+8(total size), info+3c=returned+0c(erase-block size), info+40=returned+10(write-page size), info+50=erase-block size, info+48=0 and info+20c=returned type byte. The rest of the allocation stays zero. Exported get_pagesize0x1b00, get_blocksize0x1b2c and get_type0x1ad4 independently confirm the field roles. The leading type/size/erase/write layout agrees with Linux MTD ABI; the actual binary ioctl encodes36 bytes, so unspecified trailing ABI fields are not inferred.",
+    "manufacturing_layout": "MDP1 reads512 bytes from /dev/mtd/0 at offset erase-block size, the start of the second erase block. MDP2 reads4096 bytes at erase-block size + write-page size, proven libflash0x23f4..0x240c. The CLI erase descriptor uses erase-block size as erase length and offset; its first-page write span is write-page size, except type3(NOR flash) forces512 in0x10002fe4..0x10003048. The MDP2 reader does not apply that NOR span override. These are geometry-derived positions, not a hard-coded512-byte separation for every flash type.",
+    "initialization_errors": "Allocation failure returns7 with the output null. Negative ioctl result closes the file, frees the object and returns7. Open failure at0x1c1c instead branches directly to0x1c4c: it falls through the field-copy path, publishes the allocated object and returns0 although the stack information structure was never initialized by ioctl. Size remains the allocation zero, but type/erase/write/offset fields are loaded from uninitialized stack slots. Thus initializer success alone does not establish valid geometry. No null guard protects the output-pointer argument. info_exit0x1cc8 tail-branches to free."
+   }
   },
   "tls_stack": {
    "lib": "libmbedtls.so.21 + libmbedx509.so.7 + libmbedcrypto.so.16 + libsonoscrypto.so.3",
@@ -154173,7 +154200,7 @@
    "name": "mdputil",
    "summary": "Reads factory identity/configuration, stages command-line edits, verifies manufacturing-bundle signatures and erases/writes manufacturing flash. The512-byte identity page and4096-byte second page have distinct layouts. CLI, repair, signature inputs and flash failures are traced; driver-side serial/check commands, geometry and remaining hardware-field consumers still require work.",
    "todo": [
-    "Established: CLI edits and option order, repair/write preparation, erase/write failures, both embedded RSA keys, MD5 digest inputs, signature offsets, serial/complement search, validation return domains and wildcard-color final consumer. Remaining: trace kernel handling of /dev/chk ioctl0x8004f302 and /dev/mtd/0 ioctls0x40044d24/0x80244d23, including returned serial-data extent and device-command parameters; trace flash geometry producers; bind remaining unprinted tail fields and individual manifest hardware-code meanings to consumers. Follow those producer/consumer chains before removing this TODO."
+    "Established: CLI edits/order, both manufacturing signatures, wildcard final-color range, repair/write preparation, erase/write failures, flash-geometry field producers, chk driver dispatch/registration and the-B assignment of0x1996 to kernel-global sysword. Remaining: locate kernel consumers of sysword and trace /dev/mtd/0 ioctls0x40044d24/0x80244d23, including returned serial-data extent and device-command parameters; bind remaining unprinted manufacturing tail fields and individual manifest hardware-code meanings to consumers. Follow those producer/consumer chains before removing this TODO."
    ],
    "artifacts": [
     "bin/mdputil"
@@ -154627,6 +154654,55 @@
      "build": "86.10-80260",
      "address": "0xa64",
      "notes": "Wildcard color override requires effective version>4 and unsigned value<=18."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x1c30",
+     "notes": "Probe /dev/mtd8; copy size, erase/write geometry and type into flash context."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x1c1c",
+     "notes": "Open failure falls through uninitialized stack geometry path and returns0."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x23f4",
+     "notes": "Second-page address is erase-block size plus write-page size."
+    },
+    {
+     "type": "firmware",
+     "binary": "modules/chk.ko",
+     "build": "86.10-80260",
+     "address": ".text+0x0c",
+     "notes": "Dispatch by low command byte; extract13-bit size, no full command comparison."
+    },
+    {
+     "type": "firmware",
+     "binary": "modules/chk.ko",
+     "build": "86.10-80260",
+     "address": ".text+0xb4",
+     "notes": "Relocated store to kernel sysword after user copy; actual-B side effect."
+    },
+    {
+     "type": "firmware",
+     "binary": "modules/chk.ko",
+     "build": "86.10-80260",
+     "address": ".init.text+0xd4",
+     "notes": "Character-device creation with chk name; relocation-backed lifecycle."
+    },
+    {
+     "type": "firmware",
+     "binary": "modules/chk.ko",
+     "build": "86.10-80260",
+     "address": ".data+0x28",
+     "notes": "Relocation joins operation table to chk_ioctl, with open/release at+34/+3c."
     }
    ],
    "cli_edit_contract": {
@@ -154638,12 +154714,12 @@
     "dc_offsets": "-d parses colon-separated decimal tokens with strtok, delimiter at0x10003610. First token initializes all four DCOFS words+100/+104/+108/+10c. A second token replaces+104 and+10c; a third replaces+108; a fourth replaces+10c. Thus one value broadcasts, two become[a,b,a,b], three become[a,b,c,b], four become[a,b,c,d]. Extra tokens are ignored. Conversions use strtol(NULL,10) without range/end checks. The first strtok result is passed to strtol without a null guard, so an empty/all-separator argument is not safely rejected by this path. These edits are allowed independently of model; only model17 prints them."
    },
    "boot_repair_contract": {
-    "check": "At0x10001190, original MDP1 plus original MDP2 with successful helper0x100024c4 validation leads to open(/dev/chk,O_RDWR), ioctl0x8004f302 with pointer to word0x1996, then close. Open or ioctl failure returns1. Missing/invalid MDP2 skips this device check. The driver-side meaning of that command remains untraced.",
+    "check": "At0x10001190, original MDP1 plus original MDP2 with successful helper0x100024c4 validation leads to open(/dev/chk,O_RDWR), ioctl0x8004f302 with pointer to word0x1996, then close. Open or ioctl failure returns1. Missing/invalid MDP2 skips this device check. The shipped chk driver copies the supplied word into kernel-global sysword; see boot_flag_driver. Kernel consumers of that global remain untraced.",
     "repair_and_order": "Unsigned original old-version+70>6 branches0x10001208 to0x100013ac, prints Fixing bad MDP version and increments both write and force counters. Version<=6 prints MDP version ok. If write count is still0, -B returns0 immediately and skips later options. Thus-Bw exits before-w for old<=6, while-wB proceeds. Missing original also exits0 at-B unless a preceding-w requested creation. Repair uses the common preparation/write path rather than a dedicated single-word patch."
    },
    "write_contract": {
     "preparation": "0x10002bf8 sets FLAGS|0x10, old-version+70=6, new-version+84=8 and PAGESPRESENT bit1. With MDP2 it sets low page bits3; if MDP2 version is0 it infers1 from payload length836 or2 from964, otherwise retains the version. Without MDP2 it clears page bit2 and version+74. It stores crc32(seed0,MDP1,508) at+1fc. This mutates the caller staging buffer before data is written.",
-    "erase": "0x10002fac builds descriptor words from flash-info+3c,+40,+50; byte+20c==3 substitutes first-page write span512. 0x10002ef0 opens/dev/mtd/0 read/write and issues ioctl0x80084d02 with two words: offset(info+50) and erase length(info+3c). Returns1 for open failure,5 for ioctl failure,0 for success. It closes the descriptor. Geometry provenance remains to be traced.",
+    "erase": "0x10002fac builds descriptor words from flash-info+3c,+40,+50; byte+20c==3 substitutes first-page write span512. 0x10002ef0 opens/dev/mtd/0 read/write and issues ioctl0x80084d02 with two words: offset(info+50) and erase length(info+3c). Returns1 for open failure,5 for ioctl failure,0 for success. It closes the descriptor. The descriptor fields are bound to erase-block/write-page sizes in flash_geometry_contract.",
     "write": "After successful erase,0x10002d58 opens/dev/mtd/0 read/write, checks both halves of lseek64 against the requested offset, then prepares MDP1. A span>512 allocates a zeroed span and copies512 bytes; smaller/equal spans use MDP1 directly. It makes one write for the span, then one4096-byte write if MDP2 is present. Negative or short writes fail; there is no retry/partial-write loop. It frees padding storage and closes the file.",
     "errors": "Writer statuses1=open,2=seek mismatch,4=write failure,15=padding allocation failure. Outer wrapper returns9 for null flash context and collapses erase/write failures to14. Main prints mdp_write failed and returns1 on failure. Erase occurs first, so later failure can leave erased or partially replaced manufacturing data; no rollback path is present.",
     "bundle_import": "-k - removes the second page from the write. Other filenames require an original MDP1. One read of up to4088 bytes into prepared MDP2+8 must return836,964,1092 or1096; corresponding MDP2 versions are1,2,3,4. Header is0xca989b4a; payload length is836 for the first format and964 for the others. Validation0x100024c4 binds against original serial+14, even after staged-s edits. Version>3 additionally calls0x10002a5c. -h permits continuation after these validation failures. The two signature contracts and their distinct original/staged identity inputs are documented in bundle_signature_contract."
@@ -154657,6 +154733,18 @@
     "identity_header": "0x10002a5c takes MDP1 then MDP2, loads the second embedded key and obtains constant0x3c6852eb through ZZ0086 at0x75ac. It constructs exactly26 bytes: u32BE constant;6 serial bytes from MDP1+14;u32BE MODEL from MDP1+8;u32BE SUBMODEL from MDP1+c;u32BE certification color from MDP2+44c;4 zero bytes. The halfword stores at0x10002b40..0x10002b54 preserve the PPC big-endian order of the three32-bit fields. Vendor, revision, region and wildcard override are not part of this header.",
     "identity_payload_signature": "0x10002928 hashes the supplied header followed by exactly260 bytes from MDP2+8. It verifies128 signature bytes from MDP2+3cc using the second public key. Parameter guard requires nonzero header length, data length260, signature length128 and nonnull key; other input pointers are not locally checked. Hash-init failure prints Bad hash and returns0; bad guarded parameters print Bad parm and return0; otherwise it returns the verification boolean. Raw SPE instructions0x10e10b21/0x10e10b01 at0x100029c4/0x100029e0 and0x10002a0c/0x10002a30 save/restore the signature-pointer register around volatile hash calls; the pointer is not an accidental post-call r7 value. 0x10002a5c prints Bad mdp for null pages or Bad key for key failure, frees the key and returns0; success returns1. It does not independently check page magic or version.",
     "callers_and_edit_asymmetry": "Main-B0x100011a8 and imported-bundle check0x100014c8 call the serial/flash checker with original serial, which is also called by standalone read wrapper0x100028d0. Imported versions>3 call the identity checker at0x10001dec with the staged MDP1; this binds edited model/submodel/serial to the imported signature. Printer0x10001d30 calls it with original pages for displayed UNITSIG status. Thus changing-s can leave the first check tied to the old serial while the second checks the edited serial. -h permits write continuation after either import check fails. A successful first signature alone does not establish that the payload or edited identity passed the second signature."
+   },
+   "flash_geometry_contract": {
+    "producer": "libflash.so.1 SHA256454a6c5e2bde42f0f6fa64854dc738a3d1b4731a99f4af6c9272576ca2ff641d: hal_flash_info_init0x1ba8 takes an output-pointer address, sets it null, allocates a zeroed0x210-byte object and stores the geometry-device pathname at+208. PIC GOT reconstruction uses LR anchor0x1bb4, addend loaded at0x1ba4 and R_PPC_RELATIVE GOT addend0x3bec, which resolves /dev/mtd8. This is distinct from the /dev/mtd/0 used by page reads and mdputil writes.",
+    "geometry_fields": "After opening /dev/mtd8 read-only, ioctl0x40244d01 receives a stack information structure at sp+18. Successful extraction maps info[0]=returned u32 at+8(total size), info+3c=returned+0c(erase-block size), info+40=returned+10(write-page size), info+50=erase-block size, info+48=0 and info+20c=returned type byte. The rest of the allocation stays zero. Exported get_pagesize0x1b00, get_blocksize0x1b2c and get_type0x1ad4 independently confirm the field roles. The leading type/size/erase/write layout agrees with Linux MTD ABI; the actual binary ioctl encodes36 bytes, so unspecified trailing ABI fields are not inferred.",
+    "manufacturing_layout": "MDP1 reads512 bytes from /dev/mtd/0 at offset erase-block size, the start of the second erase block. MDP2 reads4096 bytes at erase-block size + write-page size, proven libflash0x23f4..0x240c. The CLI erase descriptor uses erase-block size as erase length and offset; its first-page write span is write-page size, except type3(NOR flash) forces512 in0x10002fe4..0x10003048. The MDP2 reader does not apply that NOR span override. These are geometry-derived positions, not a hard-coded512-byte separation for every flash type.",
+    "initialization_errors": "Allocation failure returns7 with the output null. Negative ioctl result closes the file, frees the object and returns7. Open failure at0x1c1c instead branches directly to0x1c4c: it falls through the field-copy path, publishes the allocated object and returns0 although the stack information structure was never initialized by ioctl. Size remains the allocation zero, but type/erase/write/offset fields are loaded from uninitialized stack slots. Thus initializer success alone does not establish valid geometry. No null guard protects the output-pointer argument. info_exit0x1cc8 tail-branches to free."
+   },
+   "boot_flag_driver": {
+    "binary": "modules/chk.ko SHA256f099055a15c41e29074bd0855c3c0add5f30d23df2a5d7c14f172bc3df00978e; ELF ET_REL, not stripped. Addresses in this block are section-relative offsets, not runtime virtual addresses. .symtab names chk_ioctl at.text+8(size408), chk_open at+1a0 and chk_release at+0. Relocations identify sysword as an undefined kernel-global symbol.",
+    "dispatch": "chk_ioctl extracts command&0xff at.text+0c and (command>>16)&0x1fff at+20. Number1 copies sysword to user; number2 copies from user into a stack word then assigns sysword at+0xb4. The handler does not compare the type/magic or direction bits, or require encoded length4. Unknown command numbers print Unknown IOCTL called and return0. User-copy failures print the matching copy error and return-14(EFAULT); successful copies return0. It uses task address-limit checks and __copy_tofrom_user, with boundary handling for the user address region. It performs no signature/hardware-validation call.",
+    "issued_command": "mdputil-B at0x100011e4 issues0x8004f302, which this handler decodes as number2,length4. It copies the four-byte word0x1996 into sysword. The value is a kernel RAM assignment, not an erase/write to manufacturing flash. mdputil makes this assignment only after its existing MDP2 serial/flash signature check succeeds. The chk handler itself does not test that signature or the value0x1996. Downstream kernel consumers of sysword remain to be located before assigning a wider system-mode meaning.",
+    "registration_and_lifetime": "The .data file-operation table relocations at+28,+34,+3c point to chk_ioctl(+8), chk_open(+1a0), chk_release(+0). Open/release simply return0; no per-open state is allocated. .init.text allocates one character-device number with minor0/name chk, initializes a cdev with chk_fops, assigns module owner, adds it and calls sonos_device_create with name chk. Allocation errors propagate; cdev-add failure unregisters the range; device-create error deletes cdev and unregisters. Success logs Registered chk driver. .exit.text destroys the device, deletes cdev, unregisters the range and tail-branches to printk for Unregistered chk driver. The initial devno word0x0f300000 is passed by address to alloc_chrdev_region and overwritten; it is not proof of a fixed major243 allocation."
    }
   },
   "bin_frcheck": {
