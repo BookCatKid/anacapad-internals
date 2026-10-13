@@ -125917,10 +125917,7 @@
    ]
   },
   "noncehandler": {
-   "semantics": "Tracks Muse authentication challenges as one-use nonce records,with concrete300-second expiry and a three-binding cache. The Muse16-character challenge is separate from the6-byte-derived nonce in the HTTP signing-credentials helper.",
-   "todo": [
-    "Established: Muse provider/clocks,boot-sequence and RDM/MTM policy,300-second expiry,one-use consumption and three-binding pruning; signing input/digest/signature/key provenance and raw RSA layout; Muse standard-base64 decoder alphabet,whitespace/NUL behavior,padding rules,noncanonical pad-bit acceptance and post-padding quartets. Remaining: identify the Muse caller binding-string producer/value domain and verify the decoded JSON envelope's accepted lexical/field rules. Trace those specific helpers without touching SOAP request objects or service dispatch records."
-   ],
+   "semantics": "Muse peer-address-bound,one-use authentication challenges with300-second expiry and a three-address cache;separate MAC/SHA-1/RSA signing-envelope helper. JSON/base64 input contracts,clock/mode policy,key provenance and concrete consumption behavior are bound.",
    "lifecycle": "The two previously combined pipelines are distinct. HTTP signing helper0x105ccad4 formats six device-MAC bytes,an embedded16-byte salt and the caller credential C string,hashes them with SHA-1,and RSA-PKCS1-v1.5-signs the20-byte digest. Its nonce output is the base64 signature;0x105cccbc inserts that into credentials/nonce/keyType JSON and base64-encodes the JSON. There is no entropy draw at0x1090ad44/0x10909630; those obtain the static device-info singleton and its MAC field. Muse nonce creation is0x10b99b38: it calls ZZ0154 to produce16 characters from the62-character alphabet0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ and records per-binding expiry/context. Muse validation0x10b996b4 base64-decodes and parses credentials/nonce,checks current credentials,then looks up and consumes the matching cached nonce through0x10b995a8. Record flags+0x18 and+0x28 are optional-value presence flags,not valid-slot/consumed flags. Consumption is hash-node erasure,not a byte written to+0x28.",
    "resolved_findings": [
     "The Muse delegate is concrete: player+0x56c0 -> initialization argument7 -> host+0xb8 -> handler+0xac -> vtable0x10f986e8. Creation0x10b99b38 supplies16 alphanumeric characters and300-second deadlines.",
@@ -125940,9 +125937,9 @@
     "time_boundary": "0x109eec8c compares signed high time words then unsigned low words. It returns expired for current>=deadline and unexpired for current<deadline. Equality is expired on this time-source path. Snapshot path0x109ef26c uses strict currentSeconds>savedSeconds,so equality is still valid there. Raw branch words0x409c0018/0x409efff0/0x40bcffe4 and CR extraction0x5529f7fe were inspected; these two boundaries must not be described as identical."
    },
    "replay_and_capacity": {
-    "lookup_and_consume": "0x10b995a8 looks up the caller binding string in handler map+0x90 via0x10b9a48c,then checks nonce byte length and memcmp equality against the supplied nonce. Missing binding or wrong nonce returns1 and leaves any existing entry in place. On an exact match,it computes the invalid predicate through0x10b9917c,then unconditionally erases the node via0x10b9a1ac at0x10b99684 before returning1 if stale or3 if usable. Thus both a successful use and a matched expired/stale attempt consume the record. Eraser unlinks the node,frees both stored strings/snapshot storage and decrements count+0x9c at0x10b9a29c.",
+    "lookup_and_consume": "0x10b995a8 looks up the caller peer-address string in handler map+0x90 via0x10b9a48c,then checks nonce byte length and memcmp equality against the supplied nonce. Missing binding or wrong nonce returns1 and leaves any existing entry in place. On an exact match,it computes the invalid predicate through0x10b9917c,then unconditionally erases the node via0x10b9a1ac at0x10b99684 before returning1 if stale or3 if usable. Thus both a successful use and a matched expired/stale attempt consume the record. Eraser unlinks the node,frees both stored strings/snapshot storage and decrements count+0x9c at0x10b9a29c.",
     "credential_gate": "Wrapper0x10b996b4 returns4 if base64 decoding or credentials/nonce parsing fails. It compares parsed credentials through0x10b994ec against the currently configured optional credential value from0x109ecf0c(kind8); inequality returns2 before nonce lookup. Matching current credentials enter binding lookup/consumption. Result3 is the accepted path at live Muse consumer0x109f98a4; other results do not take that path.",
-    "capacity": "Store0x10b997e4 permits insertion while count+0x9c<=2,so at most three distinct bindings are retained. At count>2,an existing binding can still be updated. A new binding causes the store to walk current nodes and erase those whose invalid predicate is nonzero; it inserts only if that reduces count to<=2. Otherwise it returns5 at0x10b99930 and creator returns an absent challenge. No fixed eviction of an arbitrary valid entry occurs in this branch. Store/lookup/consume are protected by the same handler mutex.",
+    "capacity": "Store0x10b997e4 permits insertion while count+0x9c<=2,so at most three distinct peer-address strings are retained. At count>2,an existing address can still be updated. A new address causes the store to walk current nodes and erase those whose invalid predicate is nonzero; it inserts only if that reduces count to<=2. Otherwise it returns5 at0x10b99930 and creator returns an absent challenge. No fixed eviction of an arbitrary valid entry occurs in this branch. Store/lookup/consume are protected by the same handler mutex.",
     "clear": "0x10b99028 clears provider+0xac,walks and frees every current node including optional snapshot storage,zeros hash buckets and resets count/list under the mutex. No persisted nonce-store writer is present in this recovered lifecycle; no on-disk replay list is asserted."
    },
    "evidence": [
@@ -126316,6 +126313,97 @@
      "build": "86.10-80260",
      "address": "0x542c",
      "notes": "Standard decoder rejects incomplete final quartet."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109dcba8",
+     "notes": "Raw0x37bf027d binds the cache-key getter to peer context+0x27d under its mutex."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109dcb28",
+     "notes": "Address setter uses capacity17 and does not validate or canonicalize syntax."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106c3620",
+     "notes": "Transport metadata+0xe4 supplies address;port is copied separately."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1068e9ac",
+     "notes": "Independent exact-getter consumer feeds inet_aton,establishing IPv4 peer-address role."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109f9854",
+     "notes": "Live peer-address string goes to both nonce validation and challenge creation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d0588",
+     "notes": "Decoded JSON is parsed from data pointer,not declared std::string length."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d064c",
+     "notes": "Reject non-whitespace trailing bytes before NUL."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104463c8",
+     "notes": "Exact JSON whitespace bitmap with raw low-byte mask."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ce71c",
+     "notes": "Required credential/nonce access is string-only;no coercion."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ce8e8",
+     "notes": "Object name memcmp and first matching member selection."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10447e30",
+     "notes": "Object member count increments without duplicate-name filtering."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10447070",
+     "notes": "String escape/control/Unicode handling for this concrete reader."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ce7a0",
+     "notes": "strlen truncates extracted string values at decoded NUL."
     }
    ],
    "generation_mode": "Mode producer is the concrete interface installed at settings object+0x12c by0x10126270,using vtable0x10e8b1f4. Live Muse init0x1019ab98 passes that slice as host argument8;host+0xbc retains it. Challenge creation at0x109f99ec calls its slot+0x14=0x1073e7c0;that thunk adjusts-0x12c then semantically tail-calls0x1073e7b4 -> tail0x105ad9cc. The predicate returns an RDM-or-MTM household classification:0x105ad62c requires global gate byte0x110974e8 nonzero and nonnull household-name provider0x110974f0,then tests the exact case-sensitive10-byte prefix Sonos_RDM_ via0x10c3c134. If false,0x105ad8c8 tests Sonos_MTM_ via0x10c3c188 with the same name provider but without that RDM gate. Prefix literals were resolved through PIC GOT slots0x10c3c158/0x10c3c1ac. A nonzero result skips the wall-clock deadline in nonce creation and uses the boot-sequence/monotonic snapshot path. Other households create wall-clock expiry plus the same fallback snapshot. Raw record-form mr.0x7c7f1b79 at0x105ada00 supplies the short-circuit CR0 test.",
@@ -126342,7 +126430,23 @@
     "padding_and_finalization": "Standard one-shot decode rejects a nonempty pending tail at0x542c,so non-whitespace input must finish in complete quartets. URL-only unpadded-tail logic at0x53e0..0x5470 is not selected for this nonce call. Quartet decoder0x496c permits = in the third/fourth positions with the expected one-/two-byte output shape;= in either first position is invalid,and a third-position = with a non-= fourth byte is invalid. It does not test discarded low bits of the last data character for canonical zero values. Thus TR== and TQ== both produce the byte M;TWF= and TWE= both produce Ma. These are static arithmetic examples,not a live-device experiment.",
     "padding_does_not_end_stream": "After a valid padded quartet,the decoder resets pending count+4 to0 at0x4a5c and preserves valid+8;it does not mark an end-of-stream state. It therefore accepts another complete quartet after padding,e.g.TQ==TQ== decodes to MM. Such bytes still have to form the required JSON envelope and pass current credentials/nonce validation;base64 permissiveness is not authentication success.",
     "errors": "Invalid alphabet,invalid quartet shape or insufficient output capacity clears valid+8. Partial output may have been written before the failure. The nonce wrapper rejects a false decode result with code4 and does not enter cached-nonce matching/consumption for that input. The caller buffer-size calculation depends on declared encoded length,not on the number of non-whitespace characters."
-   }
+   },
+   "caller_binding": {
+    "live_source": "Live Muse authentication/challenge consumer0x109f9854 calls0x109dcb6c with the peer context returned by getter0x109dacf0 (context pointer at caller+0x7c). It passes the copied peer string at sp+0x18 to validator0x10b996b4 at0x109f98a0 and to creator0x10b99b38 at0x109f9a00. The same value is therefore used for challenge storage and later lookup.",
+    "field_and_domain": "Getter0x109dcb6c locks context mutex+8 and copies the NUL-terminated string at context+0x27d. Raw addic.0x37bf027d at0x109dcba8 is displacement0x27d,not0x27c and not a register numbered637. Setter0x109dcae0 locks the same mutex,uses strlcpy with capacity17 at0x109dcb28 and clears the first byte for null input at0x109dcb60. Domain: empty string or at most16 bytes before the terminating NUL. The setter itself does not validate IP syntax or canonicalize it. Constructor0x109dc188 initializes this buffer empty;context copying0x109de4cc copies all17 bytes at0x109de7e4..0x109de7ec.",
+    "peer_address_role": "Transport producer0x106c3620 supplies connection metadata+0xe4 to this setter,and0x106c3630 separately stores connection+0xa0 through port setter0x109dcd50,which writes context+0x28e. The other live constructor0x106d97b8 uses the same metadata+0xe4. Independent consumer0x1068e9a0 calls this exact getter,then inet_aton at0x1068e9ac;this binds its role to peer IPv4 address text. The nonce cache compares that text as a byte string and does not include the separately stored port or normalize it to a numeric IPv4 value. Other API callers can supply empty or truncated text because the setter has no address validator.",
+    "cache_identity": "The map key is peer-address text,not parsed credentials,a controller UUID,a MAC address or a namespace. Reissuing for an existing address updates that address's nonce/deadline record;different connections using the same address share this entry even if their ports differ. The three-binding limit is thus three distinct stored address strings. Authentication still checks the current credentials and supplied nonce;knowing an address is not sufficient to authenticate."
+   },
+   "muse_json_envelope": {
+    "parser_chain": "After successful standard-base64 decoding,0x10b99264 passes the decoded std::string to0x109d0588 at0x10b992e4. That wrapper uses only the string data pointer at0x109d05a8,not its declared length. It skips JSON whitespace through0x104463c8,parses one value through0x10447a78,skips trailing whitespace and requires the current byte to be NUL at0x109d0648/0x109d064c. Empty input and non-whitespace bytes after the first complete value reject. A complete JSON prefix followed by an embedded NUL is treated as ended input even if the decoded span has later bytes. No scanf skeleton or XML parser is used.",
+    "whitespace_and_structure": "Whitespace helper0x104463c8 uses bitmap0x00800013 indexed by (byte-9)&0xff;the recognized bytes are9(tab),10(LF),13(CR),32(space). Raw0x5529063e at0x104463f0 is the low-byte mask,not a shift. Object reader0x10447d34 requires quoted keys,colons and comma-separated values;its member storage is32-byte{name16-byte value,value16-byte value} pairs. It recursively parses other member values and preserves their insertion order. A trailing object comma requires another quoted key and fails when followed by}. Additional complete JSON values after the object reject in the wrapper.",
+    "required_fields": "0x10b99420 and0x10b994b8 extract exact lowercase credentials and nonce through0x109cffd4 with required=true. Wrapper0x109cffd4 invokes typed getter0x109ce584 with a std::string output and no numeric/boolean output. A missing field returns status3 in the typed layer; a present field without the string flag0x400 at value+0xe returns status4. No scalar coercion is performed. An object with both required string fields is therefore needed for this envelope;an array or other root does not provide those named members. Empty field strings are syntactically accepted,with actual credential/nonce matching assessed later. No nonce-specific min/max string length is applied here. keyType is neither required nor inspected,and other members are ignored by this authentication layer only after the whole JSON value has parsed.",
+    "name_matching_and_duplicates": "Typed getter constructs /credentials or /nonce and traverses the object using name length and memcmp at0x109ce8cc..0x109ce8e8. The object loop stores every parsed member pair and performs no duplicate-name check;lookup scans from the first pair and takes the first exact match at0x109ce8f4. Duplicate fields are therefore first-wins,not last-wins. If the first occurrence has a wrong type,a later correct string does not repair it. Keys are compared after escape decoding,so an escaped spelling such as \\u006eonce can name the nonce field;matching remains case-sensitive and byte-exact.",
+    "string_lexical_rules": "String reader0x10447070 rejects unescaped bytes0x00..0x1f and requires a closing quote. Escape table0x10ecf7f4 maps quote,slash,backslash,b,f,n,r,t;other escape letters reject except u,which requires four hexadecimal digits. The Unicode path0x104474dc..0x1044778c accepts upper/lower hex,UTF-8-encodes BMP values,and requires a high surrogateD800..DBFF to be followed by \\uDC00..DFFF. Isolated low surrogates or invalid pairs reject. Raw cmplwi0x2b9fdbff at0x10447690 uses the unsigned immediateDBFF,not the disassembler's negative text. Ordinary unescaped bytes>=0x20 (other than quote/backslash handling) are copied directly at0x10447120;this instantiation does not validate raw multibyte UTF-8 sequences there. Raw0x7d1c5051 at0x1044710c is record-form subf. for capacity,which supplies the subsequent buffer-growth branch and is not a character-validity predicate.",
+    "embedded_nul_in_fields": "Unicode escape \\u0000 is admitted by the string reader and stored as a NUL byte within the DOM string. The typed string getter0x109ce78c chooses inline or allocated string storage,then calls strlen at0x109ce7a0 rather than using the DOM's stored length. credentials and nonce extraction therefore truncates at the first decoded NUL. A valid stored nonce followed by \\u0000 and a suffix yields the nonce prefix to matching. Member-name matching instead uses the stored name length and memcmp,so a name with a NUL suffix is not automatically treated as the bare required name.",
+    "error_and_consumption_boundary": "Syntax/whole-value parse errors return a failed envelope from0x10b99264;missing or wrong-type required fields do likewise.0x10b996b4 returns auth result4 when that envelope result is absent. These cases precede current-credential checking and cache lookup and do not consume a nonce. A successfully decoded object still must pass current credentials and peer-address/nonce matching;JSON acceptance alone is not authentication. The outbound signing helper's256/100-byte limits do not apply as inbound Muse field limits."
+   },
+   "completion_basis": "Per-record audit: the formerly opaque provider is joined from live initialization to its concrete time/context predicates;expiry writers and both boundary predicates are raw-word checked;address setter/getter/producers and independent inet_aton consumer establish cache identity and byte domain;store/prune/consume/clear and all result paths are traced;actual base64 and JSON lexer/accessor paths establish alphabet,termination,escaping,type/duplicate behavior;the separate signer's MAC input,SHA-1/RSA format,buffer guards and flash/file/private-key parser chain are instruction-bound. Dynamic address/key/root values are described by their producers and domains;no live device observation is claimed."
   },
   "arping": {
    "impl": "arping.cxx: 0x140-byte select-handler manager, 0x50-byte per-probe request and 18-byte meaningful result",
@@ -144121,24 +144225,85 @@
   },
   "json_parser": {
    "name": "embedded JSON parser error enum",
-   "summary": "error enum {Exceeded max depth,Invalid unicode escape,Invalid escape,Invalid string character,Invalid numeric character,Unexpected token,Sequence too long,Missing required value,Invalid value,Out Of Memory,Unexpected error}",
+   "summary": "The firmware contains distinct JSON reader families. A concrete16-byte DOM reader and typed-accessor path now binds the Muse nonce envelope,including NUL termination,required string fields and first-duplicate behavior. The custom-parser and RapidJSON error vocabularies alone do not establish every consuming subsystem's implementation.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10f05a74",
      "notes": "json error enum"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d0588",
+     "notes": "Decoded JSON is parsed from data pointer,not declared std::string length."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109d064c",
+     "notes": "Reject non-whitespace trailing bytes before NUL."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104463c8",
+     "notes": "Exact JSON whitespace bitmap with raw low-byte mask."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ce71c",
+     "notes": "Required credential/nonce access is string-only;no coercion."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ce8e8",
+     "notes": "Object name memcmp and first matching member selection."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10447e30",
+     "notes": "Object member count increments without duplicate-name filtering."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10447070",
+     "notes": "String escape/control/Unicode handling for this concrete reader."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ce7a0",
+     "notes": "strlen truncates extracted string values at decoded NUL."
     }
    ],
    "todo": [
-    "Residual: the precise per-subsystem engine binding beyond the three proven RapidJSON sites - the custom-parser error enum is emitted inline too, so each consuming TU carries its own copy; a complete census requires mapping every parse-call site, not literal xrefs."
+    "Established: custom and RapidJSON error vocabularies,the previously recorded engine regions,and a concrete Muse nonce16-byte DOM parse/accessor chain at0x109d0588/0x10447a78/0x109ce584. Remaining: bind other subsystem parse callsites to concrete engines/options and recover the custom-parser depth/sequence limits at their actual predicates. Trace each frontend and its producer/consumer/error state;do not infer a universal engine from duplicated error literals."
    ],
    "resolved_findings": [
-    "Resolved: implementation = the embedded JSON parser identified by its error enum {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error}; callers = every muse/cloud JSON consumer.",
-    "Implementation proven: a custom in-house recursive JSON parser (the {Exceeded max depth, Invalid unicode escape, ...} enum). RapidJSON is ALSO statically linked: its verbatim GetParseError_En strings are in the image (Missing a comma or } after an object member / Incorrect hex digit after \\u escape / The surrogate pair in string is invalid / Terminate parsing due to Handler error / Unspecific syntax error), used by zones_storage and common_logger. The error enum is the parser API: {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error} - depth and sequence-length caps bound nesting/array size. Callers: every JSON consumer in the tree - muse command arrays, zones_storage definitions, httpcaches.json cacheHashes, householdsettings.json, feature-config documents, netsettings.json, and the SMAPI/spotify JSON bodies (Content-Type application/json; charset=utf-8).",
+    "Two JSON reader families are present. Individual consumer binding requires following the parse call and concrete value/error representation;the presence of an error string does not prove that every Muse/cloud consumer uses the same engine.",
+    "Implementation proven: a custom in-house recursive JSON parser (the {Exceeded max depth, Invalid unicode escape, ...} enum). RapidJSON is ALSO statically linked: its verbatim GetParseError_En strings are in the image (Missing a comma or } after an object member / Incorrect hex digit after \\u escape / The surrogate pair in string is invalid / Terminate parsing due to Handler error / Unspecific syntax error), used by zones_storage and common_logger. The error enum is the parser API: {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error} - depth and sequence-length caps bound nesting/array size.  The list of possible JSON consumers does not establish their individual engine bindings.",
     "Correction: two JSON engines coexist - the custom parser (its own error enum) and RapidJSON (header-only, identified by its verbatim GetParseError_En strings: Missing a comma or } after an object member, Incorrect hex digit after \\u escape, The surrogate pair in string is invalid, Missing a closing quotation mark, Invalid encoding in string, Number too big to be stored in double, Miss fraction part in number, Miss exponent in number, Terminate parsing due to Handler error, Unspecific syntax error). RapidJSON consumers: zones_storage (zone definitions) and common_logger (config).",
     "Per-engine consumer census (via RapidJSON GetParseError_En string xrefs): RapidJSON instantiations concentrate in three code regions - the 0x101c/0x101d cluster (~40 inlined-template funcs, the muse/HTTP JSON surface), locSetUpdMgr (f_105db1f0, settings-update manager), and the share-indexer module (f_103da928, the .sparsebundle/indexing TU). The custom recursive parser serves the remaining consumers; neither engine is wrapped behind a single dispatch so the binding is per-TU at compile time.",
     "Parse-error enum recovered at 0x10f94248: {NONE, FILE_ERROR, SYNTAX_ERROR, MISSING_VALUE, UNEXPECTED_TYPE} - the json reader's status vocabulary."
-   ]
+   ],
+   "nonce_frontend_binding": {
+    "caller": "Muse nonce envelope0x10b99264 ->0x109d0588 ->16-byte DOM reader0x10447a78;typed string access0x109ce584.",
+    "representation": "Reader objects have type flags at value+0xe,object tag3,array tag4,string flag0x400 and short-string flag0x1000. Strings up to13 bytes use inline flags0x1c05 at0x10447200;longer copied strings use0x0c05 at0x10447278. Object members are32-byte key/value pairs. This concrete representation and reader/accessor chain,not an error-string match alone,bind the nonce consumer.",
+    "contract": "One NUL-terminated value;only tab/LF/CR/space around it;required string fields credentials and nonce;first duplicate wins;decoded NUL truncates typed string extraction;raw non-ASCII bytes are copied in this string-reader instantiation. Detailed nonce-specific consequences are in shared_primitives.noncehandler.muse_json_envelope."
+   }
   },
   "event_loop": {
    "name": "main event loop",
