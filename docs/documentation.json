@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server schema and factory field contracts; MDP2 key-provider and copied-signature choices; encrypted-envelope framing, concrete pass-through private-key selector, first-selected-recipient failure behavior and output ownership/cleanup. Remaining: finish RSA-wrap variants and symmetric-cipher padding/tag checks, envelope metadata semantics and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish response transport/setup state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch, payload cipher tables, IV/tag layouts, padding/authentication errors and output cleanup. Remaining: trace selector2 RSA-context padding defaults, envelope metadata semantics and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish envelope caller/setup-mode and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156395,6 +156395,55 @@
      "build": "86.10-80260",
      "address": "0x6978",
      "notes": "Plaintext is zero-terminated after actual returned length, then scratch wiped."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x7ddc",
+     "notes": "Wrap1 explicitly configures RSA OAEP with digest5; wrap2 preserves existing context configuration."
+    },
+    {
+     "type": "firmware",
+     "binary": "libmbedcrypto.so.16",
+     "build": "86.10-80260",
+     "address": "0x460bc",
+     "notes": "RSA padding dispatch1 reaches OAEP with empty label;0 reaches v1.5."
+    },
+    {
+     "type": "firmware",
+     "binary": "libmbedcrypto.so.16",
+     "build": "86.10-80260",
+     "address": "0x6f678",
+     "notes": "Shipped digest-name table maps5 to SHA1."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x2004c",
+     "notes": "Cipher rows map selectors to shipped cipher types and0/16/4/16 tag lengths."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x36f0",
+     "notes": "Initialization resolves cipher-info pointers using each row type."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x51cc",
+     "notes": "Final authenticated decrypt checks table-sized trailing tag; failure maps8."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x833c",
+     "notes": "Private handle parser checks RSA private-key consistency before exporting legacy fields."
     }
    ],
    "setup_client_hello_payload": {
@@ -156511,7 +156560,16 @@
     "wire_header": "ZZ0053 at0x6318 reads big-endian magic0x886499ca (xoris0x779b,cmpwi signed0x99ca), u32 declared total size at+4, u16 version1 at+8, two copied bytes at+a not subsequently validated here, and u32 metadata count at+c constrained<=8. Metadata entries are parsed by ZZ0026 into264-byte-stride(0x108) slots. After metadata comes one byte recipient count, required1 or2. Each recipient is u32BE identifier length<=2047,u8 identifier type1..5,identifier bytes,u32BE key-wrap selector1..2,u32BE wrapped-key length<=512,wrapped-key bytes. After the recipients come u32BE symmetric-cipher selector and u32BE ciphertext length, then ciphertext. The cipher-selector predicate ZZ0054 accepts1,2,3,4 by clearing bit1 and requiring the result1 or2. Metadata-specific value validation remains in ZZ0026 and is not replaced by this framing description.",
     "length_contract": "Every copied variable span is checked against the actual input end. Declared total size must not exceed actual supplied length, and parsed header size must not exceed declared total size. ZZ0056 at0x66ec then requires parsed-header end plus ciphertext length<=actual input end and stores a borrowed ciphertext pointer at parsed-object+1c74. It returns header size plus ciphertext size, not a strict whole-input-consumed boolean. It does not require this sum to equal either declared total size or actual supplied length. Thus trailing bytes are accepted, and the ciphertext extent may exceed the declared total if actual input storage permits it. Netstartd tests only nonzero parse result. Parser arithmetic is the shipped32-bit pointer arithmetic; these checks are not described as a comprehensive integer-overflow defense.",
     "decrypt_order": "ZZ0051 at0x67a0 initially writes null/0 to output pointer/length and iterates recipient entries only while selector returns null. Once a key is returned it computes output capacity with ZZ0045, allocates capacity+1, unwraps that entry through ZZ0075 into512-byte scratch, then decrypts the borrowed ciphertext through ZZ0043 with no additional-data pointer/length. Failure at capacity/allocation/unwrap/cipher stages terminates this call; it never retries the second recipient after a selected first entry fails. Successful output is heap-owned and has a zero byte appended after its actual plaintext length. The length remains authoritative, so an embedded zero does not shorten the stored secret.",
-    "cleanup_and_trust": "Failure after allocation frees that output and resets pointer/length; both normal result paths wipe the512-byte unwrapped-key scratch through ZZ0038. An optional release callback would receive the selected key, but the daemon passes none. Initial output reset does not itself free any previous pointer; no ownership claim about prior attempts is inferred without tracing callers. This path checks supported framing/version/selectors and delegates RSA key unwrap and symmetric decryption. It does not authenticate the envelope metadata or advertised recipient identifier through this selector, and neither this parser nor selector verifies a manufacturing signature. Cipher-specific padding/tag checks, precise RSA-wrap variants and surrounding setup-mode acceptance/state effects remain separate unresolved work."
+    "cleanup_and_trust": "Failure after allocation frees that output and resets pointer/length; both normal result paths wipe the512-byte unwrapped-key scratch through ZZ0038. An optional release callback would receive the selected key, but the daemon passes none. Initial output reset does not itself free any previous pointer; no ownership claim about prior attempts is inferred without tracing callers. This path checks supported framing/version/selectors and delegates RSA key unwrap and symmetric decryption. It does not authenticate the envelope metadata or advertised recipient identifier through this selector, and neither this parser nor selector verifies a manufacturing signature. Cipher-specific padding/tag checks and RSA-wrap branches are documented in setup_envelope_cipher_contract. Selector2 RSA-context padding defaults and surrounding setup-mode acceptance/state effects remain unresolved."
+   },
+   "setup_envelope_cipher_contract": {
+    "rsa_unwrap": "ZZ0075 at libsonoscrypto0x7c50 obtains modulus byte size through ZZ0106=(pk_bitlen+7)>>3, rejects size>512, accepts only wrap selectors1 or2, and requires supplied wrapped-key length>=modulus bytes. Equality is not required, so extra wrapped-key bytes are not rejected by this guard. Selector1 imports N,P,Q,D,E from key-handle MPI fields+c,+24,+2c,+1c,+14 into a fresh RSA context, completes it, then sets padding1 and digest5. Shipped mbedtls_rsa_pkcs1_decrypt dispatch0x460bc identifies padding1 as RSAES-OAEP with empty label; digest name table0x6f678 identifies5 as SHA1. Selector2 uses the existing mbedTLS RSA context after a key-type==RSA check, with its current padding configuration, rather than changing it here. It is not assigned an unconditional PKCS1-v1.5 label. Both variants delegate the actual padding/private-RSA operation, return1 on zero library error, and on failure return0 with unwrapped length0. Netstartd supplies512-byte scratch capacity.",
+    "key_handle_join": "ZZ0098 tail-calls ZZ0183 at0x8394. ZZ0183 allocates52 bytes containing mbedTLS pk context plus legacy MPI fields, attempts mbedtls_pk_parse_key and then the custom ZZ0100 fallback, requires RSA key type, checks private-key consistency via mbedtls_rsa_check_privkey and exports N/P/Q/D/E into the fields used by wrap selector1. Failures free the handle and returnnull. Thus a nonnull manufacturing private handle has these key checks; the higher-level provider still does not inspect its null result before returning extraction success. Initial RSA-context padding for selector2 remains a distinct producer/default trace.",
+    "cipher_table": "Internal cipher table at libsonoscrypto0x2004c contains16-byte rows {selector,mbedTLS cipher type,initialized info pointer,tag bytes}. Constructor0x36b4 resolves each info pointer through mbedtls_cipher_info_from_type. Rows1..4 are {1,5,ptr,0},{2,14,ptr,16},{3,14,ptr,4},{4,77,ptr,16}. Shipped libmbedcrypto definitions0x6eff0 and info structures0x6f168/0x6f130/0x6f080 name these AES-128-CBC,AES-128-GCM,CHACHA20-POLY1305. Cipher-info packed fields, not upstream enum assumptions, supply key lengths16,16,16,32 and IV lengths16,12,12,12 respectively. The envelope parser admits only these four selectors although the library table has additional AES256 rows5..7.",
+    "ciphertext_layout": "Encrypted span starts with IV bytes, then encrypted data, then a tag for selectors2..4. ZZ0045 computes capacity: selector1 requires ciphertext length>=32 and returns ciphertext length-16; selectors2/3/4 require ciphertext length>=IV length+tag length and return ciphertext length-IV length-tag length. Equality permits zero-sized plaintext capacity in authenticated modes; unwrap/init still require correct key material. ZZ0048 requires unwrapped key length to exactly match the selected algorithm, so surplus decrypted key bytes are rejected. ZZ0050 consumes the leading IV before decrypting data and retains the trailing tag for final verification.",
+    "authentication_and_padding": "ZZ0043 initializes the decrypt context, updates through ZZ0050 and finalizes through ZZ0047. Netstartd passes null/0 additional authenticated data and options0, so the envelope header/metadata/recipient IDs are not supplied as AEAD additional data. CBC setup chooses padding mode0, the shipped PKCS7 default, and mbedtls_cipher_finish rejects invalid padding or incomplete blocks. GCM and ChaCha modes call mbedtls_cipher_update_ad with the empty additional-data span and final mbedtls_cipher_check_tag with the table-selected tag length. Selector3 therefore checks a4-byte tag, whereas2 and4 check16 bytes. A successful CBC decrypt supplies no independent authentication tag. Authenticated decrypt verifies payload under the unwrapped key, not a sender certificate or ignored recipient identifier.",
+    "error_and_output_contract": "ZZ0043 returns0 on success and writes update+finish plaintext length. On init/update/final failure it returns the delegate error and sets output length0. Final helper0x4fa4 maps mbedTLS invalid padding(-25088) to5,bad input(-24832) to3,incomplete full block(-25216) to4, insufficient output capacity to6, tag-size/mismatch to8, and other final/update failures to9. Init maps its allocation-specific error(-24960) to2 and other setup/key/IV errors to3. These library integers are not asserted to be NS2 wire error codes. Decrypt may have written partial plaintext before a later failure; ZZ0051 frees that newly allocated buffer and clears outputs rather than exposing it as a successful setup secret. No recipient retry follows these failures.",
+    "remaining": "Trace selector2 RSA-context padding defaults, metadata value semantics, envelope callers/setup-mode transitions and peer manufacturing-signature verification independently. Those unresolved chains keep the subsystem TODO open."
    }
   },
   "bin_wacd": {
