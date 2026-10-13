@@ -125764,7 +125764,7 @@
   "devmode": {
    "obj": "RDevMode + <DevMode>%s</DevMode> var: dev-mode flag",
    "todo": [
-    "Established: statement/envelope/bitmap/lifecycle contracts, firmware/model/identifier guards, type5 parser and notification-byte asymmetry; both callback installation sites, first callback IPC endpoint/subobject, shipped IPC interface command13 implementation,16-byte frame and transport return semantics. Remaining: join the main-owner concrete callback tables, trace the control command13 daemon handler and second callback receiver/effects; join type5 array consumers and envelope flags/primary metadata meanings; trace other grant-bit consumers. Follow the exact installed objects and consumers before removing this TODO."
+    "Established: verifier/bitmap/lifecycle contracts, firmware/model/identifier guards, specialized type5 framing and its noninterpretation by the traced developer-grant consumers; primary/header metadata framing versus signature coverage; callback installation sites and IPC command13 method/frame/transport semantics. Remaining: join the main-owner concrete callback tables outside the protected implementation-object work, trace control command13 daemon handling and second callback delivery/effects, and map other grant-bit consumers. Follow exact installed objects and consumers before removing this TODO."
    ],
    "mechanism": "Developer mode is gated by a verified statement payload bitmap. The manager-held bit0 enables developer-mode permission; bit47 is the separately tested SSH public-key-install permission. Persistence uses a direct truncated write to persistent-root/debug/devmode.bin plus a separate runtime/tmp/devmode.tmp.bin output. File and callback failures do not roll back the already-replaced in-memory statement.",
    "resolved_findings": [
@@ -126058,6 +126058,34 @@
      "build": "86.10-80260",
      "address": "0x105d3c2c",
      "notes": "Partial-write loop returns transport completion, with no negative/EINTR retry."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xa864",
+     "notes": "Type5 getter delegates to generic metadata retrieval with tag5 and internal length40."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x90b4",
+     "notes": "Hash delegate chooses outer prefix or encoded secondary list; primary/header metadata excluded."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xa514",
+     "notes": "Metadata digest retrieval checks type2, not array entries."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054bd90",
+     "notes": "Grant application reads separate payload offset/length for bitmap query."
     }
    ],
    "signature_envelope_contract": {
@@ -126105,6 +126133,12 @@
     "frame": "For command13 with zero payload,0x105d3b10 emits exactly16 bytes with four u32 words [12,1,4,13], in the native big-endian representation of this PPC build. The fields are built at0x105d3c44..0x105d3c60. No capability bitmap bytes follow them. It sends a control-IPC command; this is distinct from the NS2 over-the-air opcode13(GET_PSK). The daemon-side meaning/handler of the control command remains untraced.",
     "transport_result": "The send helper rejects fd+18c<0 and payload lengths beyond the virtual limit(default2048). A zero-payload frame uses the common write loop. It accumulates partial positive writes until all16 bytes are sent, returns0 on that completion and-1 for zero/negative write or unusable connection. Unlike the statement-file writer, this loop has no EINTR retry. The return proves transport write completion, not daemon acknowledgement, statement reload or grant application. The manager treats-1 as notification failure.",
     "second_callback_boundary": "The second installed pointer(owner+c8c) and its invocation slot+8 are proved, but its concrete table/receiver still needs tracing. The developer-mode event-generator label alone is insufficient to assign it that role. Existing state clear/submission callback ordering remains as documented; no delivery/event effect is inferred from the label."
+   },
+   "metadata_use_in_developer_grants": {
+    "decoded_array_scope": "Type5 parser creates a pointer/count descriptor. Getter ZZ0180 at0xa864 requests normalized type5 and internal descriptor length40 via tail branch to0x9d78. A direct branch audit found no call to this getter in libsonoscrypto, and no import in the checked shipped executable directories bin,sbin,opt/bin,wifi. This audit does not prove absence of every indirect/external caller. In the traced ZZ0137 verification chain, ZZ0126/ZZ0125 invoke the trust/hash/RSA callbacks and retrieve type2 digest metadata; they do not call the type5 getter or read individual array entries. The manager later queries only the separately located capability bitmap.",
+    "primary_metadata": "Primary entries are structurally parsed, type-checked and included in the normalized duplicate-type rejection. The developer verifier does not use their values as capabilities or compatibility bounds. Generic expected metadata-counter handling is disabled because ZZ0123 passes0 for that argument. The copied u16+a envelope field likewise has no local predicate or value-dependent branch in this traced grant path. These fields cannot be assigned a developer-mode permission meaning from their presence.",
+    "signature_coverage": "The signed outer statement prefix ends before the envelope. Direct layout hashes that prefix, not the envelope header/primary list. Metadata layout first checks the outer-prefix digest, then hashes the secondary count and encoded secondary entries; it still does not include the envelope header or primary list in that hash input. Thus valid primary metadata can affect framing/duplicate rejection without being part of the RSA-protected data in either traced layout. A secondary type5 entry is covered as encoded bytes by the metadata signature, even though grant application does not interpret its array contents.",
+    "scope_limit": "This establishes concrete use and nonuse inside developer-grant verification/application. It does not name the generic type5 formats from their strides, or establish their use in another application. The unavailable concrete notification-object installation chain remains explicit because continuing into shared implementation initialization would enter the other agent's protected lane."
    }
   },
   "mod_zp": {
