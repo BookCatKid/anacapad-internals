@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server schema and factory field contracts; concrete MDP2 public/private-key provider, key-material length guards, copied-signature offsets/capacities, identity-metadata packing and tag5/6/7 branch choices. Remaining: finish encrypted setup-envelope/key-selection trust checks and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish response transport/setup state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server schema and factory field contracts; MDP2 key-provider and copied-signature choices; encrypted-envelope framing, concrete pass-through private-key selector, first-selected-recipient failure behavior and output ownership/cleanup. Remaining: finish RSA-wrap variants and symmetric-cipher padding/tag checks, envelope metadata semantics and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish response transport/setup state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156353,6 +156353,48 @@
      "build": "86.10-80260",
      "address": "0x10023b4c",
      "notes": "Emit26-byte packed identity metadata, removing internal padding."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10023438",
+     "notes": "GOT relocation selects ZZ0070 with manufacturing private handle and no release callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x6b14",
+     "notes": "Pass-through selector preserves r3 and ignores identifier/type inputs."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x6504",
+     "notes": "Recipient count must be1 or2; per-entry bounded identifier/wrapped-key framing follows."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x6748",
+     "notes": "Ciphertext extent checked against actual input end, not equality with declared total."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x683c",
+     "notes": "Recipient iteration continues only for null key selection; later failures exit rather than retry."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x6978",
+     "notes": "Plaintext is zero-terminated after actual returned length, then scratch wiped."
     }
    ],
    "setup_client_hello_payload": {
@@ -156462,6 +156504,14 @@
     "identity_metadata": "When the later block is available and fits, adapter copies seven words into metadata output: magic0x3c6852eb from ZZ0086, six MDP1 identity bytes with two zero padding bytes,MODEL,SUBMODEL,MDP2+44c color and zero reserved word. Extractor imports identity/model/submodel directly from MDP1+14/+8/+c and color from MDP2+44c; it does not call final-color/wildcard override for this signed-metadata representation. Server producer0x10023a10 removes the internal two-byte padding and emits a26-byte sequence:magic,identity6,MODEL,SUBMODEL,color,reserved4.",
     "server_auxiliary_choice": "The greeting crypto helper always produces public-key DER for tag5 when successful. If context+10c (the MDP2+2cc block length) is nonzero, it emits the26-byte identity metadata as tag6 and copies MDP2+2cc block bytes into tag7. If that length iszero, tag6 is omitted and tag7 uses context+8, sourced from MDP2+3cc. Producer output capacities can reject these copies; the caller resets all three lengths on producer failure. The metadata may remain zeroed when the later block was unavailable, even while an earlier block enables the26-byte branch. No assumption about equivalence of these signature layouts is made.",
     "trust_boundary": "The basic flash wrappers establish read/header/normalization, not CRC/signature validity. This provider/extractor copies signature blocks but performs no verification of either block. Public/private key parsing is separate from establishing trust in the manufacturing data. The client-side verification of the advertised signature/metadata layouts and the encrypted setup-secret key-selection path remain open."
+   },
+   "encrypted_setup_envelope_selection": {
+    "binding": "0x100233b0 passes the received encrypted envelope to ZZ0056 and then ZZ0051 with outputs setup-context+304/+308. The callback loaded at0x10023438 is relocation cell0x1004fce8 (GOT base0x10057cd0 minus0x7fe8), R_PPC_ADDR32 symbol ZZ0070. Callback context is the MDP2 private-key handle at setup-context+15c; optional release callback r8 is0. This is the concrete shipped callback, not an assumed key-ID lookup.",
+    "selector": "ZZ0070 at libsonoscrypto0x6b14 is stwu/addi/blr and preserves r3. ZZ0051 invokes it with r3=callback context,r4=entry identifier type,r5=identifier bytes,r6=identifier length. Consequently it returns the supplied private-key handle for every identifier/type, or null for every entry if the handle is null. It performs no identifier comparison, certificate lookup, hash comparison or key-file read. With a nonnull private handle, the first entry is always selected.",
+    "wire_header": "ZZ0053 at0x6318 reads big-endian magic0x886499ca (xoris0x779b,cmpwi signed0x99ca), u32 declared total size at+4, u16 version1 at+8, two copied bytes at+a not subsequently validated here, and u32 metadata count at+c constrained<=8. Metadata entries are parsed by ZZ0026 into264-byte-stride(0x108) slots. After metadata comes one byte recipient count, required1 or2. Each recipient is u32BE identifier length<=2047,u8 identifier type1..5,identifier bytes,u32BE key-wrap selector1..2,u32BE wrapped-key length<=512,wrapped-key bytes. After the recipients come u32BE symmetric-cipher selector and u32BE ciphertext length, then ciphertext. The cipher-selector predicate ZZ0054 accepts1,2,3,4 by clearing bit1 and requiring the result1 or2. Metadata-specific value validation remains in ZZ0026 and is not replaced by this framing description.",
+    "length_contract": "Every copied variable span is checked against the actual input end. Declared total size must not exceed actual supplied length, and parsed header size must not exceed declared total size. ZZ0056 at0x66ec then requires parsed-header end plus ciphertext length<=actual input end and stores a borrowed ciphertext pointer at parsed-object+1c74. It returns header size plus ciphertext size, not a strict whole-input-consumed boolean. It does not require this sum to equal either declared total size or actual supplied length. Thus trailing bytes are accepted, and the ciphertext extent may exceed the declared total if actual input storage permits it. Netstartd tests only nonzero parse result. Parser arithmetic is the shipped32-bit pointer arithmetic; these checks are not described as a comprehensive integer-overflow defense.",
+    "decrypt_order": "ZZ0051 at0x67a0 initially writes null/0 to output pointer/length and iterates recipient entries only while selector returns null. Once a key is returned it computes output capacity with ZZ0045, allocates capacity+1, unwraps that entry through ZZ0075 into512-byte scratch, then decrypts the borrowed ciphertext through ZZ0043 with no additional-data pointer/length. Failure at capacity/allocation/unwrap/cipher stages terminates this call; it never retries the second recipient after a selected first entry fails. Successful output is heap-owned and has a zero byte appended after its actual plaintext length. The length remains authoritative, so an embedded zero does not shorten the stored secret.",
+    "cleanup_and_trust": "Failure after allocation frees that output and resets pointer/length; both normal result paths wipe the512-byte unwrapped-key scratch through ZZ0038. An optional release callback would receive the selected key, but the daemon passes none. Initial output reset does not itself free any previous pointer; no ownership claim about prior attempts is inferred without tracing callers. This path checks supported framing/version/selectors and delegates RSA key unwrap and symmetric decryption. It does not authenticate the envelope metadata or advertised recipient identifier through this selector, and neither this parser nor selector verifies a manufacturing signature. Cipher-specific padding/tag checks, precise RSA-wrap variants and surrounding setup-mode acceptance/state effects remain separate unresolved work."
    }
   },
   "bin_wacd": {
