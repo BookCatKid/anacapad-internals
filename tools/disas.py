@@ -62,6 +62,17 @@ def _annotate(va):
     return "; ".join(out)
 
 
+def decode_for_listing(word, pc):
+    """Decode indexed loads correctly without changing the SOAP extractor."""
+    if word >> 26 == 31:
+        xo = (word >> 1) & 1023
+        if xo in (23, 55):
+            mnemonic = "lwzx" if xo == 23 else "lwzux"
+            return (mnemonic, (word >> 21) & 31,
+                    (word >> 16) & 31, (word >> 11) & 31)
+    return X.decode(word, pc)
+
+
 def fmt_ins(pc, ins):
     op = ins[0]
     a = ins[1:]
@@ -133,7 +144,7 @@ def disas(start, end=None, count=None):
         w = _elf.u32(pc)
         if w is None:
             break
-        ins = X.decode(w, pc)
+        ins = decode_for_listing(w, pc)
         txt = fmt_ins(pc, ins)
         notes = []
         # track hi/lo address formation

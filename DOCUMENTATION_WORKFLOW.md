@@ -73,6 +73,13 @@ the boundary assumptions that are easy to get wrong on this target:
   *zero*-extended (`0xFFFD`, not a negative); `bc bo=4/5` vs `bo=12/13` flip
   branch polarity on the same CR bit. Decode raw words at every validation
   boundary, mask, and range check.
+- **Indexed-load update forms**: opcode-31 XO 23 is `lwzx` and preserves
+  the table-base register; XO 55 is `lwzux` and updates it. The linear
+  disassembler corrects these names through `decode_for_listing`.
+  The shared SOAP extractor has its own decoder and symbolic evaluator;
+  this listing correction does not change or regenerate its records.
+  Check raw words before choosing table-base-relative versus
+  entry-address-relative jump-table targets.
 - **Validate-vs-normalize order**: note whether a range check runs on the raw
   parsed value or a truncated/masked copy. The two produce different accepted
   lexical ranges (Seek TRACK_NR: check is on the raw `strtol` result).
