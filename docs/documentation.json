@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish cached/default PSK producers, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish upstream cached/default PSK producers/lifecycle triggers, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156766,6 +156766,41 @@
      "build": "86.10-80260",
      "address": "0x100261f0",
      "notes": "Successful inbound socket accept writes selector field+168=0."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10022c28",
+     "notes": "Nonempty primary identity requires exactly32 key bytes before mutation."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10022bd4",
+     "notes": "Nonempty secondary identity requires exactly32 key bytes before mutation."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10022c5c",
+     "notes": "Cached ID copied with size129 and ignored snprintf result,permitting truncation."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10022f04",
+     "notes": "Both absent identities wipe both records regardless of supplied key lengths."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10026954",
+     "notes": "Record clear tail-calls memset after explicit0xb0-byte wipe."
     }
    ],
    "setup_client_hello_payload": {
@@ -156997,8 +157032,14 @@
     "identity_priority": "Provider0x1002300c gets byte identity pointer/length from mbedTLS and rejects zero length. It first tries nonempty primary cached identity string context+160 with matching strlen and full-byte ZZ0199 comparison; match uses key bytes+1e1,length+204. It then tries nonempty secondary identity+210 with key+291,length+2b4. Next it tries nonempty configured default string at pointer+2c4,using key record+81,length word+a4. Last it derives factory fallback through0x10027314,requires length equal its generated string length and compares every byte. Comparison is case-sensitive and length-exact; identity bytes are not parsed as a NUL-terminated caller string. No match returns-1.",
     "installer_results": "Every matched branch invokes context+2c8 installer with incoming SSL context and selected key bytes/length. Installer nonzero is returned immediately without trying other identities/keys. Zero installer result sets active greeting mode+2cc to3 for either cached identity,2 for configured default,1 for factory fallback,and returns0. Thus matching alone does not update the active mode, and mode values record which successful key source was installed. Full-byte identity equality does not by itself establish completion of the TLS proof-of-key handshake.",
     "factory_fallback_formula": "Helper0x10027314 reconstructs fixed32-byte secret S and17-byte label sonos.netstart2.1 from rodata0x10035c7c using byte additions modulo256. SHA256(S)=a40bc31c0a16ea5614cef677bebc23ce86d1b4816b8cd8143943cb15ddd3517f identifies the recovered constant without treating it as a per-device random secret. It applies ZZ0215 with secret S,label sonos.netstart2.1,context=raw factory identity bytes context+12c,length+134,and output capacity/request32. On KDF success it copies label+NUL as the fallback identity. With the normal successful factory callback the derivation context is exactly six bytes. This is a fixed embedded derivation seed combined with factory identity, not a key read from a runtime file or generated independently for every handshake.",
-    "fallback_limits_and_cleanup": "Helper requires identity output capacity>=18 before deriving. It uses caller PSK-length value as requested KDF bytes rather than forcing32 inside the helper; this concrete provider initializes that value32. Successful/failing KDF paths wipe reconstructed32-byte secret and18-byte label scratch. Successful/failing identity comparison and fallback installer paths wipe the provider32-byte derived-key and129-byte identity scratch. Cached/default-match branches do not populate those fallback buffers and return without that scratch cleanup. Producers, lifetimes and allowed widths of cached/default records remain to be joined individually.",
+    "fallback_limits_and_cleanup": "Helper requires identity output capacity>=18 before deriving. It uses caller PSK-length value as requested KDF bytes rather than forcing32 inside the helper; this concrete provider initializes that value32. Successful/failing KDF paths wipe reconstructed32-byte secret and18-byte label scratch. Successful/failing identity comparison and fallback installer paths wipe the provider32-byte derived-key and129-byte identity scratch. Cached/default-match branches do not populate those fallback buffers and return without that scratch cleanup. Producers, lifetimes and allowed widths of cached/default records remain to be joined individually. Cached record widths, replacement guards and full-record wiping are now established in cached_psk_record_writer; upstream source/lifecycle bindings remain open.",
     "selector_progress": "Socket accept helper0x10026118 calls0x1002d744 with listener/accepted socket wrappers. Only result0 takes0x100261e8,then writes that zero to transport+168 and wait-direction+16c at0x100261f0/+f4 before tail-calling accepted-connection delegate0x10025fc4. This inbound path therefore selects slot0 or1 when authentication selector+164 is0 or1. Constructor/reset writes+168=1. Local calls to setter0x10026630 use literal0 for ordinary/reset flows and1 in0x1001c4a4 after state6. Complete branch provenance for the other selector/index paths remains open; no local range guard is added by this evidence."
+   },
+   "cached_psk_record_writer": {
+    "entry": "Writer0x10022b3c takes context,r4 primary identity,r5 primary key,r6 primary key length,r7 secondary identity,r8 secondary key,r9 secondary key length. Null identity pointers are treated as absent; nonnull identities are measured with strlen. For every nonempty identity its associated key length must be exactly32. These checks run before clearing/writing either cached record. Failure returns0 and leaves both old records intact. If both identities are absent or empty it clears both records and returns1 without imposing key-length predicates.",
+    "storage": "Primary record begins context+160,secondary+210; each is0xb0 bytes. ID string is129-byte buffer at record+0,key32 bytes at+81,length u32 at+a4. Identity copies use snprintf(size129,format%s) and ignore its return. Long input identities are accepted and truncated to128 bytes; they are not rejected for exceeding stored capacity. No decimal/hex/UTF8 restriction or duplicate-identity check exists here. Successful populated record length is32. Key pointers are not checked fornull independently; a nonempty identity and length32 require a readable32-byte source.",
+    "replacement_paths": "Primary-only clears and writes primary,then clears secondary. Secondary-only clears both records then writes secondary. Two populated identities clear/write primary then clear/write secondary,after both length predicates passed. Matching identical stored identities later selects primary because callback priority checks it first. Different long identities with the same first128 bytes can likewise produce identical stored comparison strings. Copying/clearing has no later checked failure return,so there is no rollback mechanism after mutation begins; validation failures themselves precede mutation.",
+    "wipe_and_lifetime": "Clear helper0x1002691c wipes0xb0 bytes using ZZ0038 and then tail-calls memset over the same entire record. This clears identities,key bytes,length and remaining record bytes. Setup-context destructor0x10022ae8 clears both records after resetting stored seed/PIN state. Constructor also clears them. The cached-record writer does not itself reset active verification mode+2cc or stored setup secret. Upstream identity/key producers and lifecycle-trigger callers still require independent traces."
    }
   },
   "bin_wacd": {
