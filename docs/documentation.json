@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK numeric-member semantics/persistence/reload triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK reload/reset/new-key persistence triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156878,6 +156878,41 @@
      "build": "86.10-80260",
      "address": "0x10026e00",
      "notes": "Generator emits sonos.device.2.method.factoryhex.random8 identity before record copy."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001ed98",
+     "notes": "Loaded credential boot counter increments before persistence."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10022234",
+     "notes": "Boot count>4 omits PSK without clearing live credential."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100213e8",
+     "notes": "Old settings preservation skips PSK,preventing reintroduction."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10023d80",
+     "notes": "Default-key mode returns credential remembered setup-method field."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100222e0",
+     "notes": "Rename result supplies writer boolean; earlier flush/close errors ignored."
     }
    ],
    "setup_client_hello_payload": {
@@ -157155,11 +157190,19 @@
    "configured_psk_file_contract": {
     "source_and_binding": "Session constructor0x1001eb64 initializes settings blocksession+5c,size0xd8 through0x10021fec,then loads it via0x100223ac. File path is configuration+8 directory followed by /netstart2.txt. Settings+4 is the default0xb0-byte credential record,so its addresssession+60 is passed to setup-context constructor as default pointer and retained at context+2c4. Line callback0x10020f68 recognizes exact key PSK and passes its value to parser0x10026adc with this record. The selected DTLS default key therefore comes from this file-backed record,not the two separately updated cached IPC entries.",
     "line_grammar": "Reader0x100224ec uses fgets capacity2048,skips only lines whose first byte is#,newline orNUL,requires first colon followed by literal space and opening bracket,then uses last closing bracket to terminate the value. Callback sees name before colon and value inside brackets. Whitespace is not generally trimmed,so PSK key matching is exact. Missing colon,wrong : [ separator or missing ] returns0. EOF returns1. A callback returning0 stops reading and also returns1 rather than surfacing failure. The concrete PSK callback logs parse failure but returns1,so an invalid PSK line does not by itself reject the file and following lines are processed.",
-    "credential_value": "Ordinary intended value is decimal numeric prefix:identity:hexkey. Parser uses strtoll(base10,endptr) and accepts high word0,low word<=65534,stores low16 at record+a8,then advances endptr by one byte without checking that it was a colon. It neither checks errno nor independently requires a consumed digit. It searches the next colon as identity/key separator,copies identity into129-byte record buffer and rejects formatted length>128. Key text after the separator must be nonempty,all hexadecimal,decode exactly32 bytes under capacity32; both uppercase and lowercase hex pass. The prefix is documented as a stored numeric member; its full consumer meaning remains unresolved and is not guessed to be a port or version.",
+    "credential_value": "Ordinary intended value is decimal numeric prefix:identity:hexkey. Parser uses strtoll(base10,endptr) and accepts high word0,low word<=65534,stores low16 at record+a8,then advances endptr by one byte without checking that it was a colon. It neither checks errno nor independently requires a consumed digit. It searches the next colon as identity/key separator,copies identity into129-byte record buffer and rejects formatted length>128. Key text after the separator must be nonempty,all hexadecimal,decode exactly32 bytes under capacity32; both uppercase and lowercase hex pass. The prefix is the persisted boot count; exact increment/cutoff behavior is joined in psk_boot_count_and_method.",
     "identity_shape": "After key decoding,sscanf(identity,sonos.device.%d.%d) interprets leading numeric components. If it gets one component,that value must1; this legacy case forces record+a8=5 and record+ac=0. Two components with first<=1 use the same legacy rule. Two components with first>1 require unsigned second<=9 and store second at record+ac,retaining earlier numeric prefix. It does not require first exactly2,consume the whole identity,validate factory-identity/suffix portions or require second in1..8. Consequently generation and accepted-file grammar differ. Success finally stores key length32.",
     "partial_failure_and_duplicates": "The parser writes numeric prefix,identity and decoded key bytes before some later checks; failure does not restore or clear the destination. On initial load its prior record is zero,while repeated PSK lines operate on the same record without transactional replacement. A later invalid line can leave a new partial record with an earlier stored key length. File callback logs the error and continues. Thus load success and stored key length alone do not prove the most recent PSK text was fully accepted.",
     "local_generator": "Generator0x10026ca4 requires input identity length6 and requested numeric component1..8. It generates eight characters from alphabet0123456789abcdef through ZZ0154 and32 key bytes through ZZ0071,formats identity as sonos.device.2.<requested>.<hex factory identity>.<random8>,requires formatted length<=128,then copies the complete temporary credential through0x1002695c and wipes the temporary0xb0-byte record. The record copier clears destination,formats its identity with size129,copies source key length bytes without its own length bound,and copies u16+a8/u32+ac. The generation caller supplies32 bytes; that checked caller behavior is distinct from the generic copier limits. Generator failure before successful copy leaves destination unchanged,but several failure exits bypass the successful temporary-record wipe.",
-    "remaining": "Join numeric prefix/method consumers,persistent writer/reload triggers and other settings fields before declaring this settings subsystem complete. Anacapad sender/service lineage remains excluded."
+    "remaining": "Join persistent writer/reload/reset triggers and other settings fields before declaring this settings subsystem complete. Numeric prefix=boot count and record+ac=setup-method provenance are resolved in psk_boot_count_and_method. Protected sender/service lineage remains excluded."
+   },
+   "psk_boot_count_and_method": {
+    "boot_count_join": "Credential u16+a8 is the persisted boot count,serialized as decimal prefix by0x100269f0. Session constructor checks successfully loaded default key lengthsession+104!=0,then0x1001ed7c loads counter atsession+108(record+a8),increments/truncates16 bits,stores it and logs Netstart2 device PSK loaded,boot count%u. It invokes settings writer0x10022074 afterward. The exact trigger is credential-bearing session initialization; the log word boot is not proof of one increment only per physical reboot.",
+    "persistence_cutoff": "Settings writer examines default identity nonempty atsettings+4 and counter atsettings+ac(credential+a8). Counter<=4 permits PSK serialization;>4 logs Netstart2 device PSK hit max boot count,discarding and omits the new PSK line. Old-file preservation callback0x10021374 specifically skips PSK,so it cannot reintroduce the discarded old line. This writer does not clear the loaded in-memory credential. If the temporary-file rename succeeds,the current process can still use that credential while the next settings load finds no persisted PSK. Failure to persist does not undo the increment or prevent constructor from continuing.",
+    "generation_and_legacy": "New generator initializes the temporary record tozero,so new boot count starts0;its requested method is stored separately atrecord+ac. Legacy identity parse with first sonos.device component1 forces boot count5 and method0. A successfully loaded legacy key consequently increments to6 and is omitted during that initialization persistence attempt. Parser permits initial count0..65534,constructor increments modulo65536,and writer uses the resulting count literally. This is count-based persistence expiry,not a wall-clock TTL or network port.",
+    "setup_method_join": "Credential u32+ac is the remembered setup-method number,parsed from the second sonos.device component for format>1 and set by generator input1..8. Getter0x10023d2c reads active authentication mode+2cc:mode2(default PSK) returns default record+ac;mode1 and3 return0; modes4..6 return requested setup-mode+2f4 only if cached proof byte+2d4 istrue,otherwise0;other modes return0. The method value therefore describes setup provenance through the active authentication path; it is not the cipher selector or boot count. File parser admits0..9 while generator emits1..8.",
+    "write_operation": "Writer formats final path<directory>/netstart2.txt and temporary<directory>/netstart2.txt.tmp,opens temporary in modew,writes VERSION2,new PSK when eligible,and optional registration-signing record,then parses old file to copy other named settings while skipping owned fields. It calls fflush/fclose but ignores their return values,renames temporary to final and defines final boolean from rename result,then unlinks the temporary name. It makes no fsync call in this path. Some serialization/old-file parse errors only log and writing/rename continue,so true result is rename success rather than proof all desired fields and bytes were durably stored.",
+    "remaining": "Trace reload/reset and new-key persistence callers,registration-signing field and unrelated settings individually. Complete application notification/callback effects remain outside these numeric-field joins."
    }
   },
   "bin_wacd": {
