@@ -125919,7 +125919,7 @@
   "noncehandler": {
    "semantics": "Tracks Muse authentication challenges as one-use nonce records,with concrete300-second expiry and a three-binding cache. The Muse16-character challenge is separate from the6-byte-derived nonce in the HTTP signing-credentials helper.",
    "todo": [
-    "Established: concrete Muse provider chain,16-character challenge generation,300-second deadlines,two distinct equality boundaries,optional presence-flag meanings,matching-record consumption even when stale,three-binding cache,pruning,clear and result codes1/2/3/4/5. Remaining: bind the generation-mode flag producer to its higher-level meaning; identify the caller binding-string producer,current context-string producer and provider+0xc time-source domain; verify base64/JSON accepted lexical details and the separate HTTP signing helper's exact digest/output algorithm. Trace those specific producers/helpers individually without touching SOAP request objects or service dispatch records."
+    "Established: concrete Muse provider,16-character challenge and300-second expiry; wall-clock gettimeofday source; unsigned-decimal BootSequenceManager context and monotonic fallback; RDM/MTM mode producer and exact prefix/gate predicates; equality differences; matching-record consumption and three-binding pruning. Remaining: identify the caller binding-string producer and its value domain; verify the base64/JSON accepted lexical details and the separate HTTP signing helper's exact digest/output algorithm. Trace these specific producers/helpers without touching SOAP request objects or service dispatch records."
    ],
    "lifecycle": "The two previously combined pipelines are distinct. HTTP signing helper0x105ccad4 formats six random bytes and two context strings,then hashes that input;0x105cccbc packages credentials/nonce/keyType and base64-encodes the signing blob. Muse nonce creation is0x10b99b38: it calls ZZ0154 to produce16 characters from the62-character alphabet0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ and records per-binding expiry/context. Muse validation0x10b996b4 base64-decodes and parses credentials/nonce,checks current credentials,then looks up and consumes the matching cached nonce through0x10b995a8. Record flags+0x18 and+0x28 are optional-value presence flags,not valid-slot/consumed flags. Consumption is hash-node erasure,not a byte written to+0x28.",
    "resolved_findings": [
@@ -125930,11 +125930,11 @@
    "concrete_provider": {
     "producer_chain": "Player owner constructor0x10691e00 stores provider vtable0x10f986e8 at owner+0x5318 at0x10692960. With owner=player+0x3a8,this is player+0x56c0. Live Muse initialization0x1019ab7c computes this provider and0x1019abb4 passes it as argument7 to0x109f7d30. That function retains it at host+0xb8 and passes it to nonce handler host+0xd0 via0x10b98fb8 at0x109f7dcc. Setter0x10b98fec stores the exact provider at handler+0xac under the handler mutex. The delegate is therefore statically bound; the previous claim that its expiry was unrecoverable was incorrect.",
     "slots": "Concrete provider vtable0x10f986e8 has slot+8=0x109eec0c (optional signed64-bit time),+0xc=0x109ef8b8 (optional current context string),+0x10=0x109ef028 (optional context-string/monotonic-time snapshot),+0x20=0x109ef26c (snapshot-invalid predicate),+0x24=0x109eec8c (time-expired predicate). These last two predicates return an optional boolean whose true value means invalid/expired,not accepted.",
-    "current_time": "0x109eec0c reads provider+0xc. If null,it returns no value. Otherwise it calls that time-source interface slot+8,sign-extends the32-bit result into64 bits and marks the optional present. The concrete time-source seeding and named domain remain to be bound; it must not be confused with the explicit clock-id1 call in the snapshot path.",
-    "snapshot": "0x109ef028 obtains current context through provider slot+c,requires a present string,then calls sonosClockGetTime(clock-id1) at0x109ef0a4 and stores the seconds word alongside that string. Snapshot validator0x109ef26c requires current context availability,equal byte length and memcmp equality,then extracts CR7.gt from comparing current seconds against saved deadline. Thus equal seconds remain valid in this fallback; a later second makes it invalid. The exact higher-level meaning of the context string remains open."
+    "current_time": "Live provider setter0x1019aa24 passes singleton0x110977d0 to0x109ef480;0x109ef50c writes provider+0xc. Static initialization0x10090d18 installs vtable0x11089e6c in that singleton. Its slot+8=0x1098b430 calls gettimeofday at0x1098b478 and returns the seconds word; slot+c=0x1098b418 is a semantic tail wrapper to gettimeofday.0x109eec0c sign-extends this32-bit seconds result into an optional64-bit value. This is wall-clock epoch time,not a trusted-time availability check and not the explicit clock-id1 monotonic time used by snapshot expiry. The seconds getter does not inspect gettimeofday's status before returning the seconds word.",
+    "snapshot": "Provider context is the current BootSequenceManager value formatted as unsigned decimal,not an arbitrary security-settings string. Player construction0x1018ddbc creates BootSequenceManager through0x1058a574 and0x1018ddec retains it at player+0x5730/control+0x5734.0x1019aa28 supplies that shared-reference pair to0x109ef480,which stores weak object/control pointers at provider+4/+8. Context getter0x109ef8b8 locks that weak reference into a temporary strong reference,returns absent when unavailable,and uses the concrete slot+c formatter0x10582890. The optimized path0x109ef994 invokes boot-sequence slot+8 then formats %u at0x109ef9b8. Concrete vtable0x10ef09f8 has slot+8=0x1058a2bc,which reads BootSequenceManager+0xd8 under mutex+0x48. Snapshot getter0x109ef028 obtains this decimal string and clock-id1 seconds; snapshot invalidation requires the current decimal boot-sequence string to match and current monotonic seconds<=saved deadline. A changed boot sequence invalidates it early."
    },
    "expiry_policy": {
-    "generation": "0x10b99b38 receives a caller binding string and a nonzero/zero generation-mode flag. With mode0,it requires provider time slot+8 to have a value,then adds300 to the64-bit time using raw addic0x3129012c at0x10b99d48 and addze0x7d4a0194 at0x10b99d4c. Nonzero mode skips this optional time deadline. Both modes require snapshot slot+0x10 to succeed and add300 to its monotonic-seconds word at0x10b99dc8 (raw0x3929012c). Missing required provider data returns an absent challenge; the random-string draw alone is not successful creation.",
+    "generation": "0x10b99b38 receives a caller binding string and the RDM-or-MTM household flag. For other households,it requires provider time slot+8 to have a value,then adds300 to the64-bit time using raw addic0x3129012c at0x10b99d48 and addze0x7d4a0194 at0x10b99d4c. RDM/MTM households skip this optional wall-clock deadline. Both modes require snapshot slot+0x10 to succeed and add300 to its monotonic-seconds word at0x10b99dc8 (raw0x3929012c). Missing required provider data returns an absent challenge; the random-string draw alone is not successful creation.",
     "value_layout": "Hash-node value begins at node+0x20. Relative to that value: nonce std::string at+0,optional time-deadline presence byte+0x18,64-bit deadline words+0x20/+0x24,optional snapshot presence byte+0x28,snapshot object+0x2c containing context string pointer+0x34/length+0x38 and monotonic deadline+0x4c. Node hash is at node+0x70. Presence writers are visible in0x10b99978..0x10b99ab4 and the producer at0x10b99b38; neither flag is a replay-consumed marker.",
     "validation_order": "0x10b9917c locks the handler. If the time deadline is present,it calls provider slot+0x24. A present predicate result is returned directly; an absent provider result falls back to the snapshot. Without a time deadline,it directly uses that snapshot fallback. Missing snapshot or an unavailable/unequal current context returns invalid. Snapshot predicate false means usable,true means stale. There is no unconditional requirement that+0x18 be set or+0x28 be clear.",
     "time_boundary": "0x109eec8c compares signed high time words then unsigned low words. It returns expired for current>=deadline and unexpired for current<deadline. Equality is expired on this time-source path. Snapshot path0x109ef26c uses strict currentSeconds>savedSeconds,so equality is still valid there. Raw branch words0x409c0018/0x409efff0/0x40bcffe4 and CR extraction0x5529f7fe were inspected; these two boundaries must not be described as identical."
@@ -126043,8 +126043,86 @@
      "build": "86.10-80260",
      "address": "0x109f98a4",
      "notes": "Result3 is the live accepted path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1019aa2c",
+     "notes": "Provider initialization supplies weak BootSequenceManager reference and concrete wall-clock singleton."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10090d18",
+     "notes": "Static initializer installs singleton clock vtable0x11089e6c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1098b478",
+     "notes": "Seconds producer calls gettimeofday; return status is not checked."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018ddec",
+     "notes": "Player retains BootSequenceManager at+0x5730."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1058a2e8",
+     "notes": "Boot-sequence getter reads+d8 under mutex."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ef9b8",
+     "notes": "Current provider context is boot sequence formatted %u."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109f99ec",
+     "notes": "Challenge caller obtains mode from configured interface slot+0x14."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1073e7c4",
+     "notes": "Semantic tail thunk reaches RDM/MTM predicate,not a missing external delegate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105ad9cc",
+     "notes": "RDM-or-MTM short-circuit predicate under global lock."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3c158",
+     "notes": "PIC GOT literal Sonos_RDM_,10-byte case-sensitive comparison."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3c1ac",
+     "notes": "PIC GOT literal Sonos_MTM_,10-byte case-sensitive comparison."
     }
-   ]
+   ],
+   "generation_mode": "Mode producer is the concrete interface installed at settings object+0x12c by0x10126270,using vtable0x10e8b1f4. Live Muse init0x1019ab98 passes that slice as host argument8;host+0xbc retains it. Challenge creation at0x109f99ec calls its slot+0x14=0x1073e7c0;that thunk adjusts-0x12c then semantically tail-calls0x1073e7b4 -> tail0x105ad9cc. The predicate returns an RDM-or-MTM household classification:0x105ad62c requires global gate byte0x110974e8 nonzero and nonnull household-name provider0x110974f0,then tests the exact case-sensitive10-byte prefix Sonos_RDM_ via0x10c3c134. If false,0x105ad8c8 tests Sonos_MTM_ via0x10c3c188 with the same name provider but without that RDM gate. Prefix literals were resolved through PIC GOT slots0x10c3c158/0x10c3c1ac. A nonzero result skips the wall-clock deadline in nonce creation and uses the boot-sequence/monotonic snapshot path. Other households create wall-clock expiry plus the same fallback snapshot. Raw record-form mr.0x7c7f1b79 at0x105ada00 supplies the short-circuit CR0 test."
   },
   "arping": {
    "impl": "arping.cxx: 0x140-byte select-handler manager, 0x50-byte per-probe request and 18-byte meaningful result",
