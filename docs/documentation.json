@@ -127885,6 +127885,13 @@
      "build": "86.10-80260",
      "address": "0x100228dc",
      "notes": "Manufacturing-reader outputs join optional NS2 tags32..36; zeros omit fields."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10015278",
+     "notes": "Setup public/private key and copied-signature consumer; no signature verification in extraction."
     }
    ],
    "signature_consumers": "Standalone mdputil has two separately keyed MD5/RSA PKCS#1 v1.5 checks: original serial plus complement-validated hardware flash serial, signature MDP2+34c; and26-byte model/submodel/serial/color header plus260-byte payload, signature MDP2+3cc. See bin_mdputil.bundle_signature_contract for exact layout, key fingerprints, return domains and edit asymmetry. These checks are distinct from the basic read/CRC contract and from the signing-key consumer in noncehandler.",
@@ -128050,7 +128057,8 @@
     "series_setter": "sonosSetSeriesID0xe64 takes input(r3),MDP1(r4). It checks first byteA-Z then next three bytes0-9. Invalid prefix returns-1 without storing the four-byte field. A valid prefix stores exactly four bytes at+98..9b and returns0; no input-length/end-of-string check follows, so a longer argument with a valid prefix is accepted. No version/flag is changed. There are no local pointer guards. A stored edit may therefore remain ineligible until write preparation sets a sufficiently new version.",
     "caller_behavior": "mdputil0x10001690 requests a five-byte series string. Return0 causes the literal (dynamic) annotation; return1 uses no annotation. The utility therefore marks X999 as dynamic too. It does not imply that every fallback was a recognized factory series or that a stored series is cross-checked against model/submodel/revision."
    },
-   "network_setup_metadata_consumer": "The netstartd NS2 configuration callback0x1000a35c reads MDP1 and optional MDP2, producing MODEL,SUBMODEL,REVISION,final color variant andREGION. Constructor0x100228dc stores these in setup-context+138..+148; server serializer emits them as u32BE tags32..36 only when nonzero. MDP2-read failure produces color0, and the color decoder has a null status output here, so omission of tag35 cannot prove whether color0 was valid or color retrieval failed. This is distinct from required server tag25, whose source is build literal2, not the manufacturing model."
+   "network_setup_metadata_consumer": "The netstartd NS2 configuration callback0x1000a35c reads MDP1 and optional MDP2, producing MODEL,SUBMODEL,REVISION,final color variant andREGION. Constructor0x100228dc stores these in setup-context+138..+148; server serializer emits them as u32BE tags32..36 only when nonzero. MDP2-read failure produces color0, and the color decoder has a null status output here, so omission of tag35 cannot prove whether color0 was valid or color retrieval failed. This is distinct from required server tag25, whose source is build literal2, not the manufacturing model.",
+   "network_setup_key_consumer": "Netstartd key provider0x1000a4f4 reads MDP1/MDP2 and accepts the legacy0xca989b4a page with payload length>=708. It loads public/private handles through260/708-byte parser calls on MDP2+8, copies optional128-byte blocks from+2cc/+3cc and advertises DER/metadata/signature fields in its server greeting. The provider does not verify those copied manufacturing signatures, and its adapter does not rejectnull parser handles before returning extraction success. This consumer is distinct from noncehandler signing-key loading and mdputil validation; their separate checks must not be conflated."
   },
   "tls_stack": {
    "lib": "libmbedtls.so.21 + libmbedx509.so.7 + libmbedcrypto.so.16 + libsonoscrypto.so.3",
@@ -156020,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: CLIENT_HELLO framing/proof; opcode4 server response schema, fingerprint selection, RSA/SHA256 server proof, exact factory identity fields and their zero-omission behavior, required build string/literal2, crypto-field omission and ignored send result. Remaining: fully trace encrypted setup-envelope/private-key provider provenance; bind auxiliary crypto fields, optional strings, build-discriminator meaning and capability bits; finish response transport/setup state effects and remaining NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server schema and factory field contracts; concrete MDP2 public/private-key provider, key-material length guards, copied-signature offsets/capacities, identity-metadata packing and tag5/6/7 branch choices. Remaining: finish encrypted setup-envelope/key-selection trust checks and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish response transport/setup state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156296,6 +156304,55 @@
      "build": "86.10-80260",
      "address": "0x10002e54",
      "notes": "Required server tag25 source is build literal2, separate from MDP MODEL."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10002eb8",
+     "notes": "Concrete key-provider callback installed at config+40."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100151d8",
+     "notes": "Legacy MDP2 payload must contain at least708 key bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10015364",
+     "notes": "Public parser receives260 bytes; private parser708 at0x10015374, without result rejection."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10015260",
+     "notes": "Earlier128-byte block comes from MDP2+2cc."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10015234",
+     "notes": "Later block comes from MDP2+3cc when MDP1 version>3."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100153cc",
+     "notes": "Later-block output join uses stack offsets to avoid first/second buffer-name confusion."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10023b4c",
+     "notes": "Emit26-byte packed identity metadata, removing internal padding."
     }
    ],
    "setup_client_hello_payload": {
@@ -156356,7 +156413,7 @@
     "capability40": "First client-greeting handler computes selector=((client_capabilities^0x40)>>6)&1 at0x1001eaac..0x1001eab4. Selector0 therefore means the client advertised bit0x40. It attempts0x1002399c, which serializes the current public key and computes its SHA256 fingerprint through ZZ0152 selector1 into32 bytes. On success the builder uses the32-byte fingerprint field and skips the larger crypto-parameter producer. Fingerprint failure falls back to that producer. Selector1 goes directly to the older crypto-parameter path. The stateful client-greeting receiver supplies selector1 unconditionally, so the capability preference in the first handler does not describe every state.",
     "schema": "Sixteen rows at0x1003627c define required tags0,1,25,2 and optional5,6,7,4,8,9,38,32,33,34,35,36. Serializer emits required fields in order0(u16 protocol42),2(u32 capability bitmap),1(software-version string),25(u16 configuration value from caller config+4). Daemon main initializes tag25 source to literal2, separate from manufacturing MODEL/tag32; its wider discriminator meaning remains open. All fields use the same u8 tag/u16BE length framing as the client greeting.",
     "optional_fields": "Tags32..36 are u32 values emitted only when nonzero, sourced from setup-context getters0x10023d90..0x10023dd0 (fields+138,+13c,+140,+144,+148). Binary fields5,6,7,4,8 are emitted when their supplied byte lengths are nonzero. Tag5 is public-key DER from0x10023a10; tags6/7 are that helper's auxiliary crypto outputs; tag8 is the optional-extra-data output of0x10023c40; tag4 is the32-byte public-key fingerprint in the successful selector0 path. Tags9 and38 are emitted as strings when their pointers are nonnull, including empty strings. Tags32..36 are now bound to MODEL,SUBMODEL,REVISION,final color andREGION in server_greeting_verification_and_factory_fields; remaining auxiliary/string roles stay open.",
-    "crypto_field_source": "The older path0x10023a10 serializes the current key using mbedtls_pk_write_pubkey_der and copies its DER bytes into tag5 output. It can also supply a26-byte auxiliary structure assembled from context+110..+128 and another context byte span, or leave that auxiliary structure length0, depending on context+10c. Builder initializes all crypto output lengths to0 before the selection and resets them to0 if this producer fails. It then continues constructing a response with omitted crypto fields rather than treating that producer failure alone as fatal.",
+    "crypto_field_source": "Tag5 contains serialized public-key DER from the MDP2 public handle. Exact tag6 identity-metadata and tag7 signature-block choices are mapped in setup_key_provider_contract, including capacity/failure omission and the two MDP2 offsets. No manufacturing-signature verification is performed by the extractor.",
     "capability_bitmap": "The response bitmap accumulates local predicates and callback results, including bits0x8,0x10/0x20,0x80,0x100,0x200,0x400,0x800,0x1000,0x2000/0x4000,0x8000,0x10000,0x20000,0x40000. Some high bits are driven by session+1a4 bit0 and byte+1ac; other bits use callbacks from the configuration block and setup-context predicates. Their actual feature meanings remain open. Bit presence is not treated as a guarantee of setup completion.",
     "validation_and_result": "Output capacity in the two greeting receivers is0x586(1414) bytes. Serializer uses the shared typed writers and ignores their individual returns; finalizer0x1002e714 checks the cursor-valid byte and required-field presence, then stores the number of bytes produced. An initialization/cursor or required-field failure returnsfalse. The enclosing greeting handler calls send wrapper0x10026798 only after builder success. It does not inspect that send return. Thus a constructed response does not prove it was delivered or accepted by the peer.",
     "send_boundary": "0x10026798 tail-branches to0x10026648 with its two optional arguments0. The delegate rejects size>1414, obtains optional time/context data through a callback, passes payload into0x100281a8 and then calls0x1002500c when framing succeeds. It returns a boolean; negative framing results log failure and returnfalse. Complete framing/transport/state semantics remain to be traced. No assertion that the peer received a complete response follows from the caller's ignored boolean.",
@@ -156365,7 +156422,7 @@
    "server_greeting_verification_and_factory_fields": {
     "verification_source": "Optional server tag8 is produced by0x10023c40, which requires nonzero setup-context+2d8 length. It hashes the first stored setup byte sequence(context+2dc,length+2d8) with ZZ0058 selector1=SHA256, then signs the32-byte digest using private-key handle context+15c through ZZ0104(signature selector1,digest selector1). This differs from client tag8: the client HMACs the second sequence at+2e8 using a derived secret key. Context copier0x10022978 supplies these two arrays from source+100/+10c with shared length<=12.",
     "signature_delegate": "libsonoscrypto ZZ0104 at0x8d38 obtains the RSA key size in bytes via ZZ0106, requires signature selector1,key size<=512 and sufficient caller output capacity, maps digest1 to shipped mbedTLS SHA256(type9), and calls mbedtls_rsa_rsassa_pkcs1_v15_sign at0x8e7c. Success returns1 and writes actual signature length equal to key size; failure returns0 and writes output length0. Netstartd supplies capacity256 in this server builder, so larger keys are rejected here even though the generic signer supports up to512. The caller0x10023cd4 ignores the hash helper boolean before signing; no stronger failure propagation is inferred.",
-    "verification_omission": "The server builder requests this signature only when its optional-extra-data flag is nonzero. Missing session input or signature failure clears the outgoing length to0, so tag8 is omitted while response construction proceeds. A zero session-input length returnsfalse before invoking the signer and does not establish any peer-verification state. The private-key provider and its trust source still require tracing.",
+    "verification_omission": "The server builder requests this signature only when its optional-extra-data flag is nonzero. Missing session input or signature failure clears the outgoing length to0, so tag8 is omitted while response construction proceeds. A zero session-input length returnsfalse before invoking the signer and does not establish any peer-verification state. The private key comes from the concrete MDP2 provider in setup_key_provider_contract; broader manufacturing/client trust checks remain separate.",
     "factory_producer_binding": "Daemon main constructs its NS2 configuration at stack+1c. It installs callback0x1000a35c at configuration+38 (store0x10002eac). Setup-context constructor0x100227d8 invokes this callback at0x100228dc with manufacturing-ID output and five u32 addresses at context+138/+13c/+140/+144/+148. This binds the numeric server-greeting getter fields to the concrete manufacturing reader, rather than a generic platform guess.",
     "factory_field_map": [
      {
@@ -156396,6 +156453,15 @@
     ],
     "factory_status_quirks": "0x1000a35c requires at least6 bytes of identifier output capacity and successful hal_flash_get_mdp_wrapper. It copies the six MDP identity bytes, sets their length6 and populates model/submodel/revision outputs. Successful MDP2 read calls GetFinalColorVariant; MDP2-read failure stores color0. It also outputs region, four stored SERIES_ID bytes, DATECODE and LOCATION to other outputs. The numeric server serializer omits each tag32..36 when its value is0, so missing color output does not distinguish a legitimate zero color from second-page/decoder failure. Revision0 also produces an absent tag34. Typed values remain u32BE when emitted.",
     "required_build_fields": "Daemon main stores software string86.10-80260 at configuration+0 and u16 literal2 at+4 (0x10002e44/+e54). Server builder reads these as software-version field1 and required tag25. Tag25 is therefore constant2 in this build and is separate from MODEL at optional tag32. Its cross-build discriminator meaning remains to be traced; it is not labeled as a hardware-model field."
+   },
+   "setup_key_provider_contract": {
+    "binding": "Daemon main installs0x1000a4f4 at NS2 config+40 (stack+5c at0x10002eb8). Setup-context constructor calls it at0x10022928 with public/private-key output addresses context+4/+15c, a28-byte identity-metadata output at+110, byte buffers at+8/+8c and their capacities at+88/+10c. Callback clears outputs, reads512-byte MDP1 and4096-byte MDP2 through library wrappers, rejects read errors, then delegates to0x10015278. Both key handles are derived from the same manufacturing key material rather than chosen from a runtime key file in this callback.",
+    "key_material": "Extractor0x100150c8 accepts MDP2 magic0xca989b4a, proven raw xoris0x3567 plus signed cmpwi0xffff9b4a. It requires header payload length>=708, copies708 bytes from MDP2+8, and returns1 even when optional signature blocks are absent. Adapter0x10015278 calls ZZ0101 on the first260 bytes to load a public key and ZZ0098 on the708-byte block to load a private key; these library parsers have their own format/key checks. The adapter stores both returned handles but does not branch on either beingnull before returning the extraction status. A true provider result therefore does not alone prove both handles loaded successfully.",
+    "signature_sources": "If header payload length>=836, extractor copies128 bytes from MDP2+2cc into its first signature buffer and records length128; smaller payloads log MDP signature missing and leave its length0. If MDP1+74>3, it additionally copies128 bytes from MDP2+3cc and records that length. This later copy is gated by MDP1 version, not an additional payload-length bound; the full4096-byte MDP2 buffer supplies the accessed storage. These are raw copied signature blocks, not verified by this extractor.",
+    "adapter_mapping": "Temporary extraction buffer starts at adapter stack+14. Its later-block length at temporary+3c8 is loaded via sp+3dc, and bytes at temporary+348 via sp+35c are copied to callback output/context+8, with length+88. The earlier-block length temporary+344 is loaded via sp+358, and bytes temporary+2c4 via sp+2d8 go to context+8c, with length+10c. The names first/second callback buffers are therefore not chronological MDP offsets. Caller-capacity checks can omit a block by zeroing its output length when insufficient.",
+    "identity_metadata": "When the later block is available and fits, adapter copies seven words into metadata output: magic0x3c6852eb from ZZ0086, six MDP1 identity bytes with two zero padding bytes,MODEL,SUBMODEL,MDP2+44c color and zero reserved word. Extractor imports identity/model/submodel directly from MDP1+14/+8/+c and color from MDP2+44c; it does not call final-color/wildcard override for this signed-metadata representation. Server producer0x10023a10 removes the internal two-byte padding and emits a26-byte sequence:magic,identity6,MODEL,SUBMODEL,color,reserved4.",
+    "server_auxiliary_choice": "The greeting crypto helper always produces public-key DER for tag5 when successful. If context+10c (the MDP2+2cc block length) is nonzero, it emits the26-byte identity metadata as tag6 and copies MDP2+2cc block bytes into tag7. If that length iszero, tag6 is omitted and tag7 uses context+8, sourced from MDP2+3cc. Producer output capacities can reject these copies; the caller resets all three lengths on producer failure. The metadata may remain zeroed when the later block was unavailable, even while an earlier block enables the26-byte branch. No assumption about equivalence of these signature layouts is made.",
+    "trust_boundary": "The basic flash wrappers establish read/header/normalization, not CRC/signature validity. This provider/extractor copies signature blocks but performs no verification of either block. Public/private key parsing is separate from establishing trust in the manufacturing data. The client-side verification of the advertised signature/metadata layouts and the encrypted setup-secret key-selection path remain open."
    }
   },
   "bin_wacd": {
