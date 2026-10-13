@@ -134716,16 +134716,105 @@
    ]
   },
   "platform_details": {
-   "notes": "U-Boot 17.2.7 banner + OTP: %.32s; KVPair parser \"unable to parse KVPair. %s is an invalid KV pair string.\"",
+   "notes": "Platform descriptor files and a seven-field device-status key/value container. The parser at0x105bc570 accepts name:value entries, not boot-environment key=value strings. Bootloader/OTP handling is a separate chain requiring its own verification.",
    "build": "dual toolchain: crosstool-NG 1.24.0 GCC 5.5.0 objects + legacy GCC 4.3.2 objects (.comment); debuglink 'anacapad' CRC32 0xd61b897d; PPC EMB apuinfo present; patched-GCC __ptr_guard wrappers + ZZxxxx scrubbed ordinals (see linked_libraries)",
    "todo": [
-    "Established: /etc/arch=limelight, soc_arch=limelight, complete 53-flag arch_attrs vocabulary; KVPair parser recovered.",
-    "Residual: KVPair semantics - which platform keys anacapad reads (serial, cal data) and where they gate behavior"
+    "Established: rootfs platform descriptors and53-flag vocabulary; seven case-sensitive device-status keys, colon grammar, escaped-comma decoding, owned string slots, last-valid-duplicate behavior, numeric defaults and exact CHARGING consumer; local TargetRoomName update join. Remaining: trace SPID/BtSrcName and complete TargetRoomName consumers, battery producer domains and temperature scale, serializer list-builder escaping/overflow and outgoing-message chain; independently audit bootloader/OTP claims around0x105b4cf8 instead of attributing them to this status parser. Follow each producer and consumer before removing this TODO."
    ],
-   "keys_read": "f_105b4cf8 (dp_impl.cxx): opens /dev/audioctl, issues an ioctl for the bootloader info block, strncasecmp's the returned string against 'U-Boot ' (bootloader detection) and against version '17.2.7' (a version gate - the firmware checks the exact U-Boot version it was built for), and formats 'OTP: %.32s' from the returned OTP/fuse field (a 32-char one-time-programmable identity value logged for diagnostics). The KVPair parser f_105bc570 ('unable to parse KVPair. %s is an invalid KV pair string.') consumes key=value boot-env strings. Device-serial reads come from the manufacturing data partition (the hal_flash_get_mdp path decoded under dev_unlock - mdp+0xc0 fuse field), 'Failed to obtain player serial number!' is its failure arm; 'mdp2Ver' is the MDP format-version key. Gates: the U-Boot version compare and OTP presence gate early-boot behavior reported through dp_impl's telemetry (WirelessMode/ConnectionType/ChannelFreq/BehindWifiExtender/WifiEnabled/EthLink fields sit in the same module).",
+   "keys_read": "The recovered parser matches exactly SPID, RawBattPct, BattPct, BattChg, BattTmp, TargetRoomName and BtSrcName using the table0x10ef33f0. These are device-status strings, not manufacturing serial/fuse keys. Received data at source+134 is parsed at0x10763504; numeric battery fields and the exact CHARGING string update cached receiver fields. A separate local producer updates TargetRoomName at0x105b8530. Manufacturing identity/fuse layouts are documented independently in mdp_flash/bin_mdputil; this parser does not establish any bootloader-version or OTP gate.",
    "resolved_findings": [
-    "Resolved: platform reads = /dev/audioctl ioctl returning bootloader string ('U-Boot ' + '17.2.7' version gate) + 32-char OTP value; KVPair parser f_105bc570 for boot-env key=value; serial + fuse via MDP; mdp2Ver version key; dp_impl telemetry field set.",
+    "The seven-key schema and concrete battery receiver are now recovered. The parser consumes colon-separated device-status fields and is distinct from boot environment/manufacturing metadata. See kvpair_contract for parsing, owned string storage, duplicate handling and consumer behavior.",
     "Resolved: the unit's platform descriptor ships in the rootfs - /etc/arch = 'limelight', /etc/soc_arch = 'limelight', /etc/arch_attrs = the 53-flag capability set {HAS_ORIENTATION_SENSOR,HAS_TV_INPUT,IS_CEP20,IS_HARDWARE,IS_HT_SOURCE,IS_HT_WIRELESS_PRIMARY,IS_STILL_MANUFACTURED,IS_ZONE_PLAYER,LEGACY_BACKTRACE_SUPPORT,MIGHT_SUPPORT_S1} + LACKS_{ASAN,AUDIO_ENCRYPTION,BUTTONS_KERNEL_MODULE,CLOCK_BOOTTIME,DIAGS_BUILD,DSMF,DYNAMIC_DSP,HEAPTRACK_SUPPORT,KERNEL_SECTION_HEADER,LKDTM,MIXER_STATS,MPEGDASH,NATIVE_WAC,OPUS,SETUP_PIN,STACK_USAGE,TSAN,UBSAN,WIDEVINE} + SUPPORTS_{ATHEROS_DIRECT_ATTACH,AUDIODEV,AUDIODEV_SENSOR_EVENTS,CHANNEL_SCAN,CHIRP_ROOM_DETECTION_SEND,CLONE_CHECK,CPU_TEMP_REPORT,DOLBY,DTS,DUAL_SUBS,EXTERNAL_EVENTS,FFMPEG_WMA,HWEVTQ,RDM,RX_HANG_CHECK,SOUNDSWAP,STATION,SYSSW_HAL,TXRX_STATS,V2_CERTS,VLI,WIRELESS_DISABLE,WIRELESS_SETUP} + USES_{LLA,LONG_AMP_POWER_TIMEOUT} - the arch-attr vocabulary the feature_config flags gate against."
+   ],
+   "kvpair_contract": {
+    "schema": [
+     {
+      "index": 0,
+      "key": "SPID"
+     },
+     {
+      "index": 1,
+      "key": "RawBattPct"
+     },
+     {
+      "index": 2,
+      "key": "BattPct"
+     },
+     {
+      "index": 3,
+      "key": "BattChg"
+     },
+     {
+      "index": 4,
+      "key": "BattTmp"
+     },
+     {
+      "index": 5,
+      "key": "TargetRoomName"
+     },
+     {
+      "index": 6,
+      "key": "BtSrcName"
+     }
+    ],
+    "single_entry": "0x105bc570 takes input string(r3) and index output(r4). It iterates seven table entries, requires case-sensitive key prefix immediately followed by colon0x3a and at least one byte after it. It returns a borrowed pointer to the value substring and stores index0..6 only on success. It does not trim whitespace, split later colons, parse numbers or validate value domains. Unknown key, wrong separator/case and empty value returnnull; index output is unchanged on failure. The existing key=value/boot-environment identification was incorrect.",
+    "list_decode": "0x105bc68c passes a mutable cursor to0x10c39f14, with skip-leading-comma mode0 and capacity511. This splits on unescaped comma and strips a backslash before the following byte, including escaped comma/backslash. It preserves whitespace. Raw isel0x7c60459e at0x10c39f30 initializes return1 iff the starting byte is nonzero. Destination is terminated and cursor stops at the delimiter/end; the next call skips one leading comma. At most510 decoded bytes fit with this capacity. Overflow or a trailing backslash returns0 after consuming the token and stops the enclosing loop, so later entries are not processed. Unrecognized/empty-value entries with successful list decoding are skipped and later entries can still be read.",
+    "storage": "Container is seven32-bit string pointers at offsets0..18. 0x105bc74c zeros28 bytes then tail-branches into the list decoder. Setter0x105bc23c compares an existing value: equal text returns0 without allocation; different text frees the old value, mallocs strlen+1, stores the new pointer via raw stwx0x7c7ce92e at0x105bc2c8, copies includingNUL and returns1. No allocation-failure branch or index bound is present in this setter. Repeated valid keys therefore keep the last value; unknown entries do not clear previous values. Generic decode0x105bc68c merges into an existing container; the zeroing wrapper starts fresh.",
+    "accessors": "String accessor0x105bc384 returns the indexed pointer, possiblynull. Numeric accessor0x105bc398 invokes paranoid_atoi when a value exists; absent or rejected numeric text returns the caller-provided default, accepted text returns the parsed integer. No key-specific battery range is enforced by this accessor. Exact lexical behavior belongs to paranoid_atoi and is not inferred from these callsites. Numeric setter0x105bc2f8 formats%i into12 bytes then delegates to the string setter. Clear-one0x105bc414 frees and nulls a present slot, returning1, or returns0 for an absent slot.",
+    "receiver": "At0x107634fc..0x10763504, source record+134 supplies the list. A changed list is copied with strlcpy cap512 into receiver+95c and parsed into a temporary seven-slot container. RawBattPct(index1),BattPct(index2),BattTmp(index4) are read with default-100 at0x10763514/+528/+53c and stored into receiver+2544,+2548,+254c only when not-100. Thus literal parsed-100 is also treated as unavailable and leaves prior cached values. BattChg(index3) updates byte+2550 only when the string exists; exact CHARGING sets1, every other present string sets0. Missing charging text leaves the byte unchanged. Temporary strings are freed at0x1076359c via0x105bc1f0. This block consumes battery status, not a boot configuration gate.",
+    "room_name_producer": "Local update0x105b84fc recognizes TargetRoomName, sets local update marker+94c, and uses the cache at object+994. Nonempty value calls setter(index5) at0x105b8530. Its changed result controls call0x1074facc with the cached container; unchanged text skips this notification. The empty-value handling branch0x105b86b0 and downstream room-name/SPID/Bluetooth consumers still require tracing.",
+    "serialization_boundary": "0x105bc484 visits all seven slots in enum order, formats present values as%s:%s into a512-byte buffer, and appends through shared list-builder0x10c39b10. It returns a boolean indicating at least one nonnull slot. Exact builder escaping/overflow and the complete outgoing-message chain remain to be joined before declaring the whole round trip complete."
+   },
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ef33f0",
+     "notes": "Seven-key table: SPID,RawBattPct,BattPct,BattChg,BattTmp,TargetRoomName,BtSrcName."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105bc5e4",
+     "notes": "Required colon after exact key; successful value pointer requires a nonempty suffix."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105bc2c8",
+     "notes": "Raw indexed store publishes newly allocated owned string; duplicates replace."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c39f14",
+     "notes": "Escaped-comma list decoder and capacity/failure behavior."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10763514",
+     "notes": "Raw/reported battery percentage and temperature consumers use sentinel-100."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10763584",
+     "notes": "Exact CHARGING string sets receiver byte; absent value retains cached state."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b8530",
+     "notes": "Local TargetRoomName changes update index5 and trigger change notification."
+    }
    ]
   },
   "boot_reasons": {
