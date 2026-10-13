@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish envelope caller/setup-mode and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish envelope caller post-gate proofs/cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156528,6 +156528,62 @@
      "build": "86.10-80260",
      "address": "0x3f80",
      "notes": "Special array byte-span uses wrapping count shifts without independent count bound."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100233ec",
+     "notes": "Requested mode stored and PIN cleared before parsing/decrypting."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10023454",
+     "notes": "Mode predicates run only after decrypt succeeds."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100234f8",
+     "notes": "CHIRP attempt budget decremented before generating PIN."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100234cc",
+     "notes": "CLIENT_PIN returns context byte0 XOR1."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002277c",
+     "notes": "PIN generation obtains8 bytes after clearing9-byte storage."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10022ab4",
+     "notes": "Reset wipes secret by stored length then frees/clears pointer."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001f434",
+     "notes": "Concrete setup-message receiver calls envelope/mode helper."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x7940",
+     "notes": "PIN wrapper installs decimal alphabet and12 excluded eight-byte candidates."
     }
    ],
    "setup_client_hello_payload": {
@@ -156694,6 +156750,40 @@
     "type5_bounds_quirk": "ZZ0179 bounds-checks the36-byte marker/format/count prefix and computed array end. Array-size shifts/subtraction wrap modulo2^32, with no independent count bound or multiplication overflow check. Format1 count2^29,format2 count2^31 andformat3 count2^28 each compute byte span0 and can pass this local end-pointer check without their mathematical array extent. This documents static arithmetic/branches; array strides alone do not establish IPv4/IPv6/MAC or any other element role.",
     "setup_consumer_effect": "ZZ0051 recipient/key unwrap and payload decrypt read recipient descriptors,cipher selector,length and ciphertext pointer; they do not read metadata count or slots. Netstartd0x100233b0 parses then decrypts but likewise does not extract these metadata values. Thus in this specific path metadata validity can reject an otherwise decryptable envelope, but a parsed metadata field does not independently select a key, verify a digest, authenticate a sender or change a setup-mode predicate. Unknown-type high-bit rejection is a parser gate, not proof of a permission policy. Developer-mode digest interpretation is separately documented and is not transferred to network setup.",
     "remaining_boundary": "Names/purposes of numeric metadata types1/3/4/6 and special-array elements require consumers outside this setup decrypt path. Their accepted value domains and their absence of use here are established; no type name is inferred from width alone."
+   },
+   "setup_seed_mode_gate": {
+    "entry_and_order": "The direct caller0x1001f434 passes setup context(session+4),parsed setup-mode word(session+29c),encrypted bytes(session+2b0) and their parsed length to0x100233b0. Helper immediately stores requested mode at context+2f4 and clears nine bytes+2f9..+301. It then parses ZZ0056 and decrypts ZZ0051 into context+304/+308 before testing mode. Envelope parse/decrypt failure logs Unable to decrypt seed and returns0. Mode checks do not run before these mutations. This requested mode is distinct from active greeting-verification mode at+2cc.",
+    "mode_results": [
+     {
+      "mode": 2,
+      "catalog_name": "CHIRP",
+      "predicate_and_effect": "After decrypt success, byte budget+2f8 must be nonzero. Zero logs Contactless setup attempt limit reached and returns0. Nonzero decrements budget, logs remaining value and calls0x10022724 to produce a new PIN. PIN-generation result becomes helper result; a later generation failure does not refund the budget."
+     },
+     {
+      "mode": 3,
+      "catalog_name": "MANUAL_PIN",
+      "predicate_and_effect": "After decrypt success always logs Invalid PIN and returns0 at this entry. This is specific to this helper and does not assert manual-PIN setup is globally unsupported."
+     },
+     {
+      "mode": 4,
+      "catalog_name": "CLIENT_PIN",
+      "predicate_and_effect": "Returns context byte+0 XOR1 after decrypt success. This routine does not separately reject or normalize byte+0 to0/1; the concrete byte arithmetic is retained instead of assigning the field an unproved feature name."
+     },
+     {
+      "mode": 5,
+      "catalog_name": "CHIRP_WITH_BUTTON",
+      "predicate_and_effect": "After decrypt success calls new-PIN helper0x10022724 without checking or decrementing+2f8."
+     },
+     {
+      "mode": "all other u32 values",
+      "catalog_name": "includes NONE,NFC and QR catalog modes",
+      "predicate_and_effect": "After decrypt success logs Unknown setup mode and returns0. Catalog names do not override the exact dispatch predicates of this helper."
+     }
+    ],
+    "pin_generation": "0x10022724 clears nine bytes at context+2f9 and invokes ZZ0200 with output length8. ZZ0200(0x7940) tail-calls ZZ0155 with decimal alphabet0123456789 and12 excluded8-byte strings:00000000 through99999999 (ten repeated-digit strings),12345678 and87654321. ZZ0155 calls ZZ0154 to generate the eight bytes, compares against every exclusion and regenerates the whole candidate if matched. ZZ0154 obtains each alphabet index through ZZ0153 over0..9. The ninth byte stays zero from the clearing, so success gives an eight-digit string. No retry-count cap surrounds excluded-candidate regeneration. Failure returns0 and logs Unable to generate rolling PIN through the helper; earlier bytes can remain partially generated. Underlying randomness-source behavior remains a separate primitive trace.",
+    "budget_producers": "Constructor0x10022870 writes byte budget10. Local helper0x10022f94 sets it0;0x10022fec resets it10;0x10024098 accepts a caller byte and writes it directly. These are concrete writers, so the field is an unsigned byte budget rather than an invariant0..10 range. Caller bindings of these controls remain to be joined individually. Reset0x10022a48 does not itself alter the budget.",
+    "failure_and_reset": "Once ZZ0051 successfully stores a decrypted secret, mode rejection or PIN-generation failure leaves that pointer/length in place when0x100233b0 returns. It also retains requested mode and any budget decrement. Parse failure does not call ZZ0051 and therefore does not perform that delegate output reset. Full reset0x10022a48 sets requested mode0, wipes/zeros the nine PIN bytes, and if secret pointer is nonnull wipes exactly its stored length, frees it and zeros pointer/length. A null secret pointer skips the length reset. The enclosing caller0x1001f5e0 has further mode-dependent failure/notification calls; complete cleanup/state effects of those calls remain unresolved and are not inferred from this helper return.",
+    "next_consumer_boundary": "After nonzero helper result, CLIENT_PIN additionally calls0x10023570; CHIRP and CHIRP_WITH_BUTTON call0x1002384c to construct further proof/output. Their complete response formats, callbacks and state transitions must be traced before declaring this setup-message path complete."
    }
   },
   "bin_wacd": {
