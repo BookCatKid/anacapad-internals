@@ -127435,6 +127435,41 @@
      "build": "86.10-80260",
      "address": "0x23f4",
      "notes": "Second-page address is erase-block size plus write-page size."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x2e14",
+     "notes": "Optional device ID assigned before subsequent serial retrieval/validation."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x2f20",
+     "notes": "0xecaa requires55aa in one of four marker slots at returned buffer+0x800."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x3054",
+     "notes": "Length output set before complement verification; cannot imply success."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x3088",
+     "notes": "Bytewise XOR0xff complement validation and first-match copy."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x31e4",
+     "notes": "0xec76 has its own8-byte one-pair retrieval sequence."
     }
    ],
    "signature_consumers": "Standalone mdputil has two separately keyed MD5/RSA PKCS#1 v1.5 checks: original serial plus complement-validated hardware flash serial, signature MDP2+34c; and26-byte model/submodel/serial/color header plus260-byte payload, signature MDP2+3cc. See bin_mdputil.bundle_signature_contract for exact layout, key fingerprints, return domains and edit asymmetry. These checks are distinct from the basic read/CRC contract and from the signing-key consumer in noncehandler.",
@@ -127443,6 +127478,107 @@
     "geometry_fields": "After opening /dev/mtd8 read-only, ioctl0x40244d01 receives a stack information structure at sp+18. Successful extraction maps info[0]=returned u32 at+8(total size), info+3c=returned+0c(erase-block size), info+40=returned+10(write-page size), info+50=erase-block size, info+48=0 and info+20c=returned type byte. The rest of the allocation stays zero. Exported get_pagesize0x1b00, get_blocksize0x1b2c and get_type0x1ad4 independently confirm the field roles. The leading type/size/erase/write layout agrees with Linux MTD ABI; the actual binary ioctl encodes36 bytes, so unspecified trailing ABI fields are not inferred.",
     "manufacturing_layout": "MDP1 reads512 bytes from /dev/mtd/0 at offset erase-block size, the start of the second erase block. MDP2 reads4096 bytes at erase-block size + write-page size, proven libflash0x23f4..0x240c. The CLI erase descriptor uses erase-block size as erase length and offset; its first-page write span is write-page size, except type3(NOR flash) forces512 in0x10002fe4..0x10003048. The MDP2 reader does not apply that NOR span override. These are geometry-derived positions, not a hard-coded512-byte separation for every flash type.",
     "initialization_errors": "Allocation failure returns7 with the output null. Negative ioctl result closes the file, frees the object and returns7. Open failure at0x1c1c instead branches directly to0x1c4c: it falls through the field-copy path, publishes the allocated object and returns0 although the stack information structure was never initialized by ioctl. Size remains the allocation zero, but type/erase/write/offset fields are loaded from uninitialized stack slots. Thus initializer success alone does not establish valid geometry. No null guard protects the output-pointer argument. info_exit0x1cc8 tail-branches to free."
+   },
+   "flash_serial_reader": {
+    "interface": "libflash.so.1 hal_flash_read_fsn0x2d78 takes u32* length output(r3),serial-byte destination(r4),optional u32* device-ID output(r5). It opens /dev/mtd/0 read-only, gets device ID with ioctl0x40044d24, writes the optional ID immediately after a successful query, and issues serial command ioctl0x80244d23. Required length/destination pointers have no local null/capacity guard. Serial byte count is8 or16 depending on the device ID. This is the helper used for mdputil FSN/NANDID output, not the older in-executable helper used for SERIALSIG.",
+    "parameter_layout": "The ioctl receives a36-byte stack parameter block at sp+1c, initially zeroed: word+0=0x100;word+4 points to buffer sp+44;word+8 and bytes+c..f select a command sequence;word+14 specifies a per-family numeric parameter;word+18 is explicitly cleared through a variable-length memset in ordinary paths;byte+1c stays0;word+20 may be0xed. These field purposes below the kernel boundary remain untraced. The function reserves2048 returned-data bytes plus8 trailing bytes before its stack canary. Unlike the old utility checker, it also consumes returned marker bytes at buffer+0x800 for one family. Neither caller proves that the word0x100 is a transfer-byte count.",
+    "device_families": [
+     {
+      "device_ids": [
+       "0x01da",
+       "0x01f1",
+       "0x2caa",
+       "0x2cda",
+       "0x2cf1"
+      ],
+      "serial_bytes": 16,
+      "candidate_pairs": 16,
+      "command_word_8": 0,
+      "command_bytes_c_f": "00 00 00 00",
+      "parameter_word_14": 5,
+      "parameter_word_20": "0xed",
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0x98d1",
+       "0x98da",
+       "0x98f1"
+      ],
+      "serial_bytes": 16,
+      "candidate_pairs": 16,
+      "command_word_8": 2,
+      "command_bytes_c_f": "5a b5 00 00",
+      "parameter_word_14": 5,
+      "parameter_word_20": 0,
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0x20aa"
+      ],
+      "serial_bytes": 8,
+      "candidate_pairs": 1,
+      "command_word_8": 4,
+      "command_bytes_c_f": "29 16 02 19",
+      "parameter_word_14": 5,
+      "parameter_word_20": 0,
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0x2073",
+       "0x2075",
+       "0x2076"
+      ],
+      "serial_bytes": 8,
+      "candidate_pairs": 1,
+      "command_word_8": 4,
+      "command_bytes_c_f": "29 16 02 19",
+      "parameter_word_14": 3,
+      "parameter_word_20": 0,
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0x9876"
+      ],
+      "serial_bytes": 8,
+      "candidate_pairs": 1,
+      "command_word_8": 2,
+      "command_bytes_c_f": "5a b5 00 00",
+      "parameter_word_14": 3,
+      "parameter_word_20": 0,
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0xec76"
+      ],
+      "serial_bytes": 8,
+      "candidate_pairs": 1,
+      "command_word_8": 2,
+      "command_bytes_c_f": "30 65 00 00",
+      "parameter_word_14": 3,
+      "parameter_word_20": 0,
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0xecaa"
+      ],
+      "serial_bytes": 16,
+      "candidate_pairs": 8,
+      "command_word_8": 2,
+      "command_bytes_c_f": "30 65 00 00",
+      "parameter_word_14": 5,
+      "parameter_word_20": 0,
+      "marker": "Require55 aa in at least one of four two-byte positions at returned buffer+0x800,+0x802,+0x804,+0x806 before searching serial pairs."
+     }
+    ],
+    "acceptance": "For each candidate, compare serial bytes with the following equal-width complement bytes and require each XOR==0xff. A rejection advances the candidate start by twice the serial width. First complete match copies exactly8/16 serial bytes to the destination; no textual/hex conversion occurs here. For0xecaa, marker validation precedes serial-pair acceptance; it still permits up to8 serial/complement pairs. memcpy return is compared with the destination pointer; the alternate failure is defensive under the standard memcpy return contract.",
+    "results_and_outputs": "Return0=serial copied;1=device open failure or negative device-ID ioctl;7=unsupported device ID;15=negative serial ioctl, absent required0xecaa marker, or exhausted complement search. The FD closes on all paths after successful open. Optional device ID may be available even on later unsupported/retrieval failure. Length is assigned after successful serial ioctl but before complement search (and before the0xecaa marker check), so a nonzero length output is not proof of success. Serial destination is copied only on acceptance; it is not cleared on failure.",
+    "cli_output": "mdputil0x1000192c calls this helper with sp+18 length,sp+241c serial destination andsp+14 ID. Success prints NANDID=%04x then FSN= followed by exactly length bytes using%02x, lowercase hexadecimal without separators. Failure branches0x10001934 to0x10001b1c and prints FSN=INVALID without the NANDID line. It then continues to later signature/display checks rather than aborting the utility. Thus FSN retrieval status and SERIALSIG/UNITSIG status are distinct."
    }
   },
   "tls_stack": {
@@ -154200,7 +154336,7 @@
    "name": "mdputil",
    "summary": "Reads factory identity/configuration, stages command-line edits, verifies manufacturing-bundle signatures and erases/writes manufacturing flash. The512-byte identity page and4096-byte second page have distinct layouts. CLI, repair, signature inputs and flash failures are traced; driver-side serial/check commands, geometry and remaining hardware-field consumers still require work.",
    "todo": [
-    "Established: CLI edits/order, both manufacturing signatures, wildcard final-color range, repair/write preparation, erase/write failures, flash-geometry field producers, chk driver dispatch/registration and the-B assignment of0x1996 to kernel-global sysword. Remaining: locate kernel consumers of sysword and trace /dev/mtd/0 ioctls0x40044d24/0x80244d23, including returned serial-data extent and device-command parameters; bind remaining unprinted manufacturing tail fields and individual manifest hardware-code meanings to consumers. Follow those producer/consumer chains before removing this TODO."
+    "Established: CLI edits/order, signature inputs/results, wildcard final-color range and color-name table, repair/write preparation, erase/write failures, flash geometry, chk sysword assignment, and the separate library flash-serial retrieval/display contract including every supported device ID and marker/complement check. Remaining: locate kernel consumers of sysword and trace /dev/mtd/0 ioctls0x40044d24/0x80244d23, including returned serial-data extent and device-command parameter meanings; bind remaining unprinted manufacturing tail fields and individual manifest hardware-code meanings to consumers. Follow those producer/consumer chains before removing this TODO."
    ],
    "artifacts": [
     "bin/mdputil"
@@ -154390,7 +154526,32 @@
    "series_and_variant": {
     "series": "sonosGetSeriesID at libsonos-mdp0xcb0 uses stored four-byte+0x98 when effective version>=4 and the first byte is nonzero;otherwise it derives a four-character code from model/submodel/revision. Return1 denotes stored;0 denotes derived. mdputil appends(dynamic) to the derived path at0x100016a0,not to stored data. sonosSetSeriesID0xe64 checks the first characterA-Z and next three digits,then stores those four bytes. It does not require the next input byte to beNUL,so a valid four-character prefix can be stored from a longer argument.",
     "variant": "sonosGetCertColorVariant at libsonos-mdp0x964 takes MDP1 and MDP2 as separate pointers. For MDP2 magic0xca989b4a,it requires MDP1+74>3 (minimum4) and reads MDP2+0x44c. For0xfa87b921,it requires+74>4 (minimum5) and reads MDP2+0xa10. Accepted value domain is0..18. It returns0 on failure and optionally writes status-2(bad pointer),-3(unknown magic),-4(unsupported version),-5(index out of range);these are not negative color return values. mdputil0x100018f4 passes a null error-output pointer,so VARIANT=0 alone cannot distinguish color0 from decoder failure.",
-    "wildcard_final": "sonosGetFinalColorVariant at libsonos-mdp0x9fc first calls GetCertColorVariant. Any result other than11 passes through unchanged. For wildcard11 it keeps11 if effective MDP1 version<=4, otherwise reads override+9c. Unsigned override<=18 returns directly; larger values return0 and write optional status-5. This is distinct from-V accepting an unchecked decimal value: the later consumer supplies the range check. Effective version uses old directly for old<=5 and a nonzero new version only for old>5. mdputil prints WILDCARD_VARIANT from+9c when its certification/version gates pass."
+    "wildcard_final": "sonosGetFinalColorVariant at libsonos-mdp0x9fc first calls GetCertColorVariant. Any result other than11 passes through unchanged. For wildcard11 it keeps11 if effective MDP1 version<=4, otherwise reads override+9c. Unsigned override<=18 returns directly; larger values return0 and write optional status-5. This is distinct from-V accepting an unchecked decimal value: the later consumer supplies the range check. Effective version uses old directly for old<=5 and a nonzero new version only for old>5. mdputil prints WILDCARD_VARIANT from+9c when its certification/version gates pass.",
+    "color_names": {
+     "producer": "sonosGetColorVariantString at libsonos-mdp0xac8: unsigned index<=18 selects a base-relative19-entry table at0xfb0, reached through PIC GOT0x27eac. Index0 and11 return a valid pointer to an empty string at0x10e0, not a null pointer. Recognized entries optionally store status0. Out-of-range unsigned values, including negative inputs reinterpreted as unsigned, return Unexpected color and optionally store-1. It returns static strings; no allocation or page access occurs.",
+     "values": {
+      "0": "",
+      "1": "White",
+      "2": "Black",
+      "3": "White",
+      "4": "White",
+      "5": "Black",
+      "6": "Black",
+      "7": "Blue",
+      "8": "Limited Edition",
+      "9": "Shadow",
+      "10": "Lunar White",
+      "11": "",
+      "12": "Olive",
+      "13": "Wave",
+      "14": "Sunset",
+      "15": "Greige",
+      "16": "Sand",
+      "17": "Blush",
+      "18": "Agave"
+     },
+     "quirk": "Different numeric certification variants can share the same display name. The string alone cannot distinguish White1/3/4 or Black2/5/6. Wildcard11 has an empty direct name; a separate final-color decoder can apply the stored override before naming."
+    }
    },
    "manifest_addressing": {
     "layout": "Header+0xb0=0x7a61670e;40-byte area starts+b4. Display indices1..8 are LED at+b5,AMP+b6,TEMP_SENSOR(AMP)+b7,TEMP_SENSOR(CPU)+b8,ALS+b9,ACCELEROMETER+ba,FUEL_GAUGE+bb,RADIO+bc. Printer0x10002218 increments the base before loading each entry.",
@@ -154703,6 +154864,62 @@
      "build": "86.10-80260",
      "address": ".data+0x28",
      "notes": "Relocation joins operation table to chk_ioctl, with open/release at+34/+3c."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x2e14",
+     "notes": "Optional device ID assigned before subsequent serial retrieval/validation."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x2f20",
+     "notes": "0xecaa requires55aa in one of four marker slots at returned buffer+0x800."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x3054",
+     "notes": "Length output set before complement verification; cannot imply success."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x3088",
+     "notes": "Bytewise XOR0xff complement validation and first-match copy."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x31e4",
+     "notes": "0xec76 has its own8-byte one-pair retrieval sequence."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x1000192c",
+     "notes": "Library FSN result controls hex display or FSN=INVALID, separately from signatures."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xaf8",
+     "notes": "19-entry base-relative color table; numeric aliases share display strings."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xb08",
+     "notes": "Indices0/11 return static empty string with success, not null/error."
     }
    ],
    "cli_edit_contract": {
@@ -154745,6 +154962,107 @@
     "dispatch": "chk_ioctl extracts command&0xff at.text+0c and (command>>16)&0x1fff at+20. Number1 copies sysword to user; number2 copies from user into a stack word then assigns sysword at+0xb4. The handler does not compare the type/magic or direction bits, or require encoded length4. Unknown command numbers print Unknown IOCTL called and return0. User-copy failures print the matching copy error and return-14(EFAULT); successful copies return0. It uses task address-limit checks and __copy_tofrom_user, with boundary handling for the user address region. It performs no signature/hardware-validation call.",
     "issued_command": "mdputil-B at0x100011e4 issues0x8004f302, which this handler decodes as number2,length4. It copies the four-byte word0x1996 into sysword. The value is a kernel RAM assignment, not an erase/write to manufacturing flash. mdputil makes this assignment only after its existing MDP2 serial/flash signature check succeeds. The chk handler itself does not test that signature or the value0x1996. Downstream kernel consumers of sysword remain to be located before assigning a wider system-mode meaning.",
     "registration_and_lifetime": "The .data file-operation table relocations at+28,+34,+3c point to chk_ioctl(+8), chk_open(+1a0), chk_release(+0). Open/release simply return0; no per-open state is allocated. .init.text allocates one character-device number with minor0/name chk, initializes a cdev with chk_fops, assigns module owner, adds it and calls sonos_device_create with name chk. Allocation errors propagate; cdev-add failure unregisters the range; device-create error deletes cdev and unregisters. Success logs Registered chk driver. .exit.text destroys the device, deletes cdev, unregisters the range and tail-branches to printk for Unregistered chk driver. The initial devno word0x0f300000 is passed by address to alloc_chrdev_region and overwritten; it is not proof of a fixed major243 allocation."
+   },
+   "flash_serial_display_contract": {
+    "interface": "libflash.so.1 hal_flash_read_fsn0x2d78 takes u32* length output(r3),serial-byte destination(r4),optional u32* device-ID output(r5). It opens /dev/mtd/0 read-only, gets device ID with ioctl0x40044d24, writes the optional ID immediately after a successful query, and issues serial command ioctl0x80244d23. Required length/destination pointers have no local null/capacity guard. Serial byte count is8 or16 depending on the device ID. This is the helper used for mdputil FSN/NANDID output, not the older in-executable helper used for SERIALSIG.",
+    "parameter_layout": "The ioctl receives a36-byte stack parameter block at sp+1c, initially zeroed: word+0=0x100;word+4 points to buffer sp+44;word+8 and bytes+c..f select a command sequence;word+14 specifies a per-family numeric parameter;word+18 is explicitly cleared through a variable-length memset in ordinary paths;byte+1c stays0;word+20 may be0xed. These field purposes below the kernel boundary remain untraced. The function reserves2048 returned-data bytes plus8 trailing bytes before its stack canary. Unlike the old utility checker, it also consumes returned marker bytes at buffer+0x800 for one family. Neither caller proves that the word0x100 is a transfer-byte count.",
+    "device_families": [
+     {
+      "device_ids": [
+       "0x01da",
+       "0x01f1",
+       "0x2caa",
+       "0x2cda",
+       "0x2cf1"
+      ],
+      "serial_bytes": 16,
+      "candidate_pairs": 16,
+      "command_word_8": 0,
+      "command_bytes_c_f": "00 00 00 00",
+      "parameter_word_14": 5,
+      "parameter_word_20": "0xed",
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0x98d1",
+       "0x98da",
+       "0x98f1"
+      ],
+      "serial_bytes": 16,
+      "candidate_pairs": 16,
+      "command_word_8": 2,
+      "command_bytes_c_f": "5a b5 00 00",
+      "parameter_word_14": 5,
+      "parameter_word_20": 0,
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0x20aa"
+      ],
+      "serial_bytes": 8,
+      "candidate_pairs": 1,
+      "command_word_8": 4,
+      "command_bytes_c_f": "29 16 02 19",
+      "parameter_word_14": 5,
+      "parameter_word_20": 0,
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0x2073",
+       "0x2075",
+       "0x2076"
+      ],
+      "serial_bytes": 8,
+      "candidate_pairs": 1,
+      "command_word_8": 4,
+      "command_bytes_c_f": "29 16 02 19",
+      "parameter_word_14": 3,
+      "parameter_word_20": 0,
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0x9876"
+      ],
+      "serial_bytes": 8,
+      "candidate_pairs": 1,
+      "command_word_8": 2,
+      "command_bytes_c_f": "5a b5 00 00",
+      "parameter_word_14": 3,
+      "parameter_word_20": 0,
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0xec76"
+      ],
+      "serial_bytes": 8,
+      "candidate_pairs": 1,
+      "command_word_8": 2,
+      "command_bytes_c_f": "30 65 00 00",
+      "parameter_word_14": 3,
+      "parameter_word_20": 0,
+      "marker": "none"
+     },
+     {
+      "device_ids": [
+       "0xecaa"
+      ],
+      "serial_bytes": 16,
+      "candidate_pairs": 8,
+      "command_word_8": 2,
+      "command_bytes_c_f": "30 65 00 00",
+      "parameter_word_14": 5,
+      "parameter_word_20": 0,
+      "marker": "Require55 aa in at least one of four two-byte positions at returned buffer+0x800,+0x802,+0x804,+0x806 before searching serial pairs."
+     }
+    ],
+    "acceptance": "For each candidate, compare serial bytes with the following equal-width complement bytes and require each XOR==0xff. A rejection advances the candidate start by twice the serial width. First complete match copies exactly8/16 serial bytes to the destination; no textual/hex conversion occurs here. For0xecaa, marker validation precedes serial-pair acceptance; it still permits up to8 serial/complement pairs. memcpy return is compared with the destination pointer; the alternate failure is defensive under the standard memcpy return contract.",
+    "results_and_outputs": "Return0=serial copied;1=device open failure or negative device-ID ioctl;7=unsupported device ID;15=negative serial ioctl, absent required0xecaa marker, or exhausted complement search. The FD closes on all paths after successful open. Optional device ID may be available even on later unsupported/retrieval failure. Length is assigned after successful serial ioctl but before complement search (and before the0xecaa marker check), so a nonzero length output is not proof of success. Serial destination is copied only on acceptance; it is not cleared on failure.",
+    "cli_output": "mdputil0x1000192c calls this helper with sp+18 length,sp+241c serial destination andsp+14 ID. Success prints NANDID=%04x then FSN= followed by exactly length bytes using%02x, lowercase hexadecimal without separators. Failure branches0x10001934 to0x10001b1c and prints FSN=INVALID without the NANDID line. It then continues to later signature/display checks rather than aborting the utility. Thus FSN retrieval status and SERIALSIG/UNITSIG status are distinct."
    }
   },
   "bin_frcheck": {
