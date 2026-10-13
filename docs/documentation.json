@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish upstream cached/default PSK producers/lifecycle triggers, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured-default PSK producer/lifecycle triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156801,6 +156801,41 @@
      "build": "86.10-80260",
      "address": "0x10026954",
      "notes": "Record clear tail-calls memset after explicit0xb0-byte wipe."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002f750",
+     "notes": "Command23 table entry targets cached credential case0x10008c70."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10008c98",
+     "notes": "Exact326-byte body guard before key update."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10008ca8",
+     "notes": "Field pointers and two literal32-byte key lengths supplied to wrapper."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10020ecc",
+     "notes": "Wrapper loads session setup context then tail-calls cached writer."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10008cc4",
+     "notes": "Writer result ignored; case returns without ACK or DTLS reset."
     }
    ],
    "setup_client_hello_payload": {
@@ -157039,7 +157074,41 @@
     "entry": "Writer0x10022b3c takes context,r4 primary identity,r5 primary key,r6 primary key length,r7 secondary identity,r8 secondary key,r9 secondary key length. Null identity pointers are treated as absent; nonnull identities are measured with strlen. For every nonempty identity its associated key length must be exactly32. These checks run before clearing/writing either cached record. Failure returns0 and leaves both old records intact. If both identities are absent or empty it clears both records and returns1 without imposing key-length predicates.",
     "storage": "Primary record begins context+160,secondary+210; each is0xb0 bytes. ID string is129-byte buffer at record+0,key32 bytes at+81,length u32 at+a4. Identity copies use snprintf(size129,format%s) and ignore its return. Long input identities are accepted and truncated to128 bytes; they are not rejected for exceeding stored capacity. No decimal/hex/UTF8 restriction or duplicate-identity check exists here. Successful populated record length is32. Key pointers are not checked fornull independently; a nonempty identity and length32 require a readable32-byte source.",
     "replacement_paths": "Primary-only clears and writes primary,then clears secondary. Secondary-only clears both records then writes secondary. Two populated identities clear/write primary then clear/write secondary,after both length predicates passed. Matching identical stored identities later selects primary because callback priority checks it first. Different long identities with the same first128 bytes can likewise produce identical stored comparison strings. Copying/clearing has no later checked failure return,so there is no rollback mechanism after mutation begins; validation failures themselves precede mutation.",
-    "wipe_and_lifetime": "Clear helper0x1002691c wipes0xb0 bytes using ZZ0038 and then tail-calls memset over the same entire record. This clears identities,key bytes,length and remaining record bytes. Setup-context destructor0x10022ae8 clears both records after resetting stored seed/PIN state. Constructor also clears them. The cached-record writer does not itself reset active verification mode+2cc or stored setup secret. Upstream identity/key producers and lifecycle-trigger callers still require independent traces."
+    "wipe_and_lifetime": "Clear helper0x1002691c wipes0xb0 bytes using ZZ0038 and then tail-calls memset over the same entire record. This clears identities,key bytes,length and remaining record bytes. Setup-context destructor0x10022ae8 clears both records after resetting stored seed/PIN state. Constructor also clears them. The cached-record writer does not itself reset active verification mode+2cc or stored setup secret. Upstream identity/key producers and lifecycle-trigger callers still require independent traces. The concrete daemon receiver invokes it through local IPC command23,whose fixed fields and ignored result are documented in cached_psk_control_message; protected sender-side lineage remains outside this trace."
+   },
+   "cached_psk_control_message": {
+    "namespace": "This is local netstartd control IPC command23, not over-the-air NS2 opcode23 REGISTRATION_KEY. It covers the daemon receiver only; the anacapad sender/request-object/service lineage is deliberately not traced or edited.",
+    "dispatch_and_size": "The42-entry base-relative jump table at0x1002f6f4 maps index23 to0x10008c70. That case reconstructs header body-size word from message bytes+8..b and requires exactly0x146(326). Any other size returns through common dispatcher epilogue0x10008990 without invoking the credential writer. Generic reader has already obtained the complete body into its initially zeroed2064-byte stack message before dispatch.",
+    "wire_fields": [
+     {
+      "offset": "full message+c / body+0",
+      "size": 4,
+      "meaning": "u32BE command23"
+     },
+     {
+      "offset": "full message+10 / body+4",
+      "size": 129,
+      "meaning": "primary identity character field"
+     },
+     {
+      "offset": "full message+91 / body+85",
+      "size": 32,
+      "meaning": "primary raw PSK bytes"
+     },
+     {
+      "offset": "full message+b1 / body+a5",
+      "size": 129,
+      "meaning": "secondary identity character field"
+     },
+     {
+      "offset": "full message+132 / body+126",
+      "size": 32,
+      "meaning": "secondary raw PSK bytes"
+     }
+    ],
+    "forwarding": "Case0x10008ca8..0x10008cc0 passes pointers to these fixed fields,with literal32 for both key lengths,to wrapper0x10020ec0. Wrapper loads setup context from session+4 and tail-branches to0x10022b3c. Both cached-record contents therefore originate from the message bytes on this receiver path. A blank primary/secondary identity controls clearing exactly as the writer contract describes. The fixed fields carry no separate identity-length word.",
+    "identity_validation_quirk": "The case does not independently check for a NUL within either129-byte identity field. Writer uses strlen before bounded snprintf,so malformed unterminated identities can include following key/field bytes in their measured source string before the eventual stored128-byte truncation. The normal reader zeroes the whole buffer before reading; that implementation fact does not turn each identity field into an independently bounded string parser. No identity character policy is enforced here.",
+    "result_and_effects": "Dispatcher ignores writer return at0x10008cc4 and returns without constructing an acknowledgment,error message or invoking the DTLS selector/reset. This command updates or clears cached credentials; it does not itself change active verification mode,clear the stored setup secret or prove a future handshake succeeded. A complete delivered frame alone is not evidence that a nonempty identity was accepted under some stronger format rule. Sender-side construction/authorization is outside this record lane."
    }
   },
   "bin_wacd": {
