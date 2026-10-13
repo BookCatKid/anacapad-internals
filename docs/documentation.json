@@ -127345,7 +127345,77 @@
   },
   "mdp_flash": {
    "libs": "libsonos-mdp.so.1 + libflash.so.1",
-   "semantics": "MDP = Manufacturing Data Page in flash: serial/calibration store; sonosMdpSerialToString + hal_flash_get_mdp{,2}{,_wrapper} + mdp_write + mdp2Ver + 'get_mdp failed'"
+   "semantics": "Factory manufacturing data:512-byte MDP1 identity/configuration and4096-byte MDP2 key/certification data. The original page reader normalizes optional/versioned fields;read success is distinct from CRC or cryptographic validation. See bin_mdputil for field/edit mappings and noncehandler for the separate MDP2 signing-key consumer.",
+   "read_contract": {
+    "physical_sizes_and_headers": "libflash.so.1 hal_flash_get_mdp0x2120 reads512 bytes;hal_flash_get_mdp2 at0x23c0 reads4096 bytes. The first magic is0xce10e47d. Raw xoris at0x21bc XORs high0x31ef;cmpwi at0x21c0 compares against sign-extended0xffffe47d,so solving the comparison gives high0xce10,not0x31ef. The default mdputil template also starts0xce10e47d. MDP2 accepts0xca989b4a or0xfa87b921,not the XOR operand fragments. Reads use flash-info-derived offsets;MDP1 offset info+0x50,and MDP2 offset info+0x50+info+0x40.",
+    "io_and_status": "read_from_offset at libflash0x1f78 opens read-only,checks the64-bit seek result when offset is nonzero,and accumulates partial reads until the requested count is reached. It retries read errno4(EINTR). Return0 means the full requested read;1=open failure,2=seek mismatch,3=short/failed read. MDP readers add9=null flash context and12=bad page magic. MDP1 failure clears its512-byte output then supplies Vendor1,Region1 and the library's current-model value;the original error is still returned. MDP2 failure clears4096 bytes. mdputil does not treat these library fallback values as proof that a valid stored page exists.",
+    "normalization": "For valid MDP1 magic,FLAGS&4 absent clears HWFEATURES+0x68. FLAGS&0x10 absent clears+0x70/+74/+78/+7c/+80. The reader then computes a version for normalization:old+70 when old>5,otherwise nonzero new+84 or old. Version<=1 clears+84/+88/+8c;<=2 clears+90..+97;<=3 clears SERIES_ID+98..+9b. For later versions it retains SERIES_ID only if first byte isA-Z and the next three are digits. Version<=5 clears+a0 and then+a4..+ab/+ac;version6 clears+a4..+ab/+ac;version7 clears+ac;later versions retain those tail areas. This is in-memory normalization,not a flash write. Unprinted tail fields still need semantic consumer joins.",
+    "checksum_limitation": "hal_flash_get_mdp invokes crc32(seed0,buffer,508) at0x2298 but neither compares its result with stored+0x1fc nor stores it;the result is discarded before returning the read status. The underlying read_from_offset does not validate CRC either. In contrast,mdputil preparation helper0x10002bf8 stores computed CRC at+0x1fc at0x10002c7c and its alternate branches. Basic read success therefore establishes length/magic and normalization,not CRC/signature acceptance.",
+    "printing": "COPYRIGHT is forcibly terminated at+0x63. Effective MDPVERSION selection is old+70 unless old<=5 and new+84 is nonzero. WIFITYPE=N is a literal output line,not a radio-type probe. Invalid DATECODE values are zeroed only in the display buffer. VARIANT,SERIALSIG,UNITSIG,FSN and NANDID are derived helper results and are not interchangeable with fixed MDP1 byte fields."
+   },
+   "application_flag_consumer": {
+    "source": "anacapad getter0x10909620 loads cached device-info+0x168,which is its MDP buffer+0x104 plus FLAGS offset0x64. It is an MDP flags word,not a capability word.",
+    "predicate": "Cleanup0x105e64fc proceeds only when cached(flags&0x20)==0 and cached(flags&3)!=0,proven by0x105e6524/0x105e6528 and0x105e6564/0x105e6568. The earlier documentation reversed both gates.",
+    "effect": "It reads current MDP1 from flash and optional MDP2,then computes newFlags=(flashFlags&0xfffffffc)|0x20 at0x105e65f8/0x105e65fc and writes via0x10d54658. This clears named numeric bits0x1(printk) and0x2(console) and sets a cleanup marker0x20. A set cached marker skips this path. The record does not claim a refresh of the cached flags after writing or an upgrade-only trigger."
+   },
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10000b5c",
+     "notes": "Separate512-byte MDP1 and4096-byte MDP2 buffers and template."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x21bc",
+     "notes": "XOR/signed-compare equation yields0xce10e47d."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x21d8",
+     "notes": "Flags/version normalization before return."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x2298",
+     "notes": "CRC return is discarded;no stored-CRC comparison."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x1f78",
+     "notes": "Read-only open,64-bit seek,partial-read loop and EINTR retry."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105e6528",
+     "notes": "Cached marker must be clear to reach debug-flag cleanup."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105e6568",
+     "notes": "Cached printk/console low bits must be nonzero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105e65f8",
+     "notes": "Clear numeric0x1/0x2,set0x20,persist new MDP flags."
+    }
+   ]
   },
   "tls_stack": {
    "lib": "libmbedtls.so.21 + libmbedx509.so.7 + libmbedcrypto.so.16 + libsonoscrypto.so.3",
@@ -154100,29 +154170,330 @@
   },
   "bin_mdputil": {
    "name": "mdputil",
-   "summary": "Manufacturing-data partition utility (/bin/mdputil) over libsonos-mdp + libflash. Prints keyval-parseable identity lines, validates and writes signed MDP pages on /dev/mtd/0.",
+   "summary": "Reads,prints and stages edits to factory identity and hardware configuration. MDP1 is512 bytes;MDP2 has a separate4096-byte read buffer. The decoded fields,header checks,read-time normalization,hardware-manifest addressing and boot consumers are now bound. CLI write/key-bundle paths remain under analysis;basic page-read success is not cryptographic validation.",
    "todo": [
-    "Residual: the per-field byte offsets inside the 512-byte MDP1/MDP2 pages are positionally consumed inside libflash - the page envelope {512B, magic 0x31ef????, flags-gated tail} and the field-name vocabulary are proven; field->offset joins are per-accessor code."
+    "Established: page sizes/magics,printed MDP1 fields and widths,read-status/normalization/CRC contracts,series and certification-variant source/return conventions,manifest indices and ranges,REGION option semantics and application flag-cleanup predicate. Remaining: complete each CLI option's numeric/lexical/write behavior,including-B repair and unsupported getopt entries;trace the key-bundle/cipher/signature helpers0x100024c4/0x10002928/0x10002a5c and flash commit/error paths;bind unprinted tail fields and individual hardware-selection code meanings to their consumers. Inspect raw instruction words and actual call/fall-through chains before removing this TODO."
    ],
    "artifacts": [
     "bin/mdputil"
    ],
    "resolved_findings": [
-    "Resolved (boundary): tied into the upgrade call graph via get_mdp/mdp_write references in the unlock + update paths - the manufacturing-data partition read/write helper.",
-    "Verbs recovered from usage/error strings: bare invocation prints HW manifest ('%sHW manifest entries:') plus SERIAL=, SERIES_ID=, COPYRIGHT=, UNITSIG=, SERIALSIG= keyval lines; -B is the boot manifest print used by /etc/Configure; '-fwn <index>=<value>' writes fields; '-wf' forces a write past the 'There is already a valid MDP in place' guard; '-k keyfile' selects a signing key ('-k option not available' on unsigned builds).",
-    "Crypto/integrity surface: keyfile open/read, 'Unrecognised key length', 'Public key error', 'Decrypt error', 'Signature no match error', 'v2 signature no match error', 'Key rejected' - MDP pages carry a public-key signature verified on read/write.",
-    "Flash plumbing: opens /dev/mtd/0 via libflash hal_flash_get_mdp/hal_flash_get_mdp2/hal_flash_read_fsn + crc32; errors 'Flash MDP1 error', 'MDP2 error', 'Flash SN error', 'GETFSN failed deviceID %x err %x', 'Manifest parse failed'; exports sonosGetSeriesID/sonosSetSeriesID/sonosGetCertColorVariant from libsonos-mdp.",
-    "Consumers: /etc/Configure runs 'mdputil -B' then 'mdputil | keyval ^SERIAL | cut -c1-12' to set hostname Sonos-<serial12>; wacd reads MDP page1/page2 (model + cert-color variant) to build its WAC AppleDeviceIE.",
-    "Resolved: the in-anacapad MDP flag-write path is proven (f_105e64fc..0x105e6644, tag mod_zp): gated on a capability word from f_10909620 (requires bit 0x20 set, low bits &0x3 clear); opens the flash info context via hal_flash_info_init, reads the MDP flags word via hal_flash_get_mdp (also hal_flash_get_mdp2 into a 0x200 buffer), then writes back flags with bits 30-31 cleared and bit 0x20 OR'd in via f_10d54658, logging \"MDP flag update: new flags %x\". So anacapad sets persistent MDP flag 0x20 (a post-boot/upgraded marker) after its capability check passes.",
-    "Resolved: libsonos-mdp.so.1 decode - the MDP page carries TWO format variants gated by a leading u32 magic: magic 0xffffae2d (v1: color-variant idx at data+0x44c, MDP struct version must be <=3) and magic 0xfa87b921 (v2: color-variant idx at data+0xa10, version <=4); returns {-2 bad args,-3 unknown magic,-4 unsupported version,-5 color idx >0x12}. sonosGetCertColorVariant picks the arm by magic; sonosGetFinalColorVariant adds a version gate (mdp+0x70 <=5 then more checks).",
-    "Resolved: cert color-variant enum (idx->name via jump table, bound 0x12): 0=White,1=Black,2=Blue,3='Limited Edition',4=Shadow,5='Lunar White',6=Olive,7=Wave,8=Sunset,9=Greige,10=Sand,11=Blush,12=Agave; out-of-range -> 'Unexpected color'. Series-ID enum (sonosGetSeriesID switch table): {A100,A200,A101,A102,B100,D100,C201,C100,X999,C200} - 10 series codes (X999 is the engineering/unknown catch-all).",
-    "Resolved: sonosMdpSerialToString emits '%02X%02X%02X%02X%02X%02X%c' - the 6-byte serial as hex plus a check character computed by a digit-mixing loop (4 bytes summed mod-10 style via the 0x...f0f1 reciprocal multiply, mapped into a char).",
-    "Resolved: complete keyval field vocabulary from mdputil's manifest printer: {VENDOR,MODEL,SUBMODEL,SERIES_ID,REVISION,SERIAL,REGION,COPYRIGHT,FLAGS,HWFEATURES,CH11SPURIMMUNITYLEVEL,DCOFS(4-tuple DC offset %d:%d:%d:%d),MDPVERSION,MDP2VERSION,MDP2ENCVERSION,MDP3VERSION,MDP_OLD_VERSION,MDP_NEW_VERSION,PAGESPRESENT,FUSEVAL,SWFEATURES,VARIANT,WILDCARD_VARIANT,NANDID,UNITSIG,DATECODE,LOCATION,SERIALSIG}. FLAGS/HWFEATURES/FUSEVAL print with '# (' bit-decode suffixes. Mutability rules literal: 'MDP HAS_VERSION can't be modified', 'Use -T to modify MDP HAS_HWFEATURES', '-fwn <index>=<value>' writes field index via '%d=%d' parse, '-wf' overrides the 'There is already a valid MDP in place' guard, 'Fixing bad MDP version'/'New MDP flags 0x%08x' repair path. Compiled-in COPYRIGHT default 'Copyright 2025 Sonos, Inc.' at .data 0x1002003c.",
-    "Resolved: the REGION field is externally confirmed - preinstall.sh reads it via `mdputil | keyval ^REGION` and rewrites REGION=5 to 2 via `mdputil -fwe 2` (the -fwe <index> write form), so REGION is a first-class keyval field and field-index 2 targets it in this build.",
-    "Resolved: mdputil internals - optstring \"Aa:whfv:V:M:m:r:Nn:e:s:S:Ik:F:C:P:T:i:d:D:Bpj:u\"; field-index bound <0x104 (cmplwi 0x104 at 0x10002960, \"Bad parm\" on overflow); MDP read via hal_flash_get_mdp + hal_flash_get_mdp2 into two stack structs; the MDP2 signed-write path f_100024c4 opens /dev/mtd/0, ioctls 0x40044d24 (info) + 0x80244d23 (page read), XOR-compares 8-byte blocks, and runs libsonoscrypto ZZ0062/ZZ0064/ZZ0061/ZZ0109/ZZ0087 ops gated on MDP2 magic 0xCA989B4A (word0) and size bound 0x3c3 (word1). Print order of keyval fields: VENDOR,MODEL,SUBMODEL,SERIES_ID,REVISION,SERIAL,REGION,COPYRIGHT,FLAGS,HWFEATURES,...,WIFITYPE=N,FSN; FLAGS bits {KERNEL_PRINTK_ENABLE, CONSOLE_ENABLE, HAS_HWFEATURES, HAS_VERSION}; HWFEATURES bits {ATH_AR2414_WIFI, STMICRO_NAND, REDROCKS, ATH_AR5416_WIFI, ATH_AR9000_WIFI, LED_SWAP, ALT_ANTENNAS}; FSN read via hal_flash_read_fsn printed as %02x bytes or FSN=INVALID. Sensor/misc vocab {AMP, TEMP_SENSOR(AMP), TEMP_SENSOR(CPU), ALS, ACCELEROMETER, FUEL_GAUGE, RADIO}; error literals {Bad parm, Bad hash, Bad mdp, Bad key} and LED subcommand verbs {show, clear} with \"%d=%d\" + \" (dynamic)\" output.",
-    "-fwn path decoded (f_10002320): the MDP HW manifest is a 0x28-byte block at mdp_obj+0xb4 guarded by magic 0x7a61670e at +0xb0; entries are 8 hardware-presence bytes named by the table @0x10003328 {LED, AMP, TEMP_SENSOR(AMP), TEMP_SENSOR(CPU), ALS, ACCELEROMETER, FUEL_GAUGE, RADIO}. -fwn <index>=<value> validates index<=7 then stores the byte at +0xb4+index and re-arms the magic; per-index value bounds via jump table @0x100031f4: {idx0 rejected; idx{1,3,4} allow value 1..3; idx2 allows 1..5; idx{5,6,7} allow 1..2}. 'clear' memsets the whole 0x28 block and drops the magic.",
-    "Recovered: the full MDP field vocabulary (rodata literals, index bound <0x104) - {VENDOR,MODEL,SUBMODEL,REVISION,SERIAL,SERIES_ID,REGION,COPYRIGHT,FLAGS,DATECODE,FSN,LOCATION,NANDID,UNITSIG,SERIALSIG,WIFITYPE,VARIANT,WILDCARD_VARIANT,DCOFS,MDPVERSION,MDP1,MDP2,MDP2VERSION,MDP2ENCVERSION,MDP3VERSION,MDP_OLD_VERSION,MDP_NEW_VERSION,PAGESPRESENT,SWFEATURES,HWFEATURES,FUSEVAL,HAS_HWFEATURES,HAS_VERSION,CONSOLE_ENABLE,KERNEL_PRINTK_ENABLE,LED_SWAP,REDROCKS,ATH_AR2414_WIFI,ATH_AR5416_WIFI,ATH_AR9000_WIFI,STMICRO_NAND,ALT_ANTENNAS,CH11SPURIMMUNITYLEVE[L],ALS,AMP,CPU,TEMP_SENSOR,ACCELEROMETER,FUEL_GAUGE,RADIO,GETFSN}. libsonos-mdp.so.1 additionally carries the color-name table {White,Black,Limited Edition,Shadow,Lunar White,Olive,Sunset,Greige,Blush,Agave} + '%02X...%c' color encoding + 'PA100' model prefix.",
-    "Resolved: hal_flash_get_mdp (libflash.so.1 @0x2120) reads a 512-byte MDP page and validates a magic word (hi16==0x31ef, low compare 0xE47D); the return block is flags-gated - word at +100 bit 0x4 controls the +104 field, bit 0x10 controls the +112..+136 tail (zeroed when clear). MDP2 accessor get_mdp2 @0x23c0 is the sibling page read. The remaining per-field byte offsets inside the page are libflash positional data, the mdputil side already binds the <0x104 field-name table."
+    "ELF SHA256 and explicit stack buffers join the512-byte MDP1 and4096-byte MDP2 read paths. MDP1 magic is0xce10e47d;MDP2 magics are0xca989b4a/0xfa87b921. Raw XOR/signed-immediate equations were checked rather than using the operand fragments as magic.",
+    "Printer arguments at0x10001664..0x10001ab0 bind the named MDP1 fields and widths. FUSEVAL is+0x88;SWFEATURES+0x8c;SERIES_ID+0x98;DATECODE+0xac;DCOFS+0x100. Derived status/color/FSN lines have separate helper chains.",
+    "libflash read success does not compare stored CRC. Flags/version normalization can zero fields in the returned view even when raw page bytes were nonzero. The CLI preparation helper separately stores CRC over508 bytes.",
+    "The 0x104 check at0x10002960 requires r6 exactly260 bytes for a signature-verification block. It is not an index bound or a260-entry field-name table. The same helper requires signature size128 at0x100029b0;its full signed-data/crypto role remains under analysis.",
+    "Hardware-manifest output is one-based1..8. Editable indices are1..7 with per-entry numeric ranges;0 and8 reject. Null-check printer wrapper uses conditional bclr and fall-through,not a dead delegate.",
+    "REGION edit is option-e:0x10000eb4 stores the supplied value at staged MDP1+0x1c. Thus the documented command mdputil -fwe 2 supplies new REGION value2;2 is not a field index.",
+    "/etc/Configure line74 invokes mdputil -B and line76 consumes the first12 SERIAL characters for hostname Sonos-<serial12>. The exact-B repair/write behavior remains to be traced;it must not be described as merely boot-manifest printing.",
+    "Application MDP flag cleanup has the concrete predicate and bit effects in application_flag_consumer. It clears printk/console bits and sets marker0x20;it is not an inverted capability predicate."
+   ],
+   "binary_identity": {
+    "binary": "bin/mdputil",
+    "build": "86.10-80260",
+    "sha256": "e3b2f55b3ecd50b3b26aeb1771f0e9b1b0ed30dea84fa759e7adfa70f6a0cd61",
+    "text": "0x10000ad4..0x100031bf",
+    "working_buffers": "main0x10000ad4 has MDP1 read at sp+0x1c,512-byte edit/template buffer at sp+0x21c,MDP2 read at sp+0x41c (4096 bytes),and separate4096-byte prepared/key-bundle area at sp+0x141c. Default template is .data0x10020018."
+   },
+   "mdp1_fields": [
+    {
+     "name": "magic",
+     "offset": "0x00",
+     "representation": "u32,required0xce10e47d in this PPC build",
+     "consumer": "libflash.so.1:0x21b8"
+    },
+    {
+     "name": "VENDOR",
+     "offset": "0x04",
+     "representation": "u32 printed unsigned decimal",
+     "consumer": "0x10001674"
+    },
+    {
+     "name": "MODEL",
+     "offset": "0x08",
+     "representation": "u32 printed unsigned decimal",
+     "consumer": "0x1000166c"
+    },
+    {
+     "name": "SUBMODEL",
+     "offset": "0x0c",
+     "representation": "u32 printed unsigned decimal",
+     "consumer": "0x10001664"
+    },
+    {
+     "name": "REVISION",
+     "offset": "0x10",
+     "representation": "u32 printed unsigned decimal",
+     "consumer": "0x100016d4"
+    },
+    {
+     "name": "SERIAL",
+     "offset": "0x14",
+     "representation": "six identity/MAC bytes passed to sonosMdpSerialToString;not an inline ASCII serial",
+     "consumer": "0x100016b4"
+    },
+    {
+     "name": "REGION",
+     "offset": "0x1c",
+     "representation": "u32 printed unsigned decimal",
+     "consumer": "0x100016d0"
+    },
+    {
+     "name": "COPYRIGHT",
+     "offset": "0x24",
+     "representation": "64-byte region;printer writesNUL at+0x63 before %s",
+     "consumer": "0x100016f4"
+    },
+    {
+     "name": "FLAGS",
+     "offset": "0x64",
+     "representation": "u32 printed hex;named low bits1/2/4/0x10",
+     "consumer": "0x10001710"
+    },
+    {
+     "name": "HWFEATURES",
+     "offset": "0x68",
+     "representation": "u32 printed hex;zeroed when FLAGS&4 is clear",
+     "consumer": "0x1000176c"
+    },
+    {
+     "name": "CH11SPURIMMUNITYLEVEL",
+     "offset": "0x6c",
+     "representation": "u8 printed unsigned decimal",
+     "consumer": "0x100017c8"
+    },
+    {
+     "name": "MDP_OLD_VERSION",
+     "offset": "0x70",
+     "representation": "u32;also feeds effective MDPVERSION selection",
+     "consumer": "0x10001870"
+    },
+    {
+     "name": "MDP2VERSION_or_MDP2ENCVERSION",
+     "offset": "0x74",
+     "representation": "u32;output name depends on available MDP2 magic",
+     "consumer": "0x10001838"
+    },
+    {
+     "name": "MDP3VERSION",
+     "offset": "0x78",
+     "representation": "u32 printed unsigned decimal",
+     "consumer": "0x10001858"
+    },
+    {
+     "name": "PAGESPRESENT",
+     "offset": "0x7c",
+     "representation": "u32 printed hex",
+     "consumer": "0x100018a0"
+    },
+    {
+     "name": "MDP_NEW_VERSION",
+     "offset": "0x84",
+     "representation": "u32 used when old version<=5 and this is nonzero",
+     "consumer": "0x10001888"
+    },
+    {
+     "name": "FUSEVAL",
+     "offset": "0x88",
+     "representation": "u32 printed hex with(flash) annotation;not+0x80",
+     "consumer": "0x100018b8"
+    },
+    {
+     "name": "SWFEATURES",
+     "offset": "0x8c",
+     "representation": "u32 printed hex",
+     "consumer": "0x100018d0"
+    },
+    {
+     "name": "stored_SERIES_ID",
+     "offset": "0x98",
+     "representation": "four ASCII bytes,with model-derived fallback through library",
+     "consumer": "libsonos-mdp.so.1:0xd28"
+    },
+    {
+     "name": "LOCATION",
+     "offset": "0xa0",
+     "representation": "u32 printed when effective version>5",
+     "consumer": "0x10001a74"
+    },
+    {
+     "name": "DATECODE",
+     "offset": "0xac",
+     "representation": "u32;printer requires100<value<=9999 and value%100 in1..12,otherwise replaces its display-buffer value with0",
+     "consumer": "0x100019fc"
+    },
+    {
+     "name": "manifest_magic",
+     "offset": "0xb0",
+     "representation": "u32,0x7a61670e marks valid hardware manifest",
+     "consumer": "0x10002248"
+    },
+    {
+     "name": "manifest_area",
+     "offset": "0xb4",
+     "representation": "40-byte area;printer consumes entries1..8 at+b5..+bc",
+     "consumer": "0x1000229c"
+    },
+    {
+     "name": "DCOFS",
+     "offset": "0x100",
+     "representation": "four signed32-bit values at+100/+104/+108/+10c;printed only for MODEL17",
+     "consumer": "0x10001d88"
+    },
+    {
+     "name": "CRC32",
+     "offset": "0x1fc",
+     "representation": "u32 over preceding508 bytes;prepared by helper0x10002bf8",
+     "consumer": "0x10002c7c"
+    }
+   ],
+   "read_contract": {
+    "physical_sizes_and_headers": "libflash.so.1 hal_flash_get_mdp0x2120 reads512 bytes;hal_flash_get_mdp2 at0x23c0 reads4096 bytes. The first magic is0xce10e47d. Raw xoris at0x21bc XORs high0x31ef;cmpwi at0x21c0 compares against sign-extended0xffffe47d,so solving the comparison gives high0xce10,not0x31ef. The default mdputil template also starts0xce10e47d. MDP2 accepts0xca989b4a or0xfa87b921,not the XOR operand fragments. Reads use flash-info-derived offsets;MDP1 offset info+0x50,and MDP2 offset info+0x50+info+0x40.",
+    "io_and_status": "read_from_offset at libflash0x1f78 opens read-only,checks the64-bit seek result when offset is nonzero,and accumulates partial reads until the requested count is reached. It retries read errno4(EINTR). Return0 means the full requested read;1=open failure,2=seek mismatch,3=short/failed read. MDP readers add9=null flash context and12=bad page magic. MDP1 failure clears its512-byte output then supplies Vendor1,Region1 and the library's current-model value;the original error is still returned. MDP2 failure clears4096 bytes. mdputil does not treat these library fallback values as proof that a valid stored page exists.",
+    "normalization": "For valid MDP1 magic,FLAGS&4 absent clears HWFEATURES+0x68. FLAGS&0x10 absent clears+0x70/+74/+78/+7c/+80. The reader then computes a version for normalization:old+70 when old>5,otherwise nonzero new+84 or old. Version<=1 clears+84/+88/+8c;<=2 clears+90..+97;<=3 clears SERIES_ID+98..+9b. For later versions it retains SERIES_ID only if first byte isA-Z and the next three are digits. Version<=5 clears+a0 and then+a4..+ab/+ac;version6 clears+a4..+ab/+ac;version7 clears+ac;later versions retain those tail areas. This is in-memory normalization,not a flash write. Unprinted tail fields still need semantic consumer joins.",
+    "checksum_limitation": "hal_flash_get_mdp invokes crc32(seed0,buffer,508) at0x2298 but neither compares its result with stored+0x1fc nor stores it;the result is discarded before returning the read status. The underlying read_from_offset does not validate CRC either. In contrast,mdputil preparation helper0x10002bf8 stores computed CRC at+0x1fc at0x10002c7c and its alternate branches. Basic read success therefore establishes length/magic and normalization,not CRC/signature acceptance.",
+    "printing": "COPYRIGHT is forcibly terminated at+0x63. Effective MDPVERSION selection is old+70 unless old<=5 and new+84 is nonzero. WIFITYPE=N is a literal output line,not a radio-type probe. Invalid DATECODE values are zeroed only in the display buffer. VARIANT,SERIALSIG,UNITSIG,FSN and NANDID are derived helper results and are not interchangeable with fixed MDP1 byte fields."
+   },
+   "series_and_variant": {
+    "series": "sonosGetSeriesID at libsonos-mdp0xcb0 uses stored four-byte+0x98 when the old/new version eligibility path permits it and the first byte is nonzero;otherwise it derives a four-character code from model/submodel/revision. Return1 denotes stored;0 denotes derived. mdputil appends(dynamic) to the derived path at0x100016a0,not to stored data. sonosSetSeriesID0xe64 checks the first characterA-Z and next three digits,then stores those four bytes. It does not require the next input byte to beNUL,so a valid four-character prefix can be stored from a longer argument.",
+    "variant": "sonosGetCertColorVariant at libsonos-mdp0x964 takes MDP1 and MDP2 as separate pointers. For MDP2 magic0xca989b4a,it requires MDP1+74<=3 and reads MDP2+0x44c. For0xfa87b921,it requires+74<=4 and reads MDP2+0xa10. Accepted value domain is0..18. It returns0 on failure and optionally writes status-2(bad pointer),-3(unknown magic),-4(unsupported version),-5(index out of range);these are not negative color return values. mdputil0x100018f4 passes a null error-output pointer,so VARIANT=0 alone cannot distinguish color0 from decoder failure."
+   },
+   "manifest_addressing": {
+    "layout": "Header+0xb0=0x7a61670e;40-byte area starts+b4. Display indices1..8 are LED at+b5,AMP+b6,TEMP_SENSOR(AMP)+b7,TEMP_SENSOR(CPU)+b8,ALS+b9,ACCELEROMETER+ba,FUEL_GAUGE+bb,RADIO+bc. Printer0x10002218 increments the base before loading each entry.",
+    "edit_domain": "0x10002320 parses %d=%d,checks unsigned index<=8 then<=7,and uses the base-relative table0x100031f4. Index0 rejects. Allowed edits:1(LED)=1..3,2(AMP)=1..5,3/4(temperature)=1..3,5/6/7=1..2. Index8(RADIO) is displayed but cannot be set by this path. Write at0x100024a0 is byte mdp+b4+index. Values outside these ranges,including0,reject;existing/cleared page bytes can still be0 or other raw byte values. Meaning of individual hardware selection codes is still open.",
+    "clear_and_show": "clear zeros the40-byte area and clears the header;show/print reports an invalid header but still displays all eight numeric entries. Setting an accepted entry re-arms the header without validating other entry bytes. Wrapper0x10002210 has raw conditional bclr0x4d820020 at0x10002214:it returns for null input,otherwise falls through into0x10002218. It is not an unconditional empty stub."
+   },
+   "application_flag_consumer": {
+    "source": "anacapad getter0x10909620 loads cached device-info+0x168,which is its MDP buffer+0x104 plus FLAGS offset0x64. It is an MDP flags word,not a capability word.",
+    "predicate": "Cleanup0x105e64fc proceeds only when cached(flags&0x20)==0 and cached(flags&3)!=0,proven by0x105e6524/0x105e6528 and0x105e6564/0x105e6568. The earlier documentation reversed both gates.",
+    "effect": "It reads current MDP1 from flash and optional MDP2,then computes newFlags=(flashFlags&0xfffffffc)|0x20 at0x105e65f8/0x105e65fc and writes via0x10d54658. This clears named numeric bits0x1(printk) and0x2(console) and sets a cleanup marker0x20. A set cached marker skips this path. The record does not claim a refresh of the cached flags after writing or an upgrade-only trigger."
+   },
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10000b5c",
+     "notes": "Separate512-byte MDP1 and4096-byte MDP2 buffers and template."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x21bc",
+     "notes": "XOR/signed-compare equation yields0xce10e47d."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x21d8",
+     "notes": "Flags/version normalization before return."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x2298",
+     "notes": "CRC return is discarded;no stored-CRC comparison."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x1f78",
+     "notes": "Read-only open,64-bit seek,partial-read loop and EINTR retry."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10001664",
+     "notes": "Identity printer field-offset chain."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x100018b8",
+     "notes": "FUSEVAL+0x88 and SWFEATURES+0x8c."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x100019fc",
+     "notes": "DATECODE validation and display-buffer mutation."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002c7c",
+     "notes": "Preparation stores CRC at+0x1fc."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xd28",
+     "notes": "Stored series+0x98 vs model-derived fallback."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0x964",
+     "notes": "Color decoder uses MDP1 version and separate MDP2 buffer;error out-param split."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002214",
+     "notes": "Raw conditional bclr permits fall-through into manifest printer."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x100023cc",
+     "notes": "Raw XO23 indexed load preserves jump-table base."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002960",
+     "notes": "Equality check on260-byte data-block size,not a field index."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10000eb4",
+     "notes": "REGION option stores its value at+0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105e6528",
+     "notes": "Cached marker must be clear to reach debug-flag cleanup."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105e6568",
+     "notes": "Cached printk/console low bits must be nonzero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105e65f8",
+     "notes": "Clear numeric0x1/0x2,set0x20,persist new MDP flags."
+    }
    ]
   },
   "bin_frcheck": {
