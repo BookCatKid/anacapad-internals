@@ -125764,7 +125764,7 @@
   "devmode": {
    "obj": "RDevMode + <DevMode>%s</DevMode> var: dev-mode flag",
    "todo": [
-    "Established: persistent statement lifecycle anchors, exact outer statement header/model/identifier/payload layout, inclusive manager-byte constraint checks, optional-output ordering, both callsites and the embedded2048-bit RSA trust-key/fingerprint callback. Remaining: fully decode signature-envelope parser/verifier0x9e14/0xa384 and their selector/length/error contracts; trace the manager+49d/+49e producers and device-ID helper0x1054c850; decode payload grant grammar and capability consumers, then audit persistence/removal/notification paths individually. Follow the actual delegates and raw predicates before removing this TODO."
+    "Established: outer statement framing/model/identity/packed-manager constraint bounds; embedded2048-bit RSA trust key and SHA1 fingerprint; signature-envelope header/lists/record limits, duplicate-type rejection, RSA/SHA256 selectors and direct-versus-metadata signing layouts; persistent reader and callsite joins. Remaining: trace nested metadata type5 via ZZ0179 and consumers of copied envelope flags/primary metadata; trace manager+49d/+49e producers and device-ID helper0x1054c850; decode developer-grant payload grammar/capability consumers and audit persistence/removal/notification paths individually. Follow actual delegates and raw predicates before removing this TODO."
    ],
    "mechanism": "Dev mode is CODE-UNLOCKED, not a compile flag: a web form ('DevMode Code: <textarea>', 'devmode' method=POST with a csrf hidden input) accepts an unlock code; the code is validated and persisted as 'devmode.bin' via an atomic 'devmode.tmp.bin'->rename write (devmode.cxx). State surfaces through 'DevModeEventGenerator' and the '<DevMode>%s</DevMode>' status var. The RDevMode object holds the flag; gated code paths read it from the devmode manager, not a fixed global - the store key is 'devmode'.",
    "resolved_findings": [
@@ -125783,7 +125783,7 @@
    "statement_key_source": {
     "binding": "ZZ0137 GOT reconstruction uses LR anchor0xca20 and .rela.dyn joins: r4=ZZ0063, r5=ZZ0110, r6=local callback0xc938, r8=ZZ0078. ZZ0064 at0x6c08 is a hash-update wrapper, not a key-file loader. The previous proposed ZZ0064->ZZ0053 verifying-file chain does not describe this call path.",
     "embedded_key": "Callback0xc938 requires key-identifier algorithm3 and length20, calls ZZ0080, then ZZ0072 to obtain20 fingerprint bytes and memcmp-compares them with the envelope key ID. A mismatch frees the loaded key and returnsnull. ZZ0080 at0xcd58 loads294 DER bytes from library rodata0xdc9c and tail-branches to ZZ0101. Independent OpenSSL DER decoding confirms a2048-bit RSA public key with exponent65537. SHA256 of that DER blob is16aa1397c35465e50e06eb947964218dd94823b0d2d64e0345da1522240a86f5. There is no verifying-key filename parameter in this callback.",
-    "algorithm_and_lifetime": "ZZ0072 sets selector3 before tail-branching to ZZ0152, then at0x86c4 serializes the public key with mbedtls_pk_write_pubkey_der and hashes those DER bytes through ZZ0060 with selector3, establishing the SHA1 fingerprint used by this callback. ZZ0063 only accepts digest selector1 and delegates to ZZ0060; ZZ0110 tail-branches to RSA verification helper ZZ0109. The signature-envelope helpers choose/check the digest selector and signature fields; their complete wire grammar remains to be decoded before claiming an unconditional RS256 envelope. ZZ0078 is the configured key-release callback. The outer capability/identity checks and embedded trust key are separate from the grant payload semantics."
+    "algorithm_and_lifetime": "ZZ0072 serializes the key to public DER and hashes it with SHA1 selector3. The signature pipeline separately uses SHA256: ZZ0063 requires selector1, ZZ0118 requires1, ZZ0110 tail-branches to RSA verifier ZZ0109 and ZZ0120 requires RSA selector1. The exact direct/metadata signing layouts and candidate/error behavior are in signature_envelope_contract. ZZ0078 releases loaded trust keys. The SHA1 key identifier is not the algorithm used to sign the statement."
    },
    "evidence": [
     {
@@ -125848,8 +125848,86 @@
      "build": "86.10-80260",
      "address": "0x1054c9ec",
      "notes": "Persistent reader accumulates partial reads and retries EINTR."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x9ed0",
+     "notes": "Raw XOR/signed-compare equation yields envelope magic0x621da74d."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x9fb0",
+     "notes": "Primary metadata count<=8; secondary count<=8 at0xa03c."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xa0d4",
+     "notes": "Unsigned count-1 guard accepts exactly one or two signatures."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x9004",
+     "notes": "Digest selector validator accepts only1; unused alternative size arms cannot widen acceptance."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x3b1c",
+     "notes": "Duplicate normalized metadata types across primary/secondary lists reject."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xa538",
+     "notes": "Secondary digest reference must equal SHA256 of outer statement prefix."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x90c4",
+     "notes": "Tail delegate hashes secondary list bytes when present, otherwise outer supplied data."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xa5a4",
+     "notes": "Callback reaches RSA signature verification; any accepted candidate can succeed."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xa25c",
+     "notes": "Consumed size is bounded by declared size, not required equal."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xa5ac",
+     "notes": "Matching-key signature failure exits via0xa438; only unmatched-key lookup advances candidates."
     }
-   ]
+   ],
+   "signature_envelope_contract": {
+    "header": "ZZ0121 at libsonoscrypto0x9e14 parses a big-endian envelope into a zeroed0x22c0-byte context. Header: u32 magic0x621da74d at+0, u32 declared size at+4, u16 format version1 at+8, u16 field at+a copied without a local value predicate, u32 primary-metadata count at+c. Magic derives from raw xoris0x9de2 and signed cmpwi0xffffa74d. Provided bytes must cover declared size. Parsing ultimately requires consumed bytes<=declared size rather than exact equality, so unconsumed declared padding and extra provided trailing bytes are not rejected by this parser alone.",
+    "metadata_lists": "After the16-byte header come0..8 primary entries, then a u32 secondary count and0..8 secondary entries. ZZ0026 parses entries into0x108-byte slots. Ordinary entry layout is u32 type,u32 value length and value bytes (length<=256). Type identity is low31 bits; high bit supplies required/optional treatment for unrecognized types. ZZ0057 at0x3b1c rejects duplicate normalized types within either list and across both lists. Known ordinary shapes: type1 arbitrary bytes;type2 digest descriptor;type3 four bytes;type4 one byte;type6 four bytes. Type5 follows a separate nested delegate ZZ0179 whose detailed grammar remains open. The digest descriptor(type2) must carry byte1 followed by32 SHA256 bytes, since its validator ZZ0118 only accepts selector1; alternative digest-size arms in ZZ0026 cannot pass that validator.",
+    "signature_records": "A one-byte signature count follows the lists and must be1 or2, proven unsigned(count-1)<=1 at0xa0d4/0xa0e0. Each record is u32 key-ID length(max2047),u8 key-ID algorithm(valid1..5 via ZZ0119),key-ID bytes,u8 digest algorithm(required1 via ZZ0118),u32 signature algorithm(required1 via ZZ0120),u32 signature length(max256),signature bytes. Parser checks every segment against provided end. The developer trust callback further requires key-ID algorithm3 and length20 matching the embedded key SHA1 fingerprint. The embedded RSA key is2048 bits, so verifier ZZ0109 additionally requires signature length256 exactly.",
+    "signed_data_choice": "ZZ0126 computes a32-byte SHA256 digest of the outer statement prefix through ZZ0063; this callback rejects any requested digest selector other than1. ZZ0125 then iterates signature records and reloads a matching trust key for each candidate. If the secondary list is empty, ZZ0117/0x906c uses the supplied outer-prefix bytes as the final hash input. If the secondary list is nonempty, it requires secondary type2 digest descriptor, checks its selector1 and compares its32-byte digest against the already-computed prefix digest. The final hash input instead becomes the contiguous secondary u32 count plus encoded entries, tracked at context+1094/+1098. Thus the outer data is bound directly in the first layout and through its checked digest in the second.",
+    "acceptance_and_cleanup": "Final verification reaches ZZ0110 -> ZZ0109 -> mbedtls_rsa_rsassa_pkcs1_v15_verify with SHA256 and RSA selector1. A successful candidate returns1. A null trust-key result advances to the next candidate, but after a key matches, a digest/integrity/signature failure branches directly to cleanup/return0 at0xa438. The second candidate is not tried after such a failure. Exhausting unmatched candidates returns0. Loaded keys are released through ZZ0078; the preliminary key lookup in the two-signature path is also released before the second-stage verification reloads candidates. Metadata retrieval/digest-length/digest-selector/signature verification failures reject. ZZ0123 passes optional expected metadata counter0 for this developer-mode path, so the generic nonzero-counter comparison branch does not impose an additional developer counter requirement.",
+    "limits": "Structural parse success is distinct from cryptographic success. Parser validates framing, selector domains and duplicate metadata types before the verifier validates trust binding and digest/signature relationships. It does not itself interpret developer capabilities. The copied u16+a field, nested type5 semantics and unused primary metadata meanings still require consumer/delegate joins. No HTTP request-object or service-dispatch records were needed for these library contracts."
+   }
   },
   "mod_zp": {
    "files": "mod_zp.cxx + zp.cxx + zpserviceaccounts.cxx",
