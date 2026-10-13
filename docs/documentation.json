@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish envelope caller post-gate proofs/cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish PIN proof identifier provenance/getter caller joins and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156584,6 +156584,55 @@
      "build": "86.10-80260",
      "address": "0x7940",
      "notes": "PIN wrapper installs decimal alphabet and12 excluded eight-byte candidates."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10027884",
+     "notes": "KDF label setup_pin with empty context."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002369c",
+     "notes": "Client proof uses full AES128GCM selector2 and8-byte output capacity."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100236bc",
+     "notes": "Exactly8 authenticated plaintext bytes required before PIN copy."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10023900",
+     "notes": "First two identifier SHA256 bytes precede packed hexadecimal PIN bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10023978",
+     "notes": "Outgoing proof invokes compact selector3 encryption with6-byte plaintext."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10035228",
+     "notes": "PIN getter jump-table maps requested modes to active verification4/5/6."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x60e0",
+     "notes": "SPE zero pair/store followed by first-byte1 supplies compact fixed IV; IV is not output-prefixed."
     }
    ],
    "setup_client_hello_payload": {
@@ -156784,6 +156833,15 @@
     "budget_producers": "Constructor0x10022870 writes byte budget10. Local helper0x10022f94 sets it0;0x10022fec resets it10;0x10024098 accepts a caller byte and writes it directly. These are concrete writers, so the field is an unsigned byte budget rather than an invariant0..10 range. Caller bindings of these controls remain to be joined individually. Reset0x10022a48 does not itself alter the budget.",
     "failure_and_reset": "Once ZZ0051 successfully stores a decrypted secret, mode rejection or PIN-generation failure leaves that pointer/length in place when0x100233b0 returns. It also retains requested mode and any budget decrement. Parse failure does not call ZZ0051 and therefore does not perform that delegate output reset. Full reset0x10022a48 sets requested mode0, wipes/zeros the nine PIN bytes, and if secret pointer is nonnull wipes exactly its stored length, frees it and zeros pointer/length. A null secret pointer skips the length reset. The enclosing caller0x1001f5e0 has further mode-dependent failure/notification calls; complete cleanup/state effects of those calls remain unresolved and are not inferred from this helper return.",
     "next_consumer_boundary": "After nonzero helper result, CLIENT_PIN additionally calls0x10023570; CHIRP and CHIRP_WITH_BUTTON call0x1002384c to construct further proof/output. Their complete response formats, callbacks and state transitions must be traced before declaring this setup-message path complete."
+   },
+   "setup_pin_proof_contract": {
+    "key_derivation": "Shared daemon helper0x10027854 calls counter HMAC-SHA256 KDF ZZ0215 with decrypted secret context+304/+308,label setup_pin,empty context and requested16 bytes. It returns1 only for KDF return0. This domain label differs from greeting handshake_signature. The cipher consumers wipe their16-byte derived key after their cipher call; early KDF failure returns before that wipe.",
+    "client_pin_acceptance": "0x10023570 requires context byte+0==0,requested mode+2f4==4 and secret length+308!=0. It derives16 key bytes, decrypts incoming proof through ZZ0043 selector2(AES128-GCM,12-byte leading IV,16-byte trailing tag),empty additional data, into an8-byte scratch buffer. Cipher failure returns0. Cipher success must report exactly8 plaintext bytes; a different size wipes the8-byte scratch and returns0. Success copies all8 bytes into PIN storage+2f9..+300,sets ninthbyte+301=0 and returns1. It does not check decimal digits, reject embedded NUL, compare against a previously expected PIN or apply the generator exclusion table. With the exact8-byte success condition the normal full cipher frame is36 bytes. The enclosing setup receiver gives this optional proof a36-byte maximum output capacity, but complete parser-field semantics remain separate.",
+    "client_cleanup_quirk": "Derived-key scratch is wiped after ZZ0043 regardless of its cipher result. Plaintext scratch is explicitly wiped only when successful decrypt reports a length other than8. Successful8-byte copy does not wipe its source scratch; cipher failure also bypasses that plaintext wipe. These are exact caller cleanup paths, not a claim that compiler/runtime implicitly erases stack memory. An embedded zero can pass this helper but later fails the PIN getter string-length8 requirement.",
+    "chirp_plaintext": "0x1002384c requires nonnull output pointer and output-length pointer. It SHA256-hashes identifier bytes at context+12c with length+134, checking hash success. It copies the first two digest bytes into a6-byte plaintext. It then reads strlen(PIN),calls hex decoder0x100271c8 with capacity4 to fill plaintext+2 and requires decoder success. For a generated eight-digit decimal PIN, each two digits are treated as hexadecimal, e.g.12345678 becomes bytes12,34,56,78; it is not converted to one binary decimal integer. Hex decoder requires even input length, sufficient capacity and both characters in each pair to be hexadecimal. General decoder accepts upper/lower hex; this consumer normally supplies the generated decimal PIN. The helper does not independently require the decoder returned exactly4 bytes before encrypting the fixed6-byte plaintext; abnormal shorter stored PINs leave the remainder outside a proved initialized span.",
+    "chirp_compact_cipher": "After deriving16 setup_pin key bytes,0x10023978 invokes ZZ0204 selector3(AES128-GCM with4-byte tag),encrypt option1,empty additional data,6-byte plaintext. ZZ0204 at0x5fe0 prepares fixed12-byte IV01 followed by11 zero bytes, proven clear-pair words0x114a5216/0x115f0321 at0x60e0/+e4 and stb1 at0x60f0. It sets output capacity requirement plaintext_length+4 through ZZ0205, encrypts into caller output without prefixing that IV, obtains final tag with ZZ0148 and appends it. This specific successful proof is6 encrypted bytes plus4-byte tag,10 bytes total, not the full leading-IV frame accepted by ZZ0043. Nonzero cipher error yieldsfalse; the daemon wipes derived key after the call. No separate plaintext/hash scratch wipe occurs in this daemon helper.",
+    "pin_getter_and_active_mode": "0x10023728 first requires strlen(storedPIN)==8, otherwise logs Invalid PIN and returns0. It then uses10 base-relative offsets at0x10035228 with preserved lwzx base. Requested modes1,2,5,8 write active greeting-verification mode+2cc=5;3,6,7 write4;4 writes6. Modes0 and9 enter logging/failure. Requested mode>9 bypasses the table and returns1 without changing active mode. Success returns a borrowed pointer to PIN storage. These active-mode numbers control the separately documented greeting HMAC proof gate. The string-length predicate alone does not establish a decimal PIN, so the authenticated client-provided eight-byte path can accept nondecimal content if it has no NUL.",
+    "remaining": "Bind identifier producer+12c/+134 and PIN-getter callers to the whole setup FSM; finish received proof-field grammar, response transport/callback and rejection cleanup before closing the subsystem TODO."
    }
   },
   "bin_wacd": {
