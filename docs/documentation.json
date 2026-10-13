@@ -156012,7 +156012,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: NS2 catalogs/transport/control IPC and CLIENT_HELLO field grammar/typed limits/defaults/duplicates/trailing-byte quirk; exact mode-specific proof, HMAC-SHA256 key derivation, session-byte inputs, comparison/cache/wipe behavior and secret-storage producer/reset joins. Remaining: fully trace encrypted setup-envelope/key-provider provenance, CLIENT_HELLO response-builder semantics and setup state effects; decode other NS2_MSG_* payloads and per-handler transitions individually. Follow every parser/producer/consumer before removing this TODO."
+    "Established: CLIENT_HELLO schema/parser quirks and proof derivation; server response opcode4, protocol42, required/optional typed-field inventory, capability0x40 fingerprint preference/fallback, crypto-output omission on producer failure and ignored send result. Remaining: fully trace encrypted setup-envelope/key-provider provenance; bind tag25, auxiliary crypto fields, optional integer/string fields and response capability bits to their producers/consumers; finish response framing/transport and resulting setup transitions; decode other NS2_MSG_* payloads individually. Follow each parser/producer/consumer before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156183,6 +156183,62 @@
      "build": "86.10-80260",
      "address": "0x6f690",
      "notes": "Shipped digest name table maps enum9 to SHA256."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10029ef8",
+     "notes": "Response serializer explicitly initializes opcode4, independent of protocol field42."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1003627c",
+     "notes": "Sixteen-field legacy-server-greeting schema; four required fields."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001eaac",
+     "notes": "Client bit0x40 produces inverted layout selector; not an opcode selector."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100239d4",
+     "notes": "SHA256 public-key fingerprint producer for successful selector0 path."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001e95c",
+     "notes": "Crypto producer failure resets three lengths and continues with omitted fields."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002a0e8",
+     "notes": "Optional binary field5 uses pointer and length; sibling fields similarly gated."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001ead4",
+     "notes": "Greeting send return is ignored by receiver."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100267a8",
+     "notes": "Send wrapper tail branch is a semantic call; payload-size guard in delegate."
     }
    ],
    "setup_client_hello_payload": {
@@ -156227,7 +156283,7 @@
     "schema_evidence": "Five {tag,required-mode} rows at0x10036214 are {0,1},{1,1},{2,1},{8,0},{31,0}. Parser builds five28-byte runtime descriptors referencing these rows, with occurrence counters initially0. At0x1002957c/0x100295a4/0x10029590 it invokes u16/string/u32 readers for tags0/1/2; optional31 and8 have separate arms. PIC GOT base0x10057e34 and table pointer at GOT-7fec establish the schema table independently of adjacent literals.",
     "validation_and_defaults": "Fixed-width readers invalidate the cursor for a wrong tag or wrong2/4-byte width. String reader0x1002e1bc requires length+1<=destination capacity, uses %.*s (no UTF8/content validation), and can display a shorter string if a value containsNUL. Blob reader0x1002e2c8 rejects declared length beyond caller-supplied capacity; on success it copies and updates the length output. Advancer invalidates the cursor on a second occurrence of any of these five fields (their schema modes are0/1, not repeatable2). Finalizer0x1002db94 rejects missing required tags and initializes absent optional outputs to zero/empty. Unknown tags are skipped without a presence requirement, including tags40..255. The decoded protocol value is not range-checked by this field parser.",
     "trailing_frame_quirk": "When header parsing0x1002d898 cannot read a complete field header/value, iterator0x1002de0c returns0 without clearing the cursor-valid byte. The hello loop then runs the finalizer. Consequently, after valid required fields have appeared, incomplete/malformed trailing bytes can be ignored and the parser can still succeed. This differs from a fully encountered recognized field with the wrong width/oversize output, which its typed reader marks invalid. Full byte consumption is not a prerequisite for this parser success.",
-    "consumer_branches": "First receiver0x1001e988 passes protocol/software/capability outputs plus optional blob/session outputs. Parser failure returns immediately. On parse success it invokes0x100232b8 with registration context session+4 and optional verification blob. That helper accepts setup modes1..3 without blob verification, rejects mode<1 or>6, and for modes4..6 requires exactly32 blob bytes and compares them against32 locally derived bytes via ZZ0199; it caches the comparison boolean at context+2d4. Derivation0x10027734 still needs full analysis. Failed comparison logs SETUP_CLIENT_HELLO rejected, reports bad SETUP_CLIENT_HELLO and invokes0x100265a0 with reason1. Successful comparison logs greeting fields, caches optional session text, calls response builder0x1001e4d0 and writes its result via0x10026798 when construction succeeds. Capabilities&0x40 controls the builder argument as inverted-bit boolean; the complete response-layout meaning remains open.",
+    "consumer_branches": "First receiver0x1001e988 passes protocol/software/capability outputs plus optional blob/session outputs. Parser failure returns immediately. On parse success it invokes0x100232b8 with registration context session+4 and optional verification blob. That helper accepts setup modes1..3 without blob verification, rejects mode<1 or>6, and for modes4..6 requires exactly32 blob bytes and compares them against32 locally derived bytes via ZZ0199; it caches the comparison boolean at context+2d4. Derivation0x10027734 still needs full analysis. Failed comparison logs SETUP_CLIENT_HELLO rejected, reports bad SETUP_CLIENT_HELLO and invokes0x100265a0 with reason1. Successful comparison logs greeting fields, caches optional session text, calls response builder0x1001e4d0 and writes its result via0x10026798 when construction succeeds. Capabilities&0x40 controls the builder argument as inverted-bit boolean; the selector preference and always-opcode4 emission are now documented in server_hello_legacy_builder; remaining field feature meanings/state effects stay open.",
     "stateful_receiver": "Handler0x1001f138 has an opcode2 branch using the same parser. It stores protocol/software fields and optional session text, then calls0x100232b8 with null/zero verification bytes and invokes response construction with fixed flag1. It has distinct opcode7/18 branches that remain outside this greeting-field analysis. Parser acceptance alone does not establish completion of authentication, response transmission or a household setup transition."
    },
    "client_hello_verification_contract": {
@@ -156237,6 +156293,16 @@
     "proof": "The helper then invokes ZZ0065(selector1,derived_key,32,message,message_length,proof_output), a one-shot HMAC-SHA256. HMAC init0x6e4c maps selector1 to this build's mbedTLS type9. The shipped libmbedcrypto0x26bbc and name table at0x6f690 independently identify type9 as SHA256; its enum numbering is not inferred from an upstream header. The proof formula is HMAC-SHA256(derived_key,context_bytes[+2e8,length+2d8]). The temporary derived key is wiped with ZZ0038 before returning. Successful output length is32; undersized capacity or a reported initialization/derivation failure returnsfalse.",
     "comparison": "0x10023384 calls ZZ0199 for32 bytes. Library0x70f4 loops over the entire span, ORs each bytewise XOR and returns that byte:0 means equal, nonzero means a mismatch. There is no first-mismatch exit. Netstartd converts exact zero into true, stores that boolean at setup-context+2d4 and wipes its local32-byte expected proof. This cache write occurs only after successful derivation/comparison; earlier mode/length/derivation rejection returns0 without updating that cached byte.",
     "scope": "Modes1..3 returntrue without this proof; mode0 and modes>6 reject. Missing/invalid proof in modes4..6 does not establish household authentication. This verification does not sign the software-version/protocol/capability fields and does not by itself establish which peer owns the upstream secret. Those properties require the encrypted-envelope and surrounding setup-state traces."
+   },
+   "server_hello_legacy_builder": {
+    "entry_and_opcode": "Response builder0x1001e4d0 accepts output buffer/capacity plus a crypto-layout selector and an optional-extra-data flag. Both layout paths eventually call serializer0x10029e10, which initializes opcode4 at0x10029ef8..0x10029f04. This is SETUP_SERVER_HELLO_LEGACY, not opcode3. Protocol version is independently emitted as u16 value42 at field0; it is not the leading message opcode.",
+    "capability40": "First client-greeting handler computes selector=((client_capabilities^0x40)>>6)&1 at0x1001eaac..0x1001eab4. Selector0 therefore means the client advertised bit0x40. It attempts0x1002399c, which serializes the current public key and computes its SHA256 fingerprint through ZZ0152 selector1 into32 bytes. On success the builder uses the32-byte fingerprint field and skips the larger crypto-parameter producer. Fingerprint failure falls back to that producer. Selector1 goes directly to the older crypto-parameter path. The stateful client-greeting receiver supplies selector1 unconditionally, so the capability preference in the first handler does not describe every state.",
+    "schema": "Sixteen rows at0x1003627c define required tags0,1,25,2 and optional5,6,7,4,8,9,38,32,33,34,35,36. Serializer emits required fields in order0(u16 protocol42),2(u32 capability bitmap),1(software-version string),25(u16 configuration value from caller config+4). The exact semantic name of tag25 remains to be joined to its producers; width/source are established. All fields use the same u8 tag/u16BE length framing as the client greeting.",
+    "optional_fields": "Tags32..36 are u32 values emitted only when nonzero, sourced from setup-context getters0x10023d90..0x10023dd0 (fields+138,+13c,+140,+144,+148). Binary fields5,6,7,4,8 are emitted when their supplied byte lengths are nonzero. Tag5 is public-key DER from0x10023a10; tags6/7 are that helper's auxiliary crypto outputs; tag4 is the optional-extra-data output of0x10023c40; tag8 is the32-byte public-key fingerprint in the successful selector0 path. Tags9 and38 are emitted as strings when their pointers are nonnull, including empty strings. These sources do not yet establish every auxiliary-field role.",
+    "crypto_field_source": "The older path0x10023a10 serializes the current key using mbedtls_pk_write_pubkey_der and copies its DER bytes into tag5 output. It can also supply a26-byte auxiliary structure assembled from context+110..+128 and another context byte span, or leave that auxiliary structure length0, depending on context+10c. Builder initializes all crypto output lengths to0 before the selection and resets them to0 if this producer fails. It then continues constructing a response with omitted crypto fields rather than treating that producer failure alone as fatal.",
+    "capability_bitmap": "The response bitmap accumulates local predicates and callback results, including bits0x8,0x10/0x20,0x80,0x100,0x200,0x400,0x800,0x1000,0x2000/0x4000,0x8000,0x10000,0x20000,0x40000. Some high bits are driven by session+1a4 bit0 and byte+1ac; other bits use callbacks from the configuration block and setup-context predicates. Their actual feature meanings remain open. Bit presence is not treated as a guarantee of setup completion.",
+    "validation_and_result": "Output capacity in the two greeting receivers is0x586(1414) bytes. Serializer uses the shared typed writers and ignores their individual returns; finalizer0x1002e714 checks the cursor-valid byte and required-field presence, then stores the number of bytes produced. An initialization/cursor or required-field failure returnsfalse. The enclosing greeting handler calls send wrapper0x10026798 only after builder success. It does not inspect that send return. Thus a constructed response does not prove it was delivered or accepted by the peer.",
+    "send_boundary": "0x10026798 tail-branches to0x10026648 with its two optional arguments0. The delegate rejects size>1414, obtains optional time/context data through a callback, passes payload into0x100281a8 and then calls0x1002500c when framing succeeds. It returns a boolean; negative framing results log failure and returnfalse. Complete framing/transport/state semantics remain to be traced. No assertion that the peer received a complete response follows from the caller's ignored boolean."
    }
   },
   "bin_wacd": {
