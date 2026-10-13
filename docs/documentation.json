@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining settings flags/SonosNet material/frequency and wireless-check consumers and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining settings flags/SonosNet material/frequency and wireless-check named producers/post-result state transitions and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157186,6 +157186,48 @@
      "build": "86.10-80260",
      "address": "0x10021fb4",
      "notes": "Cached status1 is the exact predicate setting pending validity."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10035208",
+     "notes": "Five checked-result to setup-status values."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10005e00",
+     "notes": "Pending getter filters results before state dispatch."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002f7ec",
+     "notes": "Lower results1 and3 collapse to common result3."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002091c",
+     "notes": "State result handler selected from row+1c,tail call preserved."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100215b0",
+     "notes": "Completion stores translated cache result and marks availability."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000b5f4",
+     "notes": "Configured completion cleanup unlinks netsettings_check.txt;result ignored by caller."
     }
    ],
    "setup_client_hello_payload": {
@@ -157571,8 +157613,16 @@
     "muse_domain": "Pending Muse HHID isrecord+29(tag38),visible length0..53. Nonempty input requires current Muse-HHID length pointed by snapshot+14==0,otherwise0x8014. Allowed bytes are ctype alnum or underscore,plus characters selected by mask0x0004001d over(byte-0x2b) within0..18:plus,hyphen,dot,slash,equals. Invalid character returns0x8015. The precise character rule is separate from the parser byte-capacity bound and does not enforce a named encoding or decode the text here.",
     "wireless_cache_layout": "Tag17 maps raw wireless SSID bytes atpending+78,length+98,capacity32. Tag18 maps raw wireless credential bytes atpending+9c,length+dc,capacity64. Validator caches them in checking-context:SSID bytes+40,length+64;credential bytes+0,length+60;statusu32+68;result-present byte+6c. Source lengths and full-span ZZ0199 comparisons decide whether incoming pair matches cached pair. No decrypt is performed in this validator/copy path;these are input bytes already delivered through the setup channel. Character/format restrictions of later wireless APIs remain separate.",
     "credential_length_guard": "Both settings branches at0x10021d60 and0x10021ef8 compute unsigned(credential_length-1),compare with6 and reject when<=6 with0x8009. Thus1..7 fail,while0 and8..64 pass this local length gate under parser cap64. It is not an unconditional minimum8 requirement. In the flag0x2 branch,the additional all-empty pair test rejects when SSID length0 and credential length0 together with0x800b. Other household/frequency/state checks precede these guards. Length0 alone is not proof an open network will be accepted by subsequent consumers.",
-    "cache_result_and_side_effects": "Flag0x2 selects credential-check caching path and sets pending byte+1=1. Changed or unavailable cached pair is reset through0x1002145c,which wipes32SSID/64credential bytes,sets lengths0,status0x8000,result-present0,then the new pair is copied in and pending validity set1 while checking remains pending. Identical pair with result-present nonzero reuses status+68;validity is set only when that status==1,and pending byte+1 cleared. Non-success cached status may trigger cache reset. Exact status-table names and asynchronous wireless-check delivery still require joining. Parsing success does not imply valid settings,successful credential check or established association.",
+    "cache_result_and_side_effects": "Flag0x2 selects credential-check caching path and sets pending byte+1=1. Changed or unavailable cached pair is reset through0x1002145c,which wipes32SSID/64credential bytes,sets lengths0,status0x8000,result-present0,then the new pair is copied in and pending validity set1 while checking remains pending. Identical pair with result-present nonzero reuses status+68;validity is set only when that status==1,and pending byte+1 cleared. Non-success cached status may trigger cache reset. Exact status-table names and asynchronous wireless-check delivery still require joining. Parsing success does not imply valid settings,successful credential check or established association. Completion translation,result-present storage and pending/file cleanup are now joined in wireless_check_completion_contract;complete post-result transitions remain open.",
     "remaining": "Finish all flags,tag15 SonosNet material,freq domains,check-state producers/API consumers,commit/apply side effects and errors. This record describes these verified validator branches without closing SET_NET_SETTINGS or the daemon."
+   },
+   "wireless_check_completion_contract": {
+    "result_translation": "Completion helper0x1002156c translates unsigned input0..4 through five u32 words at0x10035208:{0:1,1:0x8000,2:0x8009,3:0x8008,4:0x800a};out-of-range uses0x8000. It stores status in cache+68,sets result-present byte+6c=1 and clears pending recordbyte+1(check in progress). It does not itself set or clear pending validity byte+0. Existing validator reuse separately derives validity from cached status==1;completion and semantic revalidation are distinct.",
+    "arrival_filter": "Outer delivery0x10005de0 first calls0x10020400,which tail-calls pending getter0x10021538 on session+1b0. That getter returns0 when recordnull/invalid,otherwise returns check-in-progress byte+1. Zero drops the arriving result. Nonzero maps lower result0..4 through0x1002f7ec:{0:0,1:3,2:2,3:3,4:4};greater4 uses3,then tail-calls state result dispatcher0x100208b0. Thus stale results with no locally pending check are ignored,while lower result1 and3 deliberately collapse before translation.",
+    "state_delivery": "Dispatcher requires session state+298<=17 and selects row+1c from18-row44-byte table0x1004f4ac. That slot points to common handler0x1001c094 only in states0 RESET,1 SETUP_STANDBY,8 SETUP_COMPLETE,17 CHECKING_CREDS;other rows have0 and drop this dispatch. It tail-calls the selected handler with session and mapped result. Common handler invokes translator/cache completion,then cancels matching timeout callback registration and schedules a new timeout with raw600000ms(ten minutes) through the already verified timer wrappers. In state17 it also calls0x1001ba20 and branches based on translated status high bit into further state effects. Full state-transition/status-send behavior remains to be traced.",
+    "checker_file_cleanup": "Main config+88 is0x1000b5a4 (store0x10002f90 atstack+a4). Completion helper invokes it with argument0 through0x100215d0. That concrete callback constructs<root>/netsettings_check.txt and calls unlink,returning1 only for unlink0. Nonzero argument does not unlink. Result0x100215d0 is ignored by completion. Pending-record clearing through0x100215fc also invokes this callback with0. Cache reset0x1002145c independently wipes SSID/credential bytes and lengths;file removal does not itself substitute for that memory wipe.",
+    "producer_progress": "Lower event adapter0x1000e29c handles event16..21 through0x100313e4;16 and18 deliver lower result0,19 delivers2,20 delivers3,21 delivers4,17 returns without that delivery. These are proved numeric event mappings;the event-name/producer join is still required before assigning named failure causes. Another lower path delivers3 at0x1001156c. Input0 eventually becomes setup status1;the error integers are recorded without guessing names solely from nearby parser errors.",
+    "remaining": "Join named wireless events/API producer,ten-minute timeout callback,post-result state transitions and status serializer. Do not equate cached result availability with a newly associated network or a successful settings commit."
    }
   },
   "bin_wacd": {
