@@ -125764,7 +125764,7 @@
   "devmode": {
    "obj": "RDevMode + <DevMode>%s</DevMode> var: dev-mode flag",
    "todo": [
-    "Established: verifier/bitmap/lifecycle contracts, firmware/model/identifier guards, specialized type5 framing and its noninterpretation by the traced developer-grant consumers; primary/header metadata framing versus signature coverage; callback installation sites and IPC command13 method/frame/transport semantics. Remaining: join the main-owner concrete callback tables outside the protected implementation-object work, trace control command13 daemon handling and second callback delivery/effects, and map other grant-bit consumers. Follow exact installed objects and consumers before removing this TODO."
+    "Established: verifier/bitmap/lifecycle and metadata-use contracts; callback installation sites, first IPC endpoint/subobject, shipped command13 method/frame/transport semantics, and netstartd receiver framing/return-only command13 branch. Remaining: join the main-owner concrete callback tables outside the protected implementation-object work, trace second callback delivery/effects, and map other grant-bit consumers. Follow exact installed objects and consumers before removing this TODO."
    ],
    "mechanism": "Developer mode is gated by a verified statement payload bitmap. The manager-held bit0 enables developer-mode permission; bit47 is the separately tested SSH public-key-install permission. Persistence uses a direct truncated write to persistent-root/debug/devmode.bin plus a separate runtime/tmp/devmode.tmp.bin output. File and callback failures do not roll back the already-replaced in-memory statement.",
    "resolved_findings": [
@@ -126086,6 +126086,13 @@
      "build": "86.10-80260",
      "address": "0x1054bd90",
      "notes": "Grant application reads separate payload offset/length for bitmap query."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002f728",
+     "notes": "Matching control command13 is silently ignored; sending it does not cause grant reload in this daemon build."
     }
    ],
    "signature_envelope_contract": {
@@ -126130,7 +126137,7 @@
    "notification_ipc_contract": {
     "installation": "Owner initialization0x101998d8..0x101998f8 installs manager callback+4a8=owner+8d4 and callback+4ac=owner+c8c. The first pointer is the+14 secondary interface of the IPC object at owner+8c0, configured immediately beforehand by0x105d364c with endpoint/tmp/netstartd.ipc. Callback setters0x1054c738/0x1054c748 only store the object pointers, with no retain operation or null check in these setters.",
     "shipped_interface_method": "The concrete shipped IPC secondary table0x10ef5f64 has slot+8=0x105d3070, a thunk that subtracts0x14 from this and tail-branches to0x105d304c. The method ignores the change-buffer arguments and sets command13,payload pointer0,payload length0, then tail-dispatches primary slot+34. For the corresponding primary table0x10ef5f10, that slot is0x105d3c7c, which locks IPC+88 and delegates to0x105d3b10. The full main-owner installation of this concrete primary/secondary table pair still needs joining before treating the installed callback as proved to take this exact implementation.",
-    "frame": "For command13 with zero payload,0x105d3b10 emits exactly16 bytes with four u32 words [12,1,4,13], in the native big-endian representation of this PPC build. The fields are built at0x105d3c44..0x105d3c60. No capability bitmap bytes follow them. It sends a control-IPC command; this is distinct from the NS2 over-the-air opcode13(GET_PSK). The daemon-side meaning/handler of the control command remains untraced.",
+    "frame": "For command13 with zero payload,0x105d3b10 emits exactly16 bytes with four u32 words [12,1,4,13], in the native big-endian representation of this PPC build. The fields are built at0x105d3c44..0x105d3c60. No capability bitmap bytes follow them. It sends a control-IPC command; this is distinct from the NS2 over-the-air opcode13(GET_PSK). The shipped netstartd control table maps13 directly to its common return: it performs no statement reload or state effect. See bin_netstartd.control_ipc_command_13 for receiver bounds/table evidence.",
     "transport_result": "The send helper rejects fd+18c<0 and payload lengths beyond the virtual limit(default2048). A zero-payload frame uses the common write loop. It accumulates partial positive writes until all16 bytes are sent, returns0 on that completion and-1 for zero/negative write or unusable connection. Unlike the statement-file writer, this loop has no EINTR retry. The return proves transport write completion, not daemon acknowledgement, statement reload or grant application. The manager treats-1 as notification failure.",
     "second_callback_boundary": "The second installed pointer(owner+c8c) and its invocation slot+8 are proved, but its concrete table/receiver still needs tracing. The developer-mode event-generator label alone is insufficient to assign it that role. Existing state clear/submission callback ordering remains as documented; no delivery/event effect is inferred from the label."
    },
@@ -155982,6 +155989,51 @@
     "Reset surface: flags --hard-reset, --soft-reset, --qareset, --qareset-lite, --preserve-system (wired to frcheck rc 0/2 in /etc/Configure); log at /opt/log/netstartd.log rotated to /jffs/netstartd_prev.log and /jffs/net/log/netstartd.log.",
     "Resolved: the NS2 opcode map is a {u32 id, name*} table at .data.rel.ro 0x1004f848+: {0=KEEP_ALIVE, 1=ACK, 2=SETUP_CLIENT_HELLO, 3=SETUP_SERVER_HELLO, 4=SETUP_SERVER_HELLO_LEGACY, 5=SETUP_CANCEL, 6=ECHO, 7=SETUP_BEGIN, 8=SETUP_CONTINUE, 9=SETUP_STATUS, 0xa=GET_SCAN_LIST, 0xb=SCAN_LIST, 0xc=SET_NET_SETTINGS, 0xd=GET_PSK, 0xe=PSK, 0xf=UPGRADE, 0x10=START_OPEN_AP, 0x11=COMMIT_SETTINGS, 0x12=SETUP_REAUTHORIZE, 0x13=ENABLE_WIFI, 0x14=START_ISLAND, 0x15=TIMED_OUT, 0x16=LOCK_REGISTRATION, 0x17=REGISTRATION_KEY}; immediately followed by the NS2_SETUP_MODE_* enum {0=NONE,1=NFC,2=CHIRP,3=MANUAL_PIN,4=CLIENT_PIN,5=CHIRP_WITH_BUTTON,6=QR_CODE,7=QR_CODE_WITH_BUTTON,8=QR_CODE_WITH_REMOTE}. The NS2_STATE_* table at 0x1004f4ac is 18 rows x 44 bytes {name*, up-to-5 per-state handler slots, common handler 0x1001c094, extra slot, 0,0} with id = row index: {0=RESET,1=SETUP_STANDBY,2=SETUP_START,3=SETUP_DISCOVERY,4=SETUP_DISCOVERY_INTERACTION,5=SETUP_PIN_EXCHANGED,6=SETUP_WAITING,7=SETUP_ACTIVE,8=SETUP_COMPLETE,9=SETUP_UPDATE,0xa=OPEN_AP_PENDING,0xb=OPEN_AP_STANDBY,0xc=ENABLE_WIFI_PENDING,0xd=DEACTIVATED,0xe=REAUTH_PENDING,0xf=ISLAND_PENDING,0x10=SCANNING,0x11=CHECKING_CREDS}",
     "Extended: the NS2 id->name table at 0x1004f848 continues past the 24 opcodes into the setup-mode enum at 0x1004f908 {NS2_SETUP_MODE_NONE=0, NFC=1, CHIRP=2, MANUAL_PIN=3, CLIENT_PIN=4, CHIRP_WITH_BUTTON=5, QR_CODE=6, QR_CODE_WITH_BUTTON=7, QR_CODE_WITH_REMOTE=8}. And the WAC/event state vocabulary block at 0x1002f4cc is the FSM event-name table: {CRR_UP,CRR_DN,SNP_UP,SNP_DN,SATUPD,NS_STR,NS_OPN,NS_CFG,NS_IDL,SCN_REQ,SCN_CPL,AP_ASS,AP_DAS,CCRED,CRD_GOOD,CRD_BAD,CRD_UNSP,CRD_NOAP,CRD_CNCL,UFLWIR,SATFM,WF_DIS,WF_ENA,PFOUND,PLOST,DUPIP,WAC_AP_OPEN,WAC_AP_CLOSE,WAC_STA,WAC_DONE,WAC_TMO,WAC_STOP,WAC_ERROR,DUPIP_PERSIST,DUPIP_CLEARED,MODE_SWITCH_WIFI,MODE_SWITCH_BT,PREP_MODE_SWITCH,WIFI_RESET,START_RECOVERY_AP,START_RECOVERY_STA,SAT_CSA,PRIM_SWT_BAND,PRIM_UP,SNT_DIS,SNT_ENA,SCN_PRIM,AP_TIMEOUT}."
+   ],
+   "control_ipc_command_13": {
+    "binary": "wifi/netstartd build86.10-80260 SHA2569654a16c9b5c07c84131b574e216e7ba311be405c4a831e360a59d10ac35de7e. This block concerns local anacapad control IPC, not the separate over-the-air NS2 opcode catalog.",
+    "reader": "Connection callback0x100096dc calls ReadIPCHeader for12 bytes into a zeroed2064-byte stack message. After that helper succeeds, it reads the header body-size word and requires unsigned(size-4)<=2048, so permitted body sizes are4..2052 inclusive. It loops read calls until the whole body is present, then calls dispatcher0x1000886c at0x100098fc. Partial positive reads accumulate. Zero/negative reads enter the failure/connection-close path; this body-read loop has no EINTR retry. Header-helper validation is delegated and is not inferred here.",
+    "dispatch": "Dispatcher reconstructs the command as u32BE from message bytes+c..f, the first four body bytes. Unsigned command>41 branches directly to common return0x10008990. Commands0..41 use42 base-relative offsets at0x1002f6f4: raw XO23 indexed load0x100088dc preserves the table base, then the code adds that base to the offset before bctr.",
+    "command13": "Entry13 is at0x1002f728 with raw value0xfffd929c. Adding base0x1002f6f4 yields0x10008990, the common stack-canary/restore/return sequence. This entry has no per-command payload read, settings refresh, grant reload, state mutation, acknowledgement, error generation or logging call. A completely framed command13 is silently ignored regardless of extra body bytes permitted by the generic reader. This is a concrete table/return proof, not a label-based unsupported-feature classification.",
+    "sender_join": "The shipped anacapad IPC callback method0x105d304c selects command13 and no payload; sender0x105d3b10 produces u32[12,1,4,13] and writes16 bytes. The decoder receives the last word as command13 and takes the return-only entry. Main callback-table binding remains separately unresolved under devmode; the receiver semantics are proved for this actual frame if delivered.",
+    "namespace_and_result": "NS2 over-the-air opcode13 means GET_PSK in table0x1004f848; it does not name this control-IPC command. Dispatcher completion supplies no daemon acknowledgement to the sender. A successful sender write cannot demonstrate a developer-statement refresh in this build; the command itself performs none."
+   },
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10009758",
+     "notes": "Unsigned body-size guard accepts4..2052; complete body required before dispatch."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100098fc",
+     "notes": "Complete control frame dispatched to0x1000886c."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100088dc",
+     "notes": "Raw XO23 load and base addition decode the control jump table correctly."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002f728",
+     "notes": "Control command13 offset0xfffd929c resolves to return0x10008990."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10008990",
+     "notes": "Command13 reaches only canary check/register restore/return, without semantic effect."
+    }
    ]
   },
   "bin_wacd": {
