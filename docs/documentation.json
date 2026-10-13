@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; registration authorization gates,callback/signing consumer and clear triggers remain open."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156990,6 +156990,48 @@
      "build": "86.10-80260",
      "address": "0x10d4",
      "notes": "clock_gettime ID passed through; timespec initializedzero and ns converted to us."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10026fb8",
+     "notes": "Registration hex parser requires32 decoded bytes before committing length."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10027040",
+     "notes": "Registration secret generator requests32 raw random bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001bd94",
+     "notes": "Rotation snapshots old registration secret before generating replacement."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001bf08",
+     "notes": "Persistence failure restores old secret before error-status/key-response join."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002d36c",
+     "notes": "REGISTRATION_KEY opcode23 uses raw blob tag37."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10026e60",
+     "notes": "Record clear tail-calls memset after36-byte explicit wipe."
     }
    ],
    "setup_client_hello_payload": {
@@ -157295,6 +157337,14 @@
     "cancel_match": "Cancellation0x1001704c traverses the queue and removes every entry whose callback equals the requested callback and whose two arguments match,with -1 wildcard permitted for either argument but not callback. It frees matches and returns their count. GET_PSK passes exact discard callback0x1001d4f8,session pointer and extra0,so it cancels all older queued expiries for that same tuple. It then schedules one new four-hour entry. The caller ignores cancellation count and insertion result. If insertion allocation fails after successful cancellation,the new live key can have no queued expiry from this call; it is not restored to the former deadline.",
     "dispatch_order": "Event-loop due check0x10017468 compares current seconds/microseconds against head deadline. If now>=deadline,it advances queue head to next before loading args/callback and invoking callback at0x100174b0,then frees entry at0x100174b8. Each entry is one-shot and is already absent from cancellation searches during its callback. A busy or delayed event loop can execute after the deadline; the trace specifies eligibility and ordering,not exact real-time precision.",
     "credential_effect": "New-key generation cancels then replaces its expiry;startup-loaded nonempty key schedules the same callback for four hours from that initialization. Successful expiry wipes live credential and attempts persistent removal as previously traced. Scheduling/cancellation failure does not change the GET_PSK response path. The boot-count persistence limit remains independent of this elapsed monotonic lifetime. Finish teardown/cancel callers and other timer clients individually before closing the entire daemon."
+   },
+   "registration_signing_secret_record": {
+    "layout_and_storage": "Settings block+ b4(session+110) is36-byte registration-signing secret record:raw key bytes0..1f,u32 length+20. Exact settings key RegSigningKey dispatches through0x10020f68 to parser0x10026f58. Parser hex-decodes into caller record under capacity32 and requires actual decoded length32 before storing length32. Thus valid text is64 hex characters,upper/lower accepted; shorter,longer,odd or nonhex values fail. It does not clear the destination before parsing,so decode failure can leave partial bytes and an earlier length. File callback logs invalid value and continues as separately documented.",
+    "generation_and_copy": "Generator0x10027004 clears its36-byte temporary record,requests32 random bytes from ZZ0071,sets length32,copies through0x10026e64 and wipes its temporary on success. Random-source failure returns0 without changing destination and bypasses that final temporary wipe. Copier wipes/zeros36-byte destination,memcpy(source length) and stores the length,without its own<=32 bound. Concrete generation and snapshot callers supply well-formed32-byte or empty records. This record is random raw secret bytes,not a parsed RSA public/private key pair or the MDP2 manufacturing signing key.",
+    "serializer_and_clear": "Serializer0x10026ebc requires output capacity>64 and delegates raw-to-hex helper using stored length. Settings writer supplies65. Encoding failure wipes the entire supplied output capacity; successful output is retained for writing. Record clear0x10026e28 explicitly wipes36 bytes and then tail-calls memset over36. Persistent writer emits RegSigningKey only when settings+d4(length) is nonzero and excludes that owned field when copying old settings. Its other field errors/rename limitations remain applicable.",
+    "rotation_transaction": "Rotation path0x1001bd84 first snapshots session+110 into a36-byte stack record,then generates new secret into the live record. Generation success attempts settings persistence at0x1001bee0. Writer false logs and restores snapshot via0x1001bf08 before constructing status0x8012. Generator failure constructs the same status with live old key unchanged. When status serialization succeeds it is sent,then control rejoins0x1001bde0 rather than ending the key path. That join wipes snapshot,invokes configured callback+8c with current live key/length when callback exists,and attempts REGISTRATION_KEY response. Consequently an error path can send the restored old key afterward; status/key construction and send calls still have separate result conventions. Writer true uses the new key on this join. Initial setup authorization/lock predicates around this path remain unresolved.",
+    "registration_key_wire": "Serializer0x1002d2c4 emits NS2 opcode23 REGISTRATION_KEY and tag37 raw key bytes using the common tag/u16BE-length/value encoding. Caller supplies live record pointer and length. It sends through0x10026798 only when finalization succeeds and ignores send return. This is distinct from local control command23 that replaces cached PSKs. Another daemon path0x10020c60 delivers the same stored key to callback+8c only when length nonzero. Concrete callback effects and eventual authentication/signing algorithm require a separate join.",
+    "remaining": "Resolve registration authorization/lock field producers,callback+8c consumer and signing use,registration clear triggers and schema details before closing the registration subsystem. Protected request/service sender lineage remains untouched."
    }
   },
   "bin_wacd": {
