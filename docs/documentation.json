@@ -126121,7 +126121,8 @@
      "notes": "Caller supplies br0 interface to ARP manager construction."
     }
    ],
-   "select_bookkeeping": "The supplied select interface is RSelectThread. Registration0x10c5d20c stores the thread in handler+8 at0x10c5d290, initializes cached watched fd+c=-1 at0x10c5d370 and eventMask+0x10=0 at0x10c5d378. Its19 slots hold handlers at thread+4+i*4,callback-label pointers at+0x50+i*4 and timeout pairs at+0x9c+i*8. FD installation0x10c5ddd4 calls handler vtable+0xc, registers the returned fd through sonos_epoll_add_data at0x10c5deb8 and stores it into handler+c at0x10c5dec4. Removal0x10c5db6c removes cached fd and resets+c=-1 at0x10c5dbd0. Select loop0x10c5e144 clears each handler eventMask before polling; its result dispatch reads the stored mask at0x10c5e310,tests0x201a for exceptional conditions and its low bit for readable data. Thus +c and+0x10 are concrete generic watcher state rather than opaque ARP words. ARP label table0x11092708 points to selthrd.ARPingManager.{reset,data,except,timeout}; instance construction0x1018fabc supplies interface name br0."
+   "select_bookkeeping": "The supplied select interface is RSelectThread. Registration0x10c5d20c stores the thread in handler+8 at0x10c5d290, initializes cached watched fd+c=-1 at0x10c5d370 and eventMask+0x10=0 at0x10c5d378. Its19 slots hold handlers at thread+4+i*4,callback-label pointers at+0x50+i*4 and timeout pairs at+0x9c+i*8. FD installation0x10c5ddd4 calls handler vtable+0xc, registers the returned fd through sonos_epoll_add_data at0x10c5deb8 and stores it into handler+c at0x10c5dec4. Removal0x10c5db6c removes cached fd and resets+c=-1 at0x10c5dbd0. Select loop0x10c5e144 clears each handler eventMask before polling; its result dispatch reads the stored mask at0x10c5e310,tests0x201a for exceptional conditions and its low bit for readable data. Thus +c and+0x10 are concrete generic watcher state rather than opaque ARP words. ARP label table0x11092708 points to selthrd.ARPingManager.{reset,data,except,timeout}; instance construction0x1018fabc supplies interface name br0.",
+   "selector_callback_order": "The ARPingManager timer-first slot+0x10 at vtable0x10ef0060 points to0x10538638 (constant0). Selector0x10c5e310..0x10c5e594 therefore delivers a ready packet callback instead of processing its timer for that pass. This agrees with receive completion0x10586f08 not enforcing request expiry: a due timeout is not guaranteed to run before a simultaneously ready ARP packet. Timer-only passes still process expiry/retry through0x10586e54. Relative timer accounting uses measured wait elapsed,not all time spent processing callbacks."
   },
   "muse_authhelper": {
    "impl": "museclient_authhelper.cxx",
@@ -137942,6 +137943,13 @@
      "build": "86.10-80260",
      "address": "0x105d3284",
      "notes": "Concrete lifecycle close tail-delegates unregister-before-context-close helper."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018d998",
+     "notes": "Player+0x3a8 embedded owner passed to constructor,joining selector+0x130 and IPC+0x518 layouts."
     }
    ],
    "ipc_routes": "/anacapad-external, /btmanager-external, /netstartd-external, /sonosledmgrd-external, /sonospowercoordinator-external, tpapi-external-endsong",
@@ -137967,13 +137975,13 @@
     "Resolved: wire format, header field semantics (via libsonosutils.so.1), netstartd-side msg-id table + per-msg payload sizes proven. Residual: payload layouts on the /X-external HTTP routes and the remaining per-handler field parses on the anacapad side (outbound msg bodies are formed in per-call site code)."
    ],
    "ipc_select_transport": {
-    "vtable_and_descriptor": "In-image concrete RIPCHandler vtable0x10ef5f10 binds fd+c=0x105d30fc,data+0x18=0x105d3954,timeout+0x1c=0x105d3874 and reset+0x28=0x105d36bc. fd getter locks handler mutex+0x88,reads handler+0x18c and unlocks before returning. Constructor0x105d3288 sets fd+0x18c=-1. The field aliases IPCContext+0x70 because the embedded context begins at handler+0x11c; it is not a second independently owned socket. This vtable is explicitly installed in another embedding at owner+0x518 at0x1069204c; that embedding is not evidence that the player+0x8c0 receiver has the same parent layout. The live player receiver is established independently by its startup and shutdown callsites.",
+    "vtable_and_descriptor": "In-image concrete RIPCHandler vtable0x10ef5f10 binds fd+c=0x105d30fc,data+0x18=0x105d3954,timeout+0x1c=0x105d3874 and reset+0x28=0x105d36bc. fd getter locks handler mutex+0x88,reads handler+0x18c and unlocks before returning. Constructor0x105d3288 sets fd+0x18c=-1. The field aliases IPCContext+0x70 because the embedded context begins at handler+0x11c; it is not a second independently owned socket. Player construction0x1018d998/0x1018d99c establishes embedded owner=player+0x3a8,which is passed to0x10691e00 at0x1018da0c. That constructor creates selector at owner+0x130=player+0x4d8 and concrete IPC handler at owner+0x518=player+0x8c0;0x1069204c installs this vtable. These sums join the concrete vtable to the live startup/shutdown receiver.",
     "producer": "Connect helper0x105d33a4 closes the previous context when fd is not-1,then0x105d3410 calls InitializeIPCContext(context=handler+0x11c,role=2,path). libsonosutils.so.1:0x1264 stores role at context+0x74,fd=-1 at+0x70,clears110-byte sockaddr_un,requires nonnull path and length<=107,opens socket(AF_UNIX=1,SOCK_STREAM=1,protocol0) at0x12c4,and stores fd at+0x70. It obtains fcntl F_GETFL flags and uses F_SETFL flags|0x800 for nonblocking I/O. Family1 is written at sockaddr+0; path is copied at+2 with108-byte capacity. Role2 takes connect(fd,sockaddr_un,110) at0x1338 and requires return0; it does not accept a deferred connect result as success.",
     "context_error_and_close": "InitializeIPCContext returns0 on success. Proven error returns: null context-1,unsupported role-2,null/too-long path-3,socket failure-4,bind failure-5,listen failure-6,connect failure-7,F_SETFL failure-11. Bind/listen arms belong to role1 and are not the watcher's role2 producer. Each nonnull-context failure reaches CloseIPCContext through0x136c. libsonosutils0x11e8 closes a nonnegative context fd at0x1210,stores-1 at+0x70,and clears role+0x74. It unlinks the stored local path only for role1; role2 client cleanup does not unlink the daemon's socket path. The library has conditional bclr guards at entry; disassembler blr text must not be interpreted as unconditional early return.",
     "live_start": "Player startup0x101998bc computes handler=player+0x8c0 and0x101998c0 stores it at sp+0x58.0x101998c8 reloads this receiver,0x101998cc supplies select interface r21=player+0x4d8,and0x101998d0 supplies notification/context pointer player+0x3b8 before0x101998d4 calls0x105d364c. That wrapper supplies /tmp/netstartd.ipc and hello-enabled1,then tail-calls0x105d3574,which connects and registers with the connect-produced timeout. Connection failure does not suppress registration.",
     "connection_and_timer": "Connect helper0x105d33a4 returns timeout{5,0} on InitializeIPCContext error and{60,0} on success. Successful connection clears retry count+0x194 and,when requested,tail-calls hello slot+0x40 (concrete0x105d3d0c). Timeout0x105d3874 initially writes{60,0}; if retained fd is-1,it increments retry count+0x194 and invokes reconnect helper0x105d3770. Registered reconnect sets reset byte+4=1 and saves desired timeout at+0x19c/+0x1a0; with no owner,it immediately tail-calls the connect helper. Reset callback0x105d36bc reconnects using the saved timeout storage then clears reset byte+4. Thus changing the socket is deferred to the selector reset phase when registered.",
     "meaning": "This is the local stream connection by which the player communicates with the network-start daemon. Failed connection setup produces a disconnected descriptor and a short retry delay,while successful setup produces a longer maintenance timeout. The framed-message parser and daemon-specific message semantics are distinct from the watched descriptor ownership.",
-    "live_shutdown": "Actual player cleanup0x1019487c computes the same receiver player+0x8c0 and0x10194880 calls0x105d3088. That helper locks receiver mutex+0x88 and invokes receiver virtual slot+0x3c at0x105d30c4. The concrete close implementation0x105d3234 sends the goodbye through slot+0x44,then semantically tail-calls0x105d3164 at0x105d3284.0x105d3164 temporarily unlocks the mutex,calls retained select owner+8,slot+0xc,with the handler at0x105d31bc,relocks and calls CloseIPCContext at0x105d31d4. The matched player+0x8c0 startup/shutdown pair now binds the live close route; the unregister occurs before the context fd is closed. The dispatcher is the handler's local lifecycle interface,not the protected SOAP request interface."
+    "live_shutdown": "Actual player cleanup0x1019487c computes the same receiver player+0x8c0 and0x10194880 calls0x105d3088. That helper locks receiver mutex+0x88 and invokes receiver virtual slot+0x3c at0x105d30c4. The concrete close implementation0x105d3234 sends the goodbye through slot+0x44,then semantically tail-calls0x105d3164 at0x105d3284.0x105d3164 temporarily unlocks the mutex,calls retained select owner+8,slot+0xc,with the handler at0x105d31bc,relocks and calls CloseIPCContext at0x105d31d4. The matched player+0x8c0 startup/shutdown pair now binds the live close route; the unregister call is attempted before the context fd is closed; its return is ignored. The dispatcher is the handler's local lifecycle interface,not the protected SOAP request interface. Selector.unregister rejects stopRequested!=0 at0x10c5dcd4 without clearing registry/owner. Consequently a close after selector stop can retain the table entry while still closing the context. The established ordering is request-unregister then close,not unconditional successful removal."
    }
   },
   "muse_semantics": {
@@ -139658,13 +139666,73 @@
      "type": "firmware",
      "address": "0x10ea6550",
      "notes": "irdecoder block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1019c2b0",
+     "notes": "Live parent starts embedded IR decoder with player selector."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10193864",
+     "notes": "Live parent stop removes TV signal observer,not IR selector registration."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101928b0",
+     "notes": "Player destructor releases the IR-parent shared-reference control."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e988e8",
+     "notes": "Shared-reference dispose slot points to0x101b43ec."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101b443c",
+     "notes": "Concrete disposal closes embedded decoder through its destructor."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10245170",
+     "notes": "Unregister helper has no branch callers or literal address occurrences in this ELF; parent paths inspected independently."
     }
    ],
    "mechanics": "debounce FSM {\"debouncer: recent becomes true\",\"debouncer: bIsRepeat = true\",\"currently playing/not playing\",\"handling debounced mute/input/volume up/volume Down\",\"will try auto play\",\"handling raw generic repeat/volume up/volume down/volume mute/input code\",\"Handling IR decoder testpoint press action\"}; cmds {vol_up,vol_down,IR Volume Up,IR Volume Down,IR Mute,IR Input}; histogram decode {\"Histogram contains no peaks at all. decode fails\",\"Histogram contains no second peak.\",avgA/avgB,threshold,\"biphase pulse too long %d\",\"too many raw bits!\",\"pulse width coding with threshold of [%f]\",\"pulse distance coding with threshold of [%f]\"}; {\"*****  unrecognized/recognized %d  *****\"}; \"Could not read IR data. (%d, read: %zd)\" + \"IR Event read: %zd, msgcount: %u\"; select events selthrd.RIRDecoder.{reset,data,except,timeout}",
    "resolved_findings": [
     "Resolved: irconfig.txt schema = per-remote key sets {vol_up_codes, vol_down_codes, vol_mute_codes} storing raw IR pulse codes; code-to-action mapping = vol codes drive debounced {volume up, volume down, mute, input} handlers (handling debounced %s); unrecognized codes submit to ir.ws.sonos.com/IRCode and time out to UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND.",
     "Decode algorithm proven: histogram peak detection (Histogram contains no peaks at all, avgA/avgB, threshold) feeding NEC-family biphase decode (biphase pulse too long %d, too many raw bits) choosing pulse width vs pulse distance coding (threshold of [%f]); selthrd.RIRDecoder.{reset,data,except,timeout} read IR Event/msgcount bursts. Learn FSM {Capturing short code, Short code is first of a series. Ignored!, Storing short code, Successful short code learn} with pass-1/3 redundancy checks (first and third passes have different sizes!, Insufficient redundancy in alternate code.) classifying {Alternating, repeat code, non-repeating}. Persistence /opt/ir/irconfig.txt colon-wrapped lists {:repeat_codes:, :vol_up_codes:, :vol_down_codes:, :vol_mute_codes:} of repeat-count-prefixed hex lines (2,25 01); learned copy /jffs/irconfig.txt. Dispatch: debounced {volume up, volume down, mute, input} -> {IR Volume Up, IR Volume Down, IR Mute, IR Input}; unrecognized codes POST <IRCode><code><value>%s</value></code><guid>%s</guid></IRCode> to http://ir.ws.sonos.com/IRCode/; one-button learn times out to UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND."
-   ]
+   ],
+   "select_lifecycle": {
+    "name": "RIRDecoder",
+    "interface_slice": "Primary decoder+8 has vptr0x10ea6458. Cache fields live at primary+0x10 owner,+0x14 watched fd,+0x18 event mask.",
+    "getter": "slot+0xc=0x10244444 adjusts this-8 and tail-calls0x10244430,which loads primary+0x54e34. Constructor0x102473fc initializes fd=-1 at0x10247e04 and HAL handle+0x54e30=0 at0x10247e14.",
+    "socket_producer": "It is a character-device fd,not a socket. Startup0x10248e08 calls hal_ir_open(&primary+0x54e30) then hal_ir_get_fd(handle,&primary+0x54e34). libsyslib_hal.so.1 hal_ir_open0xeec allocates16-byte handle,opens /dev/ir with flags0x80002 and ioctl0x4004f400 identifies the driver type. Path is proven by .rela.dyn R_PPC_RELATIVE addend0x227c at GOT entry0x1ff0c. hal_ir_get_fd0x106c requires nonnull handle,marker5 at handle+c and device type1 at handle+4,then copies handle.fd+0.",
+    "startup_failure": "The primary initializes fd=-1. Open/get-fd errors are logged,and get-fd failure explicitly writes-1 at0x10248f30. The same select registration tail at0x10248edc executes after success or failure,so a registered IR handler is not proof of an open IR device.",
+    "registration": "Live parent function0x1024369c passes decoder=parent+0x218 and its unchanged r4 select-interface argument to0x10248e08 at0x102436e0. Startup tail-calls that interface slot+8 with handler=primary+8; RSelectThread fills handler+8 (primary+0x10) with owner.",
+    "callbacks": "data+0x18=0x1024deec adjusts-8 then tail-delegates0x1024dee0->0x1024dd38. Read builds a buffer at primary+0x56 and calls hal_ir_read with handle+0x54e30 at0x1024dd8c. timeout+0x1c=0x1024448c adjusts-8 and tail-calls0x10244468 to copy timevalInf. exception+0x20 is no-op0x10c5d11c; reset+0x28 is no-op0x10c5d148.",
+    "timeout_constant": "Main .dynsym names0x1109b008 as timevalInf,size8,and .rela.dyn contains R_PPC_COPY(type19). The defining symbol in libsonos-time-c.so.1 at0x20018 holds{2147483647,0}. These are not uninitialized zero globals or a periodic IR polling interval.",
+    "close": "Decoder destructor0x10244fd0 closes a nonnull HAL handle at0x10245028. HAL0x10b8 validates marker5,closes the fd,frees the16-byte handle and clears the caller pointer. The live parent stop and shared-reference disposal chains are bound in live_parent_lifetime; neither executes the compiled unregister helper. Joining the selector and closing the IR device are separate operations.",
+    "live_parent_lifetime": {
+     "parent": "The player owns IR/TV parent pointer at player+0x3d508 and shared-reference control at+0x3d50c. Allocation0x1018f5c4 reserves0x55118 bytes;0x1018f6b0 stores the parent pointer. Decoder primary is parent+0x218; its select slice is parent+0x220. Live start0x1019c2a0 loads this parent and0x1019c2a4 passes r21=player+0x4d8 to0x1024369c,which starts/registers the decoder at0x102436e0.",
+     "stop": "Player stop0x10193860 loads the same parent and0x10193864 calls0x10243424. Its recovered body removes the TVSignalDetectedEvent observer from an in-process event registry; it does not access the embedded decoder,call0x10245170 or invoke the decoder's select owner. Player stop subsequently invokes selector.stop at0x10193884,whose started branch joins the event thread. This stops callback execution but leaves the IR registration/owner in the registry.",
+     "destruction": "Player destructor0x101928a4 loads the parent shared-reference control and0x101928b0 releases it. Shared release0x100c5050 invokes control slot+8 on final strong release. Control vtable0x10e988e8 has slot+8=0x101b43ec; it loads parent at control+0x10 and reaches decoder destructor at0x101b443c. Direct parent destructors also call it at0x101b3ff8/0x101b40c4. Decoder destructor0x10244fd0 calls hal_ir_close at0x10245028 and contains no owner-unregister operation. The selector embedded in player+0x3a8 is destroyed later through0x10192dc8 ->0x10692d10 ->0x106930f8. Retaining another strong parent reference can defer parent/decoder destruction; release of the player's reference is not an unconditional immediate device close.",
+     "uncalled_helper": "The compiled unregister helper0x10245170 loads decoder.primary+0x10 owner and tail-calls owner slot+c with primary+8. Whole-text direct,conditional and tail branch census found no caller. The exact function-address word has zero occurrences in the complete ELF,so no literal pointer table or GOT entry supplies an indirect caller either. The live parent stop and destructors were separately inspected to rule out treating that unused helper as their delegate.",
+     "contract": "The recovered lifecycle does not automatically unregister IR before closing its device. The explicit player stop path joins the shared event thread; parent destruction closes the device on final reference disposal. Decoder destruction itself does not check whether the selector was already stopped. There is no claim that arbitrary destruction/restart ordering is safe,or that an external caller invokes the unused unregister helper. This is an established lack of enforced unregister-before-close behavior,not a missing per-class fd producer."
+    }
+   }
   },
   "reporting": {
    "crashdump": "sentry uploader: dump-proc-anacapa w/ build.version, sentry[release], sentry[tags][%s], %s[sonosID]; dumps anacapad.{core,dmp}+sonospowercoordinator.dmp+btmanager.dmp+netstartd.dmp + *.properties; counters sonospowercoordinatorCrashCount/netstartd.count; logs /opt/log/anacapa.{hdmi,tv}.log,/tmp/AirPlay.log,/opt/log/{btmanager,btservice}.log,/tmp/backtrace,/tmp/crashed_play_state; killfiles /tmp/anacapa_prevent_crashdump_upload+prevent_crashdump_upload; \"Failed to write attachment %s to sentry upload\"; htsnk dump",
@@ -140228,7 +140296,7 @@
     "Resolved (finalized-entry sink): end-of-track processing stores the sink object pointer at monitor+0xe30 and memcpy's the finalized entry into it (0x104c1fc4-0x104c2038); the sink is RPlayReportSubmitter - its notify path logs 'RPlayReportSubmitter::notify: playEntry is a final report' (0x10ed90d8) and 'submitting play report for uuid: %s' (0x10ed9144), emitting via submitPlayReport/playReport with member names {serviceType, activatedAccountCode, errorStatus, errorType, multiAccountId, codec, originDelay, outputDelay, endReason, skippedTrack, nowplaying} and 'periodic report interval set to %lld seconds'. LSE state suppresses the playhead: 'Omitting playhead from report due to LSE'. So the Final-state entries go to the play_report cloud route, not the history recorder."
    ],
    "select_timer_transport": {
-    "vtable": "RTrackPlayMonitor primary interface vtable0x10ed8134 binds label+8=0x104bf2d0,fd+c=0x104c28c4,interest+0x10=0x104c28d4,data+0x18=0x104c28e4,timeout+0x1c=0x104c261c,exception+0x20=0x10c5d11c,exception predicate+0x24=0x1024df04 and reset+0x28=0x10c5d148. fd getter returns constant-2,interest returns1,and data/reset/exception are no-ops. Label table0x110924f0 contains selthrd.RTrackPlayMonitor.",
+    "vtable": "RTrackPlayMonitor primary interface vtable0x10ed8134 binds label+8=0x104bf2d0,fd+c=0x104c28c4,timer-first predicate+0x10=0x104c28d4,data+0x18=0x104c28e4,timeout+0x1c=0x104c261c,exception+0x20=0x10c5d11c,exception predicate+0x24=0x1024df04 and reset+0x28=0x10c5d148. fd getter returns constant-2,timer-first predicate returns1,and data/reset/exception are no-ops. Label table0x110924f0 contains selthrd.RTrackPlayMonitor.",
     "no_descriptor_producer": "Raw0x3860fffe at0x104c28c8 is li r3,-2. The getter reads no object field and invokes no callee,so there is no watched feed socket,fd writer,open or close chain to recover for this interface. Constructor0x104c0aa8 initializes generic cached watch+c=-1 and event mask+0x10=0; these inherited members are not an owned TPM descriptor. Generic installation0x10c5de28 raw0x7c7d1b79 is mr. r29,r3 (record condition bits),and0x10c5de2c branches on CR0.lt to skip epoll installation for the negative getter. This is a timer-only registration.",
     "live_registration": "Parent allocation0x103faf68 reserves0xa7f8 bytes,constructs the monitor at0x103faf80 and stores it at parent+0x1904 at0x103fafb4. Start0x103fdad0 loads select interface from parent+0x18cc and0x103fdad8 calls0x104c0654 with monitor. That helper passes initial timeval{1,0} from sp+0x14 to select interface slot+8 at0x104c0698,so the first callback is scheduled after one second rather than waiting for a packet.",
     "repeated_timer": "Timeout callback0x104c261c calls0x104c228c(this,0) at0x104c2634,then writes output timeval{1,0} at0x104c263c/0x104c2644. Therefore normal timeout callbacks re-arm a relative one-second interval after processing,not a fixed absolute wall-clock tick. The interval comes from this callback,not a socket read or a hardware packet rate. Helper0x104c228c obtains current playback snapshot through provider retained at monitor+0xac,slot+0xc,then works under monitor mutex+0x18 on recorded entries starting+0xb0. Detailed reporting/state semantics remain in track_play_monitor.",
@@ -142348,7 +142416,7 @@
     "Hw-event source enum at 0x10facd4c: {HEALTHCHECK=1, SERVER=2, USER=3, SNF=4, FEEDBACK=5, EXTRALOCAL=6}."
    ],
    "select_transport": {
-    "vtable": "RHWEvtHandlerZP primary select interface uses vtable0x10ec6d10: label+8=0x103c4a78,fd+c=0x103c4aa0,interest predicate+0x10=0x103cba48 (constant1),data+0x18=0x103caf98,timeout+0x1c=0x103c9e08. The label getter returns table0x11091a14 containing selthrd.RHWEvtHandlerZP.",
+    "vtable": "RHWEvtHandlerZP primary select interface uses vtable0x10ec6d10: label+8=0x103c4a78,fd+c=0x103c4aa0,timer-first predicate+0x10=0x103cba48 (constant1),data+0x18=0x103caf98,timeout+0x1c=0x103c9e08. The label getter returns table0x11091a14 containing selthrd.RHWEvtHandlerZP.",
     "descriptor_chain": "Getter0x103c4aa0 adds0x80 to the primary object and semantically tail-calls hwmessagelib_connection_getReadFD through PLT0x11099268. libhwmessagelib.so.1:0x2f2c loads connection+0 (owned nl_sock pointer),then tail-calls nl_socket_get_fd; libnl-3.so.200:0x16300 loads nl_sock+0x18. This descriptor is the hardware Generic Netlink socket,not the optional button-forwarding descriptor at handler+0x938.",
     "producer": "Constructor0x103c4e64 initializes the embedded20-byte connection through0x103c5200. libhwmessagelib.so.1:0x2a40 allocates one nl_sock,disables sequence checking and automatic acknowledgments,then genl_connect at0x2b84. The alternate allocation callsites0x2b60 and0x2d30 join the same owned-socket path; they are not two simultaneous sockets. libnl-genl-3.so.200:0x2e90 supplies protocol16 and tail-calls nl_connect. libnl-3.so.200:0x12ad0 calls socket(AF_NETLINK=16,SOCK_RAW|SOCK_CLOEXEC=0x80003,NETLINK_GENERIC=16) and stores the returned fd at nl_sock+0x18 at0x12ad8; the bind is at0x12b5c.",
     "family_and_subscriptions": "genl_ctrl_resolve at libhwmessagelib0x2c2c uses the literal HW_EVQ and stores the runtime family id at connection+4. The literal is verified through PIC base0x27a94,GOT slot0x1fb18 and R_PPC_RELATIVE relocation addend0x4984. anacapad0x103c5188..0x103c51cc builds nine8-byte {groupName,status} rows for AUDIO,BATTERY,BUTTON,CAPZONE,HT,LED,SENSOR,TEMP,SWITCH;0x103c51f4 supplies count9. libhwmessagelib resolves each group via0x2cac and adds membership via0x2da4. Its broader exported group vocabulary includes BUTTON_POWER and WAKEUP,but this constructor does not request those two groups.",
@@ -145708,7 +145776,7 @@
   },
   "select_thread": {
    "name": "RSelectThread epoll wrapper",
-   "summary": "Shared descriptor-readiness thread with19 handler slots,per-handler callback labels and timeouts. It caches each watched descriptor,dispatches returned readiness bits and detects callbacks that change a descriptor without updating registration. The ARPingManager watcher is concretely bound to the br0 ARP packet socket; other watcher fd lifecycles remain under investigation.",
+   "summary": "Shared event thread for19 handlers,including packet sockets,local pipes,kernel notifications,IR and timer-only playback monitoring. It owns epoll plus an eventfd wakeup,tracks relative callback timeouts,orders timers and I/O according to a concrete policy slot,applies coalesced timeout updates,and validates descriptor stability across callbacks. Stop joins the thread but retains registrations; IR destruction closes its device without automatic unregistration. All eight named watcher descriptor/registration chains are bound.",
    "evidence": [
     {
      "type": "firmware",
@@ -146337,10 +146405,140 @@
      "build": "86.10-80260",
      "address": "0x105d3284",
      "notes": "Concrete lifecycle close tail-delegates unregister-before-context-close helper."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1108b3a0",
+     "notes": "Seven-slot selector lifecycle/update interface vtable."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5d900",
+     "notes": "Full owned fields,19-row update queue and eventfd producer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5dc6c",
+     "notes": "Unregister compaction and stop-request rejection."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5da50",
+     "notes": "Coalesced update producer and eventfd wakeup."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5e024",
+     "notes": "Full event loop,5-second ceiling,relative elapsed-wait timing and callback ordering."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5d6b4",
+     "notes": "Due timer iff elapsed>=remaining,otherwise subtract; callback output is next relative delay."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5e318",
+     "notes": "Raw low-bit mask,not a shift,for read-ready predicate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c5df90",
+     "notes": "Cache reset and epoll recreation without reinstalling wakeup watch."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1098a9fc",
+     "notes": "Selector stop reaches actual pthread_join through semantic tail wrapper."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosminiutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x6d6c",
+     "notes": "Concrete epoll event row,ADD1 and1/-1 result mapping."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosminiutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x6ec0",
+     "notes": "DEL2 wrapper and result mapping."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-time-c.so.1",
+     "build": "86.10-80260",
+     "address": "0x125c",
+     "notes": "Timeval subtraction has no special infinity sentinel exemption."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1019c2b0",
+     "notes": "Live parent starts embedded IR decoder with player selector."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10193864",
+     "notes": "Live parent stop removes TV signal observer,not IR selector registration."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101928b0",
+     "notes": "Player destructor releases the IR-parent shared-reference control."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e988e8",
+     "notes": "Shared-reference dispose slot points to0x101b43ec."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101b443c",
+     "notes": "Concrete disposal closes embedded decoder through its destructor."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10245170",
+     "notes": "Unregister helper has no branch callers or literal address occurrences in this ELF; parent paths inspected independently."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018d998",
+     "notes": "Player+0x3a8 embedded owner passed to constructor,joining selector+0x130 and IPC+0x518 layouts."
     }
-   ],
-   "todo": [
-    "Established:19-slot registry and generic members; descriptor production and registration for ARPingManager,RIfAddressMonitor,RIRDecoder,ArpChecker,RHWEvtHandlerZP,both discovery watchers and RIPCHandler; RTrackPlayMonitor timer-only registration. IPC now has matched live startup/shutdown receiver player+0x8c0 and the virtual close route through0x105d3088 -> slot+0x3c ->0x105d3234 -> tail0x105d3164 -> owner unregister -> CloseIPCContext. Remaining: verify the live IR parent teardown/unregistration sequence rather than treating its uncalled helper as proof. Trace parent stop/destruction callsites,including semantic tail calls,and match the retained select owner. Runtime fd numbers and dynamically assigned netlink ids are not missing constants."
    ],
    "resolved_findings": [
     "Resolved: watcher registrations = {epollAddFD, selthrd, RSelectThreadMutex, SelthrdUpdateMutex, epollReset} + user-FD guards per subsystem.",
@@ -146379,7 +146577,14 @@
     "registration": "Live parent function0x1024369c passes decoder=parent+0x218 and its unchanged r4 select-interface argument to0x10248e08 at0x102436e0. Startup tail-calls that interface slot+8 with handler=primary+8; RSelectThread fills handler+8 (primary+0x10) with owner.",
     "callbacks": "data+0x18=0x1024deec adjusts-8 then tail-delegates0x1024dee0->0x1024dd38. Read builds a buffer at primary+0x56 and calls hal_ir_read with handle+0x54e30 at0x1024dd8c. timeout+0x1c=0x1024448c adjusts-8 and tail-calls0x10244468 to copy timevalInf. exception+0x20 is no-op0x10c5d11c; reset+0x28 is no-op0x10c5d148.",
     "timeout_constant": "Main .dynsym names0x1109b008 as timevalInf,size8,and .rela.dyn contains R_PPC_COPY(type19). The defining symbol in libsonos-time-c.so.1 at0x20018 holds{2147483647,0}. These are not uninitialized zero globals or a periodic IR polling interval.",
-    "close": "Primary destructor0x10244fd0 calls hal_ir_close at0x10245028 when the handle is nonnull. HAL0x10b8 validates marker5,closes handle.fd,frees16-byte handle and clears the caller pointer. Compiled unregister helper0x10245170 uses primary+0x10 retained owner and semantically tail-calls its slot+0xc with primary+8; no direct or conditional/tail call to that helper was found in the whole text. Parent teardown/registration sequencing must still be traced before claiming that path runs in normal shutdown."
+    "close": "Decoder destructor0x10244fd0 closes a nonnull HAL handle at0x10245028. HAL0x10b8 validates marker5,closes the fd,frees the16-byte handle and clears the caller pointer. The live parent stop and shared-reference disposal chains are bound in live_parent_lifetime; neither executes the compiled unregister helper. Joining the selector and closing the IR device are separate operations.",
+    "live_parent_lifetime": {
+     "parent": "The player owns IR/TV parent pointer at player+0x3d508 and shared-reference control at+0x3d50c. Allocation0x1018f5c4 reserves0x55118 bytes;0x1018f6b0 stores the parent pointer. Decoder primary is parent+0x218; its select slice is parent+0x220. Live start0x1019c2a0 loads this parent and0x1019c2a4 passes r21=player+0x4d8 to0x1024369c,which starts/registers the decoder at0x102436e0.",
+     "stop": "Player stop0x10193860 loads the same parent and0x10193864 calls0x10243424. Its recovered body removes the TVSignalDetectedEvent observer from an in-process event registry; it does not access the embedded decoder,call0x10245170 or invoke the decoder's select owner. Player stop subsequently invokes selector.stop at0x10193884,whose started branch joins the event thread. This stops callback execution but leaves the IR registration/owner in the registry.",
+     "destruction": "Player destructor0x101928a4 loads the parent shared-reference control and0x101928b0 releases it. Shared release0x100c5050 invokes control slot+8 on final strong release. Control vtable0x10e988e8 has slot+8=0x101b43ec; it loads parent at control+0x10 and reaches decoder destructor at0x101b443c. Direct parent destructors also call it at0x101b3ff8/0x101b40c4. Decoder destructor0x10244fd0 calls hal_ir_close at0x10245028 and contains no owner-unregister operation. The selector embedded in player+0x3a8 is destroyed later through0x10192dc8 ->0x10692d10 ->0x106930f8. Retaining another strong parent reference can defer parent/decoder destruction; release of the player's reference is not an unconditional immediate device close.",
+     "uncalled_helper": "The compiled unregister helper0x10245170 loads decoder.primary+0x10 owner and tail-calls owner slot+c with primary+8. Whole-text direct,conditional and tail branch census found no caller. The exact function-address word has zero occurrences in the complete ELF,so no literal pointer table or GOT entry supplies an indirect caller either. The live parent stop and destructors were separately inspected to rule out treating that unused helper as their delegate.",
+     "contract": "The recovered lifecycle does not automatically unregister IR before closing its device. The explicit player stop path joins the shared event thread; parent destruction closes the device on final reference disposal. Decoder destruction itself does not check whether the selector was already stopped. There is no claim that arbitrary destruction/restart ordering is safe,or that an external caller invokes the unused unregister helper. This is an established lack of enforced unregister-before-close behavior,not a missing per-class fd producer."
+    }
    },
    "arp_cache_watcher_binding": {
     "name": "ArpChecker",
@@ -146395,7 +146600,7 @@
     "meaning": "A local wakeup pipe coordinates delayed inspections of kernel neighbor-resolution state. It is distinct from ARPingManager,which sends and validates raw ARP frames."
    },
    "hardware_watcher_binding": {
-    "vtable": "RHWEvtHandlerZP primary select interface uses vtable0x10ec6d10: label+8=0x103c4a78,fd+c=0x103c4aa0,interest predicate+0x10=0x103cba48 (constant1),data+0x18=0x103caf98,timeout+0x1c=0x103c9e08. The label getter returns table0x11091a14 containing selthrd.RHWEvtHandlerZP.",
+    "vtable": "RHWEvtHandlerZP primary select interface uses vtable0x10ec6d10: label+8=0x103c4a78,fd+c=0x103c4aa0,timer-first predicate+0x10=0x103cba48 (constant1),data+0x18=0x103caf98,timeout+0x1c=0x103c9e08. The label getter returns table0x11091a14 containing selthrd.RHWEvtHandlerZP.",
     "descriptor_chain": "Getter0x103c4aa0 adds0x80 to the primary object and semantically tail-calls hwmessagelib_connection_getReadFD through PLT0x11099268. libhwmessagelib.so.1:0x2f2c loads connection+0 (owned nl_sock pointer),then tail-calls nl_socket_get_fd; libnl-3.so.200:0x16300 loads nl_sock+0x18. This descriptor is the hardware Generic Netlink socket,not the optional button-forwarding descriptor at handler+0x938.",
     "producer": "Constructor0x103c4e64 initializes the embedded20-byte connection through0x103c5200. libhwmessagelib.so.1:0x2a40 allocates one nl_sock,disables sequence checking and automatic acknowledgments,then genl_connect at0x2b84. The alternate allocation callsites0x2b60 and0x2d30 join the same owned-socket path; they are not two simultaneous sockets. libnl-genl-3.so.200:0x2e90 supplies protocol16 and tail-calls nl_connect. libnl-3.so.200:0x12ad0 calls socket(AF_NETLINK=16,SOCK_RAW|SOCK_CLOEXEC=0x80003,NETLINK_GENERIC=16) and stores the returned fd at nl_sock+0x18 at0x12ad8; the bind is at0x12b5c.",
     "family_and_subscriptions": "genl_ctrl_resolve at libhwmessagelib0x2c2c uses the literal HW_EVQ and stores the runtime family id at connection+4. The literal is verified through PIC base0x27a94,GOT slot0x1fb18 and R_PPC_RELATIVE relocation addend0x4984. anacapad0x103c5188..0x103c51cc builds nine8-byte {groupName,status} rows for AUDIO,BATTERY,BUTTON,CAPZONE,HT,LED,SENSOR,TEMP,SWITCH;0x103c51f4 supplies count9. libhwmessagelib resolves each group via0x2cac and adds membership via0x2da4. Its broader exported group vocabulary includes BUTTON_POWER and WAKEUP,but this constructor does not request those two groups.",
@@ -146414,7 +146619,7 @@
     "meaning": "Unicast discovery and multicast announcements are independent registered UDP inputs. Socket setup success,multicast subscription success and select-thread registration are distinct outcomes. Watch removal occurs before select-thread stop; connection reset and later object destruction own descriptor closure."
    },
    "track_monitor_watcher_binding": {
-    "vtable": "RTrackPlayMonitor primary interface vtable0x10ed8134 binds label+8=0x104bf2d0,fd+c=0x104c28c4,interest+0x10=0x104c28d4,data+0x18=0x104c28e4,timeout+0x1c=0x104c261c,exception+0x20=0x10c5d11c,exception predicate+0x24=0x1024df04 and reset+0x28=0x10c5d148. fd getter returns constant-2,interest returns1,and data/reset/exception are no-ops. Label table0x110924f0 contains selthrd.RTrackPlayMonitor.",
+    "vtable": "RTrackPlayMonitor primary interface vtable0x10ed8134 binds label+8=0x104bf2d0,fd+c=0x104c28c4,timer-first predicate+0x10=0x104c28d4,data+0x18=0x104c28e4,timeout+0x1c=0x104c261c,exception+0x20=0x10c5d11c,exception predicate+0x24=0x1024df04 and reset+0x28=0x10c5d148. fd getter returns constant-2,timer-first predicate returns1,and data/reset/exception are no-ops. Label table0x110924f0 contains selthrd.RTrackPlayMonitor.",
     "no_descriptor_producer": "Raw0x3860fffe at0x104c28c8 is li r3,-2. The getter reads no object field and invokes no callee,so there is no watched feed socket,fd writer,open or close chain to recover for this interface. Constructor0x104c0aa8 initializes generic cached watch+c=-1 and event mask+0x10=0; these inherited members are not an owned TPM descriptor. Generic installation0x10c5de28 raw0x7c7d1b79 is mr. r29,r3 (record condition bits),and0x10c5de2c branches on CR0.lt to skip epoll installation for the negative getter. This is a timer-only registration.",
     "live_registration": "Parent allocation0x103faf68 reserves0xa7f8 bytes,constructs the monitor at0x103faf80 and stores it at parent+0x1904 at0x103fafb4. Start0x103fdad0 loads select interface from parent+0x18cc and0x103fdad8 calls0x104c0654 with monitor. That helper passes initial timeval{1,0} from sp+0x14 to select interface slot+8 at0x104c0698,so the first callback is scheduled after one second rather than waiting for a packet.",
     "repeated_timer": "Timeout callback0x104c261c calls0x104c228c(this,0) at0x104c2634,then writes output timeval{1,0} at0x104c263c/0x104c2644. Therefore normal timeout callbacks re-arm a relative one-second interval after processing,not a fixed absolute wall-clock tick. The interval comes from this callback,not a socket read or a hardware packet rate. Helper0x104c228c obtains current playback snapshot through provider retained at monitor+0xac,slot+0xc,then works under monitor mutex+0x18 on recorded entries starting+0xb0. Detailed reporting/state semantics remain in track_play_monitor.",
@@ -146422,14 +146627,27 @@
     "meaning": "Playback records are processed periodically by a timer registered with the shared event thread. The registry uses the same callback interface for I/O watchers and timer-only users; a handler name in the registry is not evidence of a corresponding network or device descriptor."
    },
    "ipc_watcher_binding": {
-    "vtable_and_descriptor": "In-image concrete RIPCHandler vtable0x10ef5f10 binds fd+c=0x105d30fc,data+0x18=0x105d3954,timeout+0x1c=0x105d3874 and reset+0x28=0x105d36bc. fd getter locks handler mutex+0x88,reads handler+0x18c and unlocks before returning. Constructor0x105d3288 sets fd+0x18c=-1. The field aliases IPCContext+0x70 because the embedded context begins at handler+0x11c; it is not a second independently owned socket. This vtable is explicitly installed in another embedding at owner+0x518 at0x1069204c; that embedding is not evidence that the player+0x8c0 receiver has the same parent layout. The live player receiver is established independently by its startup and shutdown callsites.",
+    "vtable_and_descriptor": "In-image concrete RIPCHandler vtable0x10ef5f10 binds fd+c=0x105d30fc,data+0x18=0x105d3954,timeout+0x1c=0x105d3874 and reset+0x28=0x105d36bc. fd getter locks handler mutex+0x88,reads handler+0x18c and unlocks before returning. Constructor0x105d3288 sets fd+0x18c=-1. The field aliases IPCContext+0x70 because the embedded context begins at handler+0x11c; it is not a second independently owned socket. Player construction0x1018d998/0x1018d99c establishes embedded owner=player+0x3a8,which is passed to0x10691e00 at0x1018da0c. That constructor creates selector at owner+0x130=player+0x4d8 and concrete IPC handler at owner+0x518=player+0x8c0;0x1069204c installs this vtable. These sums join the concrete vtable to the live startup/shutdown receiver.",
     "producer": "Connect helper0x105d33a4 closes the previous context when fd is not-1,then0x105d3410 calls InitializeIPCContext(context=handler+0x11c,role=2,path). libsonosutils.so.1:0x1264 stores role at context+0x74,fd=-1 at+0x70,clears110-byte sockaddr_un,requires nonnull path and length<=107,opens socket(AF_UNIX=1,SOCK_STREAM=1,protocol0) at0x12c4,and stores fd at+0x70. It obtains fcntl F_GETFL flags and uses F_SETFL flags|0x800 for nonblocking I/O. Family1 is written at sockaddr+0; path is copied at+2 with108-byte capacity. Role2 takes connect(fd,sockaddr_un,110) at0x1338 and requires return0; it does not accept a deferred connect result as success.",
     "context_error_and_close": "InitializeIPCContext returns0 on success. Proven error returns: null context-1,unsupported role-2,null/too-long path-3,socket failure-4,bind failure-5,listen failure-6,connect failure-7,F_SETFL failure-11. Bind/listen arms belong to role1 and are not the watcher's role2 producer. Each nonnull-context failure reaches CloseIPCContext through0x136c. libsonosutils0x11e8 closes a nonnegative context fd at0x1210,stores-1 at+0x70,and clears role+0x74. It unlinks the stored local path only for role1; role2 client cleanup does not unlink the daemon's socket path. The library has conditional bclr guards at entry; disassembler blr text must not be interpreted as unconditional early return.",
     "live_start": "Player startup0x101998bc computes handler=player+0x8c0 and0x101998c0 stores it at sp+0x58.0x101998c8 reloads this receiver,0x101998cc supplies select interface r21=player+0x4d8,and0x101998d0 supplies notification/context pointer player+0x3b8 before0x101998d4 calls0x105d364c. That wrapper supplies /tmp/netstartd.ipc and hello-enabled1,then tail-calls0x105d3574,which connects and registers with the connect-produced timeout. Connection failure does not suppress registration.",
     "connection_and_timer": "Connect helper0x105d33a4 returns timeout{5,0} on InitializeIPCContext error and{60,0} on success. Successful connection clears retry count+0x194 and,when requested,tail-calls hello slot+0x40 (concrete0x105d3d0c). Timeout0x105d3874 initially writes{60,0}; if retained fd is-1,it increments retry count+0x194 and invokes reconnect helper0x105d3770. Registered reconnect sets reset byte+4=1 and saves desired timeout at+0x19c/+0x1a0; with no owner,it immediately tail-calls the connect helper. Reset callback0x105d36bc reconnects using the saved timeout storage then clears reset byte+4. Thus changing the socket is deferred to the selector reset phase when registered.",
     "meaning": "This is the local stream connection by which the player communicates with the network-start daemon. Failed connection setup produces a disconnected descriptor and a short retry delay,while successful setup produces a longer maintenance timeout. The framed-message parser and daemon-specific message semantics are distinct from the watched descriptor ownership.",
-    "live_shutdown": "Actual player cleanup0x1019487c computes the same receiver player+0x8c0 and0x10194880 calls0x105d3088. That helper locks receiver mutex+0x88 and invokes receiver virtual slot+0x3c at0x105d30c4. The concrete close implementation0x105d3234 sends the goodbye through slot+0x44,then semantically tail-calls0x105d3164 at0x105d3284.0x105d3164 temporarily unlocks the mutex,calls retained select owner+8,slot+0xc,with the handler at0x105d31bc,relocks and calls CloseIPCContext at0x105d31d4. The matched player+0x8c0 startup/shutdown pair now binds the live close route; the unregister occurs before the context fd is closed. The dispatcher is the handler's local lifecycle interface,not the protected SOAP request interface."
-   }
+    "live_shutdown": "Actual player cleanup0x1019487c computes the same receiver player+0x8c0 and0x10194880 calls0x105d3088. That helper locks receiver mutex+0x88 and invokes receiver virtual slot+0x3c at0x105d30c4. The concrete close implementation0x105d3234 sends the goodbye through slot+0x44,then semantically tail-calls0x105d3164 at0x105d3284.0x105d3164 temporarily unlocks the mutex,calls retained select owner+8,slot+0xc,with the handler at0x105d31bc,relocks and calls CloseIPCContext at0x105d31d4. The matched player+0x8c0 startup/shutdown pair now binds the live close route; the unregister call is attempted before the context fd is closed; its return is ignored. The dispatcher is the handler's local lifecycle interface,not the protected SOAP request interface. Selector.unregister rejects stopRequested!=0 at0x10c5dcd4 without clearing registry/owner. Consequently a close after selector stop can retain the table entry while still closing the context. The established ordering is request-unregister then close,not unconditional successful removal."
+   },
+   "engine": {
+    "interface_and_storage": "Constructor0x10c5d900 installs interface vtable0x1108b3a0. Slots: destructor0x10c5d158,delete0x10c5d1d4,register+8=0x10c5d20c,unregister+c=0x10c5dc6c,start+0x10=0x10c5d3a8,stop+0x14=0x10c5d4b8,post-timeout-update+0x18=0x10c5da50. Object size0x3e8. Nineteen handlers at+4+i*4,labels+0x50+i*4,relative remaining timevals+0x9c+i*8. Epoll fd wrapper+0x134,RThread+0x138,registry mutex+0x1d8,started byte+0x268,stopRequested byte+0x269,update mutex+0x270,nineteen12-byte update rows+0x300+i*12={handler,timeval},owned eventfd+0x3e4. Constructor zeroes arrays and both flags. Thread name RSelectThread,mutex names RSelectThreadMutex and SelthrdUpdateMutex are PIC GOT-resolved literals.",
+    "owned_fds": "Epoll wrapper constructor0x109bc478 calls epoll_create1(0x80000) and stores its fd. Selector0x10c5d9b8 calls eventfd(0,0),stores fd+0x3e4,and logs allocation failure without an immediate abort. Wake0x10c5da28 checks fd>=0 and tail-calls eventfd_write(fd,1). Start0x10c5d40c adds eventfd with event mask1 and null user-data. libsonosminiutils.so.1:sonos_epoll_add_data0x6d6c fills a16-byte epoll-event row (events+0,user pointer+8),uses EPOLL_CTL_ADD1 and returns1 for syscall success or-1 for failure. Its remove0x6ec0 uses EPOLL_CTL_DEL2 with null event pointer and the same1/-1 convention. Selector destructor closes eventfd,then destroys mutex/thread storage and tail-destroys epoll wrapper0x109bc4ac,which closes the epoll fd.",
+    "registration": "Register0x10c5d20c obtains handler label through slot+8,locks registry mutex,rejects stopRequested!=0 with return0,then writes handler.owner+8 before free-slot search. First null slot is used; no duplicate-registration test exists. Success copies caller timeval or stores{INT_MAX,0},initializes handler.cachedFD+c=-1/eventMask+0x10=0,and returns1. Full19-slot table logs too many users and invokes RabortIfUnlocked before return0; owner was already stored. Registration itself does not write eventfd. Unregister0x10c5dc6c returns0 for null retained owner or stopRequested!=0. Otherwise it clears handler.owner+8,removes matching watched fd and compacts handlers/labels/timevals,clears final slot,and returns whether a matching handler was found. It does not propagate epoll-delete failure as its API return. Stop is not equivalent to this unregister operation.",
+    "watch_install_and_reset": "At loop start,resetRequested at handler+4 causes cached-watch removal,then reset slot+0x28 executes. Event mask+0x10 is cleared. Getter-1 removes a cached watch and skips that handler in wait-minimum selection. Other negative values do not install an epoll watch but can contribute a timer; RTrackPlayMonitor deliberately returns-2. Nonnegative getters install read mask1; a nonzero result from slot+0x14 adds exceptional bits for mask0x201b. Slot+0x14 is an exception-watch selector,not a timeout-order flag. Install0x10c5ddd4 skips unchanged cached descriptors,removes any previous watch,adds fd with handler user-data,and updates cache+c. Negative getters are skipped using record-form mr. at0x10c5de28,not an unconditional stale-condition test.",
+    "wait_and_clock": "Loop entry0x10c5e024 holds registry mutex while preparing handlers. It chooses min({5,0},each eligible handler remaining timeout),releases the mutex,reads clock-id1 before and after waiting,and computes elapsed=max(post-pre,0). When at least one ordinary fd was eligible,it calls epoll_wait through tail-wrapper0x109bc510,with maxevents equal to eligible fd count and timeout milliseconds=sec*1000+ceil(usec/1000) for normalized nonnegative timevals. Raw reciprocal multiply/high-word arithmetic0x10c5e200..0x10c5e220 was verified at0,1,999,1000,1001,999999 usec and1/5 sec. When no ordinary fd is eligible,it calls usleep(sec*1000000+usec) instead; the wakeup eventfd is not counted as an ordinary handler. Thus no-fd sleep is not interrupted merely by writing that eventfd. Supplied timevals are copied without validating sign or normalization; the ordinary normalized domain is a convention,not an enforced input range.",
+    "returned_events": "Each returned16-byte epoll row uses events at+0,user pointer at+8. Nonnull pointers receive events at handler+0x10 before registry mutex reacquisition. Null user-data identifies the selector eventfd; a returned read bit triggers eventfd_read at0x10c5e640. Once the mutex is reacquired,the current registered table is traversed. Raw0x57ff07fe at0x10c5e318 selects eventMask&1,not a right shift. Exceptional bits are tested with mask0x201a at0x10c5e314. These masks and the handler flag determine callback ordering.",
+    "callback_order_and_timers": "Slot+0x10 is the timer-first policy: nonzero means run the timer helper before exception/data handling on every pass; zero means an actual data-ready callback or exception callback replaces the timer processing for that pass. For timer-first handlers the order is timer,exception if exceptional bits,data if read bit. For others it is exception then data when those events occur,or timer when neither occurs. Negative-fd handlers still reach timer processing. Timer helper0x10c5d6b4 compares measured wait elapsed against relative remaining timeval; elapsed>=remaining invokes timeout slot+0x1c with that same storage as next-delay output,else subtracts elapsed from remaining. libsonos-time-c.so.1:timevalGeq0x1334 and timevalSubtract0x125c were inspected; subtraction has no special INT_MAX infinity exemption. Timers therefore account for measured wait time,not the entire wall time spent inside callbacks. Long callback processing can extend actual intervals. Each data/exception/timer wrapper samples getter before and after its callback; any change from a starting getter other than-1 invokes the descriptor-change diagnostic,whose call to RabortIfUnlocked is a semantic tail call.",
+    "updates": "Post-timeout-update0x10c5da50 locks update mutex,rejects stopRequested!=0,and searches19 rows for an empty row or the same handler. Reposting the same handler overwrites its queued timeval. A null timeout stores{INT_MAX,0}; a full queue of different handlers returns without an additional row. Successful posting writes eventfd. After callback processing,the worker locks update mutex,matches each queued handler against the live registry,copies the queued relative timeout into that handler slot,and clears the row. An absent handler logs Update error stu ... not in st ... and the row is still cleared. Pending updates are applied after callbacks,so they can replace a callback-produced delay.",
+    "errors_and_recovery": "A failed epoll add/remove logs the operation. Removal clears cachedFD to-1 even on failure and returns0 to its caller. In the worker,a failed watch change routes through0x10c5df90,which resets all registered cached descriptors to-1 and tail-calls epoll-reset wrapper0x109bc4cc; that wrapper closes and recreates the epoll fd. The worker then invokes descriptor-change diagnostic0x10c5d600. The reset helper does not reinstall the null-user-data eventfd watch; start0x10c5d40c is the explicit eventfd-add site. This is a concrete recovery-path limitation,not evidence of reliable wakeup delivery after epoll recreation. Negative epoll_wait results are logged and skip callback/update processing for that iteration; no per-errno special case is present in this loop. The five-second wait ceiling also bounds routine rescans when no earlier handler timeout is selected.",
+    "start_stop_and_retained_state": "Start0x10c5d3a8 locks registry mutex,returns without a second start if started+0x268!=0,adds the wakeup watch,sets started1/stopRequested0,unlocks and starts RThread with entry0x10c5e648,which calls worker0x10c5e024. Wake-watch add failure logs and invokes RabortIfUnlocked; if that helper returns,start continues. Stop0x10c5d4b8 returns early when stopRequested is already set. Its started branch sets stopRequested1,unlocks and joins the RThread through0x1098aa34,which tail-calls0x1098a8b0 and pthread_join at0x1098a9fc. It then removes the wakeup watch and clears started. Neither stop nor destructor iterates the19 handlers to unregister them,clear their retained owners or close their device sockets. Stop also does not explicitly write eventfd before the join. Individual handler owners must manage their own descriptor lifetime; calling stop is not proof that those registrations were erased. The stopRequested-clear but started-clear branch also joins and removes the wakeup watch (0x10c5d520..0x10c5d550),without first setting stopRequested; it is not a separate no-op guard for a never-started selector. Start does not inspect the RThread start return,and constructor does not check epoll_create1 before proceeding to other initialization."
+   },
+   "completion_basis": "Per-record completion: all eight named handler inputs and supplied select owners are bound; the last IPC live cleanup is matched to player+0x8c0; the IR parent start/stop/final-reference disposal chains establish absence of automatic unregister; the selector vtable,19-slot tables,fd wrappers,relative timer arithmetic,callback policies,update queue,state flags,recovery paths and side effects are instruction-traced. Runtime fd numbers and thread/packet timing are dynamic results,not unresolved constants. No live experiment or universal caller-ordering guarantee is claimed."
   },
   "leds_zp": {
    "name": "LED engine (leds_zp)",
