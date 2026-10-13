@@ -125764,12 +125764,12 @@
   "devmode": {
    "obj": "RDevMode + <DevMode>%s</DevMode> var: dev-mode flag",
    "todo": [
-    "Established: exact outer statement framing/model/12-character manufacturing identifier, firmware86.10 compatibility bounds, embedded RSA trust key/fingerprint, signature-envelope framing/algorithms/signing layouts/candidate failure behavior, and specialized type5 marker/format/count/array parser including its32-bit span arithmetic. Remaining: join type5 array consumers and copied envelope flags/primary metadata meanings; decode developer-grant payload grammar/capability consumers and audit persistence/removal/notification paths individually. Follow actual consumers and raw predicates before removing this TODO."
+    "Established: statement/envelope framing and crypto, firmware/model/manufacturing-identifier guards, specialized type5 parser, payload bitmap encoding, developer/SSH capability indices, startup retention, submission statuses and write ordering, direct persistence/runtime file IO, clear/unlink/callback ordering and notification-byte asymmetry. Remaining: join type5 array consumers and copied envelope flags/primary metadata meanings; trace other grant-bit consumers and concrete callback objects at manager+4a8/+4ac to establish notification delivery/effects. Follow actual consumers and raw predicates before removing this TODO."
    ],
-   "mechanism": "Dev mode is CODE-UNLOCKED, not a compile flag: a web form ('DevMode Code: <textarea>', 'devmode' method=POST with a csrf hidden input) accepts an unlock code; the code is validated and persisted as 'devmode.bin' via an atomic 'devmode.tmp.bin'->rename write (devmode.cxx). State surfaces through 'DevModeEventGenerator' and the '<DevMode>%s</DevMode>' status var. The RDevMode object holds the flag; gated code paths read it from the devmode manager, not a fixed global - the store key is 'devmode'.",
+   "mechanism": "Developer mode is gated by a verified statement payload bitmap. The manager-held bit0 enables developer-mode permission; bit47 is the separately tested SSH public-key-install permission. Persistence uses a direct truncated write to persistent-root/debug/devmode.bin plus a separate runtime/tmp/devmode.tmp.bin output. File and callback failures do not roll back the already-replaced in-memory statement.",
    "resolved_findings": [
-    "Resolved: devmode = code-unlock via web form -> validate -> persist devmode.bin (atomic tmp+rename) -> DevModeEventGenerator + DevMode status var. The gate is a manager-held flag read per-path.",
-    "Resolved: dev mode = a persistent signed-statement file {jffsroot}/debug/devmode.bin (fallback /devmode.bin, staged via /tmp/devmode.tmp.bin; load path at f_1054c8d0 calls constructJFFSRootPath). Statements carry capability strings: 'RDevMode' plus 'R_ALLOW_SSH_PUBKEY_INSTALL' - the latter 'may not be persisted' (runtime-only grant). What it unlocks: the /devmode POST endpoint toggles the statement, and /ssh/authorized_keys POST appends posted 'ssh_key' to sys/debug/ssh/authorized_keys (fopen 'a' + fwrite, 0x1066ff84) guarded by the shared csrfToken validator f_105407bc; dropbear host key lives at /jffs/persist/ssh/dropbear_ecdsa_host_key. Changes broadcast 'notify listeners/processes about the change'.",
+    "Developer mode is a signed grant bitmap, not a compile-time flag or textual capability list. Bit0 and bit47 have distinct startup/submission retention predicates; direct file writes and callback statuses are traced below.",
+    "The persistent path is constructed from debug/devmode.bin under the persistent root. The runtime output is/tmp/devmode.tmp.bin. Capability labels RDevMode and R_ALLOW_SSH_PUBKEY_INSTALL correspond to bitmap indices0 and47; they are not NUL strings inside the payload. Any previously described atomic temporary-file rename is corrected by statement_file_contract.",
     "Resolved: devmode.bin load path (f_1054c0c0 region, devmode.cxx strings @0x10ee9744+) reads the statement file and passes it to libsonoscrypto import ZZ0137 before \"Loaded persistent statement.\" - the blob is crypto-verified at load, and on failure or when the statement carries R_ALLOW_SSH_PUBKEY_INSTALL the persistent statement is removed (\"Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL\"). Paths: {debug/devmode.bin source, /devmode.bin active, /tmp/devmode.tmp.bin staging}. The R_* name family is a project-wide result/reason enum vocabulary (~350 names spanning service errors, LED states, stream ops, play ops, SSL errors), not exclusively devmode capabilities.",
     "ZZ0137 is the outer binary-statement parser, with magic/model/constraint-range/length-prefixed identifier and payload guards. It verifies through a signature-envelope delegate. The trust callback loads an embedded2048-bit RSA key and matches its20-byte SHA1 identifier; it does not pass a verifying-key filename to ZZ0064. Detailed joins are in statement_outer_format/statement_key_source."
    ],
@@ -125967,6 +125967,55 @@
      "build": "86.10-80260",
      "address": "0x3fac",
      "notes": "Successful type5 parse advances cursor and stores pointer descriptor, without per-element interpretation."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xcc88",
+     "notes": "Payload index maps from end of bitmap; no capability-string parser."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054c36c",
+     "notes": "Persistent SSH bit47 removes the statement even when bit0 is set."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054c694",
+     "notes": "Submission rejects combined developer/SSH grant via clear, status1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054cb28",
+     "notes": "Final file opened write/create/truncate directly, no atomic rename."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054cb68",
+     "notes": "Partial-write accumulation and EINTR retry."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054c0e0",
+     "notes": "Clear callback ordering continues after failure; submission differs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054bfe8",
+     "notes": "Longer new payload arm copies old payload then reads beyond its bitmap span in common loop."
     }
    ],
    "signature_envelope_contract": {
@@ -125991,6 +126040,22 @@
     "wire_fields": "Following that31-byte marker is u8 format at+1f, then u32BE entry count at+20 and the array at+24. Validator ZZ0181(0x9050) accepts formats1..3 by unsigned(format-1)<=2. Format1 computes8 bytes per entry,format2 computes6,format3 computes16. Count0 is locally accepted. The routine checks header availability and array-end against the supplied end pointer, copies a40-byte internal descriptor containing marker/format/count and array pointer into entry+8, advances the caller cursor to the computed array end and returns1. Marker/format/bounds failures return0. It does not copy or inspect individual array contents.",
     "arithmetic_quirk": "The array-span operations at0x3f80,0x3fb4..0x3fbc and0x3fc4 use32-bit shifts/subtraction. There is no independent upper bound on entry count and no overflow check. Computed span is stride*count modulo2^32. For example format1 count2^29,format2 count2^31 andformat3 count2^28 each compute span0. A large count can therefore satisfy this local byte-span gate with fewer array bytes than its unbounded mathematical size. This is a static instruction/boundary audit, not a live-device exploit or observation.",
     "semantic_boundary": "The parse establishes marker, three format selectors, count, strides and pointer descriptor. It supplies no names for array element roles and performs no per-element validation. Its developer-mode consumers and any meaning attached to those formats remain to be joined; no IPv4/IPv6/MAC element interpretation is asserted from stride alone."
+   },
+   "grant_bitmap_contract": {
+    "representation": "The outer length-prefixed payload is a byte bitmap. libsonoscrypto ZZ0018 at0xcc70 takes payload pointer,length,bit index and returns0 when index>=8*length; otherwise it reads payload[length-1-(index>>3)], shifts by index&7 and returns its low bit. It allocates nothing and does not scan strings. For outer payload length<=255, bit domain is0..2039. Bit0 is the least significant bit of the final byte. RDevMode manager0x1054bd60 invokes it on statement+404 offset and+408 length under the manager-lock assertion, then converts exact result1 to true.",
+    "known_capabilities": "Load/submission paths query index0 for developer-mode permission and index0x2f(47) for R_ALLOW_SSH_PUBKEY_INSTALL. Evidence includes0x1054c36c/0x1054c54c and the matching removal/retention diagnostic strings. Thus01 is a minimal bit0 payload;800000000000 is a six-byte bit47-only payload;800000000001 sets both. These are byte-encoding examples, not signed usable grant files. Other capability-index consumers remain to be joined; the R_* string vocabulary is not a textual grant-payload grammar.",
+    "startup": "0x1054c220 reads the persistent file, validates the statement and installs parser outputs directly into the manager. Failed verification clears/deletes through0x1054c048. A verified statement without bit0 also clears/deletes. When bit0 is present, bit47 causes the Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL path and clears/deletes. Only bit0 present plus bit47 absent reaches Loaded persistent statement and retains the statement. Startup does not accept an SSH-only file as a persistent grant.",
+    "submission": "0x1054c424 rejects length>1024 or verifier failure with return0 before replacing manager data. After verification it computes a notification byte array, clears the1024-byte statement buffer, copies the supplied statement and stores size/payload offset/length/compatibility bounds. If bit47 and bit0 are both set, it calls clear0x1054c048 and returns1. Otherwise bit0 requests a persistent write; bit0 absent removes the old persistent file. Both accepted cases then write the runtime file and notify configured callbacks. Full accepted completion returns2; save/notification failures return0. These are manager method statuses, not HTTP status codes. State replacement precedes writing/notification and has no rollback on later failure."
+   },
+   "statement_file_contract": {
+    "persistent_path": "Writer0x1054ca58 with mode nonzero constructs persistent-root/debug, mkdirs it with mode0777(accepting EEXIST), appends/devmode.bin, then opens that final path directly with flags0x241(write/create/truncate) and mode0600. It is not a temporary-file-plus-rename commit. No rename/fsync occurs in this writer.",
+    "runtime_path": "The same writer with mode0 directly writes/tmp/devmode.tmp.bin with the same flags/mode. This file is a separate runtime statement output, not a staging file renamed over the persistent one. Submission writes persistence first when required, then runtime output. File paths under the persistent root are bounded to1024 bytes; path overflow rejects.",
+    "io": "Writes accumulate partial positive returns, retry write-1 with errno4(EINTR), fail on other-1/zero/nonpositive results and close on all opened paths. Return1 means requested bytes were written,0 means failure. Close result is ignored. A failed direct overwrite can leave truncated/partial data. Unlink helper0x1054cbe8 selects persistent path for mode1 or runtime path for0 and returns whether unlink succeeds. Clear/submission paths do not make those unlink results a rollback gate.",
+    "clear": "0x1054c048 computes a removal notification payload, clears statement bytes and fields+400/+404/+408/+40c/+410, attempts to unlink both persistent and runtime files, then invokes each nonnull manager callback at+4a8 and+4ac via vtable slot+8 with byte buffer and length. It logs callback-1 failures and continues, including trying the second callback after the first fails. Submission instead stops on first callback-1 and returns0 without calling the second."
+   },
+   "grant_notification_bytes": {
+    "mechanism": "0x1054beb0 clears the caller output buffer using its supplied capacity. New payload length0 copies the old bitmap and reports its length, supplying removal bytes. Equal old/new lengths with equal bytes reports length0. Otherwise it reports max(old_length,new_length), zeroes a255-byte stack workspace, then XORs that workspace with bytes read from the old manager payload. The callback interpretation of this byte array remains untraced.",
+    "alignment_and_quirk": "When old length>=new length, it right-aligns the new payload in the zeroed workspace then XORs all old bytes, producing a big-endian-aligned difference. When old length<new length,0x1054bfe8 instead copies the old payload into the right-aligned workspace, then the common loop at0x1054bf90 still reads max-length bytes from the old manager payload. It does not read the supplied new payload in this arm and can read into the following statement bytes. This asymmetry is established from the copy and loop arguments; do not describe this helper as an always-correct old-XOR-new delta. Both outer payload lengths are byte-sized, keeping the workspace span<=255 in these callers."
    }
   },
   "mod_zp": {
