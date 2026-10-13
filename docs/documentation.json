@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish EC-JPAKE branch/ciphersuites/handshake and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish DTLS selector domains/PSK provider and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156675,6 +156675,55 @@
      "build": "86.10-80260",
      "address": "0x10025df8",
      "notes": "PIN becomes EC-JPAKE handshake password after getter mode mutation."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100353f4",
+     "notes": "Single-suite lists0xccac and0xc0ff with zero terminators."
+    },
+    {
+     "type": "firmware",
+     "binary": "libmbedtls.so.21",
+     "build": "86.10-80260",
+     "address": "0x2fc20",
+     "notes": "Shipped ECDHE-PSK ChaCha20Poly1305SHA256 cipher name."
+    },
+    {
+     "type": "firmware",
+     "binary": "libmbedtls.so.21",
+     "build": "86.10-80260",
+     "address": "0x2fe10",
+     "notes": "Shipped ECJPAKE AES128CCM8 cipher name."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025c7c",
+     "notes": "SSL configuration indexing has no local domain check."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002593c",
+     "notes": "Signed negative result branches to errors; nonnegative results enter connected path."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025a80",
+     "notes": "Read/write waits map to wait-direction0/1 and normalized return0."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025b20",
+     "notes": "Retry-delay cap applies after32-bit variable shift, with no bounded counter."
     }
    ],
    "setup_client_hello_payload": {
@@ -156892,6 +156941,14 @@
     "transport_consumer": "DTLS initialization stores configuration pointer at transport+0. After SSL setup/BIO selection,0x10025cf4 tests transport+164==1. Only that branch requests this password callback:0x10025d8c loads configuration+44 and invokes it at0x10025da4 with context configuration+48 and output string-pointer address. Getter success leads to strlen at0x10025de8, then mbedtls_ssl_set_hs_ecjpake_password at0x10025df8 with SSL context transport+8 and those exact PIN bytes/length. This is EC-JPAKE password input, not a direct ssl_conf_psk key assignment. The callback itself has already changed active verification mode+2cc according to requested setup method before password installation is attempted.",
     "failure_order": "Missing callback or getter failure returns-1 through the transport failure branch, optionally invokes transport teardown helper0x100247c0 when transport state+170 is nonzero, and does not call password installation. A nonzero EC-JPAKE password-installation result enters its separate logged failure path; there is no local restore of setup-context+2cc. On library success, initialization continues through0x100258f4. Full handshake completion, selected ciphersuites, peer confirmation and later setup FSM transitions remain unresolved. Callback/password setup success is not documented as completed peer authentication.",
     "practical_join": "The generated or authenticated client PIN supplies the DTLS EC-JPAKE password in this concrete configuration branch. The raw manufacturing identity contributes two digest bytes to the separately generated compact CHIRP proof. These are distinct roles joined through their exact producers/consumers; the identity bytes are not themselves the DTLS password."
+   },
+   "dtls_suite_and_handshake_contract": {
+    "configured_suites": "Configuration constructor0x100262a0 initializes two0xb0-byte SSL config slots beginning0x10052f28. Both call ssl_config_defaults(endpoint1,transport1,preset0),set handshake timeouts1000/60000ms,install library RNG via ZZ0111 and DTLS cookie callbacks. Suite arrays at0x100353f4 are u32[0xccac,0,0xc0ff,0], eight-byte stride. Shipped libmbedtls.so.21 ciphersuite table0x2fc20 names0xccac TLS-ECDHE-PSK-WITH-CHACHA20-POLY1305-SHA256;0x2fe10 names0xc0ff TLS-ECJPAKE-WITH-AES-128-CCM-8. Each list has one suite, not fallback preferences. Only first initialized slot additionally registers configured PSK callback/context via ssl_conf_psk_cb0x100264dc. EC-JPAKE password installation uses the separate concrete PIN callback already joined.",
+    "selector_boundary": "SSL setup0x10025c60 selects address0x10052f28+0xb0*(2*(u32 field at transport+168)+(u32 field at transport+164)), using32-bit index arithmetic without a local range guard. Constructor initializes transport+168=1; setter0x10026630 writes caller u32 to+164 and tail-calls reset0x100265a0. Constructor here initializes only the two config slots; the relation between later+168 writers, setter callers and the two-slot valid selection must be traced before claiming every possible index has a configured cipher. The password callback branch separately tests+164==1. Numeric selection arithmetic is documented without pretending its unresolved fields are proven client/server enums.",
+    "success_path": "Handshake wrapper0x100258f4 calls mbedtls_ssl_handshake on transport+8 at0x10025934. It branches to error handling only when signed result<0; nonnegative results clear wait-direction+16c and transition transport state+170 to4 unless already4. It then invokes configured callback+2c with context+38,SSL pointer and transport+168. After callback, it records SSL field+18(original transport+20) into transport+174,updates BIO callbacks and installs DTLS replay-detected callback for framing context+758. If transport remains active and ssl_check_pending is true, it tail-calls receive pump0x1002539c. Callback bodies and pump/parser effects still need individual tracing. State4 is the connected state in the separately recorded DTLS table; no full application setup completion is inferred.",
+    "retry_paths": "Errors-26880(-0x6900) and-26752(-0x6880) log waiting on transport,write wait-direction+16c=0 or1 respectively,transition state+170 to3 if needed,and return0 to the caller. Therefore this wrapper return0 includes waiting for more IO as well as handshake completion. Error-27264(-0x6a80) transitions state1 if needed, calls reset helper0x10024514 and re-registration0x100242e0, then returns0. These local transitions retain the distinction between connecting and HelloVerify progress.",
+    "fatal_and_backoff": "Errors-30464(-0x7700) or-28928(-0x7100) log that a prior-session close-notify alert may be involved; they call teardown0x100247c0 when state is nonzero and return the original negative result. Other negative errors log failure,increment32-bit failure count+1fa0,and compute retry delay+1fa4 as min(2000 shifted left by the incremented count,300000),then optionally tear down. Shift computation is raw PPC slw with32-bit result and no separately bounded count, so it is not an indefinitely saturating mathematical exponential; large counts/shift results require literal instruction semantics. These fatal returns differ from the normalized0 retry/HelloVerify returns. No specific peer error cause is assigned solely from the daemon log wording.",
+    "completion_limit": "The static trace proves the configured suite names, handshake wrapper predicates, local state/callback ordering and result conventions. Finish selector writers/callers, configured PSK provider, DTLS cookie/replay effects and connected callback/pump before closing the transport portion of the subsystem."
    }
   },
   "bin_wacd": {
