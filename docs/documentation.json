@@ -127415,7 +127415,8 @@
      "address": "0x105e65f8",
      "notes": "Clear numeric0x1/0x2,set0x20,persist new MDP flags."
     }
-   ]
+   ],
+   "signature_consumers": "Standalone mdputil has two separately keyed MD5/RSA PKCS#1 v1.5 checks: original serial plus complement-validated hardware flash serial, signature MDP2+34c; and26-byte model/submodel/serial/color header plus260-byte payload, signature MDP2+3cc. See bin_mdputil.bundle_signature_contract for exact layout, key fingerprints, return domains and edit asymmetry. These checks are distinct from the basic read/CRC contract and from the signing-key consumer in noncehandler."
   },
   "tls_stack": {
    "lib": "libmbedtls.so.21 + libmbedx509.so.7 + libmbedcrypto.so.16 + libsonoscrypto.so.3",
@@ -154170,9 +154171,9 @@
   },
   "bin_mdputil": {
    "name": "mdputil",
-   "summary": "Reads factory identity/configuration, stages command-line edits, checks imported manufacturing bundles and erases/writes manufacturing flash. The original512-byte page and4096-byte second page have distinct layouts. Option parsing, boot repair, version preparation and flash failure behavior are traced; cryptographic bundle internals and remaining hardware-field consumers still require work.",
+   "summary": "Reads factory identity/configuration, stages command-line edits, verifies manufacturing-bundle signatures and erases/writes manufacturing flash. The512-byte identity page and4096-byte second page have distinct layouts. CLI, repair, signature inputs and flash failures are traced; driver-side serial/check commands, geometry and remaining hardware-field consumers still require work.",
    "todo": [
-    "Established: original/staged data separation, all getopt dispatch targets, numeric/serial/series/flag/manifest edits, boot repair and option-order behavior, bundle read sizes and validation call order, version/CRC preparation, erase/write sequence and errors. Remaining: fully reverse cryptographic helpers0x100024c4/0x10002928/0x10002a5c; trace /dev/chk ioctl0x8004f302 and flash geometry producers; bind unprinted tail fields, wildcard override final consumer and individual manifest hardware-code meanings. Follow these producer/consumer chains and raw branch predicates before removing this TODO."
+    "Established: CLI edits and option order, repair/write preparation, erase/write failures, both embedded RSA keys, MD5 digest inputs, signature offsets, serial/complement search, validation return domains and wildcard-color final consumer. Remaining: trace kernel handling of /dev/chk ioctl0x8004f302 and /dev/mtd/0 ioctls0x40044d24/0x80244d23, including returned serial-data extent and device-command parameters; trace flash geometry producers; bind remaining unprinted tail fields and individual manifest hardware-code meanings to consumers. Follow those producer/consumer chains before removing this TODO."
    ],
    "artifacts": [
     "bin/mdputil"
@@ -154181,7 +154182,7 @@
     "ELF SHA256 and explicit stack buffers join the512-byte MDP1 and4096-byte MDP2 read paths. MDP1 magic is0xce10e47d;MDP2 magics are0xca989b4a/0xfa87b921. Raw XOR/signed-immediate equations were checked rather than using the operand fragments as magic.",
     "Printer arguments at0x10001664..0x10001ab0 bind the named MDP1 fields and widths. FUSEVAL is+0x88;SWFEATURES+0x8c;SERIES_ID+0x98;DATECODE+0xac;DCOFS+0x100. Derived status/color/FSN lines have separate helper chains.",
     "libflash read success does not compare stored CRC. Flags/version normalization can zero fields in the returned view even when raw page bytes were nonzero. The CLI preparation helper separately stores CRC over508 bytes.",
-    "The 0x104 check at0x10002960 requires r6 exactly260 bytes for a signature-verification block. It is not an index bound or a260-entry field-name table. The same helper requires signature size128 at0x100029b0;its full signed-data/crypto role remains under analysis.",
+    "0x10002928 requires260 payload bytes and128 signature bytes, hashes a supplied identity header plus that payload with MD5, and performs RSA PKCS#1 v1.5 verification. The260 comparison is not a field index or table length.",
     "Hardware-manifest output is one-based1..8. Editable indices are1..7 with per-entry numeric ranges;0 and8 reject. Null-check printer wrapper uses conditional bclr and fall-through,not a dead delegate.",
     "REGION edit is option-e:0x10000eb4 stores the supplied value at staged MDP1+0x1c. Thus the documented command mdputil -fwe 2 supplies new REGION value2;2 is not a field index.",
     "/etc/Configure line74 invokes mdputil-B. At0x10001190 the option can check existing MDP2 through/dev/chk, then requests a forced write when original old-version>6. Otherwise it exits early unless-w has already appeared. It is not merely a printing option.",
@@ -154361,7 +154362,8 @@
    },
    "series_and_variant": {
     "series": "sonosGetSeriesID at libsonos-mdp0xcb0 uses stored four-byte+0x98 when effective version>=4 and the first byte is nonzero;otherwise it derives a four-character code from model/submodel/revision. Return1 denotes stored;0 denotes derived. mdputil appends(dynamic) to the derived path at0x100016a0,not to stored data. sonosSetSeriesID0xe64 checks the first characterA-Z and next three digits,then stores those four bytes. It does not require the next input byte to beNUL,so a valid four-character prefix can be stored from a longer argument.",
-    "variant": "sonosGetCertColorVariant at libsonos-mdp0x964 takes MDP1 and MDP2 as separate pointers. For MDP2 magic0xca989b4a,it requires MDP1+74>3 (minimum4) and reads MDP2+0x44c. For0xfa87b921,it requires+74>4 (minimum5) and reads MDP2+0xa10. Accepted value domain is0..18. It returns0 on failure and optionally writes status-2(bad pointer),-3(unknown magic),-4(unsupported version),-5(index out of range);these are not negative color return values. mdputil0x100018f4 passes a null error-output pointer,so VARIANT=0 alone cannot distinguish color0 from decoder failure."
+    "variant": "sonosGetCertColorVariant at libsonos-mdp0x964 takes MDP1 and MDP2 as separate pointers. For MDP2 magic0xca989b4a,it requires MDP1+74>3 (minimum4) and reads MDP2+0x44c. For0xfa87b921,it requires+74>4 (minimum5) and reads MDP2+0xa10. Accepted value domain is0..18. It returns0 on failure and optionally writes status-2(bad pointer),-3(unknown magic),-4(unsupported version),-5(index out of range);these are not negative color return values. mdputil0x100018f4 passes a null error-output pointer,so VARIANT=0 alone cannot distinguish color0 from decoder failure.",
+    "wildcard_final": "sonosGetFinalColorVariant at libsonos-mdp0x9fc first calls GetCertColorVariant. Any result other than11 passes through unchanged. For wildcard11 it keeps11 if effective MDP1 version<=4, otherwise reads override+9c. Unsigned override<=18 returns directly; larger values return0 and write optional status-5. This is distinct from-V accepting an unchecked decimal value: the later consumer supplies the range check. Effective version uses old directly for old<=5 and a nonzero new version only for old>5. mdputil prints WILDCARD_VARIANT from+9c when its certification/version gates pass."
    },
    "manifest_addressing": {
     "layout": "Header+0xb0=0x7a61670e;40-byte area starts+b4. Display indices1..8 are LED at+b5,AMP+b6,TEMP_SENSOR(AMP)+b7,TEMP_SENSOR(CPU)+b8,ALS+b9,ACCELEROMETER+ba,FUEL_GAUGE+bb,RADIO+bc. Printer0x10002218 increments the base before loading each entry.",
@@ -154569,6 +154571,62 @@
      "build": "86.10-80260",
      "address": "0x10000ebc",
      "notes": "Colon-token DCOFS broadcast and successive per-channel replacement, not manifest editing."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002668",
+     "notes": "MD5 original six-byte serial followed by complement-validated flash serial."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x100026d4",
+     "notes": "First128-byte RSA signature at MDP2+34c; magic and payload-length guards."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002b40",
+     "notes": "26-byte identity header with model/submodel/color and zero suffix."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002a50",
+     "notes": "Second RSA signature over header plus260 payload bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x6bd8",
+     "notes": "Hash selector2 initializes MD5; update/free tail branches traced."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x8fdc",
+     "notes": "RSA PKCS#1 v1.5 verify; boolean success derived from zero mbedTLS status."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x74e4",
+     "notes": "Tail branch loads first162-byte embedded public key; distinct second getter0x7570."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xa64",
+     "notes": "Wildcard color override requires effective version>4 and unsigned value<=18."
     }
    ],
    "cli_edit_contract": {
@@ -154588,7 +154646,17 @@
     "erase": "0x10002fac builds descriptor words from flash-info+3c,+40,+50; byte+20c==3 substitutes first-page write span512. 0x10002ef0 opens/dev/mtd/0 read/write and issues ioctl0x80084d02 with two words: offset(info+50) and erase length(info+3c). Returns1 for open failure,5 for ioctl failure,0 for success. It closes the descriptor. Geometry provenance remains to be traced.",
     "write": "After successful erase,0x10002d58 opens/dev/mtd/0 read/write, checks both halves of lseek64 against the requested offset, then prepares MDP1. A span>512 allocates a zeroed span and copies512 bytes; smaller/equal spans use MDP1 directly. It makes one write for the span, then one4096-byte write if MDP2 is present. Negative or short writes fail; there is no retry/partial-write loop. It frees padding storage and closes the file.",
     "errors": "Writer statuses1=open,2=seek mismatch,4=write failure,15=padding allocation failure. Outer wrapper returns9 for null flash context and collapses erase/write failures to14. Main prints mdp_write failed and returns1 on failure. Erase occurs first, so later failure can leave erased or partially replaced manufacturing data; no rollback path is present.",
-    "bundle_import": "-k - removes the second page from the write. Other filenames require an original MDP1. One read of up to4088 bytes into prepared MDP2+8 must return836,964,1092 or1096; corresponding MDP2 versions are1,2,3,4. Header is0xca989b4a; payload length is836 for the first format and964 for the others. Validation0x100024c4 binds against original serial+14, even after staged-s edits. Version>3 additionally calls0x10002a5c. -h permits continuation after these validation failures. Full cipher/signature internals remain open."
+    "bundle_import": "-k - removes the second page from the write. Other filenames require an original MDP1. One read of up to4088 bytes into prepared MDP2+8 must return836,964,1092 or1096; corresponding MDP2 versions are1,2,3,4. Header is0xca989b4a; payload length is836 for the first format and964 for the others. Validation0x100024c4 binds against original serial+14, even after staged-s edits. Version>3 additionally calls0x10002a5c. -h permits continuation after these validation failures. The two signature contracts and their distinct original/staged identity inputs are documented in bundle_signature_contract."
+   },
+   "bundle_signature_contract": {
+    "crypto_binding": "libsonoscrypto.so.3 ZZ0062 at0x6b30 initializes a112-byte tagged hash state: selector1=SHA256,2=MD5,3=SHA1. ZZ0064 at0x6c08 tail-branches to the matching mbedtls hash update; ZZ0061 at0x6c4c finishes then tail-branches to hash-context free. Both mdputil checks select2, so their16-byte digest is MD5. ZZ0109 at0x8ec4 requires signature algorithm selector1, key size<=512 bytes and signature length exactly the key size; hash selector2 maps to mbedtls digest enum3. It calls mbedtls_rsa_rsassa_pkcs1_v15_verify and returns1 only when that call returns0. These are signature checks, not decrypt operations.",
+    "embedded_keys": "ZZ0087 at0x74a8 passes162 DER bytes at0xd5d4 to ZZ0101; ZZ0083 at0x7570 passes162 DER bytes at0xd71c. GOT entries use R_PPC_RELATIVE addends0xd090 and0xd71c; the first getter adds0x544. Independent OpenSSL DER decoding confirms each is a1024-bit RSA public key with exponent65537. SHA256 of the DER blobs: first cbbff75214c4b677643ed3c091ed710b8e75a3aa8b6ae02887050eae669e4407; second5e6c832fb6bb1f30370e41fd6cf02d2b9f207d38374f95227f8c6c1a4fec1d1e. ZZ0101 at0x84e4 attempts X509 then public-key parsing then its legacy parser, requires RSA type and rsa_check_pubkey success, and exports modulus/exponent; the supplied DER uses the public-key parse route.",
+    "serial_flash_signature": "0x100024c4 requires nonnull MDP2 and six-byte serial pointers, loads the first embedded public key, then opens/dev/mtd/0 read-only. ioctl0x40044d24 retrieves a device ID. ioctl0x80244d23 receives a36-byte parameter block whose first word is0x100 and next word points to stack+10c; remaining command bytes depend on device ID. The returned bytes are searched in serial/complement pairs: each corresponding byte must XOR to0xff. On a valid pair, the serial is copied, the device closed, and MD5 is computed over six original identity bytes followed by8 or16 flash-serial bytes. For magic0xca989b4a and payload-length word>963, the128-byte signature at MDP2+34c is verified against that digest using the first key. The bundle payload itself is not hashed by this check.",
+    "flash_serial_commands": "IDs0x1da,0x1f1,0x2caa,0x2cda,0x2cf1 use16-byte serials, a16-pair search limit, parameter word+8=0, word+14hex=5 and word+20hex=0xed. IDs0x98d1,0x98da,0x98f1 also use16-byte serials and16-pair limit but word+8=2, bytes+c/d=5a/b5. ID0x20aa uses8-byte serials, one-pair limit, word+8=4, bytes+c..f=29/16/02/19. All use pointer/0x100 setup above. The loop advances by twice the serial width per rejected pair. Driver interpretation of these parameters and the amount of returned serial data remain open; do not equate the parameter0x100 with a verified byte-count contract.",
+    "serial_result_domain": "0x100024c4 returns-1 for null page/serial; -2 for embedded public-key load failure; -3 for device open, unsupported device ID, ioctl failure or exhausted complement-pair search; -4 for unsupported MDP2 magic or payload length<=963 after obtaining the serial; -6 for signature mismatch;0 for success. Raw isel0x7fe04f9e at0x100026e0 selects literal0 when verification returns1, otherwise-6. No path in this helper returns-5, although the caller diagnostic table includes a Decrypt error entry for-5. Key resources are freed on the normal/error return paths. Consequently the accepted836-byte import size maps to version1/header length836 but does not pass this validator; it reaches-4 after successful flash-serial acquisition. File-size acceptance is separate from signature acceptance, and-h can bypass that rejection.",
+    "identity_header": "0x10002a5c takes MDP1 then MDP2, loads the second embedded key and obtains constant0x3c6852eb through ZZ0086 at0x75ac. It constructs exactly26 bytes: u32BE constant;6 serial bytes from MDP1+14;u32BE MODEL from MDP1+8;u32BE SUBMODEL from MDP1+c;u32BE certification color from MDP2+44c;4 zero bytes. The halfword stores at0x10002b40..0x10002b54 preserve the PPC big-endian order of the three32-bit fields. Vendor, revision, region and wildcard override are not part of this header.",
+    "identity_payload_signature": "0x10002928 hashes the supplied header followed by exactly260 bytes from MDP2+8. It verifies128 signature bytes from MDP2+3cc using the second public key. Parameter guard requires nonzero header length, data length260, signature length128 and nonnull key; other input pointers are not locally checked. Hash-init failure prints Bad hash and returns0; bad guarded parameters print Bad parm and return0; otherwise it returns the verification boolean. Raw SPE instructions0x10e10b21/0x10e10b01 at0x100029c4/0x100029e0 and0x10002a0c/0x10002a30 save/restore the signature-pointer register around volatile hash calls; the pointer is not an accidental post-call r7 value. 0x10002a5c prints Bad mdp for null pages or Bad key for key failure, frees the key and returns0; success returns1. It does not independently check page magic or version.",
+    "callers_and_edit_asymmetry": "Main-B0x100011a8 and imported-bundle check0x100014c8 call the serial/flash checker with original serial, which is also called by standalone read wrapper0x100028d0. Imported versions>3 call the identity checker at0x10001dec with the staged MDP1; this binds edited model/submodel/serial to the imported signature. Printer0x10001d30 calls it with original pages for displayed UNITSIG status. Thus changing-s can leave the first check tied to the old serial while the second checks the edited serial. -h permits write continuation after either import check fails. A successful first signature alone does not establish that the payload or edited identity passed the second signature."
    }
   },
   "bin_frcheck": {
