@@ -80,6 +80,13 @@ the boundary assumptions that are easy to get wrong on this target:
   this listing correction does not change or regenerate its records.
   Check raw words before choosing table-base-relative versus
   entry-address-relative jump-table targets.
+- **Listing guards and pair copies**: the linear listing decoder displays
+  condition-register fields and unsigned compare immediates, retains
+  `rlwinm` mask bounds and `mr.` condition updates, and distinguishes a
+  conditional `bclr` from an unconditional return. A null-check wrapper
+  may fall through directly into the next labeled function. It also
+  decodes SPE `evlddx`/`evstddx` pair copies used for stack arguments.
+  These listing corrections remain separate from the request extractor.
 - **Validate-vs-normalize order**: note whether a range check runs on the raw
   parsed value or a truncated/masked copy. The two produce different accepted
   lexical ranges (Seek TRACK_NR: check is on the raw `strtol` result).
