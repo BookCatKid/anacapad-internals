@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer binding/units and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -156955,6 +156955,41 @@
      "build": "86.10-80260",
      "address": "0x1001d550",
      "notes": "Expiry clears live credential before persistence,without failure rollback."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000a2e4",
+     "notes": "Milliseconds converted to seconds and fractional microseconds before scheduler tail call."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100170d8",
+     "notes": "Timer cancellation requires callback match and supports argument -1 wildcards."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001749c",
+     "notes": "Due timer unlinked before callback,then freed afterward."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10017890",
+     "notes": "Daemon timer clock reads selector1 and ignores underlying clock failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-time-c.so.1",
+     "build": "86.10-80260",
+     "address": "0x10d4",
+     "notes": "clock_gettime ID passed through; timespec initializedzero and ns converted to us."
     }
    ],
    "setup_client_hello_payload": {
@@ -157251,8 +157286,15 @@
     "generation_trigger": "Common handler0x1001d6d4 enters GET_PSK path only for opcode13 and parser success. It retrieves factory identifier pointer/length via0x10023d10 and setup provenance method via0x10023d2c,then always calls generator0x10026ca4 targeting default recordsession+60. There is no existing-key reuse branch before generation. Generator requires identity length6 and method1..8,so provenance0 or9 and unavailable factory identity prevent this new credential. Successful generation replaces live default record before settings persistence. The handler logs retrieval failure and returns if parsing/generation fails; full state-machine reachability/authorization remains separate.",
     "persistence_failure": "After generation,0x1001d930 invokes settings writer. False logs unable to update internal settings at0x1001d9f0,then branches back to0x1001d93c,which is the same response/scheduling path as success. It does not restore previous live key or suppress outgoing PSK solely for write failure. A peer may therefore receive a fresh usable live credential even when it is absent from persistent storage. The settings writer boolean itself is rename-based as documented separately.",
     "response_wire": "Serializer0x1002c23c writes opcode14 PSK,using three required schema rows0x10036314:{19,1},{20,1},{21,1}. It emits tag19 u8 request selector0,tag20 string=new default identity,tag21 blob=default raw key with record length32. Fields use shared u8tag/u16BE-length/value framing. Handler output capacity1414;typed writer results are ignored until common finalizer checks cursor/required fields and stores length. It sends only on serializer success through0x10026798 and ignores that send result. The32-byte key is represented as raw bytes in this NS2 response,unlike the64-character hex form used in settings persistence. Construction is not proof of delivery.",
-    "expiry_binding": "On generated-key path,configuration+24 may cancel the previous registration of callback0x1001d4f8 for this session,then configuration+20 may schedule that callback with raw delay0x00dbba00(14400000),session argument and extra0. Callback0x1001d4f8 clears/wipes live default record through0x1002691c,then writes settings to omit PSK. Write failure logs and returns without restoring the cleared key. Timer API units/concrete scheduler and cancel side effects remain to be joined; a four-hour expiry is not asserted merely from the numeric delay. Startup-loaded key also schedules this same callback through0x1001edb8..0x1001ede4.",
-    "limits": "This completes local request grammar,generation,live-versus-persistent key effects,response fields and expiry callback ordering. Trace timer binding/units and transport/state authorization separately; no service request-object or anacapad dispatcher changes are made."
+    "expiry_binding": "On generated-key path,configuration+24 may cancel the previous registration of callback0x1001d4f8 for this session,then configuration+20 may schedule that callback with raw delay0x00dbba00(14400000),session argument and extra0. Callback0x1001d4f8 clears/wipes live default record through0x1002691c,then writes settings to omit PSK. Write failure logs and returns without restoring the cleared key. Concrete wrappers/queue prove milliseconds and a four-hour monotonic deadline; cancellation,allocation-failure and dispatch semantics are joined in psk_expiry_timer_contract. Startup-loaded key also schedules this same callback through0x1001edb8..0x1001ede4.",
+    "limits": "This completes local request grammar,generation,live-versus-persistent key effects,response fields and expiry callback ordering. Trace timer teardown callers and transport/state authorization separately; no service request-object or anacapad dispatcher changes are made."
+   },
+   "psk_expiry_timer_contract": {
+    "installed_callbacks": "Daemon main config base is stack+1c. Stores0x10002e88/+e94 install0x1000a2ac at config+20 and0x1000a334 at+24. Schedule wrapper converts unsigned32-bit milliseconds to seconds using division1000 and microseconds=(delay%1000)*1000,then tail-calls queue insertion0x10016ebc with callback,user argument and extra argument. Cancel wrapper tail-calls0x1001704c after shifting those three match parameters. Raw14400000 is therefore14400 seconds,four hours,not an unbound numeric delay.",
+    "clock_and_deadline": "Queue insertion samples now through0x10017864,which calls sonosClockGetTime(1). Shipped libsonos-time-c.so.1 implementation0x10a0 passes clock ID directly to clock_gettime,returns seconds and nanoseconds/1000 as microseconds. ID1 is Linux CLOCK_MONOTONIC on this target. It zero-initializes timespec before that call. Daemon clock wrapper ignores library return and returns0; a clock-read failure supplies zero time rather than propagating error. Insertion adds requested seconds/useconds and carries each1000000 microseconds into seconds. It allocates24-byte entry{deadlineSec,deadlineUsec,arg1,arg2,callback,next} and inserts in ascending deadline order,equal-deadline entries after existing equals. Allocation failure returns-1; success0. No automatic duplicate suppression occurs in insertion.",
+    "cancel_match": "Cancellation0x1001704c traverses the queue and removes every entry whose callback equals the requested callback and whose two arguments match,with -1 wildcard permitted for either argument but not callback. It frees matches and returns their count. GET_PSK passes exact discard callback0x1001d4f8,session pointer and extra0,so it cancels all older queued expiries for that same tuple. It then schedules one new four-hour entry. The caller ignores cancellation count and insertion result. If insertion allocation fails after successful cancellation,the new live key can have no queued expiry from this call; it is not restored to the former deadline.",
+    "dispatch_order": "Event-loop due check0x10017468 compares current seconds/microseconds against head deadline. If now>=deadline,it advances queue head to next before loading args/callback and invoking callback at0x100174b0,then frees entry at0x100174b8. Each entry is one-shot and is already absent from cancellation searches during its callback. A busy or delayed event loop can execute after the deadline; the trace specifies eligibility and ordering,not exact real-time precision.",
+    "credential_effect": "New-key generation cancels then replaces its expiry;startup-loaded nonempty key schedules the same callback for four hours from that initialization. Successful expiry wipes live credential and attempts persistent removal as previously traced. Scheduling/cancellation failure does not change the GET_PSK response path. The boot-count persistence limit remains independent of this elapsed monotonic lifetime. Finish teardown/cancel callers and other timer clients individually before closing the entire daemon."
    }
   },
   "bin_wacd": {
