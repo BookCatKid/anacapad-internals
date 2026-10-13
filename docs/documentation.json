@@ -125764,15 +125764,91 @@
   "devmode": {
    "obj": "RDevMode + <DevMode>%s</DevMode> var: dev-mode flag",
    "todo": [
-    "Established: ZZ0137 = statement parse+verify (RSA PKCS#1 v1.5 / SHA-256 via mbedtls_rsa_rsassa_pkcs1_v15_verify; key file loaded by ZZ0064->ZZ0053 with SHA-256 fingerprint + bitlen check).",
-    "Residual: which key FILE the caller passes to ZZ0064 (verifying-key path chosen at the anacapad call site) and the statement doc's field grammar beyond the capability-string strcmp scan."
+    "Established: persistent statement lifecycle anchors, exact outer statement header/model/identifier/payload layout, inclusive manager-byte constraint checks, optional-output ordering, both callsites and the embedded2048-bit RSA trust-key/fingerprint callback. Remaining: fully decode signature-envelope parser/verifier0x9e14/0xa384 and their selector/length/error contracts; trace the manager+49d/+49e producers and device-ID helper0x1054c850; decode payload grant grammar and capability consumers, then audit persistence/removal/notification paths individually. Follow the actual delegates and raw predicates before removing this TODO."
    ],
    "mechanism": "Dev mode is CODE-UNLOCKED, not a compile flag: a web form ('DevMode Code: <textarea>', 'devmode' method=POST with a csrf hidden input) accepts an unlock code; the code is validated and persisted as 'devmode.bin' via an atomic 'devmode.tmp.bin'->rename write (devmode.cxx). State surfaces through 'DevModeEventGenerator' and the '<DevMode>%s</DevMode>' status var. The RDevMode object holds the flag; gated code paths read it from the devmode manager, not a fixed global - the store key is 'devmode'.",
    "resolved_findings": [
     "Resolved: devmode = code-unlock via web form -> validate -> persist devmode.bin (atomic tmp+rename) -> DevModeEventGenerator + DevMode status var. The gate is a manager-held flag read per-path.",
     "Resolved: dev mode = a persistent signed-statement file {jffsroot}/debug/devmode.bin (fallback /devmode.bin, staged via /tmp/devmode.tmp.bin; load path at f_1054c8d0 calls constructJFFSRootPath). Statements carry capability strings: 'RDevMode' plus 'R_ALLOW_SSH_PUBKEY_INSTALL' - the latter 'may not be persisted' (runtime-only grant). What it unlocks: the /devmode POST endpoint toggles the statement, and /ssh/authorized_keys POST appends posted 'ssh_key' to sys/debug/ssh/authorized_keys (fopen 'a' + fwrite, 0x1066ff84) guarded by the shared csrfToken validator f_105407bc; dropbear host key lives at /jffs/persist/ssh/dropbear_ecdsa_host_key. Changes broadcast 'notify listeners/processes about the change'.",
     "Resolved: devmode.bin load path (f_1054c0c0 region, devmode.cxx strings @0x10ee9744+) reads the statement file and passes it to libsonoscrypto import ZZ0137 before \"Loaded persistent statement.\" - the blob is crypto-verified at load, and on failure or when the statement carries R_ALLOW_SSH_PUBKEY_INSTALL the persistent statement is removed (\"Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL\"). Paths: {debug/devmode.bin source, /devmode.bin active, /tmp/devmode.tmp.bin staging}. The R_* name family is a project-wide result/reason enum vocabulary (~350 names spanning service errors, LED states, stream ops, play ops, SSL errors), not exclusively devmode capabilities.",
-    "Resolved: ZZ0137 in shipped libsonoscrypto.so.3 (export @0xca14, 0x25cB) is the statement parse+verify entry - it byte-swaps the blob header words, scans NUL-terminated capability fields with strcmp, and delegates key handling to ZZ0064 -> ZZ0053 (fread the key file, SHA-256 fingerprint, mbedtls_pk_get_bitlen sanity check). The signature primitive is unambiguous: the lib imports mbedtls_rsa_rsassa_pkcs1_v15_verify, i.e. RSASSA-PKCS1-v1_5 with SHA-256 (RS256 family), matching the sr: token pipeline in device_auth. Final acceptance is a memcmp of the parsed signature result. (evidence: libsonoscrypto.so.3 @0xca14; import table; ZZ0053 @0x6318)"
+    "ZZ0137 is the outer binary-statement parser, with magic/model/constraint-range/length-prefixed identifier and payload guards. It verifies through a signature-envelope delegate. The trust callback loads an embedded2048-bit RSA key and matches its20-byte SHA1 identifier; it does not pass a verifying-key filename to ZZ0064. Detailed joins are in statement_outer_format/statement_key_source."
+   ],
+   "statement_outer_format": {
+    "parser": "ZZ0137 at libsonoscrypto.so.3:0xca14(size604) parses an unaligned byte buffer(r3) and byte length(r4). Words are copied bytewise to a stack word before comparison, giving big-endian fields on this PPC target. It returns0 on any local rejection and delegates cryptographic acceptance to ZZ0121 -> ZZ0123 -> ZZ0126 -> ZZ0125. No NUL-terminated capability scan occurs in this outer parser.",
+    "header": "Bytes0..3 must be0x28721e71, proven xoris0x2872 plus positive cmpwi0x1e71. Word+4 must equal caller r5; anacapad passes device-info MODEL from manager+498 (constructor0x1054bc74/0x1054bc78 calls getter0x10909550). Bytes+8..17 are part of the signed prefix but have no individual outer-parser guard. Word+18 is an inclusive lower bound and word+1c inclusive upper bound on constraint c=((r8<<16)&0xffff0000)|r9. Callsites supply manager bytes+49d/+49e. Their producer and precise compatibility meaning remain open; no wall-clock value is used in these comparisons.",
+    "identity_and_payload": "Byte+20 is identifier length n. It must exactly equal caller r7; n bytes at+21 must memcmp-equal caller identifier r6. The two callers pass manager string+414 and length+494. Constructor0x1054bc58 fills that string with0x1054c850 then strlen-caches its length. Byte at+21+n is payload length k; payload starts+22+n and ends+22+n+k. The parser bounds-checks each required area against total length. Remaining bytes after that end are passed as a signature envelope to ZZ0121. The prefix from byte0 through the payload end is the signed-data input passed through ZZ0123; trailing signature metadata is separate.",
+    "outputs": "Optional lower/upper-bound outputs are written when those fields have passed their local range checks. Payload length and byte offset are written only when both supplied outputs are nonnull, before signature-envelope parse/verification. These output writes can occur before a later rejection; callers must require the final success return before treating them as accepted grants. The parser does not allocate a new payload string or insert a terminator.",
+    "callsites": "anacapad load0x1054c2ec and submission-validation0x1054c4f4 pass the same model, identifier and two-byte constraint. The loader reads at most1024 bytes from constructJFFSRootPath(debug/devmode.bin) via0x1054c8d0. That helper retries EINTR and accumulates partial reads, requires the stat size fit caller capacity, and distinguishes complete read from failure; it does not itself verify signatures."
+   },
+   "statement_key_source": {
+    "binding": "ZZ0137 GOT reconstruction uses LR anchor0xca20 and .rela.dyn joins: r4=ZZ0063, r5=ZZ0110, r6=local callback0xc938, r8=ZZ0078. ZZ0064 at0x6c08 is a hash-update wrapper, not a key-file loader. The previous proposed ZZ0064->ZZ0053 verifying-file chain does not describe this call path.",
+    "embedded_key": "Callback0xc938 requires key-identifier algorithm3 and length20, calls ZZ0080, then ZZ0072 to obtain20 fingerprint bytes and memcmp-compares them with the envelope key ID. A mismatch frees the loaded key and returnsnull. ZZ0080 at0xcd58 loads294 DER bytes from library rodata0xdc9c and tail-branches to ZZ0101. Independent OpenSSL DER decoding confirms a2048-bit RSA public key with exponent65537. SHA256 of that DER blob is16aa1397c35465e50e06eb947964218dd94823b0d2d64e0345da1522240a86f5. There is no verifying-key filename parameter in this callback.",
+    "algorithm_and_lifetime": "ZZ0072 sets selector3 before tail-branching to ZZ0152, then at0x86c4 serializes the public key with mbedtls_pk_write_pubkey_der and hashes those DER bytes through ZZ0060 with selector3, establishing the SHA1 fingerprint used by this callback. ZZ0063 only accepts digest selector1 and delegates to ZZ0060; ZZ0110 tail-branches to RSA verification helper ZZ0109. The signature-envelope helpers choose/check the digest selector and signature fields; their complete wire grammar remains to be decoded before claiming an unconditional RS256 envelope. ZZ0078 is the configured key-release callback. The outer capability/identity checks and embedded trust key are separate from the grant payload semantics."
+   },
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xcad4",
+     "notes": "Raw XOR/compare yields outer statement magic0x28721e71."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xcb48",
+     "notes": "Inclusive lower/upper constraint guards use packed caller bytes, not current time."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xcbd4",
+     "notes": "Length-prefixed identifier exact match; no outer NUL capability scan."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xcc30",
+     "notes": "Remaining bytes go to signature-envelope parser; full prefix separately passed as signed data."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xc980",
+     "notes": "Trust callback loads embedded key and compares20-byte fingerprint."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0xcd90",
+     "notes": "Key loader tail branch passes294 DER bytes at0xdc9c, no filename."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054bc78",
+     "notes": "Expected outer word+4 comes from device MODEL getter."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054c2ec",
+     "notes": "Persistent-file callsite supplies manager identity/model/constraint bytes and out-params."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054c9ec",
+     "notes": "Persistent reader accumulates partial reads and retries EINTR."
+    }
    ]
   },
   "mod_zp": {
