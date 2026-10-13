@@ -125919,7 +125919,7 @@
   "noncehandler": {
    "semantics": "Tracks Muse authentication challenges as one-use nonce records,with concrete300-second expiry and a three-binding cache. The Muse16-character challenge is separate from the6-byte-derived nonce in the HTTP signing-credentials helper.",
    "todo": [
-    "Established: concrete Muse provider/clocks,boot-sequence context,RDM/MTM policy,300-second expiry,equality differences,one-use erasure and three-binding pruning; separate signing helper now binds device MAC and embedded salt,SHA-1 digest,RSA-PKCS1-v1.5 signature,base64 nonce/JSON envelope,keyType0 and concrete size/escaping guards. Remaining: identify the Muse caller binding-string producer/value domain; verify Muse base64/JSON accepted lexical details; bind the signing key source and size behind0x10bb9280/ZZ0098. Trace these specific producers/helpers without touching SOAP request objects or service dispatch records."
+    "Established: Muse provider/clocks,boot-sequence and RDM/MTM policy,300-second expiry,one-use consumption and three-binding pruning; signing blob input,digest/signature/base64 format and guards; private key provenance from MDP2 or configuredRoot/private.key,cache state,708-byte legacy RSA field layout,parser validation and actual modulus-derived signature sizing. Remaining: identify the Muse caller binding-string producer/value domain and verify Muse base64/JSON accepted lexical details. Trace those helpers individually without touching SOAP request objects or service dispatch records."
    ],
    "lifecycle": "The two previously combined pipelines are distinct. HTTP signing helper0x105ccad4 formats six device-MAC bytes,an embedded16-byte salt and the caller credential C string,hashes them with SHA-1,and RSA-PKCS1-v1.5-signs the20-byte digest. Its nonce output is the base64 signature;0x105cccbc inserts that into credentials/nonce/keyType JSON and base64-encodes the JSON. There is no entropy draw at0x1090ad44/0x10909630; those obtain the static device-info singleton and its MAC field. Muse nonce creation is0x10b99b38: it calls ZZ0154 to produce16 characters from the62-character alphabet0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ and records per-binding expiry/context. Muse validation0x10b996b4 base64-decodes and parses credentials/nonce,checks current credentials,then looks up and consumes the matching cached nonce through0x10b995a8. Record flags+0x18 and+0x28 are optional-value presence flags,not valid-slot/consumed flags. Consumption is hash-node erasure,not a byte written to+0x28.",
    "resolved_findings": [
@@ -126183,6 +126183,83 @@
      "build": "86.10-80260",
      "address": "0x10bb941c",
      "notes": "Signing-key helper sets nonnull keyType output to0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb8fc0",
+     "notes": "Atomic key-cache initialization busy/success flags and root-path requirement."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb8dcc",
+     "notes": "Prefer flash MDP2 private payload over file fallback."
+    },
+    {
+     "type": "firmware",
+     "binary": "libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x23c0",
+     "notes": "MDP2 producer reads4096-byte flash block and checks envelope magic."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb8f04",
+     "notes": "708-byte private payload and optional128-byte public modulus copy."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb8e14",
+     "notes": "Concrete root/private.key fallback formatter and independent file-read checks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105e7768",
+     "notes": "Raw evlddx/evstddx copy empty component list; no hidden key subdirectory."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb8f64",
+     "notes": "File loader forces legacy marker0x00040000."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x8394",
+     "notes": "ZZ0098 tail-delegates full encoded/legacy private-key parser."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x8ac4",
+     "notes": "Eight raw RSA MPI arrays and708-byte marker/layout domain."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x833c",
+     "notes": "Parsed private RSA mathematical validation before export/sign use."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x8cdc",
+     "notes": "Actual modulus byte size is computed,not taken blindly from nominal marker."
     }
    ],
    "generation_mode": "Mode producer is the concrete interface installed at settings object+0x12c by0x10126270,using vtable0x10e8b1f4. Live Muse init0x1019ab98 passes that slice as host argument8;host+0xbc retains it. Challenge creation at0x109f99ec calls its slot+0x14=0x1073e7c0;that thunk adjusts-0x12c then semantically tail-calls0x1073e7b4 -> tail0x105ad9cc. The predicate returns an RDM-or-MTM household classification:0x105ad62c requires global gate byte0x110974e8 nonzero and nonnull household-name provider0x110974f0,then tests the exact case-sensitive10-byte prefix Sonos_RDM_ via0x10c3c134. If false,0x105ad8c8 tests Sonos_MTM_ via0x10c3c188 with the same name provider but without that RDM gate. Prefix literals were resolved through PIC GOT slots0x10c3c158/0x10c3c1ac. A nonzero result skips the wall-clock deadline in nonce creation and uses the boot-sequence/monotonic snapshot path. Other households create wall-clock expiry plus the same fallback snapshot. Raw record-form mr.0x7c7f1b79 at0x105ada00 supplies the short-circuit CR0 test.",
@@ -126190,8 +126267,17 @@
     "identity_input": "0x105ccb1c calls0x1090ad44,the lazily initialized device-info singleton at0x110b8150;0x105ccb20 calls0x10909630,which merely returns singleton+0x118. Six bytes are loaded there. Independent consumer0x105cc8d4 uses that same getter to emit X-Sonos-Mac at0x105cc938,proving the byte role. The singleton constructor0x10909fcc fills manufacturing data at object+0x104 through HAL flash wrappers; the selected MAC occupies that block+0x14. No random generator is called by these two helpers.",
     "formatted_digest_input": "The helper builds embedded salt *7^!Ah7y#2F%d2z! byte-by-byte at sp+0x40..0x4f,and appends NUL from0x10ef4bf8 at sp+0x50. Format0x10ef4bc8 is %02x%02x%02x%02x%02x%02x%s%s:12 lowercase MAC hex characters,salt,then caller credential C string. snprintf into129 bytes at0x105ccc08 must return1..128 (raw return-minus1 unsigned<=127 guard at0x105ccc10); longer or negative/zero output fails. For a nonembedded-NUL caller string,this leaves at most100 bytes after the12+16 fixed characters. The helper zeros output[0] before work. Salt percent-d bytes are data appended with %s,not a second formatting operation.",
     "digest": "0x105ccc30 calls libsonoscrypto.so.3 ZZ0058 with algorithm3,input strlen length and20-byte digest buffer. Its export0x6ce8 calls hash-init ZZ0062 at0x6b30,whose algorithm3 branch0x6bec imports mbedtls_sha1_init/starts;finish ZZ0061 algorithm3 branch0x6cc0 imports mbedtls_sha1_finish. Algorithm3 is therefore SHA-1,not a guessed SHA-256 or MD5 mode. Caller does not check the ZZ0058 return before attempting signing.",
-    "signature_and_nonce": "0x105ccc50 calls0x10bb94bc with digest kind3,digest length20,512-byte signature buffer and keyType output pointer. Wrapper obtains a signing key through0x10bb93f4 ->0x10bb9280 ->ZZ0098,then calls ZZ0104 at0x10bb951c with private-sign mode1. libsonoscrypto ZZ0104 export0x8d38 reaches mbedtls_rsa_rsassa_pkcs1_v15_sign at0x8e7c;digest-kind3 selects mbedtls digest enum5 in this build. Signing wrapper frees the loaded key through ZZ0077 and returns the normalized low-byte success flag. On success,the signature bytes are encoded via0x1053c0c0 and checked with sonosBase64EncIsValid at0x105cccb0. The nonce string is this base64 RSA signature,not the raw SHA-1 digest and not the Muse random16-character token. The exact key material source and size remain to be traced.",
-    "outer_envelope": "0x105cccbc accepts a credential byte span of length<=256,copies it into257-byte storage and NUL-terminates it. It calls the signing helper with345-byte nonce-output capacity. The template at0x10ef4bfc is {\"credentials\": \"%s\", \"nonce\": \"%s\", \"keyType\": %d};729-byte JSON storage is checked with return-minus1 unsigned<=727. No JSON escaping is applied to the inserted credential C string. The outerJSON C string is base64-encoded into973-byte storage at owner+0xc314. The keyType out-param starts-1 at0x105cccf8;0x10bb93f4 clears a nonnull pointer to0 at0x10bb941c and has no later write to that pointer. The traced successful signer therefore emits keyType0. Embedded NUL in the supplied byte span truncates the credential used in signing and JSON formatting,even though the whole declared span was copied."
+    "signature_and_nonce": "0x105ccc50 calls0x10bb94bc with digest kind3,digest length20,512-byte signature buffer and keyType output pointer. Wrapper obtains a signing key through0x10bb93f4 ->0x10bb9280 ->ZZ0098,then calls ZZ0104 at0x10bb951c with private-sign mode1. libsonoscrypto ZZ0104 export0x8d38 reaches mbedtls_rsa_rsassa_pkcs1_v15_sign at0x8e7c;digest-kind3 selects mbedtls digest enum5 in this build. Signing wrapper frees the loaded key through ZZ0077 and returns the normalized low-byte success flag. On success,the signature bytes are encoded via0x1053c0c0 and checked with sonosBase64EncIsValid at0x105cccb0. The nonce string is this base64 RSA signature,not the raw SHA-1 digest and not the Muse random16-character token. The key source,raw layout and signature-length domain are bound in key_loading below. Actual per-device key bytes and MPI values are runtime manufacturing/configuration data,not constants in this image.",
+    "outer_envelope": "0x105cccbc accepts a credential byte span of length<=256,copies it into257-byte storage and NUL-terminates it. It calls the signing helper with345-byte nonce-output capacity. The template at0x10ef4bfc is {\"credentials\": \"%s\", \"nonce\": \"%s\", \"keyType\": %d};729-byte JSON storage is checked with return-minus1 unsigned<=727. No JSON escaping is applied to the inserted credential C string. The outerJSON C string is base64-encoded into973-byte storage at owner+0xc314. The keyType out-param starts-1 at0x105cccf8;0x10bb93f4 clears a nonnull pointer to0 at0x10bb941c and has no later write to that pointer. The traced successful signer therefore emits keyType0. Embedded NUL in the supplied byte span truncates the credential used in signing and JSON formatting,even though the whole declared span was copied.",
+    "key_loading": {
+     "cache": "Global cache base0x110ba3b0 holds708-byte private-key blob at+0,128-byte public-modulus area+0x2c4,public byte count+0x344,initialization busy byte+0x348,and initialized/success byte+0x349.0x10bb8fc0 rejects null root path,atomically acquires busy using the containing word,and returns0 if another initializer is busy. If already initialized,it returns1;otherwise it calls loader0x10bb8d9c,publishes its boolean result at+0x349 and clears busy. Readers0x10bb9280 require capacity>=708,initialized nonzero and the first four private bytes not all zero; they copy exactly708 bytes and set the returned length. These readers do not initiate loading. Raw0x5529063e-style low-byte masks in flag handling are not8-bit shifts.",
+     "flash_source": "Loader0x10bb8d9c first calls hal_flash_get_mdp2_wrapper at0x10bb8dcc. libflash.so.1 wrapper0x2474 creates a fresh flash-info handle,gets MDP2,then releases it. hal_flash_get_mdp2 at0x23c0 reads4096 bytes from flash offset info+0x50 plus info+0x40 via read_from_offset;it checks MDP2 magic and zeroes the output on an error. The player accepts a successful wrapper result and payload length at buffer+4>=708;it copies private bytes from buffer+8 into the cache at0x10bb8f04. If remaining payload after those708 bytes is>=128,it copies128 public-modulus bytes from buffer+8+708 and stores public length128. Otherwise it keeps public length0 while returning successful private-key load. Flash content format is not RSA-validated during this loader stage.",
+     "file_fallback": "A flash read failure or flash payload shorter than708 bytes selects %s/private.key,using the supplied root. Startup0x105e7788 supplies the result of0x1068a70c. The latter starts with configured root pointer0x1109b024 and appends its component array. At this call the component count is0: raw SPE words0x11484b00 at0x105e7768 and0x11484b20 at0x105e7778 copy the{pointer,0} pair from sp+0x28 to sp+0x10;the builder therefore adds no subdirectory. The path is configuredRoot/private.key,or /private.key when the configured root is empty. These doubleword transfer encodings were checked against the NXP e500 manual Appendix B opcode rows for evlddx and evstddx (https://www.nxp.com/docs/en/reference-manual/E500CORERM.pdf). The firmware dataflow,not the manual,supplies the zero-count and path behavior.",
+     "file_checks_and_failure": "The file path buffer is1024 bytes;the loader does not test snprintf's returned length before stat. It requires successful stat and a size comparison>=836 bytes (private708+public128),opens rb,and requires each fread(size708,count1) and fread(size128,count1) to return1. It ignores additional trailing file bytes. Successful file loading overwrites the first private word with0x00040000 from0x10faf078,stores public length128 and returns1. Failed file loading calls ZZ0038 on both private and public areas,clears public length and returns0. A flash payload of adequate size does not fall back to the file merely because its key is empty or fails the later cryptographic parser. The published cache success flag can therefore be true while a subsequent private-key read/parse fails.",
+     "parsing_and_validation": "Caller0x10bb93f4 obtains exactly708 bytes then calls libsonoscrypto.so.3 ZZ0098. Export0x8394 is a semantic tail wrapper to ZZ0183 at0x819c. That allocates a key object and first tries mbedtls_pk_parse_key with the supplied bytes/length. If parsing fails,it calls ZZ0100 at0x8d04,which tail-delegates legacy raw parser0x8ac4. A successful parse must report RSA type1,pass mbedtls_rsa_check_privkey at0x833c and successfully export RSA components at0x8380;failures free the temporary key and return null. Thus cache loading and obtaining a cryptographically usable signing key are separate outcomes.",
+     "legacy_private_layout": "Legacy private parse requires input length>=708 and accepts leading u32 marker0x00000400 or0x00040000 at0x8b88..0x8b9c. It imports big-endian MPI byte arrays through mbedtls_mpi_read_binary: N offset4 length128,E offset0x84 length128,D offset0x104 length128,P offset0x184 length64,Q offset0x1c4 length64,DP offset0x204 length64,DQ offset0x244 length64,QP offset0x284 length64. End offset is0x2c4=708. The two leading markers are accepted encodings for this1024-bit-capacity format;no byte-reversal is applied to the MPI arrays. The parser computes actual modulus byte length with mbedtls_mpi_size at0x8cdc and stores it in the RSA context. Leading zero bytes therefore do not force actual key length128. The generic encoded-key attempt and actual MPI values must not be replaced with a claim that every loaded key is exactly1024 bits.",
+     "signature_size": "ZZ0104 asks ZZ0106 for the parsed RSA byte length,requires it<=512 and no greater than the supplied output capacity,and uses that length as the returned signature size on success. The legacy raw N slot limits that representation to128 modulus bytes. The higher nonce encoder supplies345 bytes;base64 size/validity remains a separate gate after RSA signing. The optional cached public-modulus blob is not used to generate the signature;the signing path uses the parsed private key."
+    }
    }
   },
   "arping": {
