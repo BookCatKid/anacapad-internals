@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; pending settings/external snapshot field producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; pending settings validator/flag/blob semantics and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157102,6 +157102,48 @@
      "build": "86.10-80260",
      "address": "0x10021660",
      "notes": "Pending-record clear tail-calls whole-record memset after sensitive spans wiped."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10036690",
+     "notes": "SET_NET_SETTINGS seven-field schema with required flags and optional remaining fields."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001fb04",
+     "notes": "Receiver maps typed outputs to pending record and caps blobs16/32/64."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002015c",
+     "notes": "Explicit HHID log binds pending+8 to tag9 household identifier."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10020128",
+     "notes": "Explicit Muse HHID log binds tag38 string."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10021780",
+     "notes": "Pending HHID copied to configured buffer and measured length output."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10021ad0",
+     "notes": "Settings validator clears pending validity before further semantic checks."
     }
    ],
    "setup_client_hello_payload": {
@@ -157428,8 +157470,59 @@
     "message_entry": "State-message handler calls0x1002d22c for NS2 opcode22 LOCK_REGISTRATION,then invokes0x1001bcd0 only on parser success. Parser passes null schema/count0 to common initializer,requires extracted opcode22 and calls finalizer directly without iterating remaining fields. It does not require input length exactly1 or validate/consume trailing bytes. A valid leading opcode22 with any remaining bytes accepted by initializer can pass; this is not a strict empty-payload validator.",
     "rotation_predicate": "0x1001bcd0 loads external snapshot pointer session+58. It dereferences pointer at snapshot+8 and reads its firstu32(A). If A==0,it requires pending byte session+1b0!=0 and pending text first byte session+1b8!=0. If A!=0,it also reads firstu32 from pointer snapshot+0(B);B!=0 bypasses that pending test,whileB==0 requires the same two pending predicates. Exact eligibility is (A!=0 AND B!=0) OR (pendingValid!=0 AND pendingText[0]!=0). Failure logs and sends status0x8005 via common status serializer. These two external pointed-value semantic names remain open; they are not invented from offsets.",
     "registered_gate": "After the eligibility predicate,session+1ac must0. Nonzero takes separate log/status0x8011 return path,without key generation. Setter0x10020d9c normalizes that byte according to registered state and its true path clears a nonempty secret as documented. Successful gates enter previously traced key snapshot/random rotation/persistence rollback. They do not themselves verify a signature,digest or client HMAC.",
-    "pending_record_join": "Pending record starts session+1b0,size0xe4. Registration gate text atsession+1b8 is pending record+8,not a completion/proof flag. Settings-apply consumer0x10021668 measures this string,requires it within its length budget and copies it into an external configured buffer with a corresponding length output. Record clear0x100215fc wipes sensitive spans+5f length16 and+9c length64,then tail-calls memset of the whole0xe4 bytes,thereby clearing validity and text used by the registration predicate. Failure helper0x1002156c clears record byte+1 and updates settings status but does not set either predicate tested here. Getter0x10021538 reads record byte0 thenbyte1;registration instead independently testsbyte0 and text+8. No equivalence between that getter and this gate is inferred.",
-    "scope_limit": "Trace pending-record parser/setters and external snapshot+0/+8 producer names before claiming a full registration authorization model. State-table routing and secure transport reachability remain separate. Parser acceptance,gating,rotation and response delivery are different stages; sender/request/service records remain untouched."
+    "pending_record_join": "Pending record starts session+1b0,size0xe4. Registration gate text atsession+1b8 is pending record+8,not a completion/proof flag. Settings-apply consumer0x10021668 measures this string,requires it within its length budget and copies it into an external configured buffer with a corresponding length output. Record clear0x100215fc wipes sensitive spans+5f length16 and+9c length64,then tail-calls memset of the whole0xe4 bytes,thereby clearing validity and text used by the registration predicate. Failure helper0x1002156c clears record byte+1 and updates settings status but does not set either predicate tested here. Getter0x10021538 reads record byte0 thenbyte1;registration instead independently testsbyte0 and text+8. No equivalence between that getter and this gate is inferred. Producer0x1002bbe0 now binds this field to tag9 HHID through receiver0x1001fb04 and explicit HHID logging;tag38 is separate Muse HHID.",
+    "scope_limit": "Complete pending-settings semantic validator/flag/blob effects and external snapshot initial producers before claiming a full registration authorization model. State-table routing and secure transport reachability remain separate. Parser acceptance,gating,rotation and response delivery are different stages; sender/request/service records remain untouched."
+   },
+   "set_net_settings_field_contract": {
+    "parser_and_schema": "Opcode12 SET_NET_SETTINGS uses parser0x1002bbe0 and seven8-byte rows at0x10036690:tag2 required;tags9,38,15,16,17,18 optional. Incoming framing is shared u8tag/u16BE length/value. Typed readers enforce exact numeric width and supplied string/blob capacities;known duplicates reject,unknown tags skip. Parser success is followed by semantic validator0x10021a74;these are distinct acceptance stages.",
+    "field_map": [
+     {
+      "tag": 2,
+      "type": "u32BE,width4",
+      "destination": "pending+4 / session+1b4",
+      "meaning": "network settings flag bitmap;full per-bit semantics pending"
+     },
+     {
+      "tag": 9,
+      "type": "string,max32 bytes",
+      "destination": "pending+8 / session+1b8,capacity33",
+      "meaning": "Sonos household ID(HHID);log0x1002015c explicitly names it"
+     },
+     {
+      "tag": 38,
+      "type": "string,max53 bytes",
+      "destination": "pending+29 / session+1d9,capacity54",
+      "meaning": "Muse household ID;log0x10020128 explicitly names it,not SSID"
+     },
+     {
+      "tag": 15,
+      "type": "blob,max16 bytes",
+      "destination": "pending+5f / session+20f,length pending+70 / session+220",
+      "meaning": "sensitive16-byte settings material;precise key role requires downstream trace"
+     },
+     {
+      "tag": 16,
+      "type": "u32BE,width4",
+      "destination": "pending+74 / session+224",
+      "meaning": "SonosNet frequency,explicit log0x10020140;numeric legality checked downstream"
+     },
+     {
+      "tag": 17,
+      "type": "blob,max32 bytes",
+      "destination": "pending+78 / session+228,length pending+98 / session+248",
+      "meaning": "wireless settings byte field;precise encoded role requires consumer"
+     },
+     {
+      "tag": 18,
+      "type": "blob,max64 bytes",
+      "destination": "pending+9c / session+24c,length pending+dc / session+28c",
+      "meaning": "sensitive wireless settings material;precise credential role requires consumer"
+     }
+    ],
+    "receiver_capacities": "Receiver initializes blob capacities16,32,64 atsession+220/+248/+28c before parser. It zero-initializes the entire0xe4-byte pending record through0x10021500 if no pending-valid record exists. Existing valid pending state takes a separate handler path instead of this fresh parse. Parser supplies fields directly into pending storage,so failure is not automatically a rollback of every already-written field. The full reject/status/clear paths remain to be joined.",
+    "text_domain": "HHID and Muse HHID are copied through string reader0x1002e1bc with capacities33/54,which bounds byte length but does not impose hex/UUID/UTF8 grammar. Embedded NUL can shorten visible text used by strlen/logs. HHID omission or zero visible first byte alone does not establish settings validity;flags,other fields and external state participate in validator0x10021a74. Muse HHID has additional character validation there;the parser capacity is not the whole accepted semantic domain.",
+    "registration_join": "LOCK_REGISTRATION pending textsession+1b8 is precisely tag9 HHID. Settings apply0x10021780 copies that string into external buffer pointed by snapshot+0 and updates corresponding length pointed by snapshot+8. This producer/consumer join distinguishes existing HHID bytes/length from pending HHID availability. It does not convert household-ID presence into cryptographic authorization. The registration gate remains exactly the separately recorded word/validity/first-byte predicates.",
+    "remaining": "Complete settings validator and all flag bits,wireless blobs,external state dependencies,apply/commit side effects and error paths. Do not mark the whole SET_NET_SETTINGS action or daemon complete from this field map."
    }
   },
   "bin_wacd": {
