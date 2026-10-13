@@ -127470,6 +127470,41 @@
      "build": "86.10-80260",
      "address": "0x31e4",
      "notes": "0xec76 has its own8-byte one-pair retrieval sequence."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xc18",
+     "notes": "Raw unsigned high multiply and shifts implement last-four-byte n modulo17."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xc94",
+     "notes": "Bounded uppercase12-hex-plus-suffix serial formatter returns snprintf length."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xd28",
+     "notes": "Stored series checks only first byte and version, then copies four bytes plus terminator."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xd10",
+     "notes": "15-entry base-relative model table; revision/submodel branch thresholds preserved."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xed4",
+     "notes": "Setter stores exactly four checked prefix bytes without rejecting trailing input."
     }
    ],
    "signature_consumers": "Standalone mdputil has two separately keyed MD5/RSA PKCS#1 v1.5 checks: original serial plus complement-validated hardware flash serial, signature MDP2+34c; and26-byte model/submodel/serial/color header plus260-byte payload, signature MDP2+3cc. See bin_mdputil.bundle_signature_contract for exact layout, key fingerprints, return domains and edit asymmetry. These checks are distinct from the basic read/CRC contract and from the signing-key consumer in noncehandler.",
@@ -127579,6 +127614,61 @@
     "acceptance": "For each candidate, compare serial bytes with the following equal-width complement bytes and require each XOR==0xff. A rejection advances the candidate start by twice the serial width. First complete match copies exactly8/16 serial bytes to the destination; no textual/hex conversion occurs here. For0xecaa, marker validation precedes serial-pair acceptance; it still permits up to8 serial/complement pairs. memcpy return is compared with the destination pointer; the alternate failure is defensive under the standard memcpy return contract.",
     "results_and_outputs": "Return0=serial copied;1=device open failure or negative device-ID ioctl;7=unsupported device ID;15=negative serial ioctl, absent required0xecaa marker, or exhausted complement search. The FD closes on all paths after successful open. Optional device ID may be available even on later unsupported/retrieval failure. Length is assigned after successful serial ioctl but before complement search (and before the0xecaa marker check), so a nonzero length output is not proof of success. Serial destination is copied only on acceptance; it is not cleared on failure.",
     "cli_output": "mdputil0x1000192c calls this helper with sp+18 length,sp+241c serial destination andsp+14 ID. Success prints NANDID=%04x then FSN= followed by exactly length bytes using%02x, lowercase hexadecimal without separators. Failure branches0x10001934 to0x10001b1c and prints FSN=INVALID without the NANDID line. It then continues to later signature/display checks rather than aborting the utility. Thus FSN retrieval status and SERIALSIG/UNITSIG status are distinct."
+   },
+   "identity_format_contract": {
+    "serial_formatter": "sonosMdpSerialToString at libsonos-mdp0xbdc takes six-byte identity pointer(r3),destination(r4),capacity(r5). It assembles source bytes2..5 into unsigned32-bit big-endian n. Raw mulhwu at0xc18 uses0xf0f0f0f1; shift-right4 of the high product yields floor(n/17). The code subtracts17*quotient and renders remainder0..9 as0..9,10..16 asA..G. Format string at0x1084 is %02X%02X%02X%02X%02X%02X%c, giving12 uppercase hexadecimal digits plus one derived suffix. The first two source bytes are printed but do not contribute to the suffix. This formatter performs no serial validity check.",
+    "serial_output_contract": "Formatter calls __snprintf_chk with caller capacity,flag1 and object-size sentinel-1, returning its result unchanged. A complete output needs14 bytes including NUL; smaller capacities truncate according to snprintf while reporting the would-be13-character length. It still reads all six identity bytes. mdputil0x100016c0 supplies capacity32 and prints SERIAL from that output. Its-s edit does not consume/check this suffix as a separate validation character. The boot script consumes only the initial12 hexadecimal characters for the hostname.",
+    "stored_series": "sonosGetSeriesID0xcb0 takes destination(r3),capacity(r4),MDP1(r5). If effective version>=4 and byte+98 is nonzero, it copies bytes+98..9b to a five-byte temporary with trailingNUL, strlcpy-copies to the destination and returns1. It only tests the first stored byte here; no four-character lexical validation occurs inside this getter. EmbeddedNULs can shorten the copied text. Read-time normalization and the setter have separate lexical checks. Return1 describes the chosen stored source even if capacity truncates the output.",
+    "derived_series": "When stored data is ineligible/empty, the getter dispatches MODEL8..22 through15-entry base-relative table0x10a0 (PIC GOT0x27ef0-0x7fd8). Other models, including unsigned underflow below8, use X999. The selected static string is copied with strlcpy and return0 identifies derivation, not failure. The getter does not reject X999 and does not return a copied-length result.",
+    "fallback_table": [
+     {
+      "model": 8,
+      "result": "SUBMODEL7 ->A102;SUBMODEL6 ->A101;SUBMODEL3 with unsigned REVISION>6 ->A101;all other cases ->A100",
+      "branches": "0xd70,0xe3c,0xdd4,0xe50"
+     },
+     {
+      "model": 9,
+      "result": "unsigned REVISION>10 ->A101;otherwise A100",
+      "branches": "0xdc8..0xdd4"
+     },
+     {
+      "model": 13,
+      "result": "REVISION8 ->C200;unsigned REVISION>8 ->C201;otherwise C100",
+      "branches": "0xdf8..0xe08,0xe34,0xe58"
+     },
+     {
+      "model": 14,
+      "result": "unsigned REVISION>11 ->A101;otherwise A100",
+      "branches": "0xddc..0xdec"
+     },
+     {
+      "model": 17,
+      "result": "SUBMODEL4 ->B100;otherwise C100",
+      "branches": "0xe18..0xe28"
+     },
+     {
+      "model": 20,
+      "result": "A200",
+      "branches": "0xe10"
+     },
+     {
+      "model": 22,
+      "result": "D100",
+      "branches": "0xdf0"
+     },
+     {
+      "model": "12,21",
+      "result": "A100",
+      "branches": "table0x10a0 ->0xd8c"
+     },
+     {
+      "model": "10,11,15,16,18,19;all values outside8..22",
+      "result": "X999",
+      "branches": "table0x10a0 ->0xe2c,range rejection0xd04"
+     }
+    ],
+    "series_setter": "sonosSetSeriesID0xe64 takes input(r3),MDP1(r4). It checks first byteA-Z then next three bytes0-9. Invalid prefix returns-1 without storing the four-byte field. A valid prefix stores exactly four bytes at+98..9b and returns0; no input-length/end-of-string check follows, so a longer argument with a valid prefix is accepted. No version/flag is changed. There are no local pointer guards. A stored edit may therefore remain ineligible until write preparation sets a sufficiently new version.",
+    "caller_behavior": "mdputil0x10001690 requests a five-byte series string. Return0 causes the literal (dynamic) annotation; return1 uses no annotation. The utility therefore marks X999 as dynamic too. It does not imply that every fallback was a recognized factory series or that a stored series is cross-checked against model/submodel/revision."
    }
   },
   "tls_stack": {
@@ -154392,7 +154482,7 @@
     {
      "name": "SERIAL",
      "offset": "0x14",
-     "representation": "six identity/MAC bytes passed to sonosMdpSerialToString;not an inline ASCII serial",
+     "representation": "six identity/MAC bytes;formatter produces12 uppercase hex digits plus a modulo17 character derived only from the last four bytes;not inline ASCII",
      "consumer": "0x100016b4"
     },
     {
@@ -154470,7 +154560,7 @@
     {
      "name": "stored_SERIES_ID",
      "offset": "0x98",
-     "representation": "four ASCII bytes,with model-derived fallback through library",
+     "representation": "four stored bytes; getter uses them only for effective version>=4 and nonzero first byte, otherwise model/submodel/revision fallback",
      "consumer": "libsonos-mdp.so.1:0xd28"
     },
     {
@@ -154524,7 +154614,7 @@
     "printing": "COPYRIGHT is forcibly terminated at+0x63. Effective MDPVERSION selection is old+70 unless old>5 and new+84 is nonzero. WIFITYPE=N is a literal output line,not a radio-type probe. Invalid DATECODE values are zeroed only in the display buffer. VARIANT,SERIALSIG,UNITSIG,FSN and NANDID are derived helper results and are not interchangeable with fixed MDP1 byte fields."
    },
    "series_and_variant": {
-    "series": "sonosGetSeriesID at libsonos-mdp0xcb0 uses stored four-byte+0x98 when effective version>=4 and the first byte is nonzero;otherwise it derives a four-character code from model/submodel/revision. Return1 denotes stored;0 denotes derived. mdputil appends(dynamic) to the derived path at0x100016a0,not to stored data. sonosSetSeriesID0xe64 checks the first characterA-Z and next three digits,then stores those four bytes. It does not require the next input byte to beNUL,so a valid four-character prefix can be stored from a longer argument.",
+    "series": "Stored and derived SERIES_ID behavior, complete fallback-model table, copy/return conventions and setter-prefix validation are traced in identity_format_contract. The dynamic annotation denotes derived source, including fallback X999; it is not a success/failure label.",
     "variant": "sonosGetCertColorVariant at libsonos-mdp0x964 takes MDP1 and MDP2 as separate pointers. For MDP2 magic0xca989b4a,it requires MDP1+74>3 (minimum4) and reads MDP2+0x44c. For0xfa87b921,it requires+74>4 (minimum5) and reads MDP2+0xa10. Accepted value domain is0..18. It returns0 on failure and optionally writes status-2(bad pointer),-3(unknown magic),-4(unsupported version),-5(index out of range);these are not negative color return values. mdputil0x100018f4 passes a null error-output pointer,so VARIANT=0 alone cannot distinguish color0 from decoder failure.",
     "wildcard_final": "sonosGetFinalColorVariant at libsonos-mdp0x9fc first calls GetCertColorVariant. Any result other than11 passes through unchanged. For wildcard11 it keeps11 if effective MDP1 version<=4, otherwise reads override+9c. Unsigned override<=18 returns directly; larger values return0 and write optional status-5. This is distinct from-V accepting an unchecked decimal value: the later consumer supplies the range check. Effective version uses old directly for old<=5 and a nonzero new version only for old>5. mdputil prints WILDCARD_VARIANT from+9c when its certification/version gates pass.",
     "color_names": {
@@ -154920,6 +155010,41 @@
      "build": "86.10-80260",
      "address": "0xb08",
      "notes": "Indices0/11 return static empty string with success, not null/error."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xc18",
+     "notes": "Raw unsigned high multiply and shifts implement last-four-byte n modulo17."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xc94",
+     "notes": "Bounded uppercase12-hex-plus-suffix serial formatter returns snprintf length."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xd28",
+     "notes": "Stored series checks only first byte and version, then copies four bytes plus terminator."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xd10",
+     "notes": "15-entry base-relative model table; revision/submodel branch thresholds preserved."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-mdp.so.1",
+     "build": "86.10-80260",
+     "address": "0xed4",
+     "notes": "Setter stores exactly four checked prefix bytes without rejecting trailing input."
     }
    ],
    "cli_edit_contract": {
@@ -155063,6 +155188,61 @@
     "acceptance": "For each candidate, compare serial bytes with the following equal-width complement bytes and require each XOR==0xff. A rejection advances the candidate start by twice the serial width. First complete match copies exactly8/16 serial bytes to the destination; no textual/hex conversion occurs here. For0xecaa, marker validation precedes serial-pair acceptance; it still permits up to8 serial/complement pairs. memcpy return is compared with the destination pointer; the alternate failure is defensive under the standard memcpy return contract.",
     "results_and_outputs": "Return0=serial copied;1=device open failure or negative device-ID ioctl;7=unsupported device ID;15=negative serial ioctl, absent required0xecaa marker, or exhausted complement search. The FD closes on all paths after successful open. Optional device ID may be available even on later unsupported/retrieval failure. Length is assigned after successful serial ioctl but before complement search (and before the0xecaa marker check), so a nonzero length output is not proof of success. Serial destination is copied only on acceptance; it is not cleared on failure.",
     "cli_output": "mdputil0x1000192c calls this helper with sp+18 length,sp+241c serial destination andsp+14 ID. Success prints NANDID=%04x then FSN= followed by exactly length bytes using%02x, lowercase hexadecimal without separators. Failure branches0x10001934 to0x10001b1c and prints FSN=INVALID without the NANDID line. It then continues to later signature/display checks rather than aborting the utility. Thus FSN retrieval status and SERIALSIG/UNITSIG status are distinct."
+   },
+   "identity_format_contract": {
+    "serial_formatter": "sonosMdpSerialToString at libsonos-mdp0xbdc takes six-byte identity pointer(r3),destination(r4),capacity(r5). It assembles source bytes2..5 into unsigned32-bit big-endian n. Raw mulhwu at0xc18 uses0xf0f0f0f1; shift-right4 of the high product yields floor(n/17). The code subtracts17*quotient and renders remainder0..9 as0..9,10..16 asA..G. Format string at0x1084 is %02X%02X%02X%02X%02X%02X%c, giving12 uppercase hexadecimal digits plus one derived suffix. The first two source bytes are printed but do not contribute to the suffix. This formatter performs no serial validity check.",
+    "serial_output_contract": "Formatter calls __snprintf_chk with caller capacity,flag1 and object-size sentinel-1, returning its result unchanged. A complete output needs14 bytes including NUL; smaller capacities truncate according to snprintf while reporting the would-be13-character length. It still reads all six identity bytes. mdputil0x100016c0 supplies capacity32 and prints SERIAL from that output. Its-s edit does not consume/check this suffix as a separate validation character. The boot script consumes only the initial12 hexadecimal characters for the hostname.",
+    "stored_series": "sonosGetSeriesID0xcb0 takes destination(r3),capacity(r4),MDP1(r5). If effective version>=4 and byte+98 is nonzero, it copies bytes+98..9b to a five-byte temporary with trailingNUL, strlcpy-copies to the destination and returns1. It only tests the first stored byte here; no four-character lexical validation occurs inside this getter. EmbeddedNULs can shorten the copied text. Read-time normalization and the setter have separate lexical checks. Return1 describes the chosen stored source even if capacity truncates the output.",
+    "derived_series": "When stored data is ineligible/empty, the getter dispatches MODEL8..22 through15-entry base-relative table0x10a0 (PIC GOT0x27ef0-0x7fd8). Other models, including unsigned underflow below8, use X999. The selected static string is copied with strlcpy and return0 identifies derivation, not failure. The getter does not reject X999 and does not return a copied-length result.",
+    "fallback_table": [
+     {
+      "model": 8,
+      "result": "SUBMODEL7 ->A102;SUBMODEL6 ->A101;SUBMODEL3 with unsigned REVISION>6 ->A101;all other cases ->A100",
+      "branches": "0xd70,0xe3c,0xdd4,0xe50"
+     },
+     {
+      "model": 9,
+      "result": "unsigned REVISION>10 ->A101;otherwise A100",
+      "branches": "0xdc8..0xdd4"
+     },
+     {
+      "model": 13,
+      "result": "REVISION8 ->C200;unsigned REVISION>8 ->C201;otherwise C100",
+      "branches": "0xdf8..0xe08,0xe34,0xe58"
+     },
+     {
+      "model": 14,
+      "result": "unsigned REVISION>11 ->A101;otherwise A100",
+      "branches": "0xddc..0xdec"
+     },
+     {
+      "model": 17,
+      "result": "SUBMODEL4 ->B100;otherwise C100",
+      "branches": "0xe18..0xe28"
+     },
+     {
+      "model": 20,
+      "result": "A200",
+      "branches": "0xe10"
+     },
+     {
+      "model": 22,
+      "result": "D100",
+      "branches": "0xdf0"
+     },
+     {
+      "model": "12,21",
+      "result": "A100",
+      "branches": "table0x10a0 ->0xd8c"
+     },
+     {
+      "model": "10,11,15,16,18,19;all values outside8..22",
+      "result": "X999",
+      "branches": "table0x10a0 ->0xe2c,range rejection0xd04"
+     }
+    ],
+    "series_setter": "sonosSetSeriesID0xe64 takes input(r3),MDP1(r4). It checks first byteA-Z then next three bytes0-9. Invalid prefix returns-1 without storing the four-byte field. A valid prefix stores exactly four bytes at+98..9b and returns0; no input-length/end-of-string check follows, so a longer argument with a valid prefix is accepted. No version/flag is changed. There are no local pointer guards. A stored edit may therefore remain ineligible until write preparation sets a sufficiently new version.",
+    "caller_behavior": "mdputil0x10001690 requests a five-byte series string. Return0 causes the literal (dynamic) annotation; return1 uses no annotation. The utility therefore marks X999 as dynamic too. It does not imply that every fallback was a recognized factory series or that a stored series is cross-checked against model/submodel/revision."
    }
   },
   "bin_frcheck": {
