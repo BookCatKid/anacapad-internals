@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; pending settings validator/flag/blob semantics and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining settings flags/SonosNet material/frequency and wireless-check consumers and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157144,6 +157144,48 @@
      "build": "86.10-80260",
      "address": "0x10021ad0",
      "notes": "Settings validator clears pending validity before further semantic checks."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10021e34",
+     "notes": "HHID allows ctype alnum,underscore,hyphen;reserved prefixes checked for length>=10."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10021c40",
+     "notes": "Muse HHID punctuation mask yieldsplus,hyphen,dot,slash,equals with underscore separate."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10021d6c",
+     "notes": "Unsigned credential-length-minus1 guard rejects1..7,not0."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10021dc8",
+     "notes": "Raw SSID bytes copied into checking cache,without decrypt."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10021f88",
+     "notes": "Full-span credential compare selects cached-status branch."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10021fb4",
+     "notes": "Cached status1 is the exact predicate setting pending validity."
     }
    ],
    "setup_client_hello_payload": {
@@ -157510,19 +157552,27 @@
       "tag": 17,
       "type": "blob,max32 bytes",
       "destination": "pending+78 / session+228,length pending+98 / session+248",
-      "meaning": "wireless settings byte field;precise encoded role requires consumer"
+      "meaning": "raw wireless SSID bytes,cached with explicit byte length by settings validator"
      },
      {
       "tag": 18,
       "type": "blob,max64 bytes",
       "destination": "pending+9c / session+24c,length pending+dc / session+28c",
-      "meaning": "sensitive wireless settings material;precise credential role requires consumer"
+      "meaning": "raw wireless credential bytes,cached with explicit byte length;downstream API format rules remain open"
      }
     ],
     "receiver_capacities": "Receiver initializes blob capacities16,32,64 atsession+220/+248/+28c before parser. It zero-initializes the entire0xe4-byte pending record through0x10021500 if no pending-valid record exists. Existing valid pending state takes a separate handler path instead of this fresh parse. Parser supplies fields directly into pending storage,so failure is not automatically a rollback of every already-written field. The full reject/status/clear paths remain to be joined.",
     "text_domain": "HHID and Muse HHID are copied through string reader0x1002e1bc with capacities33/54,which bounds byte length but does not impose hex/UUID/UTF8 grammar. Embedded NUL can shorten visible text used by strlen/logs. HHID omission or zero visible first byte alone does not establish settings validity;flags,other fields and external state participate in validator0x10021a74. Muse HHID has additional character validation there;the parser capacity is not the whole accepted semantic domain.",
     "registration_join": "LOCK_REGISTRATION pending textsession+1b8 is precisely tag9 HHID. Settings apply0x10021780 copies that string into external buffer pointed by snapshot+0 and updates corresponding length pointed by snapshot+8. This producer/consumer join distinguishes existing HHID bytes/length from pending HHID availability. It does not convert household-ID presence into cryptographic authorization. The registration gate remains exactly the separately recorded word/validity/first-byte predicates.",
-    "remaining": "Complete settings validator and all flag bits,wireless blobs,external state dependencies,apply/commit side effects and error paths. Do not mark the whole SET_NET_SETTINGS action or daemon complete from this field map."
+    "remaining": "Complete all flags,tag15 SonosNet material,frequency domain,wireless API/check-state producers and apply/commit effects. HHID/Muse lexical domains and raw wireless credential cache are joined in settings_identifier_and_wireless_validation."
+   },
+   "settings_identifier_and_wireless_validation": {
+    "household_domain": "Validator0x10021a74 clears pending valid byte before checking fields. Pending HHID isrecord+8(tag9),visible length0..32. When a nonempty new HHID enters its lexical branch,it requires every byte to have ctype alnum bit0x800 or be underscore/hyphen. For visible length>=10,it compares first10 bytes against Sonos_RDM_ and Sonos_MTM_ and rejects either prefix with0x8003. Invalid character also returns0x8003. If the current configured HHID-length pointed by snapshot+8 is nonzero,the new-HHID branch rejects0x8004 before these lexical checks;other branches permit pending-empty-HHID settings depending on existing state/flags. This is not a generic UUID or32-hex-only validator.",
+    "muse_domain": "Pending Muse HHID isrecord+29(tag38),visible length0..53. Nonempty input requires current Muse-HHID length pointed by snapshot+14==0,otherwise0x8014. Allowed bytes are ctype alnum or underscore,plus characters selected by mask0x0004001d over(byte-0x2b) within0..18:plus,hyphen,dot,slash,equals. Invalid character returns0x8015. The precise character rule is separate from the parser byte-capacity bound and does not enforce a named encoding or decode the text here.",
+    "wireless_cache_layout": "Tag17 maps raw wireless SSID bytes atpending+78,length+98,capacity32. Tag18 maps raw wireless credential bytes atpending+9c,length+dc,capacity64. Validator caches them in checking-context:SSID bytes+40,length+64;credential bytes+0,length+60;statusu32+68;result-present byte+6c. Source lengths and full-span ZZ0199 comparisons decide whether incoming pair matches cached pair. No decrypt is performed in this validator/copy path;these are input bytes already delivered through the setup channel. Character/format restrictions of later wireless APIs remain separate.",
+    "credential_length_guard": "Both settings branches at0x10021d60 and0x10021ef8 compute unsigned(credential_length-1),compare with6 and reject when<=6 with0x8009. Thus1..7 fail,while0 and8..64 pass this local length gate under parser cap64. It is not an unconditional minimum8 requirement. In the flag0x2 branch,the additional all-empty pair test rejects when SSID length0 and credential length0 together with0x800b. Other household/frequency/state checks precede these guards. Length0 alone is not proof an open network will be accepted by subsequent consumers.",
+    "cache_result_and_side_effects": "Flag0x2 selects credential-check caching path and sets pending byte+1=1. Changed or unavailable cached pair is reset through0x1002145c,which wipes32SSID/64credential bytes,sets lengths0,status0x8000,result-present0,then the new pair is copied in and pending validity set1 while checking remains pending. Identical pair with result-present nonzero reuses status+68;validity is set only when that status==1,and pending byte+1 cleared. Non-success cached status may trigger cache reset. Exact status-table names and asynchronous wireless-check delivery still require joining. Parsing success does not imply valid settings,successful credential check or established association.",
+    "remaining": "Finish all flags,tag15 SonosNet material,freq domains,check-state producers/API consumers,commit/apply side effects and errors. This record describes these verified validator branches without closing SET_NET_SETTINGS or the daemon."
    }
   },
   "bin_wacd": {
