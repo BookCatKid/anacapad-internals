@@ -156368,7 +156368,7 @@
     "Trace metadata meanings in other envelope consumers and the remaining envelope caller state transitions. Preserve the already established parsing, decryption, authentication, PIN proof and common-reset contracts.",
     "Finish configured/default PSK reload and reset triggers and cached-credential lifecycle effects beyond daemon-local IPC command23. Main shutdown cancellation of the four-hour expiry callback and in-memory default/cached PSK and registration-secret destruction are established. Do not enter the external request-object/service receiver lane.",
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
-    "Finish the saved-output queue: all slot flag writers and state effects, incoming/outgoing identifier producers and record-counter join, clock callback producers, framing beyond ACK/close-notify, and full input/output/error behavior in other transport states. Three-slot allocation/reclaim, exact signed millisecond age/due/next-deadline expressions, tie handling, delay saturation, fresh-now backoff and verified close/connected retry callers are established.",
+    "Finish the saved-output queue: all slot flag writers and state effects, incoming/outgoing identifier producers and record-counter join, clock callback producers, framing beyond ACK/close-notify, full connected read parsing/notification callbacks and final FD re-registration. Three-slot timing/selection, connected retry handler, output-pump short/zero/WANT/error behavior, WRITING resume-state overwrite and public1414-byte submission return/auxiliary-word contract are established.",
     "Trace the remaining NS2 messages individually, including their parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 has a separate complete byte/parser/retirement record.",
     "Finish settings apply notification effects, full flag domains, WAC fallback admission and flag producers, per-state entry/exit/teardown effects, and the target-state selection chain. Preserve the verified WEP/frequency/projection/file and marker effects.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
@@ -158483,6 +158483,62 @@
      "build": "86.10-80260",
      "address": "0x100252e8",
      "notes": "Connected retry caller advances saved-slot backoff before its output pump."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100250bc",
+     "notes": "Nonnegative send results include0; zero leaves remaining bytes unchanged and repeats."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100251b8",
+     "notes": "isel maps WANT_READ to direction0 and WANT_WRITE to1 before WRITING5."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025b98",
+     "notes": "Resume wrapper clears direction and sets CONNECTED4 after pump0, including a WANT outcome."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025c00",
+     "notes": "Pending SSL input is a semantic tail call to connected read-handler."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10026654",
+     "notes": "Public submit length limit is unsigned1414bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10026700",
+     "notes": "Boolean submit success tests pump return0, which includes buffered WANT outcome."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025284",
+     "notes": "Connected retry handler ignores pump result and rescans due slots after refreshed time."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100257d4",
+     "notes": "Input followup tests transport+0xd40, exactly the queue replay flag at+0x5e8, before pumping restored output."
     }
    ],
    "setup_client_hello_payload": {
@@ -159015,7 +159071,7 @@
     "connected_capture_binding": "Afterhandshakesuccess0x10025988 savescurrentSSLsendcallback (transport+20 =SSLcontext+18) totransport+174. Itthen installsBIOsend0x10024504,retainsrecv callbackSSLcontext+1c/currentBIOcontextSSLcontext+24,andsetsrecvtimeoutNULL at0x100259a4. Shippedmbedtls_ssl_set_bio0xd4bc directlystoresBIOcontext+24,send+18,recv+1c,recvtimeout+20. Capture0x10024504 tail-addstransport+758 andinvokes0x10027ee4. Thathelperchecksunsigned(1500-currentcount)>=requestedcount,appendsbytesatcontext+8+currentcount,incrementscount,returnsrequestedcount;insufficientextentreturns-0x6a00. Thehelperassumescountwithin1500;itdoesnot separatelyrejectcorruptcount>1500 beforeunsignedsubtraction. Saved+174 remainsactualendpointsendusedbyoutputpump. ThisprovesSSLgeneratedencryptedrecords arecapturedinqueueandlaterdrainedviadifferentsendcallback.",
     "replay_callback": "Successalso bindsmbedtls_ssl_set_dtls_replay_detected_cb at0x100259b4 to0x100280f4 withqueuecontexttransport+758. Callback scans three slotsrequiringin-usebyte+0!=0 andexclusionbyte+1==0;compares8bytesatnode+2 withbytespointedbySSLcontext+5c. Onmatchrestorescachedciphertextvia0x1002808c andreturns-0x7200;nomatchreturns-0x6700. Itdoesnotreencryptthecachedpayload. ThiseligibilityguarddiffersfrominboundACKretirement,whichhasnoin-useguard. Exactlibraryreplaycaller interpretationandrecord-counterlayoutremainopen.",
     "retry_timer_binding": "Queue-next-deadline callersinvoke0x100240ac(transport,delayms). Itcancelsconfig+1c(callback0x10025e14,transport),then schedulesconfig+18(delayms,callback0x10025e14,transport),ignoringreturns. NS2initializationwritesconfig+18=0x1001b930 and+1c=0x1001b9a8 atsession+20/+24. Schedulewrappertail-callsNS2config+20 withsame delayms,trampoline0x1001b914,firstargumentcallback,secondargumenttransport. Cancelwrappertail-NS2config+24 withsametrampolineandargumentpair. Trampoline tail-callsfirstargumentcallback withsecondargumentasr3. MainNS2timers arethepreviouslyverifiedmillisecond-to-monotonic-queuewrappers. MissingNS2schedule returns-1;missingcancel returns0. Noextratimerprecisionconversionoccursinthisbridge.",
-    "retry_timer_dispatch": "Callback0x10025e14 boundsDTLSstate<=9,selectsrow+8 writehandler from12-byte table0x1004f7c4 andtail-callsit ifnonnull. Thusstate7 invokesimmediatecleanuphandler0x10024b64,state8 invokesclose-notifyretryhandler0x10024928;states0/1/2/3/5/6/9 haveNULLwritehandler,while4 invokes0x100251f8. Fullstate4writebehaviorandinvalidstateerrorhandling remainindividualwork. Aqueuedtimerdoesnotunconditionallycalltheretryhandleraftertheconnectionstatechanges.",
+    "retry_timer_dispatch": "Callback0x10025e14 bounds DTLS state<=9, selects row+8 write handler from12-byte table0x1004f7c4 and semantically tail-calls it if nonnull. State4 CONNECTED invokes0x100251f8, whose due-slot replay/backoff/output-pump/error-consumption behavior is documented in dtls_connected_output_and_submission. State7 invokes immediate cleanup0x10024b64; state8 invokes close-notify retry0x10024928. States0/1/2/3/5/6/9 have null write-handler slots and return without that delegation. WRITING5 instead resumes through read-handler0x10025b68, which can undo a new WANT-induced writing-state request because the pump returns0. Remaining invalid-state handling, full connected read behavior and final FD re-registration effects require their own traces.",
     "remaining": "Finishslotage/due/nextdeadline arithmetic,libraryrecord-counter/replaycallbackcaller interpretation,otherroleconfiguration,endpointcreation/HelloVerify handshakecookiecaller semantics (cookiewriter/checker andIPv4transport-ID established),state4writehandler,non-FDnotificationsandremainingeventlooplifecycle (FDregistrationbridge/errors/delivery established). Concrete1000/60000constants,posthandshakeciphertextBIOcapture,andretrytimerbridge/state dispatch areestablished.",
     "client_transport_identifier": "Setup0x10025cb4 calls0x1002471c andbranchesonnegative. Helpergetsendpointpeeraddressvia0x1002d834 ontransport+15c. Getterrequiresendpoint+8family2 and+aportnonzero;otherwiseNULL. Itreturnsaddresspointerendpoint+8. Setupcopiesfourbytespeeraddress+4 (endpoint+c IPv4address)andcallsmbedtls_ssl_set_client_transport_id(SSLcontext,fourbytes,4). Portischeckedforpresencebutnotincludedinidentifier. NULLpeeraddressreturns-1. Table0x1004f83crow0thirdpointerthereforeinitializesclienttransportidentifier,notanacceptsyscall;actualendpointaccept/connectioncreationremainseparatework. Cookiecallbacksconfiguredat0x10026380useSSLtransportIDthroughmbedTLS;theirfullcookieproducer/checkersemantics remainopen."
    },
@@ -159099,6 +159155,15 @@
     "deadline_initialization": "0x10027ab0(slot,min_ms,max_ms,now) stores min+0x5f8, max+0x5fc, current+0x600=min and deadline now+min milliseconds. Unsigned multiply-high0x10624dd3 and shift6 implement /1000; remainder*1000 adds microseconds. When signed microsecond sum>999999 it carries the quotient of /1000000 into seconds and subtracts that many microseconds. Equivalent code is inlined in application builder0x10028268, close builder0x100284b8 and successful backoff0x10028640. There is no input validation or checked seconds overflow. For valid normalized now and configured1000/60000ms values, deadlines are normalized seconds/microseconds pairs; backoff uses fresh supplied now, not the previous deadline.",
     "verified_consumers": "Close-notify retry0x100249a0 uses due selection, restores cached bytes, advances backoff, sends and rescans; reaching maximum invokes cleanup rather than another write. If no due slot,0x10024b28 uses next-deadline and schedules0x100240ac only on nonnull selection. Close output pump0x10024ec8 likewise schedules only with a selected deadline. Connected-state retry helper0x1002526c/0x100252b0/0x1002533c uses the same greatest-lateness selector, restores ciphertext and advances backoff; successful advance calls output pump0x1002500c, and expired backoff invokes0x100247c0 if state nonzero. A clock callback missing in those consumers supplies {0,0}. Full connected-state input/output error behavior and clock callback producers remain separate work.",
     "flag_writer_boundary": "ACK capture0x10027f54 allocates a slot using the supplied creation time, copies eight received-record bytes via SSLcontext+0x5c into slot+2, serializes ACK and sets slot+0x5f4=1 before ssl_write. Only positive ssl_write caches working ciphertext into slot+0x18, length+0x14 and context ACK-plaintext-length word+0x5e4. Negative or zero results do not perform that cache copy here. Application builder0x10028254 and close ACK prelude clear+0x5f4 on their established nonnegative-success paths. This joins a concrete producer to the reclaim predicate, but does not finish every flag writer, incoming identifier domain or serializer/caller transition."
+   },
+   "dtls_connected_output_and_submission": {
+    "working_buffer_and_send": "0x1002500c drains queue working ciphertext, not plaintext. Transport+0x758 is cursor, +0x75c remaining count, +0x760 working buffer. Saved endpoint send callback+0x174 receives (transport,buffer+cursor,remaining). Nonnegative results advance cursor and subtract from remaining, then repeat until remaining0. Raw mr.0x7c7d1b79 at0x100250b8 and branch BO4/BI0 at0x100250bc prove zero is accepted by this loop: it advances by0, leaves remaining unchanged and calls send again. There is no zero-progress guard. The callback is assumed to return no more than requested; the pump does not enforce that upper bound. A callback repeatedly returning0 with bytes pending can therefore spin in this synchronous loop.",
+    "drain_and_next_timer": "When remaining is0 initially or becomes0, call0x10027e8c: wipe1500 working bytes, clear cursor/count/replay fields, save current slot as previous and clear current. Cached saved-slot ciphertext remains available. Obtain time through config+0x24(cookie+0x28,&time), or use {0,0} if absent; call next-deadline0x10027c80. A nonnull result schedules0x100240ac with the returned millisecond delay. A null result makes no timer-registration call here; the pump does not separately cancel an earlier retry timer on that branch. Drain path returns0 and does not itself force transport state CONNECTED4.",
+    "wait_and_error": "Negative send -0x6900 WANT_READ and -0x6880 WANT_WRITE log, set transport+0x16c direction0/read or1/write, and move state+0x170 to WRITING5 unless already5. Exact isel at0x100251b8 selects literal0 when CR4.eq from result==-0x6900, otherwise1. It returns0 while preserving the remaining buffer and current-slot pointer, without drain or next-deadline selection. Other negative sends log, run cleanup0x100247c0 when state!=0, and return the original negative result. Cleanup results are not substituted for the send error. No application plaintext is re-encrypted in this send loop.",
+    "writing_state_resume": "State-table0x1004f7c4 row5 read-handler is0x10025b68; its write-handler slot isNULL. Resume helper calls0x1002500c. A negative return propagates and skips its later work. Every nonnegative return, including the pump's0 for WANT_READ/WANT_WRITE, clears direction+0x16c and writes CONNECTED4 unless already4. It then calls mbedtls_ssl_check_pending on SSLcontext transport+8; nonzero semantically tail-calls connected read-handler0x1002539c, while zero returns the pump result. Thus this wrapper can immediately undo the pump's WRITING5/direction request when another WANT condition occurs. Pending ciphertext can still remain. Do not describe the wrapper's nonnegative return as proof that all output drained. The subsequent connected read-handler behavior and final registration decisions remain separate caller/state-machine work.",
+    "connected_retry_handler": "State4 write-handler0x100251f8 gets current time or{0,0}, selects the most overdue eligible slot through0x10027b40, restores cached ciphertext with0x1002808c, and advances backoff0x10028614. Success calls0x1002500c and ignores that pump return, refreshes time and rescans. Backoff expiry logs and calls cleanup if state nonzero, then likewise refreshes time and rescans. Consequently this handler does not propagate a negative endpoint-send result directly; cleanup may already have removed the saved slots. WANT returned by the pump can leave bytes pending while the retry handler proceeds to its next due-slot scan. The handler stops when no due slot is found; it does not independently call next-deadline selection at that exit because the pump handles scheduling after a drain.",
+    "public_submission": "0x10026648(transport,plaintext,length,aux1,aux2) rejects unsigned length>0x586 (1414) with boolean0 before any build or send. Accepted extent obtains time through config+0x24 or{0,0}, calls builder0x100281a8(queue,SSLcontext,time,plaintext,length,aux1,aux2), and treats signed negative builder result as failure0. A nonnegative builder result calls0x1002500c and returns1 exactly when the pump result is0; any nonzero result becomes0 via cntlzw/shift. Thus submission can report1 with buffered ciphertext still pending after WANT_READ/WRITE. Builder forwards the two supplied auxiliary words to saved-slot+0x614/+0x618 when it accepts an application write; matched ACK retirement copies them out only when both output pointers are nonnull. This proves local value retention and return behavior, not the higher-level meaning or ownership of those words.",
+    "other_caller": "Connected input path0x100257f8 calls the pump and retains its result for the enclosing handler. It reaches that path directly when byte transport+0xd40!=0, which is queue+0x5e8, the restored-ciphertext replay flag:0x100280d4 sets1,0x10027ec0 and0x1002825c clear0. When that flag is0,0x10025890 compares pending count+0x75c with transport+0xd3c (queue+0x5e4, populated from ACK plaintext length). Pending count greater than that word advances the cursor by that word, subtracts it from pending count, then joins the pump call; otherwise it records the original input WANT direction, restores CONNECTED4 if needed and returns0. Exact enclosing SSL input conditions and the protocol reason for this count adjustment remain open. The direct-call census found four pump callers: connected retry0x10025284, connected input0x100257f8, WRITING resume0x10025b84 and public submission0x100266fc. Their caller-specific conventions remain distinct; do not collapse them into a single delivered-success meaning."
    }
   },
   "bin_wacd": {
