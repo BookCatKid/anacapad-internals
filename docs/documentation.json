@@ -156377,7 +156377,7 @@
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
     "Finish the saved-output queue: all slot flag writers/state effects, incoming/outgoing record-counter identifier join, clock callback producers, ciphertext-vs-ACK-length adjustment rationale, full NS2 per-state message/reconnect effects and final FD re-registration. Connected input/output, ACK completion and NS2 admission/deactivation/provenance/idle-timer table are established; payload admission remains distinct from per-state operation acceptance.",
     "Trace the remaining NS2 messages individually, including their parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 has a separate complete byte/parser/retirement record.",
-    "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, per-state entry/exit/teardown/message/timeout effects, dynamic NS2 idle-cap producers at0x10052bb0..2, and target-state selection. NS2 message admission, deactivation-file override, active/provenance/proof gate and per-message idle refresh are established alongside verified WEP/frequency/projection/file/marker effects.",
+    "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, full per-state entry/exit/teardown/message/timeout effects and target-state selection. Idle-cap addresses are now joined to session+a60/a61/a62 and setup-message writers/resetters; finish their exact parser tags/defaults/branch reachability. Captured-state timeout gate, state-transition notification-before-write order and per-state timeout delegate sequences are established; discovery driver callback, TIMED_OUT serialization and open-AP predicate/action still need full traces.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace initial external settings-snapshot producers and daemon-side registered triggers/teardown. The external IPC signing receiver remains outside this lane.",
     "Finish event-loop integration: SIGUSR1 nonnull modeword producers and downstream open-mode/utility/notification/timer callback effects, remaining registration users, network-owner descriptor producers, lower HAL utility object behavior, and object-allocation ownership. SIGUSR1 merge-file priority, NS2 button consumption table, wireless-block predicates, interface-disable latch writer and local timer replacement ordering are established, alongside previously traced shutdown and registry phases."
@@ -158651,6 +158651,62 @@
      "build": "86.10-80260",
      "address": "0x10020818",
      "notes": "Admission rejection resets with not authorized before immediate close and selector change."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001ba70",
+     "notes": "State loaded into r7 survives to schedule tail call and becomes captured timer argument."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001ce2c",
+     "notes": "Stale numeric-state mismatch returns before timeout handler dispatch."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001c2b8",
+     "notes": "State-change notification callback runs before new state store."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001c2e4",
+     "notes": "State transition semantically tail-refreshes idle deadline."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001f4d4",
+     "notes": "Discovery cap is parsed-message byte stored at session+a61."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001f69c",
+     "notes": "Reauthorization cap is parsed-message byte stored at session+a60."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001e490",
+     "notes": "Discovery timeout clears PIN/secret and transitions before optional timeout notification."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001d460",
+     "notes": "Open-AP timeout null callback guard is conditional return, not fallthrough execution."
     }
    ],
    "setup_client_hello_payload": {
@@ -159316,8 +159372,18 @@
     "effective_provenance": "0x10023d2c returns default-credential record context+0x2c4 word+0xac only when active source2. For active4..6 it returns requested method+0x2f4 only if proof byte!=0; otherwise0. All other sources return0. GET_PSK admission merely requires nonzero effective provenance; downstream generator separately requires1..8 and six factory-identity bytes. Admission therefore does not guarantee new credential generation or persistence. Cached source3 is rejected explicitly even though it is accepted for ordinary configuration commands.",
     "deactivation_override": "For messages not fast-allowed, config=context+0x2c0 callback+0x48(cookie+0x34) is queried if present. A nonzero result selects the restricted table only when active source3; every other active source rejects. Restricted table0x10035290 permits exactly the ordinary configuration group10/12/15/16/17/19/20/22 and returns the callback's original nonzero value, not necessarily normalized1. BEGIN/REAUTHORIZE jump to an active==1 test and therefore reject under required active3; CONTINUE and GET_PSK reject. Null/zero callback uses the ordinary table. Main0x10002ed0 installs0x1000a6ec at NS2 config+0x48; that helper returns boolean(global0x1005010c!=0). Startup0x10009a24/0x10009a50 formats <settings root>/persist/deactivated_state and /persist/deactivation_pending_state.json; existence of either sets that global1 at0x10009b08 and logs Device deactivated. Those snprintf results are not checked here. The local flag is a startup-file latch; this callback does not reread the files on each message.",
     "rejection_and_dispatch_order": "Plaintext callback0x100206f8 first probes opcode<=23. Empty/>23 input returns without the admission call. In-range admission0 logs, common-resets(session,\"not authorized\"), calls immediate-close0x100265a0(transport,1), then0x10026630(transport,0) to change selector and request close again. These are sequential calls, not an atomic authorization rollback. Positive admission checks outer NS2 state<=17, refreshes its idle timer via0x1001ba20, reloads the state and invokes row+0x14 message callback or default0x1001d6d4 with(session,opcode,buffer,length). Per-state handlers can still reject an admitted message or change settings/state. Earlier transport ACK construction precedes this admission check, so an ACK is not proof that the requested configuration operation was authorized.",
-    "idle_timer_refresh": "0x1001ba20 cancels callback0x1001cdf4 through config+0x24 with both arguments-1 wildcard when present. It reads the current44-byte NS2 state row: base seconds at+4, optional cap-byte pointer+8. A nonzero pointed byte caps seconds to min(base,byte); null pointer or byte0 retains base. Raw isel at0x1001bafc selects cap only when unsigned base>cap. Nonzero seconds and nonnull config+0x20 schedule callback0x1001cdf4 with session argument and second argument0, delay(seconds*1000) modulo2^32. It semantically tail-delegates scheduling and does not validate state index inside this helper. Timer cancel/schedule returns are ignored by plaintext delivery. Zero duration still cancels but does not re-arm.",
+    "idle_timer_refresh": "0x1001ba20 cancels callback0x1001cdf4 through config+0x24 with both arguments-1 wildcard when present. It reads the current44-byte NS2 state row: base seconds at+4, optional cap-byte pointer+8. A nonzero pointed byte caps seconds to min(base,byte); null pointer or byte0 retains base. Raw isel at0x1001bafc selects cap only when unsigned base>cap. Nonzero seconds and nonnull config+0x20 schedule callback0x1001cdf4 with session argument and second argument equal to the current NS2 state loaded into r7 at0x1001ba70, delay(seconds*1000) modulo2^32. It semantically tail-delegates scheduling and does not validate state index inside this helper. Timer cancel/schedule returns are ignored by plaintext delivery. Zero duration still cancels but does not re-arm. The callback compares that captured state with current state before dispatch; it is not passed a constant0.",
     "idle_timer_table": "Table0x1004f4ac: RESET0,STANDBY1,COMPLETE8 base0; OPEN_AP_STANDBY11 base120seconds; all other valid states base60seconds. Optional byte caps: DISCOVERY3 and DISCOVERY_INTERACTION4 point0x10052bb1; SETUP_WAITING6 points0x10052bb2; REAUTH_PENDING14 points0x10052bb0. All other cap pointersNULL. Thus each admitted message can replace the state's idle deadline even if its later handler performs no operation. Dynamic cap producers and complete per-state timeout/entry/exit/message effects remain open."
+   },
+   "ns2_idle_timeout_dispatch_and_caps": {
+    "captured_state_gate": "0x1001cdf4(session,scheduled_state) reads current state+0x298 and rejects unsigned state>17 by tail-calling common reset(session,0). For valid state it compares scheduled_state with current; mismatch returns immediately without log, reset or state handler. Equality logs the state, reloads current state and tail-calls row+0xc timeout handler from44-byte table0x1004f4ac when nonnull. Null handler returns. Idle refresh0x1001ba20 retains r7=current state at0x1001ba70 through its scheduling tail call, supplying the captured state, not zero. The comparison is a state tag rather than a generation counter: if the session leaves and later returns to the same numeric state, equality alone does not distinguish an old timer. Normal transitions cancel/replace timers, but this gate alone is not a unique timer identity.",
+    "state_transition_timer": "State setter0x1001c220 validates new unsigned state<=17. Same state returns without notification, write or timer refresh. Different state logs, optionally invokes config+0xd8(cookie+0x34,old_name,new_name) BEFORE writing new state, ignores callback return, stores new state+0x298, then semantically tail-calls0x1001ba20 to cancel/re-arm the idle timer. Invalid requested state only logs and returns. Message delivery independently refreshes the idle timer even when the later state handler requests no transition, so same-state setter behavior and admitted-message refresh are distinct.",
+    "cap_addresses_and_writers": "NS2 static session base is0x10052150, proven by constructor GOT. Cap pointers0x10052bb0/0x10052bb1/0x10052bb2 therefore equal session+0xa60/+0xa61/+0xa62. Constructor memset0xacc initializes all three0. Common reset0x1001cbb0/+0x1cbb8/+0x1cbc0 clears them. CLIENT_HELLO handler0x1001f138 dispatches embedded BEGIN7 via parser0x1002ac28; after parser success it clears discovery/wait caps at0x1001f3fc/+0x1f404, copies nonzero parsed byte stack+0x20 to discovery cap at0x1001f4d4 and nonzero stack+0x21 to wait cap at0x1001f4e4. Embedded REAUTHORIZE18 parser0x1002cdd4 initially clears reauth cap at0x1001f300 and its later branch copies stack+0x28 byte at0x1001f69c. This joins caps to received setup-message parameters rather than an unrelated global configuration file. Full tag/optional-field/default semantics and all branch reachability of these parsers remain open.",
+    "additional_cap_resets": "Standby-side message handler writes discovery cap from parsed byte stack+0x18 at0x1001db88, or clears it at0x1001db48 before entering PIN_EXCHANGED5. Discovery/interacting button handlers clear discovery cap at0x1001e380/0x1001bfcc before their other side effects. WAITING state helper0x1001c7d4 clears wait cap at0x1001c7ec before selecting its next state. A zero cap means no additional shortening of the base timeout, not zero-second expiration; after these clears a future idle refresh uses the base duration. Parser tag/producers, other message branches and complete entry/exit effects still require tracing.",
+    "ordinary_and_waiting_timeout": "Timeout table states2 START,5 PIN_EXCHANGED,10 OPEN_AP_PENDING,12 ENABLE_WIFI_PENDING,13 DEACTIVATED,15 ISLAND_PENDING,16 SCANNING all use0x1001d188: common reset with reason, immediate DTLS close0x100265a0(arg1), then selector0/close helper0x10026630(arg0). WAITING6 uses0x1001d080: common reset with its reason, then tail selector0/close helper, without the separate immediate-close call. These distinctions follow actual call sequences; lower reset may independently commit already-ready pending settings as previously documented. RESET0/STANDBY1/COMPLETE8 timeout slotsNULL.",
+    "active_update_check_timeout": "States7 ACTIVE,9 UPDATE,17 CHECKING_CREDS share0x1001d1e4. It asks0x10021538 about pending settings atsession+0x1b0; that helper returns0 for null or valid byte0, otherwise byte+1 (credential checking). Zero tail-calls ordinary timeout0x1001d188. Nonzero tail-calls credential-result handler0x1001c094(session,4), joining the previously established no-AP/check-timeout status path and delayed transition. Thus this timeout is not always an immediate session reset: an active credential check uses its result-reporting path.",
+    "discovery_and_reauth_timeout": "DISCOVERY3/INTERACTION4 use0x1001e47c: call0x1001c4dc, which clears requested method/PIN/decrypted secret through0x10022a48, invokes optional config+0x64(cookie+0x34), then tail-transitions to START2. After that returns, read u16 status+0x2a4; if unsigned>28, tail-call0x1001e3c8 to construct/send TIMED_OUT21 through serializer0x1002d088, otherwise return without that notification. REAUTH_PENDING14 uses0x1001c434, which only tail-transitions to START2 through state setter; it does not call the discovery PIN/secret-clear helper. Full driver callback+0x64 and notification wire/error effects remain individual work.",
+    "open_ap_standby_timeout": "State11 uses0x1001d454. If config+0x94 is null it immediately returns via conditional bclr. Otherwise it calls that predicate(cookie+0x34); zero returns without reset or rescheduling here. Nonzero common-resets with reason, then optionally tail-calls config+0x9c(cookie+0x34). This is a guarded timeout action, not unconditional closure just because the base120seconds elapsed. Predicate/callback bindings and their full access-point side effects remain open."
    }
   },
   "bin_wacd": {
