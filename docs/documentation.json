@@ -156183,7 +156183,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining apply notifications/WAC timer decisions,full flag domains (local SSID,fresh-household,registration-pending markers and pending path timer established),wireless driver result producers,wpaconfig/debug consumers,other CCRED handlers and commit/state transitions (WAC check script invocation and ignored launch/command results established) (projection,WEP chain,exact frequency domain and disk-before-memory apply order established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining apply notification effects,WAC fallback admission/flag producers and downstream teardown,full flag domains (local markers,pending path timer and15-minute fallback expiry/reset chains established),wireless driver result producers,wpaconfig/debug consumers,other CCRED handlers and commit/state transitions (WAC check script invocation and ignored launch/command results established) (projection,WEP chain,exact frequency domain and disk-before-memory apply order established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157642,6 +157642,55 @@
      "build": "86.10-80260",
      "address": "0x2740",
      "notes": "SSID-only wrapper sets NFWActive1 and selects nfwssid.txt;no password source."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000885c",
+     "notes": "900seconds reschedules WACish callback;config+a4 returns1 irrespective of allocation."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10009c68",
+     "notes": "Cancellation is a semantic tail call toqueue cancel;config+a8 ignores its count."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002177c",
+     "notes": "NewHHID over nonempty currentSSID invokes fallback timer cancellation before liveHHID copy."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10007d0c",
+     "notes": "Admitted fallback first resets working settings and attempts deletion ofpersistentfile."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10004c78",
+     "notes": "Persistentnetsettings unlink outcome ignored after in-memory reset."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10007c3c",
+     "notes": "Nondeferred fallback cancels AP scan timer before driver scan cancellation/enable."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10007a18",
+     "notes": "Deferred WAC fallback tail-calls NS2 timeout processing;not a nonsemantic return."
     }
    ],
    "setup_client_hello_payload": {
@@ -158103,7 +158152,7 @@
     "check_submission": "0x10021514 is a semantic tail delegate to projection withmode0;0x1001de9c calls it for credential-check entry. Entry0x1001de34 refreshes state timer,requires pendingvalid and config+94 getter nonzero. Main binds getter0x1000b0a0;it returns0 ifglobal0x10050108==0,otherwise3 when0x10050104==0,otherwise1/2 according toglobal0x10050100. Their producer meanings remain unresolved;the admission gate accepts any nonzero return. Projection/writefalse logs unable to write cred check file and skips start. Success invokes config+b8,main-bound0x1000b28c,with pendingSSID/credential arguments. This concrete callback ignores those arguments,dispatches event15 CCRED through0x1000f57c,and returns1 iff event result nonnegative. False/missing start callback logs unable to start cred check. These failure paths log only:they do not immediately clear pending settings or synthesize a completion status.",
     "apply_order": "Apply0x10021668 first invokes projection withmode1. A false write returns0 before in-memory apply. After successful write it requires snapshot capacitiesHHID+4>32,MuseHHID+10>53,WEP+1c>15,SSID+48>31,password+54>63. Equality to32/53/15/31/63 fails. These are capacity guards,not current lengths. If any fails,the newly written disk file is not rolled back. Only after these guards does it copy nonempty pendingHHID/MuseHHID,write terminatingzero and current lengths;copy provided WEP and set valid byte;write nonzero frequency;copy providedSSID/count and string-convert password;invoke further configured side-effect callbacks. Successful normal end clears pending record via0x100215fc. Broader callback/state effects remain unresolved.",
     "entry_error_consumer": "Apply entry0x1001c864 first returns early while pending check-in-progress getternonzero. Otherwise calls0x10021668. Failure logs an error,clears pending settings and sessionbytes+294/+ac6,then tail-calls completed-cache expiry0x100214e0. Success clearsbyte+294,logs success and also tail-calls0x100214e0. Therefore a failed apply after successful disk write can discard pending memory while leaving that disk update;this entry supplies no rollback.",
-    "remaining": "Local SSID/fresh-household/registration marker callbacks are established in settings_apply_local_side_effects. Remaining apply notifications,WAC timer decisions,full flag domains and state transitions require individual tracing."
+    "remaining": "Local marker effects and WAC fallback start/cancel/deadline/expiry are established in dedicated records. Remaining full start-admission predicates,apply notifications,flag producers and state transitions require individual tracing."
    },
    "sonosnet_material_and_frequency_admission": {
     "wep": "Tag15 is the16-byte WEPKey byte field:parser places it pending+5f/count+70,projectionpasses it to callback source+4/+8,and concrete writer emits exactly16bytes as WEPKey. In validator key-required branch,missing key with current key-validbyte0 returns0x8006;provided count not16 returns0x8002;provided key when currentvalid nonzero returns0x8004. The WiFi-only/existing-household branches can bypass key requirements;these are not unconditional rules for every message. Apply copies the bytes to snapshot+18 and sets snapshot+20 pointed validbyte1.",
@@ -158124,6 +158173,16 @@
     "registration_pending_marker": "Config+80 main-bound0x1000b41c (store0x10002f78) is invoked with1 at0x10021754 when nonempty pendingHHID is applied and currentHHID length pointed bysnapshot+8==0. It calls0x10003be0 and always returns1. Helper formats<settingsroot>/net/run/registration_pending in128 bytes;format result>127 returns without changing marker state. Nonzero argument calls sonosFileCreate with emptycontents/length0. Even creationfailure logs and continues tosetglobal0x10050b60byte1,invoke ignore-path setup0x10003b6c and update driver advertised-path block0x10003b04. Zero argument attempts unlink,clearsglobal50b60 regardless unlink result,then updates driverblock. This local registration marker is distinct from NS2 registeredbyte+1ac and the32-byte RegSigningKey.",
     "path_block_and_timer": "0x10003b04 calls WifiFuncsBlockAdvertisedPath(ath0,1) while pendingbyte0x10050b60nonzero,or u16global0x1005013enonzero;otherwise argument is byte0x1005011e. Meanings/producers of the latter configuration fields remain separate work.0x10003b6c sets ignore-path byte0x10050b61=1;on initial transition invokes0x10013a40,which sets SSIDmanagerbase+6e8=1. It replaces matching timer0x10003a08 with30-second deadline through0x10017174. Timer re-registers itself after30sec while registration-pendingbyte nonzero. Once pendingbyte0,it clears ignore-pathbyte,queries WifiFuncsGetLearnedUWCHops(ath0);nonzero learnedhops dispatches SNP_UP event4,then0x10013a58 clears SSIDmanagerbase+6e8 and runs a deferred reconfiguration when+6ecnonzero (clears that flag,tail0x100134c4). Removing registration marker therefore does not immediately clear ignore-pathbyte;the timer later processes it. Allocation/query/driver/timer returns are ignored by these callers.",
     "remaining": "Trace remaining apply/config callbacks,all marker/config initial producers,SSID list/report/reconfiguration engine and full flag/state interactions. Local marker file contents,error handling,advertised-path predicate and pending timer loop are established."
+   },
+   "settings_wac_fallback_timer": {
+    "binding_and_deadline": "Main config+a4 binds0x1000b160 throughstore0x10002fe4. It calls0x10008820 and returns1 without propagating scheduling failure. Start helper logs Beginning WACish timer and replaces matching0x10007ce0 callback with900seconds,usec0,args0/0 via0x10017174. This is15minutes,not900milliseconds. The verified queue stores absolute monotonic deadline and cancellation matches callback/arguments. Config+a8 binds0x1000b184 throughstore0x10002ff0;it calls0x10009c28,which cancels callback0x10007ce0,args0/0,then returns1 regardless cancellation count.",
+    "apply_cancel_callsite": "While applying nonempty pendingHHID,0x10021738 sees currentHHID length pointed bysnapshot+8==0 and marks registration pending. It then tests currentSSID length pointed bysnapshot+4c;nonzero plus nonnullconfig+a8 invokes cancellation at0x1002177c before pendingHHID is copied. Thus this branch cancels the fallback when a new household is applied over an already configured wireless connection. It is not an unconditional cancellation on every successful settings write.",
+    "apply_start_callsite": "0x10021978 invokes config+a4 in a wireless-settings-only apply branch,then continues common apply callbacks/pending cleanup. The complete branch predicates include pendingHHID/Muse/WEP/frequency/SSID and ancillarybyte+e0/+e1 tests in0x10021910..0x10021978;their full product meaning remains open. Do not reduce the eligibility condition to merely presence of an SSID. Timer effects and deadline are proved independent of that remaining admission interpretation.",
+    "expiry_guards": "Callback0x10007ce0 returns immediately when global0x10050130nonzero or currentSSID count0x10050118==0. Those guards cause no reset and do not reschedule this timer. Otherwise it invokes0x10004b9c before reading deferred-WAC flagglobal0x100500fc and writesfallback flagsword0x10050110=1. Initial producers for the SSID-manager enable flag and deferred-WAC flag remain to be joined.",
+    "working_settings_reset": "0x10004b9c sets frequencyglobal0x10050080=2412;clears globals0x10050130,0x10050124,0x10050118 and bytefields0x1005011e/11f/11d/11c,0x10055204,0x100554a8,0x10055624,0x10055890,0x10055040,0x100559d0,0x100500e8/f4;then0x10013ad4 zeroes SSID-manager0x760-byte state at0x10050ff8. Meaning of each ancillary cleared byte is not assigned merely from its address. The password at0x10055624 is cleared by writing its firstbyte only;this is not a complete password-buffer wipe. It constructs<settingsroot0x100558d0>/netsettings.txt in256bytes and attemptsunlink when format result<=255. Unlink result ignored;no rollback of reset on disk failure and no call to the settings writer restoring the file here.",
+    "nondeferred_recovery": "If deferredflag0x100500fc==0 after reset,callback tail-calls0x10007bdc. When global0x10050108nonzero and0x10050104zero,this first calls0x10005c38 and0x10017b14(1),then rejoins common recovery. Common path notifies mode0 through0x10007a94,cancels callback0x10004834,args0/0,resetsglobal0x10050150,cancels ath0 AP scan,allows channel scan1,and reads0x10050110 flags. With fallback literal1,bit0 selects event1 RECFG. It clears flagsword and tail-calls0x10005cac(0). Other callers/flagvalues can select NS_IDL10 instead;those branches are not the literal1 timeout path.0x10005cac logs/stores netstartstate0 and follows later effects separately. All timer/driver/dispatch return values are ignored in this path.",
+    "deferred_recovery": "If deferredflag nonzero,callback logs Applying deferred WAC timeout and calls0x100079d4. That helper setsglobal0x10050100=1,clearsdeferredflag0x100500fc,invokes0x1000799c (writes/var/run/wac_mode2 and tail-sends localIPCcommand37),dispatches WAC_TMOevent38,then tail-calls0x10020a8c with NS2 sessionglobal0x100500d0. NS2 helper logs currentstate WAC timeout and tail-calls0x1001eed8(session,reasonstringtimeout). Exact teardown/reset effects of that helper and the local IPC receiver remain separate work;external anacapad receiver stays outside this lane. Recovery occurs after working settings reset regardless of file deletion success.",
+    "remaining": "Finish apply-start branch admission,flag initial producers,remaining netstart/NS2 teardown and WAC transition side effects. Deadline,concrete start/cancel bindings,expiryguards,settings reset/file deletion and both selected recovery call chains are established."
    }
   },
   "bin_wacd": {
