@@ -156183,7 +156183,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and remaining envelope caller transitions (common reset/PIN/secret cleanup,contactless expiry request and state-timer check deadline established) and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining apply notification effects,WAC fallback admission/flag producers and remaining per-state teardown/config/transport effects,full flag domains (local markers,pending path timer and15-minute fallback expiry/reset chains established),wireless driver result producers,wpaconfig/debug consumers,other CCRED handlers and commit/state transitions (WAC check script invocation and ignored launch/command results established) (projection,WEP chain,exact frequency domain and disk-before-memory apply order established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and remaining concrete handshake/IO callbacks,queue/framing/close-notify pump,cookie/replay effects (close predicates,selector mutation,closing read and cleanup sequence established) and remaining envelope caller transitions (common reset/PIN/secret cleanup,contactless expiry request and state-timer check deadline established) and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining apply notification effects,WAC fallback admission/flag producers and remaining per-state teardown/config/transport effects,full flag domains (local markers,pending path timer and15-minute fallback expiry/reset chains established),wireless driver result producers,wpaconfig/debug consumers,other CCRED handlers and commit/state transitions (WAC check script invocation and ignored launch/command results established) (projection,WEP chain,exact frequency domain and disk-before-memory apply order established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157740,6 +157740,48 @@
      "build": "86.10-80260",
      "address": "0x1001d238",
      "notes": "Pending check at state deadline directly deliversinput4 ->status0x800a,without wireless event."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10026634",
+     "notes": "Selector stored before tail-close guard;can change PSK/PIN choice without transition."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100265cc",
+     "notes": "Rotate mask0xfffffffd excludes immediateclose states7/9;unsigned<=2 guard separate."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10024e90",
+     "notes": "Drained output changes7/8 to CLOSE_NOTIFY_SENT8;state6 not immediatelydisconnected here."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10024cc4",
+     "notes": "Peerclose-notify result-0x7880 cleans up and returns0."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002452c",
+     "notes": "Cleanup freesSSLthen clears1500-byte readbuffer and0x1848-byte queuecontext."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100248ec",
+     "notes": "Cleanup invokes configured disconnect notification then tail-rebuilds IOregistration."
     }
    ],
    "setup_client_hello_payload": {
@@ -158240,7 +158282,16 @@
     "session_reset_fields": "Commonresetsets state+298=0,previousstate+29c=0,word+2a0=1,u16+2a4=0,targetstate+2a8=0,word+2ac=0,timeword+ac8=0. It wipes512bytes+2b0 and36bytes+4b0 withZZ0038;clears flags+4d4/+4d5,zeroes0x586bytes+4d6 and ancillaryflags/lengths+ a5c/a60/a61/a62 and two other buffers. It cancels callbacks0x1001cdf4 (state timeout) and0x1001c348 (delayed status),arguments-1/-1,throughconfig+24. It does not clear completed wireless cache+134 here and does not cancel its10-minute expiry callback0x1001bc00 in these two registrations. It chooses SETUP_STANDBY1 when currentHHIDlength pointed bysnapshot+8==0 or HHIDpointer snapshot+0null;otherwise SETUP_COMPLETE8 then invokes0x10026848. Detailed entry/config/transport effects remain separate unresolved work.",
     "state_timer_producer": "0x1001ba20 first cancels all matching0x1001cdf4 registrations,argswildcards-1/-1. State row is0x1004f4ac+state*44:base secondsword+4,optional overridebytepointer+8. Nonnull/nonzerobyte overrides bymin(base_seconds,byte),proved rawisel0x1001bafc r4,r9,r4,CR7.GT;zero override leaves base. A nonzero effective interval and installedconfig+20 schedules callback0x1001cdf4,sessionarg,statearg,afterseconds*1000 through timerwrapper. State17 CHECKING_CREDS row has60seconds and overridepointer0;states7 ACTIVE/9 UPDATE likewise60seconds. Missing callback/allocation failure not propagated. Invalidstate bounds at producer remain a caller contract.",
     "stale_state_guard_and_check_deadline": "State timeoutcallback0x1001cdf4 checks currentstate<=17 and equality to scheduledstatearg. Different currentstate returnswithout dispatch;invalidcurrentstate logs and tail-commonreset. Matchingstate selects handler row+c and tail-calls it ifnonnull. Forstates7/9/17 handler0x1001d1e4 queries pending getter0x10021538:validpending and check-in-progress nonzero directly invokes commonresult0x1001c094 withinput4,which becomessetupstatus0x800a through0x10035208. This is a timer-origin result,not evidence a CRD_NOAP event arrived. In CHECKING_CREDS17 it follows the established pending-error cleanup/five-second status path;in7/9 commonresultstores cache but skipsstate17-specificfollowup. Withno pendingcheck,handler tail0x1001d188 callscommonreset then transporthelpers0x100265a0(arg1)/0x10026630(arg0). Other matchingstate timeouthandlers remain individual work.",
-    "remaining": "Resolve configured reset callbacks,transporthelper effects,other per-state timeout handlers and full ready/pending producer domains. Contactless expiry request,CHIRPbudget mutation,secret cleanup,common reset field/timer effects and CHECKING_CREDS state-timeout origin are established."
+    "remaining": "Resolve configured reset callbacks,other per-state timeout handlers and full ready/pending producer domains. Transport close-selector predicates and closing read/cleanup helpers are established in dtls_close_selector_and_cleanup;queue/IO/close-notify details remain open."
+   },
+   "dtls_close_selector_and_cleanup": {
+    "selector_then_close": "0x10026630 always stores caller selector attransport+164,then tail-calls0x100265a0 withclose argument0. It changes the next configuration choice even if close helper returns without a state transition. Setup CHECKING_CREDS disconnect0x1001cdec usesselector0;generic disconnect0x1001d188 first requests nonzero close at0x1001d1c0,then tail0x10026630 selector0. Selector0/1 denote PSK/ECJPAKE suite branches established in dtls_suite_and_handshake_contract. There is no local domain check on arbitrary callerselector here.",
+    "close_predicates": "0x100265a0 reads state+170. Both argument branches return for unsignedstate<=2(DISCONNECTED,HELLO_VERIFY,CLIENT_RECONNECT). Nonzeroargument returns additionally when((state-7)&0xfffffffd)==0,namely7 CLOSE_IMMEDIATELY or9 CLOSE_NOTIFY_DISCONNECT;otherwise writesstate7 through0x100246a8 and tail-calls outputpump0x10024d68. Zeroargument returns for unsigned(state-6)<=3,namely6..9;otherwise writesstate6 CLOSING and tail-outputpump. For valid0..9 states,zero requests closing from3 CONNECTING/4 CONNECTED/5 WRITING;nonzero can force7 from3/4/5/6/8. Out-of-range states are not separately rejected before state-name indexing. Setter0x100246a8 logs name from12-byte table0x1004f7c4 then storesstate;no callback is invoked by that setter itself.",
+    "state_table_join": "DTLS table0x1004f7c4 rows{name,readhandler,writehandler}:6 CLOSING read10024d68/write0;7 CLOSE_IMMEDIATELY read10024be4/write10024b64;8 CLOSE_NOTIFY_SENT read10024be4/write10024928;9 CLOSE_NOTIFY_DISCONNECT read10024d68/write0. Other rows0/1 read10025c08,2/3 read100258f4,4 read1002539c/write100251f8,5 read10025b68/write0. These are exact table roles used by concrete callback dispatch;the names alone do not prove wire close-notify production.",
+    "output_pump_close_progress": "0x10024d68 first prepares queued bytes with0x100283a8,then repeatedly invokes transport+174 onbytes+760+offset+758 while pendingcount+75c!=0. Nonnegative result advances offset/decrementscount;no independent zero-progress guard exists. Negative WANT_READ(-0x6900)/WANT_WRITE(-0x6880) records direction+16c usingCR4 equality,refreshes queued deadline via0x10027c80/0x100240ac when available,and returns0. Other negative results call cleanup0x100247c0 ifstate nonzero. Once drained,it calls0x10027e8c,clearsdirection+16c;state9 immediately cleans up,states7/8 are changed to8,then IOregistration0x100242e0/deadline/pending-read processing continue. State6 itself is not changed to0 by this drained-output block. Queue/framing/close-notify production remain to be reversed individually;do not equate this request with synchronous socket destruction.",
+    "read_and_immediate_write": "Readhandler0x10024be4 clears1500-byte readbuffer+17c,sets+178=1500,then mbedtls_ssl_read into thatbuffer. Nonnegative read logs/discards receivedbytes and repeats only while SSLpending andstate nonzero. WANT_READ/WRITE returns0 andsets+16c direction. Peer-close-notify(-0x7880) cleans up ifstate nonzero and returns0. Othernegative read cleans up ifstate nonzero and returns originalnegative. It does not dispatch these positive readbytes as application setupmessages in this closing handler. State7 writehandler0x10024b64 calls cleanup directly wheneverstate nonzero;state0 simplyreturns.",
+    "cleanup": "0x100247c0 cancels configuredcallback registrations0x1002415c/0x10025fac/0x10025e14 via config+1c withtransportargument;calls0x1002d5ec on endpoint+15c. For nonnegativefd,it invokes config+10 twice withdirections0/1 then closes that endpoint through0x1002d518. It then calls0x10024514:mbedtls_ssl_free(transport+8),readlength+178=0,memset1500readbytes+17c,tail-memset0x1848bytes queuecontext+758 via0x10027a9c. This is plainmemset cleanup,not anexplicitZZ0038 wipe. It ensuresstate0,setsrole/index+168=1,invokes optionalconfig+30(config+38context),then tail-rebuilds IOregistration0x100242e0. Primary listeningendpoint+4 is not closed by this particular routine;its registration can be restored. Concrete configcallback implementations,queueembedded-node meaning and broader endpoint destruction remain open.",
+    "remaining": "Reverse queue/framing/close-notify producer,concrete IO/timer/notification bindings and remaining pump state effects. Selector mutation,close predicates,state table/read/write joins and this teardown memory/endpoint sequence are established."
    }
   },
   "bin_wacd": {
