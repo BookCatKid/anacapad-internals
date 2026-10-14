@@ -157963,6 +157963,27 @@
      "build": "86.10-80260",
      "address": "0xd460",
      "notes": "Setterstores minimum/max atconfig+98/+9c,joiningqueueconsumerfields."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10024780",
+     "notes": "DTLSclienttransportIDisfourpeerIPv4bytes;portexcluded."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002d840",
+     "notes": "Peeraddressgetterrequiresfamily2;nonzeroportguardisadditional."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025cbc",
+     "notes": "Negativeclienttransport-IDsetupresulttakesSSLsetuperrorpath."
     }
    ],
    "setup_client_hello_payload": {
@@ -158491,12 +158512,13 @@
    "dtls_capture_retry_configuration": {
     "configured_constants": "Successfulconfig-defaults branch0x10026364 callsmbedtls_ssl_conf_handshake_timeout(config,1000,60000). Loopinitializes exactlytwo0xb0-byte serverDTLS presets,PSKthenECJPAKE;seconddefaults joins samecall at0x100263dc. Shippedlibmbedtls.so.21 export0xd45c storesminu32atconfig+98,maxu32at+9c withno normalization. Outboundbuilders0x10028268/0x100284b8 copythose exactfields fromSSLconfigpointer into savedslotminimum+5f8,maximum+5fc,current+600. Thusfor theseinitializedpresets currentstarts1000ms,max60000ms. Otherrole/indexconfigselection remainsseparate work;do not extendthis toanuntracedconfigrow.",
     "backoff_sequence": "For theseinitializedvalues,helper0x10028614 evolvescurrentinterval1000->2000->4000->8000->16000->32000->60000ms. Atcurrent60000 itreturns0 withnomutation,andclose-notifyretryhandler cleansup. Eachsuccessfuldeadlineadvanceuses suppliedcurrenttime,notpreviousdeadline,so delayedcallbackprocessing shiftslater retrydeadlines. Thisis theintervalsequence,notaguaranteeofwall-clock retransmission timestamps;ACK retirement,sloteligibility,IOblocking andqueuecallbacktiming canstoporpostponeretries.",
-    "initial_bio": "Handshake setup0x10025cec selects12-byte BIO rowtable0x1004f83c usingtransportrole+168. Verifiedrow0={send0x100244f4,recv0x100244e4,accept0x1002471c}. Itcallsmbedtls_ssl_set_bio(SSLcontext,transport,send,recv,NULL);directsend tail0x1002d868 andrecv tail0x1002d874 use endpointtransport+15c. Otherrole rowsandtype-specificendpointsemantics remainopen.",
+    "initial_bio": "Handshake setup0x10025cec selects12-byte BIO rowtable0x1004f83c usingtransportrole+168. Verifiedrow0={send0x100244f4,recv0x100244e4,transport-IDsetup0x1002471c}. Itcallsmbedtls_ssl_set_bio(SSLcontext,transport,send,recv,NULL);directsend tail0x1002d868 andrecv tail0x1002d874 use endpointtransport+15c. Otherrole rowsandtype-specificendpointsemantics remainopen.",
     "connected_capture_binding": "Afterhandshakesuccess0x10025988 savescurrentSSLsendcallback (transport+20 =SSLcontext+18) totransport+174. Itthen installsBIOsend0x10024504,retainsrecv callbackSSLcontext+1c/currentBIOcontextSSLcontext+24,andsetsrecvtimeoutNULL at0x100259a4. Shippedmbedtls_ssl_set_bio0xd4bc directlystoresBIOcontext+24,send+18,recv+1c,recvtimeout+20. Capture0x10024504 tail-addstransport+758 andinvokes0x10027ee4. Thathelperchecksunsigned(1500-currentcount)>=requestedcount,appendsbytesatcontext+8+currentcount,incrementscount,returnsrequestedcount;insufficientextentreturns-0x6a00. Thehelperassumescountwithin1500;itdoesnot separatelyrejectcorruptcount>1500 beforeunsignedsubtraction. Saved+174 remainsactualendpointsendusedbyoutputpump. ThisprovesSSLgeneratedencryptedrecords arecapturedinqueueandlaterdrainedviadifferentsendcallback.",
     "replay_callback": "Successalso bindsmbedtls_ssl_set_dtls_replay_detected_cb at0x100259b4 to0x100280f4 withqueuecontexttransport+758. Callback scans three slotsrequiringin-usebyte+0!=0 andexclusionbyte+1==0;compares8bytesatnode+2 withbytespointedbySSLcontext+5c. Onmatchrestorescachedciphertextvia0x1002808c andreturns-0x7200;nomatchreturns-0x6700. Itdoesnotreencryptthecachedpayload. ThiseligibilityguarddiffersfrominboundACKretirement,whichhasnoin-useguard. Exactlibraryreplaycaller interpretationandrecord-counterlayoutremainopen.",
     "retry_timer_binding": "Queue-next-deadline callersinvoke0x100240ac(transport,delayms). Itcancelsconfig+1c(callback0x10025e14,transport),then schedulesconfig+18(delayms,callback0x10025e14,transport),ignoringreturns. NS2initializationwritesconfig+18=0x1001b930 and+1c=0x1001b9a8 atsession+20/+24. Schedulewrappertail-callsNS2config+20 withsame delayms,trampoline0x1001b914,firstargumentcallback,secondargumenttransport. Cancelwrappertail-NS2config+24 withsametrampolineandargumentpair. Trampoline tail-callsfirstargumentcallback withsecondargumentasr3. MainNS2timers arethepreviouslyverifiedmillisecond-to-monotonic-queuewrappers. MissingNS2schedule returns-1;missingcancel returns0. Noextratimerprecisionconversionoccursinthisbridge.",
     "retry_timer_dispatch": "Callback0x10025e14 boundsDTLSstate<=9,selectsrow+8 writehandler from12-byte table0x1004f7c4 andtail-callsit ifnonnull. Thusstate7 invokesimmediatecleanuphandler0x10024b64,state8 invokesclose-notifyretryhandler0x10024928;states0/1/2/3/5/6/9 haveNULLwritehandler,while4 invokes0x100251f8. Fullstate4writebehaviorandinvalidstateerrorhandling remainindividualwork. Aqueuedtimerdoesnotunconditionallycalltheretryhandleraftertheconnectionstatechanges.",
-    "remaining": "Finishslotage/due/nextdeadline arithmetic,libraryrecord-counter/replaycallbackcaller interpretation,otherroleconfigurationandendpointsemantics,state4writehandler andremaining IOcallbacks. Concrete1000/60000constants,posthandshakeciphertextBIOcapture,andretrytimerbridge/state dispatch areestablished."
+    "remaining": "Finishslotage/due/nextdeadline arithmetic,libraryrecord-counter/replaycallbackcaller interpretation,otherroleconfiguration,endpointcreation/cookiechecker semantics (four-byteIPv4transport-ID setup established),state4writehandler andremaining IOcallbacks. Concrete1000/60000constants,posthandshakeciphertextBIOcapture,andretrytimerbridge/state dispatch areestablished.",
+    "client_transport_identifier": "Setup0x10025cb4 calls0x1002471c andbranchesonnegative. Helpergetsendpointpeeraddressvia0x1002d834 ontransport+15c. Getterrequiresendpoint+8family2 and+aportnonzero;otherwiseNULL. Itreturnsaddresspointerendpoint+8. Setupcopiesfourbytespeeraddress+4 (endpoint+c IPv4address)andcallsmbedtls_ssl_set_client_transport_id(SSLcontext,fourbytes,4). Portischeckedforpresencebutnotincludedinidentifier. NULLpeeraddressreturns-1. Table0x1004f83crow0thirdpointerthereforeinitializesclienttransportidentifier,notanacceptsyscall;actualendpointaccept/connectioncreationremainseparatework. Cookiecallbacksconfiguredat0x10026380useSSLtransportIDthroughmbedTLS;theirfullcookieproducer/checkersemantics remainopen."
    }
   },
   "bin_wacd": {
