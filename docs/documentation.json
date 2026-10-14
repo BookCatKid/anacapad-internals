@@ -119145,6 +119145,113 @@
    "todo": "Established: opcode18/cancel/followup paths, reset diagnostics/clock/count/marker producers and local event-file serialization/append failure policy. Remaining: full per-message apply-status chains, followup network-event handlers, aliased bit4 writer and lower utility/HAL effects reached by cancel. Downstream event upload/remote retention are not inferred from local append; retain the external request/dispatcher exclusion.",
    "pending_state": "0x1001c544 defaults status8. Only stored flags+0xa5c bit0!=0 AND contactless-budget predicate0x10024078!=0 takes reauthorization-success branch. That branch calls0x10022fac to restore budget10 and schedules callback0x1001efb0(session,0) for1800000ms via config+0x20 when present; GOT slot0x1004f9d8 proves callback. This branch does not first call the cancellation wrapper, unlike standby/completed button helper0x1001bc1c. It then chooses status7. Missing scheduler does not turn it into status8 or suppress the remaining state change. The permission check does not parse a new PIN proof or inspect a received identifier here. Both status7 and status8 branches serialize opcode9 SETUP_STATUS through0x1002b470, which writes required tag13/u16BE. Exact status7 frame09 0d 00 02 00 07; status8 frame09 0d 00 02 00 08. Serializer success calls0x10026798; failure logs. Both paths then clear flags+0xa5c, transition to START2 through0x1001c220, invoke optional config+0x6c(cookie+0x34), ignore its return, and return1 to consume the setup/button request. Serialization or submission failure does not roll back renewed contactless budget, flags clear or state transition. Submit0x10026798 semantically tail-calls0x10026648 with completion callback/argument0, so these status messages have no packet-specific completion callback. Main stores0x1000ac74 at NS2 config+0x6c (stack+0x88 at0x10002f3c). It calls0x10007a94(0), writes integer0 to /var/run/netstart_mode, maps mode0 to local command31 and tail-submits through0x10006b2c, then returns1 ignoring the notification result. This final notification happens after the START2 transition, not only after an acknowledged status response. External command receiver is explicitly outside this lane; the local send is not evidence that the receiver executed a driver change.",
    "timeout_and_reconnect": "State14 idle timeout0x1001c434 only tail-transitions to START2, using the state setter and new60second start-state timer. It does not call the button helper, renew contactless budget, send status7/8, clear flags or issue config+0x6c here. Reconnect0x1001cfb0 instead tail-calls common reset with a reason pointer; the transport caller clears the saved DTLS queue before this notification and resumes handshake afterward. Common reset explicitly clears reauthorization flags/cap along with other session working data; its remaining lower notification/driver effects belong to the shared reset trace."
+  },
+  "ns2_setup_begin": {
+   "description": "SETUP_BEGIN opcode 7 supplies the requested setup method, encrypted setup seed, optional encrypted client PIN, discovery/waiting idle limits and discovery volume ramp. Wire parsing, the local START handler, preparation gates and local discovery notification are established here. Detailed chirp construction and subsequent interaction states remain separately unresolved.",
+   "format": "One-byte opcode 7, then fields {u8 tag, BEu16 length, bytes}. Descriptor table 0x10036244 has seven {tag,required} rows: {11,1},{12,1},{14,0},{27,0},{28,0},{29,0},{30,0}. Tag 11 is exactly one byte, method 1..8; zero and 9..255 fail. Names: 1 NFC, 2 CHIRP, 3 MANUAL_PIN, 4 CLIENT_PIN, 5 CHIRP_WITH_BUTTON, 6 QR_CODE, 7 QR_CODE_WITH_BUTTON, 8 QR_CODE_WITH_REMOTE. Tag 12 is a required arbitrary-length encrypted setup envelope; framing permits length zero, but seed parsing/decryption subsequently fails. Tag 14 is an optional arbitrary-length encrypted client-PIN blob. Tags 27/28/29/30 are optional one-byte discovery timeout seconds / waiting timeout seconds / discovery starting volume / ending volume. Input tag order is unrestricted. A framing-only minimum example is 07 0b 00 01 02 0c 00 00; its empty seed prevents an actual setup transition.",
+   "parser_api": "0x1002ac28(buffer,length,mode_out,seed_buffer,seed_capacity_inout,pin_buffer,pin_capacity_inout,discovery_timeout_out,waiting_timeout_out,start_volume_out,end_volume_out). Runtime descriptors point tag 14 +8 to pin_capacity_inout, and each byte tag +0x10 to its output. Absent optional PIN resets its supplied length to zero while leaving buffer bytes untouched; absent optional byte fields write zero. Required seed copies raw bytes through 0x1002e2c8, requiring actual length <= caller capacity and updating capacity_inout to actual length. It adds no NUL terminator. Optional PIN is decoded only when pin_capacity_inout is nonnull and its current capacity is nonzero; otherwise it is skipped without copying or width restrictions. Byte fields with null output pointers are likewise skipped without checking their one-byte width. The actual daemon supplies all four byte outputs, seed capacity 512 and, when enabled, PIN capacity 36.",
+   "parser_failures": "Wrong opcode, missing required tags, duplicate known tags, bad method byte, wrong decoded byte widths and oversized copied blobs fail. Well-framed unknown tags are skipped. As in ACK/REAUTHORIZE, malformed trailing framing after both required fields can stop iteration without invalidating the cursor; finalization checks required-field presence, not complete input consumption. Parsing is not transactional: mode and copied seed/PIN bytes can change before later failure, and absent optional outputs are reset only by successful finalization. A present tag skipped due to null output still counts as seen, so duplicate detection remains active.",
+   "serializer": "0x1002aa24 uses the same descriptor table, initializes opcode 7, always writes tag 11 as low eight bits of the supplied method word and tag 12 as a blob. It does not enforce parser method domain 1..8. Optional tag 14 is emitted only when supplied PIN length is nonzero. Tag 27 uses a full-word nonzero test and writes its low byte, so 256 emits explicit zero. Tags 28/29/30 are byte arguments and emitted only when those bytes are nonzero. Normal order is 11,12,14,27,28,29,30. Size is 8 + seed_length + (3 + PIN_length if nonzero) + 4 per emitted byte field. Blob writer 0x1002eb84 returns zero for lengths >65535 without invalidating an otherwise valid cursor; skipped oversized required seed makes finalization fail, but an oversized optional PIN can be silently omitted because this serializer ignores individual writer returns. Capacity failures in header writer invalidate the cursor. Finalizer returns 1 and updates capacity_inout only on success; failure is not transactional. Direct PPC branch census, including non-linking tail branches, finds no local serializer caller in this executable.",
+   "local_reachability_and_inputs": "State table 0x1004f4ac assigns 0x1001f138 as START state 2 message handler; its opcode-7 branch begins at 0x1001f354. Normal admission additionally requires active authentication source 1, the factory fallback. DEACTIVATED handler 0x1001f6a8 delegates only opcode 2 CLIENT_HELLO to 0x1001f138 and delegates other opcodes to the default handler, so reuse of that function does not admit BEGIN in DEACTIVATED. BEGIN passes mode output directly to session+0x29c and seed buffer session+0x2b0. Setup-context byte+0 must be zero for optional PIN input to be enabled (predicate 0x10023fa0); then input capacity is 36 and destination session+0x4b0. Otherwise PIN output is disabled with null buffer and capacity zero. Parse failure returns without resetting any already-written mode/seed or initiating discovery.",
+   "seed_and_method_preparation": "After parse success, handler clears discovery/wait caps session+0xa61/+0xa62, then calls 0x100233b0(setup_context,method,seed,actual_seed_length). That function stores requested method +0x2f4 and clears the nine-byte PIN buffer +0x2f9..+0x301 BEFORE envelope validation. It parses ZZ0056 then decrypts ZZ0051 into secret pointer/length +0x304/+0x308, with manufacturing private-key provider described in encrypted_setup_envelope_selection and setup_envelope_cipher_contract. Successful decrypt is followed by method-specific gates: method 2 requires remaining contactless budget +0x2f8 !=0, decrements it before PIN generation, then calls random-PIN helper 0x10022724; method 5 calls that helper without this budget decrement; method 4 returns setup-context byte+0 XOR 1; method 3 logs Invalid PIN and returns 0; other methods log Unknown setup mode and return 0. Thus accepted wire method values are broader than methods this particular BEGIN preparation can execute. Envelope failure logs Unable to decrypt seed and returns 0. PIN generation failure does not refund an already-decremented contactless attempt.",
+   "client_pin_and_chirp": "Method 4 additionally calls 0x10023570 with parsed optional PIN and length. It requires setup-context byte+0==0, requested method 4 and nonempty decrypted seed. Helper 0x10027854 derives 16 bytes from that seed with ZZ0215 label setup_pin and no context, using the already established HMAC-SHA256 counter derivation. ZZ0043 selector 2 decrypts the PIN blob, with null additional data/options 0, to an eight-byte output; selected cipher is AES-128-GCM with 12-byte IV and 16-byte tag. Decryption must return 0 and actual plaintext length must equal 8. On success those eight bytes go to PIN +0x2f9..+0x300, with trailing zero +0x301. Derived key is wiped; output scratch is also wiped on wrong plaintext length. No digit-only check occurs here. Methods 2/5 instead call chirp builder 0x1002384c with 64-byte capacity; failure logs and enters shared failure cleanup. Full chirp field encoding/authentication remains open.",
+   "idle_limits_and_volume": "Successful preparation copies nonzero discovery tag 27 to cap +0xa61 and waiting tag 28 to cap +0xa62. State-table timer uses min(60 seconds, nonzero cap), so zero/absence preserves 60, 1..59 shortens it and 60..255 cannot extend it. Discovery callback receives raw nonzero tag 27, or 60 if zero; a value above 60 is therefore forwarded even though the NS2 idle deadline remains capped at 60. Tag 29 zero/absent gives starting volume 30. Tag 30 zero/absent gives ending volume 60; explicit nonzero end is clamped to 20..65. Start is then clamped to 20..effective_end. These are numeric discovery-volume parameters, not claimed physical sound levels or percentages. Waiting zero/absence is logged as 60. Caps are installed before transition to DISCOVERY 3 through 0x1001c220.",
+   "discovery_notification": "Main binds config+0x5c to 0x1000a9f8 at 0x10002f0c. After entering DISCOVERY, handler invokes it with (cookie,method,start_volume,end_volume,discovery_seconds,chirp_buffer,chirp_length), ignoring its return. Main maps methods 1..8 through u32 table 0x10030bcc to local modes {6,5,4,3,9,10,11,11}. It zeroes an 84-byte payload: u32 mapped mode +0, start +4, end +8, seconds +12, parameter bytes +16 with capacity 64, u32 parameter length +80. Rejects mode outside 1..8, mapped mode 0 or parameter length >64. Chirp methods 2/5 supply 64 bytes; client-PIN method 4 supplies length zero. Mapped modes 3..11 submit mode notification 0x10008298, selecting outgoing command 41 with 84-byte payload through semantic tail sender 0x10006b2c, then return 1 irrespective of send result. Mapped modes <=2 take the payloadless mode helper instead, but none of these table rows maps there. Local enqueue/write does not establish discovery execution by the external receiver, which remains excluded.",
+   "failure_cleanup": "Preparation, client-PIN decode or chirp failure leads to 0x1001f5e0. Requested methods 2/6/8 first invoke contactless-termination helper 0x1001eed8 with max attempts reached; all failures common-reset 0x1001c984 with bad SETUP_BEGIN, then close DTLS through 0x100265a0(transport,1). It does not emit a SETUP_STATUS success/failure response in this branch. Message parse failure is different: it returns without that reset/close sequence. The later discovery callback can fail or be absent while state has already become DISCOVERY, and no rollback follows its result.",
+   "todo": "Reverse the 64-byte chirp plaintext/crypto layout and its complete producer/error chain, then the discovery interaction/continuation consumers. Wire fields, defaults, START preparation gates and local notification payload are established; do not infer the excluded external receiver or physical discovery behavior from notification submission.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10036244",
+     "notes": "Seven descriptors establish required method/seed and five optional fields."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002af64",
+     "notes": "Parsed method must be 1..8."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002adf4",
+     "notes": "Absent optional PIN uses length-output pointer, not buffer clearing."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002aeec",
+     "notes": "Waiting timeout is tag 28; discovery timeout is tag 27 at 0x1002af04."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002aed4",
+     "notes": "Start volume tag 29; end volume tag 30 at 0x1002ae90."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002ab30",
+     "notes": "Serializer tag-27 full-word nonzero test differs from byte-argument tags."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100234dc",
+     "notes": "CHIRP consumes contactless budget before attempting random PIN generation."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100236b8",
+     "notes": "Client-PIN decrypt requires exactly eight plaintext bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001f408",
+     "notes": "Raw isel 0x7f893e9e selects default discovery seconds 60 on zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001f474",
+     "notes": "Raw isel 0x7faa4f1e clamps starting volume to minimum 20."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001f4ec",
+     "notes": "State transitions to DISCOVERY before calling discovery callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000aa60",
+     "notes": "84-byte local discovery payload layout and method-to-mode table."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10008368",
+     "notes": "Notification is a semantic tail call into local IPC sender."
+    }
+   ]
   }
  },
  "firmware_differences": {
@@ -156765,8 +156872,8 @@
     "Finish configured/default PSK reload and reset triggers and cached-credential lifecycle effects beyond daemon-local IPC command23. Main shutdown cancellation of the four-hour expiry callback and in-memory default/cached PSK and registration-secret destruction are established. Do not enter the external request-object/service receiver lane.",
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
     "Finish the saved-output queue: all slot flag writers/state effects, incoming/outgoing record-counter identifier join, clock callback producers, ciphertext-vs-ACK-length adjustment rationale, full NS2 per-state message/reconnect effects and final FD re-registration. Connected input/output, ACK completion and NS2 admission/deactivation/provenance/idle-timer table are established; payload admission remains distinct from per-state operation acceptance.",
-    "Trace remaining NS2 messages individually, including parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 is complete. REAUTHORIZE opcode18 wire/initial handler, pending button response/permission renewal/local notifications, timeout and reconnect delegation are established; finish shared cancel/reset/network-followup effects retained in its separate TODO. Other message bodies remain individually unresolved.",
-    "Finish full per-message apply-status/error chains, full flag domains, WAC fallback admission, per-state entry/exit/message/timeout and target-state selection. Local setup reporting is now joined to NUL-delimited256-byte records, persistent process file append, size/lock/write failure policy and distinct wall-clock versus monotonic fields. Diagnostic/mode/report snapshot ordering is established. BEGIN/standby timeout parsers, discovery callback, TIMED_OUT and open-AP effects remain open.",
+    "Trace remaining NS2 messages individually, including parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode 1/tag 26 is complete. BEGIN opcode 7 fields/defaults/START preparation and local discovery notification are established in its separate record; finish chirp encoding and later interaction/continuation states. REAUTHORIZE opcode 18 wire/pending lifecycle is established; retain its shared reset/network-followup unknowns.",
+    "Finish full per-message apply-status/error chains, full flag domains, WAC fallback admission, per-state entry/exit/message/timeout and target-state selection. Reporting serialization/local append and diagnostic snapshot ordering are established. BEGIN discovery/wait caps and volume defaults, preparation gates and local discovery notification payload are established in ns2_setup_begin. Standby timeout parser, subsequent discovery interaction, TIMED_OUT and open-AP effects remain open; excluded external notification execution is not inferred.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace remaining external-settings/SSID-manager snapshot and reporting-latch/mode producers and registered triggers/teardown. Outgoing settings command39 payload109, credential selection, exact copy bounds, household-change command80 snapshot-before-send and payloadless33/34 source predicate are established. External IPC signing/service receiver remains outside this lane.",
     "Finish event-loop integration: SIGUSR1 nonnull modeword producers/downstream notifications, full followup event handlers, bit4/aliased flag writers, other registration users, network-owner descriptor producers, lower HAL utility and allocation ownership. Local IPC initialize/accept/close context lifecycle, fixed primary/WAC paths and startup admission/failure handling are established, along with header/body extents and command/followup/signal work. Runtime socket permissions are not explicitly selected by the examined helper."
@@ -160145,13 +160252,14 @@
    "ns2_idle_timeout_dispatch_and_caps": {
     "captured_state_gate": "0x1001cdf4(session,scheduled_state) reads current state+0x298 and rejects unsigned state>17 by tail-calling common reset(session,0). For valid state it compares scheduled_state with current; mismatch returns immediately without log, reset or state handler. Equality logs the state, reloads current state and tail-calls row+0xc timeout handler from44-byte table0x1004f4ac when nonnull. Null handler returns. Idle refresh0x1001ba20 retains r7=current state at0x1001ba70 through its scheduling tail call, supplying the captured state, not zero. The comparison is a state tag rather than a generation counter: if the session leaves and later returns to the same numeric state, equality alone does not distinguish an old timer. Normal transitions cancel/replace timers, but this gate alone is not a unique timer identity.",
     "state_transition_timer": "State setter0x1001c220 validates new unsigned state<=17. Same state returns without notification, write or timer refresh. Different state logs, optionally invokes config+0xd8(cookie+0x34,old_name,new_name) BEFORE writing new state, ignores callback return, stores new state+0x298, then semantically tail-calls0x1001ba20 to cancel/re-arm the idle timer. Invalid requested state only logs and returns. Message delivery independently refreshes the idle timer even when the later state handler requests no transition, so same-state setter behavior and admitted-message refresh are distinct.",
-    "cap_addresses_and_writers": "NS2 static session base is0x10052150, proven by constructor GOT. Cap pointers0x10052bb0/0x10052bb1/0x10052bb2 therefore equal session+0xa60/+0xa61/+0xa62. Constructor memset0xacc initializes all three0. Common reset0x1001cbb0/+0x1cbb8/+0x1cbc0 clears them. CLIENT_HELLO handler0x1001f138 dispatches embedded BEGIN7 via parser0x1002ac28; after parser success it clears discovery/wait caps at0x1001f3fc/+0x1f404, copies nonzero parsed byte stack+0x20 to discovery cap at0x1001f4d4 and nonzero stack+0x21 to wait cap at0x1001f4e4. Embedded REAUTHORIZE18 parser0x1002cdd4 initially clears reauth cap at0x1001f300 and its later branch copies stack+0x28 byte at0x1001f69c. This joins caps to received setup-message parameters rather than an unrelated global configuration file. Full tag/optional-field/default semantics and all branch reachability of these parsers remain open.",
+    "cap_addresses_and_writers": "NS2 static session base is0x10052150, proven by constructor GOT. Cap pointers0x10052bb0/0x10052bb1/0x10052bb2 therefore equal session+0xa60/+0xa61/+0xa62. Constructor memset0xacc initializes all three0. Common reset0x1001cbb0/+0x1cbb8/+0x1cbc0 clears them. START message handler0x1001f138 dispatches BEGIN7 via parser0x1002ac28; after parser success it clears discovery/wait caps at0x1001f3fc/+0x1f404, copies nonzero parsed byte stack+0x20 to discovery cap at0x1001f4d4 and nonzero stack+0x21 to wait cap at0x1001f4e4. The same handler uses REAUTHORIZE18 parser0x1002cdd4 initially clears reauth cap at0x1001f300 and its later branch copies stack+0x28 byte at0x1001f69c. This joins caps to received setup-message parameters rather than an unrelated global configuration file. BEGIN tags/defaults/START reachability are established in payload_formats.ns2_setup_begin; REAUTHORIZE wire and pending lifecycle have their separate records. Standby and subsequent discovery/interaction messages remain independent work.",
     "additional_cap_resets": "Standby-side message handler writes discovery cap from parsed byte stack+0x18 at0x1001db88, or clears it at0x1001db48 before entering PIN_EXCHANGED5. Discovery/interacting button handlers clear discovery cap at0x1001e380/0x1001bfcc before their other side effects. WAITING state helper0x1001c7d4 clears wait cap at0x1001c7ec before selecting its next state. A zero cap means no additional shortening of the base timeout, not zero-second expiration; after these clears a future idle refresh uses the base duration. Parser tag/producers, other message branches and complete entry/exit effects still require tracing.",
     "ordinary_and_waiting_timeout": "Timeout table states2 START,5 PIN_EXCHANGED,10 OPEN_AP_PENDING,12 ENABLE_WIFI_PENDING,13 DEACTIVATED,15 ISLAND_PENDING,16 SCANNING all use0x1001d188: common reset with reason, immediate DTLS close0x100265a0(arg1), then selector0/close helper0x10026630(arg0). WAITING6 uses0x1001d080: common reset with its reason, then tail selector0/close helper, without the separate immediate-close call. These distinctions follow actual call sequences; lower reset may independently commit already-ready pending settings as previously documented. RESET0/STANDBY1/COMPLETE8 timeout slotsNULL.",
     "active_update_check_timeout": "States7 ACTIVE,9 UPDATE,17 CHECKING_CREDS share0x1001d1e4. It asks0x10021538 about pending settings atsession+0x1b0; that helper returns0 for null or valid byte0, otherwise byte+1 (credential checking). Zero tail-calls ordinary timeout0x1001d188. Nonzero tail-calls credential-result handler0x1001c094(session,4), joining the previously established no-AP/check-timeout status path and delayed transition. Thus this timeout is not always an immediate session reset: an active credential check uses its result-reporting path.",
     "discovery_and_reauth_timeout": "DISCOVERY3/INTERACTION4 use0x1001e47c: call0x1001c4dc, which clears requested method/PIN/decrypted secret through0x10022a48, invokes optional config+0x64(cookie+0x34), then tail-transitions to START2. After that returns, read u16 status+0x2a4; if unsigned>28, tail-call0x1001e3c8 to construct/send TIMED_OUT21 through serializer0x1002d088, otherwise return without that notification. REAUTH_PENDING14 uses0x1001c434, which only tail-transitions to START2 through state setter; it does not call the discovery PIN/secret-clear helper. Full driver callback+0x64 and notification wire/error effects remain individual work.",
     "open_ap_standby_timeout": "State11 uses0x1001d454. If config+0x94 is null it immediately returns via conditional bclr. Otherwise it calls that predicate(cookie+0x34); zero returns without reset or rescheduling here. Nonzero common-resets with reason, then optionally tail-calls config+0x9c(cookie+0x34). This is a guarded timeout action, not unconditional closure just because the base120seconds elapsed. Predicate/callback bindings and their full access-point side effects remain open.",
-    "reauthorization_wire": "Complete opcode18 tag2 flags/tag27 timeout parser/serializer/local consumer is payload_formats.ns2_setup_reauthorize. Optional absence writes timeout0; its local effective domain is base60seconds with nonzero1..59 shortening. Cap+0xa60 is set only after bit0/contactless-budget/callback guards succeed; failed guards clear flags and send status8 instead. BEGIN7 and standby-side optional timeout fields remain separate parser work."
+    "reauthorization_wire": "Complete opcode18 tag2 flags/tag27 timeout parser/serializer/local consumer is payload_formats.ns2_setup_reauthorize. Optional absence writes timeout0; its local effective domain is base60seconds with nonzero1..59 shortening. Cap+0xa60 is set only after bit0/contactless-budget/callback guards succeed; failed guards clear flags and send status8 instead. BEGIN7 and standby-side optional timeout fields remain separate parser work.",
+    "begin_wire": "BEGIN opcode 7 is joined to optional discovery timeout tag 27 and waiting timeout tag 28, each one byte. Successful finalizer writes zero on omission; zero means retain the base 60-second idle limit, 1..59 shortens it, and 60..255 cannot extend it. Parser and START handler, seed/client-PIN preparation, discovery-volume tags 29/30 and local callback payload are documented individually in payload_formats.ns2_setup_begin. Standby parser and subsequent interaction-state effects remain unresolved."
    },
    "ns2_reauthorization_pending_lifecycle": {
     "table_and_delivery": "State14 REAUTH_PENDING row at0x1004f4ac+14*44 has timeout0x1001c434, reconnect0x1001cfb0 and button0x1001c544; slots+0x10/+0x14/+0x1c/+0x24/+0x28 areNULL. Its base idle duration60seconds uses session+a60 cap. Null message+0x14 delegates to default0x1001d6d4 through0x100206f8. Thus another opcode18 in this state does not re-enter the initial reauthorization handler: admitted message refreshes its idle timer but the common message handler has no opcode18 operation. Frame parsing, message admission and current-state dispatch remain distinct boundaries.",
