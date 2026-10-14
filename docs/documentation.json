@@ -119071,6 +119071,78 @@
      "notes": "Matched ACK invokes saved-slot completion callback with saved opaque argument after cancellation and before next-deadline scheduling."
     }
    ]
+  },
+  "ns2_setup_reauthorize": {
+   "description": "Netstart2 SETUP_REAUTHORIZE opcode18 carries a contactless-reauthorization flags word and optional idle-timeout cap in seconds. This format describes the byte contract and its established local consumer; message admission and state-specific reachability remain in the subsystem record.",
+   "format": "Opcode0x12, followed by tagged fields with one-byte tag and BEu16 length. Required tag2 is exactly4bytes, u32BE flags. Optional tag27(0x1b) is exactly1byte, unsigned timeout seconds. Normal serializer order is flags then optional timeout. With flags1 and timeout15 the12-byte plaintext is12 02 00 04 00 00 00 01 1b 00 01 0f; with omitted timeout it is8bytes12 02 00 04 00 00 00 01. Both fields may appear in either order on input. No text, hex encoding, checksum or embedded signature in this message body; DTLS is the enclosing transport.",
+   "value_domains": "Parser accepts every u32 flags value and timeout byte0..255. In this daemon only flags bit0 is tested, at0x1001f304 and0x1001c584; other bits are stored/logged but do not affect these consumers. Bit0 requests the contactless branch. Timeout0 or absent means no extra shortening, not immediate expiration. Nonzero cap is min(base60seconds,byte), so1..59 shorten the REAUTH_PENDING idle period and60..255 retain60seconds. Repeated admitted messages can refresh the deadline; it is an idle cap rather than a fixed duration measured from the original request.",
+   "parser": "0x1002cdd4(buffer,length,flags_out,optional_timeout_out) uses two8-byte descriptors at0x10036304:{tag2,required1},{tag27,required0}. It requires opcode18, then uses u32 getter0x1002e0c0 for tag2 and byte getter0x1002df08 for tag27. Wrong widths invalidate the cursor. Missing required flags, duplicate known fields and wrong opcode fail. Unknown well-framed tags are skipped; tags>39 are skipped by header reader. Optional timeout outputNULL skips that field without width decoding, but supplied output enforces width1. Successful finalizer0x1002db94 zeros a supplied timeout output when its optional field never occurred, via descriptor runtime+0x10 at0x1002dc30. Flags output may already have been changed when a later field causes failure; no output rollback. As in ACK, malformed trailing bytes can terminate iteration without invalidating cursor after the required field was read, and finalizer does not require full byte consumption. It can therefore accept a valid flags field plus malformed trailing framing.",
+   "serializer": "0x1002ccc0(buffer,capacity_inout,flags,timeout_word) initializes opcode18 and the same two descriptors, always writes tag2/u32BE through0x1002ea08, and emits tag27 through0x1002e8b8 only when the full timeout_word!=0. Byte writer truncates the emitted value to low8bits; thus timeout_word256 emits an explicit zero byte while word0 omits the field. No range check rejects larger words. It returns common finalizer success0/1; successful finalization stores actual8or12byte size through capacity_inout. Insufficient capacity invalidates the writer and returns0; it does not make a transactional unchanged-buffer guarantee. Direct branch-call census found no serializer callsite in this netstartd executable; its implementation is present but not a proven local outbound trigger.",
+   "local_consumer": "0x1001f2d4 parses flags directly into session+0xa5c and timeout into stack byte+0x28. Parse failure returns from the message handler without rollback of already-written flags. Success clears cap session+0xa60. Reauthorization starts only if flags bit0 set, setup-context contactless budget+0x2f8!=0 (predicate0x10024078), and config callback+0x68 nonnull. It invokes that callback(cookie+0x34), ignores its return, copies nonzero timeout byte to cap, and enters REAUTH_PENDING14 through state setter0x1001c220. Otherwise it clears the entire flags word and serializes SETUP_STATUS with status8 via0x1002b470; serialization success submits through0x10026798, whose result is ignored. This response branch does not perform the REAUTH_PENDING transition. Main binds callback+0x68 to0x1000ac44, which calls mode-notification0x10008298(8,0,0), selecting local command43, and returns1 regardless of notification result. The external notification receiver remains outside this lane.",
+   "related_consumers": "REAUTH_PENDING button handler0x1001c544 examines the same bit0 and contactless-budget predicate, chooses status7or8, clears flags+0xa5c, and returns to START2 before optional followup callback. Its full callback/state effects remain subsystem work. Common reset0x1001cbac clears the stored flags. Admission allows REAUTHORIZE18 only for factory-fallback source1 in the ordinary table, and rejects it under the deactivation restriction; successful wire parsing alone does not prove that admission or state-specific processing accepted the message.",
+   "used_by": [
+    "netstartd parser0x1002cdd4 -> message handler0x1001f2d4",
+    "netstartd serializer0x1002ccc0 (no direct local callsite found)"
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10036304",
+     "notes": "Required flags tag2 and optional timeout tag27 descriptor pair."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002cf54",
+     "notes": "Flags require four-byte u32 getter."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002cf20",
+     "notes": "Supplied timeout output requires one-byte value."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002dc30",
+     "notes": "Absent optional timeout output is explicitly zeroed by finalizer."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002cd68",
+     "notes": "Serializer full-word nonzero test precedes low-byte timeout write."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001f300",
+     "notes": "Successful parse clears old cap before branch admission."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001f69c",
+     "notes": "Nonzero parsed timeout is stored in reauthorization cap."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000ac5c",
+     "notes": "Main callback requests mode8, mapping to local command43, then always returns1."
+    }
+   ],
+   "todo": "Established: opcode18 wire grammar, flags bit0, timeout tag27/default/effective cap, parser/serializer quirks and initial REAUTH_PENDING entry guards/local notification. Remaining: complete REAUTH_PENDING button/completion/cancel/reconnect callback effects and their driver/state-machine consumers. Trace each state14 table delegate and config callback+0x6c, preserving the independently complete byte-parser contract and staying outside external SOAP/request dispatch."
   }
  },
  "firmware_differences": {
@@ -156376,8 +156448,8 @@
     "Finish configured/default PSK reload and reset triggers and cached-credential lifecycle effects beyond daemon-local IPC command23. Main shutdown cancellation of the four-hour expiry callback and in-memory default/cached PSK and registration-secret destruction are established. Do not enter the external request-object/service receiver lane.",
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
     "Finish the saved-output queue: all slot flag writers/state effects, incoming/outgoing record-counter identifier join, clock callback producers, ciphertext-vs-ACK-length adjustment rationale, full NS2 per-state message/reconnect effects and final FD re-registration. Connected input/output, ACK completion and NS2 admission/deactivation/provenance/idle-timer table are established; payload admission remains distinct from per-state operation acceptance.",
-    "Trace the remaining NS2 messages individually, including their parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 has a separate complete byte/parser/retirement record.",
-    "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, full per-state entry/exit/teardown/message/timeout effects and target-state selection. Idle-cap addresses are now joined to session+a60/a61/a62 and setup-message writers/resetters; finish their exact parser tags/defaults/branch reachability. Captured-state timeout gate, state-transition notification-before-write order and per-state timeout delegate sequences are established; discovery driver callback, TIMED_OUT serialization and open-AP predicate/action still need full traces.",
+    "Trace remaining NS2 messages individually, including parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 is complete. REAUTHORIZE opcode18/tag2 flags/tag27 timeout wire parsing, serialization and initial consumer are established; its separate record retains pending-state callback work. Finish those delegates and other message bodies individually.",
+    "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, full per-state entry/exit/teardown/message/timeout effects and target-state selection. Idle caps are joined to session+a60/a61/a62; REAUTHORIZE18 cap tag27/default/guard/local command43 is complete in its format record. Finish BEGIN7/standby parser tags/defaults and other cap branch reachability. Captured-state timeout gate and delegate sequences are established; discovery driver callback, TIMED_OUT notification and open-AP predicate/action need full traces.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace initial external settings-snapshot producers and daemon-side registered triggers/teardown. The external IPC signing receiver remains outside this lane.",
     "Finish event-loop integration: SIGUSR1 nonnull modeword producers and downstream open-mode/utility/notification/timer callback effects, remaining registration users, network-owner descriptor producers, lower HAL utility object behavior, and object-allocation ownership. SIGUSR1 merge-file priority, NS2 button consumption table, wireless-block predicates, interface-disable latch writer and local timer replacement ordering are established, alongside previously traced shutdown and registry phases."
@@ -159383,7 +159455,8 @@
     "ordinary_and_waiting_timeout": "Timeout table states2 START,5 PIN_EXCHANGED,10 OPEN_AP_PENDING,12 ENABLE_WIFI_PENDING,13 DEACTIVATED,15 ISLAND_PENDING,16 SCANNING all use0x1001d188: common reset with reason, immediate DTLS close0x100265a0(arg1), then selector0/close helper0x10026630(arg0). WAITING6 uses0x1001d080: common reset with its reason, then tail selector0/close helper, without the separate immediate-close call. These distinctions follow actual call sequences; lower reset may independently commit already-ready pending settings as previously documented. RESET0/STANDBY1/COMPLETE8 timeout slotsNULL.",
     "active_update_check_timeout": "States7 ACTIVE,9 UPDATE,17 CHECKING_CREDS share0x1001d1e4. It asks0x10021538 about pending settings atsession+0x1b0; that helper returns0 for null or valid byte0, otherwise byte+1 (credential checking). Zero tail-calls ordinary timeout0x1001d188. Nonzero tail-calls credential-result handler0x1001c094(session,4), joining the previously established no-AP/check-timeout status path and delayed transition. Thus this timeout is not always an immediate session reset: an active credential check uses its result-reporting path.",
     "discovery_and_reauth_timeout": "DISCOVERY3/INTERACTION4 use0x1001e47c: call0x1001c4dc, which clears requested method/PIN/decrypted secret through0x10022a48, invokes optional config+0x64(cookie+0x34), then tail-transitions to START2. After that returns, read u16 status+0x2a4; if unsigned>28, tail-call0x1001e3c8 to construct/send TIMED_OUT21 through serializer0x1002d088, otherwise return without that notification. REAUTH_PENDING14 uses0x1001c434, which only tail-transitions to START2 through state setter; it does not call the discovery PIN/secret-clear helper. Full driver callback+0x64 and notification wire/error effects remain individual work.",
-    "open_ap_standby_timeout": "State11 uses0x1001d454. If config+0x94 is null it immediately returns via conditional bclr. Otherwise it calls that predicate(cookie+0x34); zero returns without reset or rescheduling here. Nonzero common-resets with reason, then optionally tail-calls config+0x9c(cookie+0x34). This is a guarded timeout action, not unconditional closure just because the base120seconds elapsed. Predicate/callback bindings and their full access-point side effects remain open."
+    "open_ap_standby_timeout": "State11 uses0x1001d454. If config+0x94 is null it immediately returns via conditional bclr. Otherwise it calls that predicate(cookie+0x34); zero returns without reset or rescheduling here. Nonzero common-resets with reason, then optionally tail-calls config+0x9c(cookie+0x34). This is a guarded timeout action, not unconditional closure just because the base120seconds elapsed. Predicate/callback bindings and their full access-point side effects remain open.",
+    "reauthorization_wire": "Complete opcode18 tag2 flags/tag27 timeout parser/serializer/local consumer is payload_formats.ns2_setup_reauthorize. Optional absence writes timeout0; its local effective domain is base60seconds with nonzero1..59 shortening. Cap+0xa60 is set only after bit0/contactless-budget/callback guards succeed; failed guards clear flags and send status8 instead. BEGIN7 and standby-side optional timeout fields remain separate parser work."
    }
   },
   "bin_wacd": {
