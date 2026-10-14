@@ -137027,6 +137027,160 @@
      "notes": "HMAC-SHA256 initialization is the checked failure boundary."
     }
    ]
+  },
+  "net_settings_file_writer": {
+   "name": "Shared network-settings text writer",
+   "library": "libwifi.so.1 NetSettingsUpdate at0x1fe0,size0x5ac;WriteHexSetting at0x1f14,size0xc8;byte-hex helper0x1e40. SHA256911d6f28bd36442832a749e7a3c066939de53a2d8044cc9216d0668df9a506ef.",
+   "arguments_and_paths": "Arguments r3 unsigned file selector,r4 root string,r5 settings structure. Self-relative six-offset table0x40dc selects0 main netsettings.txt,1 netsettings_check.txt,2 netsettings_merge.txt,3 nfwssid.txt,4 net/settings/ssidlist.txt,5 softapssidlist.txt. Unsigned selectors>5 also use main netsettings.txt. Each target is formatted as<root>/<path> in256 bytes;temporary path appends.tmp in a separate256-byte buffer. The first target-format result is not checked;the temporary-format result>255 returns-1 before opening. Negative snprintf returns are not explicitly rejected. Root/structure/pointer ownership and source lengths are caller contracts,not validated here.",
+   "grammar_and_header": "Every successful open in mode w starts Version: [1.0] followed by newline. Ordinary setting syntax is NAME: [VALUE] followed by newline. The writer rebuilds a file from the supplied structure;it does not merge existing target fields or preserve unknown lines. HouseholdID is emitted only for a nonnull pointer whose first byte is nonzero;the actual body uses exactly structure+4 bytes via%c,not strlen,and may include arbitrary control/delimiter bytes. A zero supplied length emits an empty HouseholdID value despite the first-byte gate. Ordinary text/HouseholdID and hex values have different contracts;there is no blanket text escaping.",
+   "field_layout": [
+    {
+     "offset": "0x00 pointer /0x04 u32 length",
+     "key": "HouseholdID",
+     "encoding": "raw bytes,first-byte/non-null gate;length controls write"
+    },
+    {
+     "offset": "0x08 pointer",
+     "key": "WEPKey",
+     "encoding": "nonnull emits exactly16 bytes as uppercase hex"
+    },
+    {
+     "offset": "0x0c pointer /0x10 u32 length",
+     "key": "NFWSSID",
+     "encoding": "nonnull and first byte nonzero emits supplied byte length as uppercase hex"
+    },
+    {
+     "offset": "0x14 pointer",
+     "key": "NFWPwd",
+     "encoding": "nonnull emits strlen bytes as uppercase hex;empty string emits []"
+    },
+    {
+     "offset": "0x18 pointer",
+     "key": "BonjourName",
+     "encoding": "nonnull emitted with%s,including empty string;no escaping"
+    },
+    {
+     "offset": "0x1c pointer",
+     "key": "AirPlayPwd",
+     "encoding": "nonnull emits strlen bytes as uppercase hex"
+    },
+    {
+     "offset": "0x25 u8",
+     "key": "SonosNetDisable",
+     "encoding": "nonzero emitted decimal%u"
+    },
+    {
+     "offset": "0x28 u32",
+     "key": "Channel",
+     "encoding": "nonzero emitted decimal%u"
+    },
+    {
+     "offset": "0x2c u8",
+     "key": "PriorityBridge",
+     "encoding": "nonzero emits literal1"
+    },
+    {
+     "offset": "0x2d u8",
+     "key": "FirstZP",
+     "encoding": "nonzero emits literal1"
+    },
+    {
+     "offset": "0x2e u16",
+     "key": "ForceWifiDisable",
+     "encoding": "nonzero decimal%u"
+    },
+    {
+     "offset": "0x30 u16",
+     "key": "ForceMeshDisable",
+     "encoding": "nonzero decimal%u"
+    },
+    {
+     "offset": "0x32 u16",
+     "key": "LineInDemoMode",
+     "encoding": "nonzero decimal%u"
+    },
+    {
+     "offset": "0x34 u8",
+     "key": "NFWActive",
+     "encoding": "nonzero decimal%u"
+    },
+    {
+     "offset": "0x35 u8",
+     "key": "UseSSIDList",
+     "encoding": "nonzero decimal%d;fprintf result not checked"
+    },
+    {
+     "offset": "0x36 u8",
+     "key": "InitialList",
+     "encoding": "nonzero decimal%d;fprintf result not checked"
+    },
+    {
+     "offset": "0x38 u32 count /0x3c array,stride0x6c",
+     "key": "SSID (repeated)",
+     "encoding": "count clamped to16 using isel at0x2238. Each row emits SSID: [uppercasehexSSID:uppercasehexpassword]. SSID starts row+0,explicit u32 length row+0x24;password starts row+0x28,strlen determines length. No additional per-row length or terminator bounds here."
+    }
+   ],
+   "hex_helper": "WriteHexSetting writes%s: [,then helper0x1e40 emits each input byte with%02X,then writes]\\n. Zero byte length succeeds without reading input. Negative header/byte write returns-1. Closing delimiter returns its signed result>>31 through srawi0x1f9c:0 for nonnegative,-1 for negative. Embedded zero bytes are represented as00 when a caller supplies an explicit length;strlen-based password sources stop at first zero. No authentication,encryption,decoding or credential-validity test occurs in these helpers.",
+   "io_and_errors": "Most fprintf/WriteHexSetting errors branch to common cleanup:fsync(fileno(stream)),fclose,unlink temporary,sync,return-1;existing target is not renamed on that path. UseSSIDList/InitialList fprintf results are exceptions:ignored. Success path calls fsync before fclose without an explicit fflush,ignores fsync result,requires fclose==0,then rename(tmp,target). Raw subfic0x2304/subfe0x2308 converts rename0 to0 and nonzero to-1. It then unlinks temporary and calls global sync on both rename success/failure. fopen failure also unlinks temporary and syncs;temporary path length failure returns directly. No directory creation,file lock,unique temporary name,directory fsync or rollback is implemented. The pre-close fsync can precede the final stdio flush;global sync does not provide a checked per-file durability result.",
+   "consumers": "netstartd config+84 installed at0x10002f84 calls this writer through0x1000b444. Its mode0 uses selector1 with runtime root0x10055668 (check file);mode1 uses selector0 with settings root0x100558d0 (main file). Other modes returnfalse. It validates source flags at+8 with mask0xffffffef:only0 or0x10 pass. It builds a zeroed0x6fc-byte writer structure,derives HouseholdID length via strlen,and maps fields individually. These check/main paths are two distinct uses of the same writer;selectors3..5 also support credential/list artifacts. Subsequent network use of the file is a separate operation.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x40dc",
+     "notes": "Six-selector relative jump table;out-of-range default is main settings path."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x20bc",
+     "notes": "Version1.0 header written before conditional fields."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x24e8",
+     "notes": "NFWSSID uses caller length;NFWPwd instead callsstrlen at0x2168."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x2238",
+     "notes": "Raw0x7f2a4f5e is isel r25,r10,r9,CR7.GT:clamps count to16."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x22e4",
+     "notes": "fsync precedes fclose;its result ignored."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x2308",
+     "notes": "Raw0x7ffff910 subfe r31,r31,r31 normalizes rename result using preceding carry."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x2558",
+     "notes": "UseSSIDList write lacks result branch;InitialList likewise."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x1ea8",
+     "notes": "Each input byte printed as uppercase two-digit hex."
+    }
+   ]
   }
  },
  "subsystems": {
@@ -156028,7 +156182,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining settings flags/SonosNet material/frequency and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining settings-apply/check callback callsites,flags/SonosNet material/frequency (shared file writer and concrete mode/path/field mapping established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157796,6 +157950,11 @@
     "open_event_delivery": "Event8 NS_OPN passes0x1000f57c via tail branch0x1000f5f0 to NetManager state delivery0x1000d414. Its21-row,8-byte table0x10031bbc holds handler pointer then state-name pointer;state lives global0x10050cc0. This is separate from NS2 session state+0x298. In NetManager state12 CCRD,handler0x1000eed0 recognizes event8,disables station on ath0 through WifiFuncsSetStationEnabled(argument0),then invokes transition0x1000e3f4 with target6 NS_O and returns1. Other state handlers can react differently;completion does not force this transition in every NetManager state. NS_IDL is event10 and is not the event issued by this completion callback.",
     "wac_result_gates": "NetManager state20 WAC uses handler0x1000fce4 with event-offset table0x10031770. Events19 CRD_BAD,20 CRD_UNSP,21 CRD_NOAP and26 TMO all select0x1000fee4. Global0x10050ce4 (statebase+2c) is set1 by WAC_STA at0x10010054 and reset0 by WAC INIT at0x1000ff18. A nonzero value takes0x10010144 recovery. Otherwise,global0x10050ce8 (statebase+30),set1 by CCRED at0x1000fedc and cleared by INIT/NS_OPN,controls delivery:nonzero invokes adapter with the original event;zero returns0. TMO26 therefore reaches the same gates but cannot produce a result through the16..21 adapter. CRD_GOOD18 follows the default path that only tests+30;AIP17 does likewise but the adapter returns0. This gating is specific to WAC state and independent of the NS2 pending-check/state guards.",
     "wac_bad_station_recovery": "When+2c is nonzero,0x10010144 logs WAC provided credentials are bad,restart wacd;flushes logs;calls diagnostic snapshot0x100037d4 with0;transitions NetManager to0 INIT through0x1000e3f4;then directly calls INIT handler0x1000f820 with event1 RECFG. It rejoins0x1000fe84 and rereads+30 before optional result delivery. Transition helper dispatches EXIT25 to old state,logs old/new through0x1000d070,stores new state,updates mode through0x1000e354,dispatches INIT24 to new state,then tail-calls0x1000ddbc. WAC EXIT cancels state-timeout callback0x1000f6e4 and calls0x1000878c,which unlinks netsettings_check.txt,calls0x1000792c and clears0x10050104. These calls and ignored results are proved;the implementation of restarting/stopping wacd and later INIT configuration selection remain unresolved. Do not describe this as unconditional setup-status delivery:the post-reconfiguration check marker can have changed."
+   },
+   "settings_file_writer_binding": {
+    "callback": "Main config+84 binds0x1000b444 at0x10002f84. Source flags word+8 is accepted only when(flags&0xffffffef)==0. Mode0 calls NetSettingsUpdate(selector1,runtime root0x10055668),mode1 calls selector0,settings root0x100558d0;other modes return0. Writer0 means callbacktrue,other resultsfalse.",
+    "copy_contract": "Zero0x6fc-byte output;HHID pointer source+0 copied output+0,strlen output+4. WEP source+4->output+8;SSID source+10->output+c,length source+14->output+10;password source+18->output+14;source+20->output+18;source+24->output+1c;source+c->output+28 Channel;source+28byte->output+2c PriorityBridge;source+1cbyte->output+2d FirstZP;source+30/32/34u16->output+2e/30/32. Source+2c copied to output+20 and source+29byte to output+24,both unused by this writer. In particular,writer reads SonosNetDisable at+25,NFWActive at+34,and list count+38,which remainzero here. Do not infer these fields are emitted merely because similarly named source flags exist.",
+    "remaining": "Join callback callsites/argument producers and failure consumers,tag15 WEP material chain and frequency validity. File-format and shared writer behavior are established in shared_primitives.net_settings_file_writer."
    }
   },
   "bin_wacd": {
