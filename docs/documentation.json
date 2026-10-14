@@ -158357,6 +158357,13 @@
      "build": "86.10-80260",
      "address": "0x1001af58",
      "notes": "Actual lower close tail-calls hal_audiodev_close; null/busy guards return8/4."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000b6fc",
+     "notes": "Early return on fd==-1 skips the later callback0x1000b79c cancellation."
     }
    ],
    "setup_client_hello_payload": {
@@ -158947,7 +158954,8 @@
     "utility_open_and_close": "The utility logs under leds_zp. Init 0x10017b70 uses initialized byte 0x10051f3c and wrapper at 0x10051f40. Already initialized returns its stored handle. Otherwise it calls 0x1001a820(wrapper,0); result0 sets initialized byte1, nonzero logs but does not set it. Close 0x10017c84 returns immediately when initialized byte0. If initialized, it calls 0x1001ae78(wrapper,0), then 0x1001af18(wrapper). In this build 0x1001ae78 is an unconditional return0 stub: it makes no device or wrapper change. Nonzero close result logs and leaves initialized byte1; zero clears that byte. Log-gating helpers do not change that success/failure ordering.",
     "lower_close_gate": "0x1001af18 requires wrapper->object pointer nonnull; null returns8. Object u32+0xc must be0; nonzero returns4. Eligible objects tail-call imported hal_audiodev_close with the wrapper argument, preserving that return. It does not itself free the object or clear the wrapper pointer. The logging text hal_led_close does not prove a different backend: the actual imported function is hal_audiodev_close. Lower HAL implementation, open-object fields and display state semantics remain separate unresolved work.",
     "shutdown_consequence": "Main invokes network-owner cleanup before NS2/netlink cleanup, then daemon-resource cleanup and its reference-counted utility release, then registry shutdown. A release while references remain does not call the lower close, and a failed lower close can leave the initialized byte set even when the outer release reports1. The registry still shuts down afterward. This record describes explicit cleanup requests and local state mutation; it does not claim that every physical radio/LED state is reset on process exit.",
-    "remaining": "Trace network-owner descriptor creation/receive/transmit roles and the lower HAL open/close object implementation, plus remaining SIGUSR1 and allocation-ownership callers. Network cleanup callback cancellation/five-descriptor sequence and utility reference-count/error/stub behavior are established."
+    "remaining": "Trace network-owner descriptor creation/receive/transmit roles and the lower HAL open/close object implementation, plus remaining SIGUSR1 and allocation-ownership callers. Network cleanup callback cancellation/five-descriptor sequence and utility reference-count/error/stub behavior are established.",
+    "invalid_descriptor_timer_guard": "Helper 0x1000b6f4 returns immediately when owner +0x1c descriptor is already -1, before cancelling callback 0x1000b79c. Only its valid-descriptor path closes/marks the descriptor and cancels that callback. Owner shutdown always cancels 0x1000bc04 earlier, but the second cancellation is conditional. Any still-queued 0x1000b79c entry is eventually freed by global registry shutdown without invocation; between owner cleanup and registry shutdown no event-loop run occurs in the normal main cleanup order."
    }
   },
   "bin_wacd": {
