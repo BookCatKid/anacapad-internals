@@ -119142,7 +119142,9 @@
      "notes": "Main callback requests mode8, mapping to local command43, then always returns1."
     }
    ],
-   "todo": "Established: opcode18 wire grammar, flags bit0, timeout tag27/default/effective cap, parser/serializer quirks and initial REAUTH_PENDING entry guards/local notification. Remaining: complete REAUTH_PENDING button/completion/cancel/reconnect callback effects and their driver/state-machine consumers. Trace each state14 table delegate and config callback+0x6c, preserving the independently complete byte-parser contract and staying outside external SOAP/request dispatch."
+   "todo": "Established: opcode18 wire grammar, initial entry guards, REAUTH_PENDING table, button status7/8, budget10 renewal/30-minute timer, flags clear, START2 transition and local mode0/command31 callback, plus idle timeout and reconnect delegate ordering. Remaining: ultimate cancel/network effects through shared reset callbacks and0x10007d5c; complete their field predicates and driver actions without entering the external SOAP/request receiver. Signed CANCEL flag gate and local action predicate are established in ns2_reauthorization_pending_lifecycle.",
+   "pending_state": "0x1001c544 defaults status8. Only stored flags+0xa5c bit0!=0 AND contactless-budget predicate0x10024078!=0 takes reauthorization-success branch. That branch calls0x10022fac to restore budget10 and schedules callback0x1001efb0(session,0) for1800000ms via config+0x20 when present; GOT slot0x1004f9d8 proves callback. This branch does not first call the cancellation wrapper, unlike standby/completed button helper0x1001bc1c. It then chooses status7. Missing scheduler does not turn it into status8 or suppress the remaining state change. The permission check does not parse a new PIN proof or inspect a received identifier here. Both status7 and status8 branches serialize opcode9 SETUP_STATUS through0x1002b470, which writes required tag13/u16BE. Exact status7 frame09 0d 00 02 00 07; status8 frame09 0d 00 02 00 08. Serializer success calls0x10026798; failure logs. Both paths then clear flags+0xa5c, transition to START2 through0x1001c220, invoke optional config+0x6c(cookie+0x34), ignore its return, and return1 to consume the setup/button request. Serialization or submission failure does not roll back renewed contactless budget, flags clear or state transition. Submit0x10026798 semantically tail-calls0x10026648 with completion callback/argument0, so these status messages have no packet-specific completion callback. Main stores0x1000ac74 at NS2 config+0x6c (stack+0x88 at0x10002f3c). It calls0x10007a94(0), writes integer0 to /var/run/netstart_mode, maps mode0 to local command31 and tail-submits through0x10006b2c, then returns1 ignoring the notification result. This final notification happens after the START2 transition, not only after an acknowledged status response. External command receiver is explicitly outside this lane; the local send is not evidence that the receiver executed a driver change.",
+   "timeout_and_reconnect": "State14 idle timeout0x1001c434 only tail-transitions to START2, using the state setter and new60second start-state timer. It does not call the button helper, renew contactless budget, send status7/8, clear flags or issue config+0x6c here. Reconnect0x1001cfb0 instead tail-calls common reset with a reason pointer; the transport caller clears the saved DTLS queue before this notification and resumes handshake afterward. Common reset explicitly clears reauthorization flags/cap along with other session working data; its remaining lower notification/driver effects belong to the shared reset trace."
   }
  },
  "firmware_differences": {
@@ -156448,7 +156450,7 @@
     "Finish configured/default PSK reload and reset triggers and cached-credential lifecycle effects beyond daemon-local IPC command23. Main shutdown cancellation of the four-hour expiry callback and in-memory default/cached PSK and registration-secret destruction are established. Do not enter the external request-object/service receiver lane.",
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
     "Finish the saved-output queue: all slot flag writers/state effects, incoming/outgoing record-counter identifier join, clock callback producers, ciphertext-vs-ACK-length adjustment rationale, full NS2 per-state message/reconnect effects and final FD re-registration. Connected input/output, ACK completion and NS2 admission/deactivation/provenance/idle-timer table are established; payload admission remains distinct from per-state operation acceptance.",
-    "Trace remaining NS2 messages individually, including parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 is complete. REAUTHORIZE opcode18/tag2 flags/tag27 timeout wire parsing, serialization and initial consumer are established; its separate record retains pending-state callback work. Finish those delegates and other message bodies individually.",
+    "Trace remaining NS2 messages individually, including parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 is complete. REAUTHORIZE opcode18 wire/initial handler, pending button response/permission renewal/local notifications, timeout and reconnect delegation are established; finish shared cancel/reset/network-followup effects retained in its separate TODO. Other message bodies remain individually unresolved.",
     "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, full per-state entry/exit/teardown/message/timeout effects and target-state selection. Idle caps are joined to session+a60/a61/a62; REAUTHORIZE18 cap tag27/default/guard/local command43 is complete in its format record. Finish BEGIN7/standby parser tags/defaults and other cap branch reachability. Captured-state timeout gate and delegate sequences are established; discovery driver callback, TIMED_OUT notification and open-AP predicate/action need full traces.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace initial external settings-snapshot producers and daemon-side registered triggers/teardown. The external IPC signing receiver remains outside this lane.",
@@ -158779,6 +158781,55 @@
      "build": "86.10-80260",
      "address": "0x1001d460",
      "notes": "Open-AP timeout null callback guard is conditional return, not fallthrough execution."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001c670",
+     "notes": "Successful pending button renews contactless budget10 before scheduling30-minute timer."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001c5dc",
+     "notes": "Flags clear and START2 transition occur even if status serialization/submission failed."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000ac84",
+     "notes": "Reauthorization completion callback writes mode0 and submits local command31."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001cfb0",
+     "notes": "Pending-state reconnect is a semantic tail delegate to common reset."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001d384",
+     "notes": "Signed positive CANCEL flags return before any reset; zero/high-bit-set values proceed."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001d440",
+     "notes": "Unlatched cancel action requires predicate3 and flags bit2."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000b124",
+     "notes": "Cancel action cancels scheduled followup then synchronously invokes it via0x10007eec."
     }
    ],
    "setup_client_hello_payload": {
@@ -159457,6 +159508,16 @@
     "discovery_and_reauth_timeout": "DISCOVERY3/INTERACTION4 use0x1001e47c: call0x1001c4dc, which clears requested method/PIN/decrypted secret through0x10022a48, invokes optional config+0x64(cookie+0x34), then tail-transitions to START2. After that returns, read u16 status+0x2a4; if unsigned>28, tail-call0x1001e3c8 to construct/send TIMED_OUT21 through serializer0x1002d088, otherwise return without that notification. REAUTH_PENDING14 uses0x1001c434, which only tail-transitions to START2 through state setter; it does not call the discovery PIN/secret-clear helper. Full driver callback+0x64 and notification wire/error effects remain individual work.",
     "open_ap_standby_timeout": "State11 uses0x1001d454. If config+0x94 is null it immediately returns via conditional bclr. Otherwise it calls that predicate(cookie+0x34); zero returns without reset or rescheduling here. Nonzero common-resets with reason, then optionally tail-calls config+0x9c(cookie+0x34). This is a guarded timeout action, not unconditional closure just because the base120seconds elapsed. Predicate/callback bindings and their full access-point side effects remain open.",
     "reauthorization_wire": "Complete opcode18 tag2 flags/tag27 timeout parser/serializer/local consumer is payload_formats.ns2_setup_reauthorize. Optional absence writes timeout0; its local effective domain is base60seconds with nonzero1..59 shortening. Cap+0xa60 is set only after bit0/contactless-budget/callback guards succeed; failed guards clear flags and send status8 instead. BEGIN7 and standby-side optional timeout fields remain separate parser work."
+   },
+   "ns2_reauthorization_pending_lifecycle": {
+    "table_and_delivery": "State14 REAUTH_PENDING row at0x1004f4ac+14*44 has timeout0x1001c434, reconnect0x1001cfb0 and button0x1001c544; slots+0x10/+0x14/+0x1c/+0x24/+0x28 areNULL. Its base idle duration60seconds uses session+a60 cap. Null message+0x14 delegates to default0x1001d6d4 through0x100206f8. Thus another opcode18 in this state does not re-enter the initial reauthorization handler: admitted message refreshes its idle timer but the common message handler has no opcode18 operation. Frame parsing, message admission and current-state dispatch remain distinct boundaries.",
+    "button_permission": "0x1001c544 defaults status8. Only stored flags+0xa5c bit0!=0 AND contactless-budget predicate0x10024078!=0 takes reauthorization-success branch. That branch calls0x10022fac to restore budget10 and schedules callback0x1001efb0(session,0) for1800000ms via config+0x20 when present; GOT slot0x1004f9d8 proves callback. This branch does not first call the cancellation wrapper, unlike standby/completed button helper0x1001bc1c. It then chooses status7. Missing scheduler does not turn it into status8 or suppress the remaining state change. The permission check does not parse a new PIN proof or inspect a received identifier here.",
+    "button_response_order": "Both status7 and status8 branches serialize opcode9 SETUP_STATUS through0x1002b470, which writes required tag13/u16BE. Exact status7 frame09 0d 00 02 00 07; status8 frame09 0d 00 02 00 08. Serializer success calls0x10026798; failure logs. Both paths then clear flags+0xa5c, transition to START2 through0x1001c220, invoke optional config+0x6c(cookie+0x34), ignore its return, and return1 to consume the setup/button request. Serialization or submission failure does not roll back renewed contactless budget, flags clear or state transition. Submit0x10026798 semantically tail-calls0x10026648 with completion callback/argument0, so these status messages have no packet-specific completion callback.",
+    "button_local_notification": "Main stores0x1000ac74 at NS2 config+0x6c (stack+0x88 at0x10002f3c). It calls0x10007a94(0), writes integer0 to /var/run/netstart_mode, maps mode0 to local command31 and tail-submits through0x10006b2c, then returns1 ignoring the notification result. This final notification happens after the START2 transition, not only after an acknowledged status response. External command receiver is explicitly outside this lane; the local send is not evidence that the receiver executed a driver change.",
+    "timeout_and_reconnect": "State14 idle timeout0x1001c434 only tail-transitions to START2, using the state setter and new60second start-state timer. It does not call the button helper, renew contactless budget, send status7/8, clear flags or issue config+0x6c here. Reconnect0x1001cfb0 instead tail-calls common reset with a reason pointer; the transport caller clears the saved DTLS queue before this notification and resumes handshake afterward. Common reset explicitly clears reauthorization flags/cap along with other session working data; its remaining lower notification/driver effects belong to the shared reset trace.",
+    "cancel_parser_and_signed_gate": "Default message handler parses opcode5 CANCEL through0x1002b088 into a u32 flags word, then calls0x1001d380. Parser schema allows tag2/u32BE, width4 when an output is supplied; duplicate/width errors reject through common cursor. Handler0x1001d380 starts cmpwi cr0,r4,0 followed by conditional bclr BO13/BI1: signed flags>0 returns immediately. Flags0 and high-bit-set values0x80000000..0xffffffff reach reset; positive1..0x7fffffff do not. This signed gate precedes all later bit checks. Eligible cancel common-resets, calls selector0/close0x10026630, then queries optional config+0x94; no predicate or result0 skips later actions.",
+    "cancel_action_predicate": "After eligible cancel and nonzero predicate result, session+0x1ad!=0 selects optional config+0x9c and then clears+0x1ad even when that action callback is null. With+0x1ad==0 it selects that action only if predicate result exactly3 AND flags bit2(0x4)!=0. Byte+0x1ad is set1 by open-AP helper0x1001c444 and is not cleared by the common reset's examined working-field sequence; it is an open-AP action latch, not the reauthorization flags word. Main predicate config+0x94=0x1000b0a0 returns0 if global0x10050108==0,3 if that global!=0 and0x10050104==0, otherwise1 when0x10050100==0 or2 when!=0. This exact domain joins the result3 cancel branch; complete meanings of those daemon flags remain separate work.",
+    "remaining_cancel_delegate": "Main config+0x9c=0x1000b118 calls0x10007eec, which cancels queued callback0x10007d5c with(0,0) then immediately tail-invokes it with(0,0), and returns1 ignoring its result. The complete0x10007d5c network/open-mode state branches and shared reset callbacks are not yet finished, so cancel's ultimate wireless/access-point side effects remain unresolved. They must not be guessed from the predicate or callback names."
    }
   },
   "bin_wacd": {
