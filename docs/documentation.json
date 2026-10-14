@@ -119009,6 +119009,61 @@
     "Resolved at vocabulary granularity: this is a token/keyword grammar (not an sscanf format) - the consuming path is the strcmp/token dispatch documented in the record; the accepted-input set is the decoded vocabulary shown in the record fields.",
     "Vocabulary: format-flag table 0x10ecc540 {wav=0x1, wma=0x2, adts=0x4} and MIME->flag map 0x10ecc618 {audio/wav|audio/x-wav|audio/vnd.wave=0x1, audio/wma|audio/x-ms-wma=0x2, audio/x-mpegurl=0x8}; x-mpegurl carries 0x8 (the playlist/m3u class). Adjacent codec ext/mime->id registry at 0x10ecc538. Drives stream-type classification for HTTP fetches."
    ]
+  },
+  "ns2_ack": {
+   "description": "Netstart2 acknowledgement:opcode1 with requiredtag26 carrying an eight-byte identifier used to retire a saved DTLS outputslot.",
+   "format": "One-byte opcode01;field header1a followed byBEu16 length0008,then8identifierbytes. Normalserializedsize12bytes:01 1a 00 08 <identifier8>. Serializer0x10028f34 takesidentifier pointer/length and outputcapacitypointer,usesrequiredschema0x100362fc. Its underlyingbinarywriter permits caller length0..65535 ifcapacityallows;theclose-pathcaller supplies8. Semantic ACK consumer requires8 exactly. Payload is carried insideDTLS;identifier itself israwbinary,nottext/hex.",
+   "parser": "0x1002902c initializescommonNS2 cursor,single requiredtag26 schema,requiresopcode1. Recognizedtag26 goes throughbinaryreader0x1002e2c8 withcallerprovidedcapacity. Daemonconsumer0x100286d8 supplies8-bytecapacity andthenchecksreturnedlength==8. Missingfield,duplicate nonrepeatablefield,capacityoverflow orwrongopcode rejects. Well-formedunrecognized fields are skipped. Headerprobe0x1002d898 returns0 forremaining<3 ordeclaredlength>remaining-3 withoutinvalidatingcursor;finalizer0x1002db94 onlychecksvalidity/requiredoccurrence. Thus a validrequiredACKfield followedbymalformedtrailingbytes canstillpass. Parseralonecanacceptshorttag26values butthequeueconsumerrejectsreturnedlength!=8. Thewirevalue domainacceptedbythatconsumerisanyeightbytes,includingallzero.",
+   "used_by": [
+    "netstartd close ACKprelude0x100283a8->0x10028f34",
+    "netstartd ACKproducer0x10027f54->0x10028f34",
+    "netstartd inboundACKretirement0x100286d8->0x1002902c"
+   ],
+   "consumer_effect": "Queueconsumercomparesidentifieragainstslot+a bytesin eachofthree0x61c-byte slots,startingcontext+5f6. Itdoesnotcheckslotin-usebyte beforememcmp. Firstmatchretiresthewholeslotwithmemset0x61c,clearsmatchingpreviouspointer+1844 andcurrentpointer+1840. Itreturns1 formatvalidandmatch;no matchreturns0. All-zeroidentifiercanmatch anunusedzeroedslotandreturn1 withoutacknowledgingactualoutstandingoutput. Ifboth optionaloutputpointersnonnull,itcopiesmatchedslot+614/+618 first;eitherpointeraloneisnotwritten. Thoseauxiliarywordsemantics belong to their callers,notthispayloadformat.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100362fc",
+     "notes": "Tag26 required descriptor sharedbyACKserializer/parser."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100290dc",
+     "notes": "ACKparser explicitlyrequiresopcode1."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10028750",
+     "notes": "Concretequeueconsumerrejectsidentifierlengthotherthan8."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100287b8",
+     "notes": "Eight-byte matchingwithoutin-useguard."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10028828",
+     "notes": "Matchedslotmemset;current/previouspointersclearedfirst."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002d90c",
+     "notes": "Malformedfieldextentreturnswithoutinvalidatingcursor."
+    }
+   ]
   }
  },
  "firmware_differences": {
@@ -156183,7 +156238,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and remaining concrete handshake/IO callbacks,remaining queue slot/ACK matching/retry/framing semantics,cookie/replay effects (close-notify producer,ACK wire serializer,three-slot ciphertext replay andclosecleanup established) and remaining envelope caller transitions (common reset/PIN/secret cleanup,contactless expiry request and state-timer check deadline established) and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining apply notification effects,WAC fallback admission/flag producers and remaining per-state teardown/config/transport effects,full flag domains (local markers,pending path timer and15-minute fallback expiry/reset chains established),wireless driver result producers,wpaconfig/debug consumers,other CCRED handlers and commit/state transitions (WAC check script invocation and ignored launch/command results established) (projection,WEP chain,exact frequency domain and disk-before-memory apply order established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and remaining concrete handshake/IO callbacks,remaining queue slot flags/age/due arithmetic,retryconfiguration/identifier producers andframing (ACKwire/parser/retirement andbackoffmax-stop established),cookie/replay effects (close-notify producer,ACK wire serializer,three-slot ciphertext replay andclosecleanup established) and remaining envelope caller transitions (common reset/PIN/secret cleanup,contactless expiry request and state-timer check deadline established) and response transport/state effects and other NS2_MSG_* payloads individually (ACKopcode1/tag26 parser,serializer andslotconsumer complete). Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining apply notification effects,WAC fallback admission/flag producers and remaining per-state teardown/config/transport effects,full flag domains (local markers,pending path timer and15-minute fallback expiry/reset chains established),wireless driver result producers,wpaconfig/debug consumers,other CCRED handlers and commit/state transitions (WAC check script invocation and ignored launch/command results established) (projection,WEP chain,exact frequency domain and disk-before-memory apply order established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157824,6 +157879,41 @@
      "build": "86.10-80260",
      "address": "0x10027ecc",
      "notes": "Drainclearscurrentpointer butretainsslot andpreviouspointer forlaterreplay."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10028624",
+     "notes": "Unsignedcurrent>=maxreturns0 beforedeadline orintervalmutation."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10028628",
+     "notes": "Doublingis32-bitshift;laterbranchesclampresulttomaxwithoutoverflowguard."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100249dc",
+     "notes": "Backoff0selectsretryexpirylog/cleanupinsteadofsendingrestoredciphertext."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100287bc",
+     "notes": "ACKslotmatchingdoesnotdependonslotin-usebyte."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100287ec",
+     "notes": "Optionalmatchedslotwordswrittenonlywhenbothoutputpointersnonnull."
     }
    ],
    "setup_client_hello_payload": {
@@ -158342,7 +158432,12 @@
     "ack_prelude": "Builder comparescurrent slot+2 eightbytes withzero. Ifnonzero,serializer0x10028f34 emitsopcode1 ACK into12-byte scratchwith requiredtag26 binary field,width8. Its schema is0x100362fc={tag26,required1,type2,flags1};commonwriter0x1002e690 emitsone-byteopcode,0x1002e7a0 emitstagbyte/BEu16length,and finalizerchecksrequired occurrence. Exactframe01 1a 00 08 <8identifierbytes>. Serializerfailure returns-1. It invokes mbedtls_ssl_write ontheACK;negative result returns immediately. Nonnegative result,includingzero orshortpositive,clears slotbyte+5f4 andcontinues;thecaller doesnot separatelyverifythat all12plaintextbytes wereaccepted. All-zeroidentifier skipsACK serialization/write.",
     "close_notify_producer": "Before mbedtls_ssl_close_notify at0x10028490,builder copiesSSLcontextbytes+dc..e3 into slot+a..11. This snapshot is takenafteranyACK write. A signednegative close-notify result returns directly,without copyingnewcachedciphertext or refreshing this deadline. Nonnegative close-notify copiesoutputbuffer into slot+18,storescachedlength+14,thenreadsSSLconfigpointerSSLcontext+0 timingwords+98/+9c into slot+5f8/+5fc andcurrentinterval+600. It computesdeadline=currenttime+firstinterval milliseconds,withseconds quotient/remusec andcarry past999999. It returnsoutputbytecount. Snapshot meaning in shippedmbedTLS layout and later ACK matching remainindividual work;no guessofits identifier domain here.",
     "output_capture_and_retention": "Capturehelper0x10027ee4 appends intoqueue outputbuffer whilecount+requested<=1500 under unsigned arithmetic;capacityfailure returns-0x6a00. Closebuilder then retains capturedbytes asabove. Drainhelper0x10027e8c memset1500-byte workingoutput,clearscursor/count/replayflag/deadlineword+5e4,savescurrent aspreviouspointer andclearscurrentpointer. It doesnot memsetcachedslotciphertext or markallthree slotsunused. This explains how later close/retry canrestore bytesaftertheworkingbufferwascleared. Wholequeuecleanup0x10027a9c isdifferent:memset0x1848 clearsallslots/pointers.",
-    "remaining": "Join concrete SSL BIO capturebinding,record-counter/ACK identifier producers andreceiver matching,slotflag/retryinterval evolution/age comparison,andfull queue framing beyondclose. Close-notify producer,ACK wire serialization,three-slot storage andcachedciphertext replay/drain retention are established."
+    "remaining": "Finish concrete BIOcapturebinding,SSLidentifierproducer/receiverjoin,slotflags,due/next-deadline andslot-age arithmetic,andqueueframingbeyondclose. ACKformat/parser/slotretirementandretrymaxstop areestablished inpayload_formats.ns2_ack anddtls_ack_retirement_and_retry_limits."
+   },
+   "dtls_ack_retirement_and_retry_limits": {
+    "ack_retirement": "CompleteACKwire/parser/matchedslotcontract ispayload_formats.ns2_ack. InboundACK usesstoredslot+a..11,whichoutboundbuilderscopyfromSSLcontext+dc..e3 beforembedtlswrite/close_notify. Eightbytesatnode+2 usedforoutgoingACKareseparatefrommatchednode+a. DonotconflatetheACKtosendwiththeidentifierforthisslotciphertext. ExactSSLrecord-counterproducer/receiverjoinstillrequired.",
+    "backoff": "0x10028614 reads currentintervalu32slot+600 andmaximumu32+5fc. Ifcurrent>=maximumunsigned,itreturns0 withnomutation. Otherwisecomputesdoubled=(current<<1)mod2^32,storesmin(doubled,maximum),setsdeadline=currenttimepluschosenintervalmilliseconds(normalizesmicroseconds),returns1. Itdoesnotclampandcontinueforeveratmaximum. Withunusuallargevaluesdoublingcanwrap;nooverflowguard. Minimum+5f8 isnotreadbythishelper;outboundbuildersinitializecurrentfromit.",
+    "retry_error_consumer": "CLOSE_NOTIFY_SENTstate8 writehandler0x10024928 asksdue-slotselector0x10027b40 forslot,restorescachedciphertextvia0x1002808c,then invokesbackoffhelper. Backoffreturn0logsretryexpirationandcalls0x100247c0 cleanupiftransportstate nonzero,withoutenteringthewrite loop. Successwritesrestoredciphertext,drainsworkingbufferandrescanforadditionaldueentries. WANT_READ/WRITE recordsdirection/returns;othernegativewritecleansup. Exactdue-slot arithmetic,deadline timer registrationandconfigurationminimum/maximumconstants remainunresolved. Thiscallerprovesthatreachingmaxcanterminateconnection,ratherthanjustchooseaninfinitefixedretryrate."
    }
   },
   "bin_wacd": {
