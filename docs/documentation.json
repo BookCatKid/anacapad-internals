@@ -156375,9 +156375,9 @@
     "Trace metadata meanings in other envelope consumers and the remaining envelope caller state transitions. Preserve the already established parsing, decryption, authentication, PIN proof and common-reset contracts.",
     "Finish configured/default PSK reload and reset triggers and cached-credential lifecycle effects beyond daemon-local IPC command23. Main shutdown cancellation of the four-hour expiry callback and in-memory default/cached PSK and registration-secret destruction are established. Do not enter the external request-object/service receiver lane.",
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
-    "Finish the saved-output queue: all slot flag writers/state effects, incoming/outgoing record-counter identifier join, clock callback producers, ciphertext-vs-ACK-length adjustment rationale, full NS2 admission/per-state message and reconnect callback effects, and final FD re-registration. Connected read ACK ordering, retirement completion callback/argument, input error/reconnect/peer-close branches and output-pump/submission contracts are established alongside the three-slot timing selectors.",
+    "Finish the saved-output queue: all slot flag writers/state effects, incoming/outgoing record-counter identifier join, clock callback producers, ciphertext-vs-ACK-length adjustment rationale, full NS2 per-state message/reconnect effects and final FD re-registration. Connected input/output, ACK completion and NS2 admission/deactivation/provenance/idle-timer table are established; payload admission remains distinct from per-state operation acceptance.",
     "Trace the remaining NS2 messages individually, including their parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 has a separate complete byte/parser/retirement record.",
-    "Finish settings apply notification effects, full flag domains, WAC fallback admission and flag producers, per-state entry/exit/teardown effects, and the target-state selection chain. Preserve the verified WEP/frequency/projection/file and marker effects.",
+    "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, per-state entry/exit/teardown/message/timeout effects, dynamic NS2 idle-cap producers at0x10052bb0..2, and target-state selection. NS2 message admission, deactivation-file override, active/provenance/proof gate and per-message idle refresh are established alongside verified WEP/frequency/projection/file/marker effects.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace initial external settings-snapshot producers and daemon-side registered triggers/teardown. The external IPC signing receiver remains outside this lane.",
     "Finish event-loop integration: SIGUSR1 nonnull modeword producers and downstream open-mode/utility/notification/timer callback effects, remaining registration users, network-owner descriptor producers, lower HAL utility object behavior, and object-allocation ownership. SIGUSR1 merge-file priority, NS2 button consumption table, wireless-block predicates, interface-disable latch writer and local timer replacement ordering are established, alongside previously traced shutdown and registry phases."
@@ -158595,6 +158595,62 @@
      "build": "86.10-80260",
      "address": "0x1004fb5c",
      "notes": "Initializer GOT binds transport plaintext callback to0x100208a0 -> tail0x100206f8."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10023e2c",
+     "notes": "Mask0x65 immediately admits opcode0/2/5/6 before deactivation or active-source checks."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10035250",
+     "notes": "Ordinary16-entry self-relative admission table."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10035290",
+     "notes": "Deactivation table requires cached active source3 and admits only configuration group."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10023f2c",
+     "notes": "Raw isel returns1 for nonzero effective provenance,0 for zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10009b08",
+     "notes": "Either deactivation marker existence latches startup flag1."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001ba5c",
+     "notes": "Idle refresh cancels state timer with wildcard argument pair before conditional rearm."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001bafc",
+     "notes": "Optional nonzero byte caps the state timer via unsigned min."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10020818",
+     "notes": "Admission rejection resets with not authorized before immediate close and selector change."
     }
    ],
    "setup_client_hello_payload": {
@@ -158892,7 +158948,8 @@
     "persistence_failure": "After generation,0x1001d930 invokes settings writer. False logs unable to update internal settings at0x1001d9f0,then branches back to0x1001d93c,which is the same response/scheduling path as success. It does not restore previous live key or suppress outgoing PSK solely for write failure. A peer may therefore receive a fresh usable live credential even when it is absent from persistent storage. The settings writer boolean itself is rename-based as documented separately.",
     "response_wire": "Serializer0x1002c23c writes opcode14 PSK,using three required schema rows0x10036314:{19,1},{20,1},{21,1}. It emits tag19 u8 request selector0,tag20 string=new default identity,tag21 blob=default raw key with record length32. Fields use shared u8tag/u16BE-length/value framing. Handler output capacity1414;typed writer results are ignored until common finalizer checks cursor/required fields and stores length. It sends only on serializer success through0x10026798 and ignores that send result. The32-byte key is represented as raw bytes in this NS2 response,unlike the64-character hex form used in settings persistence. Construction is not proof of delivery.",
     "expiry_binding": "On generated-key path,configuration+24 may cancel the previous registration of callback0x1001d4f8 for this session,then configuration+20 may schedule that callback with raw delay0x00dbba00(14400000),session argument and extra0. Callback0x1001d4f8 clears/wipes live default record through0x1002691c,then writes settings to omit PSK. Write failure logs and returns without restoring the cleared key. Concrete wrappers/queue prove milliseconds and a four-hour monotonic deadline; cancellation,allocation-failure and dispatch semantics are joined in psk_expiry_timer_contract. Startup-loaded key also schedules this same callback through0x1001edb8..0x1001ede4.",
-    "limits": "This completes local request grammar,generation,live-versus-persistent key effects,response fields and expiry callback ordering. Trace timer teardown callers and transport/state authorization separately; no service request-object or anacapad dispatcher changes are made."
+    "limits": "This completes local request grammar,generation,live-versus-persistent key effects,response fields and expiry callback ordering. Trace timer teardown callers and transport/state authorization separately; no service request-object or anacapad dispatcher changes are made.",
+    "admission": "Message admission0x10023df4 permits GET_PSK13 only for configured-default active source2 with nonzero effective provenance, or PIN sources4..6 with successful proof and nonzero requested provenance. Cached source3 rejects GET_PSK, as does factory fallback1. Deactivation override rejects it for every source. This resolves the admission boundary into common handler0x1001d6d4; the handler separately validates the tag19 selector and generator method1..8/factory identity width, so admission is not a promise of generation success. Full per-state callback reachability and completion transitions remain individual work."
    },
    "psk_expiry_timer_contract": {
     "installed_callbacks": "Daemon main config base is stack+1c. Stores0x10002e88/+e94 install0x1000a2ac at config+20 and0x1000a334 at+24. Schedule wrapper converts unsigned32-bit milliseconds to seconds using division1000 and microseconds=(delay%1000)*1000,then tail-calls queue insertion0x10016ebc with callback,user argument and extra argument. Cancel wrapper tail-calls0x1001704c after shifting those three match parameters. Raw14400000 is therefore14400 seconds,four hours,not an unbound numeric delay.",
@@ -159228,8 +159285,39 @@
     "ack_callback_binding": "Public submit0x10026648 forwards r6/r7 to builder0x100281a8 as auxiliary words, stored at slot+0x614/+0x618. Connected inbound ACK0x100255b4/0x100255c8 establishes their actual local meaning: optional completion callback and opaque callback argument. ACK-retirement helper writes those two outputs only if both pointers are supplied. An all-zero ACK can still match an unused zeroed slot because retirement has no in-use guard, but that slot has callback0 and invokes nothing. Specific higher-level callback ownership/lifetime and each callback body remain individual caller work.",
     "want_and_buffer_adjustment": "ssl_read returns-0x6900 WANT_READ or-0x6880 WANT_WRITE: if queue replay flag transport+0xd40 (queue+0x5e8) nonzero, pump restored ciphertext immediately and return pump result. Otherwise compare pending ciphertext count+0x75c with transport+0xd3c (queue+0x5e4, written from ACK plaintext length by0x10028034). If count>that word, advance cursor by the word, subtract it from count and pump; there is no unit conversion from plaintext to ciphertext length in this adjustment. If count<=word, set direction+0x16c=0/read or1/write from the original SSL result, restore CONNECTED4 if needed and return0 without drain. This establishes literal byte-count behavior; why this build subtracts the retained ACK plaintext length from ciphertext requires the library record-production join and must not be described as confirmed removal of one encrypted ACK record.",
     "reconnect_close_and_errors": "Read error-0x6780 logs DTLS client reconnect, sets CLIENT_RECONNECT2, clears entire saved queue0x1848 via0x10027a9c, invokes optional config+0x30(cookie+0x38), then sets CONNECTING3, restores send/recv BIO from 12-byte role table0x1004f83c and calls handshake handler0x100258f4; its return is propagated. Role0 send/recv were separately established; other rows remain open. Peer close-notify-0x7880 sets CLOSE_NOTIFY_DISCONNECT9 and calls close output pump0x10024d68, returning its result. All other negative reads log and cleanup when state!=0 while preserving the original negative return. The ACK-build failure uses-1 instead. Original ssl_read length field remains1500 on the initial negative branch until a callee modifies it; do not infer received plaintext length from that stale field.",
-    "ns2_message_delivery": "NS2 initialization0x1001ec78 installs config+0x34=0x100208a0 (GOT slot0x1004fb5c) and cookie+0x38=session. Callback0x100208a0 semantically tail-calls0x100206f8, whose opcode probe rejects empty/>23 input, then checks setup admission through0x10023df4. Rejected admission calls common reset with a reason pointer, requests immediate DTLS close265a0(arg1), then resets transport selector through26630(arg0). Admitted input validates NS2 state<=17, calls0x1001ba20, reloads the state and dispatches row+0x14 from 44-byte table0x1004f4ac, or default handler from GOT when null, with(session,opcode,buffer,length). Invalid state invokes common reset(session,0). Admission predicates,0x1001ba20 and each state-specific message parser/handler remain separate unresolved work; this is daemon-local NS2 dispatch, not the protected SOAP/service request lane.",
+    "ns2_message_delivery": "NS2 initialization0x1001ec78 installs config+0x34=0x100208a0 (GOT slot0x1004fb5c) and cookie+0x38=session. Callback0x100208a0 semantically tail-calls0x100206f8, whose opcode probe rejects empty/>23 input, then checks setup admission through0x10023df4. Rejected admission calls common reset with a reason pointer, requests immediate DTLS close265a0(arg1), then resets transport selector through26630(arg0). Admitted input validates NS2 state<=17, calls0x1001ba20, reloads the state and dispatches row+0x14 from 44-byte table0x1004f4ac, or default handler from GOT when null, with(session,opcode,buffer,length). Invalid state invokes common reset(session,0). Admission predicates and0x1001ba20 idle-timer refresh are now established in ns2_message_admission_and_idle_timeout; each state-specific message parser/handler remains separate unresolved work; this is daemon-local NS2 dispatch, not the protected SOAP/service request lane.",
     "reconnect_notification": "NS2 config+0x30 is0x100206e8 (GOT slot0x1004fb58), cookie=session. It tail-calls0x100205bc, which calls setup helper0x100229f4, validates state<=17 and tail-invokes state row+0x18 when present; invalid state tail-calls common reset(session,0). Byte session+0xa63 controls logging on a branch but both branches select the same row+0x18 callback. Full setup helper and state-specific reconnect effects remain unresolved."
+   },
+   "ns2_message_admission_and_idle_timeout": {
+    "entry_and_fast_allow": "Admission0x10023df4(setup_context,opcode) checks unsigned opcode<=6 and bitmask0x65. Set bits0,2,5,6 return1 immediately: KEEP_ALIVE, SETUP_CLIENT_HELLO, SETUP_CANCEL, ECHO. These bypass authentication-mode, proof and deactivation callback checks. Opcode1 ACK is not admitted here; connected transport handles it separately before NS2 delivery. Other opcodes outside7..22 reject in the state-table path, including SERVER_HELLO3, SERVER_HELLO_LEGACY4 and REGISTRATION_KEY23. No payload grammar or field validation occurs in this gate.",
+    "authentication_fields": "Active authentication source is context u32+0x2cc: initialization/reset0; successful PSK installer writes1 factory-derived fallback,2 configured default PSK,3 cached primary/secondary PSK. EC-JPAKE PIN callback maps requested modes3/6/7 to active4, modes1/2/5/8 to active5, mode4 to active6. Successful PIN getter requires strlen8; unsupported requested modes fail. Byte+0x2d4 is proof-match result:0x10023394 stores normalized equality against a derived32-byte proof, and common setup reset0x100229f4 clears it. Requested/provenance method word+0x2f4 is separate from active authentication; PIN cleanup0x10022a74 clears it. Existing proof/key-provider records cover crypto details; admission consumes these established fields rather than treating the active source as an outer NS2 state.",
+    "ordinary_table": [
+     {
+      "opcodes": "7 SETUP_BEGIN;18 SETUP_REAUTHORIZE",
+      "admitted": "Exactly active source1 (factory fallback)."
+     },
+     {
+      "opcodes": "8 SETUP_CONTINUE",
+      "admitted": "Active source1 and requested method exactly2 or5,6,7,8. Raw isel0x10023f5c returns0 when unsigned(method-5)>3, otherwise1; method2 is an explicit earlier allow."
+     },
+     {
+      "opcodes": "10 GET_SCAN_LIST;12 SET_NET_SETTINGS;15 UPGRADE;16 START_OPEN_AP;17 COMMIT_SETTINGS;19 ENABLE_WIFI;20 START_ISLAND;22 LOCK_REGISTRATION",
+      "admitted": "Active source2 or3 returns1. Sources4,5,6 return proof byte+0x2d4 (normally0/1). Sources0,1 and>6 reject."
+     },
+     {
+      "opcodes": "13 GET_PSK",
+      "admitted": "Source2 requires effective provenance0x10023d2c!=0. Source3 explicitly rejects. Sources4,5,6 require proof byte!=0 AND effective provenance!=0. Other sources reject. Raw isel0x10023f2c selects literal0 when provenance==0 and literal1 otherwise."
+     },
+     {
+      "opcodes": "All remaining opcodes not in the fast allow or listed groups",
+      "admitted": "Reject. Table0x10035250 contains16 self-relative offsets for opcodes7..22; lookup retains table base before adding each offset."
+     }
+    ],
+    "effective_provenance": "0x10023d2c returns default-credential record context+0x2c4 word+0xac only when active source2. For active4..6 it returns requested method+0x2f4 only if proof byte!=0; otherwise0. All other sources return0. GET_PSK admission merely requires nonzero effective provenance; downstream generator separately requires1..8 and six factory-identity bytes. Admission therefore does not guarantee new credential generation or persistence. Cached source3 is rejected explicitly even though it is accepted for ordinary configuration commands.",
+    "deactivation_override": "For messages not fast-allowed, config=context+0x2c0 callback+0x48(cookie+0x34) is queried if present. A nonzero result selects the restricted table only when active source3; every other active source rejects. Restricted table0x10035290 permits exactly the ordinary configuration group10/12/15/16/17/19/20/22 and returns the callback's original nonzero value, not necessarily normalized1. BEGIN/REAUTHORIZE jump to an active==1 test and therefore reject under required active3; CONTINUE and GET_PSK reject. Null/zero callback uses the ordinary table. Main0x10002ed0 installs0x1000a6ec at NS2 config+0x48; that helper returns boolean(global0x1005010c!=0). Startup0x10009a24/0x10009a50 formats <settings root>/persist/deactivated_state and /persist/deactivation_pending_state.json; existence of either sets that global1 at0x10009b08 and logs Device deactivated. Those snprintf results are not checked here. The local flag is a startup-file latch; this callback does not reread the files on each message.",
+    "rejection_and_dispatch_order": "Plaintext callback0x100206f8 first probes opcode<=23. Empty/>23 input returns without the admission call. In-range admission0 logs, common-resets(session,\"not authorized\"), calls immediate-close0x100265a0(transport,1), then0x10026630(transport,0) to change selector and request close again. These are sequential calls, not an atomic authorization rollback. Positive admission checks outer NS2 state<=17, refreshes its idle timer via0x1001ba20, reloads the state and invokes row+0x14 message callback or default0x1001d6d4 with(session,opcode,buffer,length). Per-state handlers can still reject an admitted message or change settings/state. Earlier transport ACK construction precedes this admission check, so an ACK is not proof that the requested configuration operation was authorized.",
+    "idle_timer_refresh": "0x1001ba20 cancels callback0x1001cdf4 through config+0x24 with both arguments-1 wildcard when present. It reads the current44-byte NS2 state row: base seconds at+4, optional cap-byte pointer+8. A nonzero pointed byte caps seconds to min(base,byte); null pointer or byte0 retains base. Raw isel at0x1001bafc selects cap only when unsigned base>cap. Nonzero seconds and nonnull config+0x20 schedule callback0x1001cdf4 with session argument and second argument0, delay(seconds*1000) modulo2^32. It semantically tail-delegates scheduling and does not validate state index inside this helper. Timer cancel/schedule returns are ignored by plaintext delivery. Zero duration still cancels but does not re-arm.",
+    "idle_timer_table": "Table0x1004f4ac: RESET0,STANDBY1,COMPLETE8 base0; OPEN_AP_STANDBY11 base120seconds; all other valid states base60seconds. Optional byte caps: DISCOVERY3 and DISCOVERY_INTERACTION4 point0x10052bb1; SETUP_WAITING6 points0x10052bb2; REAUTH_PENDING14 points0x10052bb0. All other cap pointersNULL. Thus each admitted message can replace the state's idle deadline even if its later handler performs no operation. Dynamic cap producers and complete per-state timeout/entry/exit/message effects remain open."
    }
   },
   "bin_wacd": {
