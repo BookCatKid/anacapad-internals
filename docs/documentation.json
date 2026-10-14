@@ -156182,7 +156182,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining settings side-effect callbacks,full flag domains,wireless credential/API consumers and commit/state transitions (projection,WEP chain,exact frequency domain and disk-before-memory apply order established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining settings side-effect callbacks,full flag domains,wireless driver result producers,wpaconfig/debug consumers,other CCRED handlers and commit/state transitions (WAC check script invocation and ignored launch/command results established) (projection,WEP chain,exact frequency domain and disk-before-memory apply order established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157550,6 +157550,48 @@
      "build": "86.10-80260",
      "address": "0x42e0",
      "notes": "Immutable supported SonosNet table admits2412,2437,2462MHz only."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000fed0",
+     "notes": "WAC CCRED launches waccredcheck;launcher result ignored before check-active marker and return1."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100500a0",
+     "notes": "Mode pointer containswaccredcheck;global94 containsatheros."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000d85c",
+     "notes": "Launcher waits for any child viawaitpid(-1),returns raw status;WAC caller ignores it."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000da90",
+     "notes": "Child usesexecv with separate mode/STP/optional arguments."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100102b4",
+     "notes": "SonosNet base CCRED delegates tostation launcher and ST_CCRD transition rather than WAC verb."
+    },
+    {
+     "type": "firmware",
+     "binary": "usr/sbin/netconfig.sh",
+     "build": "86.10-80260",
+     "address": "lines124-130",
+     "notes": "Credential-check mode2,supplicant background launch and unchecked explicitexit0 before DHCP/bridge path."
     }
    ],
    "setup_client_hello_payload": {
@@ -158015,6 +158057,14 @@
    "sonosnet_material_and_frequency_admission": {
     "wep": "Tag15 is the16-byte WEPKey byte field:parser places it pending+5f/count+70,projectionpasses it to callback source+4/+8,and concrete writer emits exactly16bytes as WEPKey. In validator key-required branch,missing key with current key-validbyte0 returns0x8006;provided count not16 returns0x8002;provided key when currentvalid nonzero returns0x8004. The WiFi-only/existing-household branches can bypass key requirements;these are not unconditional rules for every message. Apply copies the bytes to snapshot+18 and sets snapshot+20 pointed validbyte1.",
     "frequency": "Tag16 is frequency inMHz,not channel number. Config+c0 bound0x1000b354 atmain0x10003038 calls WifiFuncsIsFreqSupported and normalizes nonzero to1. Validator invokes it only for nonzero pendingfrequency at0x10021d18,returns0x8001 onfalse. Missing callback skips that check. Shipped libwifi.so.1 function0x33d8 calls MapFreqToChannelNum0x3288,which searches immutable supported table0x42e0 of(channel,frequency)u32 pairs:{1,2412},{6,2437},{11,2462},{0,0}. Thus concrete callback accepts exactly2412/2437/2462;it performs no live driver/regulatory query. If pendingfrequency0 and newHHIDnonempty,validator returns0x8007 at0x10021f28;other branches can reuse current frequency or omit changing it."
+   },
+   "credential_check_process_execution": {
+    "wac_command_join": "Main-bound config+b8 callback0x1000b28c ignores credential arguments and calls event15 CCRED. Runtime event pointer table0x1002f154 proves name15. NetManager WACstate20 handler0x1000fce4 jump table0x10031770 row15 selects0x1000fea4. It loads mode string throughglobal0x100500a0 (pointer0x100329d0 waccredcheck),argthrough0x10050094 (atheros),arg3null and invokes0x1000d774 at0x1000fed0. Regardless of launcher return,it sets WAC check-active global0x10050ce8=1 and returns1 through0x1000fd64. Thus concrete callbacktrue means this event handler returned nonnegative,not that subprocess launch or credentials succeeded.",
+    "script_launcher": "0x1000d774 forks. Parent calls waitpid(-1,&status,0),not waitpid on the returned childpid;does not check waitpid result or retry EINTR. It subsequently calls0x10006ce4/0x10006dbc and returns raw status initialized-1 atentry. Forkfailure logs Unable to fork,skips wait,still performs these later calls and returns-1. Child attempts freopen stdout/stderr w and stdin r to/dev/null,chdir/tmp;failure logs sandboxing error and continues. It builds execv argv{/usr/sbin/netconfig.sh,mode,stp_disable ifglobal0x1005011ebytenonzero else stp_enable,optional arg2,optional arg3,NULL}. WAC check call therefore executes netconfig.sh waccredcheck <stp> atheros. Path/mode/args are separate argv strings,not a shell command assembled with credentials. execv failure calls exit(-1);allocation failures are not uniformly rejected before execv. Scheduling/post-launch refresh effects outside this specific check path remain unresolved.",
+    "script_consumer": "Shipped usr/sbin/netconfig.sh lines13..15 maps waccredcheck toMODE=credcheck,WAC=1. WAC1 bypasses the non-WAC kill of/tmp/wacd.pid. Lines68..78 require/ramdisk/tmp/netsettings_check.txt for credcheck and select it rather than/jffs/netsettings.txt;missing file exits1. Existing check file sets USE_SSIDLIST=0. It then killall wpa_supplicant,removes/var/run/wpa_supplicant.conf,and normally generates it using SSID_FILE=0 /wifi/wpaconfig <checkfile> <output>. A preexisting/jffs/debug/wpa_supplicant.conf instead becomes the actual configuration and sends generated output to/dev/null. This config-file override is gated only by file existence here. Debug replacement executable and sourced testpoints additionally require exec_enable==1. Debug supplicant flag file enables-dd -t -K;otherwise-t. These are distinct override predicates.",
+    "radio_start_and_errors": "Scriptlines124..130 call/wifi/athconfig stasetenable ath0 2,then selectedsupplicant-s -B -D sonos -i ath0 -c <config> plusdebugflags,then explicit exit0. It does not check wpaconfig,athconfig or supplicant exit status and has no set-e. The credcheck branch exits before later stationmode stasetenable1,bridge setup and DHCP startup. It does not wait for authentication outcome. Command1/eventhandlertrue or shell exit0 therefore cannot substitute for later wireless result events. This path actively stops the previous supplicant despite avoiding later DHCP/network bring-up.",
+    "other_network_state_path": "NetManager SonosNet base handler0x100101a0 handles event15 usingtable0x10031814 row(event-7)=8,target0x100102b4. It calls0x1000e500,which selects stringstation throughglobal0x100500c0,launches0x1000d774 withatheros,then tail-transitions NetManager to13 ST_CCRD. It is not the WAC check-only script verb. Script station mode can also select the existing check file,but continues to stasetenable1 and later networking. The distinction prevents describing every CCRED handler as the same check-only operation. Concrete delegating state handlers and later outcomes remain to be traced individually.",
+    "remaining": "Trace driver event production,wpaconfig parser/serializer and debug override effects,other CCRED state delegation,post-launch refresh helpers,and subsequent WAC/NS2 result/timeout transitions. This record resolves the concrete WAC check invocation and its success/error interpretation."
    }
   },
   "bin_wacd": {
