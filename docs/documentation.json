@@ -137449,9 +137449,9 @@
    "name": "Netstartd local IPC frame writer",
    "functions": "0x10006b2c(command,payload,payload_length), using IPC context0x10055808 and descriptor at context+0x70. Shared by mode, network settings, household-change and other local notification wrappers. This record covers the concrete frame/write/error routine; individual command consumer semantics remain in their records.",
    "validation": "Signed descriptor<0 returns-1 without constructing or writing a frame. Unsigned payload_length>2048 returns-1. Nonzero length with payloadNULL returns-1. Zero length ignores payload pointer and emits a header-only frame. No command-domain validation, string handling, authentication or checksum is performed. The caller owns pointer readability for the admitted length.",
-   "wire_format": "Four u32BE words on this big-endian build: offset0 header-size marker12, offset4 version1, offset8 command-plus-payload extent4+payload_length, offset12 command. Raw payload follows at offset16; total write length16+payload_length. Nonzero payload copied into2048-byte stack area via __memcpy_chk. Native stw emits those header words in BE. Zero-payload branch writes extent4 and total16. Maximum total frame2064bytes. No payload conversion, encryption or escaping occurs.",
+   "wire_format": "Four u32BE words on this big-endian build: offset0 header byte extent12 (three base header words, with no extensions in this writer), offset4 version1, offset8 command-plus-payload extent4+payload_length, offset12 command. Raw payload follows at offset16; total write length16+payload_length. Nonzero payload copied into2048-byte stack area via __memcpy_chk. Native stw emits those header words in BE. Zero-payload branch writes extent4 and total16. Maximum total frame2064bytes. No payload conversion, encryption or escaping occurs.",
    "write_loop": "Call write(fd,current_pointer,remaining). Positive result advances pointer and subtracts bytes; repeat until remaining0. Raw0x7fe3f851 at0x10006bc4 is subf. with Rc1, so the loop condition uses updated remaining count, not the earlier write result. Descriptor is reloaded from context+0x70 before each subsequent write. Full frame consumption returns0. No readiness registration, backoff, separate transmit queue or delivery acknowledgement is created here.",
-   "errors_and_connection_state": "Every write result<=0 takes the same Lost IPC connection path, including zero, EINTR and EAGAIN negative results; errno is not examined or retried. It unregisters the currently stored descriptor through0x10016ea8, calls imported CloseIPCContext(context), clears global0x100500d4 and returns-1. Cleanup results are ignored. Positive partial writes already accepted by the kernel are not undone before that close request, and no resend is queued. Pre-write validation failures return-1 without this connection teardown. Return0 means all frame bytes were accepted by write, not that the external peer parsed or executed the command.",
+   "errors_and_connection_state": "Every write result<=0 takes the same Lost IPC connection path, including zero, EINTR and EAGAIN negative results; errno is not examined or retried. It unregisters the currently stored descriptor through0x10016ea8, calls imported CloseIPCContext(context), clears global0x100500d4 and returns-1. Cleanup results are ignored. Positive partial writes already accepted by the kernel are not undone before that close request, and no resend is queued. Pre-write validation failures return-1 without this connection teardown. Return0 means all frame bytes were accepted by write, not that the external peer parsed or executed the command. Shipped CloseIPCContext0x11e8 marksfd-1 and contextmode0 after its close request; mode1 also unlinks a nonempty listener pathname. It does not free the context. Local read/header and accept semantics are separately established in local_ipc_header_reader and daemon_local_ipc_receive_and_accept.",
    "evidence": [
     {
      "type": "firmware",
@@ -137487,6 +137487,50 @@
      "build": "86.10-80260",
      "address": "0x10006c54",
      "notes": "Nonpositive write unregisters and closes local context and clears connection flag."
+    }
+   ]
+  },
+  "local_ipc_header_reader": {
+   "name": "Local IPC variable-header reader",
+   "library": "libsonosutils.so.1 ReadIPCHeader0x1508,size0x150, SHA256c8c1c75905f955c5d7c9759171a7f7e207930a18bb62f3e8c2444fb9fda622de. Used by netstartd receiver0x10009744.",
+   "arguments_and_errors": "ReadIPCHeader(fd,buffer,capacity) returns-9 for bufferNULL, signed fd<0 or unsigned capacity<12. Otherwise performs one read(fd,buffer,12), requiring return exactly12; any other result, including positive short count, EOF, EINTR/EAGAIN failure, returns-10. This first read is not accumulated. It then reads native BEu32 header_size atbuffer+0 and requires unsigned>=12; smaller returns-10. Header+4 version and+8 body-size words are neither validated nor modified by this helper.",
+   "extensions": "header_size==12 succeeds0 immediately. For larger headers let extension=header_size-12. If extension<=capacity-12, perform one read into buffer+12 requiring positive result exactly extension; short/zero/negative returns-10. If extension>remaining capacity, discard all extension bytes through64-byte scratch reads with size min(remaining,64); positive short reads are accumulated. EOF before completion fails-10 after consumed bytes differ from claimed header size; negative fails-10. It retains only the first12bytes in the caller buffer on the discard path. No upper bound on advertised header_size, timeout or allocation proportional to it. Success requires total consumed header bytes equal original claim and returns0. Failures do not roll back bytes consumed or the partial caller-buffer contents.",
+   "framing_meaning": "First word is the header byte extent, which includes the initial three words and any extensions, not a fixed magic marker. Next word is carried version, third is body byte extent. This primitive only finds the body position; it does not read the body, parse commands, authenticate a peer, decode extension fields, check version compatibility or enforce a body-size limit. The caller supplies those policies. Netstartd capacity12 causes every nonempty extension to be discarded.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1508",
+     "notes": "Argument checks and12-byte one-read prefix."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1568",
+     "notes": "Unsigned first-word header extent>=12."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x15e4",
+     "notes": "Fitting extension requires single exact read."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1620",
+     "notes": "Oversized-for-buffer extension is drained in chunks<=64."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1644",
+     "notes": "Malformed/short read maps-10; invalid argument maps-9."
     }
    ]
   }
@@ -156499,7 +156543,7 @@
     "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, full per-state entry/exit/teardown/message/timeout effects and target-state selection. Idle caps are joined to session+a60/a61/a62; REAUTHORIZE18 cap tag27/default/guard/local command43 is complete in its format record. Finish BEGIN7/standby parser tags/defaults and other cap branch reachability. Captured-state timeout gate and delegate sequences are established; discovery driver callback, TIMED_OUT notification and open-AP predicate/action need full traces.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace remaining external-settings/SSID-manager snapshot and reporting-latch/mode producers and registered triggers/teardown. Outgoing settings command39 payload109, credential selection, exact copy bounds, household-change command80 snapshot-before-send and payloadless33/34 source predicate are established. External IPC signing/service receiver remains outside this lane.",
-    "Finish event-loop integration: SIGUSR1 nonnull modeword producers and downstream notifications, full followup event handlers, followup bit4/aliased flag writers, local IPC envelope extent/authentication, other registration users, network-owner descriptor producers, lower HAL utility behavior and allocation ownership. Local command39/41 deferred frequency/disable producers, value/delay domains, shared timer replacement and pending/live overwrite quirks are established alongside prior followup/signal/shutdown work."
+    "Finish event-loop integration: SIGUSR1 nonnull modeword producers/downstream notifications, full followup event handlers, followup bit4/aliased writers, socket initialization/pathname/permission policy, other registration users, network-owner descriptor producers, lower HAL utility and allocation ownership. Local IPC header/body extents, short-read failure policy, accepted-fd nonblocking setup, single-client rejection and CloseIPCContext mutations are established alongside prior command/followup/signal work."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -159022,6 +159066,55 @@
      "build": "86.10-80260",
      "address": "0x10006f60",
      "notes": "Settings notification failure logs but creates no retry or rollback."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10009744",
+     "notes": "Header reader capacity12 discards any advertised header extensions."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10009758",
+     "notes": "Body extent admits4..2052 and includes4-byte command."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10009768",
+     "notes": "Rc1 remaining-length subtraction accumulates positive body short reads."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100097bc",
+     "notes": "Any frame failure unregisters and closes without errno-based retry."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10009828",
+     "notes": "Existing accepted client causes NULL output argument, closing/rejecting new connection."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1490",
+     "notes": "Acceptedfd gets O_NONBLOCK through F_SETFL; peer credentials not queried."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x121c",
+     "notes": "Close context always invalidates descriptor then clears mode; listener pathname handling conditional."
     }
    ],
    "setup_client_hello_payload": {
@@ -159722,7 +159815,7 @@
     "utility_boundary": "Utility0x10017b14(1) runs only when signed reference count0x10051f38>0 and maps argument1 to lower utility mode1 via tail0x10017d98. That helper builds a local request, calls0x10019844, and on nonzero result attempts init0x10017b70; a nonzero returned handle then calls0x1001a3b8 and0x10017c84. The complete lower utility/HAL request interpretation remains unresolved. Do not equate this call with confirmed visible LED state or physical radio shutdown."
    },
    "deferred_settings_command_producers": {
-    "daemon_local_routing": "Daemon-local receiver invokes interpreter0x1000886c at0x100098fc. It decodes command u32BE at message+0xc, bounds command<=41 and dispatches self-relative42-entry table0x1002f6f4. Table39 targets0x10008a64 frequency;41 targets0x100089d0 SonosNet-disable. This record is the netstartd-side consumer and does not inspect the external anacapad request/service receiver. Both branches require declared u32BE size at message+8 exactly12; wrong size returns without mutation. Message fields are requested value u32BE+0x10 and delay milliseconds u32BE+0x14. Full envelope extent/authentication policy of receiver0x100096dc remains separate work; the declared-size comparison is not itself an independent physical buffer-length check.",
+    "daemon_local_routing": "Daemon-local receiver invokes interpreter0x1000886c at0x100098fc. It decodes command u32BE at message+0xc, bounds command<=41 and dispatches self-relative42-entry table0x1002f6f4. Table39 targets0x10008a64 frequency;41 targets0x100089d0 SonosNet-disable. This record is the netstartd-side consumer and does not inspect the external anacapad request/service receiver. Both branches require declared u32BE size at message+8 exactly12; wrong size returns without mutation. Message fields are requested value u32BE+0x10 and delay milliseconds u32BE+0x14. Receiver0x100096dc body extent4..2052 and full-body accumulation are now established in daemon_local_ipc_receive_and_accept. Individual command size12 matches actual received body extent there. Socket pathname/permission policy and external producer remain separate work.",
     "frequency_admission": "Command39 calls WifiFuncsIsFreqSupported(requested). It rereads requested value, compares with live frequency0x10050080. Unsupported AND different logs unsupported and returns; unsupported but equal still takes already-set log/return. Supported but equal also returns without touching pending state or timer. Supported AND different stores full u32 at deferred0x10050138 and replaces followup timer. Shipped libwifi.so.1 IsFreqSupported0x33d8 calls MapFreqToChannelNum0x3288 and returns boolean(channel!=0); mapping walks8-byte rows{channel,frequency}, terminatorchannel0. Its established supported table0x42e0 is{1,2412},{6,2437},{11,2462},{0,0}; concrete accepted different frequencies are2412,2437,2462MHz. Requested value is not truncated before support/equality tests.",
     "disable_admission": "Command41 compares full requested u32 against current live byte0x1005011e BEFORE normalization. Exact equality returns without mutation/timer replacement. Different sets pending byte0x10050135=1 and value byte0x10050134=(requested!=0). Raw isel at0x10009534 selects literal0 when requested==0, otherwise1, then low-byte mask stores the normalized value. Thus every nonzero u32 is admitted as disable1, but requested2 with live1 still schedules a redundant disable. Requested0 queues enable0 only when live byte differs. No preservation of higher requested bits or named enum meaning beyond the boolean exists.",
     "delay_and_timer": "The shared branch0x1000958c converts unsigned delay to seconds=floor(delay/1000) using multiply-high0x10624dd3 then shift6, and microseconds=(delay-seconds*1000)*1000. It invokes0x10017174(seconds,microseconds,callback0x10007d5c,0,0), which cancels matching callback/arguments then schedules replacement. Every u32 delay0..0xffffffff is accepted; zero schedules an immediately due callback rather than direct inline execution, maximum gives4294967seconds295000microseconds. No separate frequency/disable timer or transaction ID. Schedule return is ignored, so pending data can remain without a successfully registered timer.",
@@ -159737,6 +159830,14 @@
     "send_failure": "Both credential-present and credential-omitted branches call local send with length109. Negative result logs No IPC connection, netsettings notification failed, then returns without a retry timer or settings rollback. The payload is stack-local and is not retained for a later retry. Success only establishes IPC writer acceptance; external receiver/action dispatch is outside this lane. Deferred frequency/disable writers update live settings before this notification and do not revert them on notification failure.",
     "other_notifications": "0x10006c84 queries0x1001464c and sends payloadless command33 for nonzero or34 for zero. Predicate uses SSID-manager mode word at0x10050ff8+0x6c8: nonzero mode checks manager word+0 !=0, zero mode checks live NFWSSID length0x10050118!=0. It is a source-selection predicate rather than an unconditional current-connection report. Household snapshot helper0x10006ce4 skips when live HouseholdID length0, otherwise compares saved length0x10050128 and saved string0x10050b98 (strncmp33). Change updates saved length and strlcpy capacity33 BEFORE sending payloadless command80. A failed send can therefore leave the snapshot advanced, suppressing the next same-value notification. Empty household does not clear that snapshot here. Detailed source-mode/reporting-latch producers remain open.",
     "callers": "Direct settings-payload callsites:0x10006f98 reload/application chain,0x10007464 deferred frequency write success,0x100075fc deferred SonosNet-disable write success,0x1000912c local settings path,0x1000b3c0 NS2 settings-application adapter,0x100137bc SSID-manager path,0x1001454c reporting path. These are individual callers of the same builder, not evidence that all their outer state transitions are finished."
+   },
+   "daemon_local_ipc_receive_and_accept": {
+    "contexts_and_accept": "0x100096dc distinguishes listener contexts0x1005529c and0x10055064 by pointer identity; they target accepted-client contexts0x10055808 and0x10055768 respectively. If targetfd+0x70==-1 it passes its address to HandleClientIPCConnection and registers accepted fd for read callback0x100096dc(argcontext). If targetfd has any value other than-1, it passesNULL output and quietly ignores result-12, refusing a second concurrent client on that listener. Other contexts follow frame reading. Registration return is ignored. The two mappings are concrete daemon-local socket endpoints; this does not inspect the external service/request receiver.",
+    "accept_primitive": "Shipped library HandleClientIPCConnection0x1400 requires listener pointer nonnull and signedfd>=0 (else-1), context mode+0x74==1 (else-2). accept failure returns-8 without errno distinctions. With outputfdNULL it closes newly acceptedfd and returns-12. With output supplied it calls fcntl F_GETFL3 then F_SETFL4(oldflags|O_NONBLOCK0x800); only the SET result is checked. Failure closesfd/returns-11; success writesfd and returns0. It performs no peer-credential query or authentication exchange. No FD_CLOEXEC flag is set in this helper. Existing-client rejection therefore cannot take the daemon's successful-client registration branch with a null targetcontext under this concrete implementation.",
+    "frame_extent": "Receiver zeroes2064bytes on its stack and calls ReadIPCHeader(fd,buffer,12). Header helper consumes advertised extensions, but receiver retains the first12bytes. It loads body_length from header+8 and accepts exactly unsigned4..2052 through(body_length-4)<=2048. Body includes4-byte command, leaving0..2048payload bytes. It repeatedly reads body into buffer+12, accumulating positive short reads, until remaining0. Raw0x7fa3e851 at0x10009768 is subf. with Rc1, so the equality branch uses updated remaining. No in-progress body survives a callback return. A complete frame invokes0x1000886c(buffer) once, then returns; another frame waits for another readiness callback.",
+    "receive_errors": "Nonzero header status, invalid body extent, EOF or any negative body read closes the context: optional extra mode2 warning, failure log, unregisterread0x10016ea8, CloseIPCContext. No errno-based EINTR/EAGAIN retry, buffering across callbacks, body draining for invalid lengths or reconnect scheduling here. Failure-log ret is the earlier header result r30, not the later body-read result; after valid header it can print ret0 on body failure. For context0x10055808 it also clears connection marker0x100500d4; WACclient0x10055768 does not clear that same marker. Calls to unregistration/close ignore results.",
+    "header_authentication_boundary": "Neither ReadIPCHeader nor this receiver checks carried version header+4. Header-size field can exceed12, provided extensions are fully read/drained. Command interpreter bounds command<=41 and checks individual declared payload extents; it does not make these routines a cryptographically authenticated protocol. HandleClientIPCConnection does not inspect peer identity. Socket initialization, pathname ownership/permissions and outbound external command execution remain separate boundaries; do not infer their policy from this local framing trace.",
+    "close_context_effect": "Library CloseIPCContext0x11e8 NULLreturns. Nonnull closes descriptor+0x70 when signed>=0, marksfd-1 regardless of close result, then checks old mode+0x74. Mode1 with nonempty pathname at context+2 requests unlink and clears first pathname byte; other modes do not unlink here. Every nonnull branch sets mode0 and returns without freeing the context allocation. Close/unlink results ignored. This completes the lower close mutation used by both shared sender and daemon receive-error paths; it is broader than simply assuming a close(fd) call."
    }
   },
   "bin_wacd": {
