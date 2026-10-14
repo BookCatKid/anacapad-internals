@@ -137444,6 +137444,51 @@
      "notes": "Closeclearsport/addressbutdoesnotfreeendpointobject."
     }
    ]
+  },
+  "netstartd_local_ipc_send": {
+   "name": "Netstartd local IPC frame writer",
+   "functions": "0x10006b2c(command,payload,payload_length), using IPC context0x10055808 and descriptor at context+0x70. Shared by mode, network settings, household-change and other local notification wrappers. This record covers the concrete frame/write/error routine; individual command consumer semantics remain in their records.",
+   "validation": "Signed descriptor<0 returns-1 without constructing or writing a frame. Unsigned payload_length>2048 returns-1. Nonzero length with payloadNULL returns-1. Zero length ignores payload pointer and emits a header-only frame. No command-domain validation, string handling, authentication or checksum is performed. The caller owns pointer readability for the admitted length.",
+   "wire_format": "Four u32BE words on this big-endian build: offset0 header-size marker12, offset4 version1, offset8 command-plus-payload extent4+payload_length, offset12 command. Raw payload follows at offset16; total write length16+payload_length. Nonzero payload copied into2048-byte stack area via __memcpy_chk. Native stw emits those header words in BE. Zero-payload branch writes extent4 and total16. Maximum total frame2064bytes. No payload conversion, encryption or escaping occurs.",
+   "write_loop": "Call write(fd,current_pointer,remaining). Positive result advances pointer and subtracts bytes; repeat until remaining0. Raw0x7fe3f851 at0x10006bc4 is subf. with Rc1, so the loop condition uses updated remaining count, not the earlier write result. Descriptor is reloaded from context+0x70 before each subsequent write. Full frame consumption returns0. No readiness registration, backoff, separate transmit queue or delivery acknowledgement is created here.",
+   "errors_and_connection_state": "Every write result<=0 takes the same Lost IPC connection path, including zero, EINTR and EAGAIN negative results; errno is not examined or retried. It unregisters the currently stored descriptor through0x10016ea8, calls imported CloseIPCContext(context), clears global0x100500d4 and returns-1. Cleanup results are ignored. Positive partial writes already accepted by the kernel are not undone before that close request, and no resend is queued. Pre-write validation failures return-1 without this connection teardown. Return0 means all frame bytes were accepted by write, not that the external peer parsed or executed the command.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10006b64",
+     "notes": "Descriptor/2048-byte admission before frame construction."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10006b84",
+     "notes": "Header-only four-word frame with extent4."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10006c24",
+     "notes": "Payload frame extent4+length and raw copy."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10006bc4",
+     "notes": "Rc1 subtraction updates remaining-byte condition for short-write loop."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10006c54",
+     "notes": "Nonpositive write unregisters and closes local context and clears connection flag."
+    }
+   ]
   }
  },
  "subsystems": {
@@ -156453,7 +156498,7 @@
     "Trace remaining NS2 messages individually, including parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 is complete. REAUTHORIZE opcode18 wire/initial handler, pending button response/permission renewal/local notifications, timeout and reconnect delegation are established; finish shared cancel/reset/network-followup effects retained in its separate TODO. Other message bodies remain individually unresolved.",
     "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, full per-state entry/exit/teardown/message/timeout effects and target-state selection. Idle caps are joined to session+a60/a61/a62; REAUTHORIZE18 cap tag27/default/guard/local command43 is complete in its format record. Finish BEGIN7/standby parser tags/defaults and other cap branch reachability. Captured-state timeout gate and delegate sequences are established; discovery driver callback, TIMED_OUT notification and open-AP predicate/action need full traces.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
-    "Trace initial external settings-snapshot producers and daemon-side registered triggers/teardown. The external IPC signing receiver remains outside this lane.",
+    "Trace remaining external-settings/SSID-manager snapshot and reporting-latch/mode producers and registered triggers/teardown. Outgoing settings command39 payload109, credential selection, exact copy bounds, household-change command80 snapshot-before-send and payloadless33/34 source predicate are established. External IPC signing/service receiver remains outside this lane.",
     "Finish event-loop integration: SIGUSR1 nonnull modeword producers and downstream notifications, full followup event handlers, followup bit4/aliased flag writers, local IPC envelope extent/authentication, other registration users, network-owner descriptor producers, lower HAL utility behavior and allocation ownership. Local command39/41 deferred frequency/disable producers, value/delay domains, shared timer replacement and pending/live overwrite quirks are established alongside prior followup/signal/shutdown work."
    ],
    "artifacts": [
@@ -158935,6 +158980,48 @@
      "build": "86.10-80260",
      "address": "0x10007fcc",
      "notes": "External settings evaluator sends event9 NS_CFG; common setup end event10 is NS_IDL."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10006e7c",
+     "notes": "Disable byte expands to u32BE; frequency stored at payload+4."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10006f04",
+     "notes": "Fortified SSID-copy limit101bytes spans later payload fields, not32-byte SSID region."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10006f44",
+     "notes": "Password strlcpy capacity65 after SSID-length word."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10014698",
+     "notes": "Reporting latch AND nonempty household gates credential inclusion."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10006d3c",
+     "notes": "Household snapshot is advanced before command80 send, with no rollback."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10006f60",
+     "notes": "Settings notification failure logs but creates no retry or rollback."
     }
    ],
    "setup_client_hello_payload": {
@@ -159626,7 +159713,7 @@
    },
    "network_setup_followup_and_open_mode_exit": {
     "callback_selection": "0x10007eec cancels timer0x10007d5c with arguments(0,0), then semantically tail-invokes it immediately. Followup0x10007d5c reads outer netstart state0x100500e0; state names0..14 use table0x1002f7b0, larger values log ?. State8 ALIVE enters wireless setup only when current open-mode word0x10050108==0 and wireless-block word0x10050150==0. That branch cancels AP scan on ath0, enables channel scanning, then tail-calls0x10007b60. All other non-IDLE cases take common setup-end path, including ALIVE when either gate disallows wireless entry. It is therefore not an unconditional exit or unconditional AP shutdown.",
-    "idle_deferred_updates": "Outer IDLE0 first checks u32 deferred frequency0x10050138. Nonzero invokes0x1000732c(value), then clears that word regardless of file-writer success. Otherwise pending byte0x10050135!=0 invokes0x10007494(byte0x10050134), then clears pending byte regardless of success. Frequency path takes precedence; it does not also apply the pending disable byte in this invocation. With no deferred update it still continues common setup-end processing. Frequency writer rebuilds persistent main netsettings.txt using current fields plus requested frequency; writer return0 updates live frequency0x10050080 and calls0x10006e3c. Disable writer likewise rebuilds that file, updates live SonosNetDisable byte0x1005011e and notifies only on writer0. The queued request can thus be discarded while the live value remains unchanged after a write failure. Local command39/41 producer/value domains are established in deferred_settings_command_producers; full notification0x10006e3c remains open. Producers are now joined individually to local command39 frequency and41 normalized disable in deferred_settings_command_producers; full notification0x10006e3c and envelope validation remain open.",
+    "idle_deferred_updates": "Outer IDLE0 first checks u32 deferred frequency0x10050138. Nonzero invokes0x1000732c(value), then clears that word regardless of file-writer success. Otherwise pending byte0x10050135!=0 invokes0x10007494(byte0x10050134), then clears pending byte regardless of success. Frequency path takes precedence; it does not also apply the pending disable byte in this invocation. With no deferred update it still continues common setup-end processing. Frequency writer rebuilds persistent main netsettings.txt using current fields plus requested frequency; writer return0 updates live frequency0x10050080 and calls0x10006e3c. Disable writer likewise rebuilds that file, updates live SonosNetDisable byte0x1005011e and notifies only on writer0. The queued request can thus be discarded while the live value remains unchanged after a write failure. Local command39/41 producer/value domains are established in deferred_settings_command_producers; notification0x10006e3c payload, selection and send-failure behavior are established in settings_change_notification_payload. Producers are now joined individually to local command39 frequency and41 normalized disable in deferred_settings_command_producers; notification payload/send effects are established; incoming envelope validation remains open.",
     "deferred_wac_branch": "Common followup checks0x100500fc. If nonzero it clears the flag; with empty HouseholdID length0x10050130 it calls0x100079d4 before common setup-end. That helper sets0x10050100=1, clears0x100500fc, calls0x1000799c, sends WAC_TMO event38 and tail-invokes NS2 contactless timeout0x10020a8c. A nonempty HouseholdID suppresses that extra WAC timeout call. Existing settings_wac_fallback_timer documents the timeout admission/reset sequence; full0x1000799c and event consumer side effects still need tracing.",
     "common_setup_end": "0x10007bdc checks open-mode word0x10050108!=0 and companion word0x10050104==0; only then it calls open-mode teardown0x10005c38 and utility0x10017b14(1). It then writes local netstart_mode0/command31 through0x10007a94(0), clears wireless-block word0x10050150, cancels indication callback0x10004834(0,0), cancels AP scan on ath0 and calls WifiFuncsAllowChannelScan(ath0,1). Scan and callback results are ignored. Word0x10050110 bit0 forces RECFG1; otherwise bit4 selects RECFG1 only when network-engine predicate0x1000e1c0 is true (states7..10 or15), and remaining cases send NS_IDL10. It clears the whole word0x10050110 and tail-sets outer stateIDLE0 via0x10005cac, which also requests the corresponding driver indication. This sequence does not directly call interface-UP control0x10011194 or WifiFuncsSetStationEnabled.",
     "wireless_setup_entry": "0x10007b60 sets open-mode word0x10050108=1 and followup flags0x10050110=1, logs wireless setup, writes local mode2/command32 through0x10007a94, sends NS_OPN8, calls0x10005bc0 to close existing DNS/DHCP resources, calls0x100133bc, then replaces timer0x10007d5c(0,0) with a delay in seconds from global0x10050084.0x100133bc is a return-only stub in this build. Resource cleanup occurs after the NS_OPN call, in actual instruction order. Helper0x10005bc0 uses the same DNS/server/client closes as open-mode teardown but does not clear0x10050108 itself. Network event handlers and later AP setup creation remain separate work.",
@@ -159642,6 +159729,14 @@
     "overwrite_and_live_comparison": "Repeated accepted frequency commands overwrite one pending word; accepted disable commands overwrite one pending value/flag. Each replaces the same timer, so either command changes when both pending values are next examined. Equality is against live state, not already queued state. For example live disable0 plus pending disable1 followed by requested0 causes an already-set return and leaves the earlier pending disable1 intact. Likewise requesting live frequency again does not cancel a queued different frequency. These branches do not implement last-request cancellation or a FIFO queue.",
     "followup_consumption": "0x10007d5c applies these requests only in outer IDLE0. Pending frequency nonzero wins over pending disable byte; it clears frequency after writer call irrespective of success. It does not then drain pending disable or schedule a new callback solely because that flag remains. A pending disable can therefore wait for another followup after a frequency consumed the shared callback. Non-IDLE followup takes its established setup/network branch without applying these two values. Main-file write success controls live-value mutation, but consumed pending requests are cleared after failures; detailed write/file side effects remain in network_setup_followup_and_open_mode_exit.",
     "followup_bit0_producers": "Directly observed writers of word0x10050110: wireless entry0x10007b8c and WAC fallback0x10007d24 write literal1; outer configuration-result branch0x100066b8 ORsbit0; external-settings evaluator0x10007f8c ORsbit0 when network predicate0x1000e1a0 true, otherwise0x10007fe4 stores0. Predicate0x1000e1a0 returns network-engine state0x10050cc0==16 (logged SonosNetModeWifiEnabled). True branch cancels matching followup timer then immediately invokes callback. False branch first sends NS_CFG9, clears followup word, cancels timer then immediately invokes callback. Note event9 here is NS_CFG, while common setup-end chooses event10 NS_IDL by the event table correction below. Full word-bit4 producer/aliased writer census and all event consumers remain open."
+   },
+   "settings_change_notification_payload": {
+    "builder_and_fields": "0x10006e3c zeroes109bytes then submits local command39 through0x10006b2c. Payload+0 u32BE SonosNetDisable from live byte0x1005011e (upper24bits0); +4 u32BE frequency from0x10050080; +8..+39 32-byte SSID region; +40 u32BE SSID byte length; +44..+108 65-byte NUL-terminated password region. Command direction matters: outgoing command39 uses this109-byte settings payload, while incoming daemon command39 carries requested frequency/delay. They must not share one payload interpretation just because the command number matches.",
+    "credential_selection": "0x10014698 returns nonzero exactly when SSID-manager reporting latch0x100516d0!=0 AND HouseholdID length0x10050130!=0. False leaves SSID/length/password portions zero but still sends disable/frequency. True copies0x10050118 bytes from SSID0x100551e0 to payload+8, writes that length at+40, then strlcpy(password0x10055624,payload+44,65), preserving at most64password bytes plusNUL. The payload has no HouseholdID, WEP key or manufacturing identity field. WAC-done helper0x100146c8 sets reporting latch1 and clears companion word; all other latch writers and their state semantics remain separate SSID-manager work.",
+    "copy_boundary": "The __memcpy_chk destination extent passed at0x10006f04 is101bytes, the entire remaining payload from+8, rather than the32-byte SSID subfield. Thus this helper independently guards source length<=101, not<=32. Length>101 triggers fortified-copy failure. Length33..101 can initially overwrite later fields before length and password are rewritten; the serialized SSID region remains32bytes but reported length retains the supplied larger value. Normal upstream validation admits SSID<=32; this builder does not repeat that precise bound. It uses the live length word, not strlen, and can preserve embedded zero bytes in the32-byte SSID region.",
+    "send_failure": "Both credential-present and credential-omitted branches call local send with length109. Negative result logs No IPC connection, netsettings notification failed, then returns without a retry timer or settings rollback. The payload is stack-local and is not retained for a later retry. Success only establishes IPC writer acceptance; external receiver/action dispatch is outside this lane. Deferred frequency/disable writers update live settings before this notification and do not revert them on notification failure.",
+    "other_notifications": "0x10006c84 queries0x1001464c and sends payloadless command33 for nonzero or34 for zero. Predicate uses SSID-manager mode word at0x10050ff8+0x6c8: nonzero mode checks manager word+0 !=0, zero mode checks live NFWSSID length0x10050118!=0. It is a source-selection predicate rather than an unconditional current-connection report. Household snapshot helper0x10006ce4 skips when live HouseholdID length0, otherwise compares saved length0x10050128 and saved string0x10050b98 (strncmp33). Change updates saved length and strlcpy capacity33 BEFORE sending payloadless command80. A failed send can therefore leave the snapshot advanced, suppressing the next same-value notification. Empty household does not clear that snapshot here. Detailed source-mode/reporting-latch producers remain open.",
+    "callers": "Direct settings-payload callsites:0x10006f98 reload/application chain,0x10007464 deferred frequency write success,0x100075fc deferred SonosNet-disable write success,0x1000912c local settings path,0x1000b3c0 NS2 settings-application adapter,0x100137bc SSID-manager path,0x1001454c reporting path. These are individual callers of the same builder, not evidence that all their outer state transitions are finished."
    }
   },
   "bin_wacd": {
