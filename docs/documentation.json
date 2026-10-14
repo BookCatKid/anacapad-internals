@@ -119142,7 +119142,7 @@
      "notes": "Main callback requests mode8, mapping to local command43, then always returns1."
     }
    ],
-   "todo": "Established: opcode18 handlers, cancel/followup paths, deferred-setting producers, shared reset diagnostic collector and local reset/mode/event-notification ordering. Remaining: reset marker/time/field producer chains and lower event reporting, full followup event handlers, aliased bit4 writer and lower utility/HAL effects reached by cancel. Preserve the external request/dispatcher exclusion.",
+   "todo": "Established: opcode18/cancel/followup paths, reset diagnostics/notification ordering and report monotonic clock, attempt-count, active-source snapshot and marker direct writers. Remaining: full per-message apply-status chains and lower event reporting, followup event handlers, aliased bit4 writer and lower utility/HAL effects reached by cancel. Retain the external request/dispatcher exclusion.",
    "pending_state": "0x1001c544 defaults status8. Only stored flags+0xa5c bit0!=0 AND contactless-budget predicate0x10024078!=0 takes reauthorization-success branch. That branch calls0x10022fac to restore budget10 and schedules callback0x1001efb0(session,0) for1800000ms via config+0x20 when present; GOT slot0x1004f9d8 proves callback. This branch does not first call the cancellation wrapper, unlike standby/completed button helper0x1001bc1c. It then chooses status7. Missing scheduler does not turn it into status8 or suppress the remaining state change. The permission check does not parse a new PIN proof or inspect a received identifier here. Both status7 and status8 branches serialize opcode9 SETUP_STATUS through0x1002b470, which writes required tag13/u16BE. Exact status7 frame09 0d 00 02 00 07; status8 frame09 0d 00 02 00 08. Serializer success calls0x10026798; failure logs. Both paths then clear flags+0xa5c, transition to START2 through0x1001c220, invoke optional config+0x6c(cookie+0x34), ignore its return, and return1 to consume the setup/button request. Serialization or submission failure does not roll back renewed contactless budget, flags clear or state transition. Submit0x10026798 semantically tail-calls0x10026648 with completion callback/argument0, so these status messages have no packet-specific completion callback. Main stores0x1000ac74 at NS2 config+0x6c (stack+0x88 at0x10002f3c). It calls0x10007a94(0), writes integer0 to /var/run/netstart_mode, maps mode0 to local command31 and tail-submits through0x10006b2c, then returns1 ignoring the notification result. This final notification happens after the START2 transition, not only after an acknowledged status response. External command receiver is explicitly outside this lane; the local send is not evidence that the receiver executed a driver change.",
    "timeout_and_reconnect": "State14 idle timeout0x1001c434 only tail-transitions to START2, using the state setter and new60second start-state timer. It does not call the button helper, renew contactless budget, send status7/8, clear flags or issue config+0x6c here. Reconnect0x1001cfb0 instead tail-calls common reset with a reason pointer; the transport caller clears the saved DTLS queue before this notification and resumes handshake afterward. Common reset explicitly clears reauthorization flags/cap along with other session working data; its remaining lower notification/driver effects belong to the shared reset trace."
   }
@@ -137645,6 +137645,50 @@
      "build": "86.10-80260",
      "address": "0x1000ad68",
      "notes": "Wrapper returns1 independently of diagnostic file outcomes."
+    }
+   ]
+  },
+  "sonos_clock_timeval": {
+   "name": "Clock timespec to seconds microseconds wrapper",
+   "functions": "libsonos-time-c.so.1 sonosClockGetTime0x10a0,size0x90, arguments(clock_id,out_pair). Output word0 seconds, word4 microseconds. Netstartd config callback0x1000a34c tail-calls it with clock_id1 CLOCK_MONOTONIC; the callback preserves the supplied output pointer in r4.",
+   "behavior": "Zero-initializes an8-byte local timespec, calls clock_gettime(clock_id,&timespec), then ALWAYS copies seconds word and converts signed nanoseconds word to microseconds by truncation toward zero /1000. Multiply-high signed with0x10624dd3, arithmetic shift6 and sign adjustment implement division. The clock result in r3 survives conversion and is returned unchanged. There is no fallback clock, realtime conversion, rounding up, normalization or retry. Any requested native clock_id is forwarded without this wrapper validating it.",
+   "errors_and_contract": "No output-pointer/null/capacity guard: caller supplies writable8bytes. It does not branch on clock_gettime success before writing output. An error can leave the initially zero local timespec or any contents supplied by that call; those are still copied and the negative status is returned. Thus callers must check status before treating output as valid. It does not allocate, retain pointer, schedule a timer, alter the clock or serialize byte order. Storage is native PPC word order, not a wire format.",
+   "netstartd_use": "Session-start and reset-report paths call config+0x2c bound to0x1000a34c and ignore status. Report startTime/current-time use only seconds word; the microseconds output is ignored for that report. Event-loop/DTLS timer clock paths have their own bindings and semantics; this record does not equate every clock_id or timer with report time.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "lib/libsonos-time-c.so.1",
+     "build": "86.10-80260",
+     "address": "0x10cc",
+     "notes": "Local timespec zeroed before clock_gettime."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonos-time-c.so.1",
+     "build": "86.10-80260",
+     "address": "0x10d4",
+     "notes": "Caller clock ID passed unchanged to clock_gettime."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonos-time-c.so.1",
+     "build": "86.10-80260",
+     "address": "0x10e4",
+     "notes": "Signed /1000 conversion, retaining original return register."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonos-time-c.so.1",
+     "build": "86.10-80260",
+     "address": "0x10f8",
+     "notes": "Seconds/microseconds written regardless of call result."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000a350",
+     "notes": "Netstartd report-clock wrapper hardcodes monotonic ID1."
     }
    ]
   }
@@ -156654,7 +156698,7 @@
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
     "Finish the saved-output queue: all slot flag writers/state effects, incoming/outgoing record-counter identifier join, clock callback producers, ciphertext-vs-ACK-length adjustment rationale, full NS2 per-state message/reconnect effects and final FD re-registration. Connected input/output, ACK completion and NS2 admission/deactivation/provenance/idle-timer table are established; payload admission remains distinct from per-state operation acceptance.",
     "Trace remaining NS2 messages individually, including parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 is complete. REAUTHORIZE opcode18 wire/initial handler, pending button response/permission renewal/local notifications, timeout and reconnect delegation are established; finish shared cancel/reset/network-followup effects retained in its separate TODO. Other message bodies remain individually unresolved.",
-    "Finish settings apply notification effects and complete reset marker/provenance/time producers, lower event-report delivery, full flag domains, WAC fallback admission, per-state entry/exit/message/timeout effects and target-state selection. Reset callback diagnostic capture, mode notification order/uninitialized second command47 word, before-clear settings application and local session/state event field mappings are established. BEGIN/standby timeout parsers, discovery driver callback, TIMED_OUT notification and open-AP actions remain open.",
+    "Finish full per-message apply-status/error chains, lower event-report delivery, full flag domains, WAC fallback admission, per-state entry/exit/message/timeout and target-state selection. Reset report clock is monotonic seconds, count is permitted setup-start attempts, active-source snapshot and optimistic ready/result marker writers are joined. Diagnostic/mode/event notification ordering and before-clear apply are established. BEGIN/standby timeout parsers, discovery callback, TIMED_OUT and open-AP effects remain open.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace remaining external-settings/SSID-manager snapshot and reporting-latch/mode producers and registered triggers/teardown. Outgoing settings command39 payload109, credential selection, exact copy bounds, household-change command80 snapshot-before-send and payloadless33/34 source predicate are established. External IPC signing/service receiver remains outside this lane.",
     "Finish event-loop integration: SIGUSR1 nonnull modeword producers/downstream notifications, full followup event handlers, bit4/aliased flag writers, other registration users, network-owner descriptor producers, lower HAL utility and allocation ownership. Local IPC initialize/accept/close context lifecycle, fixed primary/WAC paths and startup admission/failure handling are established, along with header/body extents and command/followup/signal work. Runtime socket permissions are not explicitly selected by the examined helper."
@@ -159292,6 +159336,48 @@
      "build": "86.10-80260",
      "address": "0x10033d44",
      "notes": "Requested setup-mode enum selects concrete transport/proof labels for session report."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001c738",
+     "notes": "StartTime stores monotonic seconds, ignoring microsecond component."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001c748",
+     "notes": "Permitted setup-start helper increments attempt count modulo32bits."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001c9f4",
+     "notes": "Reset ignores clock result and subtracts only seconds."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002045c",
+     "notes": "Telemetry connection type is active-source snapshot from transport callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001fc6c",
+     "notes": "Commit readiness sets success marker before actual deferred apply."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001caf0",
+     "notes": "Marker is reported/used for diagnostics then cleared before optional ready-settings apply."
     }
    ],
    "setup_client_hello_payload": {
@@ -160025,8 +160111,8 @@
    "shared_reset_notifications_and_diagnostics": {
     "hook_order": "Common reset0x1001c984 obtains clock snapshot through optional config+0x2c and computes current firstword minus stored start+0xac8; return of clock callback is ignored. It reports optional session event through config+0xdc before clearing flags/data. Later0x1001cae0 invokes optional config+0x70(cookie+0x34,byte+0xac6), then clears+0xac6. Main binds+0x70=0x1000ad40 (stack+0x8c), which flushes log and captures diagnostics before returning1 regardless of results. Config+0x58 receives word+0x2a0 at0x1001cb0c before pending-settings cleanup. These callbacks run before the main working-buffer, flag and timer clears; they observe the pre-clear snapshot.",
     "mode_notification": "Main config+0x58=0x1000a958 sends local command47 with8payload bytes. First word is supplied mode from session+0x2a0; only that first word is explicitly stored by this wrapper before send. The next4bytes in its payload stack region are not initialized here. It then writes local mode0/command31 via0x10007a94(0). If current open-mode0x10050108!=0 and companion0x10050104==0, it additionally writes mode2/command32. It returns boolean(first command47 send==0), without incorporating either later mode notification outcome; reset ignores that return. Full external command47 receiver is outside this lane. Do not describe its8bytes as two fully defined words.",
-    "settings_before_clear": "Reset checks pending valid byte session+0x1b0 and ready-to-apply byte+0x294 before0x1001c864. That helper first rejects an active credential-check condition via0x10021538. Otherwise it calls settings apply0x10021668; failure clears pending settings and success marker+0xac6, success clears ready byte but retains the existing success marker. Both paths reset the cached credential-check result through0x100214e0. Hence a reset can commit already-ready settings before wiping transient setup/PIN data. The diagnostic marker has additional writers in operation handlers, so it must not be equated solely with this apply helper's result.",
-    "session_event_shape": "Main config+0xdc=0x1000ae80 builds event category zpSetup,type9,eventType=session. Fields: zpVersion constant86.10-80260, crVersion from session+0xa96, sessionID from+0xa63, transport udp when session+0x2a0==0 otherwise unknown, setupMode string from requested mode+0x29c, connectionType string from active transport/auth word+0x2ac, setupStatus success when marker+0xac6 nonzero else supplied reset reason or none, count from+0x1a8, startTime from+0xac8, duration from first clock word minus start modulo2^32 when clock callback is present, otherwise0. Builder adds strings/unsigned fields then report_event; any nonzero init/add/report result logs and returns0, full success returns1. Reset ignores it. Clock selector/unit and full lower event-report delivery remain unresolved; field name startTime does not by itself prove epoch seconds.",
+    "settings_before_clear": "Reset checks pending valid byte session+0x1b0 and ready-to-apply byte+0x294 before0x1001c864. That helper first rejects an active credential-check condition via0x10021538. Otherwise it calls settings apply0x10021668; failure clears pending settings and success marker+0xac6, success clears ready byte but retains the existing success marker. Both paths reset the cached credential-check result through0x100214e0. Hence a reset can commit already-ready settings before wiping transient setup/PIN data. The diagnostic marker has additional writers in operation handlers, so it must not be equated solely with this apply helper's result. Diagnostic/session status observes the marker before this optional apply, so later apply failure does not revise the previous report or selected diagnostic directory.",
+    "session_event_shape": "Main config+0xdc=0x1000ae80 builds event category zpSetup,type9,eventType=session. Fields: zpVersion constant86.10-80260, crVersion from session+0xa96, sessionID from+0xa63, transport udp when session+0x2a0==0 otherwise unknown, setupMode string from requested mode+0x29c, connectionType string from active transport/auth word+0x2ac, setupStatus success when marker+0xac6 nonzero else supplied reset reason or none, count from+0x1a8, startTime from+0xac8, duration from first clock word minus start modulo2^32 when clock callback is present, otherwise0. Builder adds strings/unsigned fields then report_event; any nonzero init/add/report result logs and returns0, full success returns1. Reset ignores it. Clock binding/units and start/count/active-source/ready-marker producers are established in reset_report_time_count_and_result_producers. Lower event-report delivery and full per-message apply-status/error chains remain unresolved.",
     "setup_mode_names": {
      "0": "none",
      "1": "nfc",
@@ -160051,6 +160137,15 @@
      "outside0..7": "unknown"
     },
     "state_event": "Main config+0xd8=0x1000ad78 builds zpSetup,type9,eventType=state with oldState and state strings. State setter invokes it before storing the new numeric state, then ignores success/failure. It returns1 only when init_event_ctx, everyadd_pair_str and report_event return0; otherwise logs/returns0. These are local report-construction semantics, not proof of remote telemetry delivery."
+   },
+   "reset_report_time_count_and_result_producers": {
+    "clock_binding_and_units": "Main installs0x1000a34c at NS2 config+0x2c (stack+0x48 at0x10002ea0). It tail-calls sonosClockGetTime with CLOCK_MONOTONIC1, giving native{seconds,microseconds}. Session-start helper0x1001c6c4 gets this pair at0x1001c72c, stores only seconds at session+0xac8. Reset0x1001c9f4 gets same clock, computes unsigned modulo2^32 current.seconds-start.seconds and passes it as duration. startTime is monotonic uptime seconds, not Unix epoch or device wall time. Duration discards subsecond parts separately, rather than borrowing microseconds: it can count a seconds-boundary crossing despite elapsed time<1second. Missing reset clock callback supplies duration0; a present callback error is ignored and can produce wrapped/invalid duration from its copied output.",
+    "attempt_start_and_count": "0x1001c6c4 first asks setup-context0x10023ff8 whether the session is deactivated for its active credential source. Nonzero transitions outer NS2 stateDEACTIVATED13 and returns0 before timestamp/count/notification. Zero optionally records start seconds, increments u32 session+0x1a8 modulo2^32, invokes optional config+0x54(cookie+0x34,transport word+0x2a0,setup getter0x10023fb4 result), ignores that callback return and returns1. Counter is therefore permitted setup-start attempts through this helper, not messages, retries, ACKs or successful configurations. Constructor memset initializes it0; examined common reset does not clear it. Cached check reset0x1002145c clears through struct+0x6c and leaves counter at session+0x1a8 (cache+0x74) intact.",
+    "deactivation_start_guard": "0x10023ff8 returns0 if setup config+0x48 callback is absent or returns0. If nonzero, it returns boolean(active source+0x2cc!=3), accepting cached-PSK source3 and rejecting other active sources. Main binds the same startup deactivation-file flag callback0x1000a6ec used in message admission. This joins the session-attempt counter gate to a concrete deactivation/credential source; it does not require an invented successful-handshake counter meaning.",
+    "connection_snapshot": "Transport notification0x10020414 first calls setup helper0x10022978 to store handshake/context material, then gets current active source via0x10023de0 and snapshots it into session+0x2ac at0x1002045c. Reset telemetry maps this snapshot to none/fixed PSK/device PSK/hh PSK/static PIN/rolling PIN/client PIN. Its labels correspond to the recorded authentication source when this callback ran, not necessarily the current live setup-context source after other transitions. Common reset clears the snapshot after report construction.",
+    "commit_ready_marker": "Valid COMMIT_SETTINGS parser0x1002cb58 returns nonzero at0x1001fc34, pending valid byte+0x1b0!=0 and checking predicate0x10021538==0 allow0x1001fc64/+0x1fc6c to set ready+0x294=1 and result marker+0xac6=1. This occurs BEFORE deferred settings application. Apply/check result path0x1001fd0c calls0x10021a74; if returned status has bit0x8000 CLEAR, it likewise sets both bytes1; the high-bit error branch does not perform those stores. The setter is therefore an optimistic ready/accepted marker, not standalone proof that the file and every driver/notification side effect succeeded.",
+    "marker_clear_paths": "Failure in commit/credential-result helper0x1001c094 clears ready/result at0x1001c204/+0x1c208. Settings-apply failure0x1001c864 clears them at0x1001c908/+0x1c90c. Message handler discard/rejection branches clear pending settings and both markers at0x1001feec/+0x1fef0,0x1001ffc8/+0x1ffcc,0x1001ffe8/+0x1ffec,0x100201fc/+0x20200 and0x1002022c/+0x20230. Common reset uses nonzero marker to choose success status and setup_ok diagnostics before clearing it at0x1001caf0, and clears it again in working-data cleanup0x1001cb3c. Full per-message parser/control predicates and downstream apply-status producers remain individual work; this record establishes every direct marker writer and its adjacent dataflow without closing the entire handler.",
+    "reset_reporting_order": "Report status and diagnostic directory read the existing marker BEFORE reset optionally applies ready pending settings. If that later application fails and clears the marker, it cannot revise the already-issued success report or setup_ok selection. Conversely cleanup can apply an already-ready change after a non-success report if earlier state differs. Actual success must be assessed from each operation's apply/result chain; reset telemetry is a snapshot taken before that final attempt."
    }
   },
   "bin_wacd": {
