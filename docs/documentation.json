@@ -156366,14 +156366,14 @@
    "todo": [
     "Trace the remaining setup greeting fields: optional string producers, the meaning of the build discriminator, response capability bits, and client-side verification of the advertised signature.",
     "Trace metadata meanings in other envelope consumers and the remaining envelope caller state transitions. Preserve the already established parsing, decryption, authentication, PIN proof and common-reset contracts.",
-    "Finish configured/default PSK reload and reset triggers, timer teardown callers, and cached-credential lifecycle effects beyond daemon-local IPC command23. Do not enter the external request-object/service receiver lane.",
+    "Finish configured/default PSK reload and reset triggers and cached-credential lifecycle effects beyond daemon-local IPC command23. Main shutdown cancellation of the four-hour expiry callback and in-memory default/cached PSK and registration-secret destruction are established. Do not enter the external request-object/service receiver lane.",
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
     "Finish the saved-output queue: slot flags, age/due/next-deadline arithmetic, identifier producers, framing beyond ACK/close-notify, and retry effects in other transport states.",
     "Trace the remaining NS2 messages individually, including their parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 has a separate complete byte/parser/retirement record.",
     "Finish settings apply notification effects, full flag domains, WAC fallback admission and flag producers, per-state entry/exit/teardown effects, and the target-state selection chain. Preserve the verified WEP/frequency/projection/file and marker effects.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace initial external settings-snapshot producers and daemon-side registered triggers/teardown. The external IPC signing receiver remains outside this lane.",
-    "Finish event-loop integration: concrete main signal numbers/callback effects, remaining registration users, and caller stop/shutdown/reinitialization/socket-ownership ordering. The wait policy, deferred signal processing, one-timer-per-iteration dispatch and local registry shutdown are now established."
+    "Finish event-loop integration: SIGUSR1 setup/network gates, remaining registration users, network shutdown and cleanup tail resources, and object-allocation ownership. Main SIGTERM stop handling, shutdown ordering, registry wait/deferred phases and PSK expiry destruction are established."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -158273,6 +158273,48 @@
      "build": "86.10-80260",
      "address": "0x10017768",
      "notes": "Shutdownbulk-removesregistrationsbutdoesnotcloseallsubsystemFDs."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10009994",
+     "notes": "DeferredSIGUSR1 registration;SIGTERM15 followsat0x100099a8."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10008238",
+     "notes": "SIGTERM branch tail-setsloopstopwithoutdoingteardowninsignalcontext."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100030c0",
+     "notes": "Mainteardownordersnetwork,NS2,netlink,daemonresources,thenregistry."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001ee70",
+     "notes": "Destructorcancelsfour-hourPSKexpirycallbackwithwildcardarguments."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10022040",
+     "notes": "Destructorsettingswipe coversdefaultPSKandregistrationsecret;nofilesavehere."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10008438",
+     "notes": "FourthIPCcontextcleanupnestedunderthirdvalidFDbranch."
     }
    ],
    "setup_client_hello_payload": {
@@ -158845,7 +158887,16 @@
     "post_wait_order": "Afterwait,thisloopprocessesdeferredsignals,thenone duetimer,thenreadyfdbatch. Signalphaseclearsglobalpendingword beforeiteratingrows. Forrowcounter!=0,itclearsthecounterbeforecallback(signalnumber,globalcontext+0,rowargument);actualoccurrencecount isnotpassed. Multipleoccurrencesbeforephasecoalescetoonecallbackforrow. Newsignalarrivalcanmarkrow/globalwordagainforlaterprocessing. Itdoesnotmasksignalsinthisphase. Duplicate registerednumbers thereforeenqueueonlythefirstmatchingrow. Timerphasefreshlyreadsmonotonicclockandchecksheaddeadline<=now;itunlinksone24-bytetimernode,callsfunction(arg1,arg2),thenfree(node). Thereisnodue-timerdrainloopbeforeFDdelivery. FDphaseinvokescurrententrycallbackaspreviouslyestablished. Callbackreturnsareignored.",
     "stopping_and_order_effects": "Afterreadybatch,loopchecksstopflag;aftertimer/signalphasewithnoevents,nextiterationchecksit. Stoprequestedbyonecallbackdoesnotautomaticallyskipallremainingcallbacksinthecurrentreadybatch. Signal/timercallbacksrunbeforeFDcallbacksandcanmutatetheregistrationswhosepointersarealreadyinthebatch. Thisjoinsexistingno-generation-check FDbehavior. Due-timerprioritydoesnotmeanallduetimersrunbeforeIO:onlyone dueheadperiterationisprocessed.",
     "shutdown": "0x10017690 freesalllinkedtimer nodesfollowing+14,butdoesnotinvoketheircallbacks. Itconditionallybulk-removespoolregistrationsvia0x100169f0 fornonzerocountpools;helperiteratesall16entries,sonos_epoll_removeforeachfd!=-1,marksfd=-1,andignoreskernelresults. Itdoesnotcloseeachregisteredsubsystemfd,clearthecallback/argumentfields,rebuildfreelist orzero poolcounts. Thenitfreessignalrowarray andclosestheepollfdifnonnegative,sets epollfd=-1. Timerhead/signalarraypointersandcountsarenotclearedbythisroutine;previoussignalhandlersarenotrestored. Separateinitializationmemset0x3f8 reconstructsstate. Socketownershipcleanupandcallerorderingremainseparatework;thisroutinenotaloneprovidesidempotent/fullsubsystemshutdown.",
-    "remaining": "Trace mainsignalnumbers/callbackeffects,callerstop/shutdown/reinitializationordering andremainingglobalcontextusers. Waitdeadlines/errors,signalcoalescing,phaseorder,one-timer dispatchandregistryshutdownmemory/fd behavior areestablished."
+    "remaining": "Mainsignal10/15 bindings,SIGTERMstopandnormalmainteardownorder areestablished inmain_signal_and_shutdown_order. FinishSIGUSR1 callbackeffects,networkcleanup/tailresources andremainingglobalcontext/registrationusers."
+   },
+   "main_signal_and_shutdown_order": {
+    "signal_bindings": "Daemoninit0x10009994 registers signal10 SIGUSR1 and0x100099a8 registers15 SIGTERM,callback0x10008008,argNULL. Bothregistrationreturnsignored. Deferredsignaldispatcherpasses(signalnumber,globalcontext,arg);argNULL meanscallbackmodeworddefault0. Callbacksignal15 branches0x10008224,restoresregisters andtail-calls0x1001764c tosetstopflag1. NoDTLS/PSK/socketcleanupoccursinsignalhandlerorinside thatSIGTERM branch. Callbacksignal10 followsseparatenetwork/setuprequestgates beginning0x1000807c;itsfullpredicates/flagwriters remainunresolved. MaindoesnotregisterSIGINTthroughthisdeferredtable atthese twocalls.",
+    "main_order": "Maincallsregistryinit0x10016ae0 at0x10003090,daemoninit0x10009908,netlinkinit0x1000a130,NS2init0x1001eb64,netstartstate0,andnetworkinit0x10011024;thenloop0x100172d8 at0x100030bc. Afterloopreturns,whetherstoporfatalwaiterror,itcallsnetworkshutdown0x10011170,NS2destructor0x1001ee24,netlinkshutdown0x1000a1bc,daemonresourcecleanup0x10008378,registryshutdown0x10017690,inthatorder. Theseinitreturnsaremostlynotcheckedhere;NS2initresultisstoredglobal0x100500d0 andlaterused. Thisdocumentedorderdoesnotassertallinitializationfailuresarehandledsafely.",
+    "psk_expiry_teardown": "NS2destructor0x1001ee24 cancels timer0x1001d4f8 withbothargs-1 wildcards throughconfig+24 at0x1001ee70;GOTpointerverified. Thisispreviouslyestablishedfour-hour defaultPSK expirycallback. Itthen destroysDTLStransport0x100264e8,setupcontext0x10022ae8,andtail-clears216-byte settings atsession+5c via0x10022028. SettingsclearZZ0038 wipesall216bytes,memsetzeroesagain,thenwritesversionu16=2. CoveredsettingsspansdefaultPSKrecord and32-byteRegSigningKey/length. No settingssave/fileunlinkoccursinthisdestructorchain. Thisclosesteardowncallerforthe expiry timer withoutclaimingremainingreload/resettriggersdone.",
+    "setup_and_transport_destruction": "Setupcontext0x10022ae8 firstclearsPIN/decryptedsecret via0x10022a48,then0x100229f4,ZZ0077 onkeyhandles+4/+15c,andwipesprimary/secondarycachedPSKslots+160/+210 via0x1002691c. DTLSdestructor0x100264e8 invokesconnectioncleanup0x100247c0 ifstate!=0,then destroyssecondaryendpointthrough0x1002d5b4;unregistersvalidprimaryfdread,then destroysprimaryendpoint;freescookiecontext andbothinitializedSSLconfigpresets. Thisisbroaderthanordinaryconnectioncleanup,whichretainsprimarylistener/cookiecontext. Itdoesnotimply everyallocationownedbythewholeprocessisfreed;actualobjectallocationownershipremainsseparatework.",
+    "other_resources": "Netlinkshutdown0x1000a1bc removessocketreadregistration thenrtnl_close. Daemoncleanup0x10008378 cancelscallbacks0x10004640/0x10004834/0x10007d5c withwildcardargs,unregisters/closescontrolsocketglobal0x1005008c,unregistersIPCfdsandCloseIPCContext forlocalcontexts0x1005529c/0x10055808/0x10055064/0x10055768 whenbranchespermit. Thelastcontextcleanupisnestedunderthirdcontextfd!=-1;ifthethirdisinvalid,thefourthbranchisskipped. Callback/closeoutcomesignored. Ittail-calls0x10017ab4 (fullremainingeffectsopen). Registryshutdownrunsaftertheseownershavehadachancetoclosetheirownsockets,thenfreesremainingqueuedtimerswithoutcallbacks.",
+    "log_and_process_exit": "Afterregistryshutdown,maincloselog,copies/jffs/net/log/netstartd.log to/jffs/netstartd_prev.log withcopyflag1,unlinksactivelog andpathnameheldinr31,thenreturns0. Copy/unlinkresultsignored. Exactsourceofr31pathname andremainingnetworkshutdown/tailcleanupdetailsremainopen;do notassignpidfilepathfromguessalone. Registry freedpointersneednotbereusedbynormalmainpathbecauseitreturnsexactlyaftercleanup ratherthanreenteringloop.",
+    "remaining": "FullytraceSIGUSR1 setup/networkgates,networkshutdown0x10011170,daemoncleanup tail0x10017ab4,pathnameproducer/objectallocationownership,andremainingreload/resetcallerordering. SIGTERMstop,mainteardownsequence andPSKexpiry/settings/cachedkeydestructionareestablished."
    }
   },
   "bin_wacd": {
