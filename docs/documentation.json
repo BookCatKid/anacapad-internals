@@ -156373,7 +156373,7 @@
     "Finish settings apply notification effects, full flag domains, WAC fallback admission and flag producers, per-state entry/exit/teardown effects, and the target-state selection chain. Preserve the verified WEP/frequency/projection/file and marker effects.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace initial external settings-snapshot producers and daemon-side registered triggers/teardown. The external IPC signing receiver remains outside this lane.",
-    "Finish event-loop integration: SIGUSR1 setup/network gates, remaining registration users, network-owner descriptor producers, lower HAL utility object behavior, and object-allocation ownership. Main stop/shutdown ordering, network timer/socket cleanup, utility reference-counted release, registry phases and PSK expiry destruction are established."
+    "Finish event-loop integration: SIGUSR1 nonnull modeword producers and downstream open-mode/utility/notification/timer callback effects, remaining registration users, network-owner descriptor producers, lower HAL utility object behavior, and object-allocation ownership. SIGUSR1 merge-file priority, NS2 button consumption table, wireless-block predicates, interface-disable latch writer and local timer replacement ordering are established, alongside previously traced shutdown and registry phases."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -158364,6 +158364,69 @@
      "build": "86.10-80260",
      "address": "0x1000b6fc",
      "notes": "Early return on fd==-1 skips the later callback0x1000b79c cancellation."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100072ac",
+     "notes": "Successful merge-file open consumes SIGUSR1 even when parser result0; unlink is unconditional."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10020a44",
+     "notes": "State-specific button handler is a semantic tail call and its return controls further setup."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000e198",
+     "notes": "Raw isel proves state2..5 or16 predicate; equality branches in0xe22c prove exactly9 or15."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10008110",
+     "notes": "Wi-Fi-disable latch overrides the explicit wireless mode bypass."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10008220",
+     "notes": "Tail timer replacement schedules125000us indication callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100112b8",
+     "notes": "Disable clears IFF_UP only; enable path ORsbit0 into existing flags."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10011440",
+     "notes": "CR4.eq extraction writes boolean interface-disable latch after successful ioctls."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10011318",
+     "notes": "Any ioctl failure skips bookkeeping without rolling back prior interface changes."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10022fec",
+     "notes": "Standby/completed button handling restores contactless CHIRP budget10, not PIN destruction; callback GOT0x1004f9d8 points to contactless timeout trampoline0x1001efb0."
     }
    ],
    "setup_client_hello_payload": {
@@ -158939,13 +159002,13 @@
     "remaining": "Mainsignal10/15 bindings,SIGTERMstopandnormalmainteardownorder areestablished inmain_signal_and_shutdown_order. FinishSIGUSR1 callbackeffects,networkcleanup/tailresources andremainingglobalcontext/registrationusers."
    },
    "main_signal_and_shutdown_order": {
-    "signal_bindings": "Daemoninit0x10009994 registers signal10 SIGUSR1 and0x100099a8 registers15 SIGTERM,callback0x10008008,argNULL. Bothregistrationreturnsignored. Deferredsignaldispatcherpasses(signalnumber,globalcontext,arg);argNULL meanscallbackmodeworddefault0. Callbacksignal15 branches0x10008224,restoresregisters andtail-calls0x1001764c tosetstopflag1. NoDTLS/PSK/socketcleanupoccursinsignalhandlerorinside thatSIGTERM branch. Callbacksignal10 followsseparatenetwork/setuprequestgates beginning0x1000807c;itsfullpredicates/flagwriters remainunresolved. MaindoesnotregisterSIGINTthroughthisdeferredtable atthese twocalls.",
+    "signal_bindings": "Main registers SIGUSR1(10) at0x10009994 and SIGTERM(15) at0x100099a8, both with callback0x10008008 and null argument; registration results are ignored. Deferred dispatcher passes signal number, global context and callback argument. Null argument supplies modeword0. SIGTERM semantically tail-calls0x1001764c to set stopflag1; cleanup occurs after the event loop returns. SIGUSR1 prioritizes pending-file merge, then NS2 state-specific button handling, then wireless-block predicates and setup notifications/timers. Their exact local ordering, predicates and interface-disable producer are documented in setup_signal_admission and wireless_interface_control_contract. Lower followup callbacks and nonnull modeword producers remain to be traced.",
     "main_order": "Maincallsregistryinit0x10016ae0 at0x10003090,daemoninit0x10009908,netlinkinit0x1000a130,NS2init0x1001eb64,netstartstate0,andnetworkinit0x10011024;thenloop0x100172d8 at0x100030bc. Afterloopreturns,whetherstoporfatalwaiterror,itcallsnetworkshutdown0x10011170,NS2destructor0x1001ee24,netlinkshutdown0x1000a1bc,daemonresourcecleanup0x10008378,registryshutdown0x10017690,inthatorder. Theseinitreturnsaremostlynotcheckedhere;NS2initresultisstoredglobal0x100500d0 andlaterused. Thisdocumentedorderdoesnotassertallinitializationfailuresarehandledsafely.",
     "psk_expiry_teardown": "NS2destructor0x1001ee24 cancels timer0x1001d4f8 withbothargs-1 wildcards throughconfig+24 at0x1001ee70;GOTpointerverified. Thisispreviouslyestablishedfour-hour defaultPSK expirycallback. Itthen destroysDTLStransport0x100264e8,setupcontext0x10022ae8,andtail-clears216-byte settings atsession+5c via0x10022028. SettingsclearZZ0038 wipesall216bytes,memsetzeroesagain,thenwritesversionu16=2. CoveredsettingsspansdefaultPSKrecord and32-byteRegSigningKey/length. No settingssave/fileunlinkoccursinthisdestructorchain. Thisclosesteardowncallerforthe expiry timer withoutclaimingremainingreload/resettriggersdone.",
     "setup_and_transport_destruction": "Setupcontext0x10022ae8 firstclearsPIN/decryptedsecret via0x10022a48,then0x100229f4,ZZ0077 onkeyhandles+4/+15c,andwipesprimary/secondarycachedPSKslots+160/+210 via0x1002691c. DTLSdestructor0x100264e8 invokesconnectioncleanup0x100247c0 ifstate!=0,then destroyssecondaryendpointthrough0x1002d5b4;unregistersvalidprimaryfdread,then destroysprimaryendpoint;freescookiecontext andbothinitializedSSLconfigpresets. Thisisbroaderthanordinaryconnectioncleanup,whichretainsprimarylistener/cookiecontext. Itdoesnotimply everyallocationownedbythewholeprocessisfreed;actualobjectallocationownershipremainsseparatework.",
     "other_resources": "Netlinkshutdown0x1000a1bc removessocketreadregistration thenrtnl_close. Daemoncleanup0x10008378 cancelscallbacks0x10004640/0x10004834/0x10007d5c withwildcardargs,unregisters/closescontrolsocketglobal0x1005008c,unregistersIPCfdsandCloseIPCContext forlocalcontexts0x1005529c/0x10055808/0x10055064/0x10055768 whenbranchespermit. Thelastcontextcleanupisnestedunderthirdcontextfd!=-1;ifthethirdisinvalid,thefourthbranchisskipped. Callback/closeoutcomesignored. Ittail-calls0x10017ab4 (reference-counted utility release effects are established in network_shutdown_and_utility_release; lower HAL implementation remains open). Registryshutdownrunsaftertheseownershavehadachancetoclosetheirownsockets,thenfreesremainingqueuedtimerswithoutcallbacks.",
     "log_and_process_exit": "Afterregistryshutdown,maincloselog,copies/jffs/net/log/netstartd.log to/jffs/netstartd_prev.log withcopyflag1,unlinksactivelog andpathnameheldinr31,thenreturns0. Copy/unlinkresultsignored. Exactsourceofr31pathname andremainingnetworkshutdown/tailcleanupdetailsremainopen;do notassignpidfilepathfromguessalone. Registry freedpointersneednotbereusedbynormalmainpathbecauseitreturnsexactlyaftercleanup ratherthanreenteringloop.",
-    "remaining": "Finish SIGUSR1 setup/network gates, network-owner descriptor producers, lower HAL utility object behavior, pathname producer and allocation ownership. Main shutdown ordering, PSK expiry/settings destruction, network-owner cleanup and daemon utility release are established."
+    "remaining": "Finish SIGUSR1 modeword producers and downstream open-mode, notification and scheduled callback effects, network-owner descriptor producers, lower HAL utility object behavior, pathname producer and allocation ownership. Main shutdown ordering and SIGUSR1 local admission predicates, interface-disable writer and timer replacement sequence are established."
    },
    "network_shutdown_and_utility_release": {
     "network_owner": "Network shutdown 0x10011170 calls 0x1000cf70, which tail-delegates to 0x1000b748 with owner 0x10050bd4. That owner is the same structure whose port count/link mask at +0/+4 is used by Ethernet-link polling. The shutdown wrapper returns 0 regardless of the delegated cleanup results. It does not directly invoke WifiFuncsSetStationEnabled or a radio reconfiguration command.",
@@ -158956,6 +159019,20 @@
     "shutdown_consequence": "Main invokes network-owner cleanup before NS2/netlink cleanup, then daemon-resource cleanup and its reference-counted utility release, then registry shutdown. A release while references remain does not call the lower close, and a failed lower close can leave the initialized byte set even when the outer release reports1. The registry still shuts down afterward. This record describes explicit cleanup requests and local state mutation; it does not claim that every physical radio/LED state is reset on process exit.",
     "remaining": "Trace network-owner descriptor creation/receive/transmit roles and the lower HAL open/close object implementation, plus remaining SIGUSR1 and allocation-ownership callers. Network cleanup callback cancellation/five-descriptor sequence and utility reference-count/error/stub behavior are established.",
     "invalid_descriptor_timer_guard": "Helper 0x1000b6f4 returns immediately when owner +0x1c descriptor is already -1, before cancelling callback 0x1000b79c. Only its valid-descriptor path closes/marks the descriptor and cancels that callback. Owner shutdown always cancels 0x1000bc04 earlier, but the second cancellation is conditional. Any still-queued 0x1000b79c entry is eventually freed by global registry shutdown without invocation; between owner cleanup and registry shutdown no event-loop run occurs in the normal main cleanup order."
+   },
+   "setup_signal_admission": {
+    "entry_and_priority": "Deferred signal10 SIGUSR1 reaches 0x10008008 with modeword0 because main registers a null callback argument. A nonnull argument instead supplies a u32 modeword. First 0x10007200 attempts a settings-file merge; return1 consumes the signal. Only return0 continues to log signal and call NS2 button dispatcher 0x100209b4. Any nonzero dispatcher result consumes the signal before the network/setup gates. Signal15 independently tail-calls the event-loop stop setter. The handler is invoked by the deferred event-loop dispatcher, not directly by the asynchronous POSIX signal trampoline.",
+    "merge_file_gate": "0x10007200 formats <settings root 0x100558d0>/netsettings_merge.txt in a 256-byte buffer. Signed snprintf result>255 returns0; negative results are not separately rejected. open64(path,0) result<0 returns0. A successful open is closed, then 0x10004ff0(path,0) parses into existing settings without its reset mode. The merge file is unlinked unconditionally and unlink failure is ignored. Return1 is then retained even if parser result0, so opening an empty, unchanged or subsequently unreadable merge file prevents this same signal from initiating setup. Nonzero parser result calls 0x10006f80; bit0 sends RECFG event1, otherwise bit1 sends SATUPD event6, otherwise no event. Bit0 takes priority when both bits are set. The complete line-parser field/error contract and 0x10006f80 effects remain separate work.",
+    "ns2_button_routing": "0x100209b4 checks unsigned session state+0x298<=17 and selects the 44-byte state row at 0x1004f4ac, callback+0x20. It restores its stack and tail-calls that callback; the callback return is the dispatcher return. RESET0 has null callback and returns0. SETUP_STANDBY1 tail-delegates via 0x1001bcc0 to 0x1001bc1c; SETUP_COMPLETE8 uses that same helper. It reauthorizes contactless setup through 0x10022fac, which logs Contactless setup reauthorized and sets setup-context byte+0x2f8 to10 (the previously traced CHIRP budget). It cancels and re-arms callback 0x1001efb0 for 1800000ms through config+0x24/+0x20 when present, and returns0. GOT slot0x1004f9d8 proves callback0x1001efb0; that callback semantically tail-calls contactless timeout0x1001eed8, whose idle/completed path clears the budget and active path requests deferred termination. Discovery3 uses 0x1001e310, interaction4 uses 0x1001bf2c, reauth14 uses 0x1001c544; all their ordinary branches return1 and consume the request. All remaining valid states use 0x1001bbb4, which logs and returns1. Invalid state>17 logs, calls common reset 0x1001c984(session,0), then returns0. Consumption does not imply successful message serialization, transmission or authentication. Full discovery/interaction/reauth payload and callback side effects remain open.",
+    "wireless_block_predicate": "After an unconsumed NS2 result, signed outer netstart state 0x100500e0>7 skips recomputation of wireless-block word 0x10050150 and retains its previous value. States<=7 recompute it: modeword2 explicitly requests wireless and clears the block; otherwise HouseholdID length 0x10050130==0 clears it. With a nonempty HouseholdID, block is set iff 0x1000e22c or 0x1000e170 returns nonzero. These read network-engine state 0x10050cc0: 0x1000e22c is true exactly for9 or15; 0x1000e170 is true exactly for2,3,4,5 or16. Raw isel 0x7c63571e at 0x1000e198 selects literal1 for unsigned(state-2)<4, otherwise the state==16 boolean. Finally nonzero u16 Wi-Fi-disable latch 0x10050142 forces block1 in every outer state, including explicit modeword2. It never clears a retained block by itself.",
+    "followup_order": "If global0x10050108 is nonzero and global0x10050104 is zero, first call 0x10005c38, which clears0x10050108 and requests open-mode teardown through four callees including tail call0x100133c8. If either initial flag is nonzero, call utility0x10017b14(0), set0x100500f8=1 and send RECFG1. All unconsumed requests then clear0x100500e4, call0x10007a94(1) to write integer1 to /var/run/netstart_mode and issue local notification command40, and send NS_STR7. Thus wireless block1 is not an early return: local setup indication and the start event still occur. The external notification receiver remains outside this research lane.",
+    "driver_and_timer_followup": "0x1000e1c0 is true exactly for network-engine states7,8,9,10 or15; only then handler calls WifiFuncsSetDisableThirdParty(ath0,1), ignoring its result. It sets outer netstart state8 ALIVE through0x10005cac, which also calls WifiFuncsEnableNetstartIndication(ath0,8,0), clears blink word0x100500dc, and submits local command24 through0x100047a4(1). Finally 0x10017174 replaces matching callback0x10007d5c arguments(0,0) with a timer delayed by seconds global0x10050088, and semantically tail-replaces callback0x10004834 arguments(0,0) with a 125000us timer. These are timer replacements, not mere cancellations: 0x10017174 first calls0x1001704c and then tail-calls0x10016ebc. Lower followup callbacks, modeword producers and all state-transition effects still require individual tracing."
+   },
+   "wireless_interface_control_contract": {
+    "arguments_and_interfaces": "0x10011194 takes (enable, signed start_index, test). It creates socket(AF_INET2,SOCK_DGRAM2,protocol0). For start_index<=1 it visits ath<start_index> through ath1 inclusive, increments by1 and preserves existing interface flags except IFF_UP bit0: enable==0 clears bit0, any nonzero enable sets it. Each interface uses ioctl SIOCGIFFLAGS0x8913 followed by SIOCSIFFLAGS0x8914 with a 16-byte interface-name field and u16 flags at ifreq+0x10. No lower-bound check exists for start_index; negative indices are formatted and attempted. start_index>1 skips all interface ioctls but still reaches the local bookkeeping path after close.",
+    "errors_and_partial_changes": "Socket failure logs errno and returns-1. A failed GET or SET logs and records overall failure, but iteration still attempts subsequent interfaces. It closes the socket regardless of ioctl outcomes and ignores close result. Any ioctl failure returns-1 before updating the disable/test latches; previously successful interface changes are not rolled back. Therefore the software latches can disagree with actual interface UP flags after a partial failure. All-ioctl success or an empty iteration returns0 after bookkeeping. The helper does not wait for association, DHCP, link readiness or a driver result event.",
+    "disable_and_test_latches": "For start_index==0, u16 global0x10050142 is set to enable==0. For any other start_index it retains its old value. At0x1001143c mfcr followed by rotate19/mask31 extracts CR4.eq from the enable==0 comparison, confirming this is a boolean disable latch rather than a channel or unspecified mode. Independently global u16 0x10050140 becomes (retained-or-new disable latch!=0 && test!=0). The test argument does not set an extra kernel interface flag or change the ioctl operation. SIGUSR1 subsequently checks0x10050142 to force wireless setup blocked, even if setup was explicitly requested.",
+    "known_callers": "Direct branch/call census finds four callers, all start_index0. Daemon-local Wi-Fi test start0x10008da0 passes(0,0,1), test end0x10008cf8 passes(1,0,1); both callsite branches ignore the helper return. Network state handler0x1001159c passes(0,0,0),0x100115b4 passes(1,0,0); both retain handler return1 regardless of helper result. These distinguish normal disable/enable from test bookkeeping without claiming their full caller event/state machines are finished."
    }
   },
   "bin_wacd": {
