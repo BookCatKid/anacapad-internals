@@ -156028,7 +156028,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining settings flags/SonosNet material/frequency and wireless-check outer producers/CRD_BAD fallback and target-state callbacks and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining settings flags/SonosNet material/frequency and wireless-check outer producers/WAC-specific CRD_BAD branch,remaining NetManager idle handlers and NS2 target-state selection/entry/exit callbacks and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157277,6 +157277,48 @@
      "build": "86.10-80260",
      "address": "0x1002b50c",
      "notes": "SETUP_STATUS opcode9 stores low16 status as required tag13u16BE."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000302c",
+     "notes": "Binds config+bc completion callback to0x1000b2b8."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000b2c4",
+     "notes": "Completion callback reads stored Ethernet port-link mask;nonzero bypasses NS_IDL."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000b2e8",
+     "notes": "Zero Ethernet mask dispatches event8 NS_IDL;callback result ignored by NS2 completion."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000bb90",
+     "notes": "Positive per-port query ORs its bit into stored link mask."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000eed8",
+     "notes": "CCRD handler tail-delegates non-idle events to wireless-result adapter."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000eef4",
+     "notes": "CCRD NS_IDL disables ath0 station,then transitions to NetManager NS_O."
     }
    ],
    "setup_client_hello_payload": {
@@ -157671,7 +157713,7 @@
     "state_delivery": "Dispatcher requires session state+298<=17 and selects row+1c from18-row44-byte table0x1004f4ac. That slot points to common handler0x1001c094 only in states0 RESET,1 SETUP_STANDBY,8 SETUP_COMPLETE,17 CHECKING_CREDS;other rows have0 and drop this dispatch. It tail-calls the selected handler with session and mapped result. Common handler invokes translator/cache completion,then cancels matching timeout callback registration and schedules completed-result cache expiry after600000ms(ten minutes) through the already verified timer wrappers. In state17 it also calls0x1001ba20 and branches based on translated status high bit into further state effects. Full state-transition/status-send behavior remains to be traced.",
     "checker_file_cleanup": "Main config+88 is0x1000b5a4 (store0x10002f90 atstack+a4). Completion helper invokes it with argument0 through0x100215d0. That concrete callback constructs<root>/netsettings_check.txt and calls unlink,returning1 only for unlink0. Nonzero argument does not unlink. Result0x100215d0 is ignored by completion. Pending-record clearing through0x100215fc also invokes this callback with0. Cache reset0x1002145c independently wipes SSID/credential bytes and lengths;file removal does not itself substitute for that memory wipe.",
     "producer_progress": "Lower event adapter0x1000e29c handles event16..21 through0x100313e4;16 and18 deliver lower result0,19 delivers2,20 delivers3,21 delivers4,17 returns without that delivery. These are proved numeric event mappings;the event-name/producer join is still required before assigning named failure causes. Another lower path delivers3 at0x1001156c. Input0 eventually becomes setup status1;the error integers are recorded without guessing names solely from nearby parser errors. Named event bindings and complete result-chain outputs are established in wireless_named_events_and_followup;CRD_BAD is unhandled by this adapter and CRD_UNSP deliberately follows success.",
-    "remaining": "Join outer event producers/CRD_BAD fallback,configured+bc callback,target-state selection and entry/exit effects. Ten-minute cache expiry and delayed status frame are resolved below."
+    "remaining": "Join outer event producers and WAC-specific CRD_BAD behavior,remaining NetManager idle handlers and NS2 target-state selection/entry/exit effects. Completed-result expiry,delayed status serialization and configured+bc callback are established below."
    },
    "wireless_named_events_and_followup": {
     "event_identity_join": "The event-name pointer array at0x1002f15c assigns indices16 CRD_GOOD,17 CRD_BAD,18 CRD_UNSP,19 CRD_NOAP,20 CRD_CNCL,21 UFLWIR. Adapter0x1000e29c indexes six offsets at0x100313e4 after subtracting16. Event16 and18 both call lower result0;19 calls2;20 calls3;21 calls4. Event17 takes0x1000e340 and returns0 without delivering a result here. That is unhandled by this adapter,not proof it is discarded by the wider FSM. The documented string vocabulary previously lacked numeric binding;these IDs are now joined through array position and exact branch targets.",
@@ -157708,9 +157750,12 @@
      }
     ],
     "cached_result_lifetime": "The ten-minute registration in common completion schedules0x1001bc00. It tail-calls0x100214e0 on checking cache session+134. That helper does nothing when result-present byte+6c==0;otherwise it tail-calls cache reset0x1002145c,wiping SSID/credential buffers and resetting lengths,status0x8000 and result-present0. It does not directly clear pending settings or terminate a check. This is completed-result cache expiry after600000ms,not an asynchronous check-completion deadline. Matching new inputs after expiry cannot reuse that removed result.",
-    "checking_state_followup": "In state17 CHECKING_CREDS,common completion invokes0x1001ba20 to refresh the state timeout. A translated status with high bit0x8000 set additionally clears pending settings via0x100215fc and resets session bytes+294/+ac6 before further callback delivery. A status without that high bit retains pending settings. Both paths may invoke configured callback+bc,then schedule callback0x1001c348 after5000ms with session and translated status. Missing schedule callback or allocation failure is not converted to another status in this caller. Concrete+bc callback behavior remains to be joined.",
-    "deferred_status_and_state": "Callback0x1001c348 logs SETUP_STATUS,builds opcode9 with required tag13u16BE through serializer0x1002b470,and sends through0x10026798 only on serialization success. It ignores send return. It then calls state-change helper0x1001c220 with stored target state session+2a8 regardless of serialization/send success. Separate writers assign that target2,7,9 or0,so it is not simply the old state copied mechanically. Target selection producers and entry/exit callback effects remain individual unresolved work. The wire status is low16 of supplied integer;this callback does not attach SSID or credentials to the status frame.",
-    "remaining": "Trace outer event production/CRD_BAD fallback handling,configured+bc callback,target-state selection and entry/exit effects. Preserve separation between this adapter status,wireless authentication,association and application setup completion."
+    "checking_state_followup": "In state17 CHECKING_CREDS,common completion invokes0x1001ba20 to refresh the state timeout. A translated status with high bit0x8000 set additionally clears pending settings via0x100215fc and resets session bytes+294/+ac6 before further callback delivery. A status without that high bit retains pending settings. Both paths may invoke configured callback+bc,then schedule callback0x1001c348 after5000ms with session and translated status. Missing schedule callback or allocation failure is not converted to another status in this caller. Concrete+bc binding and stored Ethernet-link gate are established in configured_completion_callback below.",
+    "deferred_status_and_state": "Callback0x1001c348 logs SETUP_STATUS,builds opcode9 with required tag13u16BE through serializer0x1002b470,and sends through0x10026798 only on serialization success. It ignores send return. It then calls state-change helper0x1001c220 with stored target state session+2a8 regardless of serialization/send success. Separate writers assign that target2,7,9 or0,so it is not simply the old state copied mechanically. Target selection producers and NS2 entry/exit effects remain individual unresolved work. The wire status is low16 of supplied integer;this callback does not attach SSID or credentials to the status frame.",
+    "remaining": "Trace outer wireless-event production and WAC-specific CRD_BAD branch,NS_IDL behavior in other NetManager states,target-state selection and NS2 entry/exit effects. Configured+bc binding,stored Ethernet predicate and CCRD idle side effects are established. Preserve distinction between adapter result,wireless authentication,association and setup completion.",
+    "configured_completion_callback": "Main config base is stack+0x1c. Store0x1000302c binds config+0xbc (stack+0xd8) to0x1000b2b8. Common completion calls it at0x1001c1a8 on both success and error in state17,after error-only pending cleanup,and ignores its return. The callback reads stored Ethernet-link mask through0x1000cc30 (global0x10050bd8). A nonzero mask returns1 immediately,without issuing a network event. A zero mask calls0x1000f57c with event8 NS_IDL (name pointer0x1002f17c);return is1 for a nonnegative signed event-handler result and0 for negative. It does not apply pending settings,send status,or establish association itself.",
+    "ethernet_predicate_producer": "Getter0x1000cc30 returns the stored mask rather than refreshing hardware. Producer0x1000bb38 first clears0x10050bd8,then iterates configured port count0x10050bd4 and calls0x1000ba08 for each port. Positive port results OR1<<index into the mask;zero leaves the bit clear;negative results log missing-port information and continue. Link polling0x1000cc44 compares old/new zero versus nonzero to produce SNP_UP/SNP_DN events. Thus completion gates on the last recorded mask,not a newly sampled link in the callback. Port-query backend and polling schedule remain separate unresolved work.",
+    "idle_event_delivery": "Event8 passes0x1000f57c via tail branch0x1000f5f0 to NetManager state delivery0x1000d414. Its21-row,8-byte table0x10031bbc holds handler pointer then state-name pointer;state lives global0x10050cc0. This is separate from NS2 session state+0x298. In NetManager state12 CCRD,handler0x1000eed0 recognizes event8,disables station on ath0 through WifiFuncsSetStationEnabled(argument0),then invokes transition0x1000e3f4 with target6 NS_O and returns1. Other state handlers can react differently;completion does not force this transition in every NetManager state."
    }
   },
   "bin_wacd": {
