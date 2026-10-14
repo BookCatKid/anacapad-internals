@@ -119019,7 +119019,7 @@
     "netstartd ACKproducer0x10027f54->0x10028f34",
     "netstartd inboundACKretirement0x100286d8->0x1002902c"
    ],
-   "consumer_effect": "Queueconsumercomparesidentifieragainstslot+a bytesin eachofthree0x61c-byte slots,startingcontext+5f6. Itdoesnotcheckslotin-usebyte beforememcmp. Firstmatchretiresthewholeslotwithmemset0x61c,clearsmatchingpreviouspointer+1844 andcurrentpointer+1840. Itreturns1 formatvalidandmatch;no matchreturns0. All-zeroidentifiercanmatch anunusedzeroedslotandreturn1 withoutacknowledgingactualoutstandingoutput. Ifboth optionaloutputpointersnonnull,itcopiesmatchedslot+614/+618 first;eitherpointeraloneisnotwritten. Thoseauxiliarywordsemantics belong to their callers,notthispayloadformat.",
+   "consumer_effect": "Queueconsumercomparesidentifieragainstslot+a bytesin eachofthree0x61c-byte slots,startingcontext+5f6. Itdoesnotcheckslotin-usebyte beforememcmp. Firstmatchretiresthewholeslotwithmemset0x61c,clearsmatchingpreviouspointer+1844 andcurrentpointer+1840. Itreturns1 formatvalidandmatch;no matchreturns0. All-zeroidentifiercanmatch anunusedzeroedslotandreturn1 withoutacknowledgingactualoutstandingoutput. Ifboth optionaloutputpointersnonnull,itcopiesmatchedslot+614/+618 first;eitherpointeraloneisnotwritten. Thoseauxiliarywordsemantics belong to their callers,notthispayloadformat. Connected read-handler0x100255b4/0x100255c8 establishes the two auxiliary words as an optional completion callback and opaque argument. On matched retirement it cancels the retry timer first, invokes nonzero callback(argument), then schedules another saved-slot deadline if present. Callback result is ignored; particular callback ownership and body semantics belong to their callers.",
    "evidence": [
     {
      "type": "firmware",
@@ -119062,6 +119062,13 @@
      "build": "86.10-80260",
      "address": "0x1002d90c",
      "notes": "Malformedfieldextentreturnswithoutinvalidatingcursor."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100255c8",
+     "notes": "Matched ACK invokes saved-slot completion callback with saved opaque argument after cancellation and before next-deadline scheduling."
     }
    ]
   }
@@ -156368,7 +156375,7 @@
     "Trace metadata meanings in other envelope consumers and the remaining envelope caller state transitions. Preserve the already established parsing, decryption, authentication, PIN proof and common-reset contracts.",
     "Finish configured/default PSK reload and reset triggers and cached-credential lifecycle effects beyond daemon-local IPC command23. Main shutdown cancellation of the four-hour expiry callback and in-memory default/cached PSK and registration-secret destruction are established. Do not enter the external request-object/service receiver lane.",
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
-    "Finish the saved-output queue: all slot flag writers and state effects, incoming/outgoing identifier producers and record-counter join, clock callback producers, framing beyond ACK/close-notify, full connected read parsing/notification callbacks and final FD re-registration. Three-slot timing/selection, connected retry handler, output-pump short/zero/WANT/error behavior, WRITING resume-state overwrite and public1414-byte submission return/auxiliary-word contract are established.",
+    "Finish the saved-output queue: all slot flag writers/state effects, incoming/outgoing record-counter identifier join, clock callback producers, ciphertext-vs-ACK-length adjustment rationale, full NS2 admission/per-state message and reconnect callback effects, and final FD re-registration. Connected read ACK ordering, retirement completion callback/argument, input error/reconnect/peer-close branches and output-pump/submission contracts are established alongside the three-slot timing selectors.",
     "Trace the remaining NS2 messages individually, including their parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 has a separate complete byte/parser/retirement record.",
     "Finish settings apply notification effects, full flag domains, WAC fallback admission and flag producers, per-state entry/exit/teardown effects, and the target-state selection chain. Preserve the verified WEP/frequency/projection/file and marker effects.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
@@ -158539,6 +158546,55 @@
      "build": "86.10-80260",
      "address": "0x100257d4",
      "notes": "Input followup tests transport+0xd40, exactly the queue replay flag at+0x5e8, before pumping restored output."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025508",
+     "notes": "Only negative SSL reads take the error path; zero follows ordinary non-ACK processing."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025490",
+     "notes": "ACK build must return positive before plaintext delivery."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100254b4",
+     "notes": "Application callback runs before pending encrypted output is pumped; its return is ignored."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100255b0",
+     "notes": "Matched ACK cancels retry callback before invoking completion callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10025740",
+     "notes": "Client-reconnect branch clears all saved output slots before notification and handshake restart."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100258d4",
+     "notes": "Literal retained ACK-plaintext length is subtracted from pending ciphertext count without conversion."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1004fb5c",
+     "notes": "Initializer GOT binds transport plaintext callback to0x100208a0 -> tail0x100206f8."
     }
    ],
    "setup_client_hello_payload": {
@@ -159162,8 +159218,18 @@
     "wait_and_error": "Negative send -0x6900 WANT_READ and -0x6880 WANT_WRITE log, set transport+0x16c direction0/read or1/write, and move state+0x170 to WRITING5 unless already5. Exact isel at0x100251b8 selects literal0 when CR4.eq from result==-0x6900, otherwise1. It returns0 while preserving the remaining buffer and current-slot pointer, without drain or next-deadline selection. Other negative sends log, run cleanup0x100247c0 when state!=0, and return the original negative result. Cleanup results are not substituted for the send error. No application plaintext is re-encrypted in this send loop.",
     "writing_state_resume": "State-table0x1004f7c4 row5 read-handler is0x10025b68; its write-handler slot isNULL. Resume helper calls0x1002500c. A negative return propagates and skips its later work. Every nonnegative return, including the pump's0 for WANT_READ/WANT_WRITE, clears direction+0x16c and writes CONNECTED4 unless already4. It then calls mbedtls_ssl_check_pending on SSLcontext transport+8; nonzero semantically tail-calls connected read-handler0x1002539c, while zero returns the pump result. Thus this wrapper can immediately undo the pump's WRITING5/direction request when another WANT condition occurs. Pending ciphertext can still remain. Do not describe the wrapper's nonnegative return as proof that all output drained. The subsequent connected read-handler behavior and final registration decisions remain separate caller/state-machine work.",
     "connected_retry_handler": "State4 write-handler0x100251f8 gets current time or{0,0}, selects the most overdue eligible slot through0x10027b40, restores cached ciphertext with0x1002808c, and advances backoff0x10028614. Success calls0x1002500c and ignores that pump return, refreshes time and rescans. Backoff expiry logs and calls cleanup if state nonzero, then likewise refreshes time and rescans. Consequently this handler does not propagate a negative endpoint-send result directly; cleanup may already have removed the saved slots. WANT returned by the pump can leave bytes pending while the retry handler proceeds to its next due-slot scan. The handler stops when no due slot is found; it does not independently call next-deadline selection at that exit because the pump handles scheduling after a drain.",
-    "public_submission": "0x10026648(transport,plaintext,length,aux1,aux2) rejects unsigned length>0x586 (1414) with boolean0 before any build or send. Accepted extent obtains time through config+0x24 or{0,0}, calls builder0x100281a8(queue,SSLcontext,time,plaintext,length,aux1,aux2), and treats signed negative builder result as failure0. A nonnegative builder result calls0x1002500c and returns1 exactly when the pump result is0; any nonzero result becomes0 via cntlzw/shift. Thus submission can report1 with buffered ciphertext still pending after WANT_READ/WRITE. Builder forwards the two supplied auxiliary words to saved-slot+0x614/+0x618 when it accepts an application write; matched ACK retirement copies them out only when both output pointers are nonnull. This proves local value retention and return behavior, not the higher-level meaning or ownership of those words.",
+    "public_submission": "0x10026648(transport,plaintext,length,aux1,aux2) rejects unsigned length>0x586 (1414) with boolean0 before any build or send. Accepted extent obtains time through config+0x24 or{0,0}, calls builder0x100281a8(queue,SSLcontext,time,plaintext,length,aux1,aux2), and treats signed negative builder result as failure0. A nonnegative builder result calls0x1002500c and returns1 exactly when the pump result is0; any nonzero result becomes0 via cntlzw/shift. Thus submission can report1 with buffered ciphertext still pending after WANT_READ/WRITE. Builder forwards the two supplied auxiliary words to saved-slot+0x614/+0x618 when it accepts an application write; matched ACK retirement copies them out only when both output pointers are nonnull. Connected inbound ACK now establishes aux1 as optional completion callback and aux2 as its opaque argument; the specific callback bodies and their ownership/lifetime remain caller work.",
     "other_caller": "Connected input path0x100257f8 calls the pump and retains its result for the enclosing handler. It reaches that path directly when byte transport+0xd40!=0, which is queue+0x5e8, the restored-ciphertext replay flag:0x100280d4 sets1,0x10027ec0 and0x1002825c clear0. When that flag is0,0x10025890 compares pending count+0x75c with transport+0xd3c (queue+0x5e4, populated from ACK plaintext length). Pending count greater than that word advances the cursor by that word, subtracts it from pending count, then joins the pump call; otherwise it records the original input WANT direction, restores CONNECTED4 if needed and returns0. Exact enclosing SSL input conditions and the protocol reason for this count adjustment remain open. The direct-call census found four pump callers: connected retry0x10025284, connected input0x100257f8, WRITING resume0x10025b84 and public submission0x100266fc. Their caller-specific conventions remain distinct; do not collapse them into a single delivered-success meaning."
+   },
+   "dtls_connected_input_and_ack_completion": {
+    "read_and_classification": "Connected state4 read-handler0x1002539c clears1500-byte plaintext buffer transport+0x17c, sets length+0x178=1500, then calls mbedtls_ssl_read(SSLcontext transport+8,buffer,1500). Only signed negative goes to error classification; zero is stored as length0 and follows the ordinary non-ACK path, not an EOF cleanup branch. Nonnegative input obtains time through config+0x24 or{0,0}. Opcode probe0x10028ddc checks length!=0, reads first byte and accepts unsigned opcode<=23 without inspecting any fields. Only successful opcode1 takes the ACK path. Empty input, opcode>23 and all other opcodes attempt ACK generation before the application callback; this probe is not a full message validator.",
+    "ack_before_application": "Non-ACK path0x10025488 invokes0x10027f54(queue,SSLcontext,time), which builds an ACK using the received-record snapshot and captures encrypted output. Handler requires signed ACK-builder result>0. Zero or negative logs DTLS message received without ACK for last payload, selects return-1, and cleans up if state nonzero; it does not deliver plaintext to config callback+0x34 on that branch. Positive ACK build invokes callback+0x34(cookie+0x38,plaintext,received_length) when present and ignores its return. If pending ciphertext count+0x75c!=0, it calls output pump0x1002500c and returns that result. Otherwise it stops with0 when state0 or no SSL pending input, and loops for another ssl_read when pending input remains. Building an ACK precedes application validation; actual socket transmission normally follows the callback.",
+    "matched_ack_completion": "Opcode1 is parsed once into an eight-byte scratch for optional hex logging, then queue consumer0x100286d8 parses again and searches saved slots. Malformed or unmatched ACK returns0 from the consumer, logs unexpected ACK and follows the state/pending-input continuation without connection cleanup or application delivery. Match copies saved-slot+0x614 to stack+0x1c and +0x618 to stack+0x20 before retiring the slot. Handler first cancels retry callback0x10025e14 with transport argument through config+0x1c, if present. It then treats +0x614 as a function pointer; when nonzero invokes it with +0x618 as its sole argument. Completion return is ignored. It gets fresh time and schedules the earliest remaining eligible deadline if any, then checks state and pending SSL input. The callback thus reports acknowledgement retirement, not merely plaintext construction or socket send acceptance.",
+    "ack_callback_binding": "Public submit0x10026648 forwards r6/r7 to builder0x100281a8 as auxiliary words, stored at slot+0x614/+0x618. Connected inbound ACK0x100255b4/0x100255c8 establishes their actual local meaning: optional completion callback and opaque callback argument. ACK-retirement helper writes those two outputs only if both pointers are supplied. An all-zero ACK can still match an unused zeroed slot because retirement has no in-use guard, but that slot has callback0 and invokes nothing. Specific higher-level callback ownership/lifetime and each callback body remain individual caller work.",
+    "want_and_buffer_adjustment": "ssl_read returns-0x6900 WANT_READ or-0x6880 WANT_WRITE: if queue replay flag transport+0xd40 (queue+0x5e8) nonzero, pump restored ciphertext immediately and return pump result. Otherwise compare pending ciphertext count+0x75c with transport+0xd3c (queue+0x5e4, written from ACK plaintext length by0x10028034). If count>that word, advance cursor by the word, subtract it from count and pump; there is no unit conversion from plaintext to ciphertext length in this adjustment. If count<=word, set direction+0x16c=0/read or1/write from the original SSL result, restore CONNECTED4 if needed and return0 without drain. This establishes literal byte-count behavior; why this build subtracts the retained ACK plaintext length from ciphertext requires the library record-production join and must not be described as confirmed removal of one encrypted ACK record.",
+    "reconnect_close_and_errors": "Read error-0x6780 logs DTLS client reconnect, sets CLIENT_RECONNECT2, clears entire saved queue0x1848 via0x10027a9c, invokes optional config+0x30(cookie+0x38), then sets CONNECTING3, restores send/recv BIO from 12-byte role table0x1004f83c and calls handshake handler0x100258f4; its return is propagated. Role0 send/recv were separately established; other rows remain open. Peer close-notify-0x7880 sets CLOSE_NOTIFY_DISCONNECT9 and calls close output pump0x10024d68, returning its result. All other negative reads log and cleanup when state!=0 while preserving the original negative return. The ACK-build failure uses-1 instead. Original ssl_read length field remains1500 on the initial negative branch until a callee modifies it; do not infer received plaintext length from that stale field.",
+    "ns2_message_delivery": "NS2 initialization0x1001ec78 installs config+0x34=0x100208a0 (GOT slot0x1004fb5c) and cookie+0x38=session. Callback0x100208a0 semantically tail-calls0x100206f8, whose opcode probe rejects empty/>23 input, then checks setup admission through0x10023df4. Rejected admission calls common reset with a reason pointer, requests immediate DTLS close265a0(arg1), then resets transport selector through26630(arg0). Admitted input validates NS2 state<=17, calls0x1001ba20, reloads the state and dispatches row+0x14 from 44-byte table0x1004f4ac, or default handler from GOT when null, with(session,opcode,buffer,length). Invalid state invokes common reset(session,0). Admission predicates,0x1001ba20 and each state-specific message parser/handler remain separate unresolved work; this is daemon-local NS2 dispatch, not the protected SOAP/service request lane.",
+    "reconnect_notification": "NS2 config+0x30 is0x100206e8 (GOT slot0x1004fb58), cookie=session. It tail-calls0x100205bc, which calls setup helper0x100229f4, validates state<=17 and tail-invokes state row+0x18 when present; invalid state tail-calls common reset(session,0). Byte session+0xa63 controls logging on a branch but both branches select the same row+0x18 callback. Full setup helper and state-specific reconnect effects remain unresolved."
    }
   },
   "bin_wacd": {
