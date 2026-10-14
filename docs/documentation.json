@@ -119142,7 +119142,7 @@
      "notes": "Main callback requests mode8, mapping to local command43, then always returns1."
     }
    ],
-   "todo": "Established: opcode18 wire grammar, initial entry guards, REAUTH_PENDING table, button status7/8, budget10 renewal/30-minute timer, flags clear, START2 transition and local mode0/command31 callback, plus idle timeout and reconnect delegate ordering. Remaining: ultimate cancel/network effects through shared reset callbacks and0x10007d5c; complete their field predicates and driver actions without entering the external SOAP/request receiver. Signed CANCEL flag gate and local action predicate are established in ns2_reauthorization_pending_lifecycle.",
+   "todo": "Established: opcode18 parsing/serialization, entry guards, pending-state button/status/permission renewal, local notifications, timeout/reconnect delegates, signed cancel gate and network-followup local branch/socket cleanup. Remaining: shared reset notification/driver effects, pending-update flag producers/full network-event handlers and lower utility/HAL interpretation reached by cancel followup. Trace those concrete callees and producer/consumer joins; retain the request/dispatcher exclusion.",
    "pending_state": "0x1001c544 defaults status8. Only stored flags+0xa5c bit0!=0 AND contactless-budget predicate0x10024078!=0 takes reauthorization-success branch. That branch calls0x10022fac to restore budget10 and schedules callback0x1001efb0(session,0) for1800000ms via config+0x20 when present; GOT slot0x1004f9d8 proves callback. This branch does not first call the cancellation wrapper, unlike standby/completed button helper0x1001bc1c. It then chooses status7. Missing scheduler does not turn it into status8 or suppress the remaining state change. The permission check does not parse a new PIN proof or inspect a received identifier here. Both status7 and status8 branches serialize opcode9 SETUP_STATUS through0x1002b470, which writes required tag13/u16BE. Exact status7 frame09 0d 00 02 00 07; status8 frame09 0d 00 02 00 08. Serializer success calls0x10026798; failure logs. Both paths then clear flags+0xa5c, transition to START2 through0x1001c220, invoke optional config+0x6c(cookie+0x34), ignore its return, and return1 to consume the setup/button request. Serialization or submission failure does not roll back renewed contactless budget, flags clear or state transition. Submit0x10026798 semantically tail-calls0x10026648 with completion callback/argument0, so these status messages have no packet-specific completion callback. Main stores0x1000ac74 at NS2 config+0x6c (stack+0x88 at0x10002f3c). It calls0x10007a94(0), writes integer0 to /var/run/netstart_mode, maps mode0 to local command31 and tail-submits through0x10006b2c, then returns1 ignoring the notification result. This final notification happens after the START2 transition, not only after an acknowledged status response. External command receiver is explicitly outside this lane; the local send is not evidence that the receiver executed a driver change.",
    "timeout_and_reconnect": "State14 idle timeout0x1001c434 only tail-transitions to START2, using the state setter and new60second start-state timer. It does not call the button helper, renew contactless budget, send status7/8, clear flags or issue config+0x6c here. Reconnect0x1001cfb0 instead tail-calls common reset with a reason pointer; the transport caller clears the saved DTLS queue before this notification and resumes handshake afterward. Common reset explicitly clears reauthorization flags/cap along with other session working data; its remaining lower notification/driver effects belong to the shared reset trace."
   }
@@ -156454,7 +156454,7 @@
     "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, full per-state entry/exit/teardown/message/timeout effects and target-state selection. Idle caps are joined to session+a60/a61/a62; REAUTHORIZE18 cap tag27/default/guard/local command43 is complete in its format record. Finish BEGIN7/standby parser tags/defaults and other cap branch reachability. Captured-state timeout gate and delegate sequences are established; discovery driver callback, TIMED_OUT notification and open-AP predicate/action need full traces.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace initial external settings-snapshot producers and daemon-side registered triggers/teardown. The external IPC signing receiver remains outside this lane.",
-    "Finish event-loop integration: SIGUSR1 nonnull modeword producers and downstream open-mode/utility/notification/timer callback effects, remaining registration users, network-owner descriptor producers, lower HAL utility object behavior, and object-allocation ownership. SIGUSR1 merge-file priority, NS2 button consumption table, wireless-block predicates, interface-disable latch writer and local timer replacement ordering are established, alongside previously traced shutdown and registry phases."
+    "Finish event-loop integration: SIGUSR1 nonnull modeword producers and remaining downstream notification effects, network followup pending-update/flag producers and full event handlers, other registration users, network-owner descriptor producers, lower HAL utility behavior and allocation ownership. Setup-end followup state gates, scan commands, DNS/DHCP cleanup, two-slot callback removal and stub tails are established alongside prior signal/shutdown/registry work."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -158830,6 +158830,62 @@
      "build": "86.10-80260",
      "address": "0x1000b124",
      "notes": "Cancel action cancels scheduled followup then synchronously invokes it via0x10007eec."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10007e58",
+     "notes": "ALIVE followup enters wireless setup only with open mode0 and wireless block0."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10007ebc",
+     "notes": "Deferred frequency request clears regardless of writer outcome."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10007c5c",
+     "notes": "Followup bits0/4 plus exact network-state predicate select RECFG versus NS_CFG."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10012f9c",
+     "notes": "DNS read descriptor unregister then close and markinvalid."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10011e9c",
+     "notes": "DHCP server clears three words and one byte per row in twelve16-byte lease entries, only after the valid-fd close path; padding bytes remain untouched."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10012ea4",
+     "notes": "Negative DHCP client fd returns before observer/timer removal."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100133c8",
+     "notes": "Open-mode teardown tail target is an actual return-only stub."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000a0d4",
+     "notes": "Two-slot callback removal clears first matching slot, no match returns1."
     }
    ],
    "setup_client_hello_payload": {
@@ -159517,7 +159573,17 @@
     "timeout_and_reconnect": "State14 idle timeout0x1001c434 only tail-transitions to START2, using the state setter and new60second start-state timer. It does not call the button helper, renew contactless budget, send status7/8, clear flags or issue config+0x6c here. Reconnect0x1001cfb0 instead tail-calls common reset with a reason pointer; the transport caller clears the saved DTLS queue before this notification and resumes handshake afterward. Common reset explicitly clears reauthorization flags/cap along with other session working data; its remaining lower notification/driver effects belong to the shared reset trace.",
     "cancel_parser_and_signed_gate": "Default message handler parses opcode5 CANCEL through0x1002b088 into a u32 flags word, then calls0x1001d380. Parser schema allows tag2/u32BE, width4 when an output is supplied; duplicate/width errors reject through common cursor. Handler0x1001d380 starts cmpwi cr0,r4,0 followed by conditional bclr BO13/BI1: signed flags>0 returns immediately. Flags0 and high-bit-set values0x80000000..0xffffffff reach reset; positive1..0x7fffffff do not. This signed gate precedes all later bit checks. Eligible cancel common-resets, calls selector0/close0x10026630, then queries optional config+0x94; no predicate or result0 skips later actions.",
     "cancel_action_predicate": "After eligible cancel and nonzero predicate result, session+0x1ad!=0 selects optional config+0x9c and then clears+0x1ad even when that action callback is null. With+0x1ad==0 it selects that action only if predicate result exactly3 AND flags bit2(0x4)!=0. Byte+0x1ad is set1 by open-AP helper0x1001c444 and is not cleared by the common reset's examined working-field sequence; it is an open-AP action latch, not the reauthorization flags word. Main predicate config+0x94=0x1000b0a0 returns0 if global0x10050108==0,3 if that global!=0 and0x10050104==0, otherwise1 when0x10050100==0 or2 when!=0. This exact domain joins the result3 cancel branch; complete meanings of those daemon flags remain separate work.",
-    "remaining_cancel_delegate": "Main config+0x9c=0x1000b118 calls0x10007eec, which cancels queued callback0x10007d5c with(0,0) then immediately tail-invokes it with(0,0), and returns1 ignoring its result. The complete0x10007d5c network/open-mode state branches and shared reset callbacks are not yet finished, so cancel's ultimate wireless/access-point side effects remain unresolved. They must not be guessed from the predicate or callback names."
+    "remaining_cancel_delegate": "Main config+0x9c=0x1000b118 calls0x10007eec, cancels a scheduled network followup and immediately invokes it. Its state0/8/other gates, deferred update/WAC branch, scanning commands, RECFG/NS_CFG selection, IDLE transition and open-mode DNS/DHCP cleanup are established in network_setup_followup_and_open_mode_exit. Remaining common-reset notification/driver effects, pending-update flag producers, full network-event handlers and lower utility/HAL interpretation stay unresolved. External SOAP/request receiver remains outside this lane."
+   },
+   "network_setup_followup_and_open_mode_exit": {
+    "callback_selection": "0x10007eec cancels timer0x10007d5c with arguments(0,0), then semantically tail-invokes it immediately. Followup0x10007d5c reads outer netstart state0x100500e0; state names0..14 use table0x1002f7b0, larger values log ?. State8 ALIVE enters wireless setup only when current open-mode word0x10050108==0 and wireless-block word0x10050150==0. That branch cancels AP scan on ath0, enables channel scanning, then tail-calls0x10007b60. All other non-IDLE cases take common setup-end path, including ALIVE when either gate disallows wireless entry. It is therefore not an unconditional exit or unconditional AP shutdown.",
+    "idle_deferred_updates": "Outer IDLE0 first checks u32 deferred frequency0x10050138. Nonzero invokes0x1000732c(value), then clears that word regardless of file-writer success. Otherwise pending byte0x10050135!=0 invokes0x10007494(byte0x10050134), then clears pending byte regardless of success. Frequency path takes precedence; it does not also apply the pending disable byte in this invocation. With no deferred update it still continues common setup-end processing. Frequency writer rebuilds persistent main netsettings.txt using current fields plus requested frequency; writer return0 updates live frequency0x10050080 and calls0x10006e3c. Disable writer likewise rebuilds that file, updates live SonosNetDisable byte0x1005011e and notifies only on writer0. The queued request can thus be discarded while the live value remains unchanged after a write failure. Exact producers/ranges of pending frequency/disable requests and full notification0x10006e3c remain open.",
+    "deferred_wac_branch": "Common followup checks0x100500fc. If nonzero it clears the flag; with empty HouseholdID length0x10050130 it calls0x100079d4 before common setup-end. That helper sets0x10050100=1, clears0x100500fc, calls0x1000799c, sends WAC_TMO event38 and tail-invokes NS2 contactless timeout0x10020a8c. A nonempty HouseholdID suppresses that extra WAC timeout call. Existing settings_wac_fallback_timer documents the timeout admission/reset sequence; full0x1000799c and event consumer side effects still need tracing.",
+    "common_setup_end": "0x10007bdc checks open-mode word0x10050108!=0 and companion word0x10050104==0; only then it calls open-mode teardown0x10005c38 and utility0x10017b14(1). It then writes local netstart_mode0/command31 through0x10007a94(0), clears wireless-block word0x10050150, cancels indication callback0x10004834(0,0), cancels AP scan on ath0 and calls WifiFuncsAllowChannelScan(ath0,1). Scan and callback results are ignored. Word0x10050110 bit0 forces RECFG1; otherwise bit4 selects RECFG1 only when network-engine predicate0x1000e1c0 is true (states7..10 or15), and remaining cases send NS_CFG10. It clears the whole word0x10050110 and tail-sets outer stateIDLE0 via0x10005cac, which also requests the corresponding driver indication. This sequence does not directly call interface-UP control0x10011194 or WifiFuncsSetStationEnabled.",
+    "wireless_setup_entry": "0x10007b60 sets open-mode word0x10050108=1 and followup flags0x10050110=1, logs wireless setup, writes local mode2/command32 through0x10007a94, sends NS_OPN8, calls0x10005bc0 to close existing DNS/DHCP resources, calls0x100133bc, then replaces timer0x10007d5c(0,0) with a delay in seconds from global0x10050084.0x100133bc is a return-only stub in this build. Resource cleanup occurs after the NS_OPN call, in actual instruction order. Helper0x10005bc0 uses the same DNS/server/client closes as open-mode teardown but does not clear0x10050108 itself. Network event handlers and later AP setup creation remain separate work.",
+    "open_mode_teardown": "0x10005c38 first clears0x10050108, logs exiting open mode, then calls0x10012f78 (DNS close),0x10011e50 (DHCP server close),0x10012e84 (DHCP client close), and semantically tail-calls0x100133c8.0x100133c8 is a return-only stub, not an additional hidden delegate. DNS descriptor is global0x1005004c, created by0x10012f0c through UDP socket binder0x100059cc with port53; close unregisters read, closes, marks-1 when signed fd>=0. DHCP server descriptor0x1005002c is bound/registered by0x10011df8..0x10011e38; teardown valid fd unregisters/closes/marks-1 and clears the words at+0/+4/+0xc and byte+8 in each of twelve16-byte lease entries at0x10050cf4, leaving bytes+9..+0xb untouched. Invalid fd skips that lease clear. DHCP client descriptor0x10050018 is joined to the client socket setup that registers read callback0x10012a2c at0x10012e4c; valid fd teardown removes link callback0x10011be4 via0x1000a0c4, clears owner word+0x10, cancels timer0x10011bc0 with(0,owner0x10050018), unregisters/closes/marks-1. Negative client fd returns before callback cancellation/removal. Return values of these cleanup operations are ignored. Full DHCP/DNS wire/state behavior is not inferred from their cleanup sequence.",
+    "link_callback_remove": "0x1000a0c4(callback) searches exactly two function-pointer slots at0x10050bc8/+4; first match is setNULL and returns0, no match returns1. It does not remove an arbitrary number of observers or close a socket. This completes the callback-removal effect in DHCP client teardown without assigning unknown port or packet behavior to the observer itself.",
+    "utility_boundary": "Utility0x10017b14(1) runs only when signed reference count0x10051f38>0 and maps argument1 to lower utility mode1 via tail0x10017d98. That helper builds a local request, calls0x10019844, and on nonzero result attempts init0x10017b70; a nonzero returned handle then calls0x1001a3b8 and0x10017c84. The complete lower utility/HAL request interpretation remains unresolved. Do not equate this call with confirmed visible LED state or physical radio shutdown."
    }
   },
   "bin_wacd": {
