@@ -137180,7 +137180,8 @@
      "address": "0x1ea8",
      "notes": "Each input byte printed as uppercase two-digit hex."
     }
-   ]
+   ],
+   "nfwssid_wrapper": "NetSettingsUpdateNFWSSIDFile export0x26e8,size168 zeroes full0x6fc-byte writer structure,assigns SSIDpointer+0c,length+10,NFWActivebyte+34=1,then returns NetSettingsUpdate(selector3,root,structure). It supplies no credential pointer. This concrete independent caller proves reuse of the shared writer for nfwssid.txt in addition to check/main settings. Its format/error behavior inherits the already established writer contract."
   }
  },
  "subsystems": {
@@ -156182,7 +156183,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining settings side-effect callbacks,full flag domains,wireless driver result producers,wpaconfig/debug consumers,other CCRED handlers and commit/state transitions (WAC check script invocation and ignored launch/command results established) (projection,WEP chain,exact frequency domain and disk-before-memory apply order established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
+    "Established: greeting/proof/server/factory contracts; MDP2 key-provider and copied-signature choices; envelope framing/pass-through selector, RSA-OAEP-SHA1 branch and loaded-key v1.5 default, payload cipher tables, IV/tag layouts, padding/authentication errors, metadata validation/absence of setup use, post-decrypt mode gates/PIN/budget and both client/CHIRP PIN proof formats, factory identifier and DTLS password callback and output cleanup. Remaining: trace metadata meanings in other consumers and client-side advertised-signature verification; bind optional strings, build discriminator and response capability bits; finish configured PSK timer teardown and remaining reload/reset triggers and cached-credential lifecycle effects beyond local command23, other DTLS selector/index branches and handshake callback/pump/cookie/replay effects and envelope caller cleanup/state transitions and response transport/state effects and other NS2_MSG_* payloads individually. Follow exact producers/consumers before removing this TODO. Registration secret layout,hex storage,random generation and persistence-failure rollback are established; LOCK_REGISTRATION grammar and exact eligibility/registered predicates are established; remaining apply notifications/WAC timer decisions,full flag domains (local SSID,fresh-household,registration-pending markers and pending path timer established),wireless driver result producers,wpaconfig/debug consumers,other CCRED handlers and commit/state transitions (WAC check script invocation and ignored launch/command results established) (projection,WEP chain,exact frequency domain and disk-before-memory apply order established) and wireless-check outer producers,WAC process restart implementation,other NetManager NS_OPN handlers and NS2 target-state selection/entry/exit effects and external snapshot initial producers,daemon-side registered triggers and teardown remain open; external IPC signing receiver stays outside this lane."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -157592,6 +157593,55 @@
      "build": "86.10-80260",
      "address": "lines124-130",
      "notes": "Credential-check mode2,supplicant background launch and unchecked explicitexit0 before DHCP/bridge path."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10021a0c",
+     "notes": "Apply updates SSID-only marker and report-selection helper through concrete config+74."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000b328",
+     "notes": "NFWSSID marker write return ignored;wrapper returns1."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10004d1c",
+     "notes": "Fresh-household boolean writes1 after unconditional markerunlink."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10003cf0",
+     "notes": "Registration-pending creation failure still joins state mutation/driver path blocking."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10003ab8",
+     "notes": "Pending registration timer repeats every30sec rather than unblocking at a fixed deadline."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10003ac4",
+     "notes": "After pendingclear,nonzero learnedhops dispatch SNP_UP event4 before SSID deferred reconfiguration."
+    },
+    {
+     "type": "firmware",
+     "binary": "libwifi.so.1",
+     "build": "86.10-80260",
+     "address": "0x2740",
+     "notes": "SSID-only wrapper sets NFWActive1 and selects nfwssid.txt;no password source."
     }
    ],
    "setup_client_hello_payload": {
@@ -158052,7 +158102,8 @@
     "first_player_flag": "Pending flags bit0 controls FirstZP projection:clear gives literal1;set preserves byte pointed by snapshot+2c. Output source+1c becomes writer FirstZP byte+2d through0x1000b444. This identifies this particular producer/consumer meaning;it does not resolve every validation/state effect of flags bit0 or the other bits.",
     "check_submission": "0x10021514 is a semantic tail delegate to projection withmode0;0x1001de9c calls it for credential-check entry. Entry0x1001de34 refreshes state timer,requires pendingvalid and config+94 getter nonzero. Main binds getter0x1000b0a0;it returns0 ifglobal0x10050108==0,otherwise3 when0x10050104==0,otherwise1/2 according toglobal0x10050100. Their producer meanings remain unresolved;the admission gate accepts any nonzero return. Projection/writefalse logs unable to write cred check file and skips start. Success invokes config+b8,main-bound0x1000b28c,with pendingSSID/credential arguments. This concrete callback ignores those arguments,dispatches event15 CCRED through0x1000f57c,and returns1 iff event result nonnegative. False/missing start callback logs unable to start cred check. These failure paths log only:they do not immediately clear pending settings or synthesize a completion status.",
     "apply_order": "Apply0x10021668 first invokes projection withmode1. A false write returns0 before in-memory apply. After successful write it requires snapshot capacitiesHHID+4>32,MuseHHID+10>53,WEP+1c>15,SSID+48>31,password+54>63. Equality to32/53/15/31/63 fails. These are capacity guards,not current lengths. If any fails,the newly written disk file is not rolled back. Only after these guards does it copy nonempty pendingHHID/MuseHHID,write terminatingzero and current lengths;copy provided WEP and set valid byte;write nonzero frequency;copy providedSSID/count and string-convert password;invoke further configured side-effect callbacks. Successful normal end clears pending record via0x100215fc. Broader callback/state effects remain unresolved.",
-    "entry_error_consumer": "Apply entry0x1001c864 first returns early while pending check-in-progress getternonzero. Otherwise calls0x10021668. Failure logs an error,clears pending settings and sessionbytes+294/+ac6,then tail-calls completed-cache expiry0x100214e0. Success clearsbyte+294,logs success and also tail-calls0x100214e0. Therefore a failed apply after successful disk write can discard pending memory while leaving that disk update;this entry supplies no rollback."
+    "entry_error_consumer": "Apply entry0x1001c864 first returns early while pending check-in-progress getternonzero. Otherwise calls0x10021668. Failure logs an error,clears pending settings and sessionbytes+294/+ac6,then tail-calls completed-cache expiry0x100214e0. Success clearsbyte+294,logs success and also tail-calls0x100214e0. Therefore a failed apply after successful disk write can discard pending memory while leaving that disk update;this entry supplies no rollback.",
+    "remaining": "Local SSID/fresh-household/registration marker callbacks are established in settings_apply_local_side_effects. Remaining apply notifications,WAC timer decisions,full flag domains and state transitions require individual tracing."
    },
    "sonosnet_material_and_frequency_admission": {
     "wep": "Tag15 is the16-byte WEPKey byte field:parser places it pending+5f/count+70,projectionpasses it to callback source+4/+8,and concrete writer emits exactly16bytes as WEPKey. In validator key-required branch,missing key with current key-validbyte0 returns0x8006;provided count not16 returns0x8002;provided key when currentvalid nonzero returns0x8004. The WiFi-only/existing-household branches can bypass key requirements;these are not unconditional rules for every message. Apply copies the bytes to snapshot+18 and sets snapshot+20 pointed validbyte1.",
@@ -158065,6 +158116,14 @@
     "radio_start_and_errors": "Scriptlines124..130 call/wifi/athconfig stasetenable ath0 2,then selectedsupplicant-s -B -D sonos -i ath0 -c <config> plusdebugflags,then explicit exit0. It does not check wpaconfig,athconfig or supplicant exit status and has no set-e. The credcheck branch exits before later stationmode stasetenable1,bridge setup and DHCP startup. It does not wait for authentication outcome. Command1/eventhandlertrue or shell exit0 therefore cannot substitute for later wireless result events. This path actively stops the previous supplicant despite avoiding later DHCP/network bring-up.",
     "other_network_state_path": "NetManager SonosNet base handler0x100101a0 handles event15 usingtable0x10031814 row(event-7)=8,target0x100102b4. It calls0x1000e500,which selects stringstation throughglobal0x100500c0,launches0x1000d774 withatheros,then tail-transitions NetManager to13 ST_CCRD. It is not the WAC check-only script verb. Script station mode can also select the existing check file,but continues to stasetenable1 and later networking. The distinction prevents describing every CCRED handler as the same check-only operation. Concrete delegating state handlers and later outcomes remain to be traced individually.",
     "remaining": "Trace driver event production,wpaconfig parser/serializer and debug override effects,other CCRED state delegation,post-launch refresh helpers,and subsequent WAC/NS2 result/timeout transitions. This record resolves the concrete WAC check invocation and its success/error interpretation."
+   },
+   "settings_apply_local_side_effects": {
+    "ssid_marker": "Config+74 main-bound0x1000b304 (store0x10002f54) is invoked at0x10021a0c after pendingSSID bytes/count and string password were copied to live snapshot. It calls libwifi.so.1 NetSettingsUpdateNFWSSIDFile(settingsroot0x100558d0,SSIDptr,count),ignores return,then0x10014860(ptr,count),and always returns1. Export0x26e8 zeroes0x6fc-byte settings,sets writer+0cSSID pointer,+10length,+34NFWActive1,then calls NetSettingsUpdate selector3. Resulting<settingsroot>/nfwssid.txt contains Version1.0,NFWSSID hex ifnonnull/nonzero firstbyte,and NFWActive1;this wrapper supplies no password. An SSID beginning00 is omitted by the shared writer gate despite nonzero length. The main persistent settings file is the separate credential-bearing write.",
+    "ssid_report_selection": "0x10014860 clears SSID manager bad-credential counterbase0x10050ff8+6e0;only when global0x10050130nonzero and countnonzero does it tail-call0x100137f4(ptr,count,1). That helper first requires count==global0x10050118 and bytes equal currentSSID0x100551e0. It searches existing list rows by explicitSSIDlength/memcmp,then compares stored password strings with current0x10055624. Existing identical credentials return early;changed/missing row selects report flagsbase+6d8=1,+6dc=0. Broader list manager/report transport remains unresolved. The callback does not guarantee file-write success or synchronous replication.",
+    "fresh_household_marker": "Config+78 main-bound0x1000b384 (store0x10002f60) receives pending flags&1 at0x10021808 when pendingHHID nonempty. It calls0x10004ca4 with that boolean and returns1 regardless. Helper formats<runtime root0x10055668>/fresh_hh.txt,always attempts unlink first;nonzero then logs Creating fresh household and calls sonosFileWriteInt(path,1). Unlink/write/format results are not converted to callback failure. Clearbit0 therefore removes the marker;setbit0 attempts to replace it with value1. In the separately established FirstZP projection,clearbit0 produces FirstZP1 while setbit0 preserves the current FirstZP byte. These are two concrete effects of the same bit,not a complete interpretation of all its validation/state uses.",
+    "registration_pending_marker": "Config+80 main-bound0x1000b41c (store0x10002f78) is invoked with1 at0x10021754 when nonempty pendingHHID is applied and currentHHID length pointed bysnapshot+8==0. It calls0x10003be0 and always returns1. Helper formats<settingsroot>/net/run/registration_pending in128 bytes;format result>127 returns without changing marker state. Nonzero argument calls sonosFileCreate with emptycontents/length0. Even creationfailure logs and continues tosetglobal0x10050b60byte1,invoke ignore-path setup0x10003b6c and update driver advertised-path block0x10003b04. Zero argument attempts unlink,clearsglobal50b60 regardless unlink result,then updates driverblock. This local registration marker is distinct from NS2 registeredbyte+1ac and the32-byte RegSigningKey.",
+    "path_block_and_timer": "0x10003b04 calls WifiFuncsBlockAdvertisedPath(ath0,1) while pendingbyte0x10050b60nonzero,or u16global0x1005013enonzero;otherwise argument is byte0x1005011e. Meanings/producers of the latter configuration fields remain separate work.0x10003b6c sets ignore-path byte0x10050b61=1;on initial transition invokes0x10013a40,which sets SSIDmanagerbase+6e8=1. It replaces matching timer0x10003a08 with30-second deadline through0x10017174. Timer re-registers itself after30sec while registration-pendingbyte nonzero. Once pendingbyte0,it clears ignore-pathbyte,queries WifiFuncsGetLearnedUWCHops(ath0);nonzero learnedhops dispatches SNP_UP event4,then0x10013a58 clears SSIDmanagerbase+6e8 and runs a deferred reconfiguration when+6ecnonzero (clears that flag,tail0x100134c4). Removing registration marker therefore does not immediately clear ignore-pathbyte;the timer later processes it. Allocation/query/driver/timer returns are ignored by these callers.",
+    "remaining": "Trace remaining apply/config callbacks,all marker/config initial producers,SSID list/report/reconfiguration engine and full flag/state interactions. Local marker file contents,error handling,advertised-path predicate and pending timer loop are established."
    }
   },
   "bin_wacd": {
