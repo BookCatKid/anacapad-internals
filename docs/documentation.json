@@ -156368,7 +156368,7 @@
     "Trace metadata meanings in other envelope consumers and the remaining envelope caller state transitions. Preserve the already established parsing, decryption, authentication, PIN proof and common-reset contracts.",
     "Finish configured/default PSK reload and reset triggers and cached-credential lifecycle effects beyond daemon-local IPC command23. Main shutdown cancellation of the four-hour expiry callback and in-memory default/cached PSK and registration-secret destruction are established. Do not enter the external request-object/service receiver lane.",
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
-    "Finish the saved-output queue: slot flags, age/due/next-deadline arithmetic, identifier producers, framing beyond ACK/close-notify, and retry effects in other transport states.",
+    "Finish the saved-output queue: all slot flag writers and state effects, incoming/outgoing identifier producers and record-counter join, clock callback producers, framing beyond ACK/close-notify, and full input/output/error behavior in other transport states. Three-slot allocation/reclaim, exact signed millisecond age/due/next-deadline expressions, tie handling, delay saturation, fresh-now backoff and verified close/connected retry callers are established.",
     "Trace the remaining NS2 messages individually, including their parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 has a separate complete byte/parser/retirement record.",
     "Finish settings apply notification effects, full flag domains, WAC fallback admission and flag producers, per-state entry/exit/teardown effects, and the target-state selection chain. Preserve the verified WEP/frequency/projection/file and marker effects.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
@@ -158427,6 +158427,62 @@
      "build": "86.10-80260",
      "address": "0x10022fec",
      "notes": "Standby/completed button handling restores contactless CHIRP budget10, not PIN destruction; callback GOT0x1004f9d8 points to contactless timeout trampoline0x1001efb0."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10027934",
+     "notes": "Signed64 division truncates the microsecond difference before adding seconds*1000."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002798c",
+     "notes": "Raw add. updates CR0 for signed high-word age comparison; equal quantized ages retain first candidate."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100279bc",
+     "notes": "Reclaimed eligible slot is fully cleared, unlike immediate free-slot allocation."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10027c14",
+     "notes": "Due selector maximizes nonnegative lateness and ignores the two flag bytes beyond in-use."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10027d74",
+     "notes": "Next selector skips negative remaining time; it does not return every overdue slot."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10027e70",
+     "notes": "Positive high word of next delay saturates optional output to0xffffffff milliseconds."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1002800c",
+     "notes": "ACK builder marks reclamation-eligible byte before attempting ssl_write."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100252e8",
+     "notes": "Connected retry caller advances saved-slot backoff before its output pump."
     }
    ],
    "setup_client_hello_payload": {
@@ -158940,17 +158996,17 @@
    },
    "dtls_close_notify_queue": {
     "layout": "Queuecontext istransport+758,size0x1848. Offset0 outputcursor,4 outputbytecount,8 1500-byte ciphertextbuffer;three fixed0x61c-byte slots atcontext+5ec,+c08,+1224. Current pointer+1840,previous/saved pointer+1844. Slot+0 in-use,+1 exclusion/completion flag,+2 eight-byte ACK identifier,+a eight-byte copied SSL record-counter snapshot,+14 cachedciphertextlength,+18 cachedciphertextbytes;byte+5f4 participates in pending replay/ACK gating;u32+5f8/+5fc timingparameters,+600 currentinterval,+604/+608 timestamp,+60c/+610 deadline. Complete meanings/producers of all slotflags and timinglimits remainopen;these offsets are joined through writer/replay consumers rather than general queue terminology.",
-    "slot_selection": "0x100278b0 scans exactlythree slots. Firstslot+0==0 is markedin-use andselectedcurrent,withtimestamp copied;this branch does not memset the entire slot. Whenallused,it considers slots with+5f4nonzero and+1zero,compares timestamps through a64-bit expression,then clearschosen slot0x61cbytes,marksin-use andassignscurrent/timestamp. Ifchosen matchespreviouspointer,it clearspreviouspointer first. Nullcandidate returns0. Detailed age-comparison formula remainsunresolved;do not call it FIFO/oldest based on appearance alone. Closebuilder translatesno-slot to-1.",
+    "slot_selection": "0x100278b0 examines the three slots in physical order. The first in-use byte+0==0 wins immediately, is marked1, becomes context current+0x1840, and receives the supplied timestamp at slot+0x604/+0x608. That free-slot path does not clear the rest of the slot. Only when all three are in use does it reclaim: eligible byte+0x5f4!=0 and exclusion byte+1==0; first eligible becomes candidate, later eligible replaces it iff D(candidate.creation,later.creation)>0. Thus it selects the oldest eligible creation time at the helper's quantized precision and retains the first candidate on ties. It does not use retry deadlines or the supplied current time to impose a minimum age. If selected equals previous pointer+0x1844, that pointer is cleared. Reclaimed slot is memset0 for0x61c bytes, marked in use, assigned current and given the supplied timestamp. No eligible slot returnsNULL without clearing or updating existing current/previous pointers.",
     "replay_before_build": "0x100283a8 resetsoutputcursor/count0. Ifpreviouspointernonnull anditsbyte+5f4nonzero,it invokes0x1002808c tocopythat slot cachedciphertext+18/length+14 backtooutputbuffer,setsoutputcurrent pointer/cursor/count/replayflag+5e8,then reusesprevious ascurrent andjumps directly toclose construction. Existingcurrent is otherwiseused;nullcurrent requestsfixedslotselector. Replay isliteralcopy ofcachedencryptedbytes,not another mbedTLS encryption ofanapplicationmessage.",
     "ack_prelude": "Builder comparescurrent slot+2 eightbytes withzero. Ifnonzero,serializer0x10028f34 emitsopcode1 ACK into12-byte scratchwith requiredtag26 binary field,width8. Its schema is0x100362fc={tag26,required1,type2,flags1};commonwriter0x1002e690 emitsone-byteopcode,0x1002e7a0 emitstagbyte/BEu16length,and finalizerchecksrequired occurrence. Exactframe01 1a 00 08 <8identifierbytes>. Serializerfailure returns-1. It invokes mbedtls_ssl_write ontheACK;negative result returns immediately. Nonnegative result,includingzero orshortpositive,clears slotbyte+5f4 andcontinues;thecaller doesnot separatelyverifythat all12plaintextbytes wereaccepted. All-zeroidentifier skipsACK serialization/write.",
     "close_notify_producer": "Before mbedtls_ssl_close_notify at0x10028490,builder copiesSSLcontextbytes+dc..e3 into slot+a..11. This snapshot is takenafteranyACK write. A signednegative close-notify result returns directly,without copyingnewcachedciphertext or refreshing this deadline. Nonnegative close-notify copiesoutputbuffer into slot+18,storescachedlength+14,thenreadsSSLconfigpointerSSLcontext+0 timingwords+98/+9c into slot+5f8/+5fc andcurrentinterval+600. It computesdeadline=currenttime+firstinterval milliseconds,withseconds quotient/remusec andcarry past999999. It returnsoutputbytecount. Snapshot meaning in shippedmbedTLS layout and later ACK matching remainindividual work;no guessofits identifier domain here.",
     "output_capture_and_retention": "Capturehelper0x10027ee4 appends intoqueue outputbuffer whilecount+requested<=1500 under unsigned arithmetic;capacityfailure returns-0x6a00. Closebuilder then retains capturedbytes asabove. Drainhelper0x10027e8c memset1500-byte workingoutput,clearscursor/count/replayflag/deadlineword+5e4,savescurrent aspreviouspointer andclearscurrentpointer. It doesnot memsetcachedslotciphertext or markallthree slotsunused. This explains how later close/retry canrestore bytesaftertheworkingbufferwascleared. Wholequeuecleanup0x10027a9c isdifferent:memset0x1848 clearsallslots/pointers.",
-    "remaining": "BIOcapturebindingand1000/60000ms timingconfiguration areestablished indtls_capture_retry_configuration. Finishrecord-counter/ACKidentifierproducerjoin,slotflags,due/nextdeadline andslot-age arithmetic,andqueueframingbeyondclose."
+    "remaining": "BIO capture binding, configured1000/60000ms timing and slot-age/due/next-deadline arithmetic are established. Finish record-counter/ACK identifier producer join, all slot flag writers and their state effects, clock callback producers, and queue framing/caller transitions beyond close. See dtls_queue_slot_and_deadline_selection for precise selection, saturation and sub-millisecond behavior."
    },
    "dtls_ack_retirement_and_retry_limits": {
     "ack_retirement": "CompleteACKwire/parser/matchedslotcontract ispayload_formats.ns2_ack. InboundACK usesstoredslot+a..11,whichoutboundbuilderscopyfromSSLcontext+dc..e3 beforembedtlswrite/close_notify. Eightbytesatnode+2 usedforoutgoingACKareseparatefrommatchednode+a. DonotconflatetheACKtosendwiththeidentifierforthisslotciphertext. ExactSSLrecord-counterproducer/receiverjoinstillrequired.",
     "backoff": "0x10028614 reads currentintervalu32slot+600 andmaximumu32+5fc. Ifcurrent>=maximumunsigned,itreturns0 withnomutation. Otherwisecomputesdoubled=(current<<1)mod2^32,storesmin(doubled,maximum),setsdeadline=currenttimepluschosenintervalmilliseconds(normalizesmicroseconds),returns1. Itdoesnotclampandcontinueforeveratmaximum. Withunusuallargevaluesdoublingcanwrap;nooverflowguard. Minimum+5f8 isnotreadbythishelper;outboundbuildersinitializecurrentfromit.",
-    "retry_error_consumer": "CLOSE_NOTIFY_SENTstate8 writehandler0x10024928 asksdue-slotselector0x10027b40 forslot,restorescachedciphertextvia0x1002808c,then invokesbackoffhelper. Backoffreturn0logsretryexpirationandcalls0x100247c0 cleanupiftransportstate nonzero,withoutenteringthewrite loop. Successwritesrestoredciphertext,drainsworkingbufferandrescanforadditionaldueentries. WANT_READ/WRITE recordsdirection/returns;othernegativewritecleansup. Exactdue-slot arithmetic,deadline timer registrationandotherroleconfiguration remainunresolved;initializedserverpresets1000/60000ms andtimerbinding areestablished indtls_capture_retry_configuration. Thiscallerprovesthatreachingmaxcanterminateconnection,ratherthanjustchooseaninfinitefixedretryrate."
+    "retry_error_consumer": "CLOSE_NOTIFY_SENT state8 write handler0x10024928 chooses the most overdue eligible saved slot through0x10027b40, restores its literal ciphertext through0x1002808c, then invokes backoff0x10028614. Return0 logs expiration and calls cleanup0x100247c0 if state nonzero without entering the write loop. A successful advance writes restored ciphertext, drains the working buffer and rescans due slots using refreshed time. WANT_READ/WRITE records direction and returns; other negative writes clean up. When no due slot remains, it calls next-deadline0x10027c80 and schedules0x100240ac only for a nonnull slot, using its possibly saturated u32 millisecond delay. Exact helper predicates/arithmetic and timer bridge are established in their records. Other state-specific input/output errors, identifier producers and unverified role configurations remain open."
    },
    "dtls_capture_retry_configuration": {
     "configured_constants": "Successfulconfig-defaults branch0x10026364 callsmbedtls_ssl_conf_handshake_timeout(config,1000,60000). Loopinitializes exactlytwo0xb0-byte serverDTLS presets,PSKthenECJPAKE;seconddefaults joins samecall at0x100263dc. Shippedlibmbedtls.so.21 export0xd45c storesminu32atconfig+98,maxu32at+9c withno normalization. Outboundbuilders0x10028268/0x100284b8 copythose exactfields fromSSLconfigpointer into savedslotminimum+5f8,maximum+5fc,current+600. Thusfor theseinitializedpresets currentstarts1000ms,max60000ms. Otherrole/indexconfigselection remainsseparate work;do not extendthis toanuntracedconfigrow.",
@@ -159033,6 +159089,16 @@
     "errors_and_partial_changes": "Socket failure logs errno and returns-1. A failed GET or SET logs and records overall failure, but iteration still attempts subsequent interfaces. It closes the socket regardless of ioctl outcomes and ignores close result. Any ioctl failure returns-1 before updating the disable/test latches; previously successful interface changes are not rolled back. Therefore the software latches can disagree with actual interface UP flags after a partial failure. All-ioctl success or an empty iteration returns0 after bookkeeping. The helper does not wait for association, DHCP, link readiness or a driver result event.",
     "disable_and_test_latches": "For start_index==0, u16 global0x10050142 is set to enable==0. For any other start_index it retains its old value. At0x1001143c mfcr followed by rotate19/mask31 extracts CR4.eq from the enable==0 comparison, confirming this is a boolean disable latch rather than a channel or unspecified mode. Independently global u16 0x10050140 becomes (retained-or-new disable latch!=0 && test!=0). The test argument does not set an extra kernel interface flag or change the ioctl operation. SIGUSR1 subsequently checks0x10050142 to force wireless setup blocked, even if setup was explicitly requested.",
     "known_callers": "Direct branch/call census finds four callers, all start_index0. Daemon-local Wi-Fi test start0x10008da0 passes(0,0,1), test end0x10008cf8 passes(1,0,1); both callsite branches ignore the helper return. Network state handler0x1001159c passes(0,0,0),0x100115b4 passes(1,0,0); both retain handler return1 regardless of helper result. These distinguish normal disable/enable from test bookkeeping without claiming their full caller event/state machines are finished."
+   },
+   "dtls_queue_slot_and_deadline_selection": {
+    "time_difference": "The repeated PPC arithmetic computes D(A,B)=signed32(A.seconds-B.seconds)*1000 + trunc_toward_zero(signed32(A.microseconds-B.microseconds)/1000), with subtraction modulo2^32 before signed interpretation and signed64 multiplication/addition. Timestamp fields are seconds/u32 and microseconds/u32 pairs. It does not normalize the difference by borrowing a second before dividing. At0x10027934 __divdi3 receives a sign-extended microsecond difference and divisor1000;0x10027940 sign-extends the seconds difference. The rotate/subfc/subfe/addc/adde sequence forms seconds*1000, then adds the quotient. Final0x1002798c raw0x7d434a15 is add. with Rc1, so the following CR0 branches inspect the computed signed high word. Independently emulating the raw arithmetic for slot-age, due and next-deadline expressions matched this formula for30000 cases, including negative fractions and second crossings.",
+    "millisecond_boundaries": "For valid normalized timestamps, a same-second future deadline999us ahead yields D(now,deadline)=0 and is treated as due; exactly1000us ahead gives-1 and is not due. A deadline500us ahead across a second boundary, now10.999500/deadline11.000000, gives-1 rather than0. Reversing that pair gives1. Consequently the calculation can distinguish sub-millisecond gaps across a second boundary while treating the same-second gap as a tie. The helpers perform no pointer, timestamp normalization or clock-wrap validation. The signed32 seconds subtraction also means ordinary chronological descriptions assume differences within the signed32 seconds domain.",
+    "slot_allocation": "0x100278b0 examines the three slots in physical order. The first in-use byte+0==0 wins immediately, is marked1, becomes context current+0x1840, and receives the supplied timestamp at slot+0x604/+0x608. That free-slot path does not clear the rest of the slot. Only when all three are in use does it reclaim: eligible byte+0x5f4!=0 and exclusion byte+1==0; first eligible becomes candidate, later eligible replaces it iff D(candidate.creation,later.creation)>0. Thus it selects the oldest eligible creation time at the helper's quantized precision and retains the first candidate on ties. It does not use retry deadlines or the supplied current time to impose a minimum age. If selected equals previous pointer+0x1844, that pointer is cleared. Reclaimed slot is memset0 for0x61c bytes, marked in use, assigned current and given the supplied timestamp. No eligible slot returnsNULL without clearing or updating existing current/previous pointers.",
+    "due_selection": "0x10027b40(queue,now) scans the same three slots, requiring in-use byte+0!=0 and current retry interval u32+0x600!=0. It computes lateness D(now,slot.deadline), rejects negative signed64 values, and selects the greatest remaining lateness. Ties retain the first physical slot. Its initial comparison value is signed64 minimum {high0x80000000,low0}. Signed high comparison, unsigned high equality and unsigned low comparison at0x10027c14/+0x1c/0x10027c70 prove greatest-lateness selection, not first-due selection. It does not test exclusion byte+1 or byte+0x5f4. No eligible due slot returnsNULL and no queue field is mutated.",
+    "next_deadline": "0x10027c80(queue,now,optional_delay_u32) requires exactly the same in-use/nonzero-current-interval gates. It computes remaining D(slot.deadline,now) and skips negative signed64 values, rather than returning an overdue slot with a clamped zero. First nonnegative candidate is retained unless D(selected.deadline,later.deadline)>0, in which case the later candidate becomes selected. Equal quantized deadline comparisons retain the first. Return is selected slot pointer orNULL. If selected and output pointer nonnull, stored delay is the low32 bits when the nonnegative high word is0; positive high word stores0xffffffff. No selection leaves the output untouched. Zero is a valid delay. The saturation is a u32-millisecond delay cap, not an error or a promise that every overdue packet was considered.",
+    "deadline_initialization": "0x10027ab0(slot,min_ms,max_ms,now) stores min+0x5f8, max+0x5fc, current+0x600=min and deadline now+min milliseconds. Unsigned multiply-high0x10624dd3 and shift6 implement /1000; remainder*1000 adds microseconds. When signed microsecond sum>999999 it carries the quotient of /1000000 into seconds and subtracts that many microseconds. Equivalent code is inlined in application builder0x10028268, close builder0x100284b8 and successful backoff0x10028640. There is no input validation or checked seconds overflow. For valid normalized now and configured1000/60000ms values, deadlines are normalized seconds/microseconds pairs; backoff uses fresh supplied now, not the previous deadline.",
+    "verified_consumers": "Close-notify retry0x100249a0 uses due selection, restores cached bytes, advances backoff, sends and rescans; reaching maximum invokes cleanup rather than another write. If no due slot,0x10024b28 uses next-deadline and schedules0x100240ac only on nonnull selection. Close output pump0x10024ec8 likewise schedules only with a selected deadline. Connected-state retry helper0x1002526c/0x100252b0/0x1002533c uses the same greatest-lateness selector, restores ciphertext and advances backoff; successful advance calls output pump0x1002500c, and expired backoff invokes0x100247c0 if state nonzero. A clock callback missing in those consumers supplies {0,0}. Full connected-state input/output error behavior and clock callback producers remain separate work.",
+    "flag_writer_boundary": "ACK capture0x10027f54 allocates a slot using the supplied creation time, copies eight received-record bytes via SSLcontext+0x5c into slot+2, serializes ACK and sets slot+0x5f4=1 before ssl_write. Only positive ssl_write caches working ciphertext into slot+0x18, length+0x14 and context ACK-plaintext-length word+0x5e4. Negative or zero results do not perform that cache copy here. Application builder0x10028254 and close ACK prelude clear+0x5f4 on their established nonnegative-success paths. This joins a concrete producer to the reclaim predicate, but does not finish every flag writer, incoming identifier domain or serializer/caller transition."
    }
   },
   "bin_wacd": {
