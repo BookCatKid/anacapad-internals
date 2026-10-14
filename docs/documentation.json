@@ -119142,7 +119142,7 @@
      "notes": "Main callback requests mode8, mapping to local command43, then always returns1."
     }
    ],
-   "todo": "Established: opcode18 wire and initial/pending handlers, signed cancel gate, followup branch/socket cleanup and local command39/41 pending-update producers/overwrite/delay behavior. Remaining: shared reset notification/driver effects, full followup network-event handlers, aliased followup bit4 writer and lower utility/HAL interpretation reached by cancel. Trace the concrete callees/consumers while retaining the request/dispatcher exclusion.",
+   "todo": "Established: opcode18 handlers, cancel/followup paths, deferred-setting producers, shared reset diagnostic collector and local reset/mode/event-notification ordering. Remaining: reset marker/time/field producer chains and lower event reporting, full followup event handlers, aliased bit4 writer and lower utility/HAL effects reached by cancel. Preserve the external request/dispatcher exclusion.",
    "pending_state": "0x1001c544 defaults status8. Only stored flags+0xa5c bit0!=0 AND contactless-budget predicate0x10024078!=0 takes reauthorization-success branch. That branch calls0x10022fac to restore budget10 and schedules callback0x1001efb0(session,0) for1800000ms via config+0x20 when present; GOT slot0x1004f9d8 proves callback. This branch does not first call the cancellation wrapper, unlike standby/completed button helper0x1001bc1c. It then chooses status7. Missing scheduler does not turn it into status8 or suppress the remaining state change. The permission check does not parse a new PIN proof or inspect a received identifier here. Both status7 and status8 branches serialize opcode9 SETUP_STATUS through0x1002b470, which writes required tag13/u16BE. Exact status7 frame09 0d 00 02 00 07; status8 frame09 0d 00 02 00 08. Serializer success calls0x10026798; failure logs. Both paths then clear flags+0xa5c, transition to START2 through0x1001c220, invoke optional config+0x6c(cookie+0x34), ignore its return, and return1 to consume the setup/button request. Serialization or submission failure does not roll back renewed contactless budget, flags clear or state transition. Submit0x10026798 semantically tail-calls0x10026648 with completion callback/argument0, so these status messages have no packet-specific completion callback. Main stores0x1000ac74 at NS2 config+0x6c (stack+0x88 at0x10002f3c). It calls0x10007a94(0), writes integer0 to /var/run/netstart_mode, maps mode0 to local command31 and tail-submits through0x10006b2c, then returns1 ignoring the notification result. This final notification happens after the START2 transition, not only after an acknowledged status response. External command receiver is explicitly outside this lane; the local send is not evidence that the receiver executed a driver change.",
    "timeout_and_reconnect": "State14 idle timeout0x1001c434 only tail-transitions to START2, using the state setter and new60second start-state timer. It does not call the button helper, renew contactless budget, send status7/8, clear flags or issue config+0x6c here. Reconnect0x1001cfb0 instead tail-calls common reset with a reason pointer; the transport caller clears the saved DTLS queue before this notification and resumes handshake afterward. Common reset explicitly clears reauthorization flags/cap along with other session working data; its remaining lower notification/driver effects belong to the shared reset trace."
   }
@@ -137592,6 +137592,59 @@
      "build": "86.10-80260",
      "address": "0x121c",
      "notes": "Close invalidates fd before mode-specific pathname unlink and mode0."
+    }
+   ]
+  },
+  "netstartd_setup_diagnostic_capture": {
+   "name": "Setup diagnostic file collector",
+   "functions": "Collector0x100037d4(success_marker), kernel capture0x100034dc(directory), section heading0x1000364c(fd,label), file append0x100036d4(fd,label,source), exact-write helper0x10003574(fd,bytes,length). Invoked by reset callback0x1000ad40 after flushlog. This primitive is diagnostic capture; it does not modify network credentials or authenticate a setup client.",
+   "destination_and_gates": "Zero marker selects <settings root0x100558d0>/sys/log/setup; any nonzero selects same path with suffix_ok. snprintf capacity256 rejects signed result>255; negative result has no explicit rejection. Calls sonosMkDirRecursive; result0 stops before capture, nonzero continues. Kernel snapshot destination is <directory>/setup.dmesg, formatted in256bytes with same>255 stop. It calls klogctl(action3,buffer,16384); signed negative skips file creation, nonnegative calls sonosFileCreate(path,buffer,returned_length,0), ignoring result. No fixed16KiB content guarantee and no collector-wide rollback.",
+   "combined_file": "It formats <directory>/setup.log in256bytes. Length>255 calls global sync then returns. Otherwise open64 flags0x241 (write/create/truncate), mode0600; fd-1 calls sync then returns. It does not require every source file to exist. Successful open attempts section heading ==== LABEL followed by newline and raw content from these paths in order: VERSION <-/VERSION; timeinfo <-/proc/timeinfo; netstart.log <-/opt/log/netstartd.log; wacd.log <-/opt/log/wacd.log; mdnsd.log <-/opt/log/mdnsd.log; wpa_supplicant.log <-/opt/log/wpa_supplicant.log; station <-/proc/ath_rincon/station. Each source open/read/append result is ignored by the collector, so later sections continue after an earlier failure. The output is a diagnostic text/raw concatenation, not a ZIP archive or structured settings serialization.",
+   "scan_append": "After source sections it writes ==== scanresults followed by newline, closes the combined fd, formats command /wifi/athconfig scangetresults ath0 >> <combined_path> in300bytes, and calls system(command), ignoring snprintf and system results. Path is interpolated without shell quoting. It calls global sync afterward. No separate per-file fsync/result check, scan-success requirement or retry is implemented. Directory/source/command side effects are independent and can leave partial diagnostics.",
+   "append_and_write_errors": "File append source open uses flags0; failure returns0 without heading. Otherwise it writes heading, then reads1024-byte chunks and sends them through0x10003574. read-1 retries only errno4 EINTR; other errors/negative reads close source and return0, EOF closes and returns1. Heading/write failure closes source/returns0. Exact writer returns1 for length0; for positive length it loops over positive short writes, retries write-1 only errno4, and returns0 for other errors or nonpositive progress. It never closes destination itself. The section heading helper uses snprintf1024 then strlen of produced buffer rather than trusting its reported length. Source/destination close results are ignored.",
+   "outer_return": "Reset wrapper0x1000ad40 saves supplied marker r4, calls flushlog, invokes collector(marker), then unconditionally returns1. It does not expose whether directory creation, source copying, command execution or sync succeeded. Its caller proceeds with reset after this callback regardless. Setup_ok selection reflects the supplied marker, not an independent successful diagnostic-capture result.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10003870",
+     "notes": "Nonzero marker selects setup_ok suffix; zero uses setup."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10003550",
+     "notes": "Kernel capture action3 with16384-byte buffer."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100038fc",
+     "notes": "Combined log opened with flags0x241 and mode0600."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100037a0",
+     "notes": "Source file append reads1024-byte chunks and retries EINTR only."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100039f8",
+     "notes": "Scan command executed after closing combined log; results ignored."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000ad68",
+     "notes": "Wrapper returns1 independently of diagnostic file outcomes."
     }
    ]
   }
@@ -156601,7 +156654,7 @@
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
     "Finish the saved-output queue: all slot flag writers/state effects, incoming/outgoing record-counter identifier join, clock callback producers, ciphertext-vs-ACK-length adjustment rationale, full NS2 per-state message/reconnect effects and final FD re-registration. Connected input/output, ACK completion and NS2 admission/deactivation/provenance/idle-timer table are established; payload admission remains distinct from per-state operation acceptance.",
     "Trace remaining NS2 messages individually, including parsers, serializers, callers, predicates, state transitions, response delivery and errors. ACK opcode1/tag26 is complete. REAUTHORIZE opcode18 wire/initial handler, pending button response/permission renewal/local notifications, timeout and reconnect delegation are established; finish shared cancel/reset/network-followup effects retained in its separate TODO. Other message bodies remain individually unresolved.",
-    "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, full per-state entry/exit/teardown/message/timeout effects and target-state selection. Idle caps are joined to session+a60/a61/a62; REAUTHORIZE18 cap tag27/default/guard/local command43 is complete in its format record. Finish BEGIN7/standby parser tags/defaults and other cap branch reachability. Captured-state timeout gate and delegate sequences are established; discovery driver callback, TIMED_OUT notification and open-AP predicate/action need full traces.",
+    "Finish settings apply notification effects and complete reset marker/provenance/time producers, lower event-report delivery, full flag domains, WAC fallback admission, per-state entry/exit/message/timeout effects and target-state selection. Reset callback diagnostic capture, mode notification order/uninitialized second command47 word, before-clear settings application and local session/state event field mappings are established. BEGIN/standby timeout parsers, discovery driver callback, TIMED_OUT notification and open-AP actions remain open.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace remaining external-settings/SSID-manager snapshot and reporting-latch/mode producers and registered triggers/teardown. Outgoing settings command39 payload109, credential selection, exact copy bounds, household-change command80 snapshot-before-send and payloadless33/34 source predicate are established. External IPC signing/service receiver remains outside this lane.",
     "Finish event-loop integration: SIGUSR1 nonnull modeword producers/downstream notifications, full followup event handlers, bit4/aliased flag writers, other registration users, network-owner descriptor producers, lower HAL utility and allocation ownership. Local IPC initialize/accept/close context lifecycle, fixed primary/WAC paths and startup admission/failure handling are established, along with header/body extents and command/followup/signal work. Runtime socket permissions are not explicitly selected by the examined helper."
@@ -159197,6 +159250,48 @@
      "build": "86.10-80260",
      "address": "0x10009944",
      "notes": "SIGPIPE ignored before IPC notification writes; installation result not checked."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001cae0",
+     "notes": "Diagnostic hook receives success marker before it is cleared."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000a980",
+     "notes": "Command47 wrapper stores only firstword of declared8-byte payload."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000a994",
+     "notes": "Mode0 notification follows command47; open-mode gate can add mode2."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001c8dc",
+     "notes": "Reset can apply ready pending settings before transient cleanup."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000b04c",
+     "notes": "Session report gets startTime/duration from caller stack arguments."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10033d44",
+     "notes": "Requested setup-mode enum selects concrete transport/proof labels for session report."
     }
    ],
    "setup_client_hello_payload": {
@@ -159926,6 +160021,36 @@
     "wac_listener": "When startup HouseholdID length0x10050130==0,0x10009b70 writes /var/run/wac_mode integer0, initializes accepted WACclientfd0x10055768+0x70=-1, then calls InitializeIPCContext(0x10055064,1,\"/tmp/netstartd_wac.ipc\") at0x10009b98. Failure logs Failed to init WAC IPC and rejoins read-registration0x10009bb4; registration return ignored. A nonempty startup HouseholdID skips this WAC-listener initialization branch. The receiver maps each listener to its own accepted-client descriptor and rejects another connection while that descriptor!=-1.",
     "signal_and_permissions": "Daemon init0x10009944 calls signal(13,1), ignoring SIGPIPE so a failed local write can take the documented writer error path rather than that signal's default termination. Signal installation result ignored. The examined initializer does not request socket chmod/chown/umask changes, and netstartd dynamic imports contain no such calls. Therefore this trace establishes fixed path creation/removal and single-client handling, not a fixed octal socket permission or a named permitted account. The actual runtime filesystem permissions/ownership are not selected by this helper; do not invent an authentication guarantee from its pathname alone.",
     "context_mode_boundary": "The accept helper only writes the descriptor output word and sets its nonblocking flag. It does not mark separate accepted-client context mode2, fill its pathname or allocate it. These static client contexts start zeroed with mode0; ordinary local acceptance retains that mode. Mode2 warnings in generic receive-error code are not evidence that accepted clients were initialized through a mode2 connect operation. Contextfd ownership and close behavior are established in local_ipc_context_lifecycle."
+   },
+   "shared_reset_notifications_and_diagnostics": {
+    "hook_order": "Common reset0x1001c984 obtains clock snapshot through optional config+0x2c and computes current firstword minus stored start+0xac8; return of clock callback is ignored. It reports optional session event through config+0xdc before clearing flags/data. Later0x1001cae0 invokes optional config+0x70(cookie+0x34,byte+0xac6), then clears+0xac6. Main binds+0x70=0x1000ad40 (stack+0x8c), which flushes log and captures diagnostics before returning1 regardless of results. Config+0x58 receives word+0x2a0 at0x1001cb0c before pending-settings cleanup. These callbacks run before the main working-buffer, flag and timer clears; they observe the pre-clear snapshot.",
+    "mode_notification": "Main config+0x58=0x1000a958 sends local command47 with8payload bytes. First word is supplied mode from session+0x2a0; only that first word is explicitly stored by this wrapper before send. The next4bytes in its payload stack region are not initialized here. It then writes local mode0/command31 via0x10007a94(0). If current open-mode0x10050108!=0 and companion0x10050104==0, it additionally writes mode2/command32. It returns boolean(first command47 send==0), without incorporating either later mode notification outcome; reset ignores that return. Full external command47 receiver is outside this lane. Do not describe its8bytes as two fully defined words.",
+    "settings_before_clear": "Reset checks pending valid byte session+0x1b0 and ready-to-apply byte+0x294 before0x1001c864. That helper first rejects an active credential-check condition via0x10021538. Otherwise it calls settings apply0x10021668; failure clears pending settings and success marker+0xac6, success clears ready byte but retains the existing success marker. Both paths reset the cached credential-check result through0x100214e0. Hence a reset can commit already-ready settings before wiping transient setup/PIN data. The diagnostic marker has additional writers in operation handlers, so it must not be equated solely with this apply helper's result.",
+    "session_event_shape": "Main config+0xdc=0x1000ae80 builds event category zpSetup,type9,eventType=session. Fields: zpVersion constant86.10-80260, crVersion from session+0xa96, sessionID from+0xa63, transport udp when session+0x2a0==0 otherwise unknown, setupMode string from requested mode+0x29c, connectionType string from active transport/auth word+0x2ac, setupStatus success when marker+0xac6 nonzero else supplied reset reason or none, count from+0x1a8, startTime from+0xac8, duration from first clock word minus start modulo2^32 when clock callback is present, otherwise0. Builder adds strings/unsigned fields then report_event; any nonzero init/add/report result logs and returns0, full success returns1. Reset ignores it. Clock selector/unit and full lower event-report delivery remain unresolved; field name startTime does not by itself prove epoch seconds.",
+    "setup_mode_names": {
+     "0": "none",
+     "1": "nfc",
+     "2": "chirp",
+     "3": "manual pin",
+     "4": "client pin",
+     "5": "chirp with button",
+     "6": "QR code",
+     "7": "QR code with button",
+     "8": "QR code with remote",
+     "outside0..8": "unknown"
+    },
+    "connection_type_names": {
+     "0": "none",
+     "1": "fixed PSK",
+     "2": "device PSK",
+     "3": "hh PSK",
+     "4": "static PIN",
+     "5": "rolling PIN",
+     "6": "client PIN",
+     "7": "unknown",
+     "outside0..7": "unknown"
+    },
+    "state_event": "Main config+0xd8=0x1000ad78 builds zpSetup,type9,eventType=state with oldState and state strings. State setter invokes it before storing the new numeric state, then ignores success/failure. It returns1 only when init_event_ctx, everyadd_pair_str and report_event return0; otherwise logs/returns0. These are local report-construction semantics, not proof of remote telemetry delivery."
    }
   },
   "bin_wacd": {
