@@ -137533,6 +137533,67 @@
      "notes": "Malformed/short read maps-10; invalid argument maps-9."
     }
    ]
+  },
+  "local_ipc_context_lifecycle": {
+   "name": "Local Unix IPC context initialization acceptance and closure",
+   "functions": "Shipped libsonosutils.so.1 InitializeIPCContext0x1264,size0x19c; HandleClientIPCConnection0x1400,size0x108; CloseIPCContext0x11e8,size0x7c. Context sockaddr region+0..+0x6d (familyu16+0,path108bytes+2), fd signedword+0x70, modeword+0x74. Bytes+0x6e/+0x6f are not part of the initializer's110-byte memset.",
+   "initialize_contract": "InitializeIPCContext(context,mode,path) NULLcontext ->-1. Nonnull immediately stores requested mode+0x74 and fd-1, then memset110sockaddr bytes. It does not close an old storedfd before overwriting it, so reinitialization is not safe replacement of a live connection. PathNULL or strlen>107 ->-3 with cleanup. Empty string passes this helper's validation; kernel bind/connect determines its outcome. It creates socket(AF_UNIX1,SOCK_STREAM1,protocol0), storesfd; socket failure ->-4 with cleanup. It calls fcntl F_GETFL3, then F_SETFL4(oldflags|O_NONBLOCK0x800), checking only SET result; failure ->-11. No FD_CLOEXEC request here. After successful flags it stores family1 and strlcpy(path,capacity108). Modes other than1 or2 ->-2 after socket creation/copy, with cleanup.",
+   "listener_and_client": "Mode1 unlinks original input path unconditionally, ignores unlink result, binds110-byte sockaddr from context, then listen(backlog5). Bind failure ->-5, listen nonzero ->-6, success0. There is no chmod/chown/umask/peer-credential operation in this helper. It does not create parent directories or choose a mode/owner explicitly. Mode2 calls connect on the nonblocking socket with sockaddr length110; only immediate result0 succeeds. Any nonzero result, including a pending-connect indication, ->-7 and cleanup; no asynchronous completion state or retry. Mode word retains1/2 on success.",
+   "failure_cleanup": "Every initialization error, including NULLcontext, delegates to CloseIPCContext then returns the selected negative code. Early path/socket/fcntl failures occur before copiedpathname; later mode1 bind/listen failures have pathname populated, so cleanup requests unlink again. The helper provides no restore of an old context/socket/pathname, and does not return errno or distinguish its reasons. Side effects that happened before failure, such as initial pathname unlink, are not rolled back.",
+   "accept_contract": "HandleClientIPCConnection(listener,optional_fd_out): NULLlistener or signedfd<0 ->-1; mode!=1 ->-2. accept failure ->-8. Acceptedfd with NULLoutput is closed, returns-12. Otherwise F_GETFL followed by F_SETFL(oldflags|0x800), only latter checked; SET failure closesfd and returns-11 without output store. Success writesacceptedfd tooutput, returns0. No peer identity query, authentication exchange, FD_CLOEXEC, allocation or context-mode initialization. Accept output is a descriptor word, not a fully initialized new context. It does not replace an old fd stored at that output pointer; caller supplies ownership policy.",
+   "close_contract": "CloseIPCContext(NULL) returns. Nonnull closes signedfd>=0, marksfd-1 regardless of close result. Old mode1 with pathnamefirstbyte!=0 unlinks context+2 then clears that first byte. All nonnull paths setmode0. Other pathname bytes, family and padding are retained. Close/unlink results ignored; no context free. A listener descriptor already negative can still cause pathname unlink when mode1. This is explicit object invalidation and pathname cleanup, not rollback of initializer side effects.",
+   "users": "Netstartd primary/WAC listener initialization uses mode1 and fixed paths; accepted descriptors are stored into separate static client contexts. Shared sender and receiver errors use CloseIPCContext; their frame/read/write contracts are separately documented. This primitive does not execute commands for either endpoint.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1284",
+     "notes": "Mode and fd are overwritten before clearing sockaddr; no oldfd close."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x12b0",
+     "notes": "Path byte length admits0..107."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x12f4",
+     "notes": "Only F_SETFL result is checked; nonblocking request0x800."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1398",
+     "notes": "Listener unlinks original path before bind/listen5."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x1338",
+     "notes": "Nonblocking client connect must return immediate0."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x14e0",
+     "notes": "Null accept output closes newfd and returns-12."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonosutils.so.1",
+     "build": "86.10-80260",
+     "address": "0x121c",
+     "notes": "Close invalidates fd before mode-specific pathname unlink and mode0."
+    }
+   ]
   }
  },
  "subsystems": {
@@ -156543,7 +156604,7 @@
     "Finish settings apply notification effects, full flag domains, WAC fallback admission/flag producers, full per-state entry/exit/teardown/message/timeout effects and target-state selection. Idle caps are joined to session+a60/a61/a62; REAUTHORIZE18 cap tag27/default/guard/local command43 is complete in its format record. Finish BEGIN7/standby parser tags/defaults and other cap branch reachability. Captured-state timeout gate and delegate sequences are established; discovery driver callback, TIMED_OUT notification and open-AP predicate/action need full traces.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace remaining external-settings/SSID-manager snapshot and reporting-latch/mode producers and registered triggers/teardown. Outgoing settings command39 payload109, credential selection, exact copy bounds, household-change command80 snapshot-before-send and payloadless33/34 source predicate are established. External IPC signing/service receiver remains outside this lane.",
-    "Finish event-loop integration: SIGUSR1 nonnull modeword producers/downstream notifications, full followup event handlers, followup bit4/aliased writers, socket initialization/pathname/permission policy, other registration users, network-owner descriptor producers, lower HAL utility and allocation ownership. Local IPC header/body extents, short-read failure policy, accepted-fd nonblocking setup, single-client rejection and CloseIPCContext mutations are established alongside prior command/followup/signal work."
+    "Finish event-loop integration: SIGUSR1 nonnull modeword producers/downstream notifications, full followup event handlers, bit4/aliased flag writers, other registration users, network-owner descriptor producers, lower HAL utility and allocation ownership. Local IPC initialize/accept/close context lifecycle, fixed primary/WAC paths and startup admission/failure handling are established, along with header/body extents and command/followup/signal work. Runtime socket permissions are not explicitly selected by the examined helper."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -159115,6 +159176,27 @@
      "build": "86.10-80260",
      "address": "0x121c",
      "notes": "Close context always invalidates descriptor then clears mode; listener pathname handling conditional."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x100099cc",
+     "notes": "Primary fixed-path listener mode1; initialization failure still reaches registration."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10009b98",
+     "notes": "WAC fixed-path listener only initialized for empty startup HouseholdID."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10009944",
+     "notes": "SIGPIPE ignored before IPC notification writes; installation result not checked."
     }
    ],
    "setup_client_hello_payload": {
@@ -159838,6 +159920,12 @@
     "receive_errors": "Nonzero header status, invalid body extent, EOF or any negative body read closes the context: optional extra mode2 warning, failure log, unregisterread0x10016ea8, CloseIPCContext. No errno-based EINTR/EAGAIN retry, buffering across callbacks, body draining for invalid lengths or reconnect scheduling here. Failure-log ret is the earlier header result r30, not the later body-read result; after valid header it can print ret0 on body failure. For context0x10055808 it also clears connection marker0x100500d4; WACclient0x10055768 does not clear that same marker. Calls to unregistration/close ignore results.",
     "header_authentication_boundary": "Neither ReadIPCHeader nor this receiver checks carried version header+4. Header-size field can exceed12, provided extensions are fully read/drained. Command interpreter bounds command<=41 and checks individual declared payload extents; it does not make these routines a cryptographically authenticated protocol. HandleClientIPCConnection does not inspect peer identity. Socket initialization, pathname ownership/permissions and outbound external command execution remain separate boundaries; do not infer their policy from this local framing trace.",
     "close_context_effect": "Library CloseIPCContext0x11e8 NULLreturns. Nonnull closes descriptor+0x70 when signed>=0, marksfd-1 regardless of close result, then checks old mode+0x74. Mode1 with nonempty pathname at context+2 requests unlink and clears first pathname byte; other modes do not unlink here. Every nonnull branch sets mode0 and returns without freeing the context allocation. Close/unlink results ignored. This completes the lower close mutation used by both shared sender and daemon receive-error paths; it is broader than simply assuming a close(fd) call."
+   },
+   "daemon_local_ipc_socket_startup": {
+    "primary_listener": "0x100099cc calls InitializeIPCContext(0x1005529c,1,\"/tmp/netstartd.ipc\"). Beforehand accepted-clientfd0x10055808+0x70 is set-1. Initialization failure logs Failed to init IPC but branches back to the same read-registration path0x100099f4 rather than aborting startup. The registered callback is0x100096dc, userdata=listenercontext. Registration result is ignored. Success is not a prerequisite for subsequent NS2/network initialization in main.",
+    "wac_listener": "When startup HouseholdID length0x10050130==0,0x10009b70 writes /var/run/wac_mode integer0, initializes accepted WACclientfd0x10055768+0x70=-1, then calls InitializeIPCContext(0x10055064,1,\"/tmp/netstartd_wac.ipc\") at0x10009b98. Failure logs Failed to init WAC IPC and rejoins read-registration0x10009bb4; registration return ignored. A nonempty startup HouseholdID skips this WAC-listener initialization branch. The receiver maps each listener to its own accepted-client descriptor and rejects another connection while that descriptor!=-1.",
+    "signal_and_permissions": "Daemon init0x10009944 calls signal(13,1), ignoring SIGPIPE so a failed local write can take the documented writer error path rather than that signal's default termination. Signal installation result ignored. The examined initializer does not request socket chmod/chown/umask changes, and netstartd dynamic imports contain no such calls. Therefore this trace establishes fixed path creation/removal and single-client handling, not a fixed octal socket permission or a named permitted account. The actual runtime filesystem permissions/ownership are not selected by this helper; do not invent an authentication guarantee from its pathname alone.",
+    "context_mode_boundary": "The accept helper only writes the descriptor output word and sets its nonblocking flag. It does not mark separate accepted-client context mode2, fill its pathname or allocate it. These static client contexts start zeroed with mode0; ordinary local acceptance retains that mode. Mode2 warnings in generic receive-error code are not evidence that accepted clients were initialized through a mode2 connect operation. Contextfd ownership and close behavior are established in local_ipc_context_lifecycle."
    }
   },
   "bin_wacd": {
