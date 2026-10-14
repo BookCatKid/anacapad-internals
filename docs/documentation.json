@@ -156373,7 +156373,7 @@
     "Finish settings apply notification effects, full flag domains, WAC fallback admission and flag producers, per-state entry/exit/teardown effects, and the target-state selection chain. Preserve the verified WEP/frequency/projection/file and marker effects.",
     "Trace wireless driver result producers, wpaconfig/debug consumers, WAC process restart implementation, other CCRED and NetManager NS_OPN handlers, and remaining setup commit/check transitions.",
     "Trace initial external settings-snapshot producers and daemon-side registered triggers/teardown. The external IPC signing receiver remains outside this lane.",
-    "Finish event-loop integration: SIGUSR1 setup/network gates, remaining registration users, network shutdown and cleanup tail resources, and object-allocation ownership. Main SIGTERM stop handling, shutdown ordering, registry wait/deferred phases and PSK expiry destruction are established."
+    "Finish event-loop integration: SIGUSR1 setup/network gates, remaining registration users, network-owner descriptor producers, lower HAL utility object behavior, and object-allocation ownership. Main stop/shutdown ordering, network timer/socket cleanup, utility reference-counted release, registry phases and PSK expiry destruction are established."
    ],
    "artifacts": [
     "wifi/netstartd"
@@ -158315,6 +158315,48 @@
      "build": "86.10-80260",
      "address": "0x10008438",
      "notes": "FourthIPCcontextcleanupnestedunderthirdvalidFDbranch."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000cf80",
+     "notes": "Network owner passed through a tail call to its cleanup routine."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000b76c",
+     "notes": "Cancels the owner callback before clearing its working words."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1000b6cc",
+     "notes": "Four registered descriptors are unregistered, closed and marked -1."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x10017ad0",
+     "notes": "Zero-count utility release returns1 independently of lower close success."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001ae78",
+     "notes": "Supposed utility-clear helper is an unconditional return0 stub in this build."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001af58",
+     "notes": "Actual lower close tail-calls hal_audiodev_close; null/busy guards return8/4."
     }
    ],
    "setup_client_hello_payload": {
@@ -158894,9 +158936,18 @@
     "main_order": "Maincallsregistryinit0x10016ae0 at0x10003090,daemoninit0x10009908,netlinkinit0x1000a130,NS2init0x1001eb64,netstartstate0,andnetworkinit0x10011024;thenloop0x100172d8 at0x100030bc. Afterloopreturns,whetherstoporfatalwaiterror,itcallsnetworkshutdown0x10011170,NS2destructor0x1001ee24,netlinkshutdown0x1000a1bc,daemonresourcecleanup0x10008378,registryshutdown0x10017690,inthatorder. Theseinitreturnsaremostlynotcheckedhere;NS2initresultisstoredglobal0x100500d0 andlaterused. Thisdocumentedorderdoesnotassertallinitializationfailuresarehandledsafely.",
     "psk_expiry_teardown": "NS2destructor0x1001ee24 cancels timer0x1001d4f8 withbothargs-1 wildcards throughconfig+24 at0x1001ee70;GOTpointerverified. Thisispreviouslyestablishedfour-hour defaultPSK expirycallback. Itthen destroysDTLStransport0x100264e8,setupcontext0x10022ae8,andtail-clears216-byte settings atsession+5c via0x10022028. SettingsclearZZ0038 wipesall216bytes,memsetzeroesagain,thenwritesversionu16=2. CoveredsettingsspansdefaultPSKrecord and32-byteRegSigningKey/length. No settingssave/fileunlinkoccursinthisdestructorchain. Thisclosesteardowncallerforthe expiry timer withoutclaimingremainingreload/resettriggersdone.",
     "setup_and_transport_destruction": "Setupcontext0x10022ae8 firstclearsPIN/decryptedsecret via0x10022a48,then0x100229f4,ZZ0077 onkeyhandles+4/+15c,andwipesprimary/secondarycachedPSKslots+160/+210 via0x1002691c. DTLSdestructor0x100264e8 invokesconnectioncleanup0x100247c0 ifstate!=0,then destroyssecondaryendpointthrough0x1002d5b4;unregistersvalidprimaryfdread,then destroysprimaryendpoint;freescookiecontext andbothinitializedSSLconfigpresets. Thisisbroaderthanordinaryconnectioncleanup,whichretainsprimarylistener/cookiecontext. Itdoesnotimply everyallocationownedbythewholeprocessisfreed;actualobjectallocationownershipremainsseparatework.",
-    "other_resources": "Netlinkshutdown0x1000a1bc removessocketreadregistration thenrtnl_close. Daemoncleanup0x10008378 cancelscallbacks0x10004640/0x10004834/0x10007d5c withwildcardargs,unregisters/closescontrolsocketglobal0x1005008c,unregistersIPCfdsandCloseIPCContext forlocalcontexts0x1005529c/0x10055808/0x10055064/0x10055768 whenbranchespermit. Thelastcontextcleanupisnestedunderthirdcontextfd!=-1;ifthethirdisinvalid,thefourthbranchisskipped. Callback/closeoutcomesignored. Ittail-calls0x10017ab4 (fullremainingeffectsopen). Registryshutdownrunsaftertheseownershavehadachancetoclosetheirownsockets,thenfreesremainingqueuedtimerswithoutcallbacks.",
+    "other_resources": "Netlinkshutdown0x1000a1bc removessocketreadregistration thenrtnl_close. Daemoncleanup0x10008378 cancelscallbacks0x10004640/0x10004834/0x10007d5c withwildcardargs,unregisters/closescontrolsocketglobal0x1005008c,unregistersIPCfdsandCloseIPCContext forlocalcontexts0x1005529c/0x10055808/0x10055064/0x10055768 whenbranchespermit. Thelastcontextcleanupisnestedunderthirdcontextfd!=-1;ifthethirdisinvalid,thefourthbranchisskipped. Callback/closeoutcomesignored. Ittail-calls0x10017ab4 (reference-counted utility release effects are established in network_shutdown_and_utility_release; lower HAL implementation remains open). Registryshutdownrunsaftertheseownershavehadachancetoclosetheirownsockets,thenfreesremainingqueuedtimerswithoutcallbacks.",
     "log_and_process_exit": "Afterregistryshutdown,maincloselog,copies/jffs/net/log/netstartd.log to/jffs/netstartd_prev.log withcopyflag1,unlinksactivelog andpathnameheldinr31,thenreturns0. Copy/unlinkresultsignored. Exactsourceofr31pathname andremainingnetworkshutdown/tailcleanupdetailsremainopen;do notassignpidfilepathfromguessalone. Registry freedpointersneednotbereusedbynormalmainpathbecauseitreturnsexactlyaftercleanup ratherthanreenteringloop.",
-    "remaining": "FullytraceSIGUSR1 setup/networkgates,networkshutdown0x10011170,daemoncleanup tail0x10017ab4,pathnameproducer/objectallocationownership,andremainingreload/resetcallerordering. SIGTERMstop,mainteardownsequence andPSKexpiry/settings/cachedkeydestructionareestablished."
+    "remaining": "Finish SIGUSR1 setup/network gates, network-owner descriptor producers, lower HAL utility object behavior, pathname producer and allocation ownership. Main shutdown ordering, PSK expiry/settings destruction, network-owner cleanup and daemon utility release are established."
+   },
+   "network_shutdown_and_utility_release": {
+    "network_owner": "Network shutdown 0x10011170 calls 0x1000cf70, which tail-delegates to 0x1000b748 with owner 0x10050bd4. That owner is the same structure whose port count/link mask at +0/+4 is used by Ethernet-link polling. The shutdown wrapper returns 0 regardless of the delegated cleanup results. It does not directly invoke WifiFuncsSetStationEnabled or a radio reconfiguration command.",
+    "owner_cleanup": "0x1000b748 cancels callback 0x1000bc04 with arguments (owner,0), clears owner +0xd0/+0xd4, calls 0x1000b6f4, then tail-calls 0x1000b68c. The first helper closes descriptor +0x1c when !=-1, marks it -1, then cancels callback 0x1000b79c with (owner,0). It does not unregister that +0x1c descriptor through the FD registry here. The second helper iterates exactly four descriptors at +0x20/+0x24/+0x28/+0x2c; each !=-1 is unregistered for direction0, closed, and marked -1. Cancel, unregister and close results are ignored. These are five owned descriptor positions, not the whole process socket inventory; initial creation/receive/transmit roles remain to be joined individually.",
+    "utility_release_counter": "Daemon-resource cleanup 0x10008378 semantically tail-calls 0x10017ab4. Its signed reference-count word is global 0x10051f38. A positive count is decremented; a remaining nonzero count returns0 without utility close. Zero, including an already-zero count, calls 0x10017c84 and returns1 regardless of that helper result. A negative count returns0 without a close attempt. Thus return1 means the zero-count close path was selected, not that the hardware handle was successfully closed. Acquire 0x10017a4c invokes init 0x10017b70 when count<=0, ignores its result, increments the count and returns1. Neither acquire nor release checks arithmetic overflow.",
+    "utility_open_and_close": "The utility logs under leds_zp. Init 0x10017b70 uses initialized byte 0x10051f3c and wrapper at 0x10051f40. Already initialized returns its stored handle. Otherwise it calls 0x1001a820(wrapper,0); result0 sets initialized byte1, nonzero logs but does not set it. Close 0x10017c84 returns immediately when initialized byte0. If initialized, it calls 0x1001ae78(wrapper,0), then 0x1001af18(wrapper). In this build 0x1001ae78 is an unconditional return0 stub: it makes no device or wrapper change. Nonzero close result logs and leaves initialized byte1; zero clears that byte. Log-gating helpers do not change that success/failure ordering.",
+    "lower_close_gate": "0x1001af18 requires wrapper->object pointer nonnull; null returns8. Object u32+0xc must be0; nonzero returns4. Eligible objects tail-call imported hal_audiodev_close with the wrapper argument, preserving that return. It does not itself free the object or clear the wrapper pointer. The logging text hal_led_close does not prove a different backend: the actual imported function is hal_audiodev_close. Lower HAL implementation, open-object fields and display state semantics remain separate unresolved work.",
+    "shutdown_consequence": "Main invokes network-owner cleanup before NS2/netlink cleanup, then daemon-resource cleanup and its reference-counted utility release, then registry shutdown. A release while references remain does not call the lower close, and a failed lower close can leave the initialized byte set even when the outer release reports1. The registry still shuts down afterward. This record describes explicit cleanup requests and local state mutation; it does not claim that every physical radio/LED state is reset on process exit.",
+    "remaining": "Trace network-owner descriptor creation/receive/transmit roles and the lower HAL open/close object implementation, plus remaining SIGUSR1 and allocation-ownership callers. Network cleanup callback cancellation/five-descriptor sequence and utility reference-count/error/stub behavior are established."
    }
   },
   "bin_wacd": {
