@@ -25638,7 +25638,7 @@
   "/HTControl/Control": {
    "name": "HTControl",
    "control_path": "/HTControl/Control",
-   "description": "Home-theater control service: IR repeater state, LED feedback, and IR-remote learning/identification.",
+   "description": "Home-theater control for the Playbar: the infrared repeater, the remote-command light, and IR learning. The SOAP object is constructed at zone-player offset 0x3d510 by f_10242118. That constructor stores the htc zone-player implementation, allocated as 0x55118 bytes and built by f_102426f0, at both object+4 and object+8, and installs static vtable 0x10ea61d0. The implementation's own vtable is the static table 0x10ea6254, written at f_10242814. It is not a runtime-injected vptr.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -26012,7 +26012,7 @@
      ]
     },
     "GetIRRepeaterState": {
-     "description": "Returns the IR-repeater enabled state via impl->v[+0x8] on r4-in.",
+     "description": "Returns the live infrared-repeater state as the text On, Off, or Disabled. The wrapper 0x10739d30 calls TRequest virtual +0x08. A zero result is SOAP fault 402 (0x192) at 0x10739dd8. A nonzero result calls the implementation at SOAP object+4, virtual slot +0x08, which is f_1024222c on the static vtable 0x10ea6254. That worker locks the mutex at impl+0x150 (name htcZonePlayer), copies the 9-byte string at impl+0x1ec into the caller buffer with f_10906304 and capacity 9, unlocks, and returns 0. The capacity stays in r5 across the lock because 0x10242254 is evstdd r5, 8(r1) and 0x1024225c is evldd r5, 8(r1). f_10906304 copies at most capacity-1 bytes plus a NUL, so the value is at most 8 characters. On, Off, and Disabled all fit. The wrapper then allocates the output record CurrentIRRepeaterState (TRequest virtual +0x24 at 0x10739de4), writes the copied text (record virtual +0x10), and commits success (TRequest virtual +0x0c). The worker never returns a fault. The constructor f_102426f0 initializes the string to On with strlcpy at 0x1024299c. Disabled is written only by f_10242e50.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10739d30",
@@ -26056,160 +26056,213 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "impl_function": "0x1024222c",
+      "impl_vfunc": "static vtable 0x10ea6254 slot +0x08",
+      "description": "f_1024222c reads impl+0x1ec under the htcZonePlayer mutex and returns 0. It does not consult the LED byte, the ioctl, or the event dirty flag.",
+      "notes": "Call from 0x10739d74: r3 = *(SOAP+4), r4 = stack buffer, r5 = 9."
      },
      "inputs": {},
      "outputs": {
       "CurrentIRRepeaterState": {
-       "description": "state string copied from impl member this+0x1ec under lock this+0x150",
+       "description": "The repeater state text copied from impl+0x1ec. The constructor sets it to On. SetIRRepeaterState replaces it with On or Off. f_10242e50 replaces it with Disabled when called with a nonzero orientation word, and can later copy a saved On or Off back from impl+0x1f5.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "SonosBoolArg",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
-       "range": "{0,1}",
-       "special_values": "none observed in this build",
+       "semantic_type": "repeater state text",
+       "format": "exact text On, Off, or Disabled, at most 8 characters plus NUL",
+       "unit": "n/a",
+       "accepted_values": "On, Off, Disabled",
+       "range": "the three literals above",
+       "special_values": "Disabled is not produced by SetIRRepeaterState. f_10242e50 writes it when its orientation argument is nonzero, after saving the previous text at impl+0x1f5. When that argument is later 0, the saved text is copied back if its first byte is nonzero.",
        "required": false,
-       "default": "none - boolean decoded from request text",
-       "validation": "impl copies member string verbatim; no output validation layer",
+       "default": "On, written by strlcpy in the constructor at 0x1024299c",
+       "validation": "emitted verbatim from impl+0x1ec; the worker does not filter it",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10739df8",
-         "notes": "out-arg access site"
+         "address": "0x10739dec",
+         "notes": "output record name CurrentIRRepeaterState"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11c30",
-         "notes": "argument name string"
+         "address": "0x10739e0c",
+         "notes": "record virtual +0x10 copies the stack string"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1024222c",
-         "notes": "impl-level validation"
+         "address": "0x10242268",
+         "notes": "f_10906304 copies impl+0x1ec with capacity 9"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1024299c",
+         "notes": "initial value On"
         }
        ],
        "notes": null
       }
      },
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "The only gate in this wrapper is TRequest virtual +0x08. Zero becomes fault 402. The worker has no strcmp and no null check. The SOAP wrapper always passes a stack buffer and capacity 9, so the copy cannot see a caller-supplied string.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10739d68",
+        "notes": "TRequest virtual +0x08; zero branches to fault 402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10739d7c",
+        "notes": "capacity immediate 9 passed to f_1024222c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10242268",
+        "notes": "f_10906304(out, impl+0x1ec, 9)"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "No input arguments. Request validation must return nonzero. The implementation object must already have been constructed: its string starts as On, and later writers are SetIRRepeaterState and f_10242e50.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x10739d30",
-        "notes": "wrapper decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x8]",
-      "evidence": [
+        "notes": "getter wrapper has no TRequest +0x1c argument fetch",
+        "function": "0x10739d30"
+       },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739d30",
-        "notes": "req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "address": "0x1024299c",
+        "notes": "constructor strlcpy of On into impl+0x1ec"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x8]",
+      "description": "The returned text is the NUL-terminated string at impl+0x1ec, guarded by the mutex at impl+0x150. Legal contents written by this build are On, Off, and Disabled.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739d30",
-        "notes": "member vfunc calls: ['r4 v[+0x8]', '*(r30+4) v[+0x8]']"
+        "address": "0x10242260",
+        "notes": "source address impl+0x1ec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10242238",
+        "notes": "mutex object at impl+0x150"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10242870",
+        "notes": "mutex initialized with the name htcZonePlayer"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query delegate: r4 v[+0x8], *(r30+4) v[+0x8] (call-derived member-method semantics)",
+       "description": "Read only. The worker locks and unlocks the htcZonePlayer mutex and copies the string. It does not store the dirty byte at impl+0x1e4 and does not call the notifier f_1067c6ec.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10739d30",
-         "notes": "delegate map ['r4 v[+0x8]', '*(r30+4) v[+0x8]']; notify-family calls []"
+         "address": "0x10242258",
+         "notes": "mutex lock f_10988558"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10242270",
+         "notes": "mutex unlock f_10988984"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1024227c",
+         "notes": "r3 is set to 0 before return"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r4 v[+0x8], *(r30+4) v[+0x8] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None from this action. IRRepeaterState is evented, but the getter does not set impl+0x1e4 and does not signal the event source at impl+8. A later render can still report the current string; this call does not request one.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739d30",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1024222c",
+        "notes": "no store to impl+0x1e4 and no call to f_1067c6ec",
+        "function": "0x1024222c"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x8]",
+      "description": "None. The string at impl+0x1ec is not modified.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739d30",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', '*(r30+4) v[+0x8]']"
+        "address": "0x1024222c",
+        "notes": "worker stores nothing except the caller's buffer",
+        "function": "0x1024222c"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Success copies CurrentIRRepeaterState and commits. The only SOAP fault this wrapper raises is 402, and only when TRequest virtual +0x08 returns 0. f_1024222c itself always returns 0.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739d30",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "address": "0x10739ddc",
+        "notes": "validation failure passes 0x192 to the fault virtual"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10739de4",
+        "notes": "success allocates CurrentIRRepeaterState"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10739e20",
+        "notes": "TRequest virtual +0x0c commits the response"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [],
@@ -26217,32 +26270,27 @@
       {
        "code": 402,
        "code_expr": "vret; parse/req-layer",
-       "meaning": "impl returns 0 unconditionally (single literal-0 exit); only the handler request-gate can fault | Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Request validation returned 0. The worker cannot produce this code: f_1024222c has a single exit and sets r3 to 0.",
        "fault_sites": [
         "0x10739d30"
        ],
        "conditions": [
         {
-         "description": "impl arg validation failed",
+         "description": "TRequest virtual +0x08 at 0x10739d68 returns 0. The wrapper then calls the fault virtual with 0x192 (402) and does not call f_1024222c.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1024222c",
-           "notes": "impl head"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "address": "0x10739d70",
+           "notes": "bc bo=12,bi=30 taken when validation returns 0"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10739d30",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10739ddc",
+           "notes": "fault argument 0x192"
           }
          ]
         }
@@ -26252,22 +26300,15 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1024222c",
-         "notes": "addi r3,0x192"
+         "address": "0x10739dd8",
+         "notes": "validation-failure path"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1024222c",
-         "notes": "impl single-exit imm 0"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10739d30",
-         "notes": "wrapper parse + fault path"
+         "address": "0x1024227c",
+         "notes": "worker sets r3 to 0"
         }
        ]
       }
@@ -26288,13 +26329,30 @@
        "build": "86.10-80260",
        "address": "0x10f11b9c",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ea625c",
+       "notes": "vtable slot +0x08 points at f_1024222c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10242814",
+       "notes": "f_102426f0 stores vtable 0x10ea6254 at impl+0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10739d8c",
+       "notes": "wrapper calls impl virtual +0x08"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10739d30; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetLEDFeedbackState": {
      "description": "Returns the LED-feedback state via impl->v[+0x8] on r4-in.",
@@ -27571,7 +27629,7 @@
      ]
     },
     "SetIRRepeaterState": {
-     "description": "Sets the IR-repeater state (DesiredIRRepeaterState) via impl->v[+0xc] on the svc+4 member.",
+     "description": "Changes the infrared repeater between On and Off. The wrapper 0x10739878 fetches DesiredIRRepeaterState (TRequest virtual +0x1c), configures it as a type-tag 7 string with f_1056157c capacity 9, and validates with TRequest virtual +0x08. Validation 0 is fault 402. Otherwise it calls impl virtual +0x0c, f_102424d8. That worker accepts only the exact strings On (0x10fe55b8) and Off (0x10e739b8); every other string, including Disabled, returns 402 (0x192) with no store. If the current impl+0x1ec text is Disabled, the worker unlocks and returns 401 (0x191) without applying the request. Otherwise it sets a 4-byte flag to 1 for On and 0 for Off (cntlzw/rlwinm of the second On compare), takes a file descriptor from f_102a5160(impl+0x148), and calls ioctl(fd, 0x8004fc1a, &flag). f_102a5160 returns the word at *(impl+0x148)+0x34+0xe4. ioctl returning -1 yields SOAP 501 (0x1f5). Any other ioctl result copies the new text into impl+0x1ec with capacity 9, calls the settings object at impl+0x144 virtual +0x14 with the key IRRepeater and that string, sets the event dirty byte impl+0x1e4 to 1, signals the event source at impl+8 through f_1067c6ec, unlocks, and returns 0. A nonzero worker result is passed unchanged to TRequest virtual +0x14. Zero commits success and this action has no output record.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10739878",
@@ -27603,11 +27661,15 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x102424d8",
+      "impl_vfunc": "static vtable 0x10ea6254 slot +0x0c",
+      "description": "f_102424d8 is the only setter reached by the SOAP wrapper. The settings fan-out f_101bc458 also tail-calls f_10242d00 for the key IRRepeater when its object pointer at +0x4c is nonzero. f_10242d00 ioctls the same command and copies the supplied text, but it does not reject Disabled, does not check the ioctl result, and does not set the dirty byte.",
+      "notes": "Disabled is produced by f_10242e50, called from the orientation change at 0x103cac38. A nonzero argument saves impl+0x1ec at impl+0x1f5, writes Disabled, ioctls flag 0, and signals the event source. A zero argument ioctls flag 1 and, when impl+0x1f5 is nonempty, copies that saved text back. The ioctl flag on the restore path is 1 even if the restored text is Off."
      },
      "inputs": {
       "DesiredIRRepeaterState": {
-       "description": "impl does literal strcmp vs 'On' then 'Off' (0x10fe55b8/0x10e739b8); any other value -> 402",
+       "description": "The requested repeater state. Only the exact strings On and Off are applied. Disabled is a stored state the getter can return, but this argument rejects it with 402.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -27616,36 +27678,43 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosBoolArg",
-       "format": "utf-8 text, buffer cap 9 bytes (8 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "{On,Off} - literal strcmp",
-       "range": "max 8 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "repeater state text",
+       "format": "type-tag 7 text, buffer capacity 9 (at most 8 characters plus NUL)",
+       "unit": "n/a",
+       "accepted_values": "On, Off",
+       "range": "the two literals On and Off",
+       "special_values": "Disabled, empty text, and any other string return 402 before the mutex is taken. On and Off still return 401 when the live string is already Disabled.",
        "required": true,
        "default": "none - required argument",
-       "validation": "impl strcmp vs 'On'/'Off' else 402",
+       "validation": "Wrapper capacity is 9 via f_1056157c. The worker accepts the text only by strcmp with On and then Off.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107398b8",
-         "notes": "in-arg access site"
+         "address": "0x107398ac",
+         "notes": "argument name DesiredIRRepeaterState"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11bf0",
-         "notes": "argument name string"
+         "address": "0x107398c4",
+         "notes": "f_1056157c stores type tag 7 and capacity 9"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102424d8",
-         "notes": "impl-level validation"
+         "address": "0x10242514",
+         "notes": "strcmp On"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10242530",
+         "notes": "strcmp Off"
         }
        ],
        "notes": null,
@@ -27654,113 +27723,229 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "The wrapper parses DesiredIRRepeaterState into a 9-byte type-tag 7 buffer, then requires TRequest virtual +0x08 to return nonzero. The worker then strcmp's the text with On and Off. Disabled is a legal stored value and a legal getter result, but it is not a legal setter input.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10739878",
-        "notes": "wrapper decode"
+        "address": "0x107398bc",
+        "notes": "f_1056157c capacity immediate 9"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107398d8",
+        "notes": "TRequest virtual +0x08"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10242520",
+        "notes": "strcmp with On"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10242538",
+        "notes": "strcmp with Off"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10242540",
+        "notes": "neither match: r3 = 0x192"
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0xc]",
+      "description": "DesiredIRRepeaterState must be present and must be exactly On or Off. The live string must not already be Disabled. The ioctl must not return -1.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739878",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x107398b8",
+        "notes": "required-argument fetch of DesiredIRRepeaterState"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102425a4",
+        "notes": "strcmp of the live string with Disabled"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102425fc",
+        "notes": "ioctl result compared with -1"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0xc]",
+      "description": "Reads and writes the live string at impl+0x1ec under the mutex at impl+0x150. The On/Off flag passed to ioctl is computed from the request, not from a second stored byte. The settings object at impl+0x144 and the device object at impl+0x148 are the constructor arguments saved by f_102426f0.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739878",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0xc]']"
+        "address": "0x10242588",
+        "notes": "live string address impl+0x1ec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102427f4",
+        "notes": "constructor stores the device object at impl+0x144"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10242820",
+        "notes": "constructor copies the following shared object to impl+0x148"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: *(r30+4) v[+0xc] (call-derived member-method semantics)",
+       "description": "On success the worker replaces impl+0x1ec, issues ioctl(fd, 0x8004fc1a, &flag) with flag 1 for On and 0 for Off, asks the settings object to store the key IRRepeater, sets impl+0x1e4, and calls f_1067c6ec on the event source at impl+8. A rejected string or a Disabled live state does not change the string, the ioctl flag, or the dirty byte.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10739878",
-         "notes": "delegate map ['*(r30+4) v[+0xc]']; notify-family calls []"
+         "address": "0x10242610",
+         "notes": "f_10906304 writes the new text with capacity 9"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102425f0",
+         "notes": "ioctl command 0x8004fc1a"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10242624",
+         "notes": "settings virtual +0x14 key IRRepeater"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1024263c",
+         "notes": "stb 1, impl+0x1e4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10242644",
+         "notes": "f_1067c6ec(impl+8)"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v[+0xc] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "A successful change marks the HTControl event source dirty and signals it. f_1067c6ec tail-calls f_1067c46c with null buffer arguments; that function calls registered listeners at virtual +0x08 and +0x0c and logs in the upnpeventing domain. The property text is produced by f_10243170, reached from the event-source vtable 0x10ea628c slot +0x14 (thunk f_1024340c). When its force argument is 0, f_10243170 emits TOSLinkConnected from the byte at impl+0x1e5 and IRRepeaterState from impl+0x1ec only while impl+0x1e4 is nonzero, then clears that byte. The signal itself does not enter f_10243170 because both buffer arguments are 0. Failed calls do not set the dirty byte.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739878",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1024263c",
+        "notes": "dirty byte set only after ioctl succeeds"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c6f4",
+        "notes": "f_1067c6ec passes null r4 and r5"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10243198",
+        "notes": "renderer checks impl+0x1e4 when force is 0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102431ec",
+        "notes": "property name IRRepeaterState"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10243204",
+        "notes": "property value is the string at impl+0x1ec"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0xc]",
+      "description": "From a live value of On or Off, an accepted request moves the string to the requested literal and applies the same value to the driver flag. From Disabled, the SOAP call returns 401 and the string stays Disabled. The Disabled state itself is entered and left by f_10242e50, not by this action.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739878",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0xc]']"
+        "address": "0x102425ac",
+        "notes": "Disabled live string returns 401 before the ioctl"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10242610",
+        "notes": "accepted request overwrites impl+0x1ec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10242f94",
+        "notes": "f_10242e50 is the writer of the Disabled literal"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Worker 0 commits an empty success body. Worker 402, 401, and 501 are passed through TRequest virtual +0x14 at 0x10739914. There is no separate success output.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739878",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x10739900",
+        "notes": "mr. of the worker result selects fault versus commit"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10739948",
+        "notes": "validation failure uses 402 without calling the worker"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10739954",
+        "notes": "worker 0 takes TRequest virtual +0x0c"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -27773,33 +27958,33 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(*(r3-in+0x4),+0xc); parse/req-layer",
-       "meaning": "impl-level validation/argument rejection (r3=0x192) | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192 from validation, or r3 from f_102424d8",
+       "meaning": "The request failed validation, or the worker rejected the text because it is neither On nor Off.",
        "fault_sites": [
         "0x10739914"
        ],
        "conditions": [
         {
-         "description": "impl arg validation failed",
+         "description": "TRequest virtual +0x08 returns 0. The wrapper faults 402 at 0x10739944 and does not call f_102424d8.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102424d8",
-           "notes": "impl head"
+           "address": "0x10739948",
+           "notes": "addi r4, 0x192 on the validation-failure path"
           }
          ]
         },
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "The parsed text matches neither On nor Off. f_102424d8 returns 0x192 at 0x10242540. Disabled takes this path.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10739878",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10242540",
+           "notes": "r3 = 0x192 when both strcmp results are nonzero"
           }
          ]
         }
@@ -27809,47 +27994,17 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102424d8",
-         "notes": "addi r3,0x192"
+         "address": "0x10739914",
+         "notes": "shared fault virtual; r4 is the worker or 402 code"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10739878",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10242540",
+         "notes": "worker 402 exit"
         }
        ],
-       "unresolved": {
-        "proven": "HT impl rc surfaced",
-        "unknown": "codes for hardware/validation failures",
-        "knowledge": "; impl f_102424d8: literals {402 parse, 401 capability probe, 501 hw-absent}",
-        "bounded_domain": [
-         402
-        ],
-        "bound_evidence": "worker literal-exit scan: f_102424d8->[402];f_102424d8->[402]",
-        "raw_exit_literals": {
-         "f_102424d8": {
-          "lits": [
-           8,
-           402,
-           512
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x102424d8",
-         "lits": [
-          8,
-          402,
-          512
-         ],
-         "passthrough_exits": 1
-        },
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
        "worker_literal_bound": [
         402,
         402,
@@ -27859,26 +28014,35 @@
        "literal_bound": [
         0,
         402
-       ],
-       "resolved_note": "HTControl impl: bad-arg -> 0x192=402 else worker rc (verified IdentifyIRRemote/LearnIRCode return uVar1|0x192).",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0xc); parse/req-layer; sites: 0x10739914).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 401,
-       "meaning": "IR-repeater capability absent (member obj check at impl+0x150)",
+       "meaning": "The live repeater string is already Disabled, so On and Off are refused until f_10242e50 leaves that state.",
        "conditions": [
         {
-         "description": "*(impl+0x150) probe call -> 401 path",
+         "description": "After the request matches On or Off, strcmp of impl+0x1ec with Disabled is equal. The worker unlocks and returns 0x191. It does not ioctl and does not change the string.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
+           "address": "0x102425a4",
+           "notes": "strcmp(impl+0x1ec, Disabled)"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
            "address": "0x10242590",
-           "notes": "addi r30,0x191"
+           "notes": "r30 = 0x191 before the Disabled return"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102425b8",
+           "notes": "mr r3, r30 returns 401"
           }
          ]
         }
@@ -27888,29 +28052,41 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10242590",
-         "notes": "addi r30,0x191"
+         "address": "0x102425b0",
+         "notes": "Disabled rejection unlocks and returns"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 401; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x10739914"
        ]
       },
       {
        "code": 501,
-       "meaning": "IR repeater not implemented on this hardware (cntlzw flag from member)",
+       "meaning": "The On/Off request was accepted and the live state was not Disabled, but ioctl(fd, 0x8004fc1a, &flag) returned -1.",
        "conditions": [
         {
-         "description": "flag null -> 501",
+         "description": "f_102424d8 sets r30 to 0x1f5 (501) after building the flag, then branches to the unlock return if the ioctl result is -1. The new text is not copied and the dirty byte is not set.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102425d8",
-           "notes": "li r30,0x1f5"
+           "notes": "addi r30, 0x1f5 prepares the 501 return"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102425fc",
+           "notes": "cmpwi of the ioctl result with -1"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10242600",
+           "notes": "equal branches to the unlock return"
           }
          ]
         }
@@ -27920,14 +28096,20 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102425d8",
-         "notes": "li r30,0x1f5"
+         "address": "0x102425f8",
+         "notes": "bl ioctl"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102a5160",
+         "notes": "fd word from the device object at impl+0x148",
+         "function": "0x102a5160"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 501; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x10739914"
        ]
       }
      ],
@@ -27947,13 +28129,30 @@
        "build": "86.10-80260",
        "address": "0x10f11bd8",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ea6260",
+       "notes": "vtable slot +0x0c points at f_102424d8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107398f8",
+       "notes": "wrapper calls impl virtual +0x0c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x103cac38",
+       "notes": "orientation change enters f_10242e50"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10739878; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "SetLEDFeedbackState": {
      "description": "Sets LED feedback (LEDFeedbackState) via impl->v[+0x20] on the svc+4 member.",
@@ -28538,8 +28737,9 @@
     "audio/hometheater/htaudio_{configuration,chprocessing,chsnk_processor,chsnk_processor_stream,autoplay}.cxx"
    ],
    "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
+    "Established: the HTControl SOAP object and its htc zone-player implementation use static vtables (0x10ea61d0 and 0x10ea6254). GetIRRepeaterState and SetIRRepeaterState are traced through slots +0x08 (f_1024222c) and +0x0c (f_102424d8). The live repeater text is the 9-byte string at impl+0x1ec. It is initialized to On, accepts On or Off from the setter, and is forced to Disabled by f_10242e50 when that function is entered with a nonzero orientation word.",
+    "Residual: GetLEDFeedbackState, SetLEDFeedbackState, IsRemoteConfigured, IdentifyIRRemote, LearnIRCode, and CommitLearnedIRCodes are not traced yet. Their handlers and the static slots they call are known (GetLED slot +0x24 = f_1024265c, SetLED slot +0x20 = f_10242160, IsRemote slot +0x1c = f_102423a8, Commit slot +0x18 = f_10242380, Identify handler 0x10241f24, Learn handler 0x10242008), but the worker behavior is not yet written into those records.",
+    "Next step: disassemble those six workers the same way, starting with the LED byte at impl+0x200 and the remote-configured byte the IsRemote worker reads, then the learning session on the decoder object at impl+0x218."
    ],
    "resolved_findings": [
     "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
