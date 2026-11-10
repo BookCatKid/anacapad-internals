@@ -27023,7 +27023,7 @@
      ]
     },
     "IsRemoteConfigured": {
-     "description": "Returns whether an IR remote is configured via impl->v[+0x8] on r4-in.",
+     "description": "Reports whether a persistent infrared-code file has been opened under the JFFS root. The wrapper 0x10739b48 calls TRequest virtual +0x08 and faults 402 when that returns 0. Otherwise it calls impl virtual +0x1c, f_102423a8. That worker calls f_1024a344 on the decoder at impl+0x218 and stores the returned byte into the stack slot the wrapper later formats. f_1024a344 adds 0x50000 to the decoder and loads the byte at +0x4e38, which is decoder+0x54e38, then the worker returns 0. The wrapper allocates the output RemoteConfigured and f_1055fc08 copies the text 0 when the byte is 0 and the text 1 when the byte is nonzero. The decoder constructor f_102473fc stores 0 at that byte (r25 = decoder+0x50000, r27 = 0, stb at 0x10247e18). The byte becomes 1 only after a successful fopen of the path formed from the global g_pszJFFSRoot, a slash, and the literal irconfig.txt. The load path f_102451a4 does that with mode r at 0x102454cc. The save path f_102457b8 does it with mode w at 0x10245868. The factory file /opt/ir/irconfig.txt is parsed by f_102451a4 when called with r4 = 1, and that call does not store this byte. The load runs from f_10248d4c when IR control is enabled and decoder+0x55 is still 0; that byte is an already-attempted flag, not the value this action returns.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10739b48",
@@ -27061,193 +27061,234 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "impl_function": "0x102423a8",
+      "impl_vfunc": "static vtable 0x10ea6254 slot +0x1c",
+      "description": "f_102423a8 reads one byte and returns 0. It does not open the file itself. File success and failure are recorded by the load and save helpers before this action is called.",
+      "notes": "g_pszJFFSRoot is the dynsym word at 0x1109b024. f_1068a70c appends a slash (immediate 0x2f) and the caller filename."
      },
      "inputs": {},
      "outputs": {
       "RemoteConfigured": {
-       "description": "flag byte read from impl member this+0x218",
+       "description": "Text 0 or 1 for the byte at decoder+0x54e38. 0 is the constructed value and remains until g_pszJFFSRoot/irconfig.txt is opened for reading or writing. 1 stays set after that success. The shipped file /opt/ir/irconfig.txt does not by itself change this output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": "boolean ('0'/'1')",
-       "format": "'0'/'1' literal",
-       "unit": "n/a - text",
-       "accepted_values": "{0,1} byte",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none - raw flag byte",
+       "semantic_type": "configured flag text",
+       "format": "the single character 0 or 1",
+       "unit": "n/a",
+       "accepted_values": "0, 1",
+       "range": "0 or 1",
+       "special_values": "f_1055fc08 copies 0 when the byte is 0 and 1 when the byte is nonzero. The only stored values are 0 and 1.",
        "required": false,
-       "default": "none - always read from member",
-       "validation": "single byte 0/1 written to out",
+       "default": "0 until a JFFS irconfig fopen succeeds",
+       "validation": "formatted from the byte; the worker does not range-check it",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10739c0c",
-         "notes": "out-arg access site"
+         "address": "0x10739c00",
+         "notes": "output record name RemoteConfigured"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11c1c",
-         "notes": "argument name string"
+         "address": "0x1055fc28",
+         "notes": "byte 0 copies the text 0"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102423a8",
-         "notes": "impl-level validation"
+         "address": "0x1055fc3c",
+         "notes": "nonzero byte copies the text 1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1024a34c",
+         "notes": "source byte"
         }
        ],
        "notes": null
       }
      },
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "The only SOAP gate is TRequest virtual +0x08. The worker has no argument and cannot return a fault.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10739b80",
+        "notes": "TRequest virtual +0x08"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102423c8",
+        "notes": "worker sets r3 to 0"
+       }
+      ]
+     },
+     "requirements": {
+      "description": "No input arguments. Request validation must return nonzero. The decoder at impl+0x218 must have been constructed, which stores 0 in the reported byte.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x10739b48",
-        "notes": "wrapper decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x1c]",
-      "evidence": [
+        "notes": "no argument fetch",
+        "function": "0x10739b48"
+       },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739b48",
-        "notes": "req-vfunc call map: {'0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x10247e18",
+        "notes": "constructor stores 0"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x1c]",
+      "description": "The result is the byte at decoder+0x54e38. 0 means neither the JFFS read nor the JFFS write fopen has succeeded since the decoder was constructed. 1 means one of those two fopen calls succeeded. A later failure does not clear the byte; the only store of 0 is the constructor.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739b48",
-        "notes": "member vfunc calls: ['r4 v[+0x8]', '*(r30+4) v[+0x1c]']"
+        "address": "0x1024a34c",
+        "notes": "lbz of decoder+0x50000+0x4e38"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102454cc",
+        "notes": "load path stores 1 after fopen mode r succeeds"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10245868",
+        "notes": "save path stores 1 after fopen mode w succeeds"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10247e18",
+        "notes": "constructor stores 0"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query delegate: r4 v[+0x8], *(r30+4) v[+0x1c] (call-derived member-method semantics)",
+       "description": "Read only. f_102423a8 does not open a file, does not set the already-attempted byte at decoder+0x55, and does not signal the event source.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10739b48",
-         "notes": "delegate map ['r4 v[+0x8]', '*(r30+4) v[+0x1c]']; notify-family calls []"
+         "address": "0x102423a8",
+         "notes": "worker is a byte load and a zero return",
+         "function": "0x102423a8"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r4 v[+0x8], *(r30+4) v[+0x1c] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. RemoteConfigured is not evented, and this worker does not call f_1067c6ec.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739b48",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102423a8",
+        "notes": "no notifier call",
+        "function": "0x102423a8"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x1c]",
+      "description": "None. The configured byte is not written by this action.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739b48",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', '*(r30+4) v[+0x1c]']"
+        "address": "0x102423c4",
+        "notes": "the only store is the caller's output byte"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "The worker returns 0, so the wrapper formats RemoteConfigured and commits. The only fault is 402 from TRequest virtual +0x08 returning 0.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10739b48",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x10739ba8",
+        "notes": "worker 0 skips the fault virtual"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10739bf0",
+        "notes": "validation failure passes 0x192"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10739c14",
+        "notes": "f_1055fc08 formats the byte"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10739c28",
+        "notes": "TRequest virtual +0x0c commits"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret; parse/req-layer",
-       "meaning": "impl returns 0 unconditionally (single literal-0 exit); only the handler request-gate can fault | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192 from the validation-failure path",
+       "meaning": "TRequest virtual +0x08 returned 0. f_102423a8 has no fault exit; it always returns 0.",
        "fault_sites": [
         "0x10739b48"
        ],
        "conditions": [
         {
-         "description": "impl arg validation failed",
+         "description": "TRequest virtual +0x08 at 0x10739b80 returns 0. The wrapper passes 0x192 to the fault virtual and does not call the worker.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102423a8",
-           "notes": "impl head"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "address": "0x10739b88",
+           "notes": "zero validation result branches to 0x10739bec"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10739b48",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10739bf0",
+           "notes": "fault argument 0x192"
           }
          ]
         }
@@ -27257,22 +27298,15 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102423a8",
-         "notes": "addi r3,0x192"
+         "address": "0x10739bec",
+         "notes": "validation-failure path"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102423a8",
-         "notes": "impl single-exit imm 0"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10739b48",
-         "notes": "wrapper parse + fault path"
+         "address": "0x102423c8",
+         "notes": "worker sets r3 to 0"
         }
        ]
       }
@@ -27293,13 +27327,31 @@
        "build": "86.10-80260",
        "address": "0x10f11bc0",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ea6270",
+       "notes": "vtable slot +0x1c points at f_102423a8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10242988",
+       "notes": "constructor builds the decoder at impl+0x218"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10248d4c",
+       "notes": "IR-enable load attempts the JFFS file once",
+       "function": "0x10248d4c"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10739b48; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "LearnIRCode": {
      "description": "Captures an IRCode within Timeout via impl->v[+0xc] on the sp+0x4c member.",
@@ -28825,9 +28877,9 @@
     "audio/hometheater/htaudio_{configuration,chprocessing,chsnk_processor,chsnk_processor_stream,autoplay}.cxx"
    ],
    "todo": [
-    "Established: the htc zone-player implementation vtable 0x10ea6254 is static. GetIRRepeaterState (f_1024222c), SetIRRepeaterState (f_102424d8), GetLEDFeedbackState (f_1024265c), and SetLEDFeedbackState (f_10242160) are traced. The repeater text lives at impl+0x1ec. The LED feedback flag is the byte at impl+0x200, initialized to 1 (On) by f_104f5230.",
-    "Residual: IsRemoteConfigured, IdentifyIRRemote, LearnIRCode, and CommitLearnedIRCodes are not traced yet. Known entry points are IsRemote slot +0x1c = f_102423a8, Commit slot +0x18 = f_10242380, Identify handler 0x10241f24, and Learn handler 0x10242008. The learning session sits on the decoder object constructed at impl+0x218.",
-    "Next step: disassemble f_102423a8 and the byte it reads, then f_10241f24, f_10242008, and f_10242380."
+    "Established: HTControl's implementation vtable 0x10ea6254 is installed by f_102426f0 at impl+0 and is static. The traced actions are GetIRRepeaterState (f_1024222c), SetIRRepeaterState (f_102424d8), GetLEDFeedbackState (f_1024265c), SetLEDFeedbackState (f_10242160), and IsRemoteConfigured (f_102423a8 reading the byte at decoder+0x54e38). The decoder object is the member constructed at impl+0x218 by f_102473fc.",
+    "Residual: IdentifyIRRemote (handler 0x10241f24), LearnIRCode (handler 0x10242008), and CommitLearnedIRCodes (handler 0x10739968, impl slot +0x18 = f_10242380) are not traced. Their timeout, capture, and irconfig.txt section-write behavior is still unknown. f_102457b8 is a writer of that file and sets the configured byte when its fopen for writing succeeds, but the SOAP action that reaches it has not been followed instruction by instruction.",
+    "Next step: disassemble 0x10241f24, 0x10242008, and 0x10242380, then connect f_102457b8 and f_10249004 to whichever of those actions saves the learned codes."
    ],
    "resolved_findings": [
     "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
