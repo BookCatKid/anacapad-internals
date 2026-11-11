@@ -23310,7 +23310,7 @@
    },
    "actions": {
     "AddMember": {
-     "description": "Joins a member to the group; returns CurrentURI, GroupUUIDJoined, ResetVolumeAfter and VolumeAVTransportURI so the joining member can align playback. Handler fully decoded: MemberID via f_1056157c (string, required), BootSeq via f_105614e0 (int, required) -> req->v[+0x08] validate (fail -> 402) -> impl->v[+0x8] -> CurrentTransportSettings + out fields via req->v[+0x24].",
+     "description": "Adds a player as a group member. The handler 0x10738654 reads MemberID as type-tag 7 text with capacity 0x19 and BootSeq as an integer. Request validation that returns 0 faults 402 at 0x10738898. The worker is f_10394d10, slot +0x08 of the static vtable 0x10ec2bc0. f_103938f0 stores that vtable at the gm_impl object at 0x10393bbc. A zero return writes the five outputs and commits. A nonzero return is the SOAP fault code.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10738654",
@@ -23390,7 +23390,11 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "impl_function": "0x10394d10",
+      "impl_vfunc": "static vtable 0x10ec2bc0 slot +0x08",
+      "description": "The vtable is the static table stored by the constructor. It is not injected at runtime. f_10394d10 returns 807 when the byte at impl+0xda4 is 0. It returns 402 when MemberID is null or its first byte is 0, and logs 'Adding member failed - invalid argument'. It returns 808 when f_10759850 returns nonzero, logging 'Rejecting AddMember: GC or new member is an ungroupable player'. It returns 804 when f_1075d770 returns nonzero, logging 'Adding member to satellite is not supported'. It returns 800 when the compatibility lookup fails, and also when the string at impl+0x210 does not match the string at impl+0x120. It returns 806 when that compatibility byte is 0, logging 'Adding member %s failed - incompatible member'. It returns 803 when BootSeq is nonzero and f_10123d80 reports the out-of-sync byte, logging 'Adding member %s with bootseq %u failed - out-of-sync GM'. It returns 801 when MemberID matches the string at impl+0x210. It returns 802 when none of the 32 member slots is free. A matching slot logs 'Adding member %s that already exists' and still refreshes the outputs when f_103929e0 returns 0. Success copies the member id into the slot, fills the five output buffers, calls f_10391dd8(impl, 1), and returns 0.",
+      "notes": "Return register is r31 at 0x10394de0. The handler passes BootSeq when the parser byte at +0x31 is nonzero and passes 0 when that byte is 0."
      },
      "inputs": {
       "MemberID": {
@@ -23639,7 +23643,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-arg fetch×2, out-arg write×5, validate×1, commit×1); member delegates: r29 v[+?]",
+      "description": "MemberID must be nonempty. The byte at impl+0xda4 must be nonzero. f_10759850 must return 0, f_1075d770 must return 0, and the compatibility lookup must succeed with a nonzero compatibility byte. When the BootSeq argument is nonzero, f_10123d80 must not report the out-of-sync byte.",
       "evidence": [
        {
         "type": "firmware",
@@ -23648,14 +23652,10 @@
         "function": "0x10738654",
         "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 5, '0x10': 4, '0xc': 1}"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-arg fetch×2, out-arg write×5, validate×1, commit×1); member delegates: r29 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r29 v[+?]",
+      "description": "The worker reads the ready byte at impl+0xda4, the identity strings at impl+0x210 and impl+0x120, the 32 member slots based at impl+0x280, and the output sources at impl+0x220 and impl+0x228.",
       "evidence": [
        {
         "type": "firmware",
@@ -23664,15 +23664,11 @@
         "function": "0x10738654",
         "notes": "member vfunc calls: ['r29 v[+?]']"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r29 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r29 v[+?] (call-derived member-method semantics)",
+       "description": "On success f_103929e0 copies MemberID into the chosen slot at impl+0x280 plus index times 0x19, with the id text at slot+8 and a capacity of 0x19. It then fills CurrentTransportSettings (capacity 0x81), GroupUUIDJoined from impl+0x139 (capacity 0x24), ResetVolumeAfter from the byte at (impl+0x228)+0x3d8, VolumeAVTransportURI from (impl+0x228)+0x3d9 (capacity 0x401), and CurrentURI from (impl+0x220)+0x5dc (capacity 0x401). f_10391dd8(impl, 1) runs after those copies.",
        "evidence": [
         {
          "type": "firmware",
@@ -23681,15 +23677,11 @@
          "function": "0x10738654",
          "notes": "delegate map ['r29 v[+?]']; notify-family calls []"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r29 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "f_10394d10 does not call f_1067c6ec or f_1067c46c. The same is true of f_103929e0, f_10391dd8, f_10392c7c, f_100d8bec, and f_102b52a4. A successful add calls f_10391dd8(impl, 1) and f_10392c7c with the literal 'Add'. Those calls update group state. They are not the GENA notify entry.",
       "evidence": [
        {
         "type": "firmware",
@@ -23698,14 +23690,10 @@
         "function": "0x10738654",
         "notes": "bl call scan: notify-family sites = []"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v[+?]",
+      "description": "A new member occupies one of the 32 slots of 0x19 bytes at impl+0x280. The id is stored at slot+8. An id that already matches a slot logs 'Adding member %s that already exists' and f_103929e0 still runs, so the slot and the five outputs are refreshed when that function returns 0. The failure returns 402, 800, 801, 802, 803, 804, 806, 807, and 808 leave the success copies unexecuted, except that an empty or null MemberID stores a zero byte into each output buffer before returning 402.",
       "evidence": [
        {
         "type": "firmware",
@@ -23714,14 +23702,10 @@
         "function": "0x10738654",
         "notes": "no transition-literal/store pattern; member delegates: ['r29 v[+?]']"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Zero commits the five outputs through TRequest slot +0x24 and slot +0x10, then slot +0x0c. Any other return is passed to TRequest slot +0x14. The worker's own codes are 0, 402, 800, 801, 802, 803, 804, 806, 807, and 808. The wrapper adds a separate 402 when request validation returns 0, before the worker runs.",
       "evidence": [
        {
         "type": "firmware",
@@ -23730,10 +23714,6 @@
         "function": "0x10738654",
         "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 5, '0x10': 4, '0xc': 1}"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [],
@@ -23741,13 +23721,14 @@
       {
        "code": 402,
        "code_expr": "vret; parse/req-layer",
-       "meaning": "request-validate failure; impl rc passthrough also reaches req->v[+0x14]",
+       "meaning": "402 from request validation, and 402 from the worker when MemberID is null or empty.",
        "fault_sites": [
-        "0x10738654"
+        "0x10738898",
+        "0x10394fdc"
        ],
        "conditions": [
         {
-         "description": "req->v[+0x08] returned 0 -> addi r4,0x192 -> ->v[+0x14]",
+         "description": "Validation slot +0x08 returning 0 faults 402 at 0x10738898. The worker returns 402 at 0x10394fdc when MemberID is null or its first byte is 0, with the log 'Adding member failed - invalid argument'.",
          "evidence": [
           {
            "type": "firmware",
@@ -23768,11 +23749,7 @@
          "notes": "402 gate"
         }
        ],
-       "domain_note": "delegated-rc semantics: impl rc surfaced via req->v[+0x14]",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; parse/req-layer; sites: 0x10738654).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "delegated-rc semantics: impl rc surfaced via req->v[+0x14]"
       },
       {
        "code": 800,
@@ -23931,8 +23908,8 @@
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "impl f_10394d10 complete literal fault ladder {402,800,801,802,803,804,806,807,808}: documented set missed 802/806/807. Strings: 'Adding member failed - invalid argument', 'Rejecting AddMember: GC or new member is an ungroupable player', 'Adding member to satellite is not supported'.",
+       "code_expr": "return value of f_10394d10, passed to TRequest slot +0x14",
+       "meaning": "Worker fault codes from f_10394d10: 800 when the local identity strings disagree or the compatibility lookup fails; 801 when MemberID equals the string at impl+0x210; 802 when all 32 member slots are occupied; 803 when BootSeq is out of sync; 804 when f_1075d770 reports a satellite; 806 when the compatibility byte is 0; 807 when impl+0xda4 is 0; 808 when f_10759850 reports an ungroupable player.",
        "fault_sites": [],
        "evidence": [
         {
@@ -23945,7 +23922,7 @@
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Each code is the value left in r31 and returned at 0x10394de0. The log strings are at 0x10ec30a0 (808), 0x10ec3120 (804), 0x10ec317c (800), 0x10ec314c (806), 0x10ec31bc (803), and 0x10ec31f8 (already present, which still returns 0 when the refresh succeeds).",
          "evidence": [
           {
            "type": "firmware",
@@ -23956,10 +23933,6 @@
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14]); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -23982,10 +23955,6 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: dispatch to handler 0x10738654; the impl object is resolved - the dedicated 'gm_impl' class (primary vptr 0x10ec2bc0, ctor f_103938f0) with AddMember impl f_10394d10 (see architecture).",
-      "Residual: the impl-function linkage is not recorded in this record, and the member-add semantics inside f_10394d10 (argument roles, member-state writes) are not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
       "Resolved: f_10394d10 is the member-write impl - MemberID selects the member record, BootSeq guards staleness; the write path adds the member to the gm membership set and emits member-change events.",
       "Resolved: f_10394d10 is the member-write impl - MemberID selects the member record, BootSeq guards staleness; the write path adds the member to the gm membership set and emits member-change events."
@@ -25538,8 +25507,9 @@
      }
     ],
     "todo": [
-     "Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `groupManagement`, `groupCoordinatorChanged`.",
-     "Residual: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "Established: GENA SUBSCRIBE is accepted and this service has no LastChange template. AddMember's worker f_10394d10 and the helpers f_103929e0, f_10391dd8, f_10392c7c, f_100d8bec, and f_102b52a4 do not call f_1067c6ec or f_1067c46c. WSS names attributed to this service are groupManagement and groupCoordinatorChanged.",
+     "Residual: no instruction has been shown that calls this service's event-source render slot. The WSS names are an attribution, not a callsite.",
+     "Next step: locate gm_impl's event source, confirm it is appended to a notification-sender vector, and name the live call of its render slot."
     ],
     "resolved_findings": [
      "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
@@ -25549,7 +25519,7 @@
     {
      "code": 401,
      "code_expr": null,
-     "meaning": "unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler",
+     "meaning": "Unknown action. The dispatcher f_10738308 binary-searches 4 names (r29 starts at 4). A miss faults 401 at 0x107383c0 and then tails TRequest slot +0x38. That is the only 401 site in the dispatcher.",
      "fault_sites": [
       "0x107383c0"
      ],
@@ -25577,10 +25547,6 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
       "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x107383b0); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
      ]
@@ -25628,8 +25594,9 @@
     "vli_session": "vli session end evt -> VliSessionProcessingCompleteEvent (async task)"
    },
    "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
+    "Established: AddMember's worker is f_10394d10 on the static vtable 0x10ec2bc0, stored by f_103938f0 at 0x10393bbc. RemoveMember, ReportTrackBufferingResult, and SetSourceAreaIds have no remaining todo. The dispatcher 401 has one site, 0x107383c0, after the 4-name search misses.",
+    "Residual: the events record still does not name the function that renders this service's properties.",
+    "Next step: trace the event source embedded in gm_impl the same way as HTControl's source at impl+8, and name the live call that reaches its render slot."
    ],
    "resolved_findings": [
     "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
