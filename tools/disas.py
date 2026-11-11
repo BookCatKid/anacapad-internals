@@ -62,11 +62,46 @@ def _annotate(va):
     return "; ".join(out)
 
 
+def decode_for_listing(word, pc):
+    """Preserve RE-relevant guards and masks without changing the extractor."""
+    op = word >> 26
+    rd, ra, rb = (word >> 21) & 31, (word >> 16) & 31, (word >> 11) & 31
+    if op in (10, 11):
+        immediate = word & 0xffff
+        if op == 11 and immediate & 0x8000:
+            immediate -= 0x10000
+        return ("cmplwi" if op == 10 else "cmpwi",
+                (word >> 23) & 7, ra, immediate)
+    if op == 21:
+        return ("rlwinm." if word & 1 else "rlwinm", ra, rd, rb,
+                (word >> 6) & 31, (word >> 1) & 31)
+    if op == 19 and ((word >> 1) & 1023) == 16:
+        bo, bi = rd, ra
+        if bo not in (20, 21):
+            return ("bclrl" if word & 1 else "bclr", bo, bi)
+    if op == 4 and (word & 0x7ff) in (0x300, 0x320):
+        return ("evlddx" if (word & 0x7ff) == 0x300 else "evstddx",
+                rd, ra, rb)
+    if op == 31:
+        xo = (word >> 1) & 1023
+        if xo in (23, 55):
+            mnemonic = "lwzx" if xo == 23 else "lwzux"
+            return (mnemonic, rd, ra, rb)
+        if xo == 444 and rd == rb and word & 1:
+            return ("mr.", ra, rd)
+    return X.decode(word, pc)
+
+
 def fmt_ins(pc, ins):
     op = ins[0]
     a = ins[1:]
     def r(x):
         return "r%d" % x
+    if op in ("cmpwi", "cmplwi"):
+        immediate = "0x%x" % a[2] if op == "cmplwi" else str(a[2])
+        return "%s cr%d, %s, %s" % (op, a[0], r(a[1]), immediate)
+    if op in ("bclr", "bclrl"):
+        return "%s bo=%d,bi=%d" % (op, a[0], a[1])
     if op in ("b", "bl"):
         nm = name_of(a[0])
         return "%s 0x%x%s" % (op, a[0], "  <%s>" % nm if nm else "")
@@ -85,15 +120,15 @@ def fmt_ins(pc, ins):
         return op
     if op == "bc19":
         return "bc19 xo=%d" % a[0]
-    if op == "mr":
-        return "mr %s, %s" % (r(a[0]), r(a[1]))
+    if op in ("mr", "mr."):
+        return "%s %s, %s" % (op, r(a[0]), r(a[1]))
     if op in ("extsb", "extsh", "cntlzw"):
         return "%s %s, %s" % (op, r(a[0]), r(a[1]))
     if op in ("cmp", "cmpl"):
         return "%s cr%d, %s, %s" % (op, a[0], r(a[1]), r(a[2]))
     if op in ("mtlr", "mtctr", "mflr", "mfctr"):
         return "%s %s" % (op, r(a[0]))
-    if op in ("rlwinm", "rlwnm"):
+    if op in ("rlwinm", "rlwinm.", "rlwnm"):
         return "%s %s, %s, %d, %d, %d" % (op, r(a[0]), r(a[1]), a[2],
                                          a[3], a[4])
     if op == "rlwimi":
@@ -133,7 +168,7 @@ def disas(start, end=None, count=None):
         w = _elf.u32(pc)
         if w is None:
             break
-        ins = X.decode(w, pc)
+        ins = decode_for_listing(w, pc)
         txt = fmt_ins(pc, ins)
         notes = []
         # track hi/lo address formation
@@ -144,8 +179,8 @@ def disas(start, end=None, count=None):
                 & 0xFFFFFFFF
             addr_of[d] = hi[d]
         elif op in ("addi", "ori", "xori", "lwz", "stw", "lbz", "stb",
-                    "lhz", "sth", "lha", "addic", "addic.", "subi",
-                    "cmpwi", "cmplwi") and len(ins) == 4:
+                    "lhz", "sth", "lha", "addic", "addic.", "subi") \
+                and len(ins) == 4:
             d, ra, imm = ins[1], ins[2], ins[3]
             if ra in addr_of:
                 va = (addr_of[ra] + imm) & 0xFFFFFFFF
@@ -155,7 +190,7 @@ def disas(start, end=None, count=None):
                     notes.append("0x%x %s" % (va, ann))
             elif op in ("addi", "ori"):
                 addr_of.pop(d, None)
-        elif op == "mr" and len(ins) == 3:
+        elif op in ("mr", "mr.") and len(ins) == 3:
             if ins[2] in addr_of:
                 addr_of[ins[1]] = addr_of[ins[2]]
             else:
