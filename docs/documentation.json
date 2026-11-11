@@ -29148,7 +29148,7 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE is accepted at /HTControl/Event. Property text is produced by f_10243170, reached from event-source virtual +0x14 (f_1024340c adjusts this by -8 because the source is embedded at impl+8). The renderer emits TOSLinkConnected from the byte at impl+0x1e5 and IRRepeaterState from the string at impl+0x1ec. It does not emit LEDFeedbackState or RemoteConfigured. SetIRRepeaterState calls f_1067c6ec, which calls f_1067c46c with null buffers, so that call does not enter f_10243170. f_1067c46c calls f_10678c50 on the sender at source+0xb4. That sets sender+0x10e and pthread_cond_signal's the condition at sender+0xb8. The consumer f_10679b14 reads sender+0x10e and calls source virtuals +0x08 and +0x10. It does not contain a load of slot +0x14. Slot +0x18 (f_1067ab54) tail-calls slot +0x14. f_1067b214 walks the global list at 0x11097824 and calls virtual +0x18, but the inserts of that list are not the HTControl source.",
+    "mechanism": "GENA SUBSCRIBE is accepted at /HTControl/Event. Property text is produced by f_10243170, reached from event-source virtual +0x14. f_1024340c adjusts this by -8 because the source object is the embedded object at impl+8, and slot +0x18 (f_1067ab54) tail-calls slot +0x14 with the same r3, r4, and r5. The renderer emits TOSLinkConnected from the byte at impl+0x1e5 and IRRepeaterState from the string at impl+0x1ec. It does not emit LEDFeedbackState or RemoteConfigured. Registration: f_101981f0 calls f_10189a10 at 0x1019826c. In f_10189a10, r31 is the zone player and r29 is r31+0x40000. The load at 0x10189cc4 reads the htc impl from r29-0x2af8, which is zone-player+0x3d508. The addi at 0x10189ccc forms impl+8. The isel at 0x10189cd4 keeps that pointer when the impl is non-null and substitutes 0 when the impl is null, then 0x10189cd8 calls f_106795b4 with the sender loaded from zone-player+0x5744. f_106795b4 appends its r4 argument to the vector at sender+0x110 when the byte at sender+0x10d is 0. The sender constructor f_106782b4 stores 0 at that byte (0x10678388). The other store of that byte is f_10678ab8, which stores 1, and f_101981f0 does not call f_10678ab8. Signal: SetIRRepeaterState calls f_1067c6ec, which calls f_1067c46c with null buffers, so that call does not enter f_10243170. f_1067c46c calls f_10678c50 on the sender at source+0xb4. That sets sender+0x10e and signals the condition at sender+0xb8. The consumer f_10679b14 clears sender+0x10e, copies the vector at sender+0x110, and calls f_10683da0 for each element whose vtable slot +0x08 equals f_100c9bac. The HTControl event vtable 0x10ea628c has f_100c9bac at slot +0x08. Inside f_10683da0 the instruction at 0x10684060 loads slot +0x18 and the call at 0x1068406c would pass the property buffers at the global object's +0x90 and +0x94. That call runs only when the word at sp+0x50 is nonzero. The function stores 0 at that word (0x10683e0c) and does not store it again before the compare at 0x10683fe0, and no instruction takes the address of that word. The compare branches to 0x10684258. f_1067b214 walks the separate global list at 0x11097824. Its insert sites are 0x1059bf34 and 0x106261c4.",
     "lastchange_template": null,
     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
     "wss_event_names": [
@@ -29190,9 +29190,58 @@
       "build": "86.10-80260",
       "address": "0x1067ab54",
       "notes": "slot +0x18 tail-calls slot +0x14"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10189cc4",
+      "notes": "load htc impl from (zp+0x40000)-0x2af8"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10189cd8",
+      "notes": "f_106795b4(sender at zp+0x5744, impl+8)"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10679634",
+      "notes": "append to sender vector +0x110 while byte +0x10d is 0"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10678388",
+      "notes": "sender constructor stores 0 at +0x10d"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10679bd8",
+      "notes": "consumer copies the sender+0x110 vector after sender+0x10e is set"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10683fe0",
+      "notes": "f_10683da0 skips the slot +0x18 call when sp+0x50 is 0"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10684060",
+      "notes": "unreachable in this function: load of event-source slot +0x18"
      }
     ],
-    "notify_path": "f_10243170 emits {TOSLinkConnected, IRRepeaterState}. Signal path: f_1067c6ec -> f_1067c46c -> f_10678c50 -> pthread_cond_signal. Renderer entry: vtable 0x10ea628c slot +0x14 = f_1024340c.",
+    "notify_path": "f_10243170 emits {TOSLinkConnected, IRRepeaterState}. Registration of impl+8: f_10189a10 at 0x10189cd8 calls f_106795b4(sender at zp+0x5744, impl+8). Signal: f_1067c6ec -> f_1067c46c -> f_10678c50 -> pthread_cond_signal. Consumer: f_10679b14 walks sender+0x110 and calls f_10683da0. The slot +0x18 call that would enter f_1024340c is at 0x1068406c and is skipped while sp+0x50 is 0.",
     "wss_registry": [
      {
       "idx": 41,
@@ -29202,9 +29251,9 @@
      }
     ],
     "todo": [
-     "Established: the property body is f_10243170, and a repeater change signals the sender with pthread_cond_signal after setting sender+0x10e. The consumer thread is f_10679b14. The renderer is event-source slot +0x14, and slot +0x18 tail-calls it.",
-     "Residual: f_10679b14's virtual calls use slots +0x08, +0x0c, and +0x10. None of those instructions load slot +0x14. f_1067b214 does call slot +0x18 on the objects in the global list at 0x11097824, and the two insert sites are 0x1059bf34 and 0x106261c4. Neither insert has been shown to push the HTControl source at impl+8.",
-     "Next step: from f_10679b14 or from a callee, find the call that reaches f_1024340c or f_1067ab54 on the object constructed at impl+8."
+     "Established: the HTControl event source at impl+8 is passed to f_106795b4 at 0x10189cd8 and appended to the shared sender vector at sender+0x110 while sender+0x10d is 0. The sender constructor stores 0 at that byte. f_1067c6ec reaches pthread_cond_signal on that sender. Consumer f_10679b14 walks sender+0x110 and calls f_10683da0 for a source whose slot +0x08 is f_100c9bac, which the vtable at 0x10ea628c has. f_10243170 is the property body, reached from slot +0x14, and slot +0x18 tail-calls slot +0x14.",
+     "Residual: the slot +0x18 call at 0x1068406c, which would enter f_1024340c and then f_10243170 with the two property buffers, is skipped. f_10683da0 stores 0 at sp+0x50 and the compare at 0x10683fe0 takes the branch to 0x10684258. No live instruction in f_10679b14 or in the taken path of f_10683da0 calls f_1024340c or f_1067ab54.",
+     "Next step: find a store of a nonzero value to the word f_10683da0 reads at 0x10683fe0, or another live call of slot +0x14 or slot +0x18 whose r3 is the object at impl+8."
     ],
     "resolved_findings": [
      "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
@@ -29299,9 +29348,9 @@
     "audio/hometheater/htaudio_{configuration,chprocessing,chsnk_processor,chsnk_processor_stream,autoplay}.cxx"
    ],
    "todo": [
-    "Established: all eight HTControl actions are traced on the static implementation vtable 0x10ea6254 or by direct calls into the decoder at impl+0x218. IdentifyIRRemote, LearnIRCode, and CommitLearnedIRCodes return 0, 402, 801, 802, or 803 as documented on those actions. The irconfig writer is f_102457b8. The dispatcher 401 has one site, 0x107397d8.",
-    "Residual: the upnpeventing consumer f_10679b14 has not been shown to call event-source slot +0x14, which is the function that runs f_10243170. The signal reaches pthread_cond_signal. The render function is known. The connecting call on this source object is not.",
-    "Next step: trace the consumer's callees until one calls f_1024340c or f_1067ab54 with the HTControl event source."
+    "Established: all eight HTControl actions are traced on the static implementation vtable 0x10ea6254 or by direct calls into the decoder at impl+0x218. IdentifyIRRemote, LearnIRCode, and CommitLearnedIRCodes return 0, 402, 801, 802, or 803 as documented on those actions. The irconfig writer is f_102457b8. The dispatcher 401 has one site, 0x107397d8. The event source at impl+8 is registered with the shared sender by f_10189a10 at 0x10189cd8.",
+    "Residual: the upnpeventing consumer reaches f_10683da0 with this event source, and f_10683da0 contains the slot +0x18 call at 0x1068406c that would run f_10243170, but that call is skipped because sp+0x50 is 0. The property body is therefore not yet shown to run for a live notification of this source.",
+    "Next step: find a store of a nonzero value to the word read at 0x10683fe0, or another live call of slot +0x14 or slot +0x18 on the object at impl+8."
    ],
    "resolved_findings": [
     "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
