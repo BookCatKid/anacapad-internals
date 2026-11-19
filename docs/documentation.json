@@ -107365,11 +107365,25 @@
      "build": "86.10-80260",
      "address": "0x1039fbd4",
      "notes": "'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1039fcd0",
+     "notes": "The first direct allocation argument is 0x20; the other two are 0x10. The shared helper f_10809f0c calls malloc at 0x10809f54 and returns storage on success, not a queued event."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1039fe18",
+     "notes": "f_1099b054 moves a four-word wrapper to a new destination and clears its source callback slot; f_1099b0e4 at 0x1039fe8c has the same wrapper-transfer shape. Neither performs dispatch."
     }
    ],
    "required_for_behavior": true,
    "todo": [
-    "Residual: which subscribers consume each of the three posted events is not statically resolvable - delivery runs through the internal_event_bus registration/dispatch boundary (documented)."
+    "Residual: trace the three constructed callback wrappers through their downstream dispatch, identify which are enqueued rather than invoked or cleaned up locally, and bind any posted event to its consumers. Allocation and wrapper moves are not evidence of a post."
    ],
    "disasm_digest": {
     "insns": 344,
@@ -107431,8 +107445,8 @@
    },
    "resolved_findings": [
     "Resolved via complete decompile pass: 344-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_10809f0c, f_100efd2c, f_1099b054, f_1099b0e4, f_101a473c, f_100eb990, f_101a29d0, f_103a5020, f_100e7754, f_100c5050, f_101a2abc, f_110985d8; string literals: grc; onEvent; ../anacapa-1.0/oc/zone/zoneplayer/grc_zpimpl.cxx; %s:%s:%d  process GroupVolumeSetActionEvent (%u,%d); member stores: 0x214,0x1ec,0x8,0x18,0x1c,0x68,0x6c,0x78,0x7c,0x28,0x2c,0x38; immediate compares: 0x0,0x3. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "GroupVolumeSetActionEvent processor: 344 insns in grc_zpimpl.cxx (\"process GroupVolumeSetActionEvent (%u,%d)\"), 3x f_10809f0c notifications, emits downstream onEvent/grc-scoped notifications.",
-    "Resolved: the incoming GroupVolumeSetActionEvent layout is {+0 u8, +2 u16, +4 u32, +8 u32}; the log's (%u,%d) args are the +2 u16 and a word field. All three f_10809f0c calls post 16-byte heap events (first arg 0x10 = alloc size; f_10809f0c mallocs and enqueues on the event queue): sites 0x1039fd14, 0x1039fdcc, 0x1039fe40 copy different slices of the incoming event fields into three separate posted records - i.e. the processor fans one incoming event into three downstream notifications through the generic event-poster."
+    "The incoming GroupVolumeSetActionEvent layout is {+0 u8, +2 u16, +4 u32, +8 u32}; the log takes the +2 halfword and a word field. The worker builds heap-backed callback wrappers at 0x1039fd14, 0x1039fdcc and 0x1039fe40.",
+    "The wrappers carry manager functions f_1039beb0, f_1039bfb4 and f_1039c26c, respectively. The first wrapper enters f_100efd2c at 0x1039fd80; the other two enter wrapper-transfer helpers at 0x1039fe18 and 0x1039fe8c. The allocations alone do not establish the number of downstream notifications."
    ]
   },
   "0x104164e4": {
