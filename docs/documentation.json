@@ -131631,8 +131631,37 @@
      "address": "0x102ce068",
      "callsite": "0x102ce5fc-0x102ce67c; 0x102ce77c-0x102ce7a8; 0x102ceafc-0x102ceb34",
      "notes": "Local VLI transport-settings branch, masked unsigned member/capacity comparison and over-capacity error/abort path; equality is not rejected."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103fa434 / f_106aae20",
+     "address": "0x103fbdd8",
+     "callsite": "0x103fbdd8-0x103fbe84; 0x106aaedc-0x106aaf5c",
+     "notes": "Allocation, concrete VirtualLineIn registration, vptr install and zp+0x19a0 ownership. Concrete Play slot points to 0x106a60d4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103fd65c / f_104d49e8",
+     "address": "0x104d49e8",
+     "callsite": "0x103fdcf8-0x103fdd60; 0x104d4b50; 0x104d4cf0; 0x104d4dc0; 0x104d4f58-0x104d4f64",
+     "notes": "Caller passes VLI shared-pointer pair from zp+0x19a0; callee stores its implementation at +0x58, separately from AVT/GRC/RC."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1073d2dc / f_106a60d4",
+     "address": "0x1073d2dc",
+     "callsite": "0x10f11ef8; 0x1073d36c-0x1073d3a0; 0x106a60d4-0x106a6138",
+     "notes": "Play SOAP action dispatches impl+0x14; constructed primary vtable resolves it to a logging-only method returning401, not the local event producer."
     }
-   ]
+   ],
+   "soap_binding": "The SOAP VirtualLineIn implementation is a separate object from media_player_vli_ctrl and the local VliTransportActionEvent queue. Startup f_103fa434 allocates 0x1510 bytes, calls f_106aae20 at 0x103fbe30 and stores that object at zp+0x19a0. Its constructor registers VirtualLineIn and installs primary vptr 0x10f045c4. The service binding routine f_104d49e8, called at 0x103fdd60 in f_103fd65c, binds this object through its +0x58 field at 0x104d4f64. The nearby stores 0x104d4b50, 0x104d4cf0 and 0x104d4dc0 bind AVTransport, GroupRenderingControl and RenderingControl at +0x10/+0x28/+0x34 respectively; these addresses are binding instructions, not implementation entrypoints.",
+   "soap_play": "The VirtualLineIn Play action entry at 0x10f11ef8 selects SOAP handler f_1073d2dc, which parses InstanceID and Speed and dispatches the implementation virtual slot +0x14. For the constructed object, 0x10f045c4+0x14 points to f_106a60d4. That method optionally logs Play and unconditionally returns 401 at 0x106a6128, without submitting a VliTransportActionEvent. The handler forwards a nonzero implementation result as a SOAP fault at 0x1073d3a0; malformed required arguments have a separate 402 path. Dispatcher-level unknown/unavailable action handling at 0x1073cd64 also produces 401, but it is not the evidence for the implementation stub. Thus local session/group event functionality does not establish that SOAP Play starts VLI playback."
   },
   "usage_data_sharing": {
    "impl": "usagedatasharing.cxx",
