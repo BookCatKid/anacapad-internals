@@ -62142,12 +62142,13 @@
         }
        ],
        "todo": [
-        "Established: no function on the AddURI path calls the saved-queues store save f_1047ee0c directly.",
-        "Residual: whether any transitive callee of f_1014f808 or the session consumer of the f_10255f64 requests reaches f_1047ee0c, so that these store codes can surface from AddURI, is not traced; next step is a transitive call-graph walk from f_1014f808 and the request consumer."
+        "Established: no direct call chain from AddURI or the request consumer reaches f_1047ee0c, and no indirect call in either closure uses the AVTransport impl offsets 0x7c or 0x80.",
+        "Residual: indirect calls are matched only by vtable offset, not by object type. So it is not excluded that one of those 1099 indirect calls dispatches to f_10347ddc, f_10347f44, f_1034a294, f_101981f0 or f_101b8614. Next step is to resolve the vtable bases of the slots at 0x10ebb7cc, 0x10ebb7d0, 0x10ebb818 and 0x10e9af3c and match their slot offsets against the indirect sites."
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x10ed2edc emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure.",
-        "Checked: f_1047ee0c (savedqueues.xml save) is called only from 0x10479794..0x1047b1fc and not directly by f_1046453c, f_102b6948, f_102b674c, f_102b62e8, f_1014f808 or f_1014fb34."
+        "Checked: f_1047ee0c (savedqueues.xml save) is called only from 0x10479794..0x1047b1fc and not directly by f_1046453c, f_102b6948, f_102b674c, f_102b62e8, f_1014f808 or f_1014fb34.",
+        "Established (reachability of the saved-queues store save f_1047ee0c): the direct-call closure (every bl and b target, followed transitively) of the AddURI implementation f_102b6948 covers 1302 functions, and that of the session request consumer f_1026571c covers 1566 functions. Neither contains f_1047ee0c. Walking backwards, f_1047ee0c's direct callers come from 16 functions whose entry points are reached only through data: f_102aa8b4 (AVTransport impl vtable +0x7c, slots 0x10eaf368 and 0x10edfc34, the SaveAsSonosPlaylist path), f_102ab62c (+0x80, slots 0x10eaf36c and 0x10edfc38), f_10347ddc, f_10347f44 and f_1034a294 (slots 0x10ebb818, 0x10ebb7d0, 0x10ebb7cc), f_101981f0 (slot 0x10e97e10), f_101b8614 (slot 0x10e9af3c), plus the unreferenced f_1047b2b4. None of the 414 indirect calls in the AddURI closure or the 685 in the consumer closure loads its target from vtable offset 0x7c or 0x80. In plain terms: AddURI has no call path to the saved-playlist writer through the AVTransport impl."
        ]
       }
      ],
