@@ -48507,7 +48507,7 @@
      ]
     },
     "GetTransportInfo": {
-     "description": "Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then worker f_102b1684: dispatches on mode impl+0x4654 (==2 -> indexed fill path 0x102b1a44; ==1 -> 0x102b19c8; else -> f_10308aec(impl+0x5d4,...) plus strlcpy of the impl+0x5dc source-name string into an out buffer). All outputs are filled by the worker under the impl+0x458 lock.",
+     "description": "Returns current transport state, fixed status OK and fixed speed 1. Uses the source-mode worker f_102b1684 under the engine +0x458 scope, then applies the wrapper's request-descriptor-specific TRANSITIONING-to-PLAYING override before publishing the state.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fbb60",
@@ -48612,7 +48612,7 @@
      },
      "outputs": {
       "CurrentTransportState": {
-       "description": "Transport-state string filled per mode (PLAYING/PAUSED_PLAYBACK/STOPPED family).",
+       "description": "Mode-specific transport state, subject to the indexed and request-descriptor overrides.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -48621,9 +48621,9 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined",
-       "range": "impl-defined",
-       "special_values": "none observed in this build",
+       "accepted_values": "PLAYING, PAUSED_PLAYBACK, STOPPED, TRANSITIONING, or the empty string",
+       "range": "State names selected by the active source mode.",
+       "special_values": "The indexed and streamer paths can produce an empty string for a state without a name.",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -48641,12 +48641,52 @@
          "build": "86.10-80260",
          "address": "0x10eb3604",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b16a0",
+         "notes": "Reads impl+0x4654. Mode 2 passes *(impl+0x580) to 0x1025be44; mode 1 passes impl+0x7758 to 0x10488154; all other modes pass *(impl+0x5d4) to 0x10308c6c.",
+         "function": "0x102b1684"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b1710",
+         "notes": "Reads indexed playback state via f_1025be44, which gets an inner state from f_10341b9c and names it with f_10341b68 (table 0x10eba220: STOPPED, TRANSITIONING, PLAYING, PAUSED_PLAYBACK; out-of-range is empty). If impl+0x7764 byte is nonzero the worker overwrites the resulting state with PLAYING.",
+         "function": "0x102b1684"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10488180",
+         "notes": "Reads the word at +4 of the streamer state object: 0 -> PLAYING, 1 -> PAUSED_PLAYBACK, everything else -> empty string.",
+         "function": "0x10488154"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10308cc0",
+         "notes": "Reads source+0x28b0 under its lock: 3, 5, 7 or 9 -> PLAYING, 1 -> STOPPED, all other values -> TRANSITIONING.",
+         "function": "0x10308c6c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fbc90",
+         "notes": "Request +0x40 fills an initially zeroed 8-byte descriptor. After a true return, byte +1 below 0x16 enables the override; byte +1 equal to 0x16 enables it only if byte +2 is zero and the unsigned word at +4 is <= 0xf653. Otherwise there is no override. When enabled, only TRANSITIONING is rewritten to PLAYING (0x102fbd7c).",
+         "function": "0x102fbb60"
         }
        ],
        "notes": null
       },
       "CurrentTransportStatus": {
-       "description": "Status string (OK / ERROR_OCCURRED family).",
+       "description": "All source paths write the literal OK for status.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -48655,9 +48695,9 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined",
-       "range": "impl-defined",
-       "special_values": "none observed in this build",
+       "accepted_values": "OK",
+       "range": "Fixed literal.",
+       "special_values": "OK",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -48675,12 +48715,36 @@
          "build": "86.10-80260",
          "address": "0x10eb361c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025bfa4",
+         "notes": "Indexed path copies the fixed OK and 1 literals to supplied status and speed buffers (speed at 0x1025bf54).",
+         "function": "0x1025be44"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104881ac",
+         "notes": "Streamer path copies the fixed OK and 1 literals (speed via tail call at 0x104881e4).",
+         "function": "0x10488154"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10308d08",
+         "notes": "Default path copies the fixed OK and 1 literals (speed via tail call at 0x10308d50).",
+         "function": "0x10308c6c"
         }
        ],
        "notes": null
       },
       "CurrentSpeed": {
-       "description": "Playback speed string - normally 1.",
+       "description": "All source paths write the literal 1 for speed.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -48689,9 +48753,9 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined",
-       "range": "impl-defined",
-       "special_values": "none observed in this build",
+       "accepted_values": "1",
+       "range": "Fixed literal.",
+       "special_values": "1",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -48709,6 +48773,30 @@
          "build": "86.10-80260",
          "address": "0x10eb3634",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025bfa4",
+         "notes": "Indexed path copies the fixed OK and 1 literals to supplied status and speed buffers (speed at 0x1025bf54).",
+         "function": "0x1025be44"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104881ac",
+         "notes": "Streamer path copies the fixed OK and 1 literals (speed via tail call at 0x104881e4).",
+         "function": "0x10488154"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10308d08",
+         "notes": "Default path copies the fixed OK and 1 literals (speed via tail call at 0x10308d50).",
+         "function": "0x10308c6c"
         }
        ],
        "notes": null
@@ -48736,28 +48824,68 @@
       ]
      },
      "requirements": {
-      "description": "InstanceID==0 only.",
+      "description": "The request must materialize InstanceID, and the parsed value must be 0.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b1818",
-        "notes": "cmpwi r29,0 gate",
-        "function": "f_102b1738"
+        "address": "0x102fbc70",
+        "notes": "If required InstanceID materialization via request +0x08 at 0x102fbbd0 fails, the wrapper sends literal 402 through request +0x14.",
+        "function": "0x102fbb60"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1814",
+        "notes": "Nonzero parsed InstanceID returns 718 (li r30,0x2ce at 0x102b1818). Zero reaches the worker at 0x102b189c, which returns zero for all source modes.",
+        "function": "0x102b1738"
        }
       ]
      },
      "state_dependencies": {
-      "description": "mode impl+0x4654 selects which state source fills the outputs (indexed vs streamer vs default f_10308aec path).",
+      "description": "The indexed player, streamer and default source have different state maps. The indexed path can override the state to PLAYING via impl+0x7764, and the wrapper can separately rewrite TRANSITIONING to PLAYING according to the request descriptor.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b1928",
-        "notes": "cmplwi mode,2/1 dispatch",
-        "function": "f_102b1684"
+        "address": "0x102b16a0",
+        "notes": "Reads impl+0x4654. Mode 2 passes *(impl+0x580) to 0x1025be44; mode 1 passes impl+0x7758 to 0x10488154; all other modes pass *(impl+0x5d4) to 0x10308c6c.",
+        "function": "0x102b1684"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1710",
+        "notes": "Reads indexed playback state via f_1025be44, which gets an inner state from f_10341b9c and names it with f_10341b68 (table 0x10eba220: STOPPED, TRANSITIONING, PLAYING, PAUSED_PLAYBACK; out-of-range is empty). If impl+0x7764 byte is nonzero the worker overwrites the resulting state with PLAYING.",
+        "function": "0x102b1684"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10488180",
+        "notes": "Reads the word at +4 of the streamer state object: 0 -> PLAYING, 1 -> PAUSED_PLAYBACK, everything else -> empty string.",
+        "function": "0x10488154"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10308cc0",
+        "notes": "Reads source+0x28b0 under its lock: 3, 5, 7 or 9 -> PLAYING, 1 -> STOPPED, all other values -> TRANSITIONING.",
+        "function": "0x10308c6c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102fbc90",
+        "notes": "Request +0x40 fills an initially zeroed 8-byte descriptor. After a true return, byte +1 below 0x16 enables the override; byte +1 equal to 0x16 enables it only if byte +2 is zero and the unsigned word at +4 is <= 0xf653. Otherwise there is no override. When enabled, only TRANSITIONING is rewritten to PLAYING (0x102fbd7c).",
+        "function": "0x102fbb60"
        }
       ]
      },
@@ -48803,15 +48931,31 @@
       ]
      },
      "return_behavior": {
-      "description": "0 on success after filling outs; 718 only for InstanceID!=0. No other faults observed in the impl.",
+      "description": "The wrapper commits three output strings via request +0x0c at 0x102fbd64 on success. Request materialization failure yields 402; the only ordinary nonzero engine return is 718 for an InstanceID other than zero.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b17fc",
-        "notes": "return paths",
-        "function": "f_102b1738"
+        "address": "0x102fbc70",
+        "notes": "If required InstanceID materialization via request +0x08 at 0x102fbbd0 fails, the wrapper sends literal 402 through request +0x14.",
+        "function": "0x102fbb60"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102fbc18",
+        "notes": "Calls slot +0x14, 0x102b1738 in both AVTransport engine tables. Nonzero rc branches to request fault +0x14 at 0x102fbc34.",
+        "function": "0x102fbb60"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1814",
+        "notes": "Nonzero parsed InstanceID returns 718 (li r30,0x2ce at 0x102b1818). Zero reaches the worker at 0x102b189c, which returns zero for all source modes.",
+        "function": "0x102b1738"
        }
       ]
      },
@@ -48820,28 +48964,29 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x14)",
-       "meaning": "nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head)",
+       "meaning": "Parsed InstanceID was nonzero.",
        "fault_sites": [
         "0x102fbc24"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
+         "description": "The engine rejects the ID before calling the source-mode worker; the worker itself returns success.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b1818",
-           "notes": "cmpwi -> r30=0x2ce",
-           "function": "f_102b1738"
+           "address": "0x102b1814",
+           "notes": "Nonzero parsed InstanceID returns 718 (li r30,0x2ce at 0x102b1818). Zero reaches the worker at 0x102b189c, which returns zero for all source modes.",
+           "function": "0x102b1738"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102b1738",
-           "notes": "718 rc constant site in impl"
+           "address": "0x102fbc18",
+           "notes": "Calls slot +0x14, 0x102b1738 in both AVTransport engine tables. Nonzero rc branches to request fault +0x14 at 0x102fbc34.",
+           "function": "0x102fbb60"
           }
          ]
         }
@@ -48851,23 +48996,20 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b1818",
-         "notes": "718",
-         "function": "f_102b1738"
+         "address": "0x102b1814",
+         "notes": "Nonzero parsed InstanceID returns 718 (li r30,0x2ce at 0x102b1818). Zero reaches the worker at 0x102b189c, which returns zero for all source modes.",
+         "function": "0x102b1738"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102b1738",
-         "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
+         "address": "0x102fbc18",
+         "notes": "Calls slot +0x14, 0x102b1738 in both AVTransport engine tables. Nonzero rc branches to request fault +0x14 at 0x102fbc34.",
+         "function": "0x102fbb60"
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x102b1738 exits=[0, 64]; the fault path is reached when the impl call reports failure",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x14); sites: 0x102fbc24).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "The engine returns zero or 718. The wrapper independently emits 402 if required input materialization fails."
       }
      ],
      "firmware_differences": [],
@@ -48909,13 +49051,65 @@
        "build": "86.10-80260",
        "address": "0x10eb3108",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fbc18",
+       "notes": "Calls slot +0x14, 0x102b1738 in both AVTransport engine tables. Nonzero rc branches to request fault +0x14 at 0x102fbc34.",
+       "function": "0x102fbb60"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b1814",
+       "notes": "Nonzero parsed InstanceID returns 718 (li r30,0x2ce at 0x102b1818). Zero reaches the worker at 0x102b189c, which returns zero for all source modes.",
+       "function": "0x102b1738"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b16a0",
+       "notes": "Reads impl+0x4654. Mode 2 passes *(impl+0x580) to 0x1025be44; mode 1 passes impl+0x7758 to 0x10488154; all other modes pass *(impl+0x5d4) to 0x10308c6c.",
+       "function": "0x102b1684"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b1710",
+       "notes": "Reads indexed playback state via f_1025be44, which gets an inner state from f_10341b9c and names it with f_10341b68 (table 0x10eba220: STOPPED, TRANSITIONING, PLAYING, PAUSED_PLAYBACK; out-of-range is empty). If impl+0x7764 byte is nonzero the worker overwrites the resulting state with PLAYING.",
+       "function": "0x102b1684"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10488180",
+       "notes": "Reads the word at +4 of the streamer state object: 0 -> PLAYING, 1 -> PAUSED_PLAYBACK, everything else -> empty string.",
+       "function": "0x10488154"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10308cc0",
+       "notes": "Reads source+0x28b0 under its lock: 3, 5, 7 or 9 -> PLAYING, 1 -> STOPPED, all other values -> TRANSITIONING.",
+       "function": "0x10308c6c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fbc90",
+       "notes": "Request +0x40 fills an initially zeroed 8-byte descriptor. After a true return, byte +1 below 0x16 enables the override; byte +1 equal to 0x16 enables it only if byte +2 is zero and the unsigned word at +4 is <= 0xf653. Otherwise there is no override. When enabled, only TRANSITIONING is rewritten to PLAYING (0x102fbd7c).",
+       "function": "0x102fbb60"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102fbb60; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetTransportSettings": {
      "description": "Reports PlayMode from the active indexed-session settings and fixed RecQualityMode = 'NOT_IMPLEMENTED'. Handler 0x102f8340 invokes impl slot +0x20 (0x102ad634); for InstanceID 0 the worker reads the session mode via f_1025b47c and copies both strings.",
