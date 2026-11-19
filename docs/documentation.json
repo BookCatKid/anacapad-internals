@@ -63452,7 +63452,7 @@
      "todo": "Established: concrete relative/local/session bindings, signed low-32-bit arithmetic/clamp, target-output timing, flags-zero shared worker, exact GRC error domain and event request gates are traced. Residual: finish stereo f_1046e57c/f_1046c148, physical renderer/property f_100d9d40 and conditional VLI f_100d8824, final network/session effects f_106ff898, and concrete observer/sender delivery bindings from f_103a59b4/f_1067c6ec. No runtime-only dispatch boundary is asserted."
     },
     "SnapshotGroupVolume": {
-     "description": "Captures the group's current per-member volumes into a snapshot ('snapshot %s: %u (was %u)' bookkeeping seen in the group-mute/volume worker). impl->v[+0x1c](impl, InstanceID) only - no outputs.",
+     "description": "Refreshes local rendering information and copies cached current member volumes into saved baselines used by later group-volume scaling. Primary GRC vptr 0x10ec3824 +0x1c -> f_1039dc74 -> f_1039d714. This is an in-memory baseline snapshot, not a volume application, persistent save or network query of every member.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10738db0",
@@ -63488,7 +63488,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "description": "Parsed u32 InstanceID; concrete implementation f_1039dc74 requires zero.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -63500,12 +63500,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text",
        "unit": "none - dimensionless index",
-       "accepted_values": "decimal uint32",
-       "range": "unbounded u32 in wrapper",
+       "accepted_values": "0",
+       "range": "0 only",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "validation": "Nonzero InstanceID returns 702 before group lookup.",
        "evidence": [
         {
          "type": "firmware",
@@ -63525,8 +63525,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x106ff898",
-         "notes": "consumed at impl boundary"
+         "address": "0x1039dc74",
+         "notes": "Primary +0x1c implementation consumes InstanceID in r4; f_106ff898 is session machinery, not this SOAP implementation."
         }
        ],
        "notes": null
@@ -63555,102 +63555,84 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x1c]",
+      "description": "Requires successful SOAP validation, InstanceID zero (702 otherwise), and nonnull group accessor result from f_1075cf7c (701 otherwise). Refresh occurs only after those gates. It then locks mutex +0x1c8, snapshots and unlocks. No busy +0x258 check, fixed-volume rejection, coordinator-identity check or requirement for remote members occurs in this action.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738db0",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x1039dc74",
+        "notes": "Group lookup 0x1039dca4; refresh 0x1039dcd4; lock 0x1039dcdc; snapshot 0x1039dce4; unlock 0x1039dcec."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x1c]",
+      "description": "Uses local ID +0x274, group accessor +0x278, renderer +0x26c, cache +0x25c and mutex +0x1c8. Initializer f_103a0e28 receives the renderer pair from media-player+0x1924/+0x1928 via f_103fd65c at 0x103fdb24; renderer constructor f_1046c6a4 installs vptr 0x10ed270c. The cache has 32 entries, stride 0x694. Snapshot selection tests only nonempty ID at entry+0; unlike volume application it does not require flags&7==7 or fixed==0. Current +0x690 and saved +0x68e are halfwords; aggregate current/saved sums are +0xd294/+0xd296.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738db0",
-        "notes": "member vfunc calls: ['r30 v[+0x1c]']"
+        "address": "0x1039d768",
+        "notes": "Nonempty ID test, member copy at 0x1039d7a8..0x1039d7b0, aggregate copy 0x1039d7f8/0x1039d7fc. Fixed and partially valid nonempty entries are also copied."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "Snapshots group volume state via the group-impl object; downstream produces groupvolumechangedevent / 'sent group volume change %u to esdk (mute %d)'. Impl-object vtable and member iteration details unresolved",
+       "description": "First calls f_1039c5f0 -> f_100dace8/f_100dabac -> GRC refresh f_103a05d0. This can update local fixed, volume and mute cache fields, aggregate counters and dirty state, and request notifications when aggregates change. Extra snapshot helper f_100daab0 reads renderer+0x847/+0x849, computes state through leaf f_1011fa00 and updates renderer sonar cache +0x930 with optional change logging. Then f_1039d714 copies every nonempty entry current volume into its saved baseline and current aggregate sum into saved sum. It only logs and copies in memory; no direct network operation, RenderingControl setter or persistent write occurs in that helper. Empty member slots are skipped; the aggregate copy still occurs with an empty cache.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10738c58",
-         "address": "0x10738d5c",
-         "notes": "impl object resolution at dispatch"
+         "address": "0x1039d714",
+         "notes": "Entire helper through 0x1039d824: debug logging, 32-entry loop and aggregate copy only."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dab6c",
+         "notes": "Extra local snapshot helper stores computed sonar state at renderer+0x930 when changed; this refresh is not globally side-effect-free."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - Snapshots group volume state via the group-impl object; downstream produces groupvolumechangedevent / 'sent group volume change %u to esdk (mute %d)'. Impl-object vtable and member iteration details unresolved.",
-        "Residual: the element this section's own analysis flags as unresolved (see its description) - the delegate or member path it names is not traced (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "None proven.",
+      "description": "f_1039d714 itself neither marks dirty nor calls a notification function. However the preceding reachable refresh f_1039c5f0 -> f_103a05d0 can call f_1067c6ec at 0x103a0704/0x103a0748 and f_103a6d74 at 0x103a0720 when local aggregate information changes. The latter prepares GroupVolumeChangedEvent work f_103a5e8c -> f_103a59b4; f_103a3abc manages its cancellation functor and f_103a3ce0 logs cancellation. An unchanged refresh does not request these notifications.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10738db0",
-        "notes": "no event calls in wrapper"
-       }
-      ]
-     },
-     "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x1c]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10738db0",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x1c]']"
+        "address": "0x1039dcd4",
+        "notes": "Refresh precedes snapshot; this proves action-specific reachability of the refresh notification gates, not completed delivery."
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "todo": "Established: baseline copy has no direct event emission, while refresh notification requests and in-process work binding are traced. Residual: bind concrete observers at 0x103a5de4 and the sender/delivery worker behind f_1067c6ec before claiming GENA/WSS completion."
+     },
+     "state_transitions": {
+      "description": "Under mutex +0x1c8, every nonempty cache entry transitions savedVolume:=currentVolume, including fixed and not-fully-valid entries; aggregate savedSum:=currentSum. It does not apply a new current volume, mute/unmute members, set busy or persist the snapshot. The preceding refresh can change local cached validity/classification, current volume/mute aggregates, renderer sonar cache +0x930 and dirty state. No busy guard means this is a mutex-protected cache copy, not a guaranteed group-wide transaction barrier against a setter whose network stage runs unlocked.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1039d7a8",
+        "notes": "Per-entry copy through 0x1039d7b0; sum copy 0x1039d7f8/0x1039d7fc; complete public entry contains no busy test or member operation."
+       }
       ]
      },
      "return_behavior": {
-      "description": "Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').",
+      "description": "Complete implementation status domain is {0,701,702}: nonzero InstanceID -> 702, missing group -> 701, successful refresh/copy path -> 0. Empty cache still succeeds. Wrapper validation separately selects 402 and dispatcher rejection separately selects 401. No member request failure aggregation, 801 busy status or 804 fixed-only rejection is produced by this action; success means the cached baseline copy completed, not every remote room was freshly queried.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10738e2c",
-        "notes": "impl->v[+0x1c](impl,InstanceID)",
-        "function": "f_10738db0"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x103a1fc8",
-        "notes": "'snapshot %s: %u (was %u)' log in group worker",
-        "function": "f_103a1b8c"
+        "address": "0x1039dcf0",
+        "notes": "Literal zero after unlocking; only other implementation return literals are 701/702."
        }
       ]
      },
@@ -63664,62 +63646,49 @@
      "errors": [
       {
        "code": 701,
-       "code_expr": "vret(r5-in,+0x1c)",
-       "fault_sites": [
-        "0x10738e48"
-       ],
-       "meaning": "nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc}",
+       "meaning": "The group accessor has no bound group object.",
+       "condition": "f_1075cf7c returns null after InstanceID zero passes.",
        "conditions": [
         {
-         "description": "group object lookup via f_1075cf7c fails (no group bound)",
+         "description": "f_1075cf7c returns null after InstanceID zero passes.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1039dc74",
-           "notes": "impl body: lookup -> 0x2bd on miss"
+           "address": "0x1039dcac",
+           "notes": "f_1075cf7c returns null after InstanceID zero passes."
           }
          ]
         }
+       ],
+       "fault_sites": [
+        "0x10738e48"
        ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1039dc74",
-         "notes": "addi r3,0x2bd path"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1039dc74",
-         "notes": "impl returns 0x2bd on lookup miss"
+         "address": "0x1039dcac",
+         "notes": "f_1075cf7c returns null after InstanceID zero passes."
         }
-       ],
-       "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034: vocabulary unresolved",
-       "resolved_domain": "{0,701,702} + wrapper {401,402}",
-       "resolved_findings": [
-        "701 is emitted only by the impl-head member lookup miss: f_1075cf7c(*(impl+0x278), *(impl+0x274)) is an atomic refcounted-pointer accessor (lwarx/stwcx refcount bump on *(obj+8)+4, null-safe) whose null return selects r3=0x2bd when the zone has no bound group-member object.",
-        "Domain fully proven: f_1039dc74 complete literal rc set is {0, 701, 702} - InstanceID!=0 -> 702, accessor miss -> 701 at 0x1039dcac, and the success path ends with addi r3,0 (downstream worker rc is discarded, not forwarded). No 801 can ever surface from this action; the pooled 701/801 phrasing was a shared member-domain superset artifact.",
-        "Resolved: same rc ladder - member rejects 701, member failures 801."
        ]
       },
       {
-       "code": "402",
-       "meaning": "SOAP 402 Invalid Args: raised when req->v[+0x08] rejects the request state or the required-arg lookup through req->v[+0x1c] fails",
+       "code": 402,
+       "meaning": "The SOAP request failed argument validation before implementation dispatch.",
+       "condition": "The wrapper request gate rejects the arguments; the snapshot implementation itself never returns 402.",
        "conditions": [
         {
-         "description": "Required argument absent or its lookup through the request-object parse helper fails",
+         "description": "The wrapper request gate rejects the arguments; the snapshot implementation itself never returns 402.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10738e48",
-           "notes": "request fault path invoked by the SnapshotGroupVolume handler after argument parse failure"
+           "address": "0x10738db0",
+           "notes": "The wrapper request gate rejects the arguments; the snapshot implementation itself never returns 402."
           }
          ]
         }
@@ -63732,61 +63701,41 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10738e48",
-         "notes": "fault site in the SnapshotGroupVolume SOAP handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x106ff898",
-         "notes": "402 gate verified in handler body"
+         "address": "0x10738db0",
+         "notes": "The wrapper request gate rejects the arguments; the snapshot implementation itself never returns 402."
         }
-       ],
-       "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 402; sites: 0x10738e48).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 702,
-       "code_expr": "const 0x2be",
-       "meaning": "nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v[+0x1c] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build",
-       "fault_sites": [
-        "0x1039dc74"
-       ],
+       "meaning": "Only InstanceID zero is supported by this group implementation.",
+       "condition": "Incoming InstanceID r4 is nonzero.",
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "Incoming InstanceID r4 is nonzero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": null,
-           "notes": "GRC impls all begin cmpwi r4,0 / beq -> body; r4=handler-parsed InstanceID stack word (e.g. GetGroupMute handler 0x10738f0c r4=lwz(sp+0x18)); nonzero -> 0x2be"
+           "address": "0x1039dc7c",
+           "notes": "Incoming InstanceID r4 is nonzero."
           }
          ]
         }
+       ],
+       "fault_sites": [
+        "0x10738e48"
        ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1039dc74",
-         "notes": "head"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10738f0c",
-         "notes": "handler loads parsed InstanceID word into r4 for impl vfunc call (GetGroupMute shape, shared across GRC)"
+         "address": "0x1039dc7c",
+         "notes": "Incoming InstanceID r4 is nonzero."
         }
-       ],
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -63820,14 +63769,18 @@
        "build": "86.10-80260",
        "address": "0x10f11ae4",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039d7fc",
+       "notes": "Current aggregate sum +0xd294 copied to saved sum +0xd296 after all 32 slots have been considered."
       }
      ],
      "notes": null,
-     "implementation_notes": "Direct impl in the group-volume worker family. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.",
-     "todo": [
-      "Established: direct dispatch to handler 0x10738db0; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Primary GRC vptr 0x10ec3824 +0x1c -> f_1039dc74. InstanceID r4!=0 returns 702, not an output-pointer-null test. Group lookup miss returns 701; otherwise refresh -> lock -> f_1039d714 -> unlock -> 0. Session vptr 0x10ec37b4 and f_106ff898 do not implement SnapshotGroupVolume. Baseline copy is fully traced; residual uncertainty is concrete downstream refresh notification delivery, not snapshot storage or persistence.",
+     "todo": "Established: concrete +0x1c binding, InstanceID/group gates, renderer/cache dependencies, complete 32-entry baseline and aggregate copy, empty/fixed-entry behavior and status domain are traced. Residual: bind the concrete observer invoked by refresh work f_103a59b4 at 0x103a5de4 and the event-source sender/delivery worker behind f_1067c6ec. Snapshot itself performs no member operation; only the conditional preceding refresh can request these notifications."
     }
    },
    "state_variables": {
