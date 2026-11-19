@@ -144894,6 +144894,20 @@
      "build": "86.10-80260",
      "address": "0x10e878b4",
      "notes": "HT_BONDED_MASTER/SATELLITE role enum"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1035596c",
+     "notes": "clrlwi 16 retains the low halfword of status minus 0x409."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10355884",
+     "notes": "mulhwu/shift reconstructs a multiple of thirty for log-level selection, not a retry bound."
     }
    ],
    "bonded_roles": "HT_BONDED_MASTER, HT_BONDED_SATELLITE, UNBONDED_DEVICE, BONDED_STEREOPAIR, BONDED_TO_SUB, BONDED_STEREOPAIR_AND_SUB; ZP_MODE_HT_SATELLITE; netmodes NETMODE_SATELLITE_V1/V1_WIRED/V2, STATION_SATELLITE*",
@@ -144976,15 +144990,13 @@
    },
    "topo_events_detail": "topology_events_report.cxx: change detectors {chmap,HTsat defn,wifi mode,connection type,ch frq,wifi on,eth link,sats of GMs,local grp role,plbk corr ctx type} + \"GroupCoordinator before/after: %u/%u\"/\"nRel b/a:%u/%u\"; fields gcuid,cid:%s/%s,in:%u/%u; rate-limit \"reported %ds ago:limit\"; \"fail:unparse cid. quit report\"; names TopologyEventsReport/topologyEventsReport",
    "coordinator_monitor": "Coordinator linkage: 'member list generated: [%s]', '%s linkage broken for %s: Local gID: %s; Other gID: %s', 'Coordinator %s linkage broken' -> topology monitor deschedule + ChangeTransport notify ('failed notifying %s of changed transport'); accepting-gate verbs startAcceptingGroupCommands/stopAcceptingGroupCommands; LocalGroupUUID + VirtualLineInGroupID + setVirtualLineInGroupID{Locked} local state.",
-   "todo": [
-    "Residual: the concrete settle conjunction inside the ValidateBondedState implementation (vfunc+0x44 on the +0x1a80 topology object) - the delegate class is runtime-installed; the call identity, name literal, and call-site context are proven."
-   ],
+   "todo": "Residual: resolve the concrete +0x1a80 topology delegate and ValidateBondedState +0x44 implementation, trace its status-producing settle conditions and the recovery caller termination/cancellation rules. The modulo-sixteen-bit retry bands, ten-second reschedule and every-thirtieth-attempt log selection are recovered; no dynamic retry-attempt bound is proven.",
    "resolved_findings": [
     "Resolved: Secondary linkage broken. Start recovery job is the stereo/satellite bond-monitor predicate - when the HT/satellite link drops, the topology monitor schedules a recovery job that re-establishes the bonded pair via the AddBondedZones path; the FSM is {bonded -> linkage-broken -> recovery-job -> rebonded-or-demoted}; bounded at the job scheduler.",
     "recoverBondedZone FSM decoded via the zonesmonitor vocabulary: RZonesMonitor runs periodic monitorTopology%d polls; on detection it logs Topology monitor: Secondary linkage broken. Start recovery job and fires bondedZonePartnerDefunct -> recoverBondedZone -> refreshSonarState; terminal cleanup emits DefunctDeviceRemovedEvent, and the monitor itself is shut down via Stop topology monitor. VLI-group awareness: Found ZP(%s, %s) in VLI Group gates recovery on whether the defunct partner sits in a virtual-line-in group.",
-    "Resolved: recoverBondedZone retry mechanics proven at 0x103558a0-0x103559b4. Retry counter lives at this+0x1aec (incremented per retry, reset to 0 on terminal-status entry); each retry sets deadline = sonosClockGetTime()+10 (seconds) at *(r27). The retry-attempt bound is dynamic: ct compared against (r30>>4)*30 where r30 is an input-derived counter (rlwinm >>4, then *30 via x32-x2) - retries continue while counter < that bound. Status map inside the retry FSM: 0x409 = \"Secondary doesn't see same topology\" (retryable), 0x40b = \"partner is incompatible\" (resets counter, logs hard failure); a (status-0x409)>>16 <= 1 test selects the retryable band. Status 0x408 (not settled) drives the separate 10s reconnectHTSatellites retry documented earlier.",
-    "Resolved (settle-predicate identity): the topology-settle test inside the recoverBondedZone retry loop is a virtual call - vfunc+0x44 on the object at dp_zpimpl+0x1a80, invoked at 0x10355824-0x10355840 with the debug-name arg 'ValidateBondedState' (0x10e885b0); a false result diverts to the 'topology hasn't settled yet (ct=%u)' retry log at 0x103558d8-0x10355900 with the dynamic bound ct<(derived>>4)*30, while success logs 'recoverBondedZone successful %s; %s sent to secondaries' with member-state strings {(member missing), EQ only}. So the settle conjunction lives in the runtime-installed topology-impl delegate, not in the retry wrapper.",
-    "Confirmed boundary: the +0x1a80 member is a shared_ptr copied from a constructor arg - the store at 0x1035ea84 copies {ptr @r29+0, ctrl @r29+4} into zpimpl+0x1a80/+0x1a84 (same runtime-injection pattern as AlarmClock). vfunc+0x44 (ValidateBondedState) therefore resolves against an object whose concrete class is selected at runtime - the residual stands, proven-injected."
+    "Retry/status arithmetic corrected against GNU e500 and the fixed repository disassembler. At 0x10355968-0x10355974 the retry branch tests (((status-0x409)&0xffff)<=1), not (status-0x409)>>16. The preceding band at 0x10355860-0x1035586c is (((status-1000)&0xffff)<=2). These accept low-sixteen-bit ranges, not broad upper-halfword classes; no upper-bit restriction is established at those tests. Other statuses reset this+0x1aec at 0x10355980; exact status 0x40b reaches the incompatible-partner diagnostic branch. The retry branch increments +0x1aec and sets the seconds word of the caller deadline to sonosClockGetTime(1)+10 at 0x10355904-0x10355924.",
+    "The ValidateBondedState call identity remains proven: 0x10355824-0x10355840 invokes topology object +0x1a80 through virtual slot +0x44 with debug-name argument 0x10e885b0. Its return is treated as a status code, not simply a boolean. The old claimed dynamic attempt bound ct<(derived>>4)*30 is withdrawn: 0x10355884 uses mulhwu with 0x88888889, shifts right four and reconstructs 30*floor(ct/30); comparison with ct selects log level 3 or 5 through isel at 0x103558a8. This detects every thirtieth retry for logging, not a retry-limit exit. The same arithmetic is repeated for the diagnostic at 0x103558c4-0x103558dc. Actual success/settle semantics and cancellation/termination must be traced in the concrete delegate and its callers.",
+    "Constructor 0x1035ea84 copies a shared object pointer/control pair into +0x1a80/+0x1a84. This proves construction provenance, not that the delegate is absent or impossible to resolve statically: the concrete constructor argument and vtable still require tracing in the shipped ELF. Runtime installation alone is not a reason to stop."
    ]
   },
   "ibt_plans": {
