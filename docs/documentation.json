@@ -45148,7 +45148,7 @@
      ]
     },
     "GetCrossfadeMode": {
-     "description": "Returns the current crossfade mode. Impl f_102ad370 shares the getter boilerplate: builds a scoped context from the impl+0x3dc name string, RAII-locks impl+0x458, returns 718 on InstanceID!=0; the body fills the CrossfadeMode out byte from engine state.",
+     "description": "Returns the active indexed-session crossfade flag under the AVTransport scope. Handler 0x102fc28c calls impl slot +0x24 (0x102ad370); ID zero reads the one-bit flag via f_1025b5bc(*(impl+0x580),0). There is no source-mode gate in this getter.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fc28c",
@@ -45223,7 +45223,7 @@
      },
      "outputs": {
       "CrossfadeMode": {
-       "description": "Current crossfade flag as a byte; which engine field feeds it is unresolved.",
+       "description": "The active session's stored crossfade flag (0 or 1). This is not a test that the current source supports crossfade.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -45252,6 +45252,22 @@
          "build": "86.10-80260",
          "address": "0x10eb340c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ad488",
+         "notes": "On zero ID, calls f_1025b5bc(*(impl+0x580),0); the following stb writes the returned byte to the supplied output pointer.",
+         "function": "0x102ad370"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025b5fc",
+         "notes": "Zero second argument takes the active-session branch: reads the halfword at [*(session+0x326c8)+0x26dc], then extracts bit 3 at 0x1025b60c (raw 0x57ffeffe). The alternate session-field branch is not used here.",
+         "function": "0x1025b5bc"
         }
        ],
        "notes": null
@@ -45284,19 +45300,24 @@
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x24]",
+      "description": "CrossfadeMode depends on bit 3 of the active session's settings halfword, not on a new capability test. The mutex in f_1025b5bc protects the read.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc28c",
-        "notes": "member vfunc calls: ['r30 v[+0x24]']"
+        "address": "0x102ad488",
+        "notes": "On zero ID, calls f_1025b5bc(*(impl+0x580),0); the following stb writes the returned byte to the supplied output pointer.",
+        "function": "0x102ad370"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1025b5fc",
+        "notes": "Zero second argument takes the active-session branch: reads the halfword at [*(session+0x326c8)+0x26dc], then extracts bit 3 at 0x1025b60c (raw 0x57ffeffe). The alternate session-field branch is not used here.",
+        "function": "0x1025b5bc"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x24].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
@@ -45364,28 +45385,29 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x24)",
-       "meaning": "nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head)",
+       "meaning": "Parsed InstanceID was nonzero.",
        "fault_sites": [
         "0x102fc338"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
+         "description": "The engine compares the parsed ID to zero and returns 718 without reading the crossfade flag on a mismatch.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102ad428",
-           "notes": "r30=0x2ce",
-           "function": "f_102ad370"
+           "address": "0x102ad424",
+           "notes": "Tests the parsed InstanceID at r29. For nonzero IDs the impl returns 718 without reading the session flag.",
+           "function": "0x102ad370"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102ad370",
-           "notes": "718 rc constant site in impl"
+           "address": "0x102fc30c",
+           "notes": "Calls impl slot +0x24 (0x102ad370 in both classes). Nonzero return goes to request +0x14 at 0x102fc328; on success the byte is formatted through f_1055fc08 at 0x102fc380.",
+           "function": "0x102fc28c"
           }
          ]
         }
@@ -45395,23 +45417,20 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102ad428",
-         "notes": "718",
-         "function": "f_102ad370"
+         "address": "0x102ad424",
+         "notes": "Tests the parsed InstanceID at r29. For nonzero IDs the impl returns 718 without reading the session flag.",
+         "function": "0x102ad370"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102ad370",
-         "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
+         "address": "0x102fc30c",
+         "notes": "Calls impl slot +0x24 (0x102ad370 in both classes). Nonzero return goes to request +0x14 at 0x102fc328; on success the byte is formatted through f_1055fc08 at 0x102fc380.",
+         "function": "0x102fc28c"
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x102ad370 exits=[64]; the fault path is reached when the impl call reports failure",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x24); sites: 0x102fc338).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "domain fully bounded: impl 0x102ad370 exits=[64]; the fault path is reached when the impl call reports failure"
       },
       {
        "code": 402,
@@ -45476,13 +45495,41 @@
        "build": "86.10-80260",
        "address": "0x10eb30b4",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ad424",
+       "notes": "Tests the parsed InstanceID at r29. For nonzero IDs the impl returns 718 without reading the session flag.",
+       "function": "0x102ad370"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ad488",
+       "notes": "On zero ID, calls f_1025b5bc(*(impl+0x580),0); the following stb writes the returned byte to the supplied output pointer.",
+       "function": "0x102ad370"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1025b5fc",
+       "notes": "Zero second argument takes the active-session branch: reads the halfword at [*(session+0x326c8)+0x26dc], then extracts bit 3 at 0x1025b60c (raw 0x57ffeffe). The alternate session-field branch is not used here.",
+       "function": "0x1025b5bc"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fc30c",
+       "notes": "Calls impl slot +0x24 (0x102ad370 in both classes). Nonzero return goes to request +0x14 at 0x102fc328; on success the byte is formatted through f_1055fc08 at 0x102fc380.",
+       "function": "0x102fc28c"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102fc28c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetCurrentTransportActions": {
      "description": "Returns the comma-separated list of currently-allowed transport actions. Impl f_102b2a8c gate (718) then body: zero-terminates the out buffer (stb 0 -> *out) and builds the action list via f_102b29d0 + f_102fcbf4 from engine capability state - the legal-action set is computed live, not static.",
