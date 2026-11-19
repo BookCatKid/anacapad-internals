@@ -42865,35 +42865,48 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v[+0x60]",
+      "description": "The request fields must materialize; the engine requires InstanceID zero and source mode zero.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f95b8",
-        "notes": "req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f968c",
+        "notes": "Forwards InstanceID, NewTransportSettings and CurrentAVTransportURI through engine +0x60. Request validation can report 402 at 0x102f96dc; nonzero engine result is delivered at 0x102f96a8.",
+        "function": "0x102f95b8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1e30",
+        "notes": "Nonzero ID sets 718 at 0x102b1dd8. With ID zero, nonzero current mode returns 800; mode zero continues with the supplied settings.",
+        "function": "0x102b1d40"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v[+0x60].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x60]",
+      "description": "Source mode gates the operation. CurrentAVTransportURI selects the recorded-settings copy or local stop before subsequent VLI work.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f95b8",
-        "notes": "member vfunc calls: ['r30 v[+0x60]']"
+        "address": "0x102b1e30",
+        "notes": "Nonzero ID sets 718 at 0x102b1dd8. With ID zero, nonzero current mode returns 800; mode zero continues with the supplied settings.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1e64",
+        "notes": "Reaches settings decode at 0x102b1e58, then URI matcher f_103917b4. A match copies 0x35 bytes of the streamer settings record into the scratch record; mismatch calls f_102b0a48. Later calls f_106aa3b0 to stop local VLI on one path, or f_106aa23c to start it on another.",
+        "function": "0x102b1d40"
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x60].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Identify the URI matching rule in f_103917b4 and the incoming settings bits that select each VLI path."
       ]
      },
      "side_effects": [
@@ -42931,35 +42944,64 @@
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x60]",
+      "description": "Can stop, deactivate or reconfigure local VLI; a URI match copies the existing streamer record for the next step.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f95b8",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x60]']"
+        "address": "0x102b1e64",
+        "notes": "Reaches settings decode at 0x102b1e58, then URI matcher f_103917b4. A match copies 0x35 bytes of the streamer settings record into the scratch record; mismatch calls f_102b0a48. Later calls f_106aa3b0 to stop local VLI on one path, or f_106aa23c to start it on another.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1fe4",
+        "notes": "Success resets the accumulator to zero before the f_100d8b34 call; it does not use that call's return. The VLI deactivation path sets zero at 0x102b204c.",
+        "function": "0x102b1d40"
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x60].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Map the input settings to the resulting local streamer, sink and AVTransport state."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "402 for request materialization failure, 718 for a nonzero parsed ID, 800 if current mode is not zero, otherwise zero. The engine does not expose the settings decoder or VLI calls as fault codes.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f95b8",
-        "notes": "commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f968c",
+        "notes": "Forwards InstanceID, NewTransportSettings and CurrentAVTransportURI through engine +0x60. Request validation can report 402 at 0x102f96dc; nonzero engine result is delivered at 0x102f96a8.",
+        "function": "0x102f95b8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1e30",
+        "notes": "Nonzero ID sets 718 at 0x102b1dd8. With ID zero, nonzero current mode returns 800; mode zero continues with the supplied settings.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1e64",
+        "notes": "Reaches settings decode at 0x102b1e58, then URI matcher f_103917b4. A match copies 0x35 bytes of the streamer settings record into the scratch record; mismatch calls f_102b0a48. Later calls f_106aa3b0 to stop local VLI on one path, or f_106aa23c to start it on another.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1fe4",
+        "notes": "Success resets the accumulator to zero before the f_100d8b34 call; it does not use that call's return. The VLI deactivation path sets zero at 0x102b204c.",
+        "function": "0x102b1d40"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -43035,25 +43077,35 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x60)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, callee-fwd: producers at 0x102b1dd8/0x102b1e2c",
+       "meaning": "The engine does not pass through any helper return as an additional action fault.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "the settings path produced a code not covered by the gates",
+         "description": "The engine does not pass through any helper return as an additional action fault.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b1fd8",
-           "notes": "passthrough path"
+           "address": "0x102b1e30",
+           "notes": "Nonzero ID sets 718 at 0x102b1dd8. With ID zero, nonzero current mode returns 800; mode zero continues with the supplied settings.",
+           "function": "0x102b1d40"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102b1d40",
-           "notes": "rc site"
+           "address": "0x102b1e64",
+           "notes": "Reaches settings decode at 0x102b1e58, then URI matcher f_103917b4. A match copies 0x35 bytes of the streamer settings record into the scratch record; mismatch calls f_102b0a48. Later calls f_106aa3b0 to stop local VLI on one path, or f_106aa23c to start it on another.",
+           "function": "0x102b1d40"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b1fe4",
+           "notes": "Success resets the accumulator to zero before the f_100d8b34 call; it does not use that call's return. The VLI deactivation path sets zero at 0x102b204c.",
+           "function": "0x102b1d40"
           }
          ]
         }
@@ -43063,15 +43115,25 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f96a8",
-         "notes": "impl vret passthrough site"
+         "address": "0x102b1e30",
+         "notes": "Nonzero ID sets 718 at 0x102b1dd8. With ID zero, nonzero current mode returns 800; mode zero continues with the supplied settings.",
+         "function": "0x102b1d40"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102b1d40",
-         "notes": "rc producers decoded"
+         "address": "0x102b1e64",
+         "notes": "Reaches settings decode at 0x102b1e58, then URI matcher f_103917b4. A match copies 0x35 bytes of the streamer settings record into the scratch record; mismatch calls f_102b0a48. Later calls f_106aa3b0 to stop local VLI on one path, or f_106aa23c to start it on another.",
+         "function": "0x102b1d40"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b1fe4",
+         "notes": "Success resets the accumulator to zero before the f_100d8b34 call; it does not use that call's return. The VLI deactivation path sets zero at 0x102b204c.",
+         "function": "0x102b1d40"
         }
        ],
        "unresolved": {
@@ -43112,10 +43174,6 @@
        },
        "literal_bound": [
         718
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x60); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
@@ -43152,37 +43210,64 @@
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "meaning": "The engine does not pass through any helper return as an additional action fault.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102b1e30",
+         "notes": "Nonzero ID sets 718 at 0x102b1dd8. With ID zero, nonzero current mode returns 800; mode zero continues with the supplied settings.",
+         "function": "0x102b1d40"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b1e64",
+         "notes": "Reaches settings decode at 0x102b1e58, then URI matcher f_103917b4. A match copies 0x35 bytes of the streamer settings record into the scratch record; mismatch calls f_102b0a48. Later calls f_106aa3b0 to stop local VLI on one path, or f_106aa23c to start it on another.",
+         "function": "0x102b1d40"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b1fe4",
+         "notes": "Success resets the accumulator to zero before the f_100d8b34 call; it does not use that call's return. The VLI deactivation path sets zero at 0x102b204c.",
+         "function": "0x102b1d40"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "The engine does not pass through any helper return as an additional action fault.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102b1e30",
+           "notes": "Nonzero ID sets 718 at 0x102b1dd8. With ID zero, nonzero current mode returns 800; mode zero continues with the supplied settings.",
+           "function": "0x102b1d40"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b1e64",
+           "notes": "Reaches settings decode at 0x102b1e58, then URI matcher f_103917b4. A match copies 0x35 bytes of the streamer settings record into the scratch record; mismatch calls f_102b0a48. Later calls f_106aa3b0 to stop local VLI on one path, or f_106aa23c to start it on another.",
+           "function": "0x102b1d40"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b1fe4",
+           "notes": "Success resets the accumulator to zero before the f_100d8b34 call; it does not use that call's return. The VLI deactivation path sets zero at 0x102b204c.",
+           "function": "0x102b1d40"
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
        ]
       }
      ],
@@ -43209,12 +43294,43 @@
        "build": "86.10-80260",
        "function": "0x102b1d40",
        "notes": "AVT impl vtable 0x10eaf2ec slot +0x60 entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f968c",
+       "notes": "Forwards InstanceID, NewTransportSettings and CurrentAVTransportURI through engine +0x60. Request validation can report 402 at 0x102f96dc; nonzero engine result is delivered at 0x102f96a8.",
+       "function": "0x102f95b8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b1e30",
+       "notes": "Nonzero ID sets 718 at 0x102b1dd8. With ID zero, nonzero current mode returns 800; mode zero continues with the supplied settings.",
+       "function": "0x102b1d40"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b1e64",
+       "notes": "Reaches settings decode at 0x102b1e58, then URI matcher f_103917b4. A match copies 0x35 bytes of the streamer settings record into the scratch record; mismatch calls f_102b0a48. Later calls f_106aa3b0 to stop local VLI on one path, or f_106aa23c to start it on another.",
+       "function": "0x102b1d40"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b1fe4",
+       "notes": "Success resets the accumulator to zero before the f_100d8b34 call; it does not use that call's return. The VLI deactivation path sets zero at 0x102b204c.",
+       "function": "0x102b1d40"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: direct dispatch to handler 0x102f95b8; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Decode f_1066e2dc's settings grammar and prove the exact VLI/sink branches and local transport events."
      ]
     },
     "ConfigureSleepTimer": {
