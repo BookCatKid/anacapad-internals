@@ -135873,12 +135873,11 @@
   },
   "csrf_protection": {
    "name": "CSRF tokens on browser-facing POST endpoints",
-   "description": "Browser-facing forms use a hidden csrfToken field. The shared token-holder generation, validation and reset functions are decoded; holder ownership and reset policy vary by handler and require an endpoint-by-endpoint audit. The listed form endpoints are the current inventory, not proof that all browser POST routes share one token.",
+   "description": "Browser-facing forms use a hidden csrfToken field. The shared generation, validation and reset helpers and all their direct callsites are mapped below. Most diagnostic forms share the application holder; SSH/developer-mode forms use the holder returned by the developer-mode manager. Consumption and HTTP failure behavior are handler-specific. This is not a universal browser-POST policy.",
    "form_endpoints": [
     "/advconfig",
     "/customsd",
     "/devmode",
-    "/fcs",
     "/logger",
     "/mdnsannounce",
     "/nslookup",
@@ -135888,8 +135887,11 @@
     "/spotresetnts",
     "/ssh/authorized_keys",
     "/support/directsubmit",
-    "/testenv",
-    "/traceroute"
+    "/traceroute",
+    "/tools",
+    "/spotdbg",
+    "/reboot",
+    "/reset"
    ],
    "evidence": [
     {
@@ -135897,14 +135899,18 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x10e730f0",
-     "notes": "csrfToken"
+     "function": "f_100b7cb4",
+     "callsite": "0x100b7f50-0x100b7f5c",
+     "notes": "Setstring form template containing csrfToken."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x10efee26",
-     "notes": "action=\"/ssh/authorized_keys\""
+     "function": "f_1066fbe4",
+     "callsite": "0x1066fc18-0x1066fc38",
+     "notes": "SSH form template containing action=\"/ssh/authorized_keys\"."
     },
     {
      "type": "firmware",
@@ -135940,7 +135946,7 @@
      "function": "f_100b7fd8",
      "address": "0x100b7fd8",
      "callsite": "0x100b80bc-0x100b8128",
-     "notes": "Distinct holder expression *(0x11095f88)+0xbb8. Validation and reset are reachable in this POST handler; object aliasing not established."
+     "notes": "Holder expression *(0x11095f88)+0xbb8 aliases *(0x11097680)+0x810: initialization stores the root and root+0x3a8 at 0x100c1bcc/0x100c1be0. This handler deliberately responds Success after body/token failure as well as after the valid action."
     },
     {
      "type": "firmware",
@@ -135950,14 +135956,90 @@
      "address": "0x1076cecc",
      "callsite": "0x1076ced4, 0x1076e198-0x1076e1b0, 0x1068de90-0x1068dedc",
      "notes": "Logger emits hidden-field template at 0x10f15228, validates without immediate reset. 0x1068de90 is a parsing path, with f_10c3b73c call at 0x1068dea8, validation at 0x1068decc and resets on failure/success."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c1478 / f_1054c758",
+     "address": "0x100c1bcc",
+     "callsite": "0x100c1bbc-0x100c1be0, 0x100c2ad8-0x100c2ae0, 0x1054c75c",
+     "notes": "Root/interface global assignment proves +0xbb8 == +0x3a8+0x810. Developer-mode getter returns its manager+0x4b0. Generation does not include route/session identity."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "HTTP route table / f_100d4060 / f_100d3d44 / f_10549cf8",
+     "address": "0x11091194",
+     "callsite": "0x11091194-0x110916a0, 0x100d40fc, 0x100d3ec8-0x100d3edc, 0x100b9710, 0x10549e78-0x10549ec0",
+     "notes": "Route/function pairs, tools form generation, ping/traceroute shared parser, nslookup holder forwarding and host/token guards. Nslookup validates/resets only encountered token fields, returning 400 on missing/false token. Direct branch/call scan covers 11 generation, 13 validation and 15 reset sites in .text; every site is assigned to the endpoint contracts, including thunks and the registered developer hook."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c1230 / f_100b7fd8 / f_100b8140",
+     "address": "0x100c131c",
+     "callsite": "0x100c1308-0x100c1364, 0x100c13f0-0x100c1470, 0x100b80bc-0x100b8138, 0x100b81e4-0x100b8204",
+     "notes": "mDNS read/token failures reset and give 400; operation errors log but converge on 200/reset. Spotify form generation on spotdbg; reset action intentionally returns 200/reset even for missing/false token or read failure, but does not execute the action."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103429f4 / f_10342590 / f_10342824 / f_105e8444 / f_105e9b30",
+     "address": "0x10342664",
+     "callsite": "0x10342664-0x103426cc, 0x10342774, 0x10342858-0x10342864, 0x10342adc-0x10342bb8, 0x105e8640-0x105e8654, 0x105e875c, 0x105e880c-0x105e8820, 0x105e9c0c, 0x105e9d40, 0x105e9e28-0x105e9e3c",
+     "notes": "Custom service permission/method dispatch, generation and reset paths; advconfig and directsubmit render, false/missing-token guards and encountered-field consumption. Read failure in customsd returns before the reset path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105e93d8 / f_1076c8d0 / f_1068dcdc",
+     "address": "0x105e9418",
+     "callsite": "0x105e92e0-0x105e9434, 0x1076cb5c-0x1076cb7c, 0x1076d620-0x1076d62c, 0x1076e190-0x1076e1b0, 0x1068ddc4, 0x1068de74-0x1068dedc",
+     "notes": "Logger aliases receive the application holder and reject missing/false token with 401; no reset call anywhere in that handler. Reboot/reset generation, read/missing/false-token reset and valid-token consumption before reboot are distinct paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10670168 / f_1066fda4 / f_1076f2ec / f_1076f794",
+     "address": "0x10670168",
+     "callsite": "0x105e959c, 0x10670178-0x10670280, 0x1066fc0c, 0x1066fef0-0x1066ff04, 0x10670004-0x10670014, 0x1076f18c, 0x1076f3f8-0x1076f408, 0x1076f4ac-0x1076f4cc, 0x1076f7f4, 0x1076f834, 0x105e77b8-0x105e77c8, 0x100ab708",
+     "notes": "SSH and developer-mode forms obtain manager+0x4b0; permission/method gates, generation failure 500, missing/false-token 400, encountered-token reset. Developer parser/generator pair also registered in the generic HTTP-hook slots; no direct helper callsite remains unmapped."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_106ba5b0 / f_106b9fac / f_10776c14 / f_10776574",
+     "address": "0x105eba5c",
+     "callsite": "0x105eba5c-0x105eba68, 0x106ba5e8-0x106ba610, 0x106ba1bc-0x106ba268, 0x10776c38-0x10776ccc, 0x107766c8-0x107767e8, 0x107768ac-0x107768dc",
+     "notes": "Disproved old fcs/testenv shared-token inventory: dispatch and complete form-field loops have permission and application-setting calls but no shared token generator/validator/reset. fcs recognizes overrideconfig/button, testenv recognizes url/env/button/reset. Do not assign them another handler's CSRF policy."
     }
    ],
-   "todo": [
-    "Established: holder layout, 24-byte entropy/base64 generation, signed >299-second expiry test, exact comparison and explicit reset helper are verified; /setstring and /logger differ in immediate reset behavior. Remaining: determine holder aliasing and document generation, validation, consumption and HTTP failure branches for every listed form endpoint. Trace the objects behind globals 0x11097680 and 0x11095f88 (+0x810 versus +0xbb8), map direct callers of f_105406d8/f_105407bc/f_1054066c to route registrations, and audit indirect/shared handlers including f_10549cf8. This is required before claiming a single global token, universal single-use behavior, or complete endpoint coverage."
+   "token_model": "Holder-relative layout: token string at +0, issue time at +0x24, guard at +0x28. f_105406d8 rejects unsigned output capacity <=32 and entropy-helper failure without replacing the previous token; otherwise ZZ0071 supplies 24 bytes, f_1053c0c0 base64-encodes into a 33-byte slot under the guard, records sonosClockGetTime(1), and copies the token out. Each successful generation replaces that holder's previous token. f_105407bc locks the holder, rejects a zero issue time, uses a signed comparison of current seconds minus issue seconds against 299 (reject >299), rejects a null candidate, then returns whether strcmp matches exactly. The helper itself does not consume the token. f_1054066c zeroes the issue time and first token byte under the guard. Validation and reset acquire separate locks, not one atomic consume operation; universal single-use or per-session binding must not be inferred.",
+   "holder_ownership": "f_100c1478 stores the application root in 0x11095f88 at 0x100c1bcc and its embedded interface at root+0x3a8 in 0x11097680 at 0x100c1bd4-0x100c1be0 (null root produces null interface). Therefore interface+0x810 and root+0xbb8 are exactly the same holder. The null-root branch at 0x100c2ad8 rejoins the same assignment. The second expression used by SSH and developer-mode functions is f_1054c758(*(0x11097374)), which returns that manager+0x4b0. Rendered tokens contain no session or route identifier; generating another form on a shared holder invalidates its predecessor.",
+   "endpoint_contracts": [
+    "/setstring and /removestring: f_100b7cb4/f_100b79e0 render and generate on GET (0x100b7d9c/0x100b7ac0), failing with 500. POST requires exact case-insensitive application/x-www-form-urlencoded, a successfully read body and expected form fields; unknown/missing required fields or false validation yield 400. Each encountered csrfToken is validated and immediately resets the application holder on either result (0x100b7ea4/0x100b7eb8 and 0x100b7ba8/0x100b7bbc). A request rejected before reaching a token field does not automatically reset. Unsupported methods produce 405.",
+    "/tools and /tools.htm: f_100d4060 generates the application token at 0x100d40fc and emits forms for /ping, /traceroute, /nslookup and /mdnsannounce; generation failure is 500. The submit-only endpoints do not generate their own tokens. /ping and /traceroute wrappers f_100d3f88/f_100d3ff4 enter f_100d3d44: POST-only, strict form content-type, read/host/token failure 400, unsupported method 405, each encountered token validate/reset at 0x100d3ec8/0x100d3edc. Permission rejection occurs in the wrappers before parsing.",
+    "/nslookup: route f_100b96d0 checks permission then passes the application holder to f_10549cf8. Null holder gives 500, non-POST 405, content-type/read failure 400. It accepts host and csrfToken fields, rejects unknown fields with 400, validates at 0x10549e78 and resets at 0x10549e88 on either result. Missing/false token or empty/invalid host gives 400; only after these guards does DNS/mDNS/NetBIOS resolution execute. It never generates a token itself; the form is on /tools.",
+    "/mdnsannounce: f_100c1230 is POST-only with strict form content-type. Body-read failure, missing token or false token reset the application holder at 0x100c131c and return 400; success performs the operation then resets at 0x100c141c and responds 200 Success, even when the resend operation returned an error that was logged. Bad content-type returns 400 before reset; other methods give 405. Validation is at 0x100c135c. Generation is on /tools.",
+    "/spotdbg renders a token at 0x100b81f8 after its permission check (403 on denial, 500 generation failure, 405 non-GET). It supplies the form for /spotresetnts. That POST-only handler f_100b7fd8 returns 400 for bad content-type but deliberately resets and returns 200 Success on body-read failure, missing token and false validation as well as on success (0x100b80d0, 0x100b8120). Only a true validation executes f_1020d4d0. A Success response is not evidence that the operation ran.",
+    "/advconfig and /advconfig.htm: f_105e8444 renders/generates at 0x105e875c (500 on failure); POST enforces strict form content-type and a successful read, parses its settings, validates and resets each token field at 0x105e880c/0x105e8820. Missing/false token or invalid settings gives 400, without an invented reset on paths that never encountered the token. Permission checks precede processing.",
+    "/support/directsubmit: f_105e9b30 renders/generates at 0x105e9c0c (500 on failure), POST requires strict form content-type/read success and valid token. Each encountered token is validated/reset at 0x105e9e28/0x105e9e3c. Missing/false token or malformed form yields 400. Unsupported methods give 405. Only a validated form reaches diagnostic submission; its later outcome is independent of the token check.",
+    "/customsd and /customsd.htm: route f_103429f4 gates permissions, GET calls f_10342824 (generation 0x10342858, failure 500), POST checks content-type in f_10342988 then calls f_10342590. Body-read failure returns 400 before reset; missing/false token returns 400 through reset 0x1034267c, validation is 0x10342698. The successful operation and downstream operation errors also pass through reset. The route propagates returned error status; other methods give 405.",
+    "/logger, /diaglevel and /diagmsg: route-table aliases to f_105e93d8 pass the application holder into f_1076c8d0. GET generates at 0x1076cb6c (500 on failure). POST parses fields and validates at 0x1076e198; a missing/false token produces 401 via 0x1076d620-0x1076d62c before settings are applied. There is no reset call in this handler, on success or validation failure: reuse is possible until replacement or expiry. Other methods produce 405. Permission denial happens in the wrapper before generation/validation.",
+    "/reboot and /reset: wrappers f_105e92e0/f_105e935c enter f_1068dcdc with mode 0/1 and the application interface. GET generates at 0x1068ddc4 (500 on failure). POST requires strict form content-type; read failure, missing token and invalid token reset at 0x1068de84/0x1068deb8 and return 400. Valid token at 0x1068decc is reset at 0x1068dedc before the response and reboot/reset. Bad content-type returns 400 before reset; unsupported method gives 405. Wrapper permission checks still apply.",
+    "/ssh/authorized_keys: route thunk f_105e9594 enters f_10670168, which requires the developer-mode manager and permission 0x2f (500/403 respectively), obtains manager+0x4b0 and dispatches GET/POST. f_1066fbe4 generates at 0x1066fc0c (500 on failure). f_1066fda4 parses the form, validates/resets each token at 0x10670004/0x10670014. Missing/false token yields 400 before writing/removing keys; read status propagates. Bad content-type gives 400 and other methods 405. This is the developer-mode holder, not the application-holder expression.",
+    "/devmode: f_105e8d90 tail-calls f_1076f6bc. GET wrapper f_1076f238 calls f_1076f108, generation 0x1076f18c; missing manager or generation failure gives 500. POST wrapper f_1076f590 reads the strict form and calls f_1076f2ec: validation/reset at 0x1076f4bc/0x1076f4cc uses manager+0x4b0, missing/false token returns 400, invalid statement/action has its own returned status. The same generation/parser pair is registered as an indirect HTTP hook at 0x105e77c4/0x100ab708 and dispatched through f_1076f794, so those callsites are not unassigned route evidence. Unsupported methods give 405 in the normal route wrapper.",
+    "/fcs and /testenv were incorrectly included as users of these shared CSRF helpers. /fcs routes through f_105eba60 -> f_106ba5b0: permission 0x18 gates GET/form/JSON/DELETE, and the form parser f_106b9fac recognizes overrideconfig/button without generating, validating or resetting this token. /testenv routes through f_105eb9dc -> f_10776c14 and parsers f_10776574/f_10776970; it gates permission 0x25 and parses url/env/button/reset rather than csrfToken. Neither path has a shared-token consume policy. This finding does not claim those endpoints lack all access controls."
    ],
-   "token_model": "Holder-relative layout: token string at +0, issue time at +0x24, guard at +0x28. f_105406d8 rejects output capacity <=32 and entropy-helper failure; otherwise ZZ0071 supplies 24 bytes, f_1053c0c0 base64-encodes into a 33-byte slot under the guard, records sonosClockGetTime(1), and copies the token out. Each successful generation replaces that holder's previous token. f_105407bc locks the holder, rejects a zero issue time, uses a signed comparison of current seconds minus issue seconds against 299 (reject >299), rejects a null candidate, then returns whether strcmp matches exactly. The helper itself does not consume the token. f_1054066c is a reset routine, NOT an HTTP error-page routine: it zeroes the issue time and first token byte under the guard. Binding is not proven device-global: /setstring f_100b7cb4 uses the pointer loaded from 0x11097680 plus 0x810, whereas f_100b7fd8 uses the pointer loaded from 0x11095f88 plus 0xbb8. Whether these addresses alias is unresolved. /setstring requires application/x-www-form-urlencoded (case-insensitive exact comparison), parses fields, validates csrfToken, immediately resets that holder on either comparison result, and returns HTTP 400 if validation failed or required inputs are missing. Its render path returns HTTP 500 if generation fails. Other handlers must not inherit these status/reset rules without tracing their branches.",
    "resolved_findings": [
-    "Corrected the unsupported single-device-token assertion and the misidentified reset helper. A direct-call scan found multiple holder expressions and handler-dependent resets. The /logger validation site 0x1076e198 does not immediately call the reset helper, unlike /setstring at 0x100b7eb8.",
+    "Resolved the apparent two-global ambiguity: they point to the application root and its +0x3a8 embedded interface, so their token-holder expressions alias. Mapped all 39 direct helper callsites. Most diagnostic forms share this holder, but developer-mode/SSH callers obtain their holder from another getter; there is no universal device-wide or atomic single-use token contract.",
     "Corrected the alleged form-emission site 0x1068de90: it parses csrfToken, not emits it. The /logger hidden-field emitter is at 0x1076cecc-0x1076cedc and references template 0x10f15228."
    ]
   },
