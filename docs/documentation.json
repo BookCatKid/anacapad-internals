@@ -153189,13 +153189,20 @@
     {
      "type": "firmware",
      "address": "0x10ea7b44",
-     "notes": "tv_usage fields"
+      "notes": "tv_usage fields"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_1024ffb8 / f_1055c248 / f_1055be08",
+      "address": "0x10250198",
+      "callsite": "0x10250220 / 0x10250400",
+      "notes": "f_1024ffb8 obtains a reporting object at 0x10250038-0x10250044 and skips an unset start time at 0x10250048-0x10250058. Its loop emits corrId, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart, GCTimeEnd, inputRate, dataBurstType, contentType, channels, playSeconds and topoType through typed builder calls (0x10250244-0x102503ec). Pointer words 0x10ea7ac8-0x10ea7ae4 resolve the latter field names; channels is at 0x10edc76c. The original r4 argument is compared with zero at 0x102501c0; cr4.eq at 0x102503c4 skips the forced=true insertion at 0x102503c8-0x102503d8 when zero. Both branches submit the same event name zpHTInputSession through f_1055c248, a tail branch to f_1055be08. The shared routine receives event name, built payload and category flag 1, checks reporting state/mask at 0x1055be58-0x1055be7c and local buffer capacity at 0x1055bf1c-0x1055bf2c. These calls describe local emission/queue admission, not a server response or server-required-field declaration."
     }
    ],
-   "todo": [
-    "Residual: which uploader fields are required vs optional on the cloud schema (server-side validation is not in-image)."
-   ],
    "resolved_findings": [
+    "Local emission differs from cloud validation: the assembly loop emits its common fields for each input-format entry, including channels, while forced=true is added only for a nonzero caller argument. The cid set/clr literals are diagnostics, not field names in this builder. Submission goes to the shared local reporting buffer. Server-required versus server-optional fields are not encoded by these builder calls: observing unconditional local emission cannot establish a remote validation requirement, and conditional forced emission cannot establish what a server accepts. Recovering that separate contract requires the receiving service implementation or controlled server-response observations, neither of which is supplied by this firmware path.",
     "Resolved: report assembly = the schema {corrId, cid set/clr, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart/End, inputRate, dataBurstType, contentType, playSeconds, forced, topoType} tagged {tv_usage, zpHTInputSession} -> shared report channel.",
     "Report assembly proven: zpHTInputSession bundles {corrId, cid set/clr, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart, GCTimeEnd, inputRate, dataBurstType, contentType, playSeconds, forced, topoType} per HT input session; ForceSubmitTvSessionReport is the manual injection; upload rides the telemetry/product-data-telemetry channel (X-Sonos-MessageType). Reset timing telemetry covers per-stage reset durations."
    ]
