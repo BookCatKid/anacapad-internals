@@ -177291,7 +177291,7 @@
    "todo": "Established: CQ URL builder f_1011c864 takes endpoint base, item URI, destination and capacity. The cpcontainer path branch copies at most 256 bytes of the URI path, terminates it, passes identifier classification/validation through f_1071b3dc/f_1071b458 and canonicalizes it with f_1071d5c4/f_1071b5a0 into another 257-byte buffer. The other branch extracts/percent-decodes item path text through f_1071ac00, which recognizes x-sonos prefixes or x-rincon-cpcontainer and requires a nonempty parsed path. For x-sonos-http and x-sonosprog-http that helper strips the final dot/extension before decoding. The builder then percent-encodes the selected item text into a 257-byte scratch buffer with f_10c3a294, appends endpoint base + encoded text + slash using snprintf, and validates the resulting URL version with f_10338a34. Component truncation and formatter return values are ignored here; success is not a lossless-construction guarantee. Full identifier classification and decoder error/embedded-null behavior remain open. Remaining: exhaust classifier/canonicalizer and percent-decoder outcomes, malformed/truncated output behavior, all caller fallbacks and subsequent CQ request execution."
   },
   "0x1011caec": {
-   "description": "Playback endpoint selector f_1011caec selects radio enum 1 for the literal case-sensitive x-sonosapi-radio: prefix through f_10147928 -> f_101478ec; the broader f_101477e4 predicate also recognizes that prefix. For a non-radio URI, f_10148478 requires x-rincon-cpcontainer:, parses its identifier through f_1071b3dc/f_1071d5c4 and returns true only when the parsed kind word equals 0x13. That case selects endpoint enum 3 (audiobook). Other inputs select zero, which f_1011c34c rejects. This wrapper does not choose browse enum 4 merely because an input is a container or another music-service URI. The parser/identifier-kind internals and alternate callers remain separate work.",
+   "description": "Playback endpoint selector f_1011caec(view, uri, destination, capacity) computes an endpoint type from the URI text and tail-calls resolver f_1011c34c(view, type, destination, capacity). Type 1 (radio) is selected iff the URI carries the literal case-sensitive x-sonosapi-radio: prefix via f_10147928 -> f_101478ec (strncmp 17). A second conjunct f_101477e4(uri)!=0 is evaluated only after the strict prefix matches and is tautologically true there because that prefix is already inside f_101477e4's accepted scheme list (x-sonosapi-stream:, x-sonosapi-hls:, x-sonosapi-hls-static:, x-sonosapi-radio:, x-sonosapi-rtrecent: plus the x-sonos-http/x-sonos-mms and spotify families reached through f_1014722c, f_101472a0 and f_10147770). Type 3 (audiobook container) is selected iff the URI is not radio AND f_10148478(uri) is nonzero. That helper first requires the x-rincon-cpcontainer: prefix (strncmp 21), then classifies the identifier tail through f_1071b3dc -> f_10717318 with flag 0, which accepts only '0', 'root', 'search' or exactly eight isxdigit characters whose strtoul value keeps its top three bits clear (<0x20000000); the ':0/0', ':0/1' and ':0/L' alternatives are skipped in this mode, and shorter strings fail because the scan window always reads eight bytes into the NUL. f_1071d5c4 -> f_1071d460 then builds a parsed record whose kind word at +4 is 0 for '0'/'root' (both canonicalized to the literal string 'root'), 1 for 'search', 0xff when classification failed, or (hexvalue>>16)&0xff for eight-hex-digit identifiers via f_1071d39c. Only kind 0x13 yields type 3; '0', 'root', 'search', unparseable tails and every other kind byte fall to type 0. Before emitting 3 the wrapper re-verifies the x-rincon-cpcontainer: prefix through f_10147050, a dead re-check that cannot fail on that path since the same strncmp already passed. Formally a URI matching both the radio and kind-13 prefixes would select 1, but the prefixes are mutually exclusive. Type 0 makes the resolver report false, so unrecognized URIs produce no endpoint; the wrapper never selects type 2 (that enum is hardcoded only by the f_104c9bd8 thunk site) nor browse enum 4 merely because an input is a container or another music-service URI. Caller audit (exhaustive branch and data-pointer scan): f_102b4f40 calls at 0x102b5070 with destination null and capacity zero as an existence probe, gated by f_101477e4(uri)!=0 or f_10147050(uri)!=0 on the member string at this+0x5dc, and on true registers the service through f_102b377c with an 'sn_%u' token; f_102c3f84 (avt_impl) calls at 0x102c4588 with stack buffer sp+0x23e4 and capacity 0x401 on a freshly built view, and on true hands the resolved URL plus the original URI to CQ URL builder f_1011c864 at 0x102c45a4, whose failure makes the caller return 800. No other callers, fallbacks or data references exist.",
    "why_external": "Chooses which manifest endpoint supplies a music-service playback URL.",
    "required_for_behavior": true,
    "role": "music_service_version_and_cq",
@@ -177302,9 +177302,68 @@
      "build": "86.10-80260",
      "address": "0x1011caec",
      "notes": "Instruction-level selector/version/encoder trace; see music_service_version_string and svc_manifest details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011cb2c",
+     "function": "0x1011caec",
+     "notes": "cr4_eq ends up as 'NOT x-sonosapi-radio:' for both routes: strict match jumps to the f_101477e4 call whose result is always nonzero for that prefix, so the broad predicate is a tautological second conjunct."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011cb70",
+     "function": "0x1011caec",
+     "notes": "isel r4,0,r9,cr30 merges the two reachability paths: entry from the dead f_10147050 re-check gives r3=1 so type 3, entry from the non-radio/kind-miss fall-through gives r3=0 so type 0; type 1 uses the sibling epilogue addi r4,1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10148478",
+     "notes": "Kind-13 gate: strncmp 'x-rincon-cpcontainer:' then f_1071b3dc/f_1071d5c4 parse the tail and xori/cntlzw compares the kind word at +4 against 0x13."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10717318",
+     "notes": "Tail classifier with flag 0 accepts '0', 'root', 'search' or exactly eight isxdigit chars whose strtoul value clears 0xe0000000; ':0/0', ':0/1', ':0/L' alternatives are skipped in this mode."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1071d39c",
+     "function": "0x1071d460",
+     "notes": "Eight-hex-digit tail decoding: strtoul base 16, kind word = (value>>16)&0xff at record +4, low halfword at +0, top bit at +8; '0'/'root' map to kind 0 and 'search' to kind 1 in the caller."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102b5070",
+     "function": "0x102b4f40",
+     "notes": "Probe-mode call (dest 0, cap 0) gated by f_101477e4(uri)!=0 or f_10147050(uri)!=0 on this+0x5dc; a true result leads to f_102b377c registration using an 'sn_%u' token."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102c4588",
+     "function": "0x102c3f84",
+     "notes": "avt_impl resolve call into sp+0x23e4 cap 0x401 on a fresh f_1011c078 view; false exits via cleanup, true feeds resolved URL + original URI to f_1011c864 at 0x102c45a4 and maps its failure to return code 800."
     }
    ],
-   "todo": "Established: Playback endpoint selector f_1011caec selects radio enum 1 for the literal case-sensitive x-sonosapi-radio: prefix through f_10147928 -> f_101478ec; the broader f_101477e4 predicate also recognizes that prefix. For a non-radio URI, f_10148478 requires x-rincon-cpcontainer:, parses its identifier through f_1071b3dc/f_1071d5c4 and returns true only when the parsed kind word equals 0x13. That case selects endpoint enum 3 (audiobook). Other inputs select zero, which f_1011c34c rejects. This wrapper does not choose browse enum 4 merely because an input is a container or another music-service URI. The parser/identifier-kind internals and alternate callers remain separate work. Remaining: Trace complete identifier-kind grammar and all selector callers/fallbacks."
+   "resolved_findings": [
+    "Established: exact selector grammar - type 1 iff literal case-sensitive x-sonosapi-radio: prefix (the f_101477e4 conjunct evaluated behind it is tautologically true); type 3 iff non-radio x-rincon-cpcontainer: whose parsed kind byte equals 0x13; every other input yields type 0, which resolver f_1011c34c rejects.",
+    "Established: the identifier-tail grammar through f_10717318 with flag 0 accepts only '0', 'root', 'search' or exactly eight hex digits with strtoul value <0x20000000; f_1071d460 maps them to kind 0, 0, 1 or (value>>16)&0xff respectively and leaves 0xff for rejected tails.",
+    "Established: the f_10147050 prefix re-check on the kind-13 path is dead code (the same strncmp already passed), and the formal radio+kind13 overlap selects type 1 but is unreachable since the prefixes are mutually exclusive.",
+    "Established: exactly two callers exist - the f_102b4f40 null/0 existence probe gated by sonos-scheme-or-cpcontainer, and the f_102c3f84 avt_impl resolve into sp+0x23e4/0x401 feeding CQ builder f_1011c864; no data or vtable references and no internal fallback path exist."
+   ]
   },
   "0x10483e28": {
    "description": "Shared version parser f_10483e28 takes a begin/end text span and an output structure. It requires decimal major, a literal dot and decimal minor, with an optional dot plus decimal patch. f_10483c1c first requires an ASCII digit, then clears errno and calls strtoul(base10) with an end pointer; errno 22 or 34 rejects. Leading zeroes are not rejected. Whitespace/sign prefixes are rejected by the first-byte guard. Patch is written only when present; the caller must initialize it otherwise. After the numeric components, either span end must be reached or a hyphen/pre-release and/or plus/build suffix is processed. Each suffix must start with isalnum, but subsequent bytes are copied without per-byte validation. Pre-release ends at the first plus or span end; build metadata consumes the remaining span. Each stored suffix is truncated to 32 bytes plus terminator while the cursor advances across the full suffix. Success requires cursor==span end. This is the implemented grammar, not complete enforcement of Semantic Versioning 2.0.0. Exact libc locale/overflow ABI and reads at malformed span boundaries still need verification.",
