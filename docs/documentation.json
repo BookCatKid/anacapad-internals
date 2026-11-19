@@ -97697,7 +97697,7 @@
      "implementation_notes": "Concrete constructor/vtable/handler chain remains104b0e84 ->10ed75c4, handler10732e94 constructed at1018e594, slot+40 ->104b0b8c. Imported unsigned parser is now traced inside libsonosminiutils.so.1, not treated as an unknown boundary. Query XML validity is cleared before open; a missing file can trigger one-shot version0 advertisement even though constructor initially set validitytrue. Found value and parser validity remain separate."
     },
     "GetString": {
-     "description": "Reads config VariableName -> StringValue via impl->v[+0xc].",
+     "description": "Reads one bounded named setting, with synthetic R_ForceReIndex and legacy UMTracking branches and R_AudioInEncodeType value translation. Ordinary X_ keys are denied606 and absent keys return800; successful reads emit StringValue.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107319b4",
@@ -97714,7 +97714,7 @@
         "site": "0x10731a3c",
         "obj": "*(r3-in+0x4)",
         "slot": 12,
-        "arg4": "sp-0xc14"
+        "arg4": "VariableName at sp+0x1c; r5 output sp+0x41c; r6 capacity2048"
        },
        {
         "site": "0x10731abc",
@@ -97739,7 +97739,7 @@
      },
      "inputs": {
       "VariableName": {
-       "description": "property variable name",
+       "description": "Case-sensitive setting name; exact R_ForceReIndex and UMTracking select special reads.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -97748,243 +97748,462 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
+       "semantic_type": "setting key",
+       "format": "NUL-terminated text copied into1024 bytes, at most1023 payload bytes; no UTF-8 validation.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 1023 chars",
-       "special_values": "none identified",
+       "accepted_values": "Any present text including empty, subject to truncation; X_ prefix is denied606 on ordinary SystemSettings reads.",
+       "range": "0..1023 copied bytes; excess input truncates rather than rejects.",
+       "special_values": "R_ForceReIndex: shadow/.format-dependent synthetic version; UMTracking: household metrics flag; R_AudioInEncodeType: stored-value translation.",
        "required": true,
        "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "validation": "Missing required materialization causes402; no present-string lexical validation. Whitespace is preserved, numeric conversion is not used, and keys compare case-sensitively.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107319f4",
-         "notes": "in-arg access site"
+         "address": "0x10731a00",
+         "function": "0x107319b4",
+         "notes": "Named required VariableName lookup107319f4, tag7 factory1056157c(cap1024), validation10731a14 ->10730414. Shared input copy10560708 and conversion10560a58 copy at most capacity-1 bytes and append NUL; present empty text materializes successfully, excess truncates rather than rejects. No lexical/UTF-8, whitespace, sign, numeric-base or enum checks. Missing required materialization loads402 at10731a8c and faults10731a58; malformed present string text is not this predicate."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f111a4",
-         "notes": "argument name string"
+         "address": "0x104b1e04",
+         "function": "0x104b1d90",
+         "notes": "Exact strcmp R_ForceReIndex calls10107aa0. Raw41beffc8 at104b1e0c is beq(result4) to ordinary10669db4. Otherwise strlcpy emits1.0-00000 and returns0.10107aa0 joins imported g_pszJFFSRoot(global1109b024), shadow and .format using1068a70c; open64 O_RDONLY failure returns4 at10107bd4. Open success reads exactly4 bytes into a PPC big-endian word; read!=4 sets UINT_MAX. Ignores close result and returns word without text conversion. Thus missing/unopenable file takes ordinary lookup; readable word4 also does; any other word or failed/short read takes synthetic success. No reindex operation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10537870",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x10669df8",
+         "function": "0x10669db4",
+         "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10669e78",
+         "function": "0x10669db4",
+         "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
         }
        ],
-       "notes": null,
+       "notes": "Empty present key is looked up, not a request-layer error. A long input can truncate into a different key.",
        "buf_cap": 1024,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `VariableName` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +12 (site 0x10731a3c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `VariableName` = verbatim forward to impl vfunc +12 (obj *(r3-in+0x4), call site 0x10731a3c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Handler forwards the bounded key unchanged; concrete delegate then applies special-key routing and ordinary X_ prefix denial."
        ]
       }
      },
      "outputs": {
       "StringValue": {
-       "description": "property string value",
+       "description": "Successful setting result or special synthetic value, registered only after delegate status0.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
+       "semantic_type": "setting value",
+       "format": "NUL-terminated C string from a2048-byte buffer; XML response string, not a numeric descriptor.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "parser-type bounded",
-       "special_values": "none identified",
+       "accepted_values": "Stored string (including empty), except WAV ->AUTO and WMA ->COMPRESSED for exact R_AudioInEncodeType; Report/NoReport for UMTracking;1.0-00000 for the synthetic R_ForceReIndex branch.",
+       "range": "At most2047 value bytes from XML; special literals fit the same buffer. No UTF-8 or numeric validation.",
+       "special_values": "NoReport also covers failed household lookup;1.0-00000 does not mean a reindex was started.",
        "required": false,
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "default": "No response output on SOAP fault; no generic missing-key default.",
+       "validation": "Ordinary lookup must report found; empty stored string is valid. Found data can survive a later XML parse error and recovery advertisement.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10731aa8",
-         "notes": "out-arg access site"
+         "address": "0x10731a3c",
+         "function": "0x107319b4",
+         "notes": "Constructor104b0e84 installs primary vtable10ed75c4 at104b0f94. Handler constructor10732e94, called1018e594, stores delegate at+4 and vtable10f110a8 at+0. Table10ed75d0(slot+0c) is104b1d90. Handler passes VariableName, output buffer sp+41c and capacity2048. Nonzero return faults10731a58; zero registers StringValue10731aa8, sets its C-string pointer10731abc and commits10731ad0. Request constructor107311f0 installs output record vtable10f10e88; slot+10=1055eb10 tags6 and stores pointer+8, not an input parser."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f111b4",
-         "notes": "argument name string"
+         "address": "0x104b1e04",
+         "function": "0x104b1d90",
+         "notes": "Exact strcmp R_ForceReIndex calls10107aa0. Raw41beffc8 at104b1e0c is beq(result4) to ordinary10669db4. Otherwise strlcpy emits1.0-00000 and returns0.10107aa0 joins imported g_pszJFFSRoot(global1109b024), shadow and .format using1068a70c; open64 O_RDONLY failure returns4 at10107bd4. Open success reads exactly4 bytes into a PPC big-endian word; read!=4 sets UINT_MAX. Ignores close result and returns word without text conversion. Thus missing/unopenable file takes ordinary lookup; readable word4 also does; any other word or failed/short read takes synthetic success. No reindex operation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10537870",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x10669df8",
+         "function": "0x10669db4",
+         "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10669e78",
+         "function": "0x10669db4",
+         "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066c2b8",
+         "function": "0x1066c24c",
+         "notes": "Same shared reader used by GetRDM, but this caller passes2048 not16. After invalid/unreadable XML and settings+e4 clear, sets+e4=1, advertises selector+bc=4, local ID+e8, version0, flagfalse via settings+ec slot+14=10652074 at1066c32c, preserving lookup result. Receiver conditionally updates cached version/LUD and queues ReplicatedSettingsChangedEvent only for initialized/registered selector and accepted ordering (greater version except UINT_MAX, or equal version with lexicographically smaller LUD). Existing positive version rejects0. No synchronous repair1066ba04, success callback104b1e48, SystemProperties dirty flag or writer invoked."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `StringValue`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "Output setter1055eb10 stores the pointer and type6; it does not run tag7 input parsing."
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Required named string materialization only at request layer; exact special-key branches and X_ denial follow. Malformed present text is not a lexical402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x107319b4",
-        "notes": "wrapper family decode"
+        "address": "0x10731a00",
+        "function": "0x107319b4",
+        "notes": "Named required VariableName lookup107319f4, tag7 factory1056157c(cap1024), validation10731a14 ->10730414. Shared input copy10560708 and conversion10560a58 copy at most capacity-1 bytes and append NUL; present empty text materializes successfully, excess truncates rather than rejects. No lexical/UTF-8, whitespace, sign, numeric-base or enum checks. Missing required materialization loads402 at10731a8c and faults10731a58; malformed present string text is not this predicate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669e78",
+        "function": "0x10669db4",
+        "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0xc]",
+      "description": "VariableName must be present. Ordinary paths require initialized delegate+164 SystemSettings and UMTracking requires delegate+168 household settings; neither path has a null guard. No account, registration or remote-service prerequisite is tested. R_ForceReIndex synthetic branch can return without a settings lookup.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10731a3c",
         "function": "0x107319b4",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "notes": "Constructor104b0e84 installs primary vtable10ed75c4 at104b0f94. Handler constructor10732e94, called1018e594, stores delegate at+4 and vtable10f110a8 at+0. Table10ed75d0(slot+0c) is104b1d90. Handler passes VariableName, output buffer sp+41c and capacity2048. Nonzero return faults10731a58; zero registers StringValue10731aa8, sets its C-string pointer10731abc and commits10731ad0. Request constructor107311f0 installs output record vtable10f10e88; slot+10=1055eb10 tags6 and stores pointer+8, not an input parser."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10731a00",
+        "function": "0x107319b4",
+        "notes": "Named required VariableName lookup107319f4, tag7 factory1056157c(cap1024), validation10731a14 ->10730414. Shared input copy10560708 and conversion10560a58 copy at most capacity-1 bytes and append NUL; present empty text materializes successfully, excess truncates rather than rejects. No lexical/UTF-8, whitespace, sign, numeric-base or enum checks. Missing required materialization loads402 at10731a8c and faults10731a58; malformed present string text is not this predicate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1e04",
+        "function": "0x104b1d90",
+        "notes": "Exact strcmp R_ForceReIndex calls10107aa0. Raw41beffc8 at104b1e0c is beq(result4) to ordinary10669db4. Otherwise strlcpy emits1.0-00000 and returns0.10107aa0 joins imported g_pszJFFSRoot(global1109b024), shadow and .format using1068a70c; open64 O_RDONLY failure returns4 at10107bd4. Open success reads exactly4 bytes into a PPC big-endian word; read!=4 sets UINT_MAX. Ignores close result and returns word without text conversion. Thus missing/unopenable file takes ordinary lookup; readable word4 also does; any other word or failed/short read takes synthetic success. No reindex operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669df8",
+        "function": "0x10669db4",
+        "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669e78",
+        "function": "0x10669db4",
+        "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0xc]",
+      "description": "Reads configured JFFSRoot/shadow/.format for R_ForceReIndex; householdsettings.json and category2 userMetricsTracking for UMTracking; otherwise delegate+164 SystemSettings configured XML path, Name/Value entries and lock+10. XML found/valid flags differ; exceptional recovery reads one-shot+e4, selector+bc, local-ID+e8 and replication receiver+ec/version/LUD cache.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107319b4",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0xc]']"
+        "address": "0x104b1e04",
+        "function": "0x104b1d90",
+        "notes": "Exact strcmp R_ForceReIndex calls10107aa0. Raw41beffc8 at104b1e0c is beq(result4) to ordinary10669db4. Otherwise strlcpy emits1.0-00000 and returns0.10107aa0 joins imported g_pszJFFSRoot(global1109b024), shadow and .format using1068a70c; open64 O_RDONLY failure returns4 at10107bd4. Open success reads exactly4 bytes into a PPC big-endian word; read!=4 sets UINT_MAX. Ignores close result and returns word without text conversion. Thus missing/unopenable file takes ordinary lookup; readable word4 also does; any other word or failed/short read takes synthetic success. No reindex operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669df8",
+        "function": "0x10669db4",
+        "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669e78",
+        "function": "0x10669db4",
+        "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1068ab6c",
+        "function": "0x1068ab6c",
+        "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2b8",
+        "function": "0x1066c24c",
+        "notes": "Same shared reader used by GetRDM, but this caller passes2048 not16. After invalid/unreadable XML and settings+e4 clear, sets+e4=1, advertises selector+bc=4, local ID+e8, version0, flagfalse via settings+ec slot+14=10652074 at1066c32c, preserving lookup result. Receiver conditionally updates cached version/LUD and queues ReplicatedSettingsChangedEvent only for initialized/registered selector and accepted ordering (greater version except UINT_MAX, or equal version with lexicographically smaller LUD). Existing positive version rejects0. No synchronous repair1066ba04, success callback104b1e48, SystemProperties dirty flag or writer invoked."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x0c] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Reads the selected local file, uses temporary buffers/allocations and serializes a result. Does not reindex, change UMTracking, persist a setting or invoke write-success callbacks. Ordinary XML read failure/parser-invalid source may set one-shot recovery-needed and advertise local version0; an accepted advertisement changes the replication cache and queues its event, without synchronous file repair. Household reads do not use that XML recovery path.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x107319b4",
-         "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x0c] -> out-arg (call-derived member-method semantics)"
+         "address": "0x104b1e04",
+         "function": "0x104b1d90",
+         "notes": "Exact strcmp R_ForceReIndex calls10107aa0. Raw41beffc8 at104b1e0c is beq(result4) to ordinary10669db4. Otherwise strlcpy emits1.0-00000 and returns0.10107aa0 joins imported g_pszJFFSRoot(global1109b024), shadow and .format using1068a70c; open64 O_RDONLY failure returns4 at10107bd4. Open success reads exactly4 bytes into a PPC big-endian word; read!=4 sets UINT_MAX. Ignores close result and returns word without text conversion. Thus missing/unopenable file takes ordinary lookup; readable word4 also does; any other word or failed/short read takes synthetic success. No reindex operation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10669df8",
+         "function": "0x10669db4",
+         "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10669e78",
+         "function": "0x10669db4",
+         "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066c2b8",
+         "function": "0x1066c24c",
+         "notes": "Same shared reader used by GetRDM, but this caller passes2048 not16. After invalid/unreadable XML and settings+e4 clear, sets+e4=1, advertises selector+bc=4, local ID+e8, version0, flagfalse via settings+ec slot+14=10652074 at1066c32c, preserving lookup result. Receiver conditionally updates cached version/LUD and queues ReplicatedSettingsChangedEvent only for initialized/registered selector and accepted ordering (greater version except UINT_MAX, or equal version with lexicographically smaller LUD). Existing positive version rejects0. No synchronous repair1066ba04, success callback104b1e48, SystemProperties dirty flag or writer invoked."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1019911c",
+         "function": "0x10198e54",
+         "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x0c] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct SystemProperties UPnP propertyset/UpdateID or SystemPropertiesChangeEvent from these read paths. Ordinary XML failure can cause one version0 advertisement and conditionally ReplicatedSettingsChangedEvent(snapshot,flagfalse); initialized/registered receiver, version/LUD acceptance and an event loop are required. UMTracking and synthetic R_ForceReIndex have no notification call.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107319b4",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x104b1e04",
+        "function": "0x104b1d90",
+        "notes": "Exact strcmp R_ForceReIndex calls10107aa0. Raw41beffc8 at104b1e0c is beq(result4) to ordinary10669db4. Otherwise strlcpy emits1.0-00000 and returns0.10107aa0 joins imported g_pszJFFSRoot(global1109b024), shadow and .format using1068a70c; open64 O_RDONLY failure returns4 at10107bd4. Open success reads exactly4 bytes into a PPC big-endian word; read!=4 sets UINT_MAX. Ignores close result and returns word without text conversion. Thus missing/unopenable file takes ordinary lookup; readable word4 also does; any other word or failed/short read takes synthetic success. No reindex operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669df8",
+        "function": "0x10669db4",
+        "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669e78",
+        "function": "0x10669db4",
+        "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2b8",
+        "function": "0x1066c24c",
+        "notes": "Same shared reader used by GetRDM, but this caller passes2048 not16. After invalid/unreadable XML and settings+e4 clear, sets+e4=1, advertises selector+bc=4, local ID+e8, version0, flagfalse via settings+ec slot+14=10652074 at1066c32c, preserving lookup result. Receiver conditionally updates cached version/LUD and queues ReplicatedSettingsChangedEvent only for initialized/registered selector and accepted ordering (greater version except UINT_MAX, or equal version with lexicographically smaller LUD). Existing positive version rejects0. No synchronous repair1066ba04, success callback104b1e48, SystemProperties dirty flag or writer invoked."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0xc]",
+      "description": "No setting, index or SystemProperties dirty-state transition. Output becomes stored/translated/synthetic string only on status0. Ordinary invalid XML with+e4=0 sets+e4=1, and accepted version0 advertisement can replace replication version/LUD; further reads suppress it until a successful settings write clears+e4. Household parse state is transient.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107319b4",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0xc]']"
+        "address": "0x104b1e04",
+        "function": "0x104b1d90",
+        "notes": "Exact strcmp R_ForceReIndex calls10107aa0. Raw41beffc8 at104b1e0c is beq(result4) to ordinary10669db4. Otherwise strlcpy emits1.0-00000 and returns0.10107aa0 joins imported g_pszJFFSRoot(global1109b024), shadow and .format using1068a70c; open64 O_RDONLY failure returns4 at10107bd4. Open success reads exactly4 bytes into a PPC big-endian word; read!=4 sets UINT_MAX. Ignores close result and returns word without text conversion. Thus missing/unopenable file takes ordinary lookup; readable word4 also does; any other word or failed/short read takes synthetic success. No reindex operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669df8",
+        "function": "0x10669db4",
+        "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669e78",
+        "function": "0x10669db4",
+        "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2b8",
+        "function": "0x1066c24c",
+        "notes": "Same shared reader used by GetRDM, but this caller passes2048 not16. After invalid/unreadable XML and settings+e4 clear, sets+e4=1, advertises selector+bc=4, local ID+e8, version0, flagfalse via settings+ec slot+14=10652074 at1066c32c, preserving lookup result. Receiver conditionally updates cached version/LUD and queues ReplicatedSettingsChangedEvent only for initialized/registered selector and accepted ordering (greater version except UINT_MAX, or equal version with lexicographically smaller LUD). Existing positive version rejects0. No synchronous repair1066ba04, success callback104b1e48, SystemProperties dirty flag or writer invoked."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Missing required input ->402 before delegate. Ordinary X_ prefix ->606; ordinary lookup false (missing key, read failure or no usable match) ->800. Successful ordinary lookup, UMTracking even on household read failure, and synthetic R_ForceReIndex ->0, then StringValue and response commit. Lookup result survives exceptional recovery advertisement; no other concrete normal return codes.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10731a3c",
         "function": "0x107319b4",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "notes": "Constructor104b0e84 installs primary vtable10ed75c4 at104b0f94. Handler constructor10732e94, called1018e594, stores delegate at+4 and vtable10f110a8 at+0. Table10ed75d0(slot+0c) is104b1d90. Handler passes VariableName, output buffer sp+41c and capacity2048. Nonzero return faults10731a58; zero registers StringValue10731aa8, sets its C-string pointer10731abc and commits10731ad0. Request constructor107311f0 installs output record vtable10f10e88; slot+10=1055eb10 tags6 and stores pointer+8, not an input parser."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10731a00",
+        "function": "0x107319b4",
+        "notes": "Named required VariableName lookup107319f4, tag7 factory1056157c(cap1024), validation10731a14 ->10730414. Shared input copy10560708 and conversion10560a58 copy at most capacity-1 bytes and append NUL; present empty text materializes successfully, excess truncates rather than rejects. No lexical/UTF-8, whitespace, sign, numeric-base or enum checks. Missing required materialization loads402 at10731a8c and faults10731a58; malformed present string text is not this predicate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1e04",
+        "function": "0x104b1d90",
+        "notes": "Exact strcmp R_ForceReIndex calls10107aa0. Raw41beffc8 at104b1e0c is beq(result4) to ordinary10669db4. Otherwise strlcpy emits1.0-00000 and returns0.10107aa0 joins imported g_pszJFFSRoot(global1109b024), shadow and .format using1068a70c; open64 O_RDONLY failure returns4 at10107bd4. Open success reads exactly4 bytes into a PPC big-endian word; read!=4 sets UINT_MAX. Ignores close result and returns word without text conversion. Thus missing/unopenable file takes ordinary lookup; readable word4 also does; any other word or failed/short read takes synthetic success. No reindex operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669df8",
+        "function": "0x10669db4",
+        "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10669e78",
+        "function": "0x10669db4",
+        "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2b8",
+        "function": "0x1066c24c",
+        "notes": "Same shared reader used by GetRDM, but this caller passes2048 not16. After invalid/unreadable XML and settings+e4 clear, sets+e4=1, advertises selector+bc=4, local ID+e8, version0, flagfalse via settings+ec slot+14=10652074 at1066c32c, preserving lookup result. Receiver conditionally updates cached version/LUD and queues ReplicatedSettingsChangedEvent only for initialized/registered selector and accepted ordering (greater version except UINT_MAX, or equal version with lexicographically smaller LUD). Existing positive version rejects0. No synchronous repair1066ba04, success callback104b1e48, SystemProperties dirty flag or writer invoked."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10731a58",
-       "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0xc)"
+       "code": 402,
+       "code_expr": "missing required VariableName"
+      },
+      {
+       "site": "0x10731a58",
+       "code": 606,
+       "code_expr": "ordinary X_ prefix denied"
+      },
+      {
+       "site": "0x10731a58",
+       "code": 800,
+       "code_expr": "ordinary settings lookup false"
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(*(r3-in+0x4),+0xc); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Required VariableName was not materialized.",
        "fault_sites": [
         "0x10731a58"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "Request validation10731a14 returned0; literal402 loaded10731a8c. Empty present text is not this condition.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107319b4",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x107319b4",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10731a00",
+           "function": "0x107319b4",
+           "notes": "Named required VariableName lookup107319f4, tag7 factory1056157c(cap1024), validation10731a14 ->10730414. Shared input copy10560708 and conversion10560a58 copy at most capacity-1 bytes and append NUL; present empty text materializes successfully, excess truncates rather than rejects. No lexical/UTF-8, whitespace, sign, numeric-base or enum checks. Missing required materialization loads402 at10731a8c and faults10731a58; malformed present string text is not this predicate."
           }
          ]
         }
@@ -97994,66 +98213,106 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107319b4",
-         "notes": "0x192 fault constant in handler"
+         "address": "0x10731a00",
+         "function": "0x107319b4",
+         "notes": "Named required VariableName lookup107319f4, tag7 factory1056157c(cap1024), validation10731a14 ->10730414. Shared input copy10560708 and conversion10560a58 copy at most capacity-1 bytes and append NUL; present empty text materializes successfully, excess truncates rather than rejects. No lexical/UTF-8, whitespace, sign, numeric-base or enum checks. Missing required materialization loads402 at10731a8c and faults10731a58; malformed present string text is not this predicate."
+        }
+       ]
+      },
+      {
+       "code": 606,
+       "meaning": "Insecure read of X_-prefixed setting denied.",
+       "fault_sites": [
+        "0x10731a58"
+       ],
+       "conditions": [
+        {
+         "description": "Ordinary SystemSettings getter strncmp(name,X_,2)==0, before read.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10669e78",
+           "function": "0x10669db4",
+           "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10669e78",
+         "function": "0x10669db4",
+         "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "meaning": "Ordinary named setting lookup did not find a usable value.",
+       "fault_sites": [
+        "0x10731a58"
+       ],
+       "conditions": [
+        {
+         "description": "Backend+24=1066c24c returnsfalse; includes missing key and failed read without a prior match. Empty found value succeeds; UMTracking failures instead returnNoReport.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10669e78",
+           "function": "0x10669db4",
+           "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10669df8",
+           "function": "0x10669db4",
+           "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066c2b8",
+           "function": "0x1066c24c",
+           "notes": "Same shared reader used by GetRDM, but this caller passes2048 not16. After invalid/unreadable XML and settings+e4 clear, sets+e4=1, advertises selector+bc=4, local ID+e8, version0, flagfalse via settings+ec slot+14=10652074 at1066c32c, preserving lookup result. Receiver conditionally updates cached version/LUD and queues ReplicatedSettingsChangedEvent only for initialized/registered selector and accepted ordering (greater version except UINT_MAX, or equal version with lexicographically smaller LUD). Existing positive version rejects0. No synchronous repair1066ba04, success callback104b1e48, SystemProperties dirty flag or writer invoked."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10669e78",
+         "function": "0x10669db4",
+         "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107319b4",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "unresolved": {
-        "proven": "impl vfunc rc surfaced",
-        "unknown": "concrete rc vocabulary for this operation",
-        "knowledge": "; store-object *(svc+4) vfunc +0xc = worker f_1017fbcc at 0x10731a3c; recorded impl vfunc 0x10537870 is a 3-insn no-op blr (slot filler) returning r3-in; real rc is the store-worker return consumed by the shared error-domain worker",
-        "call_sources": [
-         "store-object *(svc+4) vfunc +0xc = worker f_1017fbcc at 0x10731a3c"
-        ],
-        "return_path": "zone-player internal worker (0x1087xxxx cluster) - zp rc",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_1017fbcc": {
-          "lits": [
-           -900,
-           8,
-           28,
-           936
-          ],
-          "pt": 0
-         }
+         "address": "0x10669df8",
+         "function": "0x10669db4",
+         "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
         },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x10537870",
-         "lits": [
-          0,
-          1,
-          2,
-          28,
-          9536
-         ],
-         "passthrough_exits": 7
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "observable": [
         {
-         "op": "recorded-impl",
-         "result": "GetString",
-         "basis": "disassembled impl body + store-vfunc mapping",
-         "provenance": "disas0x10e97e10"
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066c2b8",
+         "function": "0x1066c24c",
+         "notes": "Same shared reader used by GetRDM, but this caller passes2048 not16. After invalid/unreadable XML and settings+e4 clear, sets+e4=1, advertises selector+bc=4, local ID+e8, version0, flagfalse via settings+ec slot+14=10652074 at1066c32c, preserving lookup result. Receiver conditionally updates cached version/LUD and queues ReplicatedSettingsChangedEvent only for initialized/registered selector and accepted ordering (greater version except UINT_MAX, or equal version with lexicographically smaller LUD). Existing positive version rejects0. No synchronous repair1066ba04, success callback104b1e48, SystemProperties dirty flag or writer invoked."
         }
-       ],
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0xc); parse/req-layer; sites: 0x10731a58).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -98063,30 +98322,69 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x10731a3c",
        "function": "0x107319b4",
-       "address": "0x107319b4",
-       "notes": "action wrapper handler"
+       "notes": "Constructor104b0e84 installs primary vtable10ed75c4 at104b0f94. Handler constructor10732e94, called1018e594, stores delegate at+4 and vtable10f110a8 at+0. Table10ed75d0(slot+0c) is104b1d90. Handler passes VariableName, output buffer sp+41c and capacity2048. Nonzero return faults10731a58; zero registers StringValue10731aa8, sets its C-string pointer10731abc and commits10731ad0. Request constructor107311f0 installs output record vtable10f10e88; slot+10=1055eb10 tags6 and stores pointer+8, not an input parser."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11144",
-       "notes": "action dispatch table entry"
+       "address": "0x10731a00",
+       "function": "0x107319b4",
+       "notes": "Named required VariableName lookup107319f4, tag7 factory1056157c(cap1024), validation10731a14 ->10730414. Shared input copy10560708 and conversion10560a58 copy at most capacity-1 bytes and append NUL; present empty text materializes successfully, excess truncates rather than rejects. No lexical/UTF-8, whitespace, sign, numeric-base or enum checks. Missing required materialization loads402 at10731a8c and faults10731a58; malformed present string text is not this predicate."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10537870",
-       "notes": "shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x0c; NULL STUB impl (2-insn no-op)"
+       "address": "0x104b1e04",
+       "function": "0x104b1d90",
+       "notes": "Exact strcmp R_ForceReIndex calls10107aa0. Raw41beffc8 at104b1e0c is beq(result4) to ordinary10669db4. Otherwise strlcpy emits1.0-00000 and returns0.10107aa0 joins imported g_pszJFFSRoot(global1109b024), shadow and .format using1068a70c; open64 O_RDONLY failure returns4 at10107bd4. Open success reads exactly4 bytes into a PPC big-endian word; read!=4 sets UINT_MAX. Ignores close result and returns word without text conversion. Thus missing/unopenable file takes ordinary lookup; readable word4 also does; any other word or failed/short read takes synthetic success. No reindex operation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10669df8",
+       "function": "0x10669db4",
+       "notes": "Exact UMTracking uses delegate+168 household-settings backend, initialized by1066b500 from r6 (1019827c/101982f8/101982fc).105c99c8 initializes an8-byte output empty then calls backend+0c(category2,userMetricsTracking). Status!=1 may log but exact strcmp against true determines result; booltrue ->Report, otherwiseNoReport, both status0. Concrete household manager constructor105c96d8 stores vtable10ef4918 at105c976c; slot+0c=105c94f0 routes nonzero category to105c9358. That reads householdsettings.json via105c7c44 ->105c79c4(sonosFileReadWhole cap2047; parser105c7714/105c73f8), no writer. On valid snapshot, category2 recognizes userMetricsTracking and105c92a8 ->105c6180 reads snapshot byte+28, emitting true/false with strlcpy. Missing/unreadable/invalid household file leaves empty output and becomesNoReport, not a SOAP error. File lock/read and transient parser allocations are distinct from SystemSettings XML and its replication recovery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10669e78",
+       "function": "0x10669db4",
+       "notes": "Ordinary names call SystemSettings+1c=10669bd4. strncmp(key,X_,2)==0 returns606 before backend read. Other names call backend+38=10669aac ->+24=1066c24c. False lookup returns800, true returns0. Exact R_AudioInEncodeType translates WAV toAUTO and WMA toCOMPRESSED using snprintf; other stored strings unchanged.1066c24c ->106c57cc/106c580c reads configured syssettings.xml, XML callback106c5294 matches requested Name and strlcpy copies Value with caller cap2048 (max2047 payload bytes). Found flag is separate from XML validity and can survive a later parse error; empty stored string is a successful value, absent key is800. No null-backend guard on this ordinary path."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1068ab6c",
+       "function": "0x1068ab6c",
+       "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066c2b8",
+       "function": "0x1066c24c",
+       "notes": "Same shared reader used by GetRDM, but this caller passes2048 not16. After invalid/unreadable XML and settings+e4 clear, sets+e4=1, advertises selector+bc=4, local ID+e8, version0, flagfalse via settings+ec slot+14=10652074 at1066c32c, preserving lookup result. Receiver conditionally updates cached version/LUD and queues ReplicatedSettingsChangedEvent only for initialized/registered selector and accepted ordering (greater version except UINT_MAX, or equal version with lexicographically smaller LUD). Existing positive version rejects0. No synchronous repair1066ba04, success callback104b1e48, SystemProperties dirty flag or writer invoked."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1019911c",
+       "function": "0x10198e54",
+       "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x107319b4; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "A query, not a generic reindex trigger. The lexical bounds are byte counts, not character counts. Runtime root overrides and remote delivery are not observed.",
+     "implementation_notes": "Concrete chain104b0e84 ->10ed75c4; handler10732e94 at1018e594; delegate+0c=104b1d90. Ordinary read target10669db4 ->10669bd4 ->10669aac ->1066c24c. Special filename reader returns4 on open failure, not on short read; raw beq4 at104b1e0c chooses ordinary lookup. The prior unrelated manager/worker mappings and runtime-injected-vptr claims do not apply."
     },
     "GetWebCode": {
      "description": "Advertised but unsupported web-code request in build 86.10-80260: valid requests always fault with 800 and never emit WebCode.",
