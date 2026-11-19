@@ -177269,7 +177269,7 @@
    "todo": "Established: Manifest replication worker f_1011a204 holds the file mutex, applies revision comparator f_10660e58 to current stored source/revision and incoming source/revision supplied in r6/r7, opens the incoming path supplied in r8 and parses it into a fresh scratch row table. Failed revision acceptance, open, parse or rename returns false. After rename succeeds it copies the caller-supplied source (capacity25) and revision into object state, rebuilds the SID/version index from parsed rows, clears all three cache keys/time words, invokes observer slot+0x14 with (kind13, stored source, stored revision, zero), and returns true. It does not compare parsed file version/lastUpdateDevice to the caller-supplied source/revision before committing those supplied values. Its post-rename kind13 call has no new-version-nonzero guard, unlike the local save wrapper. The normal parser permits header-only input; no independent manifests-presence guard is added here. Sender binding, fetch transport and observer delivery remain open. Remaining: Trace sender/fetch/observer binding and delivery, comparator edges, races and interruption/exception behavior."
   },
   "0x1011b310": {
-   "description": "Local deletion f_1011b310 initializes a fresh table and output revision zero, acquires the file mutex and loads the current file through f_1011a4bc. On load failure it returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; it returns whether any match was removed. No match returns false without saving. A removal calls f_1011ad40; only a true save result leads to matching-key cache invalidation and true return. The save worker header-only fallback is shared here, so true deletion is not proof that all surviving rows were persisted. An observer kind13 call is made only when the output revision is nonzero. Loading can already change stored metadata/index before a later no-match or save-failure false result, and no rollback is performed for those earlier load effects.",
+   "description": "Local deletion f_1011b310 is reached only through the this-adjusting thunk 0x100c6d14, which adds 0x13ad0 to the passed object and tail-branches here; the thunk is called exactly once at 0x1028c5dc inside the accountsmgr.cxx core worker f_1028c3b8 as a devirtualized dispatch (vtable slot +0x130 equal to f_1012ba78 takes the direct thunk, anything else calls the slot virtually). The enclosing flow (the locked worker f_1028c5f4 used by RemoveAccount) invokes the manifest delete only after a service-descriptor lookup for type>>8 succeeds, the descriptor flags carry 0x400000, and a non-strict f_10570e34 account query with NULL ID reports no remaining account; the 'del' publish vfunc then runs unconditionally. Inside, f_1011b310 initializes a fresh table and zero output revision, takes a scoped RAII lock (ctor f_10988564/dtor f_10988990) on the obj+0x10 file mutex and loads the current file through f_1011a4bc; load failure returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; no match returns false without saving. A removal calls f_1011ad40 and only a true save result leads to matching-key cache invalidation and a true return. The save worker's header-only fallback is shared here, so a returned-false deletion can still have installed a stub svcmanifests.json containing version+1 and lastUpdateDevice but no manifests array at all: false does not prove the file was untouched, and true does not prove all surviving rows persisted. The output-revision word at sp+0x14 is written on both of the saver's rename-success paths, including the false-returning fallback, and the observer block gates on that word rather than the save result: when it is nonzero the code calls a virtual observer vfunc at slot +0x14 on the runtime-injected obj+8 pointer (ctor f_10119a2c zeroes it) with arguments (13, &obj+0xa4 source string, 0), still holding the obj+0x10 mutex. So a fallback-stub install fires the kind13 observer despite returning false. Cache invalidation nests a second scoped lock on the obj+0x1f8 mutex (lock order file then cache): it scans obj+0x1e8 entries, count at obj+0x1e4, stride 0x51c, matches on equal key length at entry+0xc plus memcmp on the entry+8 key pointer against the snprintf(\"%u\") SID string, and on a match zeroes entry+4 and replaces the key with the shared empty cstring via f_10831bc0. There is no in-function catch, so exceptions from the load, the save (including the '.tmp' append length_error) or the observer propagate to the accountsmgr caller; the RAII lock objects release on normal exits. Loading already rewrites obj+0xc0 version, obj+0xa4 source and the obj+0xc8/cc sid-version index before a later no-match or save-failure false result, and no rollback is performed.",
    "why_external": "Determines manifest deletion success, persisted survivors and targeted cache invalidation.",
    "required_for_behavior": true,
    "role": "music_service_manifest_cache",
@@ -177280,9 +177280,52 @@
      "build": "86.10-80260",
      "address": "0x1011b310",
      "notes": "Instruction-level cache/receiver/delete analysis; see svc_manifest.details and music_service_manifest_cache."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6d14",
+     "notes": "Sole entry thunk: adds 0x13ad0 to the object and tail-branches to f_1011b310."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028c5b8",
+     "notes": "Devirtualized call site in f_1028c3b8: vtable+0x130==f_1012ba78 uses the thunk at 0x1028c5dc, else bctrl; preceded by type>>8 descriptor lookup, flags&0x400000 test and f_10570e34 remaining-account check."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b3b0",
+     "function": "0x1011b310",
+     "notes": "Observer block reads out-revision at sp+0x14 (written by the saver even on false-returning fallback) and calls obj+8 vfunc+0x14(0xd,&obj+0xa4,0) before the file-mutex unlock at 0x1011b3c8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b580",
+     "function": "0x1011b310",
+     "notes": "Cache invalidation under nested lock obj+0x1f8: scans obj+0x1e8 entries x obj+0x1e4, stride 0x51c; match = equal key len at +0xc and memcmp key at +8; clears entry+4 and key via f_10831bc0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10988564",
+     "notes": "Scoped RAII lock ctor storing mutex ptr+flag; dtor f_10988990 unlocks when flag byte set; obj+0x10 lock spans load, compact, save, invalidate and observer."
     }
    ],
-   "todo": "Established: Local deletion f_1011b310 initializes a fresh table and output revision zero, acquires the file mutex and loads the current file through f_1011a4bc. On load failure it returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; it returns whether any match was removed. No match returns false without saving. A removal calls f_1011ad40; only a true save result leads to matching-key cache invalidation and true return. The save worker header-only fallback is shared here, so true deletion is not proof that all surviving rows were persisted. An observer kind13 call is made only when the output revision is nonzero. Loading can already change stored metadata/index before a later no-match or save-failure false result, and no rollback is performed for those earlier load effects. Remaining: Trace deletion callers and reconciliation scheduling, shared save failures and exception/observer propagation."
+   "resolved_findings": [
+    "Established: the only static entry is the +0x13ad0 this-adjusting thunk 0x100c6d14, called once at 0x1028c5dc (accountsmgr.cxx f_1028c3b8); invocation requires descriptor lookup for type>>8, flags&0x400000 and an empty remaining-account query f_10570e34.",
+    "Established: the kind13 observer call gates on the output-revision word at sp+0x14, which the saver writes on both rename-success paths, so a false-returning fallback-stub install still fires the observer with (13,&source,0).",
+    "Established: a false return after f_1011ad40's fallback can still have installed a stub file holding only version+1 and lastUpdateDevice with zero manifest rows, while the observer has already been notified.",
+    "Established: cache invalidation runs under nested mutexes (file obj+0x10 outer, cache obj+0x1f8 inner), matches keys by length+memcmp and clears entry+4 plus the key string.",
+    "Resolved boundary: the obj+8 observer pointer is runtime-injected (ctor-zeroed) and dispatched virtually at vtable slot +0x14, so no concrete observer implementation is statically bound."
+   ]
   },
   "0x101195ac": {
    "description": "Local deletion f_1011b310 initializes a fresh table and output revision zero, acquires the file mutex and loads the current file through f_1011a4bc. On load failure it returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; it returns whether any match was removed. No match returns false without saving. A removal calls f_1011ad40; only a true save result leads to matching-key cache invalidation and true return. The save worker header-only fallback is shared here, so true deletion is not proof that all surviving rows were persisted. An observer kind13 call is made only when the output revision is nonzero. Loading can already change stored metadata/index before a later no-match or save-failure false result, and no rollback is performed for those earlier load effects.",
