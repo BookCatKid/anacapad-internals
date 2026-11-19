@@ -104647,7 +104647,7 @@
      ]
     },
     "GetZoneGroupState": {
-     "description": "Serializes the full zone-group state XML via impl->v[+0x28] on the doubly-indirect member.",
+     "description": "Returns cached live topology as a bounded ZoneGroupState XML string through statically constructed topology implementation slot +0x28 -> f_10752ce4 -> f_10743328.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10732ed8",
@@ -104695,150 +104695,321 @@
      "inputs": {},
      "outputs": {
       "ZoneGroupState": {
-       "description": "full ZoneGroupState XML document serialized by f_10743328 under the impl+0x318 topology lock; builder flag gates 501",
+       "description": "XML text containing ZoneGroups, VanishedDevices and optional QuarantinedDevices, derived from cached topology under its lock.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "SonosBoolArg",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "serialized XML",
-       "range": "{0,1}",
-       "special_values": "none observed in this build",
+       "semantic_type": "XML string",
+       "format": "ZoneGroupState root with ZoneGroups and VanishedDevices children; optional QuarantinedDevices",
+       "unit": "XML text",
+       "accepted_values": "Serialized cached groups, members, satellites and vanished/quarantined devices",
+       "range": "At most 26999 bytes plus terminating NUL in the 27000-byte output buffer",
+       "special_values": "No groups/devices produces a valid XML document with empty ZoneGroups and VanishedDevices; not a boolean or empty string.",
        "required": false,
-       "default": "none - boolean decoded from request text",
-       "validation": "emitted on success; impl returns 501 if builder flag clear",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10752d2c",
-         "notes": "serializer f_10743328(impl,&builder)"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10732fa4",
-         "notes": "out-arg emit"
-        }
-       ],
-       "notes": null
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10732ed8",
-        "notes": "wrapper decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, validate×1, commit×1); member delegates: r4 v[+0x3c], *(r30+4) v[+0x28]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10732ed8",
-        "notes": "req-vfunc call map: {'0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, validate×1, commit×1); member delegates: r4 v[+0x3c], *(r30+4) v[+0x28].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x3c], *(r30+4) v[+0x28]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10732ed8",
-        "notes": "member vfunc calls: ['r4 v[+0x3c]', '*(r30+4) v[+0x28]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x3c], *(r30+4) v[+0x28].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "read-only query delegate: r4 v[+0x3c], *(r30+4) v[+0x28] (call-derived member-method semantics)",
+       "default": "No request default; constructed on successful query.",
+       "validation": "Builder error byte nonzero -> 501 and no SOAP output. All text attribute values pass XML escaping.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10732ed8",
-         "notes": "delegate map ['r4 v[+0x3c]', '*(r30+4) v[+0x28]']; notify-family calls []"
+         "address": "0x10732f44",
+         "callsite": "0x10732fc8",
+         "notes": "No input registrations. Request +0x3c at 0x10732f10 is request setup, not engine dispatch. Validation +8 at 0x10732f24 false -> 402 at 0x10732f28. Worker receives buffer sp+0x14, capacity 0x6978 (27000) at 0x10732f7c. Nonzero return goes to sole request fault call 0x10732f44. Zero writes ZoneGroupState using returned output object slot +0x10 at 0x10732fc8 and commits at 0x10732fdc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752ce4",
+         "address": "0x10752d40",
+         "callsite": "0x10752d2c",
+         "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10743328",
+         "address": "0x107433a0",
+         "callsite": "0x10743538",
+         "notes": "Under caller-held topology lock, serializer asserts lock context via f_10988268, traverses topology+0x5a8 with f_10765b40/f_10765bb0. Candidate groups require f_10762df8 true and f_10765d5c false (0x107433e8..0x10743400). f_10762df8 requires member bytes +0x1f18 and +0x1f4b nonzero and f_10760d64 true. f_10765d5c forwards to f_10765d20, testing nonempty +0x13b0. Candidate selection additionally considers +0x82a, equal group strings +0xde5, first matching member and channel-map +0x177c at 0x10743404..0x10743674. Emits ZoneGroups through f_10742a68/f_10742b98, not one duplicate per member. Orphan channel-map branch f_10742cc8 emits Coordinator=UUID, ID=UUID:orphan and a single member. Ordinary group serializer matches eligible members by group ID +0xde5; coordinator is empty in its non-orphan branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107423ac",
+         "address": "0x10f12eb8",
+         "callsite": "0x10742c7c",
+         "notes": "Group member/device serializer emits UUID, Location, ZoneName, Icon, Configuration, SoftwareVersion, SWGen, compatibility versions, boot/network/TV/wifi/voice/calibration/SSL and other cached attributes, with optional Invisible, IsZoneBridge, ChannelMapSet, HTSatChanMapSet, ActiveZoneID and virtual-source fields. Satellites are serialized through f_10742d64 when enabled. Text attributes use f_1067712c, escaping apostrophe, quote, ampersand, greater-than and less-than (literals 0x10ebf624..0x10ebf644); numeric attributes use builder numeric helpers. Device getters including f_10764364 -> f_10778dc8 only read cached fields."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107430cc",
+         "address": "0x10f131cc",
+         "callsite": "0x10743574",
+         "notes": "After </ZoneGroups>, f_107430cc always emits <VanishedDevices>, selects linked-list topology+0x5dc entries with word +0x105c==1, writes through f_10742ec8, and closes it. f_10743168 adds <QuarantinedDevices> only if qualifying entries exist: topology category 4 via f_10765c20/f_10765ca0 with f_10765d5c true, and vanished-list entries with +0x105c!=1. Final </ZoneGroupState> at 0x1074357c. Empty topology with empty vanished list yields <ZoneGroupState><ZoneGroups></ZoneGroups><VanishedDevices></VanishedDevices></ZoneGroupState>. No persistence or event scheduling in the serializer chain."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r4 v[+0x3c], *(r30+4) v[+0x28] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "Returned as a SOAP string, not an embedded UPnP boolean. Live cached knowledge is not a network discovery refresh."
       }
-     ],
-     "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+     },
+     "validation": {
+      "description": "No named inputs. Request validation failure faults 402; canonical fresh no-input request validates true. Successful validation calls the concrete serializer and propagates 501 only for a set builder error flag.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10732ed8",
-        "notes": "bl call scan: notify-family sites = []"
-       }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c], *(r30+4) v[+0x28]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10732ed8",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x3c]', '*(r30+4) v[+0x28]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c], *(r30+4) v[+0x28].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "return_behavior": {
-      "description": "serializes the live topology object into ZoneGroupState XML under impl+0x318 lock; faults 501 when the serializer flag is clear",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10752ce4",
-        "notes": "impl body"
+        "address": "0x10732f44",
+        "callsite": "0x10732fc8",
+        "notes": "No input registrations. Request +0x3c at 0x10732f10 is request setup, not engine dispatch. Validation +8 at 0x10732f24 false -> 402 at 0x10732f28. Worker receives buffer sp+0x14, capacity 0x6978 (27000) at 0x10732f7c. Nonzero return goes to sole request fault call 0x10732f44. Zero writes ZoneGroupState using returned output object slot +0x10 at 0x10732fc8 and commits at 0x10732fdc."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10732f9c",
-        "notes": "emit+commit"
+        "function": "0x10752ce4",
+        "address": "0x10752d40",
+        "callsite": "0x10752d2c",
+        "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "No action arguments, coordinator requirement, update-state gate or network round trip. Requires ordinary request validation and enough fixed output-buffer space for the escaped cached topology.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10125b54",
+        "address": "0x10e8b04c",
+        "callsite": "0x10732f8c",
+        "notes": "Zone-player init calls concrete topology constructor f_10125b54 at 0x1018e204 with r29. Constructor retains this in r21 at 0x10125b64 and installs primary vptr 0x10e8b024 at 0x10126234. Init stores r29 through 0x1018e28c, reloads it into r4 at 0x1018e2b8, and calls service constructor f_10733b28 at 0x1018e2cc. That constructor stores implementation at service+4 (0x10733b34) and service vptr 0x10f113b0 (0x10733b38). Dispatcher f_10732ff8 searches table 0x10f113dc; GetZoneGroupState wrapper f_10732ed8 calls implementation slot +0x28 at 0x10732f8c. Primary table entry 0x10e8b04c is f_10752ce4; base table 0x10f1226c has the same worker at 0x10f12294. This is static construction, not runtime injection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10732ed8",
+        "address": "0x10732f44",
+        "callsite": "0x10732fc8",
+        "notes": "No input registrations. Request +0x3c at 0x10732f10 is request setup, not engine dispatch. Validation +8 at 0x10732f24 false -> 402 at 0x10732f28. Worker receives buffer sp+0x14, capacity 0x6978 (27000) at 0x10732f7c. Nonzero return goes to sole request fault call 0x10732f44. Zero writes ZoneGroupState using returned output object slot +0x10 at 0x10732fc8 and commits at 0x10732fdc."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752ce4",
+        "address": "0x10752d40",
+        "callsite": "0x10752d2c",
+        "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Reads topology+0x5a8 member collection, cached per-member identity/group/channel-map/metadata fields, and vanished linked list +0x5dc, under topology mutex +0x318. Reads installed implementation vptr from the statically constructed object at service+4.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10125b54",
+        "address": "0x10e8b04c",
+        "callsite": "0x10732f8c",
+        "notes": "Zone-player init calls concrete topology constructor f_10125b54 at 0x1018e204 with r29. Constructor retains this in r21 at 0x10125b64 and installs primary vptr 0x10e8b024 at 0x10126234. Init stores r29 through 0x1018e28c, reloads it into r4 at 0x1018e2b8, and calls service constructor f_10733b28 at 0x1018e2cc. That constructor stores implementation at service+4 (0x10733b34) and service vptr 0x10f113b0 (0x10733b38). Dispatcher f_10732ff8 searches table 0x10f113dc; GetZoneGroupState wrapper f_10732ed8 calls implementation slot +0x28 at 0x10732f8c. Primary table entry 0x10e8b04c is f_10752ce4; base table 0x10f1226c has the same worker at 0x10f12294. This is static construction, not runtime injection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752ce4",
+        "address": "0x10752d40",
+        "callsite": "0x10752d2c",
+        "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10743328",
+        "address": "0x107433a0",
+        "callsite": "0x10743538",
+        "notes": "Under caller-held topology lock, serializer asserts lock context via f_10988268, traverses topology+0x5a8 with f_10765b40/f_10765bb0. Candidate groups require f_10762df8 true and f_10765d5c false (0x107433e8..0x10743400). f_10762df8 requires member bytes +0x1f18 and +0x1f4b nonzero and f_10760d64 true. f_10765d5c forwards to f_10765d20, testing nonempty +0x13b0. Candidate selection additionally considers +0x82a, equal group strings +0xde5, first matching member and channel-map +0x177c at 0x10743404..0x10743674. Emits ZoneGroups through f_10742a68/f_10742b98, not one duplicate per member. Orphan channel-map branch f_10742cc8 emits Coordinator=UUID, ID=UUID:orphan and a single member. Ordinary group serializer matches eligible members by group ID +0xde5; coordinator is empty in its non-orphan branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107423ac",
+        "address": "0x10f12eb8",
+        "callsite": "0x10742c7c",
+        "notes": "Group member/device serializer emits UUID, Location, ZoneName, Icon, Configuration, SoftwareVersion, SWGen, compatibility versions, boot/network/TV/wifi/voice/calibration/SSL and other cached attributes, with optional Invisible, IsZoneBridge, ChannelMapSet, HTSatChanMapSet, ActiveZoneID and virtual-source fields. Satellites are serialized through f_10742d64 when enabled. Text attributes use f_1067712c, escaping apostrophe, quote, ampersand, greater-than and less-than (literals 0x10ebf624..0x10ebf644); numeric attributes use builder numeric helpers. Device getters including f_10764364 -> f_10778dc8 only read cached fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107430cc",
+        "address": "0x10f131cc",
+        "callsite": "0x10743574",
+        "notes": "After </ZoneGroups>, f_107430cc always emits <VanishedDevices>, selects linked-list topology+0x5dc entries with word +0x105c==1, writes through f_10742ec8, and closes it. f_10743168 adds <QuarantinedDevices> only if qualifying entries exist: topology category 4 via f_10765c20/f_10765ca0 with f_10765d5c true, and vanished-list entries with +0x105c!=1. Final </ZoneGroupState> at 0x1074357c. Empty topology with empty vanished list yields <ZoneGroupState><ZoneGroups></ZoneGroups><VanishedDevices></VanishedDevices></ZoneGroupState>. No persistence or event scheduling in the serializer chain."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Acquires/releases topology mutex, builds escaped XML in caller-owned temporary buffer and writes a response or fault. Cached device getters are read-only. Does not regroup players, discover devices, refresh network state, save settings or initiate software update.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752ce4",
+         "address": "0x10752d40",
+         "callsite": "0x10752d2c",
+         "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10743328",
+         "address": "0x107433a0",
+         "callsite": "0x10743538",
+         "notes": "Under caller-held topology lock, serializer asserts lock context via f_10988268, traverses topology+0x5a8 with f_10765b40/f_10765bb0. Candidate groups require f_10762df8 true and f_10765d5c false (0x107433e8..0x10743400). f_10762df8 requires member bytes +0x1f18 and +0x1f4b nonzero and f_10760d64 true. f_10765d5c forwards to f_10765d20, testing nonempty +0x13b0. Candidate selection additionally considers +0x82a, equal group strings +0xde5, first matching member and channel-map +0x177c at 0x10743404..0x10743674. Emits ZoneGroups through f_10742a68/f_10742b98, not one duplicate per member. Orphan channel-map branch f_10742cc8 emits Coordinator=UUID, ID=UUID:orphan and a single member. Ordinary group serializer matches eligible members by group ID +0xde5; coordinator is empty in its non-orphan branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107423ac",
+         "address": "0x10f12eb8",
+         "callsite": "0x10742c7c",
+         "notes": "Group member/device serializer emits UUID, Location, ZoneName, Icon, Configuration, SoftwareVersion, SWGen, compatibility versions, boot/network/TV/wifi/voice/calibration/SSL and other cached attributes, with optional Invisible, IsZoneBridge, ChannelMapSet, HTSatChanMapSet, ActiveZoneID and virtual-source fields. Satellites are serialized through f_10742d64 when enabled. Text attributes use f_1067712c, escaping apostrophe, quote, ampersand, greater-than and less-than (literals 0x10ebf624..0x10ebf644); numeric attributes use builder numeric helpers. Device getters including f_10764364 -> f_10778dc8 only read cached fields."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107430cc",
+         "address": "0x10f131cc",
+         "callsite": "0x10743574",
+         "notes": "After </ZoneGroups>, f_107430cc always emits <VanishedDevices>, selects linked-list topology+0x5dc entries with word +0x105c==1, writes through f_10742ec8, and closes it. f_10743168 adds <QuarantinedDevices> only if qualifying entries exist: topology category 4 via f_10765c20/f_10765ca0 with f_10765d5c true, and vanished-list entries with +0x105c!=1. Final </ZoneGroupState> at 0x1074357c. Empty topology with empty vanished list yields <ZoneGroupState><ZoneGroups></ZoneGroups><VanishedDevices></VanishedDevices></ZoneGroupState>. No persistence or event scheduling in the serializer chain."
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None. This query serializes cached state; its worker and serializer chain contain no dirty-state stores, observer publication or event scheduler calls.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752ce4",
+        "address": "0x10752d40",
+        "callsite": "0x10752d2c",
+        "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10743328",
+        "address": "0x107433a0",
+        "callsite": "0x10743538",
+        "notes": "Under caller-held topology lock, serializer asserts lock context via f_10988268, traverses topology+0x5a8 with f_10765b40/f_10765bb0. Candidate groups require f_10762df8 true and f_10765d5c false (0x107433e8..0x10743400). f_10762df8 requires member bytes +0x1f18 and +0x1f4b nonzero and f_10760d64 true. f_10765d5c forwards to f_10765d20, testing nonempty +0x13b0. Candidate selection additionally considers +0x82a, equal group strings +0xde5, first matching member and channel-map +0x177c at 0x10743404..0x10743674. Emits ZoneGroups through f_10742a68/f_10742b98, not one duplicate per member. Orphan channel-map branch f_10742cc8 emits Coordinator=UUID, ID=UUID:orphan and a single member. Ordinary group serializer matches eligible members by group ID +0xde5; coordinator is empty in its non-orphan branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107423ac",
+        "address": "0x10f12eb8",
+        "callsite": "0x10742c7c",
+        "notes": "Group member/device serializer emits UUID, Location, ZoneName, Icon, Configuration, SoftwareVersion, SWGen, compatibility versions, boot/network/TV/wifi/voice/calibration/SSL and other cached attributes, with optional Invisible, IsZoneBridge, ChannelMapSet, HTSatChanMapSet, ActiveZoneID and virtual-source fields. Satellites are serialized through f_10742d64 when enabled. Text attributes use f_1067712c, escaping apostrophe, quote, ampersand, greater-than and less-than (literals 0x10ebf624..0x10ebf644); numeric attributes use builder numeric helpers. Device getters including f_10764364 -> f_10778dc8 only read cached fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107430cc",
+        "address": "0x10f131cc",
+        "callsite": "0x10743574",
+        "notes": "After </ZoneGroups>, f_107430cc always emits <VanishedDevices>, selects linked-list topology+0x5dc entries with word +0x105c==1, writes through f_10742ec8, and closes it. f_10743168 adds <QuarantinedDevices> only if qualifying entries exist: topology category 4 via f_10765c20/f_10765ca0 with f_10765d5c true, and vanished-list entries with +0x105c!=1. Final </ZoneGroupState> at 0x1074357c. Empty topology with empty vanished list yields <ZoneGroupState><ZoneGroups></ZoneGroups><VanishedDevices></VanishedDevices></ZoneGroupState>. No persistence or event scheduling in the serializer chain."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None in topology or update state. Only temporary builder state changes, including its error flag on exhaustion.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752ce4",
+        "address": "0x10752d40",
+        "callsite": "0x10752d2c",
+        "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10743328",
+        "address": "0x107433a0",
+        "callsite": "0x10743538",
+        "notes": "Under caller-held topology lock, serializer asserts lock context via f_10988268, traverses topology+0x5a8 with f_10765b40/f_10765bb0. Candidate groups require f_10762df8 true and f_10765d5c false (0x107433e8..0x10743400). f_10762df8 requires member bytes +0x1f18 and +0x1f4b nonzero and f_10760d64 true. f_10765d5c forwards to f_10765d20, testing nonempty +0x13b0. Candidate selection additionally considers +0x82a, equal group strings +0xde5, first matching member and channel-map +0x177c at 0x10743404..0x10743674. Emits ZoneGroups through f_10742a68/f_10742b98, not one duplicate per member. Orphan channel-map branch f_10742cc8 emits Coordinator=UUID, ID=UUID:orphan and a single member. Ordinary group serializer matches eligible members by group ID +0xde5; coordinator is empty in its non-orphan branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107430cc",
+        "address": "0x10f131cc",
+        "callsite": "0x10743574",
+        "notes": "After </ZoneGroups>, f_107430cc always emits <VanishedDevices>, selects linked-list topology+0x5dc entries with word +0x105c==1, writes through f_10742ec8, and closes it. f_10743168 adds <QuarantinedDevices> only if qualifying entries exist: topology category 4 via f_10765c20/f_10765ca0 with f_10765d5c true, and vanished-list entries with +0x105c!=1. Final </ZoneGroupState> at 0x1074357c. Empty topology with empty vanished list yields <ZoneGroupState><ZoneGroups></ZoneGroups><VanishedDevices></VanishedDevices></ZoneGroupState>. No persistence or event scheduling in the serializer chain."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Concrete worker domain {0,501}: zero if builder error byte is clear after serialization and NUL termination, 501 if set. Wrapper emits ZoneGroupState and commits on zero; nonzero faults at 0x10732f44. Empty topology succeeds with empty XML containers, not 501. Defensive request-validation failure is 402.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10732ed8",
+        "address": "0x10732f44",
+        "callsite": "0x10732fc8",
+        "notes": "No input registrations. Request +0x3c at 0x10732f10 is request setup, not engine dispatch. Validation +8 at 0x10732f24 false -> 402 at 0x10732f28. Worker receives buffer sp+0x14, capacity 0x6978 (27000) at 0x10732f7c. Nonzero return goes to sole request fault call 0x10732f44. Zero writes ZoneGroupState using returned output object slot +0x10 at 0x10732fc8 and commits at 0x10732fdc."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752ce4",
+        "address": "0x10752d40",
+        "callsite": "0x10752d2c",
+        "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107430cc",
+        "address": "0x10f131cc",
+        "callsite": "0x10743574",
+        "notes": "After </ZoneGroups>, f_107430cc always emits <VanishedDevices>, selects linked-list topology+0x5dc entries with word +0x105c==1, writes through f_10742ec8, and closes it. f_10743168 adds <QuarantinedDevices> only if qualifying entries exist: topology category 4 via f_10765c20/f_10765ca0 with f_10765d5c true, and vanished-list entries with +0x105c!=1. Final </ZoneGroupState> at 0x1074357c. Empty topology with empty vanished list yields <ZoneGroupState><ZoneGroups></ZoneGroups><VanishedDevices></VanishedDevices></ZoneGroupState>. No persistence or event scheduling in the serializer chain."
        }
       ]
      },
@@ -104853,20 +105024,31 @@
       {
        "code": 501,
        "code_expr": "const",
-       "meaning": "state serializer flag clear (builder empty/not-ready) - impl returns 0x1f5",
+       "meaning": "Fixed XML builder reports an error, including exhausted output buffer.",
        "fault_sites": [
         "0x10732f44"
        ],
        "conditions": [
         {
-         "description": "state serializer flag clear (builder empty/not-ready) - impl returns 0x1f5",
+         "description": "Builder error byte +0x10c is nonzero after XML serialization and NUL finalization. Empty group list is not this condition.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10752d44",
-           "notes": "impl return path"
+           "function": "0x10752ce4",
+           "address": "0x10752d40",
+           "callsite": "0x10752d2c",
+           "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x107430cc",
+           "address": "0x10f131cc",
+           "callsite": "0x10743574",
+           "notes": "After </ZoneGroups>, f_107430cc always emits <VanishedDevices>, selects linked-list topology+0x5dc entries with word +0x105c==1, writes through f_10742ec8, and closes it. f_10743168 adds <QuarantinedDevices> only if qualifying entries exist: topology category 4 via f_10765c20/f_10765ca0 with f_10765d5c true, and vanished-list entries with +0x105c!=1. Final </ZoneGroupState> at 0x1074357c. Empty topology with empty vanished list yields <ZoneGroupState><ZoneGroups></ZoneGroups><VanishedDevices></VanishedDevices></ZoneGroupState>. No persistence or event scheduling in the serializer chain."
           }
          ]
         }
@@ -104876,33 +105058,42 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10752d44",
-         "notes": "impl return path produces rc 501"
+         "function": "0x10752ce4",
+         "address": "0x10752d40",
+         "callsite": "0x10752d2c",
+         "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10732ed8",
+         "address": "0x10732f44",
+         "callsite": "0x10732fc8",
+         "notes": "No input registrations. Request +0x3c at 0x10732f10 is request setup, not engine dispatch. Validation +8 at 0x10732f24 false -> 402 at 0x10732f28. Worker receives buffer sp+0x14, capacity 0x6978 (27000) at 0x10732f7c. Nonzero return goes to sole request fault call 0x10732f44. Zero writes ZoneGroupState using returned output object slot +0x10 at 0x10732fc8 and commits at 0x10732fdc."
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x10752ce4 exits=[20, 28]; topology impl rc surfaced",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; sites: 0x10732f44).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "Worker domain {0,501}; wrapper adds defensive 402."
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Request validation returns false before worker dispatch.",
        "fault_sites": [
         "0x10732f44"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "No-input request validation +8 returns zero. Canonical fresh no-input requests pass; there is no missing named argument for this action.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10732ed8",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10732ed8",
+           "address": "0x10732f44",
+           "callsite": "0x10732fc8",
+           "notes": "No input registrations. Request +0x3c at 0x10732f10 is request setup, not engine dispatch. Validation +8 at 0x10732f24 false -> 402 at 0x10732f28. Worker receives buffer sp+0x14, capacity 0x6978 (27000) at 0x10732f7c. Nonzero return goes to sole request fault call 0x10732f44. Zero writes ZoneGroupState using returned output object slot +0x10 at 0x10732fc8 and commits at 0x10732fdc."
           }
          ]
         }
@@ -104912,8 +105103,10 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732ed8",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10732ed8",
+         "address": "0x10732f44",
+         "callsite": "0x10732fc8",
+         "notes": "No input registrations. Request +0x3c at 0x10732f10 is request setup, not engine dispatch. Validation +8 at 0x10732f24 false -> 402 at 0x10732f28. Worker receives buffer sp+0x14, capacity 0x6978 (27000) at 0x10732f7c. Nonzero return goes to sole request fault call 0x10732f44. Zero writes ZoneGroupState using returned output object slot +0x10 at 0x10732fc8 and commits at 0x10732fdc."
         }
        ]
       }
@@ -104924,23 +105117,58 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10732ed8",
-       "address": "0x10732ed8",
-       "notes": "action wrapper handler"
+       "function": "0x10125b54",
+       "address": "0x10e8b04c",
+       "callsite": "0x10732f8c",
+       "notes": "Zone-player init calls concrete topology constructor f_10125b54 at 0x1018e204 with r29. Constructor retains this in r21 at 0x10125b64 and installs primary vptr 0x10e8b024 at 0x10126234. Init stores r29 through 0x1018e28c, reloads it into r4 at 0x1018e2b8, and calls service constructor f_10733b28 at 0x1018e2cc. That constructor stores implementation at service+4 (0x10733b34) and service vptr 0x10f113b0 (0x10733b38). Dispatcher f_10732ff8 searches table 0x10f113dc; GetZoneGroupState wrapper f_10732ed8 calls implementation slot +0x28 at 0x10732f8c. Primary table entry 0x10e8b04c is f_10752ce4; base table 0x10f1226c has the same worker at 0x10f12294. This is static construction, not runtime injection."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11400",
-       "notes": "action dispatch table entry"
+       "function": "0x10732ed8",
+       "address": "0x10732f44",
+       "callsite": "0x10732fc8",
+       "notes": "No input registrations. Request +0x3c at 0x10732f10 is request setup, not engine dispatch. Validation +8 at 0x10732f24 false -> 402 at 0x10732f28. Worker receives buffer sp+0x14, capacity 0x6978 (27000) at 0x10732f7c. Nonzero return goes to sole request fault call 0x10732f44. Zero writes ZoneGroupState using returned output object slot +0x10 at 0x10732fc8 and commits at 0x10732fdc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10752ce4",
+       "address": "0x10752d40",
+       "callsite": "0x10752d2c",
+       "notes": "Constructs fixed caller-backed builder f_1067672c, sets builder+0x11=1 at 0x10752d1c, locks topology+0x318 at 0x10752d20, calls serializer f_10743328 at 0x10752d2c, unlocks at 0x10752d34, then NUL-finalizes via f_106767e8 at 0x10752d3c. Reads builder+0x10c at 0x10752d40. Instruction 0x7fe04f9e at 0x10752d50 is isel r31,0,r9,30: error byte zero selects zero, nonzero selects 501. Builder f_1067672c initializes error byte to zero at 0x106767a8. f_106767e8 sets it to one at 0x10676860 when no terminator space remains and expansion cannot proceed. It is an error flag SET, not a readiness flag clear."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10743328",
+       "address": "0x107433a0",
+       "callsite": "0x10743538",
+       "notes": "Under caller-held topology lock, serializer asserts lock context via f_10988268, traverses topology+0x5a8 with f_10765b40/f_10765bb0. Candidate groups require f_10762df8 true and f_10765d5c false (0x107433e8..0x10743400). f_10762df8 requires member bytes +0x1f18 and +0x1f4b nonzero and f_10760d64 true. f_10765d5c forwards to f_10765d20, testing nonempty +0x13b0. Candidate selection additionally considers +0x82a, equal group strings +0xde5, first matching member and channel-map +0x177c at 0x10743404..0x10743674. Emits ZoneGroups through f_10742a68/f_10742b98, not one duplicate per member. Orphan channel-map branch f_10742cc8 emits Coordinator=UUID, ID=UUID:orphan and a single member. Ordinary group serializer matches eligible members by group ID +0xde5; coordinator is empty in its non-orphan branch."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x107423ac",
+       "address": "0x10f12eb8",
+       "callsite": "0x10742c7c",
+       "notes": "Group member/device serializer emits UUID, Location, ZoneName, Icon, Configuration, SoftwareVersion, SWGen, compatibility versions, boot/network/TV/wifi/voice/calibration/SSL and other cached attributes, with optional Invisible, IsZoneBridge, ChannelMapSet, HTSatChanMapSet, ActiveZoneID and virtual-source fields. Satellites are serialized through f_10742d64 when enabled. Text attributes use f_1067712c, escaping apostrophe, quote, ampersand, greater-than and less-than (literals 0x10ebf624..0x10ebf644); numeric attributes use builder numeric helpers. Device getters including f_10764364 -> f_10778dc8 only read cached fields."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x107430cc",
+       "address": "0x10f131cc",
+       "callsite": "0x10743574",
+       "notes": "After </ZoneGroups>, f_107430cc always emits <VanishedDevices>, selects linked-list topology+0x5dc entries with word +0x105c==1, writes through f_10742ec8, and closes it. f_10743168 adds <QuarantinedDevices> only if qualifying entries exist: topology category 4 via f_10765c20/f_10765ca0 with f_10765d5c true, and vanished-list entries with +0x105c!=1. Final </ZoneGroupState> at 0x1074357c. Empty topology with empty vanished list yields <ZoneGroupState><ZoneGroups></ZoneGroups><VanishedDevices></VanishedDevices></ZoneGroupState>. No persistence or event scheduling in the serializer chain."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10732ed8; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Static ELF analysis. Builder flag polarity and XML-string type correct stale documentation; no runtime-injection boundary remains for this action."
     },
     "RegisterMobileDevice": {
      "description": "accepted-and-ignored: commits an empty response with no parse, no impl call, and no observable state change",
