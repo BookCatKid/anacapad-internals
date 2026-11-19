@@ -56258,21 +56258,28 @@
    "errors": [
     {
      "code": 401,
-     "code_expr": null,
-     "meaning": "unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler",
+     "code_expr": "const",
+     "meaning": "The requested action name is not one of the three ConnectionManager action names.",
      "fault_sites": [
       "0x1073561c"
      ],
      "conditions": [
       {
-       "description": "Request action name matches no entry in the service dispatch table after the name-table search",
+       "description": "The three-entry action-name search does not find an exact match.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "address": "0x107355ec",
+         "notes": "Dispatcher f_10735574 searches only the three name entries at 0x10f118d4, 0x10f118e0, and 0x10f118ec. A match calls the service slot at 0x107356ac; a miss converges at 0x10735608."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
          "address": "0x1073561c",
-         "notes": "dispatcher unknown-action fault branch; reached when the binary-search name lookup misses"
+         "notes": "The miss path loads 401 at 0x1073560c and calls request slot +0x14 here. The found and rejected paths then both dispatch request slot +0x38, with no second dispatcher fault call."
         }
        ]
       }
@@ -56283,16 +56290,8 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x1073561c",
-       "notes": "fault raise site"
+       "notes": "The miss path loads 401 at 0x1073560c and calls request slot +0x14 here. The found and rejected paths then both dispatch request slot +0x38, with no second dispatcher fault call."
       }
-     ],
-     "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x1073560c); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
      ]
     }
    ],
