@@ -96510,7 +96510,7 @@
      ]
     },
     "EnableRDM": {
-     "description": "Sets the RDM (remote diagnostics) flag via impl->v[+0x3c].",
+     "description": "Stores the parsed RDMValue byte as unsigned decimal text under SystemSettings key R_RDM, returning the settings-write status and notifying settings observers after success.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10732c80",
@@ -96546,7 +96546,7 @@
      },
      "inputs": {
       "RDMValue": {
-       "description": "RDM (remote diagnostics) flag",
+       "description": "Required flag argument; the handler loads the parsed byte and the delegate formats that byte as unsigned decimal R_RDM text.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -96555,196 +96555,376 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "parser-type bounded",
-       "special_values": "none identified",
+       "semantic_type": "flag byte",
+       "format": "request type-tag-1 text",
+       "unit": "none",
+       "accepted_values": "Values accepted by the shared type-tag-1 request parser; no subsequent R_RDM-specific value check.",
+       "range": "Parsed byte is zero-extended; numeric formatting can represent 0 through 255, not a claim that all these wire values are accepted.",
+       "special_values": "Stored zero reads back false; a successfully parsed nonzero stored integer reads back true in GetRDM.",
        "required": true,
        "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "validation": "Named lookup, type-tag-1 descriptor, then request +8 validation; failure faults 402 before any write.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10732cc0",
-         "notes": "in-arg access site"
+         "function": "0x10732c80",
+         "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f112b8",
-         "notes": "argument name string"
+         "address": "0x104b07a0",
+         "function": "0x104b0760",
+         "notes": "Formats the incoming unsigned byte with %u into a 16-byte stack buffer, then calls this->v[+8](R_RDM, buffer) at 0x104b07c0 and returns that status unchanged. Key literal 0x10ed7694; format 0x10f94c94."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10188180",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x104b0c68",
+         "function": "0x104b0b8c",
+         "notes": "GetRDM parses R_RDM with paranoid_atoui; successful nonzero integer maps to output true, zero maps to false."
         }
        ],
-       "notes": null,
        "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `RDMValue` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +60 (site 0x10732cfc) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `RDMValue` = verbatim forward to impl vfunc +60 (obj *(r3-in+0x4), call site 0x10732cfc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Established: required type-tag-1 argument becomes a byte formatted with %u and written to R_RDM.",
+        "Residual: exact accepted lexical forms and normalization of the shared type-tag-1 parser are not traced.",
+        "Next step: trace request +8 processing of the descriptor registered by 0x10561444."
        ]
       }
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Request validation failure produces 402. After validation, the fixed R_RDM key passes the shared property validator, bypasses URL and UMTracking special cases, and bypasses the insecure X_ key rejection.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10732c80",
-        "notes": "wrapper family decode"
+        "address": "0x10732cc0",
+        "function": "0x10732c80",
+        "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066a7cc",
+        "function": "0x1066a788",
+        "notes": "R_RDM differs from R_ThirdPartyCredentials, R_CustomerID, R_AccountTransferMode, R_AirplayIncludeLinked, R_ContentFiltering, R_AvailableSoftwareUpdate, and override keys indexed 0x27/0x3e. Thus validator reaches return 0 at 0x1066a96c. Initializer 0x10086df4 stores OnlineUpdateBaseURL at table+0x310 and O_ZONE_EXPERIMENTS at table+0x4dc; accessor 0x10556eb8 indexes stride 20."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066ab28",
+        "function": "0x1066aa24",
+        "notes": "R_RDM matches neither OnlineUpdateBaseURL normalization nor UMTracking rejection. Passes one key/value pair to *(this+0x164)->v[+0x20]. Initialization 0x10198298/0x101982e0 passes Z+0x29178 through 0x104b101c to 0x1066b4bc, which stores it at +0x164 (0x1066b4f8). Constructor 0x1018f2d4 / 0x1066a514 installs SystemSettings vptr 0x10efe958."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066999c",
+        "function": "0x10669844",
+        "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x3c]",
+      "description": "RDMValue must pass request validation and the SystemSettings backend must be initialized. No separate R_RDM authorization, account, feature-availability, or value predicate is tested on the traced validation/write path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732cc0",
         "function": "0x10732c80",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066a7cc",
+        "function": "0x1066a788",
+        "notes": "R_RDM differs from R_ThirdPartyCredentials, R_CustomerID, R_AccountTransferMode, R_AirplayIncludeLinked, R_ContentFiltering, R_AvailableSoftwareUpdate, and override keys indexed 0x27/0x3e. Thus validator reaches return 0 at 0x1066a96c. Initializer 0x10086df4 stores OnlineUpdateBaseURL at table+0x310 and O_ZONE_EXPERIMENTS at table+0x4dc; accessor 0x10556eb8 indexes stride 20."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066ab28",
+        "function": "0x1066aa24",
+        "notes": "R_RDM matches neither OnlineUpdateBaseURL normalization nor UMTracking rejection. Passes one key/value pair to *(this+0x164)->v[+0x20]. Initialization 0x10198298/0x101982e0 passes Z+0x29178 through 0x104b101c to 0x1066b4bc, which stores it at +0x164 (0x1066b4f8). Constructor 0x1018f2d4 / 0x1066a514 installs SystemSettings vptr 0x10efe958."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066999c",
+        "function": "0x10669844",
+        "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x3c]",
+      "description": "Uses delegate+0x164 SystemSettings, its mutex at +0x10, file path +0xa4 (syssettings.xml), format id +0xbc (4), version +0xe0, recovery byte +0xe4, last-update device +0xe8, and replication member +0xec. Success also invokes delegate observers and feature refreshers.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732c80",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x3c]']"
+        "address": "0x1066ab28",
+        "function": "0x1066aa24",
+        "notes": "R_RDM matches neither OnlineUpdateBaseURL normalization nor UMTracking rejection. Passes one key/value pair to *(this+0x164)->v[+0x20]. Initialization 0x10198298/0x101982e0 passes Z+0x29178 through 0x104b101c to 0x1066b4bc, which stores it at +0x164 (0x1066b4f8). Constructor 0x1018f2d4 / 0x1066a514 installs SystemSettings vptr 0x10efe958."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bf44",
+        "function": "0x1066bee0",
+        "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b38c",
+        "function": "0x1066b320",
+        "notes": "Successful write callback 0x104b1e48 calls 0x1066b320 at 0x104b1ec4 for R_RDM (not null or R_TrialZPSerial). Under delegate+0x170 mutex sets +0x200=1 and increments +0x204. Calls 0x1067c6ec on delegate+8, which tail-calls event notifier 0x1067c46c. It also calls override hook 0x10557388, optional singleton refresher 0x10707cd4 and property subject 0x1066d22c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "For fixed R_RDM key, calls 0x10121518, skips R_RadioLocation, R_VolNormMode, R_CrossfadeDuration and R_AirplayIncludeLinked special updates, then calls 0x10110ee0 and leaf 0x103c79b8. Detailed transitive effects of the first two refreshers and observer dispatch remain untraced."
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: concrete SystemSettings backend and persistence metadata are identified.",
+       "Residual: complete state read by the post-write feature refreshers and replication/observer callbacks is not enumerated.",
+       "Next step: trace 0x10121518, 0x10110ee0 and the settings+0xec replication object, then 0x1066d22c subscribers."
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to *(impl+0x4)->v[+0x3c]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Attempts a persisted one-pair R_RDM update through the XML writer. Success advances settings version, submits replication work, marks SystemProperties dirty, notifies settings clients, and invokes post-write property/feature refreshers. The command does not itself establish that any diagnostic access service started.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10732c80",
-         "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x3c] (call-derived member-method semantics)"
+         "address": "0x104b07a0",
+         "function": "0x104b0760",
+         "notes": "Formats the incoming unsigned byte with %u into a 16-byte stack buffer, then calls this->v[+8](R_RDM, buffer) at 0x104b07c0 and returns that status unchanged. Key literal 0x10ed7694; format 0x10f94c94."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bf44",
+         "function": "0x1066bee0",
+         "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066999c",
+         "function": "0x10669844",
+         "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066b38c",
+         "function": "0x1066b320",
+         "notes": "Successful write callback 0x104b1e48 calls 0x1066b320 at 0x104b1ec4 for R_RDM (not null or R_TrialZPSerial). Under delegate+0x170 mutex sets +0x200=1 and increments +0x204. Calls 0x1067c6ec on delegate+8, which tail-calls event notifier 0x1067c46c. It also calls override hook 0x10557388, optional singleton refresher 0x10707cd4 and property subject 0x1066d22c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b1ed4",
+         "function": "0x104b1e48",
+         "notes": "For fixed R_RDM key, calls 0x10121518, skips R_RadioLocation, R_VolNormMode, R_CrossfadeDuration and R_AirplayIncludeLinked special updates, then calls 0x10110ee0 and leaf 0x103c79b8. Detailed transitive effects of the first two refreshers and observer dispatch remain untraced."
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v[+0x3c]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: XML write, version update and notification dispatch execute on the successful backend path.",
+        "Residual: transitive replication, recovery and feature-refresh effects are not fully enumerated.",
+        "Next step: trace settings+0xec slot +0x14, recovery helper 0x1066ba04, 0x10121518 and 0x10110ee0."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Successful backend write calls delegate +0x44 -> 0x104b1e48 -> 0x1066b320 -> 0x1067c6ec(delegate+8). Thus a settings-notification attempt is proven, not merely inferred from the wrapper. Property subject 0x1066d22c also receives the key/value. Backend failure returns before this callback. Network delivery depends on the notifier and subscription state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732c80",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1066999c",
+        "function": "0x10669844",
+        "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b38c",
+        "function": "0x1066b320",
+        "notes": "Successful write callback 0x104b1e48 calls 0x1066b320 at 0x104b1ec4 for R_RDM (not null or R_TrialZPSerial). Under delegate+0x170 mutex sets +0x200=1 and increments +0x204. Calls 0x1067c6ec on delegate+8, which tail-calls event notifier 0x1067c46c. It also calls override hook 0x10557388, optional singleton refresher 0x10707cd4 and property subject 0x1066d22c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "For fixed R_RDM key, calls 0x10121518, skips R_RadioLocation, R_VolNormMode, R_CrossfadeDuration and R_AirplayIncludeLinked special updates, then calls 0x10110ee0 and leaf 0x103c79b8. Detailed transitive effects of the first two refreshers and observer dispatch remain untraced."
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: successful R_RDM write reaches settings notifier 0x1067c6ec and property subject 0x1066d22c.",
+       "Residual: exact serialized event payload and complete downstream subscriber/refresh notifications are not traced.",
+       "Next step: trace event-source serialization through 0x1067c46c and property-subject subscribers at 0x1066d22c."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x3c]",
+      "description": "On successful persistence, R_RDM becomes the formatted parsed byte, settings version advances, delegate+0x200 becomes 1 and +0x204 increments. No equality/no-change check exists before this write. Backend failure does not execute the normal success notification callback.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732c80",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x3c]']"
+        "address": "0x104b07a0",
+        "function": "0x104b0760",
+        "notes": "Formats the incoming unsigned byte with %u into a 16-byte stack buffer, then calls this->v[+8](R_RDM, buffer) at 0x104b07c0 and returns that status unchanged. Key literal 0x10ed7694; format 0x10f94c94."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bf44",
+        "function": "0x1066bee0",
+        "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066999c",
+        "function": "0x10669844",
+        "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b38c",
+        "function": "0x1066b320",
+        "notes": "Successful write callback 0x104b1e48 calls 0x1066b320 at 0x104b1ec4 for R_RDM (not null or R_TrialZPSerial). Under delegate+0x170 mutex sets +0x200=1 and increments +0x204. Calls 0x1067c6ec on delegate+8, which tail-calls event notifier 0x1067c46c. It also calls override hook 0x10557388, optional singleton refresher 0x10707cd4 and property subject 0x1066d22c."
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: normal write-success transitions and callback gating are recovered.",
+       "Residual: recovery and post-write feature refresher state transitions are not fully traced.",
+       "Next step: trace 0x1066ba04 and the R_RDM-reachable paths in 0x10121518 and 0x10110ee0."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Failed request validation faults 402. Validated requests return the settings status unchanged: writer failure maps to 800, success to 0. The wrapper faults on nonzero and commits an empty successful response on zero. Replication and observer return values are not mapped to additional SOAP errors.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732cc0",
         "function": "0x10732c80",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b07a0",
+        "function": "0x104b0760",
+        "notes": "Formats the incoming unsigned byte with %u into a 16-byte stack buffer, then calls this->v[+8](R_RDM, buffer) at 0x104b07c0 and returns that status unchanged. Key literal 0x10ed7694; format 0x10f94c94."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066a7cc",
+        "function": "0x1066a788",
+        "notes": "R_RDM differs from R_ThirdPartyCredentials, R_CustomerID, R_AccountTransferMode, R_AirplayIncludeLinked, R_ContentFiltering, R_AvailableSoftwareUpdate, and override keys indexed 0x27/0x3e. Thus validator reaches return 0 at 0x1066a96c. Initializer 0x10086df4 stores OnlineUpdateBaseURL at table+0x310 and O_ZONE_EXPERIMENTS at table+0x4dc; accessor 0x10556eb8 indexes stride 20."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066ab28",
+        "function": "0x1066aa24",
+        "notes": "R_RDM matches neither OnlineUpdateBaseURL normalization nor UMTracking rejection. Passes one key/value pair to *(this+0x164)->v[+0x20]. Initialization 0x10198298/0x101982e0 passes Z+0x29178 through 0x104b101c to 0x1066b4bc, which stores it at +0x164 (0x1066b4f8). Constructor 0x1018f2d4 / 0x1066a514 installs SystemSettings vptr 0x10efe958."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066999c",
+        "function": "0x10669844",
+        "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bf44",
+        "function": "0x1066bee0",
+        "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10732d18",
-       "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x3c)"
+       "code": 402,
+       "code_expr": "request +8 returned zero"
+      },
+      {
+       "site": "0x10732d18",
+       "code": 800,
+       "code_expr": "SystemSettings XML writer returned false"
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(*(r3-in+0x4),+0x3c); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Required input/request validation failed before the R_RDM write.",
        "fault_sites": [
         "0x10732d18"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "Request +8 returns zero after RDMValue descriptor registration; handler loads literal 0x192.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10732c80",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10732c80",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10732cc0",
+           "function": "0x10732c80",
+           "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
           }
          ]
         }
@@ -96754,30 +96934,90 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732c80",
-         "notes": "0x192 fault constant in handler"
+         "address": "0x10732cc0",
+         "function": "0x10732c80",
+         "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "meaning": "The SystemSettings persistence operation failed.",
+       "fault_sites": [
+        "0x10732d18"
+       ],
+       "conditions": [
+        {
+         "description": "0x106c6118 returns false to 0x1066bee0, which returns 0x320; settings, SetString and EnableRDM propagate it to the wrapper. Includes source/temp-file or XML/output/rename failure reported by that writer.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066bf44",
+           "function": "0x1066bee0",
+           "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066999c",
+           "function": "0x10669844",
+           "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066ab28",
+           "function": "0x1066aa24",
+           "notes": "R_RDM matches neither OnlineUpdateBaseURL normalization nor UMTracking rejection. Passes one key/value pair to *(this+0x164)->v[+0x20]. Initialization 0x10198298/0x101982e0 passes Z+0x29178 through 0x104b101c to 0x1066b4bc, which stores it at +0x164 (0x1066b4f8). Constructor 0x1018f2d4 / 0x1066a514 installs SystemSettings vptr 0x10efe958."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104b07a0",
+           "function": "0x104b0760",
+           "notes": "Formats the incoming unsigned byte with %u into a 16-byte stack buffer, then calls this->v[+8](R_RDM, buffer) at 0x104b07c0 and returns that status unchanged. Key literal 0x10ed7694; format 0x10f94c94."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10732cc0",
+           "function": "0x10732c80",
+           "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bf44",
+         "function": "0x1066bee0",
+         "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732c80",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "observable": [
+         "address": "0x1066999c",
+         "function": "0x10669844",
+         "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
+        },
         {
-         "op": "recorded-impl",
-         "result": "EnableRDM",
-         "basis": "disassembled impl body + store-vfunc mapping",
-         "provenance": "disas0x10e97e10"
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10732cc0",
+         "function": "0x10732c80",
+         "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
         }
-       ],
-       "domain_note": "domain fully bounded: impl 0x10188180 exits=[28]; impl result in r3 -> req v[+0x14] fault code; CR0.eq = success",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x3c); parse/req-layer; sites: 0x10732d18).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -96787,29 +97027,80 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x104b0f94",
+       "function": "0x104b0e84",
+       "notes": "Installs vptr 0x10ed75c4; +0x3c targets 0x104b0760 and +8 targets 0x1066aa24. Handler constructor 0x10732e94 stores this delegate at handler+4; caller 0x1018e594 constructs handler at Z+0xaa40."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10732cc0",
        "function": "0x10732c80",
-       "address": "0x10732c80",
-       "notes": "action wrapper handler"
+       "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f1112c",
-       "notes": "action dispatch table entry"
+       "address": "0x104b07a0",
+       "function": "0x104b0760",
+       "notes": "Formats the incoming unsigned byte with %u into a 16-byte stack buffer, then calls this->v[+8](R_RDM, buffer) at 0x104b07c0 and returns that status unchanged. Key literal 0x10ed7694; format 0x10f94c94."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10188180",
-       "notes": "shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x3c"
+       "address": "0x1066a7cc",
+       "function": "0x1066a788",
+       "notes": "R_RDM differs from R_ThirdPartyCredentials, R_CustomerID, R_AccountTransferMode, R_AirplayIncludeLinked, R_ContentFiltering, R_AvailableSoftwareUpdate, and override keys indexed 0x27/0x3e. Thus validator reaches return 0 at 0x1066a96c. Initializer 0x10086df4 stores OnlineUpdateBaseURL at table+0x310 and O_ZONE_EXPERIMENTS at table+0x4dc; accessor 0x10556eb8 indexes stride 20."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066ab28",
+       "function": "0x1066aa24",
+       "notes": "R_RDM matches neither OnlineUpdateBaseURL normalization nor UMTracking rejection. Passes one key/value pair to *(this+0x164)->v[+0x20]. Initialization 0x10198298/0x101982e0 passes Z+0x29178 through 0x104b101c to 0x1066b4bc, which stores it at +0x164 (0x1066b4f8). Constructor 0x1018f2d4 / 0x1066a514 installs SystemSettings vptr 0x10efe958."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066999c",
+       "function": "0x10669844",
+       "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066bf44",
+       "function": "0x1066bee0",
+       "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066b38c",
+       "function": "0x1066b320",
+       "notes": "Successful write callback 0x104b1e48 calls 0x1066b320 at 0x104b1ec4 for R_RDM (not null or R_TrialZPSerial). Under delegate+0x170 mutex sets +0x200=1 and increments +0x204. Calls 0x1067c6ec on delegate+8, which tail-calls event notifier 0x1067c46c. It also calls override hook 0x10557388, optional singleton refresher 0x10707cd4 and property subject 0x1066d22c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b1ed4",
+       "function": "0x104b1e48",
+       "notes": "For fixed R_RDM key, calls 0x10121518, skips R_RadioLocation, R_VolNormMode, R_CrossfadeDuration and R_AirplayIncludeLinked special updates, then calls 0x10110ee0 and leaf 0x103c79b8. Detailed transitive effects of the first two refreshers and observer dispatch remain untraced."
       }
      ],
-     "notes": null,
+     "notes": "RDM is the API/key name. Actual diagnostic-access enforcement is not established by this settings-write trace. The delegate is statically constructed, not an unknown runtime-injected vptr.",
      "todo": [
-      "Established: virtual dispatch to handler 0x10732c80; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: constructor/vtable/handler chain, fixed-key validation, XML write return domain and successful settings notification are recovered.",
+      "Residual: shared input lexical parsing and full transitive recovery, replication, observer and post-write feature-refresher behavior remain untraced.",
+      "Next step: trace request type-tag-1 validation, 0x1066ba04, settings+0xec slot +0x14, 0x1066d22c, 0x10121518 and 0x10110ee0 to their leaves."
      ]
     },
     "GetRDM": {
