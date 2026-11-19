@@ -40884,7 +40884,7 @@
        ]
       },
       "CurrentURI": {
-       "description": "the URI the zone group is currently rendering (AVTransportURI), carried into the new coordinator so it can resume the stream",
+       "description": "Supplies the incoming coordinator URI. This action accepts the line-in prefix and length predicate or the VLI parser, not an arbitrary playable AVTransportURI. On success the original text is written to the engine URI at +0x5dc (0x102dee08). A line-in URI uses a source identifier from the transport snapshot when present, or from the URI otherwise.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -40896,12 +40896,12 @@
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
-       "accepted_values": "AVTransportURI-domain value",
+       "accepted_values": "Line-in x-rincon-stream: or a parseable x-sonos-vli URI",
        "range": "destination buffer: 1025 bytes including space for NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "Required exact-name value; BGC accepts only the line-in or VLI predicate. Passing it does not guarantee the subsequent source setup.",
        "evidence": [
         {
          "type": "firmware",
@@ -40932,14 +40932,34 @@
          "address": "0x102dee08",
          "notes": "Copies the input URI and metadata to engine +0x5dc/+0x9dd with f_102ed638, then marks +0x4251 and conditionally clears and marks a previously stored next URI. The worker sets mode 1 and marks +0x4658 on that import arm.",
          "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102deb2c",
+         "function": "0x102de740",
+         "notes": "After OtherMembers succeeds, the worker requires either the line-in predicate f_10292f78 or the VLI parser f_10688070. If both are false, 0x102deeec returns 402. f_10292f78 checks a case-insensitive 16-byte x-rincon-stream: prefix and strlen <= 42 (cmplwi and isel at 0x10292fb0 and 0x10292fc0). This predicate does not verify a 24-byte UUID or a stream selector. f_10687e54 checks case-insensitive x-sonos-vli, a colon at byte 11 and the first following colon at byte 36. f_10687d30 requires 1 to 4 bytes before a comma, accepted by paranoid_atoi as nonnegative. No suffix output or valid registered source type is required by f_10688070 itself."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102def24",
+         "function": "0x102de740",
+         "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102def60",
+         "function": "0x102de740",
+         "notes": "With a VLI URI, the non-clone case first tests f_103917b4 for the active source type and source identifier; a match reuses its local snapshot and bypasses incoming VLI state parsing and source activation. The clone case and non-matches require f_106a715c to parse CurrentVLIState. Failure returns 402 at 0x102df05c, as does an unsupported snapshot type or a failed f_106a924c source install after temporarily enabling the streamer."
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": 1025,
-       "todo": [
-        "Established: the adapter asks for a 1025-byte destination and the accepted URI is copied into engine +0x5dc",
-        "Map the scheme predicates that allow this copy or take another source branch."
-       ]
+       "buf_cap": 1025
       },
       "CurrentURIMetaData": {
        "description": "DIDL-Lite metadata for CurrentURI, carried into the new coordinator for track-info continuity across the handoff",
@@ -41420,7 +41440,7 @@
        ]
       },
       "CurrentVLIState": {
-       "description": "serialized virtual-line-in state blob",
+       "description": "Incoming VLI streamer snapshot. Required by the request adapter, but parsed only for a VLI URI when the worker cannot reuse its active non-clone source snapshot. An invalid snapshot then returns 402.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -41430,14 +41450,14 @@
         "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
-       "format": "utf-8 text (large blob arg via req slot)",
+       "format": "84 bytes required; 11 hexadecimal sscanf conversions",
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_VLIState-domain value",
        "range": "destination buffer: 85 bytes including space for NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "Exact-name materialization, then f_106a715c on the incoming VLI state path",
        "evidence": [
         {
          "type": "firmware",
@@ -41468,13 +41488,37 @@
          "address": "0x102debfc",
          "notes": "After the local VLI support check, f_106a90c4 consumes the CurrentVLIState string and can produce a snapshot used for the line-in promotion branch.",
          "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102def60",
+         "function": "0x102de740",
+         "notes": "With a VLI URI, the non-clone case first tests f_103917b4 for the active source type and source identifier; a match reuses its local snapshot and bypasses incoming VLI state parsing and source activation. The clone case and non-matches require f_106a715c to parse CurrentVLIState. Failure returns 402 at 0x102df05c, as does an unsupported snapshot type or a failed f_106a924c source install after temporarily enabling the streamer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a7224",
+         "function": "0x106a715c",
+         "notes": "Requires strlen 84 and all 11 conversions in %08X%08X%04hX%08X%08X%08X%08X%08X%08X%08X%08X (0x10f04758). The conversions populate snapshot +0xec, +0xf0, +0xf4, +0xf8, +0xfc, +0x100, +0x104, temporary type, +0x10c, temporary boolean, and +0x114 in that order. The type must pass f_10687bac (1, 2, 3, 6 or 8), then goes to +0x108; conversion 10 becomes a nonzero boolean at +0x110. These are sscanf conversions, not a separate check that each field uses canonical hex syntax."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a9108",
+         "function": "0x106a90c4",
+         "notes": "The support query looks for the decoded type in nine 12-byte entries at streamer+0x2e8, requires a nonnull control pointer at entry+4 and asks its slot +0x20. If that returns zero the action faults; otherwise f_106a924c calls f_106a8b08, which either keeps a usable current source or selects the requested registration. An unmatched type or a nonzero source slot +0x10 result when installing the snapshot fails the install."
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": 85,
        "todo": [
-        "Established: the line-in promotion arm calls f_106a90c4 with this value after a capability check",
-        "Decode the snapshot grammar and determine what the worker does on each invalid snapshot and saved-state fallback."
+        "Established: the active non-clone source match skips decoding; otherwise invalid length, insufficient conversions, invalid type, unsupported source or install failure returns 402. The binary binds all conversions to offsets.",
+        "Identify the meaning and installation site of each numeric snapshot field in the concrete streamer controls reached via f_106a90c4 and f_106a8b08."
        ]
       }
      },
@@ -41789,7 +41833,7 @@
       ]
      },
      "return_behavior": {
-      "description": "The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers. The base import also maps later URI, VLI and synchronization failures to 402.",
+      "description": "The wrapper commits on zero and reports a nonzero engine result unchanged. The active-secondary override adds 1023 if the product code does not bypass it; nonzero base engine mode without the clone header returns 800 before parsing; a parsed nonzero InstanceID returns 718. The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
       "evidence": [
        {
         "type": "firmware",
@@ -41838,11 +41882,59 @@
         "address": "0x102deeec",
         "notes": "The URI category checks can return 402 (0x102deeec or 0x102df0cc); a VLI capability rejection and the later synchronization +8 callback failure also map to 402 (0x102df05c, 0x102df1b0). The callback's own result is not passed through.",
         "function": "0x102de740"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102deb2c",
+        "function": "0x102de740",
+        "notes": "After OtherMembers succeeds, the worker requires either the line-in predicate f_10292f78 or the VLI parser f_10688070. If both are false, 0x102deeec returns 402. f_10292f78 checks a case-insensitive 16-byte x-rincon-stream: prefix and strlen <= 42 (cmplwi and isel at 0x10292fb0 and 0x10292fc0). This predicate does not verify a 24-byte UUID or a stream selector. f_10687e54 checks case-insensitive x-sonos-vli, a colon at byte 11 and the first following colon at byte 36. f_10687d30 requires 1 to 4 bytes before a comma, accepted by paranoid_atoi as nonnegative. No suffix output or valid registered source type is required by f_10688070 itself."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102def24",
+        "function": "0x102de740",
+        "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102def60",
+        "function": "0x102de740",
+        "notes": "With a VLI URI, the non-clone case first tests f_103917b4 for the active source type and source identifier; a match reuses its local snapshot and bypasses incoming VLI state parsing and source activation. The clone case and non-matches require f_106a715c to parse CurrentVLIState. Failure returns 402 at 0x102df05c, as does an unsupported snapshot type or a failed f_106a924c source install after temporarily enabling the streamer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a9108",
+        "function": "0x106a90c4",
+        "notes": "The support query looks for the decoded type in nine 12-byte entries at streamer+0x2e8, requires a nonnull control pointer at entry+4 and asks its slot +0x20. If that returns zero the action faults; otherwise f_106a924c calls f_106a8b08, which either keeps a usable current source or selects the requested registration. An unmatched type or a nonzero source slot +0x10 result when installing the snapshot fails the install."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102df164",
+        "function": "0x102de740",
+        "notes": "Although the worker loads impl+0x5ac first, its check f_10209008 always returns zero. The live path uses f_102ee9d4 to look up the snapshot UUID and populate a stack network source. If lookup or copy fails, the worker returns 402. f_106ea784 installs primary vtable 0x10f096c4; +8 is f_106eb284, which sends StartTransmissionToGroup (0x10f098e0) with the URI suffix at +0x28, the local coordinator identifier, and CurrentTransportSettings. A nonzero call result is mapped to 402, not returned as its own SOAP code."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10762c30",
+        "function": "0x10762c30",
+        "notes": "The topology device data contains the same network source at +0x2744 (constructor call at 0x107627e4). f_102ee9d4 needs a valid device record (f_10765a00) and then calls f_10762c30. Its vtable[-0xc] adjustments select the source and destination secondary tables at 0x10f09770. f_10762a24 checks source slot +0x3c, f_106faf24, which requires byte +4 and at least one of bytes +0x1a5 and +0x265 (offsets relative to the adjusted pointer). Only then does it copy fields through the destination slots."
        }
       ],
       "todo": [
-       "Established: The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers. The base import also maps later URI, VLI and synchronization failures to 402.",
-       "Decode the precise URI-category and synchronization predicates that reach the 402 exits."
+       "Established: The wrapper commits on zero and reports a nonzero engine result unchanged. The active-secondary override adds 1023 if the product code does not bypass it; nonzero base engine mode without the clone header returns 800 before parsing; a parsed nonzero InstanceID returns 718. The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
+       "Trace the concrete VLI source registrations' support and install slots and the network StartTransmissionToGroup helper's nonzero exits to enumerate the remaining downstream conditions behind 402."
       ]
      },
      "fault_sites": [
@@ -41856,13 +41948,13 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0xd0)",
-       "meaning": "The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers. The base import also maps later URI, VLI and synchronization failures to 402.",
+       "meaning": "The wrapper commits on zero and reports a nonzero engine result unchanged. The active-secondary override adds 1023 if the product code does not bypass it; nonzero base engine mode without the clone header returns 800 before parsing; a parsed nonzero InstanceID returns 718. The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
        "fault_sites": [
         "0x102fc944"
        ],
        "conditions": [
         {
-         "description": "The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers. The base import also maps later URI, VLI and synchronization failures to 402.",
+         "description": "The wrapper commits on zero and reports a nonzero engine result unchanged. The active-secondary override adds 1023 if the product code does not bypass it; nonzero base engine mode without the clone header returns 800 before parsing; a parsed nonzero InstanceID returns 718. The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
          "evidence": [
           {
            "type": "firmware",
@@ -41901,6 +41993,54 @@
            "address": "0x102deeec",
            "notes": "The URI category checks can return 402 (0x102deeec or 0x102df0cc); a VLI capability rejection and the later synchronization +8 callback failure also map to 402 (0x102df05c, 0x102df1b0). The callback's own result is not passed through.",
            "function": "0x102de740"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102deb2c",
+           "function": "0x102de740",
+           "notes": "After OtherMembers succeeds, the worker requires either the line-in predicate f_10292f78 or the VLI parser f_10688070. If both are false, 0x102deeec returns 402. f_10292f78 checks a case-insensitive 16-byte x-rincon-stream: prefix and strlen <= 42 (cmplwi and isel at 0x10292fb0 and 0x10292fc0). This predicate does not verify a 24-byte UUID or a stream selector. f_10687e54 checks case-insensitive x-sonos-vli, a colon at byte 11 and the first following colon at byte 36. f_10687d30 requires 1 to 4 bytes before a comma, accepted by paranoid_atoi as nonnegative. No suffix output or valid registered source type is required by f_10688070 itself."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102def24",
+           "function": "0x102de740",
+           "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102def60",
+           "function": "0x102de740",
+           "notes": "With a VLI URI, the non-clone case first tests f_103917b4 for the active source type and source identifier; a match reuses its local snapshot and bypasses incoming VLI state parsing and source activation. The clone case and non-matches require f_106a715c to parse CurrentVLIState. Failure returns 402 at 0x102df05c, as does an unsupported snapshot type or a failed f_106a924c source install after temporarily enabling the streamer."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106a9108",
+           "function": "0x106a90c4",
+           "notes": "The support query looks for the decoded type in nine 12-byte entries at streamer+0x2e8, requires a nonnull control pointer at entry+4 and asks its slot +0x20. If that returns zero the action faults; otherwise f_106a924c calls f_106a8b08, which either keeps a usable current source or selects the requested registration. An unmatched type or a nonzero source slot +0x10 result when installing the snapshot fails the install."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102df164",
+           "function": "0x102de740",
+           "notes": "Although the worker loads impl+0x5ac first, its check f_10209008 always returns zero. The live path uses f_102ee9d4 to look up the snapshot UUID and populate a stack network source. If lookup or copy fails, the worker returns 402. f_106ea784 installs primary vtable 0x10f096c4; +8 is f_106eb284, which sends StartTransmissionToGroup (0x10f098e0) with the URI suffix at +0x28, the local coordinator identifier, and CurrentTransportSettings. A nonzero call result is mapped to 402, not returned as its own SOAP code."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10762c30",
+           "function": "0x10762c30",
+           "notes": "The topology device data contains the same network source at +0x2744 (constructor call at 0x107627e4). f_102ee9d4 needs a valid device record (f_10765a00) and then calls f_10762c30. Its vtable[-0xc] adjustments select the source and destination secondary tables at 0x10f09770. f_10762a24 checks source slot +0x3c, f_106faf24, which requires byte +4 and at least one of bytes +0x1a5 and +0x265 (offsets relative to the adjusted pointer). Only then does it copy fields through the destination slots."
           }
          ]
         }
@@ -41943,32 +42083,78 @@
          "address": "0x102deeec",
          "notes": "The URI category checks can return 402 (0x102deeec or 0x102df0cc); a VLI capability rejection and the later synchronization +8 callback failure also map to 402 (0x102df05c, 0x102df1b0). The callback's own result is not passed through.",
          "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102deb2c",
+         "function": "0x102de740",
+         "notes": "After OtherMembers succeeds, the worker requires either the line-in predicate f_10292f78 or the VLI parser f_10688070. If both are false, 0x102deeec returns 402. f_10292f78 checks a case-insensitive 16-byte x-rincon-stream: prefix and strlen <= 42 (cmplwi and isel at 0x10292fb0 and 0x10292fc0). This predicate does not verify a 24-byte UUID or a stream selector. f_10687e54 checks case-insensitive x-sonos-vli, a colon at byte 11 and the first following colon at byte 36. f_10687d30 requires 1 to 4 bytes before a comma, accepted by paranoid_atoi as nonnegative. No suffix output or valid registered source type is required by f_10688070 itself."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102def24",
+         "function": "0x102de740",
+         "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102def60",
+         "function": "0x102de740",
+         "notes": "With a VLI URI, the non-clone case first tests f_103917b4 for the active source type and source identifier; a match reuses its local snapshot and bypasses incoming VLI state parsing and source activation. The clone case and non-matches require f_106a715c to parse CurrentVLIState. Failure returns 402 at 0x102df05c, as does an unsupported snapshot type or a failed f_106a924c source install after temporarily enabling the streamer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a9108",
+         "function": "0x106a90c4",
+         "notes": "The support query looks for the decoded type in nine 12-byte entries at streamer+0x2e8, requires a nonnull control pointer at entry+4 and asks its slot +0x20. If that returns zero the action faults; otherwise f_106a924c calls f_106a8b08, which either keeps a usable current source or selects the requested registration. An unmatched type or a nonzero source slot +0x10 result when installing the snapshot fails the install."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df164",
+         "function": "0x102de740",
+         "notes": "Although the worker loads impl+0x5ac first, its check f_10209008 always returns zero. The live path uses f_102ee9d4 to look up the snapshot UUID and populate a stack network source. If lookup or copy fails, the worker returns 402. f_106ea784 installs primary vtable 0x10f096c4; +8 is f_106eb284, which sends StartTransmissionToGroup (0x10f098e0) with the URI suffix at +0x28, the local coordinator identifier, and CurrentTransportSettings. A nonzero call result is mapped to 402, not returned as its own SOAP code."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10762c30",
+         "function": "0x10762c30",
+         "notes": "The topology device data contains the same network source at +0x2744 (constructor call at 0x107627e4). f_102ee9d4 needs a valid device record (f_10765a00) and then calls f_10762c30. Its vtable[-0xc] adjustments select the source and destination secondary tables at 0x10f09770. f_10762a24 checks source slot +0x3c, f_106faf24, which requires byte +4 and at least one of bytes +0x1a5 and +0x265 (offsets relative to the adjusted pointer). Only then does it copy fields through the destination slots."
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x102de740 exits=[184]; session request-path rc surfaced | worker literal bound [129, 1025, 1640, 4096, 4097, 5489] (ASCII-fragment constants filtered) (worker_err_literals.json)",
+       "domain_note": "The group-aware override adds 1023. The live adapter +8 returns zero or 402. The base worker's nonzero results are 402, 718 and 800; downstream source results do not pass through.",
        "literal_bound": [
-        129,
-        1025,
-        1640,
-        4096,
-        4097,
-        5489
+        402,
+        718,
+        800,
+        1023
        ],
        "todo": [
-        "Established: The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers. The base import also maps later URI, VLI and synchronization failures to 402.",
-        "Decode the precise URI-category and synchronization predicates that reach the 402 exits."
+        "Established: The wrapper commits on zero and reports a nonzero engine result unchanged. The active-secondary override adds 1023 if the product code does not bypass it; nonzero base engine mode without the clone header returns 800 before parsing; a parsed nonzero InstanceID returns 718. The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
+        "Trace the concrete VLI source registrations' support and install slots and the network StartTransmissionToGroup helper's nonzero exits to enumerate the remaining downstream conditions behind 402."
        ]
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "The base engine returns 402 if a required argument is missing during exact-name materialization or if the OtherMembers framing fails after materialization. A present value is not rejected by materialization just because conversion yields zero or the queue-list consumer rejects its contents. After parsing, the coordinator-only action also returns 402 for specific source URI, line-in resolution, VLI support and synchronization failures.",
+       "meaning": "The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
        "fault_sites": [
         "0x102fc944"
        ],
        "conditions": [
         {
-         "description": "The base engine returns 402 if a required argument is missing during exact-name materialization or if the OtherMembers framing fails after materialization. A present value is not rejected by materialization just because conversion yields zero or the queue-list consumer rejects its contents. After parsing, the coordinator-only action also returns 402 for specific source URI, line-in resolution, VLI support and synchronization failures.",
+         "description": "The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
          "evidence": [
           {
            "type": "firmware",
@@ -42033,6 +42219,54 @@
            "address": "0x102df05c",
            "notes": "The VLI capability rejection is mapped to 402; separately the synchronization callback at 0x102df164 has a zero success contract and nonzero maps to 402 at 0x102df1b0.",
            "function": "0x102de740"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102deb2c",
+           "function": "0x102de740",
+           "notes": "After OtherMembers succeeds, the worker requires either the line-in predicate f_10292f78 or the VLI parser f_10688070. If both are false, 0x102deeec returns 402. f_10292f78 checks a case-insensitive 16-byte x-rincon-stream: prefix and strlen <= 42 (cmplwi and isel at 0x10292fb0 and 0x10292fc0). This predicate does not verify a 24-byte UUID or a stream selector. f_10687e54 checks case-insensitive x-sonos-vli, a colon at byte 11 and the first following colon at byte 36. f_10687d30 requires 1 to 4 bytes before a comma, accepted by paranoid_atoi as nonnegative. No suffix output or valid registered source type is required by f_10688070 itself."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102def24",
+           "function": "0x102de740",
+           "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102def60",
+           "function": "0x102de740",
+           "notes": "With a VLI URI, the non-clone case first tests f_103917b4 for the active source type and source identifier; a match reuses its local snapshot and bypasses incoming VLI state parsing and source activation. The clone case and non-matches require f_106a715c to parse CurrentVLIState. Failure returns 402 at 0x102df05c, as does an unsupported snapshot type or a failed f_106a924c source install after temporarily enabling the streamer."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106a9108",
+           "function": "0x106a90c4",
+           "notes": "The support query looks for the decoded type in nine 12-byte entries at streamer+0x2e8, requires a nonnull control pointer at entry+4 and asks its slot +0x20. If that returns zero the action faults; otherwise f_106a924c calls f_106a8b08, which either keeps a usable current source or selects the requested registration. An unmatched type or a nonzero source slot +0x10 result when installing the snapshot fails the install."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102df164",
+           "function": "0x102de740",
+           "notes": "Although the worker loads impl+0x5ac first, its check f_10209008 always returns zero. The live path uses f_102ee9d4 to look up the snapshot UUID and populate a stack network source. If lookup or copy fails, the worker returns 402. f_106ea784 installs primary vtable 0x10f096c4; +8 is f_106eb284, which sends StartTransmissionToGroup (0x10f098e0) with the URI suffix at +0x28, the local coordinator identifier, and CurrentTransportSettings. A nonzero call result is mapped to 402, not returned as its own SOAP code."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10762c30",
+           "function": "0x10762c30",
+           "notes": "The topology device data contains the same network source at +0x2744 (constructor call at 0x107627e4). f_102ee9d4 needs a valid device record (f_10765a00) and then calls f_10762c30. Its vtable[-0xc] adjustments select the source and destination secondary tables at 0x10f09770. f_10762a24 checks source slot +0x3c, f_106faf24, which requires byte +4 and at least one of bytes +0x1a5 and +0x265 (offsets relative to the adjusted pointer). Only then does it copy fields through the destination slots."
           }
          ]
         }
@@ -42101,11 +42335,67 @@
          "address": "0x102df05c",
          "notes": "The VLI capability rejection is mapped to 402; separately the synchronization callback at 0x102df164 has a zero success contract and nonzero maps to 402 at 0x102df1b0.",
          "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102deb2c",
+         "function": "0x102de740",
+         "notes": "After OtherMembers succeeds, the worker requires either the line-in predicate f_10292f78 or the VLI parser f_10688070. If both are false, 0x102deeec returns 402. f_10292f78 checks a case-insensitive 16-byte x-rincon-stream: prefix and strlen <= 42 (cmplwi and isel at 0x10292fb0 and 0x10292fc0). This predicate does not verify a 24-byte UUID or a stream selector. f_10687e54 checks case-insensitive x-sonos-vli, a colon at byte 11 and the first following colon at byte 36. f_10687d30 requires 1 to 4 bytes before a comma, accepted by paranoid_atoi as nonnegative. No suffix output or valid registered source type is required by f_10688070 itself."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102def24",
+         "function": "0x102de740",
+         "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102def60",
+         "function": "0x102de740",
+         "notes": "With a VLI URI, the non-clone case first tests f_103917b4 for the active source type and source identifier; a match reuses its local snapshot and bypasses incoming VLI state parsing and source activation. The clone case and non-matches require f_106a715c to parse CurrentVLIState. Failure returns 402 at 0x102df05c, as does an unsupported snapshot type or a failed f_106a924c source install after temporarily enabling the streamer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a7224",
+         "function": "0x106a715c",
+         "notes": "Requires strlen 84 and all 11 conversions in %08X%08X%04hX%08X%08X%08X%08X%08X%08X%08X%08X (0x10f04758). The conversions populate snapshot +0xec, +0xf0, +0xf4, +0xf8, +0xfc, +0x100, +0x104, temporary type, +0x10c, temporary boolean, and +0x114 in that order. The type must pass f_10687bac (1, 2, 3, 6 or 8), then goes to +0x108; conversion 10 becomes a nonzero boolean at +0x110. These are sscanf conversions, not a separate check that each field uses canonical hex syntax."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a9108",
+         "function": "0x106a90c4",
+         "notes": "The support query looks for the decoded type in nine 12-byte entries at streamer+0x2e8, requires a nonnull control pointer at entry+4 and asks its slot +0x20. If that returns zero the action faults; otherwise f_106a924c calls f_106a8b08, which either keeps a usable current source or selects the requested registration. An unmatched type or a nonzero source slot +0x10 result when installing the snapshot fails the install."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df164",
+         "function": "0x102de740",
+         "notes": "Although the worker loads impl+0x5ac first, its check f_10209008 always returns zero. The live path uses f_102ee9d4 to look up the snapshot UUID and populate a stack network source. If lookup or copy fails, the worker returns 402. f_106ea784 installs primary vtable 0x10f096c4; +8 is f_106eb284, which sends StartTransmissionToGroup (0x10f098e0) with the URI suffix at +0x28, the local coordinator identifier, and CurrentTransportSettings. A nonzero call result is mapped to 402, not returned as its own SOAP code."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10762c30",
+         "function": "0x10762c30",
+         "notes": "The topology device data contains the same network source at +0x2744 (constructor call at 0x107627e4). f_102ee9d4 needs a valid device record (f_10765a00) and then calls f_10762c30. Its vtable[-0xc] adjustments select the source and destination secondary tables at 0x10f09770. f_10762a24 checks source slot +0x3c, f_106faf24, which requires byte +4 and at least one of bytes +0x1a5 and +0x265 (offsets relative to the adjusted pointer). Only then does it copy fields through the destination slots."
         }
        ],
        "todo": [
-        "Established: absent required fields, invalid OtherMembers framing, rejected VLI URI, failed line-in UUID resolution, unavailable VLI and nonzero synchronization callback can each return 402.",
-        "Trace the URI category branches entering each late check and bind the concrete synchronization slot +8 implementation at 0x102df164 to name its failure conditions."
+        "Established: The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
+        "Trace the concrete VLI source registrations' support and install slots and the network StartTransmissionToGroup helper's nonzero exits to enumerate the remaining downstream conditions behind 402."
        ]
       }
      ],
@@ -42192,8 +42482,8 @@
      "notes": "The group-capable engine dispatches to 0x105133e4. Its only two exits are the 1023 secondary rejection and the unchanged base call at 0x1051343c (f_102de740).",
      "implementation_notes": "The SOAP wrapper does not parse the body eagerly. The adapter at f_102f9c00 materializes it inside the engine call.",
      "todo": [
-      "Established: the adapter resolves the two required queue arguments by exact name and does not use CurrentQueueTrackList as an alias. The base action has separate parse, OtherMembers, source URI, VLI and synchronization 402 paths.",
-      "Finish the serialized argument consumers and the URI category and synchronization predicates that select the late failure paths."
+      "Established: the two queue arguments are required by exact name. The URI branches, line-in source lookup and start-transmission call, and VLI snapshot reuse, decode and activation paths are traced.",
+      "Finish the serialized input consumers and the downstream provider-install and network-call failures mapped to 402."
      ],
      "resolved_findings": [
       "The override checks the local hardware product code at 0x1051340c. Only codes outside the allowlist call the secondary predicate at 0x10513448. Its nonzero result gives 1023 at 0x1051348c."
