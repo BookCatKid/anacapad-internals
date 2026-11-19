@@ -151780,15 +151780,34 @@
      "type": "firmware",
      "address": "0x10eb3c38",
      "notes": "catalog block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102fe3e8",
+     "notes": "Expiry stored as current clock seconds plus 86400; hit changes access time only."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102fda14",
+     "notes": "Composite bounded-input cache key uses two :: separators."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1098b504",
+     "notes": "Concrete cache clock returns seconds from sonosClockGetTime(1)."
     }
    ],
-   "todo": [
-    "Residual: cache TTL value - entry lifetime is a per-entry runtime field (no TTL literal near the cache accessors); key encoding = the objectId string proven"
-   ],
    "resolved_findings": [
-    "Resolved: cache store = the id-mapping table; semantics = local-id -> service-id translation.",
     "Mechanism proven: translateId queries the translate cloud service (cloud_services registry name translate) to map catalog ids; results cache locally keyed by the requested id; missing-param errors guard the request builder. Consumer: the music-services catalog maps service-local ids to universal ids for cross-service lookups.",
-    "Resolved: the translate request URI template is \"catalog/id/%s?destinationServiceId=%s\" (0x10eb3d2c) and the batch path is catalog/ids - the cache key is the requested objectId (the id is the lookup key in both the URI and the cache). Muse route surface proven: catalog/id/{objectId}<->\"catalog,translate,objectId\", catalog/ids<->\"catalog,batchTranslate\" (0x10e7c738-0x10e7c839) - same URI-template + param,verb pair shape as the trueplay table."
+    "Cache key corrected from the actual builder f_102fd76c: input objectId/serviceId/targetObjectId strings are copied with bounds 0x101/0x11/0x11 at 0x102fd970-0x102fd9b8, then concatenated as objectId::serviceId::targetObjectId at 0x102fd9d8-0x102fda94 (separator literal 0x10eb3cb4). Thus lookup is not objectId alone; distinct destination operands can distinguish entries. Overlong inputs are truncated by these bounded copies before forming the key. The cloud URI remains catalog/id/%s?destinationServiceId=%s; route catalog/ids is the batch operation.",
+    "Cache lifetime fully traced: constructor f_102fd664 allocates thirty 0x60-byte records (count=0x1e at 0x102fd6b4, allocation 0xb44 includes array header), zeros expiry/access words, and installs clock vtable 0x11089e3c at 0x102fd718-0x102fd730. Slot +8 is f_1098b4c0, which invokes sonosClockGetTime(1,&timeval) and returns its seconds word (0x1098b504-0x1098b51c). On insertion, 0x102fe3dc-0x102fe400 stores expiry=now+0x15180 (86400 seconds, 24 hours) at entry+0 and access=now at entry+4. This literal disproves the previous no-fixed-TTL claim.",
+    "Hit validity and replacement: composite-key size and bytes must match (0x102fe214-0x102fe224 and 0x102fe2ec-0x102fe304). Signed now>=expiry is a miss at 0x102fe268-0x102fe26c, including equality; otherwise entry+4 is refreshed but expiry is not (0x102fe270). A miss proceeds to the translation service. Nonempty returned translations reach insertion at 0x102fe164-0x102fe188; empty output skips it. Existing matching keys are replaced; otherwise the insertion scan compares entry+4 access times (0x102fe374-0x102fe3a0) to select a least-recently-accessed slot. The 24-hour lifetime is insertion-relative, not sliding on cache hits."
    ]
   },
   "rdmbuttonfwd_detail": {
