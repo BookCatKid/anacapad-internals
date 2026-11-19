@@ -95833,7 +95833,7 @@
   "/MusicServices/Control": {
    "name": "MusicServices",
    "control_path": "/MusicServices/Control",
-   "description": "Sonos music-service account/session service; impl member at svc+4 for the session/list vfuncs.",
+   "description": "Music-service catalog and account-session service. Concrete catalog implementation is embedded at ctx+0x292b8; service at ctx+0x3d010 binds its primary and secondary interfaces during construction. GetSessionId can authenticate remotely; ListAvailableServices reads catalog state; UpdateAvailableServices refreshes it.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -95890,7 +95890,7 @@
    },
    "actions": {
     "GetSessionId": {
-     "description": "Returns the session id for a music-service account. Wrapper parses ServiceId (int via f_105614e0) and Username (string cap 0x81), then calls impl->v[+0xc] on the svc+4 member with an output buffer (cap 0x101) for SessionId.",
+     "description": "Looks up a catalog service and a stored account by ServiceId and exact Username, then obtains SessionId synchronously from that provider through SMAPI, or through a configured MusicServices proxy. This is not a cached-token-only getter. ServiceId is not limited to0..255 by the wrapper.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073a264",
@@ -95928,11 +95928,13 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x100c7fb4 ->0x100c7c6c ->0x10724f50; proxy alternative0x1072fd50; shared transport0x106ff03c",
+      "impl_vfunc": "Bound primary0x10e768a4 +0x0c; binding recorded at service level."
      },
      "inputs": {
       "ServiceId": {
-       "description": "Numeric id of the music service (from ListAvailableServices).",
+       "description": "Required service identifier, parsed to an unsigned32-bit word and used for descriptor lookup and account type key.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -95941,43 +95943,54 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "A configured service id",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none observed in this build",
+       "semantic_type": "u32",
+       "format": "Permissive base10 strtoul conversion of supplied text",
+       "unit": "none",
+       "accepted_values": "Any parsed32-bit value; catalog descriptor and exact matching account must exist.",
+       "range": "0..4294967295 after libc conversion; NO ServiceId<256 gate.",
+       "special_values": "Nonnumeric text becomes0; empty supplied numeric text also converts0. Negative/trailing text follows strtoul, with ignored errno/endptr.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Numeric id of the music service (from ListAvailableServices).",
+       "validation": "Presence required; type4 numeric conversion, not strict decimal grammar or index bound.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073a2a4",
-         "notes": "in-arg access site"
+         "function": "0x1073a264",
+         "address": "0x1073a314",
+         "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f10e5c",
-         "notes": "argument name string"
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "notes": "Type4 jump-table entry10eebbec is relativeff674f64 to table10eebbdc, selecting10560b40: strtoul(base10,endptrNULL), store32bits. No ServiceId enum/range check, errno or endptr check. Nonnumeric supplied text converts0; signs/trailing nonnumeric text use libc conversion, not strict decimal validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x100c7fb4",
-         "notes": "arg consumed in impl"
+         "address": "0x100c8000",
+         "notes": "Runtime policy100f642c(out,0) returns value byte+0 and validity byte+4. BOTH nonzero ->401 at100c8010; either zero continues. At100c7fec r31=r7 (OUTPUT CAPACITY). cmplwi100c8054 requires capacity>256; otherwise402. Handler always passes257, so capacity fault is dead for this SOAP path. It does NOT reject ServiceId>=256. Worker100c7c6c rc is forwarded."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c7c6c",
+         "address": "0x100c7ce4",
+         "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
         }
        ],
        "notes": null,
-       "meaning": " (see impl: 0x100c7fb4)"
+       "meaning": "Descriptor ServiceId, not an index into a256-entry table."
       },
       "Username": {
-       "description": "Account username on that service, parsed into a 0x81-byte buffer.",
+       "description": "Required exact stored-account username, compared case-sensitively. Password is obtained from the matched account, not this request.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -95986,231 +95999,445 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 129 bytes (128 chars + NUL)",
+       "semantic_type": "string",
+       "format": "Bounded NUL-terminated text, capacity129 bytes",
        "unit": "n/a - text",
-       "accepted_values": "Service account name",
-       "range": "max 128 chars",
-       "special_values": "none observed in this build",
+       "accepted_values": "A stored account username for the requested ServiceId.",
+       "range": "128 bytes plus NUL in wrapper buffer",
+       "special_values": "Present empty string is not rejected as an enum; account lookup must still match.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Account username on that service, parsed into a 0x81-byte buffer.",
+       "validation": "Required bounded string; strcmp equality in account loop.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073a2c8",
-         "notes": "in-arg access site"
+         "function": "0x1073a264",
+         "address": "0x1073a314",
+         "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f10e68",
-         "notes": "argument name string"
+         "function": "0x100c7c6c",
+         "address": "0x100c7ce4",
+         "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100c7fb4",
-         "notes": "arg consumed in impl"
+         "function": "0x10723e90",
+         "address": "0x100c7ef8",
+         "notes": "Each matching account constructs temporary SMAPI object10723e90(transport,account,descriptor).1071e01c binds object+0x13d0 toobject+0x13d4, vtable10f0e730; slot+0xc=10724f50 is static. Worker calls it with output and arg5=0 then destroys10720610. If global trial-serial string110a9ab0 is empty, reads R_TrialZPSerial through config+0x164/+0x24 and10719e24 copies at most31 bytes to this global before constructing the temporary object. This is a string cache, not a service-enable flag."
         }
        ],
        "notes": null,
-       "meaning": " (see impl: 0x100c7fb4)",
+       "meaning": "Account selector; not an arbitrary username to authenticate with a supplied password.",
        "buf_cap": 129
       }
      },
      "outputs": {
       "SessionId": {
-       "description": "Session-id string produced by worker f_100c7c6c for the validated service index; empty/absent when the lookup fails.",
+       "description": "Provider SMAPI getSessionIdResult or proxy SessionId response, emitted only when the final matching-account attempt returns0.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "whatever string worker f_100c7c6c produces for a valid index (session-id token); not enumerable statically",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "failure -> 402 fault before emission",
-       "required": false,
-       "default": "none",
-       "validation": "input index must be < 0x100 (impl cmplwi at 0x100c8054)",
+       "semantic_type": "string",
+       "format": "NUL-terminated provider token in257-byte output buffer",
+       "unit": "none",
+       "accepted_values": "Provider-returned session token; opaque to this wrapper.",
+       "range": "256 bytes plus NUL in wrapper output buffer",
+       "special_values": "On nonzero rc no SessionId field is emitted, even if an earlier duplicate account attempt succeeded.",
+       "required": true,
+       "default": "none; required output on success",
+       "validation": "Registered response string must be received by transport parser; missing required output yields1000.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073a380",
-         "notes": "out-arg access site"
+         "function": "0x1073a264",
+         "address": "0x1073a314",
+         "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f10e74",
-         "notes": "argument name string"
+         "function": "0x100c7c6c",
+         "address": "0x100c7ce4",
+         "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100c7fb4",
-         "notes": "out producer"
+         "function": "0x10724f50",
+         "address": "0x10725038",
+         "notes": "With no proxy host, constructs synchronous SMAPI SOAP getSessionId in namespace http://www.sonos.com/Services/1.1; endpoint comes from copied account/service descriptor, not a hardcoded provider.1071e208 configures endpoint/headers;1071f0c0 adds credentials/deviceId/deviceProvider=Sonos and capability-dependent zonePlayerId/deviceCert. Adds stored account username+2 and password+0x83, never accepts a password input. Descriptor capability0x10000 also copies credentials to method body. Registers getSessionIdResult output capacity257 then106ff03c performs request; rc propagated unchanged. No newly returned session is stored to account manager in this path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10724f50",
+         "address": "0x107252b4",
+         "notes": "If global proxy-host string at110a9af4 is nonempty AND arg5==0 (true for this action), takes proxy path instead of SMAPI.10703884 initializes proxy client with20000/2000 timing arguments,106fb1c4 applies configured host/connection data, then1072fd50 sends UPnP MusicServices.GetSessionId with descriptor ServiceId and stored account Username, output capacity257.1072feb8 invokes same106ff03c transport; returns rc unchanged.10719e60 fills this host string; this gate is not a boolean feature flag."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106ff03c",
+         "address": "0x106ff354",
+         "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
         }
        ],
        "notes": null,
-       "meaning": " (emitted from impl result; see 0x100c7fb4)"
+       "meaning": "Fresh provider/proxy response, not a local cached token."
       }
      },
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "Required ServiceId and Username; missing input402. Numeric text uses permissive strtoul and Username uses bounded string parser. Runtime policy may reject401. There is no ServiceId<256 validation: the compared word is the constant257-byte output capacity.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1073a264",
-        "notes": "wrapper decode"
+        "function": "0x1073a264",
+        "address": "0x1073a314",
+        "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b40",
+        "notes": "Type4 jump-table entry10eebbec is relativeff674f64 to table10eebbdc, selecting10560b40: strtoul(base10,endptrNULL), store32bits. No ServiceId enum/range check, errno or endptr check. Nonnumeric supplied text converts0; signs/trailing nonnumeric text use libc conversion, not strict decimal validation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7fb4",
+        "address": "0x100c8000",
+        "notes": "Runtime policy100f642c(out,0) returns value byte+0 and validity byte+4. BOTH nonzero ->401 at100c8010; either zero continues. At100c7fec r31=r7 (OUTPUT CAPACITY). cmplwi100c8054 requires capacity>256; otherwise402. Handler always passes257, so capacity fault is dead for this SOAP path. It does NOT reject ServiceId>=256. Worker100c7c6c rc is forwarded."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0xc]",
+      "description": "Bound MusicServices implementation; policy does not deny; requested descriptor and exact stored username account exist. Network/provider or proxy authentication must succeed synchronously. No password input and no implicit account creation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073a264",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "function": "0x1018d27c",
+        "address": "0x1018f488",
+        "notes": "At1018e5b8 r29=ctx+0x30000;1018e5bc r19=ctx+0x292b8. Call1018f488 constructs100c6950 there, installing primary10e768a4 at100c6a14 and secondary10e76900 atimpl+4. Call1018f498 constructs1073a4b4 atctx+0x3d010 withr4=impl,r5=impl+4. Stores1073a4c0/1073a4c8 bind service+4=impl and service+8=&impl secondary vptr. GetSession primary+0xc=100c7fb4; Update primary+8=100c997c; List secondary+8=100c6948 adjusts-4 then100c6314."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7fb4",
+        "address": "0x100c8000",
+        "notes": "Runtime policy100f642c(out,0) returns value byte+0 and validity byte+4. BOTH nonzero ->401 at100c8010; either zero continues. At100c7fec r31=r7 (OUTPUT CAPACITY). cmplwi100c8054 requires capacity>256; otherwise402. Handler always passes257, so capacity fault is dead for this SOAP path. It does NOT reject ServiceId>=256. Worker100c7c6c rc is forwarded."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7c6c",
+        "address": "0x100c7ce4",
+        "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10723e90",
+        "address": "0x100c7ef8",
+        "notes": "Each matching account constructs temporary SMAPI object10723e90(transport,account,descriptor).1071e01c binds object+0x13d0 toobject+0x13d4, vtable10f0e730; slot+0xc=10724f50 is static. Worker calls it with output and arg5=0 then destroys10720610. If global trial-serial string110a9ab0 is empty, reads R_TrialZPSerial through config+0x164/+0x24 and10719e24 copies at most31 bytes to this global before constructing the temporary object. This is a string cache, not a service-enable flag."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10724f50",
+        "address": "0x10725038",
+        "notes": "With no proxy host, constructs synchronous SMAPI SOAP getSessionId in namespace http://www.sonos.com/Services/1.1; endpoint comes from copied account/service descriptor, not a hardcoded provider.1071e208 configures endpoint/headers;1071f0c0 adds credentials/deviceId/deviceProvider=Sonos and capability-dependent zonePlayerId/deviceCert. Adds stored account username+2 and password+0x83, never accepts a password input. Descriptor capability0x10000 also copies credentials to method body. Registers getSessionIdResult output capacity257 then106ff03c performs request; rc propagated unchanged. No newly returned session is stored to account manager in this path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10724f50",
+        "address": "0x107252b4",
+        "notes": "If global proxy-host string at110a9af4 is nonempty AND arg5==0 (true for this action), takes proxy path instead of SMAPI.10703884 initializes proxy client with20000/2000 timing arguments,106fb1c4 applies configured host/connection data, then1072fd50 sends UPnP MusicServices.GetSessionId with descriptor ServiceId and stored account Username, output capacity257.1072feb8 invokes same106ff03c transport; returns rc unchanged.10719e60 fills this host string; this gate is not a boolean feature flag."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0xc]",
+      "description": "Descriptor cache/musicservices.xml and cached account snapshot; runtime policy value/validity; trial-serial cache/config; optional configured proxy host; matched account credentials/service endpoint/capabilities; remote transport/response parser. No ContentDirectory state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073a264",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0xc]']"
+        "function": "0x100c7fb4",
+        "address": "0x100c8000",
+        "notes": "Runtime policy100f642c(out,0) returns value byte+0 and validity byte+4. BOTH nonzero ->401 at100c8010; either zero continues. At100c7fec r31=r7 (OUTPUT CAPACITY). cmplwi100c8054 requires capacity>256; otherwise402. Handler always passes257, so capacity fault is dead for this SOAP path. It does NOT reject ServiceId>=256. Worker100c7c6c rc is forwarded."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7c6c",
+        "address": "0x100c7ce4",
+        "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10723e90",
+        "address": "0x100c7ef8",
+        "notes": "Each matching account constructs temporary SMAPI object10723e90(transport,account,descriptor).1071e01c binds object+0x13d0 toobject+0x13d4, vtable10f0e730; slot+0xc=10724f50 is static. Worker calls it with output and arg5=0 then destroys10720610. If global trial-serial string110a9ab0 is empty, reads R_TrialZPSerial through config+0x164/+0x24 and10719e24 copies at most31 bytes to this global before constructing the temporary object. This is a string cache, not a service-enable flag."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10724f50",
+        "address": "0x10725038",
+        "notes": "With no proxy host, constructs synchronous SMAPI SOAP getSessionId in namespace http://www.sonos.com/Services/1.1; endpoint comes from copied account/service descriptor, not a hardcoded provider.1071e208 configures endpoint/headers;1071f0c0 adds credentials/deviceId/deviceProvider=Sonos and capability-dependent zonePlayerId/deviceCert. Adds stored account username+2 and password+0x83, never accepts a password input. Descriptor capability0x10000 also copies credentials to method body. Registers getSessionIdResult output capacity257 then106ff03c performs request; rc propagated unchanged. No newly returned session is stored to account manager in this path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10724f50",
+        "address": "0x107252b4",
+        "notes": "If global proxy-host string at110a9af4 is nonempty AND arg5==0 (true for this action), takes proxy path instead of SMAPI.10703884 initializes proxy client with20000/2000 timing arguments,106fb1c4 applies configured host/connection data, then1072fd50 sends UPnP MusicServices.GetSessionId with descriptor ServiceId and stored account Username, output capacity257.1072feb8 invokes same106ff03c transport; returns rc unchanged.10719e60 fills this host string; this gate is not a boolean feature flag."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106ff03c",
+        "address": "0x106ff354",
+        "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "kind": "none",
-       "description": "Read-only session-id lookup; no persistent mutation on the impl path.",
+       "description": "May lazily load catalog descriptor cache, snapshot stored accounts, initialize global trial-serial text and contact remote provider or configured proxy with stored credentials. Uses transient authentication/request objects and updates their transport status. Does not add/remove accounts, persist returned SessionId or change catalog version.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100c7fb4",
-         "notes": "no state stores beyond stack"
+         "function": "0x100c7c6c",
+         "address": "0x100c7ce4",
+         "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10723e90",
+         "address": "0x100c7ef8",
+         "notes": "Each matching account constructs temporary SMAPI object10723e90(transport,account,descriptor).1071e01c binds object+0x13d0 toobject+0x13d4, vtable10f0e730; slot+0xc=10724f50 is static. Worker calls it with output and arg5=0 then destroys10720610. If global trial-serial string110a9ab0 is empty, reads R_TrialZPSerial through config+0x164/+0x24 and10719e24 copies at most31 bytes to this global before constructing the temporary object. This is a string cache, not a service-enable flag."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10724f50",
+         "address": "0x10725038",
+         "notes": "With no proxy host, constructs synchronous SMAPI SOAP getSessionId in namespace http://www.sonos.com/Services/1.1; endpoint comes from copied account/service descriptor, not a hardcoded provider.1071e208 configures endpoint/headers;1071f0c0 adds credentials/deviceId/deviceProvider=Sonos and capability-dependent zonePlayerId/deviceCert. Adds stored account username+2 and password+0x83, never accepts a password input. Descriptor capability0x10000 also copies credentials to method body. Registers getSessionIdResult output capacity257 then106ff03c performs request; rc propagated unchanged. No newly returned session is stored to account manager in this path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10724f50",
+         "address": "0x107252b4",
+         "notes": "If global proxy-host string at110a9af4 is nonempty AND arg5==0 (true for this action), takes proxy path instead of SMAPI.10703884 initializes proxy client with20000/2000 timing arguments,106fb1c4 applies configured host/connection data, then1072fd50 sends UPnP MusicServices.GetSessionId with descriptor ServiceId and stored account Username, output capacity257.1072feb8 invokes same106ff03c transport; returns rc unchanged.10719e60 fills this host string; this gate is not a boolean feature flag."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10724f50",
+         "address": "0x10725194",
+         "notes": "Action path authenticates through synchronous network transport, updates transient request/client status and may initialize trial-serial cache. It neither edits service catalog/version nor calls100c7084/10676a44/1067c6ec. No direct MusicServices ServiceListVersion/GENA notification or account-add/remove callback. A provider can have remote authentication side effects; SOAP success is not account creation."
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct MusicServices ServiceListVersion or GENA event in this action. Synchronous remote authentication can have provider-side effects; locally only lazy cache/status updates occur, not service-list version changes.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073a264",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x10724f50",
+        "address": "0x10725194",
+        "notes": "Action path authenticates through synchronous network transport, updates transient request/client status and may initialize trial-serial cache. It neither edits service catalog/version nor calls100c7084/10676a44/1067c6ec. No direct MusicServices ServiceListVersion/GENA notification or account-add/remove callback. A provider can have remote authentication side effects; SOAP success is not account creation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10723e90",
+        "address": "0x100c7ef8",
+        "notes": "Each matching account constructs temporary SMAPI object10723e90(transport,account,descriptor).1071e01c binds object+0x13d0 toobject+0x13d4, vtable10f0e730; slot+0xc=10724f50 is static. Worker calls it with output and arg5=0 then destroys10720610. If global trial-serial string110a9ab0 is empty, reads R_TrialZPSerial through config+0x164/+0x24 and10719e24 copies at most31 bytes to this global before constructing the temporary object. This is a string cache, not a service-enable flag."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10724f50",
+        "address": "0x107252b4",
+        "notes": "If global proxy-host string at110a9af4 is nonempty AND arg5==0 (true for this action), takes proxy path instead of SMAPI.10703884 initializes proxy client with20000/2000 timing arguments,106fb1c4 applies configured host/connection data, then1072fd50 sends UPnP MusicServices.GetSessionId with descriptor ServiceId and stored account Username, output capacity257.1072feb8 invokes same106ff03c transport; returns rc unchanged.10719e60 fills this host string; this gate is not a boolean feature flag."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0xc]",
+      "description": "Missing input ->402; policy denial ->401; absent descriptor/account ->806. Otherwise one synchronous provider/proxy request per matching record, retaining last rc. Success emits SessionId and commits. Temporary SMAPI/client objects are destroyed; no service-catalog transition, account insertion or persisted session-cache write.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x1073a264",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0xc]']"
+        "address": "0x1073a314",
+        "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7c6c",
+        "address": "0x100c7ce4",
+        "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10723e90",
+        "address": "0x100c7ef8",
+        "notes": "Each matching account constructs temporary SMAPI object10723e90(transport,account,descriptor).1071e01c binds object+0x13d0 toobject+0x13d4, vtable10f0e730; slot+0xc=10724f50 is static. Worker calls it with output and arg5=0 then destroys10720610. If global trial-serial string110a9ab0 is empty, reads R_TrialZPSerial through config+0x164/+0x24 and10719e24 copies at most31 bytes to this global before constructing the temporary object. This is a string cache, not a service-enable flag."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10724f50",
+        "address": "0x10725038",
+        "notes": "With no proxy host, constructs synchronous SMAPI SOAP getSessionId in namespace http://www.sonos.com/Services/1.1; endpoint comes from copied account/service descriptor, not a hardcoded provider.1071e208 configures endpoint/headers;1071f0c0 adds credentials/deviceId/deviceProvider=Sonos and capability-dependent zonePlayerId/deviceCert. Adds stored account username+2 and password+0x83, never accepts a password input. Descriptor capability0x10000 also copies credentials to method body. Registers getSessionIdResult output capacity257 then106ff03c performs request; rc propagated unchanged. No newly returned session is stored to account manager in this path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10724f50",
+        "address": "0x107252b4",
+        "notes": "If global proxy-host string at110a9af4 is nonempty AND arg5==0 (true for this action), takes proxy path instead of SMAPI.10703884 initializes proxy client with20000/2000 timing arguments,106fb1c4 applies configured host/connection data, then1072fd50 sends UPnP MusicServices.GetSessionId with descriptor ServiceId and stored account Username, output capacity257.1072feb8 invokes same106ff03c transport; returns rc unchanged.10719e60 fills this host string; this gate is not a boolean feature flag."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10724f50",
+        "address": "0x10725194",
+        "notes": "Action path authenticates through synchronous network transport, updates transient request/client status and may initialize trial-serial cache. It neither edits service catalog/version nor calls100c7084/10676a44/1067c6ec. No direct MusicServices ServiceListVersion/GENA notification or account-add/remove callback. A provider can have remote authentication side effects; SOAP success is not account creation."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Final rc0 emits one SessionId string and commits. Every nonzero worker rc is forwarded verbatim as SOAP fault. Local402/401/806 and shared1000/1001/1002/1037 paths are documented below; remote-defined nonzero fault values also propagate, with no fixed provider whitelist.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x1073a264",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "address": "0x1073a314",
+        "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7fb4",
+        "address": "0x100c8000",
+        "notes": "Runtime policy100f642c(out,0) returns value byte+0 and validity byte+4. BOTH nonzero ->401 at100c8010; either zero continues. At100c7fec r31=r7 (OUTPUT CAPACITY). cmplwi100c8054 requires capacity>256; otherwise402. Handler always passes257, so capacity fault is dead for this SOAP path. It does NOT reject ServiceId>=256. Worker100c7c6c rc is forwarded."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7c6c",
+        "address": "0x100c7ce4",
+        "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106ff03c",
+        "address": "0x106ff354",
+        "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
-     "fault_sites": [
-      {
-       "site": "0x1073a330",
-       "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0xc)"
-      }
-     ],
+     "fault_sites": [],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(*(r3-in+0x4),+0xc); parse/req-layer",
-       "meaning": "impl->v[+0xc] rc surfaced | Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Required ServiceId or Username missing. The implementation also rejects output capacity<=256, but this is unreachable from this handler because it passes257; no ServiceId range rejection.",
        "fault_sites": [
-        "0x1073a330"
+        "0x1073a364"
        ],
        "conditions": [
         {
-         "description": "impl vfunc nonzero",
+         "description": "Required ServiceId or Username missing. The implementation also rejects output capacity<=256, but this is unreachable from this handler because it passes257; no ServiceId range rejection.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073a330",
-           "notes": "impl rc passthrough"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x1073a264",
+           "address": "0x1073a314",
+           "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073a264",
-           "notes": "parse vcalls then fault path"
+           "function": "0x100c7fb4",
+           "address": "0x100c8000",
+           "notes": "Runtime policy100f642c(out,0) returns value byte+0 and validity byte+4. BOTH nonzero ->401 at100c8010; either zero continues. At100c7fec r31=r7 (OUTPUT CAPACITY). cmplwi100c8054 requires capacity>256; otherwise402. Handler always passes257, so capacity fault is dead for this SOAP path. It does NOT reject ServiceId>=256. Worker100c7c6c rc is forwarded."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10560a58",
+           "address": "0x10560b40",
+           "notes": "Type4 jump-table entry10eebbec is relativeff674f64 to table10eebbdc, selecting10560b40: strtoul(base10,endptrNULL), store32bits. No ServiceId enum/range check, errno or endptr check. Nonnumeric supplied text converts0; signs/trailing nonnumeric text use libc conversion, not strict decimal validation."
           }
          ]
         }
@@ -96220,44 +96447,43 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073a330",
-         "notes": "impl rc passthrough site"
+         "function": "0x1073a264",
+         "address": "0x1073a314",
+         "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x100c7fb4",
-         "notes": "cmplwi r31,0x100 -> li 0x192 at 0x100c8058"
+         "address": "0x100c8000",
+         "notes": "Runtime policy100f642c(out,0) returns value byte+0 and validity byte+4. BOTH nonzero ->401 at100c8010; either zero continues. At100c7fec r31=r7 (OUTPUT CAPACITY). cmplwi100c8054 requires capacity>256; otherwise402. Handler always passes257, so capacity fault is dead for this SOAP path. It does NOT reject ServiceId>=256. Worker100c7c6c rc is forwarded."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073a264",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "notes": "Type4 jump-table entry10eebbec is relativeff674f64 to table10eebbdc, selecting10560b40: strtoul(base10,endptrNULL), store32bits. No ServiceId enum/range check, errno or endptr check. Nonnumeric supplied text converts0; signs/trailing nonnumeric text use libc conversion, not strict decimal validation."
         }
-       ],
-       "condition": "requested index/id >= 0x100 (cmplwi 0x100 in impl); otherwise f_100c7c6c worker rc forwarded (worker domain untraced)",
-       "domain_note": "domain fully bounded: impl 0x100c7fb4 exits=[64, 401]; impl->v[+0xc] rc surfaced",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0xc); parse/req-layer; sites: 0x1073a330).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 401,
-       "meaning": "capability/mode flag gate (sp byte flags tested before arg parse)",
+       "meaning": "Runtime policy query0 returns both valid byte and value byte nonzero. Either zero bypasses this gate. Unrelated to HTTP401, which shared transport can translate to1037.",
+       "fault_sites": [],
        "conditions": [
         {
-         "description": "*(sp+0x18)!=0 then *(sp+0x14)==0 -> 401",
+         "description": "Runtime policy query0 returns both valid byte and value byte nonzero. Either zero bypasses this gate. Unrelated to HTTP401, which shared transport can translate to1037.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x100c800c",
-           "notes": "lbz flag + cmpwi -> li r3,0x191"
+           "function": "0x100c7fb4",
+           "address": "0x100c8000",
+           "notes": "Runtime policy100f642c(out,0) returns value byte+0 and validity byte+4. BOTH nonzero ->401 at100c8010; either zero continues. At100c7fec r31=r7 (OUTPUT CAPACITY). cmplwi100c8054 requires capacity>256; otherwise402. Handler always passes257, so capacity fault is dead for this SOAP path. It does NOT reject ServiceId>=256. Worker100c7c6c rc is forwarded."
           }
          ]
         }
@@ -96267,15 +96493,243 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x100c800c",
-         "notes": "lbz flag + cmpwi -> li r3,0x191"
+         "function": "0x100c7fb4",
+         "address": "0x100c8000",
+         "notes": "Runtime policy100f642c(out,0) returns value byte+0 and validity byte+4. BOTH nonzero ->401 at100c8010; either zero continues. At100c7fec r31=r7 (OUTPUT CAPACITY). cmplwi100c8054 requires capacity>256; otherwise402. Handler always passes257, so capacity fault is dead for this SOAP path. It does NOT reject ServiceId>=256. Worker100c7c6c rc is forwarded."
+        }
+       ]
+      },
+      {
+       "code": 806,
+       "meaning": "Descriptor lookup for parsed ServiceId fails, or no account has key(ServiceId<<8)|7 and exact Username. Default rc806 remains until an authentication attempt replaces it.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Descriptor lookup for parsed ServiceId fails, or no account has key(ServiceId<<8)|7 and exact Username. Default rc806 remains until an authentication attempt replaces it.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x100c7c6c",
+           "address": "0x100c7ce4",
+           "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
+          }
+         ]
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 401; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c7c6c",
+         "address": "0x100c7ce4",
+         "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
+        }
        ]
+      },
+      {
+       "code": 1000,
+       "meaning": "Shared SOAP response parser detects malformed/incomplete XML or missing required SessionId/getSessionIdResult; or transport status converter receives another unrecognized internal flagged status.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Shared SOAP response parser detects malformed/incomplete XML or missing required SessionId/getSessionIdResult; or transport status converter receives another unrecognized internal flagged status.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x106ff03c",
+           "address": "0x106ff354",
+           "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106ff03c",
+         "address": "0x106ff354",
+         "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+        }
+       ]
+      },
+      {
+       "code": 1001,
+       "meaning": "URI/connection/send preparation fails, or internal transport status is82000001 or81000003..81000005. This is a transport error, not evidence that credentials were rejected.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "URI/connection/send preparation fails, or internal transport status is82000001 or81000003..81000005. This is a transport error, not evidence that credentials were rejected.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x106ff03c",
+           "address": "0x106ff354",
+           "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106ff03c",
+         "address": "0x106ff354",
+         "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+        }
+       ]
+      },
+      {
+       "code": 1002,
+       "meaning": "Shared transport status converter receives internal status80000025.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Shared transport status converter receives internal status80000025.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x106ff03c",
+           "address": "0x106ff354",
+           "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106ff03c",
+         "address": "0x106ff354",
+         "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+        }
+       ]
+      },
+      {
+       "code": 1037,
+       "meaning": "HTTP401 response with shared transport parser flags+a45/+a47 enabled maps to1037 before generic SOAP parser fault extraction.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "HTTP401 response with shared transport parser flags+a45/+a47 enabled maps to1037 before generic SOAP parser fault extraction.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x106ff03c",
+           "address": "0x106ff354",
+           "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106ff03c",
+         "address": "0x106ff354",
+         "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+        }
+       ]
+      },
+      {
+       "code": null,
+       "meaning": "Other nonzero provider/proxy SOAP fault halfword or ordinary transport low16-bit status, forwarded unchanged. Exact provider-specific meanings and values depend on the runtime response, not a fixed local enum.",
+       "fault_sites": [
+        "0x1073a330"
+       ],
+       "conditions": [
+        {
+         "description": "Other nonzero provider/proxy SOAP fault halfword or ordinary transport low16-bit status, forwarded unchanged. Exact provider-specific meanings and values depend on the runtime response, not a fixed local enum.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1073a264",
+           "address": "0x1073a314",
+           "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10724f50",
+           "address": "0x10725038",
+           "notes": "With no proxy host, constructs synchronous SMAPI SOAP getSessionId in namespace http://www.sonos.com/Services/1.1; endpoint comes from copied account/service descriptor, not a hardcoded provider.1071e208 configures endpoint/headers;1071f0c0 adds credentials/deviceId/deviceProvider=Sonos and capability-dependent zonePlayerId/deviceCert. Adds stored account username+2 and password+0x83, never accepts a password input. Descriptor capability0x10000 also copies credentials to method body. Registers getSessionIdResult output capacity257 then106ff03c performs request; rc propagated unchanged. No newly returned session is stored to account manager in this path."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10724f50",
+           "address": "0x107252b4",
+           "notes": "If global proxy-host string at110a9af4 is nonempty AND arg5==0 (true for this action), takes proxy path instead of SMAPI.10703884 initializes proxy client with20000/2000 timing arguments,106fb1c4 applies configured host/connection data, then1072fd50 sends UPnP MusicServices.GetSessionId with descriptor ServiceId and stored account Username, output capacity257.1072feb8 invokes same106ff03c transport; returns rc unchanged.10719e60 fills this host string; this gate is not a boolean feature flag."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x106ff03c",
+           "address": "0x106ff354",
+           "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073a264",
+         "address": "0x1073a314",
+         "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10724f50",
+         "address": "0x10725038",
+         "notes": "With no proxy host, constructs synchronous SMAPI SOAP getSessionId in namespace http://www.sonos.com/Services/1.1; endpoint comes from copied account/service descriptor, not a hardcoded provider.1071e208 configures endpoint/headers;1071f0c0 adds credentials/deviceId/deviceProvider=Sonos and capability-dependent zonePlayerId/deviceCert. Adds stored account username+2 and password+0x83, never accepts a password input. Descriptor capability0x10000 also copies credentials to method body. Registers getSessionIdResult output capacity257 then106ff03c performs request; rc propagated unchanged. No newly returned session is stored to account manager in this path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10724f50",
+         "address": "0x107252b4",
+         "notes": "If global proxy-host string at110a9af4 is nonempty AND arg5==0 (true for this action), takes proxy path instead of SMAPI.10703884 initializes proxy client with20000/2000 timing arguments,106fb1c4 applies configured host/connection data, then1072fd50 sends UPnP MusicServices.GetSessionId with descriptor ServiceId and stored account Username, output capacity257.1072feb8 invokes same106ff03c transport; returns rc unchanged.10719e60 fills this host string; this gate is not a boolean feature flag."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106ff03c",
+         "address": "0x106ff354",
+         "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+        }
+       ],
+       "code_expr": "nonzero response parser u16 fault, or low16bits of ordinary transport status",
+       "todo": "Tried10724f50 and proxy1072fd50 through shared106ff03c/10562e6c/10c3b8ac: local propagation is traced, but the exact provider-specific SOAP fault values/meanings are supplied in runtime remote responses and are not enumerable from this binary. Capture failing getSessionId responses for each configured provider/proxy to enumerate that external vocabulary; do not assume only402/401 are possible."
       }
      ],
      "firmware_differences": [],
@@ -96284,31 +96738,85 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073a264",
-       "address": "0x1073a264",
-       "notes": "action wrapper handler"
+       "function": "0x1018d27c",
+       "address": "0x1018f488",
+       "notes": "At1018e5b8 r29=ctx+0x30000;1018e5bc r19=ctx+0x292b8. Call1018f488 constructs100c6950 there, installing primary10e768a4 at100c6a14 and secondary10e76900 atimpl+4. Call1018f498 constructs1073a4b4 atctx+0x3d010 withr4=impl,r5=impl+4. Stores1073a4c0/1073a4c8 bind service+4=impl and service+8=&impl secondary vptr. GetSession primary+0xc=100c7fb4; Update primary+8=100c997c; List secondary+8=100c6948 adjusts-4 then100c6314."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11d1c",
-       "notes": "action dispatch table entry"
+       "function": "0x1073a264",
+       "address": "0x1073a314",
+       "notes": "Required ServiceId type4 via105614e0 and Username type7 capacity129 via1056157c. False request validator ->402 at1073a364 through shared emitter1073a330. Calls bound primary+0xc withr4=ServiceId,r5=Username,r6=out,r7=257. mr. at1073a31c raw7c641b79 branches on CR0: rc0 emits SessionId at1073a394 then commits1073a3a8; nonzero forwarded1073a330."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10560a58",
+       "address": "0x10560b40",
+       "notes": "Type4 jump-table entry10eebbec is relativeff674f64 to table10eebbdc, selecting10560b40: strtoul(base10,endptrNULL), store32bits. No ServiceId enum/range check, errno or endptr check. Nonnumeric supplied text converts0; signs/trailing nonnumeric text use libc conversion, not strict decimal validation."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x100c7fb4",
-       "notes": "Impl f_100c7fb4: validates the requested service index/id: cmplwi value,0x100; value >= 256 returns 402; otherwise call"
+       "address": "0x100c8000",
+       "notes": "Runtime policy100f642c(out,0) returns value byte+0 and validity byte+4. BOTH nonzero ->401 at100c8010; either zero continues. At100c7fec r31=r7 (OUTPUT CAPACITY). cmplwi100c8054 requires capacity>256; otherwise402. Handler always passes257, so capacity fault is dead for this SOAP path. It does NOT reject ServiceId>=256. Worker100c7c6c rc is forwarded."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c7c6c",
+       "address": "0x100c7ce4",
+       "notes": "Default rc806. Concrete primary+0x20=100c6068 looks up full ServiceId in descriptor cache underimpl+0x13a40; missing cache lazily loads musicservices.xml through100c5fd0/10554918. Missing descriptor ->806. Account snapshot101b688c locks account-manager+0xa878 and copies32 records stride0x250 plus count. Raw57bd402e at100c7e70 is SH8 MB0 ME23: key=(ServiceId<<8)|7 modulo32bits. Match entry+4 key and exact case-sensitive strcmp(entry+8,Username). No matching account ->806. Empty supplied Username is not rejected locally; it must match an account. Processes every match, retaining the LAST authentication rc, not first-success short circuit."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10723e90",
+       "address": "0x100c7ef8",
+       "notes": "Each matching account constructs temporary SMAPI object10723e90(transport,account,descriptor).1071e01c binds object+0x13d0 toobject+0x13d4, vtable10f0e730; slot+0xc=10724f50 is static. Worker calls it with output and arg5=0 then destroys10720610. If global trial-serial string110a9ab0 is empty, reads R_TrialZPSerial through config+0x164/+0x24 and10719e24 copies at most31 bytes to this global before constructing the temporary object. This is a string cache, not a service-enable flag."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10724f50",
+       "address": "0x10725038",
+       "notes": "With no proxy host, constructs synchronous SMAPI SOAP getSessionId in namespace http://www.sonos.com/Services/1.1; endpoint comes from copied account/service descriptor, not a hardcoded provider.1071e208 configures endpoint/headers;1071f0c0 adds credentials/deviceId/deviceProvider=Sonos and capability-dependent zonePlayerId/deviceCert. Adds stored account username+2 and password+0x83, never accepts a password input. Descriptor capability0x10000 also copies credentials to method body. Registers getSessionIdResult output capacity257 then106ff03c performs request; rc propagated unchanged. No newly returned session is stored to account manager in this path."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10724f50",
+       "address": "0x107252b4",
+       "notes": "If global proxy-host string at110a9af4 is nonempty AND arg5==0 (true for this action), takes proxy path instead of SMAPI.10703884 initializes proxy client with20000/2000 timing arguments,106fb1c4 applies configured host/connection data, then1072fd50 sends UPnP MusicServices.GetSessionId with descriptor ServiceId and stored account Username, output capacity257.1072feb8 invokes same106ff03c transport; returns rc unchanged.10719e60 fills this host string; this gate is not a boolean feature flag."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x106ff03c",
+       "address": "0x106ff354",
+       "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10724f50",
+       "address": "0x10725194",
+       "notes": "Action path authenticates through synchronous network transport, updates transient request/client status and may initialize trial-serial cache. It neither edits service catalog/version nor calls100c7084/10676a44/1067c6ec. No direct MusicServices ServiceListVersion/GENA notification or account-add/remove callback. A provider can have remote authentication side effects; SOAP success is not account creation."
       }
      ],
-     "notes": null,
-     "implementation_notes": "Impl f_100c7fb4: validates the requested service index/id: cmplwi value,0x100; value >= 256 returns 402; otherwise calls session-lookup worker f_100c7c6c and forwards its rc (worker vocabulary untraced).",
-     "todo": [
-      "Established: virtual dispatch to handler 0x1073a264; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Statically traced; no network/device experiment. Remote authentication is synchronous, not deferred service-list refresh.",
+     "implementation_notes": "Full concrete lookup/authentication path; output-capacity check corrected from false ServiceId<256 interpretation. All duplicate matches are attempted. Only runtime-supplied provider fault vocabulary remains open in the generic error record."
     },
     "ListAvailableServices": {
      "description": "Returns the list of available music services. Wrapper reaches the impl through *(*(sp+0x18)+0x8) (a doubly-indirect member) and calls its v[+0x8] which serializes the service list.",
@@ -97218,6 +97726,14 @@
      "build": "86.10-80260",
      "address": "0x1073a11c",
      "notes": "service dispatcher"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1018d27c",
+     "address": "0x1018f488",
+     "notes": "At1018e5b8 r29=ctx+0x30000;1018e5bc r19=ctx+0x292b8. Call1018f488 constructs100c6950 there, installing primary10e768a4 at100c6a14 and secondary10e76900 atimpl+4. Call1018f498 constructs1073a4b4 atctx+0x3d010 withr4=impl,r5=impl+4. Stores1073a4c0/1073a4c8 bind service+4=impl and service+8=&impl secondary vptr. GetSession primary+0xc=100c7fb4; Update primary+8=100c997c; List secondary+8=100c6948 adjusts-4 then100c6314."
     }
    ],
    "notes": null,
@@ -97233,7 +97749,8 @@
     "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
    ],
    "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
+    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable.",
+    "Concrete MusicServices binding: constructor100c6950 at1018f488 builds impl atctx+0x292b8 with primary10e768a4 and secondary10e76900 atimpl+4. Service constructor1073a4b4 at1018f498 stores impl inservice+4 and addressimpl+4 inservice+8. Slots resolve GetSessionId100c7fb4, UpdateAvailableServices100c997c and ListAvailableServices thunk100c6948 ->100c6314. Action records reference this proof; dispatch is not an unbound runtime injection."
    ]
   },
   "/QPlay/Control": {
