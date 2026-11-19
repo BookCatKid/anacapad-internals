@@ -99502,7 +99502,7 @@
      ]
     },
     "Remove": {
-     "description": "Deletes config VariableName via impl->v[+0x10].",
+     "description": "Removes a case-sensitive SystemSettings XML key by rewriting the settings file with a NULL requested value. Reserved-key protection still applies; absent keys can succeed, and shared refresh/recovery paths can recreate selected settings.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10731bf8",
@@ -99519,13 +99519,13 @@
         "site": "0x10731c78",
         "obj": "*(r3-in+0x4)",
         "slot": 16,
-        "arg4": "sp-0x414"
+        "arg4": "VariableName atsp+0x1c"
        },
        {
         "site": "0x10731cdc",
         "obj": "*(sp-0x430+0x42c)",
         "slot": 12,
-        "arg4": 402
+        "arg4": "none; success commit"
        }
       ],
       "req_vcalls": [
@@ -99538,7 +99538,7 @@
      },
      "inputs": {
       "VariableName": {
-       "description": "property variable name",
+       "description": "Case-sensitive XML setting name to omit from the rewritten SystemSettings file.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -99547,197 +99547,495 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
+       "semantic_type": "setting key",
+       "format": "Text copied into1024 bytes; at most1023 payload bytes plus NUL, no UTF-8 validation.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 1023 chars",
-       "special_values": "none identified",
+       "accepted_values": "Any present text including empty, subject to reserved-key and X_ prefix denial. Truncation precedes key matching. Missing key in a readable source is not itself an error.",
+       "range": "0..1023 copied payload bytes.",
+       "special_values": "ThirdPartyCredentials501; AccountTransferMode811; AvailableSoftwareUpdate812 (all exact R_ names). R_CustomerID protected unless saved value absent/empty/0. O_ZONE_EXPERIMENTS gated812. OnlineUpdateBaseURL bypasses its set-value gate; UMTracking can remove XML key only. X_ prefix606.",
        "required": true,
        "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "validation": "Missing required materialization402.1066a788 receives NULL value, bypassing new-value parsers but retaining existing-CustomerID and experiment checks.10669844 rejects X_ before persistence.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10731c38",
-         "notes": "in-arg access site"
+         "address": "0x10731c78",
+         "function": "0x10731bf8",
+         "notes": "Delegate104b0e84 vptr10ed75c4 installed104b0f94; handler10732e94 at1018e594 stores delegate+4 and vptr10f110a8. Remove handler calls delegate+10=1066abb8 at10731c78. Required tag7 VariableName1056157c at10731c44 capacity1024, shared10730414/10560708/10560a58 copies at most1023 payload bytes plus NUL, truncates excess and accepts empty present text. Missing materialization loads402 at10731cc8 and faults10731c94; nonzero delegate result reaches same fault verbatim. Zero commits10731cdc, no outputs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f111a4",
-         "notes": "argument name string"
+         "address": "0x1066abe4",
+         "function": "0x1066abb8",
+         "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10537870",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x1066ac18",
+         "function": "0x1066abb8",
+         "notes": "Builds one-key array atsp+18 and one NULL value word atsp+14 (1066abf8 stwu zero), count1. SystemSettings+164 secondary object at+8: ctor1066a514 installs10efe99c at1066a558; secondary+c=10669a20(table10efe9a8). Thunk subtracts8 then tail-calls10669844. Therefore SAME X_ prefix606 insecure-write denial as SetString. Locks backend+10, dispatches primary+34=1066bee0. Main transaction false->800,true->0; success unlocks and owner+a0 slot+44=104b1e48 receives actual key,NULL value,selector4. Not a boolean-return removal or a call to unrelated account manager."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106c60a0",
+         "function": "0x106c6044",
+         "notes": "Source Setting Name matches requested removal name by strcmp: returns without serializing that entry, so duplicate matching entries are all omitted. Nonmatching entries preserved via106c5f44 escaped XML. Append loop106c62fc..106c6304 skips each NULL requested value. Empty string would instead be nonnull and serialize Value=\"\"; Remove uses NULL. No found-key/absent-key failure predicate exists, so an absent key still runs whole replacement/version/callback on success. Source open failure returnsfalse, no successful removal."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066ab30",
+         "function": "0x1066aa24",
+         "notes": "UMTracking402 exists only in SetString branch1066ab30..1066ab68, bypassed by Remove1066abb8. Removing UMTracking operates on SystemSettings XML, not household userMetricsTracking JSON. GetString10669db4 compares UMTracking and calls105c99c8 ->household category2/key userMetricsTracking via105c94f0/105c9358, returning Report/NoReport independently of this XML deletion. No userMetricsTracking household-file write is reachable from Remove UMTracking."
         }
        ],
-       "notes": null,
+       "notes": "This is not household-setting deletion or account removal. No StringValue input; NULL is synthesized by delegate.",
        "buf_cap": 1024,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `VariableName` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +16 (site 0x10731c78) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `VariableName` = verbatim forward to impl vfunc +16 (obj *(r3-in+0x4), call site 0x10731c78); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Remove1066abb8 validates the key and routes through statically resolved SystemSettings secondary thunk10669a20 to common writer10669844 with one NULL value."
        ]
       }
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Required bounded string must materialize. Property validator runs with NULL proposed value, not empty text: retains reserved-key/existing-ID/experiment predicates, skips nonnull-only value and URL gates. Backend still rejects X_. No generic key-existence check or XML encoding validator.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10731bf8",
-        "notes": "wrapper family decode"
+        "address": "0x10731c78",
+        "function": "0x10731bf8",
+        "notes": "Delegate104b0e84 vptr10ed75c4 installed104b0f94; handler10732e94 at1018e594 stores delegate+4 and vptr10f110a8. Remove handler calls delegate+10=1066abb8 at10731c78. Required tag7 VariableName1056157c at10731c44 capacity1024, shared10730414/10560708/10560a58 copies at most1023 payload bytes plus NUL, truncates excess and accepts empty present text. Missing materialization loads402 at10731cc8 and faults10731c94; nonzero delegate result reaches same fault verbatim. Zero commits10731cdc, no outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066abe4",
+        "function": "0x1066abb8",
+        "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066ac18",
+        "function": "0x1066abb8",
+        "notes": "Builds one-key array atsp+18 and one NULL value word atsp+14 (1066abf8 stwu zero), count1. SystemSettings+164 secondary object at+8: ctor1066a514 installs10efe99c at1066a558; secondary+c=10669a20(table10efe9a8). Thunk subtracts8 then tail-calls10669844. Therefore SAME X_ prefix606 insecure-write denial as SetString. Locks backend+10, dispatches primary+34=1066bee0. Main transaction false->800,true->0; success unlocks and owner+a0 slot+44=104b1e48 receives actual key,NULL value,selector4. Not a boolean-return removal or a call to unrelated account manager."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106c60a0",
+        "function": "0x106c6044",
+        "notes": "Source Setting Name matches requested removal name by strcmp: returns without serializing that entry, so duplicate matching entries are all omitted. Nonmatching entries preserved via106c5f44 escaped XML. Append loop106c62fc..106c6304 skips each NULL requested value. Empty string would instead be nonnull and serialize Value=\"\"; Remove uses NULL. No found-key/absent-key failure predicate exists, so an absent key still runs whole replacement/version/callback on success. Source open failure returnsfalse, no successful removal."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x10]",
+      "description": "Named VariableName must be present and SystemSettings initialized. Key need not exist, but source must open and main rewrite must succeed. Existing nonempty/nonzero CustomerID cannot be removed. O_ZONE_EXPERIMENTS retains devmode option0x28 gate; URL removal has no option0x12 gate. No account/household-file operation is required.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10731c78",
         "function": "0x10731bf8",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Delegate104b0e84 vptr10ed75c4 installed104b0f94; handler10732e94 at1018e594 stores delegate+4 and vptr10f110a8. Remove handler calls delegate+10=1066abb8 at10731c78. Required tag7 VariableName1056157c at10731c44 capacity1024, shared10730414/10560708/10560a58 copies at most1023 payload bytes plus NUL, truncates excess and accepts empty present text. Missing materialization loads402 at10731cc8 and faults10731c94; nonzero delegate result reaches same fault verbatim. Zero commits10731cdc, no outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066abe4",
+        "function": "0x1066abb8",
+        "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066ac18",
+        "function": "0x1066abb8",
+        "notes": "Builds one-key array atsp+18 and one NULL value word atsp+14 (1066abf8 stwu zero), count1. SystemSettings+164 secondary object at+8: ctor1066a514 installs10efe99c at1066a558; secondary+c=10669a20(table10efe9a8). Thunk subtracts8 then tail-calls10669844. Therefore SAME X_ prefix606 insecure-write denial as SetString. Locks backend+10, dispatches primary+34=1066bee0. Main transaction false->800,true->0; success unlocks and owner+a0 slot+44=104b1e48 receives actual key,NULL value,selector4. Not a boolean-return removal or a call to unrelated account manager."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bf44",
+        "function": "0x1066bee0",
+        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066ab30",
+        "function": "0x1066aa24",
+        "notes": "UMTracking402 exists only in SetString branch1066ab30..1066ab68, bypassed by Remove1066abb8. Removing UMTracking operates on SystemSettings XML, not household userMetricsTracking JSON. GetString10669db4 compares UMTracking and calls105c99c8 ->household category2/key userMetricsTracking via105c94f0/105c9358, returning Report/NoReport independently of this XML deletion. No userMetricsTracking household-file write is reachable from Remove UMTracking."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x10]",
+      "description": "Uses delegate+164 SystemSettings, secondary vptr10efe99c, primary writer10efe958+34, mutex+10, path+a4(default /opt/settings/syssettings.xml), selector4, LUD+c4/version+e0/recovery+e4/localID+e8/receiver+ec. CustomerID saved value and experiment predicate affect permission. Owner callbacks depend on UpdateID state, override/usage/media/browse caches and selected key-specific state, not account-manager return domains.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10731bf8",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x10]']"
+        "address": "0x1066abe4",
+        "function": "0x1066abb8",
+        "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066ac18",
+        "function": "0x1066abb8",
+        "notes": "Builds one-key array atsp+18 and one NULL value word atsp+14 (1066abf8 stwu zero), count1. SystemSettings+164 secondary object at+8: ctor1066a514 installs10efe99c at1066a558; secondary+c=10669a20(table10efe9a8). Thunk subtracts8 then tail-calls10669844. Therefore SAME X_ prefix606 insecure-write denial as SetString. Locks backend+10, dispatches primary+34=1066bee0. Main transaction false->800,true->0; success unlocks and owner+a0 slot+44=104b1e48 receives actual key,NULL value,selector4. Not a boolean-return removal or a call to unrelated account manager."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1068ab6c",
+        "function": "0x1068ab6c",
+        "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bfec",
+        "function": "0x1066bee0",
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b4ac",
+        "function": "0x1066b320",
+        "notes": "Successful removal, even absent key: lock+170 increments delegate+204 UpdateID and dirty+200=1;1067c6ec(delegate+8) schedules SystemProperties UPnP source.1066ad04 serializer emits CustomerID and dirty UpdateID; full/coalesced snapshots additionally include UpdateIDX/ThirdPartyHash.1066d22c queues SystemPropertiesChangeEvent through100f14ec: source sysprop, removal key, empty value string(NULL mapped at1066b4ac),securefalse(selector4!=9). No distinct removal flag or direct WSS topic established. Queue failure/missing event loop is ignored, not SOAP failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1e48",
+        "function": "0x104b1e48",
+        "notes": "Remove success shares owner callbacks, with key nonnull/value NULL.1066b320 increments UpdateID/dirty and notifies; NULL value becomes empty event string at1066b4ac. Trial key reads R_TrialZPSerial; missing read skips10719e24 so removal does not clear cached trial serial. RadioLocation calls1037e40c to increment radio container+12c and submit R: update via10117654 with LUD/version. VolNorm/Crossfade reread through backend+1c; absent value skips ChsrcSysSettingsEvt, otherwise copies raw cap32 string via1051a390/1051a3f0 and queues104b3d64. Airplay reread absent/failing strict unsigned parser skips AirplayIncludeGroupedEvt; otherwise104b4cf4 queues numeric!=0. Shared10121518 media visibility and10110ee0 browse-sort refreshers still run. Removing R_BrowseByFolderSort can immediately seed Tracknum with nested SetString; deleting R_CustomerID during malformed-source recovery may be followed by secondary restoration from nonempty registration cache. No generic guarantee that every key remains absent."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to *(impl+0x4)->v[+0x10]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Rewrites XML omitting every matching parsed Setting and appending no replacement for the NULL requested value; preserves unrelated parsed entries. Successful absent-key removal still replaces file and advances version/UpdateID. Open/write/size/close/rename failures map800; ignored fflush/fsync and secondary recovery-write failures do not. Malformed opened source can lose unparsed entries or emit a fresh root without factory seeds; secondary recovery may restore registration CustomerID. Shared browse-sort refresher can recreate removed R_BrowseByFolderSort=Tracknum. UMTracking removes XML only, leaving household JSON setting unchanged.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10731bf8",
-         "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x10] (call-derived member-method semantics)"
+         "address": "0x1066ac18",
+         "function": "0x1066abb8",
+         "notes": "Builds one-key array atsp+18 and one NULL value word atsp+14 (1066abf8 stwu zero), count1. SystemSettings+164 secondary object at+8: ctor1066a514 installs10efe99c at1066a558; secondary+c=10669a20(table10efe9a8). Thunk subtracts8 then tail-calls10669844. Therefore SAME X_ prefix606 insecure-write denial as SetString. Locks backend+10, dispatches primary+34=1066bee0. Main transaction false->800,true->0; success unlocks and owner+a0 slot+44=104b1e48 receives actual key,NULL value,selector4. Not a boolean-return removal or a call to unrelated account manager."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106c60a0",
+         "function": "0x106c6044",
+         "notes": "Source Setting Name matches requested removal name by strcmp: returns without serializing that entry, so duplicate matching entries are all omitted. Nonmatching entries preserved via106c5f44 escaped XML. Append loop106c62fc..106c6304 skips each NULL requested value. Empty string would instead be nonnull and serialize Value=\"\"; Remove uses NULL. No found-key/absent-key failure predicate exists, so an absent key still runs whole replacement/version/callback on success. Source open failure returnsfalse, no successful removal."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bf44",
+         "function": "0x1066bee0",
+         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bfec",
+         "function": "0x1066bee0",
+         "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066b4ac",
+         "function": "0x1066b320",
+         "notes": "Successful removal, even absent key: lock+170 increments delegate+204 UpdateID and dirty+200=1;1067c6ec(delegate+8) schedules SystemProperties UPnP source.1066ad04 serializer emits CustomerID and dirty UpdateID; full/coalesced snapshots additionally include UpdateIDX/ThirdPartyHash.1066d22c queues SystemPropertiesChangeEvent through100f14ec: source sysprop, removal key, empty value string(NULL mapped at1066b4ac),securefalse(selector4!=9). No distinct removal flag or direct WSS topic established. Queue failure/missing event loop is ignored, not SOAP failure."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b1ed4",
+         "function": "0x104b1e48",
+         "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b1e48",
+         "function": "0x104b1e48",
+         "notes": "Remove success shares owner callbacks, with key nonnull/value NULL.1066b320 increments UpdateID/dirty and notifies; NULL value becomes empty event string at1066b4ac. Trial key reads R_TrialZPSerial; missing read skips10719e24 so removal does not clear cached trial serial. RadioLocation calls1037e40c to increment radio container+12c and submit R: update via10117654 with LUD/version. VolNorm/Crossfade reread through backend+1c; absent value skips ChsrcSysSettingsEvt, otherwise copies raw cap32 string via1051a390/1051a3f0 and queues104b3d64. Airplay reread absent/failing strict unsigned parser skips AirplayIncludeGroupedEvt; otherwise104b4cf4 queues numeric!=0. Shared10121518 media visibility and10110ee0 browse-sort refreshers still run. Removing R_BrowseByFolderSort can immediately seed Tracknum with nested SetString; deleting R_CustomerID during malformed-source recovery may be followed by secondary restoration from nonempty registration cache. No generic guarantee that every key remains absent."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066ab30",
+         "function": "0x1066aa24",
+         "notes": "UMTracking402 exists only in SetString branch1066ab30..1066ab68, bypassed by Remove1066abb8. Removing UMTracking operates on SystemSettings XML, not household userMetricsTracking JSON. GetString10669db4 compares UMTracking and calls105c99c8 ->household category2/key userMetricsTracking via105c94f0/105c9358, returning Report/NoReport independently of this XML deletion. No userMetricsTracking household-file write is reachable from Remove UMTracking."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v[+0x10]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "On main success, advertises settings version to replication receiver(conditionally queues ReplicatedSettingsChangedEvent), schedules SystemProperties UPnP propertyset(CustomerID,dirty incremented UpdateID), and queues local SystemPropertiesChangeEvent with removal key, empty value,securefalse. No explicit deletion marker is carried by that event. Key-specific radio update still occurs; VolNorm/Crossfade/Airplay events are skipped when their reread now misses. Shared cache changes or nested browse-sort write may trigger further updates. Failure/missing event loop does not change SOAP result; no direct WSS event proven.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10731bf8",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b4ac",
+        "function": "0x1066b320",
+        "notes": "Successful removal, even absent key: lock+170 increments delegate+204 UpdateID and dirty+200=1;1067c6ec(delegate+8) schedules SystemProperties UPnP source.1066ad04 serializer emits CustomerID and dirty UpdateID; full/coalesced snapshots additionally include UpdateIDX/ThirdPartyHash.1066d22c queues SystemPropertiesChangeEvent through100f14ec: source sysprop, removal key, empty value string(NULL mapped at1066b4ac),securefalse(selector4!=9). No distinct removal flag or direct WSS topic established. Queue failure/missing event loop is ignored, not SOAP failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1e48",
+        "function": "0x104b1e48",
+        "notes": "Remove success shares owner callbacks, with key nonnull/value NULL.1066b320 increments UpdateID/dirty and notifies; NULL value becomes empty event string at1066b4ac. Trial key reads R_TrialZPSerial; missing read skips10719e24 so removal does not clear cached trial serial. RadioLocation calls1037e40c to increment radio container+12c and submit R: update via10117654 with LUD/version. VolNorm/Crossfade reread through backend+1c; absent value skips ChsrcSysSettingsEvt, otherwise copies raw cap32 string via1051a390/1051a3f0 and queues104b3d64. Airplay reread absent/failing strict unsigned parser skips AirplayIncludeGroupedEvt; otherwise104b4cf4 queues numeric!=0. Shared10121518 media visibility and10110ee0 browse-sort refreshers still run. Removing R_BrowseByFolderSort can immediately seed Tracknum with nested SetString; deleting R_CustomerID during malformed-source recovery may be followed by secondary restoration from nonempty registration cache. No generic guarantee that every key remains absent."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x10]",
+      "description": "Permission failure leaves main writer uncalled. Successful rewrite removes matching XML entries, increments SystemSettings version modulo32-bit, sets LUD to local ID and clears recovery-needed, then conditionally updates replication cache. UpdateID increments and dirty sets even if key was absent. NULL callback value becomes empty local-event string. Selected removal can retain cached trial serial, clear visibility flags on missing values, or recreate browse sort/registration ID through refresh/recovery; ordinary UMTracking household value is untouched.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10731bf8",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x10]']"
+        "address": "0x1066abe4",
+        "function": "0x1066abb8",
+        "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106c60a0",
+        "function": "0x106c6044",
+        "notes": "Source Setting Name matches requested removal name by strcmp: returns without serializing that entry, so duplicate matching entries are all omitted. Nonmatching entries preserved via106c5f44 escaped XML. Append loop106c62fc..106c6304 skips each NULL requested value. Empty string would instead be nonnull and serialize Value=\"\"; Remove uses NULL. No found-key/absent-key failure predicate exists, so an absent key still runs whole replacement/version/callback on success. Source open failure returnsfalse, no successful removal."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bf44",
+        "function": "0x1066bee0",
+        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bfec",
+        "function": "0x1066bee0",
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b4ac",
+        "function": "0x1066b320",
+        "notes": "Successful removal, even absent key: lock+170 increments delegate+204 UpdateID and dirty+200=1;1067c6ec(delegate+8) schedules SystemProperties UPnP source.1066ad04 serializer emits CustomerID and dirty UpdateID; full/coalesced snapshots additionally include UpdateIDX/ThirdPartyHash.1066d22c queues SystemPropertiesChangeEvent through100f14ec: source sysprop, removal key, empty value string(NULL mapped at1066b4ac),securefalse(selector4!=9). No distinct removal flag or direct WSS topic established. Queue failure/missing event loop is ignored, not SOAP failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1e48",
+        "function": "0x104b1e48",
+        "notes": "Remove success shares owner callbacks, with key nonnull/value NULL.1066b320 increments UpdateID/dirty and notifies; NULL value becomes empty event string at1066b4ac. Trial key reads R_TrialZPSerial; missing read skips10719e24 so removal does not clear cached trial serial. RadioLocation calls1037e40c to increment radio container+12c and submit R: update via10117654 with LUD/version. VolNorm/Crossfade reread through backend+1c; absent value skips ChsrcSysSettingsEvt, otherwise copies raw cap32 string via1051a390/1051a3f0 and queues104b3d64. Airplay reread absent/failing strict unsigned parser skips AirplayIncludeGroupedEvt; otherwise104b4cf4 queues numeric!=0. Shared10121518 media visibility and10110ee0 browse-sort refreshers still run. Removing R_BrowseByFolderSort can immediately seed Tracknum with nested SetString; deleting R_CustomerID during malformed-source recovery may be followed by secondary restoration from nonempty registration cache. No generic guarantee that every key remains absent."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066ab30",
+        "function": "0x1066aa24",
+        "notes": "UMTracking402 exists only in SetString branch1066ab30..1066ab68, bypassed by Remove1066abb8. Removing UMTracking operates on SystemSettings XML, not household userMetricsTracking JSON. GetString10669db4 compares UMTracking and calls105c99c8 ->household category2/key userMetricsTracking via105c94f0/105c9358, returning Report/NoReport independently of this XML deletion. No userMetricsTracking household-file write is reachable from Remove UMTracking."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "0 commits empty response after main rewrite success, including absent key.402 only missing required VariableName.501 exact R_ThirdPartyCredentials;606 X_ prefix;800 protected saved CustomerID or main transaction failure;811 R_AccountTransferMode;812 R_AvailableSoftwareUpdate or denied O_ZONE_EXPERIMENTS gate. No generic800 for key absence, no UMTracking402, and no URL-length/value-parser faults in this NULL path. Callback, queue, sync and secondary recovery failures excluded as described.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10731c78",
         "function": "0x10731bf8",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Delegate104b0e84 vptr10ed75c4 installed104b0f94; handler10732e94 at1018e594 stores delegate+4 and vptr10f110a8. Remove handler calls delegate+10=1066abb8 at10731c78. Required tag7 VariableName1056157c at10731c44 capacity1024, shared10730414/10560708/10560a58 copies at most1023 payload bytes plus NUL, truncates excess and accepts empty present text. Missing materialization loads402 at10731cc8 and faults10731c94; nonzero delegate result reaches same fault verbatim. Zero commits10731cdc, no outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066abe4",
+        "function": "0x1066abb8",
+        "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066ac18",
+        "function": "0x1066abb8",
+        "notes": "Builds one-key array atsp+18 and one NULL value word atsp+14 (1066abf8 stwu zero), count1. SystemSettings+164 secondary object at+8: ctor1066a514 installs10efe99c at1066a558; secondary+c=10669a20(table10efe9a8). Thunk subtracts8 then tail-calls10669844. Therefore SAME X_ prefix606 insecure-write denial as SetString. Locks backend+10, dispatches primary+34=1066bee0. Main transaction false->800,true->0; success unlocks and owner+a0 slot+44=104b1e48 receives actual key,NULL value,selector4. Not a boolean-return removal or a call to unrelated account manager."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106c60a0",
+        "function": "0x106c6044",
+        "notes": "Source Setting Name matches requested removal name by strcmp: returns without serializing that entry, so duplicate matching entries are all omitted. Nonmatching entries preserved via106c5f44 escaped XML. Append loop106c62fc..106c6304 skips each NULL requested value. Empty string would instead be nonnull and serialize Value=\"\"; Remove uses NULL. No found-key/absent-key failure predicate exists, so an absent key still runs whole replacement/version/callback on success. Source open failure returnsfalse, no successful removal."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bf44",
+        "function": "0x1066bee0",
+        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bfec",
+        "function": "0x1066bee0",
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1e48",
+        "function": "0x104b1e48",
+        "notes": "Remove success shares owner callbacks, with key nonnull/value NULL.1066b320 increments UpdateID/dirty and notifies; NULL value becomes empty event string at1066b4ac. Trial key reads R_TrialZPSerial; missing read skips10719e24 so removal does not clear cached trial serial. RadioLocation calls1037e40c to increment radio container+12c and submit R: update via10117654 with LUD/version. VolNorm/Crossfade reread through backend+1c; absent value skips ChsrcSysSettingsEvt, otherwise copies raw cap32 string via1051a390/1051a3f0 and queues104b3d64. Airplay reread absent/failing strict unsigned parser skips AirplayIncludeGroupedEvt; otherwise104b4cf4 queues numeric!=0. Shared10121518 media visibility and10110ee0 browse-sort refreshers still run. Removing R_BrowseByFolderSort can immediately seed Tracknum with nested SetString; deleting R_CustomerID during malformed-source recovery may be followed by secondary restoration from nonempty registration cache. No generic guarantee that every key remains absent."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066ab30",
+        "function": "0x1066aa24",
+        "notes": "UMTracking402 exists only in SetString branch1066ab30..1066ab68, bypassed by Remove1066abb8. Removing UMTracking operates on SystemSettings XML, not household userMetricsTracking JSON. GetString10669db4 compares UMTracking and calls105c99c8 ->household category2/key userMetricsTracking via105c94f0/105c9358, returning Report/NoReport independently of this XML deletion. No userMetricsTracking household-file write is reachable from Remove UMTracking."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10731c94",
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x10)"
+       "code_expr": "402 missing argument or delegate501/606/800/811/812"
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(*(r3-in+0x4),+0x10); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Required VariableName missing.",
        "fault_sites": [
         "0x10731c94"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "Required string descriptor cannot materialize; empty or truncated present text is not rejected here.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10731bf8",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10731bf8",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10731c78",
+           "function": "0x10731bf8",
+           "notes": "Delegate104b0e84 vptr10ed75c4 installed104b0f94; handler10732e94 at1018e594 stores delegate+4 and vptr10f110a8. Remove handler calls delegate+10=1066abb8 at10731c78. Required tag7 VariableName1056157c at10731c44 capacity1024, shared10730414/10560708/10560a58 copies at most1023 payload bytes plus NUL, truncates excess and accepts empty present text. Missing materialization loads402 at10731cc8 and faults10731c94; nonzero delegate result reaches same fault verbatim. Zero commits10731cdc, no outputs."
           }
          ]
         }
@@ -99747,129 +100045,202 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10731bf8",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10731bf8",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10731c78",
+         "function": "0x10731bf8",
+         "notes": "Delegate104b0e84 vptr10ed75c4 installed104b0f94; handler10732e94 at1018e594 stores delegate+4 and vptr10f110a8. Remove handler calls delegate+10=1066abb8 at10731c78. Required tag7 VariableName1056157c at10731c44 capacity1024, shared10730414/10560708/10560a58 copies at most1023 payload bytes plus NUL, truncates excess and accepts empty present text. Missing materialization loads402 at10731cc8 and faults10731c94; nonzero delegate result reaches same fault verbatim. Zero commits10731cdc, no outputs."
         }
-       ],
-       "unresolved": {
-        "proven": "impl vfunc rc surfaced",
-        "unknown": "concrete rc vocabulary for this operation",
-        "knowledge": "; store-object *(svc+4) vfunc +0x10 = worker f_10188024 at 0x10731c78; recorded impl vfunc same no-op filler as GetString",
-        "call_sources": [
-         "store-object *(svc+4) vfunc +0x10 = worker f_10188024 at 0x10731c78"
-        ],
-        "return_path": "zone-object keyed-lookup chain (0x11097914 singleton -> f_10705d54 -> +0x6c/+0x178 -> f_1068fa60) - zone rc",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_10188024": {
-          "lits": [
-           28,
-           200
-          ],
-          "pt": 0
-         },
-         "f_10705d54": {
-          "lits": [
-           20,
-           384
-          ],
-          "pt": 3
-         },
-         "f_1068fa60": {
-          "lits": [
-           -2
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x10537870",
-         "lits": [
-          0,
-          1,
-          2,
-          28,
-          9536
-         ],
-         "passthrough_exits": 7
-        },
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "observable": [
-        {
-         "op": "recorded-impl",
-         "result": "Remove",
-         "basis": "disassembled impl body + store-vfunc mapping",
-         "provenance": "disas0x10e97e10"
-        }
-       ],
-       "worker_literal_bound": [
-        200,
-        200,
-        200
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x10); parse/req-layer; sites: 0x10731c94).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1066a788",
-         "notes": "sp_impl {800,811,812}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1028ef24",
-         "notes": "accountsmgr update {803,806,809,810}"
-        }
+       "code": 501,
+       "meaning": "Third-party credentials removal denied.",
+       "fault_sites": [
+        "0x10731c94"
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Exact R_ThirdPartyCredentials validator rejection.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1066a788",
-           "notes": "sp_impl {800,811,812}"
+           "address": "0x1066abe4",
+           "function": "0x1066abb8",
+           "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066abe4",
+         "function": "0x1066abb8",
+         "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+        }
+       ]
+      },
+      {
+       "code": 606,
+       "meaning": "Insecure X_-prefixed setting mutation denied.",
+       "fault_sites": [
+        "0x10731c94"
+       ],
+       "conditions": [
+        {
+         "description": "Secondary removal thunk reaches the same10669844 prefix gate as SetString.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066ac18",
+           "function": "0x1066abb8",
+           "notes": "Builds one-key array atsp+18 and one NULL value word atsp+14 (1066abf8 stwu zero), count1. SystemSettings+164 secondary object at+8: ctor1066a514 installs10efe99c at1066a558; secondary+c=10669a20(table10efe9a8). Thunk subtracts8 then tail-calls10669844. Therefore SAME X_ prefix606 insecure-write denial as SetString. Locks backend+10, dispatches primary+34=1066bee0. Main transaction false->800,true->0; success unlocks and owner+a0 slot+44=104b1e48 receives actual key,NULL value,selector4. Not a boolean-return removal or a call to unrelated account manager."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066ac18",
+         "function": "0x1066abb8",
+         "notes": "Builds one-key array atsp+18 and one NULL value word atsp+14 (1066abf8 stwu zero), count1. SystemSettings+164 secondary object at+8: ctor1066a514 installs10efe99c at1066a558; secondary+c=10669a20(table10efe9a8). Thunk subtracts8 then tail-calls10669844. Therefore SAME X_ prefix606 insecure-write denial as SetString. Locks backend+10, dispatches primary+34=1066bee0. Main transaction false->800,true->0; success unlocks and owner+a0 slot+44=104b1e48 receives actual key,NULL value,selector4. Not a boolean-return removal or a call to unrelated account manager."
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "meaning": "Protected CustomerID or failed main XML replacement.",
+       "fault_sites": [
+        "0x10731c94"
+       ],
+       "conditions": [
+        {
+         "description": "Saved ID nonempty except exact0, or source cannot open/main open-write-size-close-rename transaction fails. Absent key alone is not a failure.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066abe4",
+           "function": "0x1066abb8",
+           "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1028ef24",
-           "notes": "accountsmgr update {803,806,809,810}"
+           "address": "0x106c60a0",
+           "function": "0x106c6044",
+           "notes": "Source Setting Name matches requested removal name by strcmp: returns without serializing that entry, so duplicate matching entries are all omitted. Nonmatching entries preserved via106c5f44 escaped XML. Append loop106c62fc..106c6304 skips each NULL requested value. Empty string would instead be nonnull and serialize Value=\"\"; Remove uses NULL. No found-key/absent-key failure predicate exists, so an absent key still runs whole replacement/version/callback on success. Source open failure returnsfalse, no successful removal."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066bf44",
+           "function": "0x1066bee0",
+           "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066abe4",
+         "function": "0x1066abb8",
+         "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106c60a0",
+         "function": "0x106c6044",
+         "notes": "Source Setting Name matches requested removal name by strcmp: returns without serializing that entry, so duplicate matching entries are all omitted. Nonmatching entries preserved via106c5f44 escaped XML. Append loop106c62fc..106c6304 skips each NULL requested value. Empty string would instead be nonnull and serialize Value=\"\"; Remove uses NULL. No found-key/absent-key failure predicate exists, so an absent key still runs whole replacement/version/callback on success. Source open failure returnsfalse, no successful removal."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bf44",
+         "function": "0x1066bee0",
+         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+        }
+       ]
+      },
+      {
+       "code": 811,
+       "meaning": "Account transfer mode removal denied.",
+       "fault_sites": [
+        "0x10731c94"
        ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x1028ef24 emits constant set {553, 564, 592, 599, 611, 635, 636, 647, 648, 684, 688, 696, 803, 806, 809, 810} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "conditions": [
+        {
+         "description": "Exact R_AccountTransferMode rejected regardless of NULL value.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066abe4",
+           "function": "0x1066abb8",
+           "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066abe4",
+         "function": "0x1066abb8",
+         "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+        }
+       ]
+      },
+      {
+       "code": 812,
+       "meaning": "Reserved update key or denied experiment mutation.",
+       "fault_sites": [
+        "0x10731c94"
+       ],
+       "conditions": [
+        {
+         "description": "R_AvailableSoftwareUpdate or O_ZONE_EXPERIMENTS when devmode option0x28 predicate false. OnlineUpdateBaseURL removal skips its nonnull-only gate.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066abe4",
+           "function": "0x1066abb8",
+           "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066abe4",
+         "function": "0x1066abb8",
+         "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
+        }
        ]
       }
      ],
@@ -99879,30 +100250,101 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x10731c78",
        "function": "0x10731bf8",
-       "address": "0x10731bf8",
-       "notes": "action wrapper handler"
+       "notes": "Delegate104b0e84 vptr10ed75c4 installed104b0f94; handler10732e94 at1018e594 stores delegate+4 and vptr10f110a8. Remove handler calls delegate+10=1066abb8 at10731c78. Required tag7 VariableName1056157c at10731c44 capacity1024, shared10730414/10560708/10560a58 copies at most1023 payload bytes plus NUL, truncates excess and accepts empty present text. Missing materialization loads402 at10731cc8 and faults10731c94; nonzero delegate result reaches same fault verbatim. Zero commits10731cdc, no outputs."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11168",
-       "notes": "action dispatch table entry"
+       "address": "0x1066abe4",
+       "function": "0x1066abb8",
+       "notes": "Calls1066a788(this,key,NULL). Exact R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812. R_CustomerID reads saved value through backend+1c(cap17, initially empty): any nonempty value except exact0 returns800, including for removal. NULL new value skips CustomerID syntax, Airplay boolean parsing and ContentFiltering numeric parsing. OnlineUpdateBaseURL NULL skips105489fc devmode option0x12 requirement; O_ZONE_EXPERIMENTS still requires10548a2c option0x28, else812. Both predicates use1054bdc8/1054bd60/ZZ0018 with true iff result1. UMTracking denial and URL slash/length normalization occur only in SetString1066aa24, not this Remove path."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10537870",
-       "notes": "shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x10; NULL STUB impl (2-insn no-op)"
+       "address": "0x1066ac18",
+       "function": "0x1066abb8",
+       "notes": "Builds one-key array atsp+18 and one NULL value word atsp+14 (1066abf8 stwu zero), count1. SystemSettings+164 secondary object at+8: ctor1066a514 installs10efe99c at1066a558; secondary+c=10669a20(table10efe9a8). Thunk subtracts8 then tail-calls10669844. Therefore SAME X_ prefix606 insecure-write denial as SetString. Locks backend+10, dispatches primary+34=1066bee0. Main transaction false->800,true->0; success unlocks and owner+a0 slot+44=104b1e48 receives actual key,NULL value,selector4. Not a boolean-return removal or a call to unrelated account manager."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106c60a0",
+       "function": "0x106c6044",
+       "notes": "Source Setting Name matches requested removal name by strcmp: returns without serializing that entry, so duplicate matching entries are all omitted. Nonmatching entries preserved via106c5f44 escaped XML. Append loop106c62fc..106c6304 skips each NULL requested value. Empty string would instead be nonnull and serialize Value=\"\"; Remove uses NULL. No found-key/absent-key failure predicate exists, so an absent key still runs whole replacement/version/callback on success. Source open failure returnsfalse, no successful removal."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1068ab6c",
+       "function": "0x1068ab6c",
+       "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066bf44",
+       "function": "0x1066bee0",
+       "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066bfec",
+       "function": "0x1066bee0",
+       "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1019911c",
+       "function": "0x10198e54",
+       "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066b4ac",
+       "function": "0x1066b320",
+       "notes": "Successful removal, even absent key: lock+170 increments delegate+204 UpdateID and dirty+200=1;1067c6ec(delegate+8) schedules SystemProperties UPnP source.1066ad04 serializer emits CustomerID and dirty UpdateID; full/coalesced snapshots additionally include UpdateIDX/ThirdPartyHash.1066d22c queues SystemPropertiesChangeEvent through100f14ec: source sysprop, removal key, empty value string(NULL mapped at1066b4ac),securefalse(selector4!=9). No distinct removal flag or direct WSS topic established. Queue failure/missing event loop is ignored, not SOAP failure."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b1ed4",
+       "function": "0x104b1e48",
+       "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b1e48",
+       "function": "0x104b1e48",
+       "notes": "Remove success shares owner callbacks, with key nonnull/value NULL.1066b320 increments UpdateID/dirty and notifies; NULL value becomes empty event string at1066b4ac. Trial key reads R_TrialZPSerial; missing read skips10719e24 so removal does not clear cached trial serial. RadioLocation calls1037e40c to increment radio container+12c and submit R: update via10117654 with LUD/version. VolNorm/Crossfade reread through backend+1c; absent value skips ChsrcSysSettingsEvt, otherwise copies raw cap32 string via1051a390/1051a3f0 and queues104b3d64. Airplay reread absent/failing strict unsigned parser skips AirplayIncludeGroupedEvt; otherwise104b4cf4 queues numeric!=0. Shared10121518 media visibility and10110ee0 browse-sort refreshers still run. Removing R_BrowseByFolderSort can immediately seed Tracknum with nested SetString; deleting R_CustomerID during malformed-source recovery may be followed by secondary restoration from nonempty registration cache. No generic guarantee that every key remains absent."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066ab30",
+       "function": "0x1066aa24",
+       "notes": "UMTracking402 exists only in SetString branch1066ab30..1066ab68, bypassed by Remove1066abb8. Removing UMTracking operates on SystemSettings XML, not household userMetricsTracking JSON. GetString10669db4 compares UMTracking and calls105c99c8 ->household category2/key userMetricsTracking via105c94f0/105c9358, returning Report/NoReport independently of this XML deletion. No userMetricsTracking household-file write is reachable from Remove UMTracking."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10731bf8; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Removes XML entries, not a file or household JSON field. Empty-valued SetString differs from this NULL value. Successful response does not guarantee selected key remains absent after refresh/recovery.",
+     "implementation_notes": "10731bf8 ->delegate+10=1066abb8 ->1066a788(key,NULL) ->SystemSettings+8 secondary+c=10669a20 ->10669844 ->1066bee0/106c6118. Source omission106c6044 and NULL-append skip106c6304 prove deletion. Generic account/favorites rc ladders and shared-manager no-op claims do not apply."
     },
     "RemoveAccount": {
      "description": "Removes AccountType/AccountID via impl->v[+0x20].",
