@@ -39501,7 +39501,7 @@
      "notes": "BackupQueue uses the shared SavedQueues XML/compression serializer with its own explicit trackqueue.rsq filename and fixed queue-backed flags. This does not make SaveQueue/CreateSavedQueue/AddURIToSavedQueue/ReorderTracksInSavedQueue error ladders reachable. Cleanup registration is conditional and its callback uses a stat timestamp comparison; do not describe this action as guaranteed permanent persistence or guaranteed deletion exactly five minutes later."
     },
     "BecomeCoordinatorOfStandaloneGroup": {
-     "description": "Promotes this player to coordinator of its standalone group. Impl f_102d5524 logs \"avt_impl\" \"BecomeCoordinatorOfStandaloneGroup\", takes impl+0x458, enforces InstanceID==0 (718), then runs the coordinator-promotion path which builds the DelegatedGroupCoordinatorID/NewGroupID outputs. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102d5524) and B (vtable 0x10edfbb8, impl 0x10513244) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.",
+     "description": "Runs standalone coordinator setup and returns two string outputs on success. The group-aware engine can reject the transition with 1023 before the base handler runs.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8b04",
@@ -39593,13 +39593,25 @@
          "build": "86.10-80260",
          "function": "0x102d5524",
          "notes": "impl loads rc 0x2ce (718) on the InstanceID!=0 branch; convention verified across AVT impls"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d55c4",
+         "notes": "Conditional select stores 718 in r29 for nonzero InstanceID, or zero for ID zero. With the mutex held, f_1011f1bc fills a 25-byte scratch record; 0x102d55e8 selects its address or NULL as f_102d4e80 r4. All four output/capacity operands are forwarded unchanged. Worker return is not copied to r29.",
+         "function": "0x102d5524"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1051332c",
+         "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+         "function": "0x10513244"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +84 (site 0x102f8bdc) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +84 (obj r5-in, call site 0x102f8bdc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -39607,7 +39619,7 @@
      },
      "outputs": {
       "DelegatedGroupCoordinatorID": {
-       "description": "Group/coordinator identity written by the promotion path on success.",
+       "description": "String from the engine's 33-byte zero-initialized output buffer, passed in r5/r6 with its capacity. Returned on success.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -39627,32 +39639,34 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f8bfc",
-         "notes": "out-arg access site"
+         "address": "0x102f8bdc",
+         "notes": "Engine +0x54 receives InstanceID, a zeroed 33-byte output buffer in r5 with capacity 0x21 in r6, and a zeroed 36-byte buffer in r7 with capacity 0x24 in r8. Wrapper sets both descriptors, then faults on the engine return or commits.",
+         "function": "0x102f8b04"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3248",
-         "notes": "argument name string"
+         "address": "0x102d55c4",
+         "notes": "Conditional select stores 718 in r29 for nonzero InstanceID, or zero for ID zero. With the mutex held, f_1011f1bc fills a 25-byte scratch record; 0x102d55e8 selects its address or NULL as f_102d4e80 r4. All four output/capacity operands are forwarded unchanged. Worker return is not copied to r29.",
+         "function": "0x102d5524"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102d5524",
-         "notes": "promotion impl fills the out record"
+         "address": "0x102f8c10",
+         "notes": "Copies the engine's 33-byte zero-initialized output storage into the response descriptor.",
+         "function": "0x102f8b04"
         }
        ],
-       "notes": null,
+       "notes": "Trace writes through the r5/r6 argument pair forwarded to f_102d4e80.",
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `DelegatedGroupCoordinatorID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Identify the exact source of DelegatedGroupCoordinatorID in f_102d4e80 and its callees and which promotion branches leave the string empty."
        ]
       },
       "NewGroupID": {
-       "description": "Group/coordinator identity written by the promotion path on success.",
+       "description": "String from the engine's 36-byte zero-initialized output buffer, passed in r7/r8 with its capacity. Returned on success.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -39672,28 +39686,30 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f8c2c",
-         "notes": "out-arg access site"
+         "address": "0x102f8bdc",
+         "notes": "Engine +0x54 receives InstanceID, a zeroed 33-byte output buffer in r5 with capacity 0x21 in r6, and a zeroed 36-byte buffer in r7 with capacity 0x24 in r8. Wrapper sets both descriptors, then faults on the engine return or commits.",
+         "function": "0x102f8b04"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3264",
-         "notes": "argument name string"
+         "address": "0x102d55c4",
+         "notes": "Conditional select stores 718 in r29 for nonzero InstanceID, or zero for ID zero. With the mutex held, f_1011f1bc fills a 25-byte scratch record; 0x102d55e8 selects its address or NULL as f_102d4e80 r4. All four output/capacity operands are forwarded unchanged. Worker return is not copied to r29.",
+         "function": "0x102d5524"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102d5524",
-         "notes": "promotion impl"
+         "address": "0x102f8c40",
+         "notes": "Copies the engine's 36-byte zero-initialized output storage into the response descriptor.",
+         "function": "0x102f8b04"
         }
        ],
-       "notes": null,
+       "notes": "Trace writes through the r7/r8 argument pair forwarded to f_102d4e80.",
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewGroupID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Identify the exact source of NewGroupID in f_102d4e80 and its callees and which promotion branches leave the string empty."
        ]
       }
      },
@@ -39710,19 +39726,32 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×2, raise-fault×2, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r30 v[+?]",
+      "description": "InstanceID must materialize as zero for success. The derived engine can also disallow the transition via its two topology checks before the base handler.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8b04",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x24': 2, '0x10': 2, '0xc': 1, '0x14': 2}"
+        "address": "0x102f8bdc",
+        "notes": "Engine +0x54 receives InstanceID, a zeroed 33-byte output buffer in r5 with capacity 0x21 in r6, and a zeroed 36-byte buffer in r7 with capacity 0x24 in r8. Wrapper sets both descriptors, then faults on the engine return or commits.",
+        "function": "0x102f8b04"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d55c4",
+        "notes": "Conditional select stores 718 in r29 for nonzero InstanceID, or zero for ID zero. With the mutex held, f_1011f1bc fills a 25-byte scratch record; 0x102d55e8 selects its address or NULL as f_102d4e80 r4. All four output/capacity operands are forwarded unchanged. Worker return is not copied to r29.",
+        "function": "0x102d5524"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1051332c",
+        "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+        "function": "0x10513244"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×2, raise-fault×2, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
@@ -39760,51 +39789,80 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Local update calls through f_1067c6ec are separate from the derived wrapper's peer RPC.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8b04",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102d50c4",
+        "notes": "One branch changes mode to 2, marks +0x4658 and calls f_1067c6ec(impl+0x10). Later branches clear old URI fields and invoke the same updater at 0x102d524c and 0x102d52ac.",
+        "function": "0x102d4e80"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1051332c",
+        "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+        "function": "0x10513244"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Map the batched LastChange field updates on each standalone setup branch."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?]",
+      "description": "A base worker branch changes mode to 2 and sets the dirty byte; the derived wrapper can then update peers.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8b04",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+?]']"
+        "address": "0x102d50c4",
+        "notes": "One branch changes mode to 2, marks +0x4658 and calls f_1067c6ec(impl+0x10). Later branches clear old URI fields and invoke the same updater at 0x102d524c and 0x102d52ac.",
+        "function": "0x102d4e80"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1051332c",
+        "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+        "function": "0x10513244"
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace the alternate source/VLI branch and any resulting coordinator and mode fields."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Request materialization failure returns 402; the derived guard can return 1023 before the base engine's 718 check. The base returns zero for ID zero or 718 otherwise; it does not forward the worker's result.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8b04",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x24': 2, '0x10': 2, '0xc': 1, '0x14': 2}"
+        "address": "0x102f8bdc",
+        "notes": "Engine +0x54 receives InstanceID, a zeroed 33-byte output buffer in r5 with capacity 0x21 in r6, and a zeroed 36-byte buffer in r7 with capacity 0x24 in r8. Wrapper sets both descriptors, then faults on the engine return or commits.",
+        "function": "0x102f8b04"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d55c4",
+        "notes": "Conditional select stores 718 in r29 for nonzero InstanceID, or zero for ID zero. With the mutex held, f_1011f1bc fills a 25-byte scratch record; 0x102d55e8 selects its address or NULL as f_102d4e80 r4. All four output/capacity operands are forwarded unchanged. Worker return is not copied to r29.",
+        "function": "0x102d5524"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1051332c",
+        "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+        "function": "0x10513244"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -39818,56 +39876,29 @@
       {
        "code": 718,
        "code_expr": "const",
-       "meaning": "InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine",
+       "meaning": "The base handler returns 718 for nonzero parsed InstanceID. The derived engine can return 1023 before reaching that check.",
        "fault_sites": [
         "0x102f8c78"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument is nonzero",
+         "description": "The base handler returns 718 for nonzero parsed InstanceID. The derived engine can return 1023 before reaching that check.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d5524",
-           "notes": "cmpwi r29,0 -> r9=0x2ce at 0x102d55b8"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102d5524",
-         "notes": "cmpwi r29,0 -> r9=0x2ce at 0x102d55b8"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "const",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: promotion-path domain {718, r29 callee-fwd}",
-       "fault_sites": [],
-       "conditions": [
-        {
-         "description": "the promotion path produced a code not covered by the gate",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102d55d0",
-           "notes": "passthrough path"
+           "address": "0x102d55c4",
+           "notes": "Conditional select stores 718 in r29 for nonzero InstanceID, or zero for ID zero. With the mutex held, f_1011f1bc fills a 25-byte scratch record; 0x102d55e8 selects its address or NULL as f_102d4e80 r4. All four output/capacity operands are forwarded unchanged. Worker return is not copied to r29.",
+           "function": "0x102d5524"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102d5524",
-           "notes": "rc site"
+           "address": "0x1051332c",
+           "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+           "function": "0x10513244"
           }
          ]
         }
@@ -39877,15 +39908,48 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f8c78",
-         "notes": "impl vret passthrough site"
+         "address": "0x102d55c4",
+         "notes": "Conditional select stores 718 in r29 for nonzero InstanceID, or zero for ID zero. With the mutex held, f_1011f1bc fills a 25-byte scratch record; 0x102d55e8 selects its address or NULL as f_102d4e80 r4. All four output/capacity operands are forwarded unchanged. Worker return is not copied to r29.",
+         "function": "0x102d5524"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102d5524",
-         "notes": "worker rc sites decoded"
+         "address": "0x1051332c",
+         "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+         "function": "0x10513244"
+        }
+       ]
+      },
+      {
+       "code": 1023,
+       "code_expr": "const",
+       "meaning": "The group-aware override rejects the transition when f_1075c4d0 is nonzero and f_109089f0 is zero.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "The group-aware override rejects the transition when f_1075c4d0 is nonzero and f_109089f0 is zero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1051332c",
+           "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+           "function": "0x10513244"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1051332c",
+         "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+         "function": "0x10513244"
         }
        ],
        "unresolved": {
@@ -39927,11 +39991,7 @@
         1025,
         1028
        ],
-       "resolved_note": "impl FUN_102d5524: returns 0x2ce=718 if param_2(InstanceID-path)!=0 else 0; become-coord worker FUN_102d4e80 return NOT surfaced (member-resolve FUN_1011f1bc gates target).",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "resolved_note": "impl FUN_102d5524: returns 0x2ce=718 if param_2(InstanceID-path)!=0 else 0; become-coord worker FUN_102d4e80 return NOT surfaced (member-resolve FUN_1011f1bc gates target)."
       },
       {
        "code": 402,
@@ -39967,37 +40027,48 @@
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "meaning": "The standalone worker does not forward session or streamer return codes to the request.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102d55c4",
+         "notes": "Conditional select stores 718 in r29 for nonzero InstanceID, or zero for ID zero. With the mutex held, f_1011f1bc fills a 25-byte scratch record; 0x102d55e8 selects its address or NULL as f_102d4e80 r4. All four output/capacity operands are forwarded unchanged. Worker return is not copied to r29.",
+         "function": "0x102d5524"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1051332c",
+         "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+         "function": "0x10513244"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "The standalone worker does not forward session or streamer return codes to the request.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102d55c4",
+           "notes": "Conditional select stores 718 in r29 for nonzero InstanceID, or zero for ID zero. With the mutex held, f_1011f1bc fills a 25-byte scratch record; 0x102d55e8 selects its address or NULL as f_102d4e80 r4. All four output/capacity operands are forwarded unchanged. Worker return is not copied to r29.",
+           "function": "0x102d5524"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1051332c",
+           "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+           "function": "0x10513244"
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
        ]
       }
      ],
@@ -40024,12 +40095,59 @@
        "build": "86.10-80260",
        "function": "0x102d5524",
        "notes": "AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x10513244 slot +0x54 entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f8bdc",
+       "notes": "Engine +0x54 receives InstanceID, a zeroed 33-byte output buffer in r5 with capacity 0x21 in r6, and a zeroed 36-byte buffer in r7 with capacity 0x24 in r8. Wrapper sets both descriptors, then faults on the engine return or commits.",
+       "function": "0x102f8b04"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d55c4",
+       "notes": "Conditional select stores 718 in r29 for nonzero InstanceID, or zero for ID zero. With the mutex held, f_1011f1bc fills a 25-byte scratch record; 0x102d55e8 selects its address or NULL as f_102d4e80 r4. All four output/capacity operands are forwarded unchanged. Worker return is not copied to r29.",
+       "function": "0x102d5524"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1051332c",
+       "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+       "function": "0x10513244"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d50c4",
+       "notes": "One branch changes mode to 2, marks +0x4658 and calls f_1067c6ec(impl+0x10). Later branches clear old URI fields and invoke the same updater at 0x102d524c and 0x102d52ac.",
+       "function": "0x102d4e80"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f8c10",
+       "notes": "Copies the engine's 33-byte zero-initialized output storage into the response descriptor.",
+       "function": "0x102f8b04"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f8c40",
+       "notes": "Copies the engine's 36-byte zero-initialized output storage into the response descriptor.",
+       "function": "0x102f8b04"
       }
      ],
      "notes": "None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x10513244 - grouped gate: topology singleton + state predicate + f_1075c4d0 precondition on impl+0x44c; error path uses 0x3ff (1023). Ungrouped zones get identical behavior to the standalone engine for the Become* actions.",
      "todo": [
-      "Established: dispatch to handler 0x102f8b04; engine-class split documented - group-capable engine (vtable 0x10edfbb8) dispatches to 0x10513244 with topology singleton + state predicate + f_1075c4d0 precondition.",
-      "Residual: the f_1075c4d0 precondition's contents and the grouped-gate ordering. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Determine the exact output group-ID producers and the state effects of the standalone worker when called on different starting sources."
      ],
      "resolved_findings": [
       "Resolved: f_1075c4d0 is the precondition checker - gates on current coordinator state and transport-busy flag before the standalone-coordinator claim proceeds.",
