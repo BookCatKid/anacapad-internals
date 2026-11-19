@@ -68370,13 +68370,21 @@
          "function": "0x104614b4",
          "address": "0x104616d4",
          "notes": "m3u parser checks callback slot +0x24 against no-op f_10151018"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10460a50",
+         "address": "0x10460b40",
+         "notes": "emitter checks callback slot +0x8 against f_100d1218"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
         "Established: tokens are bounded to 0..inserted count (402 otherwise) and are not passed to the commit; job+0x1464 holds a single-value argument and job+0x1468 counts items before it. The number of tokens (not their values) sets how many existing tracks the pre-commit trim f_102f7798 keeps (see side_effects).",
-        "Residual: on the f_10144f10 and f_1014b700 expansion paths, f_1015108c counts every expanded item. In the m3u parser the callback is reached only through slot +0x24, the no-op f_10151018, so m3u items do not update the count. The asx/wax, pls, wpl, x-file-cifs:// and .rsq parsers have not been checked the same way. Whether their items update job+0x1468 is therefore still open."
+        "Residual: f_1015108c counts every item on the f_10144f10 and f_1014b700 expansion paths, and m3u entries are not counted. The asx/wax, pls, wpl, x-file-cifs:// and .rsq parsers also reach f_10461048 and f_10460a50, but they have not been traced register by register to confirm they pass the same callback object. So it is not established that their entries are uncounted too."
        ],
        "resolved_findings": [
         "Resolved: post-parse handling of `NewCurrentTrackIndices` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -68385,7 +68393,7 @@
         "Established (job+0x1464/0x1468): when the argument has no comma, f_102f7634 stores strtol(text, NULL, 10) at job+0x1464 (strchr ',' at 0x102f775c, store at 0x102f7778). The per-entry callback f_102f7a50 passes job+0x1464 and &job+0x1468 to f_1014f808 (0x102f7a9c..0x102f7abc), which hands them to the row initialiser f_1014b270 (0x1014f964, 0x1014f970). That stores the index at row+0x77c (0x1014b35c) and the pointer at row+0x780 (0x1014b344). f_1015108c, called once per item with a running counter at ctx+8, increments *row+0x780 while the counter is below the index and the index is above the current value (0x10151098..0x101510b8). So job+0x1468 counts expanded items seen before that index, and the check at 0x102f7eac uses the index minus that count.",
         "Established (who calls f_1015108c): the table holding f_1015108c is the vtable 0x10e93668 (f_1015108c is slot +0x20, at 0x10e93688). It is referenced in code: f_1014cdd0 stores it as a vptr (0x1014cdd8), and f_10144f10 (0x10144f84), f_10146300 (0x1014633c), f_1014b700 (0x1014b814) and f_1014fd08 (0x1014fe14) build stack callback objects with it. f_1014f808, which the per-entry callback f_102f7a50 calls, reaches f_1014f48c at 0x1014f984, and f_1014f48c calls f_10144f10 (0x1014f6c0) and f_1014b700 (0x1014f600). Both pass the callback to the walker f_10153fe0, which calls f_10153e98 (0x1015421c). f_10153e98 builds each item and calls callback vt+0x20 = f_1015108c(callback, item index = word+4 >> 8, &item) at 0x10153ee8. When that returns 0 it logs and returns 800. In plain terms: while a container URI is expanded, the counter callback runs once for every item the walker produces, so job+0x1468 ends up as the number of expanded items that come before the requested index.",
         "Established (playlist-file path): f_104634c4 sends the URI to a format parser. asx/wax (f_10460320) goes to f_10461e04, m3u/m3u8 (f_104603c4) to f_10462c80, pls (f_10460448) to f_10463164, wpl (f_104604ec) to f_10462f54, x-file-cifs:// (f_10460708) to f_10460814, and .rsq (f_10460550) to the handler at 0x10463660. Up to four call levels below these parsers, none reaches the walker f_10153fe0/f_10153e98, and the only virtual call in the asx, m3u and wpl parser bodies is through slot +0x8. Slot +0x8 of vptr 0x10e93668 is f_100d1218. It sets the item's found flag, increments the running counter at ctx+8, and passes the item to f_10153914 when row+0x788 is 0 and row+0x778 is set. It never writes row+0x780.",
-        "Established (m3u parser and the callback): f_10462c80 passes the callback (kept in r26 from 0x10462cd0) to f_104614b4, which keeps it in r27 (0x104614d4). Its slot +0x8 call at 0x104615b4 is made on the reader object r18 (its own first argument), not on the callback. The only callback use is at 0x104616d4, which loads slot +0x24 and skips the call when it equals f_10151018 (r20, 0x10461554/0x1046157c). f_10151018 is an empty function and is slot +0x24 of vptr 0x10e93668. The callback is also passed to f_10461130 and f_10461048, neither of which loads a vtable slot."
+        "Established (playlist-file entries): every playlist-file parser (asx, m3u, pls, wpl, x-file-cifs:// and .rsq) reaches the shared entry emitter f_10461048, which tail-calls f_10460a50 at 0x1046112c with the callback as r5. In the m3u parser this is traced register by register: f_10462c80 keeps the callback in r26 (0x10462cd0), f_104614b4 keeps it in r27 (0x104614d4), and f_10461048 keeps it in r29. f_10460a50 loads callback slot +0x8 at 0x10460b40 and compares it with f_100d1218 (0x10460b48..0x10460b54). When they match, as they do for vptr 0x10e93668, it runs an inlined copy (0x10460b58..0x10460bc0) that sets the found flag, increments ctx+8 and passes the entry to f_10153914. Neither the copy nor f_10153914, which calls only f_10c3a920, writes row+0x780. Separately, f_104614b4 checks slot +0x24 at 0x104616d4 and skips the call when it is the empty f_10151018. In plain terms: entries read from an m3u playlist file are added to the queue, but they are not counted toward the NewCurrentTrackIndices position count."
        ]
       },
       "NumberOfURIs": {
