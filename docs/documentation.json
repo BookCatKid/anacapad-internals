@@ -4850,7 +4850,7 @@
      ]
     },
     "GetTimeZoneRule": {
-     "description": "Returns the TimeZone rule for Index via impl->v[+0x1c].",
+     "description": "Looks up an explicit timezone ID and returns its compact timezone rule, not XML or a timezone name. Wrapper f_107341cc calls the statically bound ac_impl slot +0x1c at 0x10eaa9b8, worker f_10273280. The worker reads timezones.xml through f_1015a6dc and serializes the selected 14-byte rule as 28 lowercase hexadecimal characters through f_10c3ce18. A missing or unusable table entry yields 28 zero characters with SOAP success, not an out-of-range fault.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107341cc",
@@ -4888,11 +4888,14 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x10273280",
+      "impl_vfunc": "static primary vtable 0x10eaa99c slot +0x1c",
+      "description": "f_10273280 -> f_1015a6dc -> XML parser f_1015bb18 with equality callback f_1015b450; f_10c3ce18 formats the returned rule. The table is file-backed and searched by ID, not an array indexed by Index. There is no hard-coded maximum index in this path."
      },
      "inputs": {
       "Index": {
-       "description": "Timezone-table index to query",
+       "description": "Required timezone ID to match against the ID attribute of a TimeZone entry in timezones.xml. This is independent of the player's currently selected timezone. It is not a positional array offset.",
        "direction": "in",
        "primitive": {
         "type_tag": 5,
@@ -4901,43 +4904,45 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "numeric argument (24-byte record)",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "table index",
-       "range": "u32 index",
-       "special_values": "none identified",
+       "semantic_type": "timezone ID (32-bit strtol result)",
+       "format": "Decimal strtol base 10, optional sign and leading whitespace; numeric prefix is sufficient. At most 23 lexical bytes survive NUL termination.",
+       "unit": "n/a",
+       "accepted_values": "Any present text passes this numeric conversion: no numeric prefix converts to 0, trailing nonnumeric text is ignored, and overflow follows 32-bit libc strtol saturation. The resulting 32-bit value is compared exactly with a nonnegative XML ID.",
+       "range": "No action-level range check; meaningful matches are nonnegative signed 32-bit IDs present in the table, not a compiled 0..N interval.",
+       "special_values": "Empty or nonnumeric text converts to ID 0. Negative results cannot match an eligible XML ID and produce the all-zero rule. Missing argument faults 402.",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Request validation requires Index to be present. Type-tag 5 conversion does not check errno, end pointer, or numeric range. Unknown IDs do not fault.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073420c",
-         "notes": "in-arg access site"
+         "function": "0x10560a58",
+         "address": "0x10eebbf0",
+         "callsite": "0x10734214",
+         "notes": "f_10561514 registers required type-tag 5 with 24-byte lexical buffer. Jump table base 0x10eebbdc entry 5 resolves to 0x10560b24: strtol(text,NULL,10), storing all 32 bits, with no errno, end-pointer or range check. f_10560708 caps lexical bytes at 24; finalization terminates at recorded length or overwrites byte 23 when full. f_10730414 requires argument record present/valid, not numeric syntax. Missing Index returns validation 0 and the wrapper loads 402 at 0x107342a0."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f27ab4",
-         "notes": "argument name string"
+         "function": "0x1015a6dc",
+         "address": "0x1015a72c",
+         "callsite": "0x102732d4",
+         "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10734a40",
-         "notes": "impl consumes the arg"
+         "function": "0x1015a190",
+         "address": "0x1015a1d4",
+         "callsite": "0x1015a5cc",
+         "notes": "TimeZone ID defaults -1 and GMTBias defaults 30000, then stores GMTBias low16 at rule+0. f_1015a27c reads Month, Day, Hour, DayOfWeek and Bias, writing standard fields at rule+2..+7 and daylight fields at +8..+13. Standard Bias defaults 0; daylight Bias defaults -60. f_1015a190 zeroes the record then seeds daylight Bias -60. Element-name dispatch table 0x11091980 lists TimeZone, StandardTime, DaylightTime, TimeZones, TimeZoneRules."
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561514) and declared constraints are documented.",
-        "Residual: `Index` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +28 (site 0x10734250) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `Index` = verbatim forward to impl vfunc +28 (obj *(r3-in+0x4), call site 0x10734250); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -4945,159 +4950,268 @@
      },
      "outputs": {
       "TimeZone": {
-       "description": "Timezone rule string at the requested index",
+       "description": "A 28-character lowercase hexadecimal encoding of the 14-byte timezone rule. Fields in order are GMTBias (4 hex digits), standard Month, DayOfWeek, Day, Hour (2 each), standard Bias (4), daylight Month, DayOfWeek, Day, Hour (2 each), daylight Bias (4). Bias values are stored as 16-bit quantities, so negative minute biases appear in two's-complement form. This is the rule data, not a computed next-transition date.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "timezone rule entry",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "semantic_type": "packed timezone rule rendered as hexadecimal text",
+       "format": "28 lowercase hexadecimal characters, no separators or prefix; response buffer capacity 29 including NUL",
+       "unit": "Bias fields are minutes; Month, DayOfWeek, Day and Hour retain the XML rule values.",
+       "accepted_values": "Serialization of the selected rule: %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx",
+       "range": "Exactly 28 characters on success",
+       "special_values": "0000000000000000000000000000 means lookup failed or the table could not supply a usable complete entry; it is not an empty string. For entries without transition children, the initialized daylight Bias is -60 (ffc4) and other transition fields are zero.",
+       "required": true,
+       "default": "none; always emitted on successful validation",
+       "validation": "No output validity gate: even a failed lookup is formatted and committed.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107342bc",
-         "notes": "out-arg access site"
+         "function": "0x10c3ce18",
+         "address": "0x10fb15e0",
+         "callsite": "0x102732e4",
+         "notes": "PIC format pointer resolves to %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx. Arguments are u16 at +0, bytes +2,+3,+4,+5, u16 +6, bytes +8,+9,+10,+11, u16 +12. snprintf capacity is 0x1d. f_10906304 copies to the wrapper buffer with the same capacity at 0x102732fc."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e95444",
-         "notes": "argument name string"
+         "function": "0x1015a190",
+         "address": "0x1015a1d4",
+         "callsite": "0x1015a5cc",
+         "notes": "TimeZone ID defaults -1 and GMTBias defaults 30000, then stores GMTBias low16 at rule+0. f_1015a27c reads Month, Day, Hour, DayOfWeek and Bias, writing standard fields at rule+2..+7 and daylight fields at +8..+13. Standard Bias defaults 0; daylight Bias defaults -60. f_1015a190 zeroes the record then seeds daylight Bias -60. Element-name dispatch table 0x11091980 lists TimeZone, StandardTime, DaylightTime, TimeZones, TimeZoneRules."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10734a40",
-         "notes": "impl writes"
-        }
-       ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `TimeZone`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x107341cc",
-        "notes": "wrapper family decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x1c]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x107341cc",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x1c]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x107341cc",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x1c]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x1c] -> out-arg); result emitted via out-arg; no state mutation in impl path",
-       "evidence": [
+         "function": "0x1015a6dc",
+         "address": "0x1015a72c",
+         "callsite": "0x102732d4",
+         "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
+        },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x107341cc",
-         "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x1c] -> out-arg (call-derived member-method semantics)"
+         "address": "0x1073426c",
+         "callsite": "0x10734228",
+         "notes": "Validation zero branches to 0x1073429c, loads 402 and branches to shared fault slot +0x14 call 0x1073426c. Worker nonzero would use the same call, but the concrete worker returns only 0. Success allocates TimeZone at 0x107342bc, binds text at 0x107342d0 and commits at 0x107342e4. Stack guard failure 0x107342ec is not a SOAP fault."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x1c] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "notes": null
+      }
+     },
+     "validation": {
+      "description": "Index must be present in the request. The type-tag 5 parser uses strtol base 10 without syntax/end-pointer or errno checks; empty and nonnumeric text become zero. No timezone-ID range check is performed by the wrapper or worker. Failed request validation faults 402 before the worker runs.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10eebbf0",
+        "callsite": "0x10734214",
+        "notes": "f_10561514 registers required type-tag 5 with 24-byte lexical buffer. Jump table base 0x10eebbdc entry 5 resolves to 0x10560b24: strtol(text,NULL,10), storing all 32 bits, with no errno, end-pointer or range check. f_10560708 caps lexical bytes at 24; finalization terminates at recorded length or overwrites byte 23 when full. f_10730414 requires argument record present/valid, not numeric syntax. Missing Index returns validation 0 and the wrapper loads 402 at 0x107342a0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107341cc",
+        "address": "0x1073426c",
+        "callsite": "0x10734228",
+        "notes": "Validation zero branches to 0x1073429c, loads 402 and branches to shared fault slot +0x14 call 0x1073426c. Worker nonzero would use the same call, but the concrete worker returns only 0. Success allocates TimeZone at 0x107342bc, binds text at 0x107342d0 and commits at 0x107342e4. Stack guard failure 0x107342ec is not a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1015a6dc",
+        "address": "0x1015a72c",
+        "callsite": "0x102732d4",
+        "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Supply the required Index argument. No coordinator, running-alarm, clock-synchronization or configured-timezone prerequisite is tested. A usable timezones.xml entry is necessary for meaningful rule data, but its absence does not prevent SOAP success.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10eebbf0",
+        "callsite": "0x10734214",
+        "notes": "f_10561514 registers required type-tag 5 with 24-byte lexical buffer. Jump table base 0x10eebbdc entry 5 resolves to 0x10560b24: strtol(text,NULL,10), storing all 32 bits, with no errno, end-pointer or range check. f_10560708 caps lexical bytes at 24; finalization terminates at recorded length or overwrites byte 23 when full. f_10730414 requires argument record present/valid, not numeric syntax. Missing Index returns validation 0 and the wrapper loads 402 at 0x107342a0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273280",
+        "address": "0x102732c8",
+        "callsite": "0x10734250",
+        "notes": "Locks engine+0x170, loads table pointer engine+0x7f0c, calls f_1015a6dc(Index), formats its result, unlocks, copies output, and returns literal zero at 0x10273318. No engine-field store, notifier, scheduler or persistence call. Stack guard failure at 0x1027333c aborts rather than returning a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1015a6dc",
+        "address": "0x1015a72c",
+        "callsite": "0x102732d4",
+        "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Uses the file-backed timezone-table object at engine+0x7f0c, initialized from constructor argument r27 at 0x102763b8. The worker holds engine+0x170 while the lookup also holds table+8. It does not read the configured timezone index at engine+0x218 or the current rule at engine+0x224; it selects the supplied ID from timezones.xml on this call.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273280",
+        "address": "0x102732c8",
+        "callsite": "0x10734250",
+        "notes": "Locks engine+0x170, loads table pointer engine+0x7f0c, calls f_1015a6dc(Index), formats its result, unlocks, copies output, and returns literal zero at 0x10273318. No engine-field store, notifier, scheduler or persistence call. Stack guard failure at 0x1027333c aborts rather than returning a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1015a6dc",
+        "address": "0x1015a72c",
+        "callsite": "0x102732d4",
+        "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10276048",
+        "address": "0x102763b8",
+        "callsite": "0x102732c8",
+        "notes": "Constructor stores the table object pointer; worker loads it immediately before lookup."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only with respect to player settings, alarm records and clock state. Acquires/releases the engine and table locks, reads/parses timezones.xml and writes temporary rule/response buffers. An unsuccessful lookup may emit the diagnostic no timezone data available (%d); it does not write a settings file.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10273280",
+         "address": "0x102732c8",
+         "callsite": "0x10734250",
+         "notes": "Locks engine+0x170, loads table pointer engine+0x7f0c, calls f_1015a6dc(Index), formats its result, unlocks, copies output, and returns literal zero at 0x10273318. No engine-field store, notifier, scheduler or persistence call. Stack guard failure at 0x1027333c aborts rather than returning a SOAP fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1015a6dc",
+         "address": "0x1015a72c",
+         "callsite": "0x102732d4",
+         "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. The concrete worker and lookup perform locking, file reading, parsing, formatting and optional diagnostic logging only. They do not invoke an AlarmClock observer or event publisher.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107341cc",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x10273280",
+        "address": "0x102732c8",
+        "callsite": "0x10734250",
+        "notes": "Locks engine+0x170, loads table pointer engine+0x7f0c, calls f_1015a6dc(Index), formats its result, unlocks, copies output, and returns literal zero at 0x10273318. No engine-field store, notifier, scheduler or persistence call. Stack guard failure at 0x1027333c aborts rather than returning a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1015a6dc",
+        "address": "0x1015a72c",
+        "callsite": "0x102732d4",
+        "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x1c]",
+      "description": "None. Looking up an explicit timezone ID does not select that timezone, change daylight-saving configuration, adjust the clock, or modify alarm scheduling. Both found and missing-entry paths leave those states unchanged.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107341cc",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x1c]']"
+        "function": "0x10273280",
+        "address": "0x102732c8",
+        "callsite": "0x10734250",
+        "notes": "Locks engine+0x170, loads table pointer engine+0x7f0c, calls f_1015a6dc(Index), formats its result, unlocks, copies output, and returns literal zero at 0x10273318. No engine-field store, notifier, scheduler or persistence call. Stack guard failure at 0x1027333c aborts rather than returning a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1015a6dc",
+        "address": "0x1015a72c",
+        "callsite": "0x102732d4",
+        "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Missing Index makes request validation return zero and raises SOAP 402 through the shared fault call at 0x1073426c. Otherwise the concrete worker returns 0, the wrapper emits TimeZone and commits success. Unknown IDs, table open/read/parse failure and unusable entries return the formatted all-zero rule, not 402 or an 800-series error. The worker nonzero-fault branch exists in the wrapper but cannot be reached with this static worker's normal return domain {0}.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10eebbf0",
+        "callsite": "0x10734214",
+        "notes": "f_10561514 registers required type-tag 5 with 24-byte lexical buffer. Jump table base 0x10eebbdc entry 5 resolves to 0x10560b24: strtol(text,NULL,10), storing all 32 bits, with no errno, end-pointer or range check. f_10560708 caps lexical bytes at 24; finalization terminates at recorded length or overwrites byte 23 when full. f_10730414 requires argument record present/valid, not numeric syntax. Missing Index returns validation 0 and the wrapper loads 402 at 0x107342a0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x107341cc",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "address": "0x1073426c",
+        "callsite": "0x10734228",
+        "notes": "Validation zero branches to 0x1073429c, loads 402 and branches to shared fault slot +0x14 call 0x1073426c. Worker nonzero would use the same call, but the concrete worker returns only 0. Success allocates TimeZone at 0x107342bc, binds text at 0x107342d0 and commits at 0x107342e4. Stack guard failure 0x107342ec is not a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273280",
+        "address": "0x102732c8",
+        "callsite": "0x10734250",
+        "notes": "Locks engine+0x170, loads table pointer engine+0x7f0c, calls f_1015a6dc(Index), formats its result, unlocks, copies output, and returns literal zero at 0x10273318. No engine-field store, notifier, scheduler or persistence call. Stack guard failure at 0x1027333c aborts rather than returning a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1015a6dc",
+        "address": "0x1015a72c",
+        "callsite": "0x102732d4",
+        "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -5111,27 +5225,49 @@
       {
        "code": null,
        "code_expr": "vret(*(r3-in+0x4),+0x1c)",
-       "meaning": "alarm-store vfunc 0x10273280 (slot +0x1c) is single-exit \"li r3,0; blr\" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)",
+       "meaning": "Unreachable delegated-fault branch: concrete f_10273280 has normal return domain {0}. No unknown-ID or table-read error is propagated as a SOAP fault.",
        "fault_sites": [
         "0x1073426c"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "The wrapper would raise the worker return code if nonzero at 0x10734258, but the statically bound worker has only the literal-zero normal return at 0x10273318. Its lookup failures retain a zero-initialized rule and still return success.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073426c",
-           "notes": "impl rc passthrough"
+           "function": "0x10276048",
+           "address": "0x10eaa9b8",
+           "callsite": "0x10734250",
+           "notes": "Constructor stores primary vptr 0x10eaa99c at 0x102761e8; slot +0x1c contains 0x10273280. f_10735460 copies the shared engine pointer into service+4 at 0x10735474. Zone-player init allocates 0x8118 bytes at 0x1018e7f4..0x1018e808 and calls the constructor at 0x1018e8a4."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x10734a40",
-           "notes": "rc convention site"
+           "function": "0x10273280",
+           "address": "0x102732c8",
+           "callsite": "0x10734250",
+           "notes": "Locks engine+0x170, loads table pointer engine+0x7f0c, calls f_1015a6dc(Index), formats its result, unlocks, copies output, and returns literal zero at 0x10273318. No engine-field store, notifier, scheduler or persistence call. Stack guard failure at 0x1027333c aborts rather than returning a SOAP fault."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1015a6dc",
+           "address": "0x1015a72c",
+           "callsite": "0x102732d4",
+           "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x107341cc",
+           "address": "0x1073426c",
+           "callsite": "0x10734228",
+           "notes": "Validation zero branches to 0x1073429c, loads 402 and branches to shared fault slot +0x14 call 0x1073426c. Worker nonzero would use the same call, but the concrete worker returns only 0. Success allocates TimeZone at 0x107342bc, binds text at 0x107342d0 and commits at 0x107342e4. Stack guard failure 0x107342ec is not a SOAP fault."
           }
          ]
         }
@@ -5141,55 +5277,70 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073426c",
-         "notes": "impl rc passthrough site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10734a40",
-         "notes": "impl rc -> r4 -> req v[+0x14]; CR0.eq = success branch"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
+         "function": "0x10276048",
          "address": "0x10eaa9b8",
-         "notes": "store vfunc slot +0x1c -> 0x10273280; alarm-store object vptr 0x10eaa99c (ctor f_10276048 overwrite at 0x102761e8; obj new(0x8118) via shared_ptr -> svc+0x4)"
+         "callsite": "0x10734250",
+         "notes": "Constructor stores primary vptr 0x10eaa99c at 0x102761e8; slot +0x1c contains 0x10273280. f_10735460 copies the shared engine pointer into service+4 at 0x10735474. Zone-player init allocates 0x8118 bytes at 0x1018e7f4..0x1018e808 and calls the constructor at 0x1018e8a4."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10273280",
-         "notes": "single blr, single li r3,0, no outgoing b-tail - domain proven {0}"
+         "function": "0x10273280",
+         "address": "0x102732c8",
+         "callsite": "0x10734250",
+         "notes": "Locks engine+0x170, loads table pointer engine+0x7f0c, calls f_1015a6dc(Index), formats its result, unlocks, copies output, and returns literal zero at 0x10273318. No engine-field store, notifier, scheduler or persistence call. Stack guard failure at 0x1027333c aborts rather than returning a SOAP fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1015a6dc",
+         "address": "0x1015a72c",
+         "callsite": "0x102732d4",
+         "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107341cc",
+         "address": "0x1073426c",
+         "callsite": "0x10734228",
+         "notes": "Validation zero branches to 0x1073429c, loads 402 and branches to shared fault slot +0x14 call 0x1073426c. Worker nonzero would use the same call, but the concrete worker returns only 0. Success allocates TimeZone at 0x107342bc, binds text at 0x107342d0 and commits at 0x107342e4. Stack guard failure 0x107342ec is not a SOAP fault."
         }
        ],
-       "domain_note": "delegated-rc semantics: impl vfunc rc surfaced; store vfunc domain fully bounded to {0} | worker literal bound [] (ASCII-fragment constants filtered) (worker_err_literals.json)",
-       "literal_bound": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x1c); sites: 0x1073426c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "Concrete normal return domain {0}; the single shared fault call is reachable only from request-validation failure with literal 402.",
+       "literal_bound": []
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Required Index argument was not materialized by the request validator. This is not an out-of-range or numeric-syntax error.",
        "fault_sites": [
         "0x1073426c"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "f_10730414 returns 0 when the required argument record has neither presence/valid byte +0x31 nor optional byte +0x30 set. The wrapper loads 402 at 0x107342a0 then branches to the shared fault call at 0x1073426c. Present nonnumeric Index text is converted to 0 instead of faulting.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107341cc",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10560a58",
+           "address": "0x10eebbf0",
+           "callsite": "0x10734214",
+           "notes": "f_10561514 registers required type-tag 5 with 24-byte lexical buffer. Jump table base 0x10eebbdc entry 5 resolves to 0x10560b24: strtol(text,NULL,10), storing all 32 bits, with no errno, end-pointer or range check. f_10560708 caps lexical bytes at 24; finalization terminates at recorded length or overwrites byte 23 when full. f_10730414 requires argument record present/valid, not numeric syntax. Missing Index returns validation 0 and the wrapper loads 402 at 0x107342a0."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x107341cc",
+           "address": "0x1073426c",
+           "callsite": "0x10734228",
+           "notes": "Validation zero branches to 0x1073429c, loads 402 and branches to shared fault slot +0x14 call 0x1073426c. Worker nonzero would use the same call, but the concrete worker returns only 0. Success allocates TimeZone at 0x107342bc, binds text at 0x107342d0 and commits at 0x107342e4. Stack guard failure 0x107342ec is not a SOAP fault."
           }
          ]
         }
@@ -5199,8 +5350,19 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107341cc",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10560a58",
+         "address": "0x10eebbf0",
+         "callsite": "0x10734214",
+         "notes": "f_10561514 registers required type-tag 5 with 24-byte lexical buffer. Jump table base 0x10eebbdc entry 5 resolves to 0x10560b24: strtol(text,NULL,10), storing all 32 bits, with no errno, end-pointer or range check. f_10560708 caps lexical bytes at 24; finalization terminates at recorded length or overwrites byte 23 when full. f_10730414 requires argument record present/valid, not numeric syntax. Missing Index returns validation 0 and the wrapper loads 402 at 0x107342a0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107341cc",
+         "address": "0x1073426c",
+         "callsite": "0x10734228",
+         "notes": "Validation zero branches to 0x1073429c, loads 402 and branches to shared fault slot +0x14 call 0x1073426c. Worker nonzero would use the same call, but the concrete worker returns only 0. Success allocates TimeZone at 0x107342bc, binds text at 0x107342d0 and commits at 0x107342e4. Stack guard failure 0x107342ec is not a SOAP fault."
         }
        ]
       }
@@ -5211,30 +5373,67 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x10276048",
+       "address": "0x10eaa9b8",
+       "callsite": "0x10734250",
+       "notes": "Constructor stores primary vptr 0x10eaa99c at 0x102761e8; slot +0x1c contains 0x10273280. f_10735460 copies the shared engine pointer into service+4 at 0x10735474. Zone-player init allocates 0x8118 bytes at 0x1018e7f4..0x1018e808 and calls the constructor at 0x1018e8a4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10273280",
+       "address": "0x102732c8",
+       "callsite": "0x10734250",
+       "notes": "Locks engine+0x170, loads table pointer engine+0x7f0c, calls f_1015a6dc(Index), formats its result, unlocks, copies output, and returns literal zero at 0x10273318. No engine-field store, notifier, scheduler or persistence call. Stack guard failure at 0x1027333c aborts rather than returning a SOAP fault."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1015a6dc",
+       "address": "0x1015a72c",
+       "callsite": "0x102732d4",
+       "notes": "Zeroes all 14 result bytes, resolves timezones.xml and parses it with f_1015bb18 under table+8 lock. Callback f_1015b450 compares full 32-bit requested Index with XML ID and copies 14 bytes only on equality. f_10159f44..0x10159f74 dispatches only nonnegative IDs with signed GMTBias != 30000. Copy to caller occurs only when found byte +0x38 is nonzero and error byte +0x39 is zero; otherwise zero result survives and no timezone data available (%d) may be logged."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10c3ce18",
+       "address": "0x10fb15e0",
+       "callsite": "0x102732e4",
+       "notes": "PIC format pointer resolves to %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx. Arguments are u16 at +0, bytes +2,+3,+4,+5, u16 +6, bytes +8,+9,+10,+11, u16 +12. snprintf capacity is 0x1d. f_10906304 copies to the wrapper buffer with the same capacity at 0x102732fc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1015a190",
+       "address": "0x1015a1d4",
+       "callsite": "0x1015a5cc",
+       "notes": "TimeZone ID defaults -1 and GMTBias defaults 30000, then stores GMTBias low16 at rule+0. f_1015a27c reads Month, Day, Hour, DayOfWeek and Bias, writing standard fields at rule+2..+7 and daylight fields at +8..+13. Standard Bias defaults 0; daylight Bias defaults -60. f_1015a190 zeroes the record then seeds daylight Bias -60. Element-name dispatch table 0x11091980 lists TimeZone, StandardTime, DaylightTime, TimeZones, TimeZoneRules."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10560a58",
+       "address": "0x10eebbf0",
+       "callsite": "0x10734214",
+       "notes": "f_10561514 registers required type-tag 5 with 24-byte lexical buffer. Jump table base 0x10eebbdc entry 5 resolves to 0x10560b24: strtol(text,NULL,10), storing all 32 bits, with no errno, end-pointer or range check. f_10560708 caps lexical bytes at 24; finalization terminates at recorded length or overwrites byte 23 when full. f_10730414 requires argument record present/valid, not numeric syntax. Missing Index returns validation 0 and the wrapper loads 402 at 0x107342a0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "function": "0x107341cc",
-       "address": "0x107341cc",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x10f115ec",
-       "notes": "action dispatch table entry"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "function": "0x10734a40",
-       "notes": "alarm impl = service vtable 0x10f11530 slot +0x1c (ctor stores svc vptr at svc+4)"
+       "address": "0x1073426c",
+       "callsite": "0x10734228",
+       "notes": "Validation zero branches to 0x1073429c, loads 402 and branches to shared fault slot +0x14 call 0x1073426c. Worker nonzero would use the same call, but the concrete worker returns only 0. Success allocates TimeZone at 0x107342bc, binds text at 0x107342d0 and commits at 0x107342e4. Stack guard failure 0x107342ec is not a SOAP fault."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x107341cc; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "The earlier assertion that f_10273280 was merely li r3,0; blr omitted its lookup and formatting body. Its return domain is indeed {0}, but it reads the timezone table before returning. No static index-range fault exists."
     },
     "ListAlarms": {
      "description": "Lists all alarms via impl->v[+0x8].",
