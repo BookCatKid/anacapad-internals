@@ -154740,15 +154740,22 @@
      "type": "firmware",
      "address": "0x10ee5c90",
      "notes": "ht tx stats"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104f0b58",
+     "notes": "Control producer f_104f1488 -> call0x104f1694 -> frame validation0x104f0c18/0x104f0d98 -> sendmsg0x104f0cd4 -> result comparison54 at0x104f0cd8. Raw GNU disassembly0x104f0b9c-0x104f0c2c verifies or. length gate, mullw and masked-rotate BE header stores. Zero-length initialization0x104f0d6c differs from nearby stride16 bookkeeping; neither certifies a nodetx envelope. Audio packet log caller f_104f1994 inspected separately."
     }
    ],
-   "control_frames": "htsat_tx control frame = 16 bytes {u8 code, payload/pad 15B}; header region ctx+0x9b4-0x9bb = {zeros x7, type=0x36}; 'invalid control frame. len (%u) vs (%zu)' is the TX-side length check (f_104f0d6c region).",
-   "todo": "Residual: on-wire header {u32be id, u8 version, u8 nibble-pair, u16be} + 1024B payload proven via the nodetx serializer; which payload offsets carry {offset,timestamp} inside the payload grammar is unbound. Next: disassemble the satellite-tx frame builder's field stores.",
+   "control_frames": "Concrete control TX f_104f0b58 requires a54-byte frame, not16 bytes. In its zero payload-length branch it writes a big-endian total length at frame+0 and0x00000036 at frame+4 in the ctx+0x9b4 header. It validates computed length54 before sendmsg and compares the send result with54. The0x36 word is not established as a one-byte control opcode.",
+   "todo": "Established: concrete54-byte control construction/send and volume/EQ producer, disproving16-byte control and universal1032-byte nodetx framing. Remaining: follow actual HT audio producers, encoder selection and send iovecs to the serialized frame stores; recover timestamp/offset fields, widths, units and bounds from those builders and their receive consumers. Start with f_104f1994, its downstream calls f_104f1070/f_104f1488, the real data-send branches and frame buffer ctx+0x9b4. Keep control and audio formats separate; an unrelated nodetx serializer is not the missing join. This is actionable static work.",
    "resolved_findings": [
-    "Resolved: packet format = the stats schema {timeToPlay, txSent, txErrors, serializationErrors, numLateFrames} + control_frames sub-block describing the TX frame.",
-    "TX packet format bounded by htaudio decode: satellite TX rides nodetx - audio frames log pkt: %zu channels, %zu samples, payload:%zu and control frames carry sending control frame: ctrl 0x%x unscV %d curV %d extV %d extVM %d B %d T %d led %d SPL %d SC %d (volume/EQ/LED state sync to satellites); NACK-based retransmit + resendToLateJoiner provide reliability. SBC encode-path errors bound the compressed-audio variant.",
-    "Resolved: the noderx/nodetx wire format is decoded from the serializer/deserializer pair f_1063391c/f_106339d0 - every packet is an 8-byte header + fixed 0x400=1024-byte payload (total 0x408=1032, the receive cap): wire bytes {0-3 u32be packet-id, 4 u8 protocol-version, 5 two packed nibbles (hi->rec+6, lo->rec+5), 6-7 u16be} then payload verbatim. f_106339c0 reads the version byte at wire+4 and the receive loop (0x10638508+) drops packets whose version != local byte this->+0x538 with 'ignore NACK packet with incompatible protocol version: %d'; NACK class = record nibble field ==2 (checked at 0x106386a0-0x106386a8); record+0/+0x438 init -1 before deserialize",
-    "Resolved: on-wire packet header = {u32be id, u8 version, u8 nibble-pair, u16be} + 1024B payload (nodetx serializer pair). Residual: which payload offsets carry {offset,timestamp} - inside the payload grammar, parse-branch data"
+    "The named TX statistics describe transmission/serialization errors, lateness, resynchronization, playback-end frames and mixer/transmitter processing. They are diagnostic counters, not an on-wire packet schema. SBC encoding and mesh/socket error paths do not by themselves bind the audio transport to nodetx.",
+    "Concrete control producer f_104f1488 collects volume/EQ/LED-related members into the control buffer and reaches f_104f0b58 at0x104f1694 when the satellite count is nonzero. This TX path builds/checks a54-byte frame and calls sendmsg at0x104f0cd4; return values other than54 take the send-error reporter. The per-satellite stride16 used for nearby bookkeeping is not the transmitted control-frame size.",
+    "Raw objdump at0x104f0b9c-0x104f0c2c verifies a two-byte length test, control header stores and computed total54 + byte(ctx+0x9bd)*(2*u32be(ctx+0x9cc)+4), followed by the exact54 check. The zero-length branch stores0x00000036 at header+4 and the big-endian computed length at header+0. The alternative control initialization at0x104f0d6c zeros the same first header region and sets its final byte0x36. These stores do not prove a universal nodetx {id,version,nibbles,u16} envelope.",
+    "The old satellite-TX-rides-nodetx and every-packet-is1032-bytes conclusions are withdrawn: the concrete54-byte send is a counterexample. The duplicated nodetx nibble assignment was also reversed; its separate decoder maps high nibble to record+5 and low to record+6. That independent format is not a demonstrated HT audio payload grammar. The actual audio/frame-builder joins must precede assigning timestamp/offset locations."
    ]
   },
   "spdif_burst": {
