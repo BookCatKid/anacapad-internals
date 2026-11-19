@@ -143832,18 +143832,55 @@
      "build": "86.10-80260",
      "address": "0x1034308c",
      "notes": "Entire compressed snapshot base64 export; buffer size is not metadata schema."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x107d8624",
+     "address": "0x107d8754",
+     "notes": "Clock-provider output copied into the two metadata words."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x107d8624",
+     "address": "0x107d8838",
+     "notes": "Sample-rate field compared with current TV sample rate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x107d8624",
+     "address": "0x107d8bf8",
+     "notes": "Explicit signal-loss producer writes metadata with no audio payload."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x107e1720",
+     "address": "0x107e18ac",
+     "notes": "48-byte metadata write preceding word-byte-reversed audio write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x107e1a88",
+     "address": "0x107e1b74",
+     "notes": "Audio byte-order restoration and bounded/short reads."
     }
    ],
    "endpoints": "/audio_tap, /spdiftap, /snapshotspdiftap, /downloadspdiftap; request errors 'AudioTap: no tap specified', 'syntax error', 'invalid request', 'permission denied'",
-   "file_format": "Reader0x107e1264 reads48-byte metadata BEFORE each audio packet, not a single file trailer. Version byte0 must be1 during validation0x107e1e44. Byte reversal on this big-endian target decodes u32LE at1 and5, u16LE sample-frame count at9, u32LE at0xb; sample count*8 gives the following8-byte-frame audio size, stored reader+0x40. Signal-loss is byte0x27 bit0x80, not any nonzero flag value. Remaining metadata bytes are copied unchanged. Validation walks [48-byte metadata][count*8 audio] repeatedly and retains the valid prefix if at least one complete packet exists; it logs trailing audio/metadata truncation and rewinds to that valid size. Invalid first packet closes the file.",
+   "file_format": "The uncompressed SPDIF replay stream repeats [48-byte metadata][u16LE frame count * 8 audio bytes]. Metadata: byte 0 version 1; u32LE words at 1 and 5 from an eight-byte clock-provider result; u16LE frame count at 9; u32LE sample rate at 0x0b; cached 24-byte status block at 0x0f..0x26; byte 0x27 bit 0x80 signal loss. Remaining bytes are initially zero on the traced producer path; other semantics are not established. The writer reverses each 32-bit audio word for file output, and the reader reverses it back on the big-endian target. Zero-audio signal-loss packets contain metadata only. Validation retains a complete valid prefix and closes an invalid/empty first packet stream. Compression is a zlib wrapper around the stream; XML/base64 is a separate export envelope.",
    "tv_sync": "'Synchronize SPDIF tap playback with output tap (%s)', 'TV input sample rate mismatch with audio tap (tv:%u tap:%u)', 'TV input read error during audio tap playback': the SPDIF tap doubles as the TV-input capture path for lip-sync",
    "todo": [
-    "Established: repeated48-byte metadata plus count*8 audio packets, little-endian scalar conversion, sample count and high-bit signal-loss flag; manager/compression/export behavior is complete under audiotap. Remaining: semantic roles of u32LE fields at1,5,0xb and other metadata bytes/flags, including their producer and playback-consumer chains. Trace the packet metadata writer and each reader of copied metadata at object+0x10; do not treat these words as unnamed counters or a file trailer."
+    "Residual shared with audio_tap: identify the clock provider/domain for metadata u32 words at offsets 1 and 5, and decode the cached 24-byte status block at 0x0f..0x26 and any remaining flag semantics. Packet writer, sample-rate word, signal-loss producer, compression and framing are traced; the opaque metadata semantics are not fully resolved."
    ],
    "resolved_findings": [
     "Reader0x107e1264 reads48-byte metadata BEFORE each audio packet, not a single file trailer. Version byte0 must be1 during validation0x107e1e44. Byte reversal on this big-endian target decodes u32LE at1 and5, u16LE sample-frame count at9, u32LE at0xb; sample count*8 gives the following8-byte-frame audio size, stored reader+0x40. Signal-loss is byte0x27 bit0x80, not any nonzero flag value. Remaining metadata bytes are copied unchanged. Validation walks [48-byte metadata][count*8 audio] repeatedly and retains the valid prefix if at least one complete packet exists; it logs trailing audio/metadata truncation and rewinds to that valid size. Invalid first packet closes the file.",
     "DSP manager and rolling snapshot mechanics, fixed zlib compression and consumptive XML/base64 export are fully documented under shared_primitives/audiotap. The16384-byte buffer in0x1034308c is a general file-reader buffer, not a metadata head section. The base64 stream contains the whole compressed snapshot.",
-    "DSP capacity is three physical descriptors with default capacity2 and setter domain0..3 inclusive. Tappability is source vtable+0xc; manager+0xb8 stores the source pointer."
+    "DSP capacity is three physical descriptors with default capacity2 and setter domain0..3 inclusive. Tappability is source vtable+0xc; manager+0xb8 stores the source pointer.",
+    "Producer/consumer reconciliation with audio_tap: f_107d8624 initializes 48 zero bytes and version 1 at 0x107d8730-0x107d8740. Object +0x8d0 vtable +0x0c returns eight bytes at stack+0x2c, copied into metadata offsets 1/5 and the caller timestamp output at 0x107d8758-0x107d87a4. This proves common provenance but does not establish clock units or domain. Normal output sets frame count from payload_bytes>>3 and sample rate from processor+0xf1c at 0x107d89e0-0x107d8a20. Playback at 0x107d87f0-0x107d8858 compares metadata+0x0b against +0xf1c and logs TV input sample rate mismatch with audio tap, establishing the word meaning. f_107dede8 copies 24 cached bytes at processor+0x1a68 into metadata+0x0f. Error output ORs bit 0x80 into metadata+0x27 and calls f_107e1720 with null audio/zero size at 0x107d8bd8-0x107d8bf8. Therefore the writer is present in this ELF, not an unlocated external producer.",
+    "Writer f_107e1720 copies the 48-byte metadata, byte-reverses the packed scalar fields and emits it through object+0x678 sink virtual+8 at 0x107e1894-0x107e18ac. Non-null/nonzero audio is byte-reversed one word at a time and emitted through the same sink at 0x107e19c8-0x107e1a2c; null/zero skips the payload. Reader f_107e1264 returns 2 on short metadata fread, stores count*8 at +0x40, and returns 4 for byte 0x27 bit 0x80 while retaining the metadata copy. f_107e1a44 returns the cached metadata when a packet still has audio remaining, otherwise invokes f_107e1264. f_107e1a88 clamps requested audio to remaining packet/file bytes, reports short-read error 2 and converts word byte order at 0x107e1b6c-0x107e1b90. A zero-count metadata packet still advances validation by 48 bytes through f_107e1e44; zero count is not by itself an invalid-file rule. The status-byte interpretation is still unresolved, so neither record claims a complete semantic schema."
    ],
    "file_format_correction": "No XML queue or separate XML metadata header is written into the compressed snapshot. The XML wrapper is the export envelope only. Earlier claims of gzip, a trailing metadata block, big-endian packed fields, and a three-tap default are superseded by the concrete reader and compression paths."
   },
