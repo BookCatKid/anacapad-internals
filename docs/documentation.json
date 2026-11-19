@@ -45042,7 +45042,7 @@
      ]
     },
     "EndDirectControlSession": {
-     "description": "Tears down an external direct-control or VLI playback session. Impl f_102d3824 runs the shared boilerplate, then calls f_10a0732c(impl+0xaaa4) to classify the session and f_10688070(impl+0x5dc) for stream-target liveness, choosing between the log tags \"end VLI\" and \"end direct control\". Either way it logs via f_102b8c44 and runs the shared teardown f_102d094c(impl) (the same cleanup Play/Stop use) then returns 0 unconditionally.",
+     "description": "Ends an active direct-control or VLI session by attempting source restoration under impl+0x458. ID zero alone is insufficient: when both session tests fail, the action returns 718 and skips teardown.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8e9c",
@@ -45095,7 +45095,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "The engine requires zero; for zero it separately checks direct-control/VLI state, which can also return 718.",
        "evidence": [
         {
          "type": "firmware",
@@ -45110,6 +45110,14 @@
          "build": "86.10-80260",
          "address": "0x10e9aadc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d38d4",
+         "notes": "Shared 718 return: reached on nonzero InstanceID at 0x102d38cc or when the ID is zero and both f_10a0732c(impl+0xaaa4) and f_10688070(impl+0x5dc) return zero (branch at 0x102d3940).",
+         "function": "0x102d3824"
         }
        ],
        "notes": null
@@ -45129,101 +45137,190 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x50]",
+      "description": "Parsed InstanceID must be zero and either the direct-control session object test or the active VLI URI test must succeed.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8e9c",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f8f18",
+        "notes": "Materializes InstanceID then calls engine +0x50 (0x102d3824 in both vtables). A nonzero engine return goes to request +0x14 at 0x102f8f34; success commits without outputs at 0x102f8f7c. A false validation result emits 402 at 0x102f8f68.",
+        "function": "0x102f8e9c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d38d4",
+        "notes": "Shared 718 return: reached on nonzero InstanceID at 0x102d38cc or when the ID is zero and both f_10a0732c(impl+0xaaa4) and f_10688070(impl+0x5dc) return zero (branch at 0x102d3940).",
+        "function": "0x102d3824"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d3928",
+        "notes": "A nonzero f_10a0732c return chooses the end direct control log. Otherwise a nonzero f_10688070 return chooses end VLI; if both are zero, there is no teardown.",
+        "function": "0x102d3824"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x50].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x50]",
+      "description": "The direct-control session state at impl+0xaaa4 and current URI at +0x5dc choose the valid paths; the restore state at +0x2e2a/+0x322b/+0x422c determines the following URI operation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8e9c",
-        "notes": "member vfunc calls: ['r30 v[+0x50]']"
+        "address": "0x102d38d4",
+        "notes": "Shared 718 return: reached on nonzero InstanceID at 0x102d38cc or when the ID is zero and both f_10a0732c(impl+0xaaa4) and f_10688070(impl+0x5dc) return zero (branch at 0x102d3940).",
+        "function": "0x102d3824"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d3928",
+        "notes": "A nonzero f_10a0732c return chooses the end direct control log. Otherwise a nonzero f_10688070 return chooses end VLI; if both are zero, there is no teardown.",
+        "function": "0x102d3824"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d08a4",
+        "notes": "f_102d086c compares stored restore URI +0x2e2a to current URI +0x5dc. A different URI requests reload via f_102ceb40 (arguments impl+0x2e2a/+0x322b/+0x422c) at 0x102d0940. A same, empty URI sets the fallback flag, and a same, nonempty URI leaves it clear.",
+        "function": "0x102d086c"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x50].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x50] (call-derived member-method semantics)",
+       "description": "Logs the direct-control/VLI end path and runs source restoration or the empty-URI fallback through the shared URI worker.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102f8e9c",
-         "notes": "delegate map ['r30 v[+0x50]']; notify-family calls []"
+         "address": "0x102d3928",
+         "notes": "A nonzero f_10a0732c return chooses the end direct control log. Otherwise a nonzero f_10688070 return chooses end VLI; if both are zero, there is no teardown.",
+         "function": "0x102d3824"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d3990",
+         "notes": "Accepted cases initialize return value r30=0 before the command log and f_102d094c call at 0x102d39a0. Teardown results never overwrite r30.",
+         "function": "0x102d3824"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d08a4",
+         "notes": "f_102d086c compares stored restore URI +0x2e2a to current URI +0x5dc. A different URI requests reload via f_102ceb40 (arguments impl+0x2e2a/+0x322b/+0x422c) at 0x102d0940. A same, empty URI sets the fallback flag, and a same, nonempty URI leaves it clear.",
+         "function": "0x102d086c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d0974",
+         "notes": "Calls f_102d086c (restore); unless it set the flag AND returned zero, calls f_102ceb40 with three empty string arguments at 0x102d09d0. Thus success from the SOAP action is not a guarantee that restore succeeded.",
+         "function": "0x102d094c"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x50] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No notification helper is invoked directly by the wrapper or restore chooser. The chosen f_102ceb40 URI worker can mutate source state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8e9c",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102d3990",
+        "notes": "Accepted cases initialize return value r30=0 before the command log and f_102d094c call at 0x102d39a0. Teardown results never overwrite r30.",
+        "function": "0x102d3824"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d08a4",
+        "notes": "f_102d086c compares stored restore URI +0x2e2a to current URI +0x5dc. A different URI requests reload via f_102ceb40 (arguments impl+0x2e2a/+0x322b/+0x422c) at 0x102d0940. A same, empty URI sets the fallback flag, and a same, nonempty URI leaves it clear.",
+        "function": "0x102d086c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0974",
+        "notes": "Calls f_102d086c (restore); unless it set the flag AND returned zero, calls f_102ceb40 with three empty string arguments at 0x102d09d0. Thus success from the SOAP action is not a guarantee that restore succeeded.",
+        "function": "0x102d094c"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace f_102ceb40 for both the restore and empty-URI fallback cases and identify which changed fields are published, not merely which source worker is called."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x50]",
+      "description": "Accepted requests ask the URI worker to restore the stored source if it differs, or clear the source via the empty-URI fallback when the restore check does not succeed. The action does not independently set a final transport-state enum.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8e9c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x50]']"
+        "address": "0x102d08a4",
+        "notes": "f_102d086c compares stored restore URI +0x2e2a to current URI +0x5dc. A different URI requests reload via f_102ceb40 (arguments impl+0x2e2a/+0x322b/+0x422c) at 0x102d0940. A same, empty URI sets the fallback flag, and a same, nonempty URI leaves it clear.",
+        "function": "0x102d086c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0974",
+        "notes": "Calls f_102d086c (restore); unless it set the flag AND returned zero, calls f_102ceb40 with three empty string arguments at 0x102d09d0. Thus success from the SOAP action is not a guarantee that restore succeeded.",
+        "function": "0x102d094c"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x50].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Literal 718 for nonzero InstanceID or two failed session predicates; wrapper 402 for input materialization failure. Accepted sessions commit an empty response even if the URI worker fails.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8e9c",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f8f18",
+        "notes": "Materializes InstanceID then calls engine +0x50 (0x102d3824 in both vtables). A nonzero engine return goes to request +0x14 at 0x102f8f34; success commits without outputs at 0x102f8f7c. A false validation result emits 402 at 0x102f8f68.",
+        "function": "0x102f8e9c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d38d4",
+        "notes": "Shared 718 return: reached on nonzero InstanceID at 0x102d38cc or when the ID is zero and both f_10a0732c(impl+0xaaa4) and f_10688070(impl+0x5dc) return zero (branch at 0x102d3940).",
+        "function": "0x102d3824"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d3990",
+        "notes": "Accepted cases initialize return value r30=0 before the command log and f_102d094c call at 0x102d39a0. Teardown results never overwrite r30.",
+        "function": "0x102d3824"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0974",
+        "notes": "Calls f_102d086c (restore); unless it set the flag AND returned zero, calls f_102ceb40 with three empty string arguments at 0x102d09d0. Thus success from the SOAP action is not a guarantee that restore succeeded.",
+        "function": "0x102d094c"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -45237,20 +45334,37 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x50)",
-       "meaning": "Nonzero InstanceID: impl gate on the parsed int before any session work.",
+       "meaning": "Parsed InstanceID was nonzero, or there was no direct-control or VLI session qualifying for teardown.",
        "fault_sites": [
         "0x102f8f34"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument is nonzero",
+         "description": "Parsed InstanceID was nonzero, or there was no direct-control or VLI session qualifying for teardown.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d3824",
-           "notes": "cmpwi at 0x102d38cc -> addi r30,0x2ce"
+           "address": "0x102d38d4",
+           "notes": "Shared 718 return: reached on nonzero InstanceID at 0x102d38cc or when the ID is zero and both f_10a0732c(impl+0xaaa4) and f_10688070(impl+0x5dc) return zero (branch at 0x102d3940).",
+           "function": "0x102d3824"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102d3928",
+           "notes": "A nonzero f_10a0732c return chooses the end direct control log. Otherwise a nonzero f_10688070 return chooses end VLI; if both are zero, there is no teardown.",
+           "function": "0x102d3824"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102f8f18",
+           "notes": "Materializes InstanceID then calls engine +0x50 (0x102d3824 in both vtables). A nonzero engine return goes to request +0x14 at 0x102f8f34; success commits without outputs at 0x102f8f7c. A false validation result emits 402 at 0x102f8f68.",
+           "function": "0x102f8e9c"
           }
          ]
         }
@@ -45260,33 +45374,52 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102d3824",
-         "notes": "cmpwi at 0x102d38cc -> addi r30,0x2ce"
+         "address": "0x102d38d4",
+         "notes": "Shared 718 return: reached on nonzero InstanceID at 0x102d38cc or when the ID is zero and both f_10a0732c(impl+0xaaa4) and f_10688070(impl+0x5dc) return zero (branch at 0x102d3940).",
+         "function": "0x102d3824"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d3928",
+         "notes": "A nonzero f_10a0732c return chooses the end direct control log. Otherwise a nonzero f_10688070 return chooses end VLI; if both are zero, there is no teardown.",
+         "function": "0x102d3824"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f8f18",
+         "notes": "Materializes InstanceID then calls engine +0x50 (0x102d3824 in both vtables). A nonzero engine return goes to request +0x14 at 0x102f8f34; success commits without outputs at 0x102f8f7c. A false validation result emits 402 at 0x102f8f68.",
+         "function": "0x102f8e9c"
         }
        ]
       },
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x50)",
-       "meaning": "None known beyond 718: the impl returns 0 unconditionally after teardown; this entry is a safety net for any rc the shared teardown could surface.",
+       "meaning": "The teardown worker's result is discarded; no additional engine return is reachable.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "shared teardown f_102d094c surfaced a nonzero code",
+         "description": "The teardown worker's result is discarded; no additional engine return is reachable.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d39a0",
-           "notes": "passthrough path"
+           "address": "0x102d3990",
+           "notes": "Accepted cases initialize return value r30=0 before the command log and f_102d094c call at 0x102d39a0. Teardown results never overwrite r30.",
+           "function": "0x102d3824"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102d3824",
-           "notes": "impl return path examined"
+           "address": "0x102d0974",
+           "notes": "Calls f_102d086c (restore); unless it set the flag AND returned zero, calls f_102ceb40 with three empty string arguments at 0x102d09d0. Thus success from the SOAP action is not a guarantee that restore succeeded.",
+           "function": "0x102d094c"
           }
          ]
         }
@@ -45296,43 +45429,42 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f8f34",
-         "notes": "impl vret passthrough site"
+         "address": "0x102d3990",
+         "notes": "Accepted cases initialize return value r30=0 before the command log and f_102d094c call at 0x102d39a0. Teardown results never overwrite r30.",
+         "function": "0x102d3824"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102d3824",
-         "notes": "impl rc-return semantics as documented; wrapper forwards nonzero rc verbatim"
+         "address": "0x102d0974",
+         "notes": "Calls f_102d086c (restore); unless it set the flag AND returned zero, calls f_102ceb40 with three empty string arguments at 0x102d09d0. Thus success from the SOAP action is not a guarantee that restore succeeded.",
+         "function": "0x102d094c"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x102d3824 exits=[64]; None known beyond 718: the impl returns 0 unconditionally after teardown; this entry is a safety net for any rc the shared teardown could surface. | worker literal bound [718] (worker_err_literals.json)",
        "literal_bound": [
         718
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x50); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+       "meaning": "Required InstanceID failed request materialization.",
        "fault_sites": [
         "0x102f8f34"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
+         "description": "Required InstanceID failed request materialization.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102f8e9c",
-           "notes": "parse vcall slot +0x8 then fault path"
+           "address": "0x102f8f18",
+           "notes": "Materializes InstanceID then calls engine +0x50 (0x102d3824 in both vtables). A nonzero engine return goes to request +0x14 at 0x102f8f34; success commits without outputs at 0x102f8f7c. A false validation result emits 402 at 0x102f8f68.",
+           "function": "0x102f8e9c"
           }
          ]
         }
@@ -45342,42 +45474,73 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f8e9c",
-         "notes": "wrapper parse + fault path"
+         "address": "0x102f8f18",
+         "notes": "Materializes InstanceID then calls engine +0x50 (0x102d3824 in both vtables). A nonzero engine return goes to request +0x14 at 0x102f8f34; success commits without outputs at 0x102f8f7c. A false validation result emits 402 at 0x102f8f68.",
+         "function": "0x102f8e9c"
         }
        ]
       },
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "meaning": "No store-commit or streamer code is propagated on this action's accepted path.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102d3990",
+         "notes": "Accepted cases initialize return value r30=0 before the command log and f_102d094c call at 0x102d39a0. Teardown results never overwrite r30.",
+         "function": "0x102d3824"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d0974",
+         "notes": "Calls f_102d086c (restore); unless it set the flag AND returned zero, calls f_102ceb40 with three empty string arguments at 0x102d09d0. Thus success from the SOAP action is not a guarantee that restore succeeded.",
+         "function": "0x102d094c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f8f18",
+         "notes": "Materializes InstanceID then calls engine +0x50 (0x102d3824 in both vtables). A nonzero engine return goes to request +0x14 at 0x102f8f34; success commits without outputs at 0x102f8f7c. A false validation result emits 402 at 0x102f8f68.",
+         "function": "0x102f8e9c"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "No store-commit or streamer code is propagated on this action's accepted path.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102d3990",
+           "notes": "Accepted cases initialize return value r30=0 before the command log and f_102d094c call at 0x102d39a0. Teardown results never overwrite r30.",
+           "function": "0x102d3824"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102d0974",
+           "notes": "Calls f_102d086c (restore); unless it set the flag AND returned zero, calls f_102ceb40 with three empty string arguments at 0x102d09d0. Thus success from the SOAP action is not a guarantee that restore succeeded.",
+           "function": "0x102d094c"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102f8f18",
+           "notes": "Materializes InstanceID then calls engine +0x50 (0x102d3824 in both vtables). A nonzero engine return goes to request +0x14 at 0x102f8f34; success commits without outputs at 0x102f8f7c. A false validation result emits 402 at 0x102f8f68.",
+           "function": "0x102f8e9c"
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
@@ -45407,13 +45570,57 @@
        "build": "86.10-80260",
        "function": "0x102d3824",
        "notes": "AVT impl vtable 0x10eaf2ec slot +0x50 entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f8f18",
+       "notes": "Materializes InstanceID then calls engine +0x50 (0x102d3824 in both vtables). A nonzero engine return goes to request +0x14 at 0x102f8f34; success commits without outputs at 0x102f8f7c. A false validation result emits 402 at 0x102f8f68.",
+       "function": "0x102f8e9c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d38d4",
+       "notes": "Shared 718 return: reached on nonzero InstanceID at 0x102d38cc or when the ID is zero and both f_10a0732c(impl+0xaaa4) and f_10688070(impl+0x5dc) return zero (branch at 0x102d3940).",
+       "function": "0x102d3824"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d3928",
+       "notes": "A nonzero f_10a0732c return chooses the end direct control log. Otherwise a nonzero f_10688070 return chooses end VLI; if both are zero, there is no teardown.",
+       "function": "0x102d3824"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d3990",
+       "notes": "Accepted cases initialize return value r30=0 before the command log and f_102d094c call at 0x102d39a0. Teardown results never overwrite r30.",
+       "function": "0x102d3824"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d08a4",
+       "notes": "f_102d086c compares stored restore URI +0x2e2a to current URI +0x5dc. A different URI requests reload via f_102ceb40 (arguments impl+0x2e2a/+0x322b/+0x422c) at 0x102d0940. A same, empty URI sets the fallback flag, and a same, nonempty URI leaves it clear.",
+       "function": "0x102d086c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d0974",
+       "notes": "Calls f_102d086c (restore); unless it set the flag AND returned zero, calls f_102ceb40 with three empty string arguments at 0x102d09d0. Thus success from the SOAP action is not a guarantee that restore succeeded.",
+       "function": "0x102d094c"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102f8e9c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetCrossfadeMode": {
      "description": "Returns the active indexed-session crossfade flag under the AVTransport scope. Handler 0x102fc28c calls impl slot +0x24 (0x102ad370); ID zero reads the one-bit flag via f_1025b5bc(*(impl+0x580),0). There is no source-mode gate in this getter.",
