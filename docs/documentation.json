@@ -147654,12 +147654,66 @@
   "chsnk": {
    "crossfade": "sample-level xfade: \"attempting to crossfade with underflowed stream\"/\"recovered crossfade stream underflow\"; int16 crossfade; \"xfade corked stream: replace buffered data via non-xfade overlap\"; \"xfade timestamp too far in past, nst %d.%06d\"; \"xfadeable timestamp\"; \"set xfade lfnf\"; volume-norm ramp insert \"%d @time %d.%06d\"; \"xfade for %zu samples, %f seconds\"; gap tracking \"xfade gap, samples %zd\"",
    "metrics": "gauges {chsnkFillLevel=\"Amount of audio in stream buffer\",largeSyncErrors=\"Playback (see sync) and downstream errors\",\"Maximum sync mismatch with group coordinator\",\"Amount of output committed to driver\"} + {fillCodec,fillTimeMs,chsnkFill,chsnk-full}; window {windowPlayhead,includesBeginningOfQueue,includesEndOfQueue}; stream fmt {\"header magic mismatch\",\"md block loc\",\"md header len mismatch\",\"si pos mismatch\",\"si read failed\",fsAvail}",
-   "todo": "Residual: the shared sdbt/noderx wire header is decoded; per-payload-type field grammars inside the 1024B body are not yet decoded. Next: enumerate the payload-type dispatch in the noderx parse path and map each type's field offsets.",
+   "todo": "Residual: per-subframe bodies and flags beyond the recovered sixteen-byte framing, codec/type dispatch and resync prefix. In particular, fully trace the type-specific audio/encryption and boundary/control consumers; the packet class and replay nibbles are resolved and are not payload-type identifiers.",
    "resolved_findings": [
     "Resolved: crossfade sub-block = int16 sample-level crossfade with underflow handling (attempting to crossfade with underflowed stream/recovered/xfade corked stream); metrics emission = the gauges {chsnkFillLevel, largeSyncErrors, max sync mismatch} emitted through the status-report channel alongside the frame stats.",
     "Sink protocol proven via chsnk_detail: seamless handoff in both directions - remote source {sdbt packet rx, Old/New packet mismatch (no full frame/id:%u class:%u/%u offset:%u/%u/%u), delayed vs quick handoff, wait loop timed out, incompatible protocol version} and local source {itdbt, END_TX abort, no packets from old source?, Completed seamless transition to local src (id=%u)}; SNTP-validity gate (SNTP waiting for valid) precedes scheduled starts; LSE recovery recomputes play time from {tvPlay, tvLocalPlay, tvLocalNow, timeToPlayUSec}; source modes {local chsrc, local AI, local VLI, remote chsrc, stopped}; rx bookkeeping {pid, ob, lr, lcg, lrx} + skip-ahead + 11-bucket rx histogram; decoder control starts/stops %s audio decoder with {m_bCompressed, lNumChannels/lSampleFreq guards, WARNING! This model should not support Hi-Res Music}.",
-    "Resolved: the noderx/nodetx wire format is decoded from the serializer/deserializer pair f_1063391c/f_106339d0 - every packet is an 8-byte header + fixed 0x400=1024-byte payload (total 0x408=1032, the receive cap): wire bytes {0-3 u32be packet-id, 4 u8 protocol-version, 5 two packed nibbles (hi->rec+6, lo->rec+5), 6-7 u16be} then payload verbatim. f_106339c0 reads the version byte at wire+4 and the receive loop (0x10638508+) drops packets whose version != local byte this->+0x538 with 'ignore NACK packet with incompatible protocol version: %d'; NACK class = record nibble field ==2 (checked at 0x106386a0-0x106386a8); record+0/+0x438 init -1 before deserialize",
-    "Resolved: the shared sdbt/noderx wire header is decoded (see nodetx) - {u32be id, u8 version, u8 nibble-pair, u16be} + 1024B payload. Residual: per-payload-type field grammars inside the 1024B body"
+    "Shared noderx/nodetx header corrected consistently with chsnk and chsrc_chsnk. The ordinary serializer f_10633870 and override serializer f_1063391c emit wire {u32be packetId at 0, u8 version at 4, packed byte at 5, u16be first-frame offset at 6, 1024 payload bytes at 8}, total 0x408 bytes. The packed HIGH nibble becomes record+5, and LOW nibble becomes record+6, not the reverse: f_106339d0 shifts wire[5] right by four at 0x10633a24, stores that at record+5 at 0x10633a2c, masks the low four bits and stores record+6 at 0x10633a30. The override serializer takes high from r5 and low from r6 (0x10633928-0x10633934); ordinary serialization takes record+5/+6 at 0x106338b4-0x106338c8. f_106339d0 skips the payload copy when incoming r6 is nonzero and returns wire+8, so it also supports zero-copy receive. The caller-supplied r5 stored at record+0x40c is not a wire field.",
+    "HIGH nibble is the packet class, with operational producer meanings now bound rather than invented enum labels. Ordinary assembly f_1063777c calls packet producer f_106374cc with class=0 at 0x10637868-0x1063787c. Class=1 is explicitly used to flush a resynchronization-control packet: requestResync f_10637d2c appends a marker chosen from 0xfd/0xfb/0xfe, then calls f_10637ca8 with r4=1 at 0x10637eec-0x10637ef4; that routine pads the current packet and forwards the class to f_106374cc at 0x10637cec-0x10637d00. The producer places class in constructor r7 at 0x1063753c, and f_106337e4 stores it at record+5 at 0x10633838. Class=2 is a NACK request: f_1044ab7c builds it with r7=2 at 0x1044abc8 and emits via f_10633870 at 0x1044abe8. The nodetx NACK listener deserializes at 0x1063869c and accepts exactly record+5==2 at 0x106386a0-0x106386a8; the ordinary noderx path excludes that class at 0x1044ca68-0x1044ca74. Class mismatch is explicitly named by the logger at 0x1044d11c. These descriptions identify behavior, not canonical source enum spellings.",
+    "LOW nibble is the transmission/replay discriminator, independently of packet class. Initial packet production passes zero in constructor r8 at 0x10637554. NACK servicing f_10638090 reserializes cached packets with low=1 at 0x106381d8-0x106381e4, 0x1063826c-0x10638274 and 0x106383f8-0x10638400, preserving their high class. Receiver low==1 reaches the startup continuity gate at 0x1044ca94-0x1044cab0, whose logs explicitly say NACK resend at 0x1044d084 and 0x1044d378. Low=2 is cached replay to a late joiner: f_10636574 passes r6=2 at 0x106365c4-0x106365cc. The resendToLateJoiner loop calls sender virtual +0x1c at 0x106cb188-0x106cb1a0; sender vtable 0x10efb75c contains f_10636574 in that slot at 0x10efb778. Thus value two in the low nibble is not a NACK class. No additional meaning is assigned to unused nibble values 3..15.",
+    "Header u16 is a payload-relative first-full-frame offset, not a type code. The seamless sink reads it at 0x10309608, checks offset<=1023 and offset+16<=1024, then parses a subframe header at record+0xa+offset (0x10309614-0x103096c4). The normal receive path likewise tests <=0x3ef before reading sixteen bytes at 0x1044cba8-0x1044ce90. Offset above the payload range denotes no complete frame start in that packet. Both paths demonstrate the offset semantics independently of the diagnostic strings.",
+    "Body framing traced beyond the old opaque-1024-byte claim: f_1063311c copies a sixteen-byte subframe header, while f_106331a8 extracts {u8 type at 0, u8 auxiliary at 1, u16be body length at 2, two u32be words at 4/8, u32be word at 12}; serializer f_10633280 emits the matching layout. Packet diagnostic walker f_10633a98 advances by 16+bodyLength at 0x10633b24-0x10633b40 and 0x10633cd8-0x10633ce8. Its six-way relative dispatch at 0x10efb528 maps 0xfa=boundaryX, 0xfb=schedResyncX, 0xfc=boundary, 0xfd=immedResync, 0xfe=schedResync, 0xff=endTX. Ordinary type names use a mask clearing bits 0x60, then table 0x10efb558: 0=mp3,1=wav,2=wma,3=mp4,4=flac,5=ogg,6=alac,7=sbc,9=opus,11=ec3,31=encrypted; the other table slots say unknown. These are names and dispatch, not a claim that each codec payload has the same body grammar. The live noderx control path f_10449e78 consumes the sixteen-byte header, forwards body+0x10 and its length to f_10633400, which extracts a first u32 and an optional following pair of u32 words; the resync producer f_106334a4 emits the corresponding words. Full per-type consumers remain the residual."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10633a24",
+     "notes": "High wire nibble decodes to record+5; low to record+6. Prior swapped claim withdrawn."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10637ef4",
+     "notes": "Resync control flush explicitly chooses packet class one."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1044abc8",
+     "notes": "NACK request constructor selects high class two, low discriminator zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106365cc",
+     "notes": "Late-joiner replay override preserves class and sets low discriminator two; vtable +0x1c binding traced."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1044d084",
+     "notes": "Receiver names low-discriminator-one path as NACK resend."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106331a8",
+     "notes": "Sixteen-byte subframe header extraction, distinct from eight-byte packet header."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10efb528",
+     "notes": "Relative special-type dispatch followed by ordinary codec-name pointer table at 0x10efb558."
+    }
    ]
   },
   "chirp": {
