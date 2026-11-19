@@ -64236,14 +64236,47 @@
          "function": "0x102c3694",
          "address": "0x102c3750",
          "notes": "output ID = strtol(q+0x5c) read after the synchronous submit"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102c3694",
+         "address": "0x102c37d4",
+         "notes": "f_102c350c(impl, 'Replaced', r31, 6)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102c350c",
+         "address": "0x102c3588",
+         "notes": "notifyClients on impl+0x10"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102c350c",
+         "address": "0x102c35cc",
+         "notes": "in-process event 'Replaced'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102c350c",
+         "address": "0x102c3674",
+         "notes": "op-15 request"
         }
        ],
        "todo": [
         "Established: Empties the default queue, renumbers it (QueueID+1, UpdateID reset then bumped to 1), stores owner, context and policy on it, and resets the play index when it is the playing queue.",
-        "Residual: what f_102d094c changes when f_102b2ee4 is nonzero (0x102e005c) and which listener f_102c350c notifies with 'Replaced' (0x102c37d4) are not traced; next step is to disassemble both."
+        "Residual: what f_102d094c changes when f_102b2ee4 is nonzero (0x102e005c), and the condition that selects f_102c350c's branch at 0x102c3544, are not traced; next step is to disassemble f_102d094c (f_102d086c, f_102ceb40) and the record instruction before 0x102c3544."
        ],
        "resolved_findings": [
-        "Resolved (dispatch): see the chain: optional f_102d094c(engine), optional f_102c350c 'Replaced' call for a previous owner string at engine+0xa0a4, then the f_1032e56c request submitted to the session."
+        "Resolved (dispatch): see the chain: optional f_102d094c(engine), optional f_102c350c 'Replaced' call for a previous owner string at engine+0xa0a4, then the f_1032e56c request submitted to the session.",
+        "Established (f_102c350c 'Replaced'): f_102c3694 builds the string 'Replaced' (f_102ab4dc at 0x102c37c0) and calls f_102c350c(impl, &str, r31, 6) at 0x102c37d4. On one branch (0x102c3548..0x102c35cc) f_102c350c marks change index 3 on the AVTransport impl's UPnP event source impl+0x10 (f_1067b4f4 at 0x102c3554, which walks the evented list at 0x11097824), sets byte impl+0x10000-0x5dec, calls notifyClients on impl+0x10 (f_1067c6ec at 0x102c3588), and posts the in-process event 'Replaced' through f_102f4a00(impl+0x2ec) ('inprocess-events', 'Queued %s(%u) from \"%s\"'). On the other branch (0x102c3628..0x102c3674) it evicts the cloud session (f_102b3124, 'sessionError', 'evict'), marks index 3 the same way and submits an op-15 request built by f_1032e56c (+0xe4 = 15), which the session consumer applies through f_10262670 -> f_1014d8c4, the same CreateQueue mutation. In plain terms: 'Replaced' goes to the AVTransport event subscribers and to in-process listeners, not to a Queue-specific listener."
        ]
       }
      ],
@@ -64264,14 +64297,47 @@
         "function": "0x102c3694",
         "address": "0x102c37b8",
         "notes": "'Replaced' string"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c3694",
+        "address": "0x102c37d4",
+        "notes": "f_102c350c(impl, 'Replaced', r31, 6)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c350c",
+        "address": "0x102c3588",
+        "notes": "notifyClients on impl+0x10"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c350c",
+        "address": "0x102c35cc",
+        "notes": "in-process event 'Replaced'"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c350c",
+        "address": "0x102c3674",
+        "notes": "op-15 request"
        }
       ],
       "todo": [
        "Established: the calls f_102d094c (when f_102b2ee4 is nonzero), f_102c350c('Replaced') (when engine+0xa0a4 is set) and the f_1032e56c request submit are identified with sites.",
-       "Residual: what f_102d094c changes, whom f_102c350c notifies with 'Replaced', and how the session consumer applies the f_1032e56c request are not traced; next step is to disassemble f_102d094c (f_102d086c, f_102ceb40), f_102c350c and f_1032e56c."
+       "Residual: what f_102d094c changes when f_102b2ee4 is nonzero (0x102e005c), and the condition that selects f_102c350c's branch at 0x102c3544, are not traced; next step is to disassemble f_102d094c (f_102d086c, f_102ceb40) and the record instruction before 0x102c3544."
       ],
       "resolved_findings": [
-       "Resolved (within the front end): no notify call exists in f_10464bd0, f_102dff24 or f_102b2ee4; f_102c3694 calls f_102c350c with the reason 'Replaced' (0x10eac8c4) and code 6 when a previous owner string is present."
+       "Resolved (within the front end): no notify call exists in f_10464bd0, f_102dff24 or f_102b2ee4; f_102c3694 calls f_102c350c with the reason 'Replaced' (0x10eac8c4) and code 6 when a previous owner string is present.",
+       "Established (f_102c350c 'Replaced'): f_102c3694 builds the string 'Replaced' (f_102ab4dc at 0x102c37c0) and calls f_102c350c(impl, &str, r31, 6) at 0x102c37d4. On one branch (0x102c3548..0x102c35cc) f_102c350c marks change index 3 on the AVTransport impl's UPnP event source impl+0x10 (f_1067b4f4 at 0x102c3554, which walks the evented list at 0x11097824), sets byte impl+0x10000-0x5dec, calls notifyClients on impl+0x10 (f_1067c6ec at 0x102c3588), and posts the in-process event 'Replaced' through f_102f4a00(impl+0x2ec) ('inprocess-events', 'Queued %s(%u) from \"%s\"'). On the other branch (0x102c3628..0x102c3674) it evicts the cloud session (f_102b3124, 'sessionError', 'evict'), marks index 3 the same way and submits an op-15 request built by f_1032e56c (+0xe4 = 15), which the session consumer applies through f_10262670 -> f_1014d8c4, the same CreateQueue mutation. In plain terms: 'Replaced' goes to the AVTransport event subscribers and to in-process listeners, not to a Queue-specific listener."
       ]
      },
      "state_transitions": {
@@ -64331,14 +64397,47 @@
         "function": "0x102c3694",
         "address": "0x102c3750",
         "notes": "output ID = strtol(q+0x5c) read after the synchronous submit"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c3694",
+        "address": "0x102c37d4",
+        "notes": "f_102c350c(impl, 'Replaced', r31, 6)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c350c",
+        "address": "0x102c3588",
+        "notes": "notifyClients on impl+0x10"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c350c",
+        "address": "0x102c35cc",
+        "notes": "in-process event 'Replaced'"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c350c",
+        "address": "0x102c3674",
+        "notes": "op-15 request"
        }
       ],
       "todo": [
        "Established: Empties the default queue, renumbers it (QueueID+1, UpdateID reset then bumped to 1), stores owner, context and policy on it, and resets the play index when it is the playing queue.",
-       "Residual: what f_102d094c changes when f_102b2ee4 is nonzero (0x102e005c) and which listener f_102c350c notifies with 'Replaced' (0x102c37d4) are not traced; next step is to disassemble both."
+       "Residual: what f_102d094c changes when f_102b2ee4 is nonzero (0x102e005c), and the condition that selects f_102c350c's branch at 0x102c3544, are not traced; next step is to disassemble f_102d094c (f_102d086c, f_102ceb40) and the record instruction before 0x102c3544."
       ],
       "resolved_findings": [
-       "Resolved (front end): f_102dff24 and f_102c3694 store only QueueID and stack data; any transition happens in f_102d094c or the request consumer."
+       "Resolved (front end): f_102dff24 and f_102c3694 store only QueueID and stack data; any transition happens in f_102d094c or the request consumer.",
+       "Established (f_102c350c 'Replaced'): f_102c3694 builds the string 'Replaced' (f_102ab4dc at 0x102c37c0) and calls f_102c350c(impl, &str, r31, 6) at 0x102c37d4. On one branch (0x102c3548..0x102c35cc) f_102c350c marks change index 3 on the AVTransport impl's UPnP event source impl+0x10 (f_1067b4f4 at 0x102c3554, which walks the evented list at 0x11097824), sets byte impl+0x10000-0x5dec, calls notifyClients on impl+0x10 (f_1067c6ec at 0x102c3588), and posts the in-process event 'Replaced' through f_102f4a00(impl+0x2ec) ('inprocess-events', 'Queued %s(%u) from \"%s\"'). On the other branch (0x102c3628..0x102c3674) it evicts the cloud session (f_102b3124, 'sessionError', 'evict'), marks index 3 the same way and submits an op-15 request built by f_1032e56c (+0xe4 = 15), which the session consumer applies through f_10262670 -> f_1014d8c4, the same CreateQueue mutation. In plain terms: 'Replaced' goes to the AVTransport event subscribers and to in-process listeners, not to a Queue-specific listener."
       ]
      },
      "return_behavior": {
