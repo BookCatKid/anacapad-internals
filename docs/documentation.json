@@ -121266,15 +121266,6 @@
   },
   "x-sonos-misc": {
    "htastream_validation": "f_102931f0 zeroes optional output arguments and tail-calls f_10293014. At 0x10293058 the parser calls strncasecmp(input, x-sonos-htastream:, 18), using literal 0x10e99698. It finds the first colon after that prefix (0x10293070), requires exactly 24 bytes before it (0x10293090-0x10293094), and requires a nonempty suffix accepted by f_10292040. That helper uses case-sensitive strcmp against spdif, v-spdif, vli, chsnk and test; this is not hex decoding. Failure returns 0, success returns 1. A nonnull output buffer is filled with the 24-byte source plus NUL only when its size argument is exactly 25; a nonnull suffix output receives the pointer after the colon. There is no separate whole-URI length test. f_10292f78 recognizes only x-rincon-stream:, not htastream; generic URI callers can still pass the same input through both predicates in succession.",
-   "htastream_evidence": [
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "address": "0x10293014",
-     "notes": "Case-insensitive 18-byte prefix compare at 0x10293058 against 0x10e99698; strchr at 0x10293070; exact 24-byte segment comparison at 0x10293090; suffix membership helper f_10292040 at 0x102930a4 uses strcmp and the table at 0x10eacd80. f_102931f0 tail-calls this parser with null optional outputs. f_102aeec0 tests the same URI with f_10292f78 at 0x102aeef8, then the HT predicate at 0x102aef18, disproving a claim that htastream can never be presented to the line-in predicate."
-    }
-   ],
    "description": "Assorted internal x-sonos schemes: x-sonos-htastream (HT audio stream), x-sonos-http[:], x-sonos-mms/x-sonosprog-mms, x-sonos-spotify/x-sonosprog-spotify, x-sonos-recent[:], x-sonos-dock:, x-sonos-clone-gc/x-sonos-gc-cleared-content (group-coordinator internal), x-sonos-upnp-tunnel/x-sonos-upnp-loopback-token, x-sonos-sync-method/x-sonos-method/x-sonos-uri (sync control), x-sonos-auth-https%s.",
    "format": "x-sonos-<kind>[:<arg>]",
    "used_by": [
@@ -121286,7 +121277,14 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x10e99698",
-     "notes": "x-sonos-htastream"
+     "notes": "x-sonos-htastream: prefix literal. f_10293014 calls strncasecmp with this literal and count 18 at 0x10293058."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10293014",
+     "notes": "Case-insensitive 18-byte prefix compare at 0x10293058 against 0x10e99698; strchr at 0x10293070; exact 24-byte segment comparison at 0x10293090; suffix membership helper f_10292040 at 0x102930a4 uses strcmp and the table at 0x10eacd80. f_102931f0 tail-calls this parser with null optional outputs. The same URI can reach f_10292f78 at 0x102aeef8 and then the HT predicate at 0x102aef18; rejection by the line-in predicate is not proof it never receives HT input."
     },
     {
      "type": "firmware",
