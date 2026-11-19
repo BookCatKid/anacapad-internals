@@ -61439,7 +61439,7 @@
      "todo": "Established: primary GRC vptr 0x10ec3824 slot +0x08 -> 0x1039ccbc, complete getter status domain and exact cached aggregation are traced. CurrentMute is true exactly when the cached valid-zone count is nonzero and equals the muted-zone count. Empty state returns false; one muted zone does not suffice when another valid zone is unmuted. Fixed-volume zones participate in this mute count. Residual: bind the renderer/configuration input to f_103a0e28, finish extra snapshot helper f_100daab0, and follow in-process callback f_103a3abc plus the sender/delivery bridge behind f_1067c6ec. Cache refresh can request notifications; no runtime-only dispatch boundary is asserted."
     },
     "GetGroupVolume": {
-     "description": "Returns the group volume as CurrentVolume u16. Aggregation across members (average vs coordinator's own) is unresolved - the group impl computes it via v[+0x10].",
+     "description": "Reads the cached group volume after refreshing local rendering information. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107390c4",
@@ -61475,7 +61475,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "description": "Parsed as u32 by f_105614e0; the concrete implementation rejects every nonzero value with 702.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -61487,12 +61487,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text",
        "unit": "none - dimensionless index",
-       "accepted_values": "decimal uint32",
-       "range": "unbounded u32 in wrapper",
+       "accepted_values": "0",
+       "range": "0 only",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "validation": "Request validation precedes dispatch; implementation compares InstanceID with zero before looking up group state.",
        "evidence": [
         {
          "type": "firmware",
@@ -61521,7 +61521,7 @@
      },
      "outputs": {
       "CurrentVolume": {
-       "description": "Group volume u16 written by impl; group aggregation rule unresolved.",
+       "description": "CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise. f_1039cbf0 stores the low 16 bits at 0x1039cc8c; this is not a session-destructor output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
@@ -61529,10 +61529,10 @@
        },
        "semantic_type": "unsigned int16",
        "format": "%u decimal",
-       "unit": "percent volume units (unproven)",
-       "accepted_values": "0..100 expected; width proven only",
-       "range": "0..100 expected; width proven only",
-       "special_values": "none observed in this build",
+       "unit": "RenderingControl volume units",
+       "accepted_values": "low 16 bits of the truncated cached average, or fallback 0/100",
+       "range": "unsigned 16-bit result; no additional range clamp in this getter",
+       "special_values": "100 for fixed-only valid state; 0 for empty valid state",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg; no client-side validation",
@@ -61541,22 +61541,15 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107391b0",
-         "notes": "out-arg access site"
+         "address": "0x1039cc68",
+         "notes": "Reads nonfixed count +0xd28e, fixed count +0xd290 and current sum +0xd294 through cache pointer +0x25c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f08d18",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x106fd104",
-         "notes": "produced by impl path"
+         "address": "0x1039cca4",
+         "notes": "Raw EFS words 114052d0/11204ad0/112952c9/11204ad8 convert unsigned integers, divide and truncate toward zero; isel fallback at 0x1039cc88. Placeholders attributing output to f_106fd104 were incorrect."
         }
        ],
        "notes": null
@@ -61576,90 +61569,79 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x10]",
+      "description": "Requires a valid InstanceID argument, InstanceID=0 and a nonnull group accessor result from f_1075cf7c(*(impl+0x278), *(impl+0x274)). Nonzero InstanceID returns 702 before lookup; null group returns 701 before refresh. No separate coordinator-role test is present in this implementation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107390c4",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x1039cbf0",
+        "notes": "Complete getter prologue and early-return paths; request validation is in the SOAP wrapper."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x10]",
+      "description": "Uses local ID +0x274, group accessor +0x278, local renderer +0x26c, mutex +0x1c8 and cache pointer +0x25c. Initializer f_103a0e28 stores renderer at 0x103a0ee4 and allocates the 0xd298-byte cache at 0x103a0f40..0x103a0f60. Cache entries have stride 0x694; volume +0x690, mute +0x692 and fixed +0x693 contribute after validity flags at +0x68c satisfy flags&7==7. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107390c4",
-        "notes": "member vfunc calls: ['r30 v[+0x10]']"
+        "address": "0x1039e7d8",
+        "notes": "Counter writers and gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d log identify the aggregate fields."
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: cache allocation, validity bits, counter writers and local snapshot consumption are traced. Residual: bind the caller-supplied renderer/configuration pair passed to f_103a0e28 and finish f_100daab0, called by f_100dabac for the extra snapshot field at +0x1c; that field is not consumed by this getter."
      },
      "side_effects": [
       {
-       "description": "Queries group volume state via the group-impl object. Impl-object vtable and member iteration details unresolved",
+       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10738c58",
-         "address": "0x10738d5c",
-         "notes": "impl object resolution at dispatch"
+         "address": "0x103a0640",
+         "notes": "Refresh callback through 0x103a074c; notification calls at 0x103a0704/0x103a0748 and in-process post at 0x103a0720."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - Queries group volume state via the group-impl object. Impl-object vtable and member iteration details unresolved.",
-        "Residual: the element this section's own analysis flags as unresolved (see its description) - the delegate or member path it names is not traced (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "todo": "Established: local cache updates and conditional notification requests are reachable through this getter. Residual: finish the extra snapshot helper f_100daab0 and in-process receiver callback f_103a3abc reached through f_103a6d74 -> f_100f14ec before enumerating their downstream effects."
       }
      ],
      "events_triggered": {
-      "description": "None proven in the SOAP path.",
+      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x107390c4",
-        "notes": "wrapper decode"
+        "address": "0x103a0700",
+        "notes": "Getter -> f_1039c5f0 -> f_103a05d0 proves action-specific reachability; post callback address f_103a3abc is installed at 0x103a71f8."
        }
-      ]
+      ],
+      "todo": "Established: conditional notification entry points and the in-process post are traced. Residual: follow callback f_103a3abc and bind the event-source sender to the concrete delivery worker; prove any GENA/WSS bridge rather than attributing groupRendering by name."
      },
      "state_transitions": {
-      "description": "None proven; read-only.",
+      "description": "Refresh can change local cached validity, fixed/nonfixed classification, volume sum and muted count, and set dirty byte +0x259. The final aggregate read is under mutex +0x1c8. The getter itself requests no playback-state transition or RenderingControl setter.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x107390c4",
-        "notes": "wrapper decode"
+        "address": "0x1039cbf0",
+        "notes": "Getter calls refresh, locks, reads aggregates, writes output, unlocks and returns zero."
        }
       ]
      },
      "return_behavior": {
-      "description": "Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').",
+      "description": "Returns 702 for nonzero InstanceID, 701 for a null group accessor result and 0 after writing the aggregate output. It does not fan out to members or aggregate member request failures. The wrapper forwards nonzero status as a SOAP fault and formats/commits output only on success; failed request validation selects 402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10739144",
-        "notes": "impl->v[+0x10](impl,InstanceID,&u16)",
-        "function": "f_107390c4"
+        "address": "0x1039cbf0",
+        "notes": "All getter status exits are literal; wrapper request gate and fault/output branches are separate."
        }
       ]
      },
@@ -61677,7 +61659,7 @@
        "fault_sites": [
         "0x10739160"
        ],
-       "meaning": "nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc}",
+       "meaning": "No bound group: f_1075cf7c returns null after InstanceID zero passes.",
        "conditions": [
         {
          "description": "group object lookup via f_1075cf7c fails (no group bound)",
@@ -61708,12 +61690,10 @@
          "notes": "impl returns 0x2bd on lookup miss"
         }
        ],
-       "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034: vocabulary unresolved",
+       "condition": "Group accessor null returns 701; this action has no member-apply failure aggregation.",
        "resolved_domain": "{0,701,702} + wrapper {401,402}",
        "resolved_findings": [
-        "701 is emitted only by the impl-head member lookup miss: f_1075cf7c(*(impl+0x278), *(impl+0x274)) is an atomic refcounted-pointer accessor (lwarx/stwcx refcount bump on *(obj+8)+4, null-safe) whose null return selects r3=0x2bd when the zone has no bound group-member object.",
-        "Domain fully proven: f_1039cbf0 complete literal rc set is {0, 701, 702} - InstanceID!=0 -> 702, accessor miss -> 701 at 0x1039cc30, and the success path ends with addi r3,0 (downstream worker rc is discarded, not forwarded). No 801 can ever surface from this action; the pooled 701/801 phrasing was a shared member-domain superset artifact.",
-        "Resolved: 701/801 split = member-domain rejects -> 701, hard member failures -> 801."
+        "Complete implementation status domain is {0,701,702}; request validation adds 402. No 801, 802 or 803 member status is produced by this getter."
        ]
       },
       {
@@ -61750,13 +61730,16 @@
          "build": "86.10-80260",
          "function": "0x106fd104",
          "notes": "402 gate verified in handler body"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1039cbf0",
+         "notes": "The full implementation has no 402 return; 402 belongs to the wrapper request-validation failure tail, not an untraced worker predicate."
         }
        ],
-       "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 402; sites: 0x10739160).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])"
       },
       {
        "code": 702,
@@ -61829,14 +61812,18 @@
        "build": "86.10-80260",
        "address": "0x10f11ab4",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039cbf0",
+       "notes": "SOAP service+4 receives the primary GRC object through f_104d49e8 at 0x104d4cf0; constructor f_1039f2e0 installs vptr 0x10ec3824. Slot +0x10 selects this implementation."
       }
      ],
      "notes": null,
      "implementation_notes": "Direct impl on the impl object: 4-insn predicate: loads global 0x11097910, returns CR-flag on it (group-volume read delegated to the shared group-volume state). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.",
-     "todo": [
-      "Established: direct dispatch to handler 0x107390c4; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "todo": "Established: primary GRC vptr 0x10ec3824 slot +0x10 -> 0x1039cbf0, complete getter status domain and exact cached aggregation are traced. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise. Residual: bind the renderer/configuration input to f_103a0e28, finish extra snapshot helper f_100daab0, and follow in-process callback f_103a3abc plus the sender/delivery bridge behind f_1067c6ec. Cache refresh can request notifications; no runtime-only dispatch boundary is asserted."
     },
     "SetGroupMute": {
      "description": "Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; 'SetGroupMute: %s set to %d rc=%d').",
