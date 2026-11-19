@@ -118721,14 +118721,35 @@
    ]
   },
   "sonos_access_settings_json": {
-   "description": "The access-settings JSON consumed by f_105c7248 as a fixed skeleton with two scanf passes. Pass 1 (fmt 0x10ef45a4, 4 conversions): '[{\"version\":%u,\"lastUpdateDevice\":\"%24s\"}, [{\"name\":\"restricted-admin\", \"readPermission\":null, \"writePermission\":\"hh-config-admin\",\"settings\":[{\"explicitContentFiltering\":\"%4s\",\"recentlyPlayed\":\"%4s\"}]}]]'. Pass 2 (fmt 0x10ef4674, 3 conversions) is a legacy fallback that drops the recentlyPlayed field. The %4s values are compared against 'true' (0x10f0df88) to booleanize into the settings record (fields +0x25/+0x26 and the +0x43c flag cluster on the object at r29+0x9c8).",
+   "description": "Legacy access-settings JSON read by f_105c7248. Both fixed array strings are input formats for sscanf, not writer templates. Pass 1 (fmt 0x10ef45a4, 4 conversions): '[{\"version\":%u,\"lastUpdateDevice\":\"%24s\"}, [{\"name\":\"restricted-admin\", \"readPermission\":null, \"writePermission\":\"hh-config-admin\",\"settings\":[{\"explicitContentFiltering\":\"%4s\",\"recentlyPlayed\":\"%4s\"}]}]]'. Pass 2 (fmt 0x10ef4674, 3 conversions) is the fallback that drops the recentlyPlayed field. The %4s values are compared against 'true' (0x10f0df88) to booleanize into the settings record (fields +0x25/+0x26 and the +0x43c flag cluster on the object at r29+0x9c8).",
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x105c72e0",
-     "notes": "fmt at 0x10fe58a4"
+     "notes": "First sscanf: r4 is loaded with 0x10ef45a4 at 0x105c7298; f_105c7248 tests for four conversions at 0x105c72e4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105c730c",
+     "notes": "Fallback sscanf: r4 is loaded with 0x10ef4674 at 0x105c72fc; 0x105c7310 tests for three conversions without recentlyPlayed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105c6b58",
+     "notes": "The structured writer f_105c6af0 supplies numeric value 2 to fileSchemaVersion at 0x105c6b64, separately from fileVersion at 0x105c6b3c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105c6dc4",
+     "notes": "The save path calls f_105c6af0, passes the result and output buffer to sonosFileCreate at 0x105c6dd8, and renames the staged file at 0x105c6dec on success."
     }
    ],
    "fields": [
@@ -118737,9 +118758,8 @@
     "named-permission entries"
    ],
    "resolved_findings": [
-    "Resolved: the consuming parser is the documented sscanf/compare site in the record evidence; a census of same-signature fmt literals found no additional grammar-bearing variants for this format (common single-conversion signatures are not distinguishable as format-specific).",
-    "Parser: f_105c7248 with two scanf passes at 0x105c72e0 (fmt 0x10fe58a4) over a fixed JSON skeleton: '[{\"version\":%u,\"lastUpdateDevice\":\"%24s\"}, [{\"name\":\"restricted-admin\", \"readPer...' - %u version, %24s lastUpdateDevice (24-char cap), named-permission entries, literal punctuation case-sensitive. Corroborated by shipped opt/localsettings/security_attrdata.json whose attributes carry readPerm/writePerm hex words.",
-    "Both fmt literals recovered verbatim (0x10ef45a4 / 0x10ef4674). Grammar is a two-element array: a version/lastUpdateDevice header object plus a single-entry permission array pinning name='restricted-admin', writePermission='hh-config-admin', and a settings object carrying explicitContentFiltering and recentlyPlayed booleans."
+    "The legacy array has a version/lastUpdateDevice header and one restricted-admin entry. The first sscanf in f_105c7248 requires four conversions; the fallback requires three and does not read recentlyPlayed. The prior address 0x10fe58a4 points into unrelated fault-log text; it is not a format used here.",
+    "The current writer f_105c6af0 emits a JSON object with fileVersion, lastUpdateDevice, fileSchemaVersion=2 and householdSettings. It opens restricted-admin/settings at 0x105c6b84 and 0x105c6b90 and emits explicitContentFiltering and recentlyPlayed with the Boolean helper f_109d14e0. It does not emit the legacy array or its literal permission fields."
    ]
   },
   "sonos_packed_object_id": {
