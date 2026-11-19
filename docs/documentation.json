@@ -176624,7 +176624,7 @@
    ]
   },
   "0x100c7898": {
-   "description": "Installer f_100c7898 holds the object+0x128 write lock while comparing incoming source/version against current source/version with f_10660e58. Rejected revisions return false. Accepted candidates are parsed from the candidate file through f_10c4015c; file-open/parse failure or a false parser-completion byte returns false. A nonzero rename(candidate,live-path) result also returns false. Successful rename clears the descriptor cache under its separate mutex, sets dirty byte +0x1d5, invokes f_1067c6ec(object+8), copies the source with capacity 25, stores the version at +0x1f0, copies ETag with capacity 65 and sets +0x1d6. It notifies replication through object+0x1b8 slot +0x14. Subsequent descriptor loading failure does not undo the rename or change the successful installer return. The committed source/version come from caller arguments, not from a comparison with the parsed file header. The metadata callback f_100ca73c copies source and captures header version only when source length is exactly 24; it separately copies nonempty ETag with capacity 65. The installer uses that parsed ETag, but does not compare parsed source/version against the caller values before storing them.",
+   "description": "Installer f_100c7898(this, source, version, candidatePath, format) holds the object+0x128 write lock while comparing incoming source/version against current source (obj+0x1d7) and version (obj+0x1f0) with f_10660e58. Rejected revisions return false. Accepted candidates are metadata-parsed by f_10c4015c driving the same start/end element handlers f_10552c20/f_10552938 with a distinct sink object on the stack (vtable 0x10e76700) whose only non-default callback is the Services-start slot +0x08 f_100ca73c: it copies the catalog Version word to ctx+0x60 and copies the LastUpdateDevice text into ctx+5 (capacity 25) only when strlen(source) is exactly 24, and copies a nonempty ETag into ctx+0x1e (capacity 65). File-open failure, a zero f_10c4015c result or a clear parser completion byte (parser+0xc, set by the Services start handler only when SchemaVersion <=5) returns false. A nonzero rename(candidatePath, live catalog path) result also returns false after unlinking the live path. Successful rename clears the descriptor cache under the separate object+0x13a40 mutex, sets dirty byte +0x1d5, invokes f_1067c6ec(object+8), copies the caller-supplied source with strlcpy capacity 25 (not the parsed LastUpdateDevice), stores the caller-supplied version word at +0x1f0, copies the PARSED candidate ETag (ctx+0x1e) with capacity 65 into obj+0x1f8 and sets +0x1d6. It then calls the replication observer obj+0x1b8 vfunc+0x14 with (kind 6, stored source, stored version, 0) and logs 'Replicated list accepted'. After commit it reloads descriptors into a stack vector through f_100c6e20, runs the URI-registry reconcile f_1071f644(global 0x110abf50, rows) which expands each stored URI through f_10553ab0 and probes f_1071f35c, and invokes the account reconciliation f_101b7e90(obj+0x1c8, rows) only when strcmp(stored provider string obj+0x1c0, incoming source) is nonzero. A subsequent descriptor-loading failure does not undo the rename or change the successful installer return. obj+0x1b8 and +0x1bc are a runtime-injected delegate pair zeroed by the constructor and swapped in by the registration setter at 0x100c8294, so the concrete notify implementation behind slot +0x14 is not statically bound.",
    "why_external": "Defines catalog installation failures, revision visibility and notification side effects.",
    "required_for_behavior": true,
    "role": "music_service_catalog",
@@ -176633,11 +176633,44 @@
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x100c7898",
-     "notes": "Acceptance, metadata parse, rename and cache/revision/notify sequence through 0x100c7c30."
+     "address": "0x100ca73c",
+     "notes": "Metadata sink Services-callback: version word to ctx+0x60, LastUpdateDevice copied only when strlen==24 into ctx+5 cap25, nonempty ETag into ctx+0x1e cap65."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e76700",
+     "notes": "Candidate-parse sink vtable: only Services-start slot+0x08 f_100ca73c non-default; all element processors are defaults, so only header metadata is captured."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c7bbc",
+     "notes": "Replication notify: obj+0x1b8 vfunc+0x14 called with (kind 6, stored source, stored version, 0) after commit."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c7b20",
+     "notes": "Account reconcile f_101b7e90(obj+0x1c8,rows) gated on strcmp(obj+0x1c0 stored provider, incoming source)!=0; URI-registry reconcile f_1071f644(0x110abf50,rows) runs unconditionally."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c8294",
+     "notes": "obj+0x1b8/+0x1bc are a runtime-injected delegate pair swapped by a registration setter; concrete slot+0x14 implementation is not statically bound."
     }
    ],
-   "todo": "Established: Installer f_100c7898 holds the object+0x128 write lock while comparing incoming source/version against current source/version with f_10660e58. Rejected revisions return false. Accepted candidates are parsed from the candidate file through f_10c4015c; file-open/parse failure or a false parser-completion byte returns false. A nonzero rename(candidate,live-path) result also returns false. Successful rename clears the descriptor cache under its separate mutex, sets dirty byte +0x1d5, invokes f_1067c6ec(object+8), copies the source with capacity 25, stores the version at +0x1f0, copies ETag with capacity 65 and sets +0x1d6. It notifies replication through object+0x1b8 slot +0x14. Subsequent descriptor loading failure does not undo the rename or change the successful installer return. Remaining: Trace candidate metadata callback f_100ca73c and generic parser f_10554c70; bind replication slot +0x14 and provider/account reconciliation helpers to all effects."
+   "resolved_findings": [
+    "The candidate metadata parse reuses the same XML element handlers with a minimal sink (vtable 0x10e76700): f_100ca73c captures the catalog version, a 24-character LastUpdateDevice source and a nonempty ETag; no descriptor rows are collected at this stage.",
+    "The committed source and version come from caller arguments (strlcpy cap25, word at +0x1f0); only the ETag comes from the parsed candidate header.",
+    "The post-commit notification is obj+0x1b8 vfunc+0x14 with kind 6 and (stored source, stored version, 0); the delegate is injected at runtime so its concrete effect is a static-analysis boundary.",
+    "Account reconciliation f_101b7e90 runs only when the incoming source differs from the stored provider string at obj+0x1c0; a separate URI-registry reconcile f_1071f644 walks every reloaded descriptor row."
+   ]
   },
   "0x100cc4f4": {
    "description": "f_100cc4f4 creates a bounded temporary XML writer, writes a Services root with local source/version, SchemaVersion=5 and optional ETag, then reads the HTTP stream in chunks of at most 4096 bytes through HTTP slot +8 and feeds each chunk to f_10c3fc68. It checks the XML completion byte and its callback/write-error flag, appends supplied descriptors that have nonempty name and secure endpoint, then writes </Services>. Explicit write or parse failure unlinks the temporary file and returns false. Writer creation failure also unlinks. The final flush/fsync/close helper f_1054b8e0 is called but its result is ignored; fsync status is itself ignored by that helper. A later candidate reparse can catch damaged XML, but no 803 flush/sync-specific error ladder exists here.",
