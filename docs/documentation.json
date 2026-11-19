@@ -228038,7 +228038,7 @@
   },
   "esdk_crypto": {
    "name": "eSDK login crypto",
-   "summary": "Compiled login4 handshake uses 96-byte modular-exponentiation operands and a separate 256-byte signature workspace; native response processing verifies the server signature, derives five SHA1/HMAC rounds and installs two 32-byte stream keys. Source assertions and diagnostics include MODPOW_WORK_RAM_SIZE, SHA1_DIGEST_SIZE, SIG_SIZE, login failure, signature-check allocation failure and platform/client identifiers. The bignum 2048-bit capacity assertion does not make the 96-byte handshake a 2048-bit SRP exchange. Circular-buffer invariants and src/login4.c are separate literal evidence; remaining AP stream/framing internals are tracked explicitly.",
+   "summary": "eSDK login4 handshake: protobuf-wrapped ClientHello carries a client-info group, a 96-byte DH-768 public value (RFC 2409 group 1), a 16-byte PRNG nonce and two constant bytes. The server flight is RSA-2048 signature checked, a DH shared secret feeds five transcript-plus-counter HMAC-SHA1 rounds yielding a 100-byte keystream plus a challenge MAC key, and two 32-byte slices install as the send context (ctx+8) and receive context (ctx+0xd8) of the mod_ap_conn Shannon-style packet layer (3-byte header, seq-fed 4-byte MAC trailer).",
    "evidence": [
     {
      "type": "firmware",
@@ -228072,13 +228072,50 @@
      "build": "86.10-80260",
      "address": "0x10d460b4",
      "notes": "HMAC inner/outer pad constants."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fe3ac0",
+     "notes": "ClientHello protobuf descriptor array: six fields tags 10/30/50/60/70/80."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d39914",
+     "notes": "Send seal feeds seq counter and payload MAC through ctx+8 (send key)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d0b318",
+     "notes": "Receive path decrypts header/payload through ctx+0xd8 (r15+0x659c, recv key)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d0b1d0",
+     "notes": "memcmp of trailing 4-byte MAC; 'Corrupted packet, invalid MAC' on failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d0bc5c",
+     "notes": "Pump calls f_10d42cd0 login-request builder (framed protobuf + MAC trailer)."
     }
    ],
-   "todo": "Residual: recover the serialized hello field/tag layout and bind the two 32-byte derived-key destinations to their transport directions. The 96-byte shared-result KDF, five transcript/counter HMAC-SHA1 rounds, challenge MAC and signature comparison are traced.",
    "resolved_findings": [
     "Native login reachability: AP connection pump f_10d0b3f8 invokes hello construction f_10d42270 at 0x10d0baac and response processing f_10d42658 at 0x10d0bbc0. These are executable handshake paths, not just login4.c strings. The generic modular exponentiation helper f_10d3d5e0 receives a 0x100-byte modulus/result for the signature operation at 0x10d42998, followed by a 0x100-byte comparison at 0x10d429a8; a mismatch takes the failure exit 0x10d4274c. The next exponentiation uses 0x60-byte operands/output at 0x10d429b4-0x10d429dc. The 2048-bit signature workspace therefore must not be used to label every handshake operand RSA-2048 or to assert an SRP protocol from the filename.",
     "KDF dataflow recovered in f_10d42658: 0x10d429dc writes a 96-byte shared result at work base r31. For counter bytes 1 through 5, 0x10d429e8-0x10d42a44 initializes keyed hashing with those 96 bytes, updates with hello base r28 and length *(r28+0xa4), then response base r26/length r25, then one counter byte, and writes a twenty-byte digest at work+0x60+20*(counter-1). The five iterations generate 100 contiguous bytes. f_10d46050 is HMAC setup: its 64-byte block/key handling and xor 0x36363636/0x5c5c5c5c at 0x10d460b4-0x10d460c0 identify inner/outer pads. Update/final are f_10d46570/f_10d4660c; twenty-byte results and the native SHA1 digest-size assertions support HMAC-SHA1 rather than a generic unspecified KDF.",
-    "The first twenty derived bytes key another HMAC over the same hello/response transcript at 0x10d42a48-0x10d42a80. The next thirty-two bytes at work+0x74 initialize context r28+8 through f_10d4682c, and the following thirty-two at work+0x94 initialize r28+0xd8 at 0x10d42a84-0x10d42aa0. These are proven key slices and destination offsets; naming send/receive direction requires tracing the cipher consumers. The previous SHA1+dual-signature/SRP description from assertions alone is withdrawn. Hello serialization fields and direction names remain native analysis work, not unavailable vendor information."
+    "The first twenty derived bytes key another HMAC over the same hello/response transcript at 0x10d42a48-0x10d42a80. The next thirty-two bytes at work+0x74 initialize context r28+8 through f_10d4682c, and the following thirty-two at work+0x94 initialize r28+0xd8 at 0x10d42a84-0x10d42aa0. These are proven key slices and destination offsets; naming send/receive direction requires tracing the cipher consumers. The previous SHA1+dual-signature/SRP description from assertions alone is withdrawn. Hello serialization fields and direction names remain native analysis work, not unavailable vendor information.",
+    "ClientHello wire layout recovered from protobuf descriptor tables: encoder f_10d2989c walks 14-byte field descriptors {voff u16, aux s16, l4 u16, l6 u16, flags u16 (low2=wire type, bit2=indirect), tag u8} rooted at encoder ctx 0x10fe35a8/0x10fe3614; the top-level message at 0x10fe3ac0 has six fields: tag 10 group (client-info sub-message with four varints tags 10/20/30/40), tag 30 varint, tag 50 group containing tag 10 LEN field with the 96-byte DH-768 public value (generator 2, RFC 2409 Oakley group-1 prime at 0x10fe3728) and tag 20 varint, tag 60 LEN field with the 16-byte client nonce built from the LCG PRNG at session+0x685c, tag 70 LEN byte 0x1e, tag 80 LEN byte 0x08.",
+    "Derived-key direction binding proven in mod_ap_conn.c (source path at 0x10fd7cbc): the security context handed to login4 as arg5 is r15+0x64c4. Its first 32-byte key at +8 is the SEND cipher/MAC context: send seal f_10d39890 increments the transmit sequence at ctx+0, feeds it through f_10d474a0(ctx+8) at 0x10d39914, encrypts via f_10d3972c and appends a four-byte MAC from f_10d4a88c(ctx+8) at 0x10d39974, logging 'Sent %s(%d) to ap Size %d'. The second 32-byte key at +0xd8 (r15+0x659c) is the RECEIVE context: frame reader f_10d0af44 increments the receive sequence at ctx+4 (r15+0x64c8), feeds it via f_10d474a0(ctx+0xd8), decrypts the three-byte header and payload with f_10d49490(ctx+0xd8) at 0x10d0b318/0x10d0b1a8, then verifies the trailing four-byte MAC against f_10d4a88c(ctx+0xd8) at 0x10d0b1b8-0x10d0b1d0, failing with 'Corrupted packet, invalid MAC' (0x10fd7d34). Each context spans 0xd0 bytes ({+0 seq-ctr, +4 seq-ctr, +8 key32 send / +0xd8 key32 recv} within the ctx array).",
+    "Handshake flight order in pump f_10d0b3f8: hello builder f_10d42270 (nonce + DH-768 pubkey, ClientHello above) at 0x10d0baac, server-hello/response processor f_10d42658 (RSA-2048 signature verify 0x10d42998/0x10d429a8, DH shared secret, 100-byte HMAC-SHA1 keystream, key install, login4.c asserts) at 0x10d0bbc0, then login-request builder/sender f_10d42cd0 at 0x10d0bc5c which protobuf-encodes a 16-byte client identifier and emits it framed with seq/MAC trailer, logging 'Platform identifier' and 'logging in with client ID %s'; version string 'HEAD-v3.205.205-gd0f06121-dirty' at 0x10fd55ac. The login response decodes through f_10d41e80 (decoder f_10d28550 + descriptor slot 0x10fe35b4): a group whose three LEN fields are 32, 80 and 80 bytes (session key plus two credential blobs)."
    ]
   },
   "esdk_events": {
