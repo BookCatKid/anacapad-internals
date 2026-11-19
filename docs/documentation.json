@@ -39534,7 +39534,7 @@
      "notes": "BackupQueue uses the shared SavedQueues XML/compression serializer with its own explicit trackqueue.rsq filename and fixed queue-backed flags. This does not make SaveQueue/CreateSavedQueue/AddURIToSavedQueue/ReorderTracksInSavedQueue error ladders reachable. Cleanup registration is conditional and its callback uses a stat timestamp comparison; do not describe this action as guaranteed permanent persistence or guaranteed deletion exactly five minutes later."
     },
     "BecomeCoordinatorOfStandaloneGroup": {
-     "description": "Runs standalone coordinator setup and returns two string outputs on success. The group-aware engine can reject the transition with 1023 before the base handler runs.",
+     "description": "Runs standalone coordinator setup and can return the delegated coordinator ID of the old group and the new local group ID. The group-aware engine can reject it before standalone setup.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8b04",
@@ -39652,7 +39652,7 @@
      },
      "outputs": {
       "DelegatedGroupCoordinatorID": {
-       "description": "String from the engine's 33-byte zero-initialized output buffer, passed in r5/r6 with its capacity. Returned on success.",
+       "description": "Identifier of the member selected to take over the old group, or an empty string when this path writes no delegated member.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -39661,12 +39661,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "zone UUID string of the promoted member",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none observed",
+       "accepted_values": "Selected member identifier or empty string.",
+       "range": "33-byte output capacity including NUL.",
+       "special_values": "Empty when the worker does not write a delegated member.",
        "required": false,
        "default": "none; written on success",
-       "validation": "output written by the promotion path when it selects a member",
+       "validation": "Written only through the successful member delegation path.",
        "evidence": [
         {
          "type": "firmware",
@@ -39691,16 +39691,28 @@
          "address": "0x102f8c10",
          "notes": "Copies the engine's 33-byte zero-initialized output storage into the response descriptor.",
          "function": "0x102f8b04"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d509c",
+         "notes": "Copies 56 settings bytes from indexed-session +0x68 and builds sleep, alarm and restart records; f_10398308 receives those records, current URI and metadata, and the original candidate and output arguments. The worker does not use this helper's return at the call site.",
+         "function": "0x102d4e80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103980f8",
+         "notes": "f_10398308 forwards the first output pointer and capacity through 0x103988e4 to f_10397ee4 on the local-old-coordinator branch. If the member selector f_103913c8 yields a valid index and f_10397dc4 succeeds, the helper copies the 25-byte-slot member identifier at topology+0x288+25*index into the nonnull output pointer. No member or failed delegation skips the copy.",
+         "function": "0x10397ee4"
         }
        ],
-       "notes": "Trace writes through the r5/r6 argument pair forwarded to f_102d4e80.",
-       "todo": [
-        "Established: String from the engine's 33-byte zero-initialized output buffer, passed in r5/r6 with its capacity.",
-        "Identify the exact source of DelegatedGroupCoordinatorID in f_102d4e80 and its callees and which promotion branches leave the string empty."
-       ]
+       "notes": "This identifies the replacement in the old group, not the new standalone group."
       },
       "NewGroupID": {
-       "description": "String from the engine's 36-byte zero-initialized output buffer, passed in r7/r8 with its capacity. Returned on success.",
+       "description": "Resulting group identifier from topology+0x139 when the topology worker reaches the local-coordinator output copy; otherwise the response buffer can remain empty.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -39709,12 +39721,12 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "group UUID assigned by the promotion path",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none",
+       "accepted_values": "Resulting group identifier or empty string.",
+       "range": "36-byte output capacity including NUL.",
+       "special_values": "Empty if no group identifier is copied.",
        "required": false,
        "default": "none; written on success",
-       "validation": "written from the group record on success",
+       "validation": "The output is copied using the supplied capacity, not parsed from the SOAP request.",
        "evidence": [
         {
          "type": "firmware",
@@ -39739,12 +39751,36 @@
          "address": "0x102f8c40",
          "notes": "Copies the engine's 36-byte zero-initialized output storage into the response descriptor.",
          "function": "0x102f8b04"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d509c",
+         "notes": "Copies 56 settings bytes from indexed-session +0x68 and builds sleep, alarm and restart records; f_10398308 receives those records, current URI and metadata, and the original candidate and output arguments. The worker does not use this helper's return at the call site.",
+         "function": "0x102d4e80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106f5388",
+         "notes": "Registers the AddMember response field GroupUUIDJoined as a caller-buffer string, using the 36-byte temporary passed at 0x103985d8. The successful topology arm copies that temporary to topology+0x139 at 0x103987ac.",
+         "function": "0x106f51c0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103987cc",
+         "notes": "With the local player as resulting coordinator and a nonnull output pointer, copies topology+0x139 into the second output with the original capacity. The local-group helper f_1039186c can make that GroupID as '%s:%u' from the stored local identifier and sequence before the copy; the nonlocal-coordinator continuation does not enter this copy site.",
+         "function": "0x10398308"
         }
        ],
-       "notes": "Trace writes through the r7/r8 argument pair forwarded to f_102d4e80.",
+       "notes": "Local identifiers can be formatted as identifier:sequence rather than a conventional UUID.",
        "todo": [
-        "Established: String from the engine's 36-byte zero-initialized output buffer, passed in r7/r8 with its capacity.",
-        "Identify the exact source of NewGroupID in f_102d4e80 and its callees and which promotion branches leave the string empty."
+        "Established: the output is a bounded copy from topology+0x139; the helper can generate a local ID or consume a GroupUUIDJoined response on a peer path.",
+        "Trace the old/new coordinator and fallback predicates across f_10398308 to distinguish every path that copies a local or remotely supplied ID from every path that leaves the output empty."
        ]
       }
      },
@@ -39790,7 +39826,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+?]",
+      "description": "Standalone setup depends on a coordinator lookup, the current URI category, live VLI state and saved source strings.",
       "evidence": [
        {
         "type": "firmware",
@@ -39798,16 +39834,40 @@
         "build": "86.10-80260",
         "function": "0x102f8b04",
         "notes": "member vfunc calls: ['r30 v[+?]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d55dc",
+        "notes": "While holding impl+0x458, looks up a 25-byte coordinator candidate from impl+0x448 using the local identifier at impl+0x3dc. f_102d4e80 receives the lookup buffer on a nonzero result or NULL otherwise.",
+        "function": "0x102d5524"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d4f38",
+        "notes": "Saves three prior-source strings from impl+0x2e2a, +0x322b and +0x422c with capacities 1025, 4097 and 37, then submits an indexed-session record to the object at impl+0x580 before choosing the source branch.",
+        "function": "0x102d4e80"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d54d4",
+        "notes": "If sp+0x47 is clear and the saved URI at sp+0x721 is nonempty, reenters f_102ceb40 with the saved URI, metadata and third saved string. Otherwise the alternative continuation deactivates local VLI through f_106aa3b0, f_102b1cc8(impl,0,0), and the +0xc method of impl+0x5a4 using the halfword from live VLI record +0xa.",
+        "function": "0x102d4e80"
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: Standalone setup depends on a coordinator lookup, the current URI category, live VLI state and saved source strings.",
+       "Identify the exact source categories used by f_102931f0 and f_10688070 here, and map f_102d086c's output-byte conditions to the two local source branches."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+?] (call-derived member-method semantics)",
+       "description": "Can delegate the previous group, reset indexed playback, restore a prior source or deactivate the local line input.",
        "evidence": [
         {
          "type": "firmware",
@@ -39815,16 +39875,56 @@
          "build": "86.10-80260",
          "function": "0x102f8b04",
          "notes": "delegate map ['r30 v[+?]']; notify-family calls []"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d509c",
+         "notes": "Copies 56 settings bytes from indexed-session +0x68 and builds sleep, alarm and restart records; f_10398308 receives those records, current URI and metadata, and the original candidate and output arguments. The worker does not use this helper's return at the call site.",
+         "function": "0x102d4e80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103980f8",
+         "notes": "f_10398308 forwards the first output pointer and capacity through 0x103988e4 to f_10397ee4 on the local-old-coordinator branch. If the member selector f_103913c8 yields a valid index and f_10397dc4 succeeds, the helper copies the 25-byte-slot member identifier at topology+0x288+25*index into the nonnull output pointer. No member or failed delegation skips the copy.",
+         "function": "0x10397ee4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d50c4",
+         "notes": "After topology setup, changes impl+0x4654 to indexed mode 2 if needed, marks +0x4658 and schedules the local event source. Later submits a reset-style indexed request, or a request constructed with constant 0x0173802f, according to the source-branch flag at sp+0x47.",
+         "function": "0x102d4e80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d54d4",
+         "notes": "If sp+0x47 is clear and the saved URI at sp+0x721 is nonempty, reenters f_102ceb40 with the saved URI, metadata and third saved string. Otherwise the alternative continuation deactivates local VLI through f_106aa3b0, f_102b1cc8(impl,0,0), and the +0xc method of impl+0x5a4 using the halfword from live VLI record +0xa.",
+         "function": "0x102d4e80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d524c",
+         "notes": "On the nonzero source-operation result branch, clears the current URI, metadata and auxiliary string and marks +0x4251. If a next URI was present it clears the next URI and metadata and marks +0x4252, then schedules event processing. The later common tail also clears the active sleep generation if set and clears a set RestartPending byte, marking and scheduling each change.",
+         "function": "0x102d4e80"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: Can delegate the previous group, reset indexed playback, restore a prior source or deactivate the local line input.",
+        "Trace f_10255f64's reset and reinitialization records to their indexed-session state changes, and the VLI deactivation call to its final renderer state."
        ]
       }
      ],
      "events_triggered": {
-      "description": "Local update calls through f_1067c6ec are separate from the derived wrapper's peer RPC.",
+      "description": "Local Standalone setup can signal URI and metadata changes, a cleared sleep timer generation, and cleared RestartPending. The derived peer SetAVTransportURI call is not a LastChange notification.",
       "evidence": [
        {
         "type": "firmware",
@@ -39841,15 +39941,31 @@
         "address": "0x1051332c",
         "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
         "function": "0x10513244"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d50c4",
+        "notes": "After topology setup, changes impl+0x4654 to indexed mode 2 if needed, marks +0x4658 and schedules the local event source. Later submits a reset-style indexed request, or a request constructed with constant 0x0173802f, according to the source-branch flag at sp+0x47.",
+        "function": "0x102d4e80"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d524c",
+        "notes": "On the nonzero source-operation result branch, clears the current URI, metadata and auxiliary string and marks +0x4251. If a next URI was present it clears the next URI and metadata and marks +0x4252, then schedules event processing. The later common tail also clears the active sleep generation if set and clears a set RestartPending byte, marking and scheduling each change.",
+        "function": "0x102d4e80"
        }
       ],
       "todo": [
-       "Established: Local update calls through f_1067c6ec are separate from the derived wrapper's peer RPC.",
-       "Map the batched LastChange field updates on each standalone setup branch."
+       "Established: Local Standalone setup can signal URI and metadata changes, a cleared sleep timer generation, and cleared RestartPending. The derived peer SetAVTransportURI call is not a LastChange notification.",
+       "Map the snapshot field derived from +0x4658 and the event writes reached indirectly through f_102b4b48 and the indexed request callbacks."
       ]
      },
      "state_transitions": {
-      "description": "A base worker branch changes mode to 2 and sets the dirty byte; the derived wrapper can then update peers.",
+      "description": "Topology setup can set indexed mode 2, then reapply the saved source or deactivate VLI. A nonzero source operation can clear stored URI state.",
       "evidence": [
        {
         "type": "firmware",
@@ -39866,11 +39982,43 @@
         "address": "0x1051332c",
         "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
         "function": "0x10513244"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d509c",
+        "notes": "Copies 56 settings bytes from indexed-session +0x68 and builds sleep, alarm and restart records; f_10398308 receives those records, current URI and metadata, and the original candidate and output arguments. The worker does not use this helper's return at the call site.",
+        "function": "0x102d4e80"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d50c4",
+        "notes": "After topology setup, changes impl+0x4654 to indexed mode 2 if needed, marks +0x4658 and schedules the local event source. Later submits a reset-style indexed request, or a request constructed with constant 0x0173802f, according to the source-branch flag at sp+0x47.",
+        "function": "0x102d4e80"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d54d4",
+        "notes": "If sp+0x47 is clear and the saved URI at sp+0x721 is nonempty, reenters f_102ceb40 with the saved URI, metadata and third saved string. Otherwise the alternative continuation deactivates local VLI through f_106aa3b0, f_102b1cc8(impl,0,0), and the +0xc method of impl+0x5a4 using the halfword from live VLI record +0xa.",
+        "function": "0x102d4e80"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d524c",
+        "notes": "On the nonzero source-operation result branch, clears the current URI, metadata and auxiliary string and marks +0x4251. If a next URI was present it clears the next URI and metadata and marks +0x4252, then schedules event processing. The later common tail also clears the active sleep generation if set and clears a set RestartPending byte, marking and scheduling each change.",
+        "function": "0x102d4e80"
        }
       ],
       "todo": [
-       "Established: A base worker branch changes mode to 2 and sets the dirty byte; the derived wrapper can then update peers.",
-       "Trace the alternate source/VLI branch and any resulting coordinator and mode fields."
+       "Established: Topology setup can set indexed mode 2, then reapply the saved source or deactivate VLI. A nonzero source operation can clear stored URI state.",
+       "Resolve exact source predicates for restore and deactivation, and trace the resulting renderer state through f_102ceb40 and the VLI clock removal."
       ]
      },
      "return_behavior": {
@@ -40157,12 +40305,60 @@
        "address": "0x102f8c40",
        "notes": "Copies the engine's 36-byte zero-initialized output storage into the response descriptor.",
        "function": "0x102f8b04"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d55dc",
+       "notes": "While holding impl+0x458, looks up a 25-byte coordinator candidate from impl+0x448 using the local identifier at impl+0x3dc. f_102d4e80 receives the lookup buffer on a nonzero result or NULL otherwise.",
+       "function": "0x102d5524"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d509c",
+       "notes": "Copies 56 settings bytes from indexed-session +0x68 and builds sleep, alarm and restart records; f_10398308 receives those records, current URI and metadata, and the original candidate and output arguments. The worker does not use this helper's return at the call site.",
+       "function": "0x102d4e80"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x103980f8",
+       "notes": "f_10398308 forwards the first output pointer and capacity through 0x103988e4 to f_10397ee4 on the local-old-coordinator branch. If the member selector f_103913c8 yields a valid index and f_10397dc4 succeeds, the helper copies the 25-byte-slot member identifier at topology+0x288+25*index into the nonnull output pointer. No member or failed delegation skips the copy.",
+       "function": "0x10397ee4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x103987cc",
+       "notes": "With the local player as resulting coordinator and a nonnull output pointer, copies topology+0x139 into the second output with the original capacity. The local-group helper f_1039186c can make that GroupID as '%s:%u' from the stored local identifier and sequence before the copy; the nonlocal-coordinator continuation does not enter this copy site.",
+       "function": "0x10398308"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d54d4",
+       "notes": "If sp+0x47 is clear and the saved URI at sp+0x721 is nonempty, reenters f_102ceb40 with the saved URI, metadata and third saved string. Otherwise the alternative continuation deactivates local VLI through f_106aa3b0, f_102b1cc8(impl,0,0), and the +0xc method of impl+0x5a4 using the halfword from live VLI record +0xa.",
+       "function": "0x102d4e80"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d524c",
+       "notes": "On the nonzero source-operation result branch, clears the current URI, metadata and auxiliary string and marks +0x4251. If a next URI was present it clears the next URI and metadata and marks +0x4252, then schedules event processing. The later common tail also clears the active sleep generation if set and clears a set RestartPending byte, marking and scheduling each change.",
+       "function": "0x102d4e80"
       }
      ],
      "notes": "None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x10513244 - grouped gate: topology singleton + state predicate + f_1075c4d0 precondition on impl+0x44c; error path uses 0x3ff (1023). Ungrouped zones get identical behavior to the standalone engine for the Become* actions.",
      "todo": [
-      "Established: the wrapper returns two zero-initialized worker buffers and the group-aware engine can reject before base setup.",
-      "Determine the exact output group-ID producers and the state effects of the standalone worker when called on different starting sources."
+      "Established: Runs standalone coordinator setup and can return the delegated coordinator ID of the old group and the new local group ID. The group-aware engine can reject it before standalone setup.",
+      "Resolve the remaining topology and source conditions deciding when NewGroupID is written and which playback state the restore or VLI branches publish."
      ],
      "resolved_findings": [
       "Resolved: f_1075c4d0 is the precondition checker - gates on current coordinator state and transport-busy flag before the standalone-coordinator claim proceeds.",
