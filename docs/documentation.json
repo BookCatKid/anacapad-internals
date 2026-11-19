@@ -18744,7 +18744,7 @@
      "implementation_notes": "Runtime vtable correction: the DeviceProperties object actually constructed by f_10351904 carries vtable 0x10ebc630, and slot +0x5c holds the same function there as in the base vtable 0x10ebd214, so the behavior documented here is unchanged. Outputs recovered from arg-name string loads inside the impl function (extractor missed them)."
     },
     "RemoveBondedZones": {
-     "description": "Removes bonded members named in ChannelMapSet from this zone. The wrapper parses ChannelMapSet (cap 640) and KeepGrouped (boolean) and calls slot +0x1c of runtime vtable 0x10ebc630, f_105b5030. That function first compares the object's slot +0x78 against the base stub f_105b43d4 (which returns 800) and answers 800 itself when they are equal; on the runtime object slot +0x78 is the teardown worker f_10352dd4, so it tail-calls it as teardown(map, 1, KeepGrouped, 0). f_10352dd4 starts with the result preset to 401, parses the current bonded map at impl+0xbb4 against the local UUID at impl+0x25c and returns 401 when the player is not part of a bonded zone, then performs the teardown, logging 'Stop topology monitor: zone teardown' and 'Zone teardown (%u) via %s took %ld ms on %s' and emitting the bondedZoneChange topology event with eventType 'Removed'.",
+     "description": "Updates an existing bond. The wrapper calls f_105b5030 via slot +0x1c, then runtime teardown f_10352dd4 via +0x78. Local f_10360784 validates ChannelMapSet as the retained subset and stores it at impl+0xbb4, or clears the map if the replacement is empty or does not retain this player.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107368d4",
@@ -18816,7 +18816,7 @@
      },
      "inputs": {
       "ChannelMapSet": {
-       "description": "Map naming the members to unbond. The channel map is parsed by f_1053c234/f_1053e0c4: ';'-separated entries, each a 24-character player UUID, ':' and a channel token (f_1053d8a4), at most 16 entries, duplicates rejected with the 'Duplicate entry: %s at index %zu and %zu' log. The worker matches it against the map currently stored at impl+0xbb4.",
+       "description": "A replacement map naming the retained members, not the members to remove. Its members must exist in the current map and its first entry must remain the old primary (0x1035cf90 and 0x1035cfc8). An empty map clears the bond.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -18853,8 +18853,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10e98278",
-         "notes": "impl vfunc consumes the map string"
+         "address": "0x1036082c",
+         "notes": "Validates the submitted replacement"
         },
         {
          "type": "firmware",
@@ -18915,8 +18915,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1068b7d0",
-         "notes": "vtable thunk forwards flag"
+         "address": "0x10736990",
+         "notes": "Dispatch +0x1c to f_105b5030"
         },
         {
          "type": "firmware",
@@ -18930,7 +18930,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x105b5058",
-         "notes": "forwarded as the teardown's fourth argument"
+         "notes": "Moves KeepGrouped to r6 for the +0x78 call at 0x105b506c"
         }
        ],
        "notes": null,
@@ -18953,62 +18953,88 @@
       ]
      },
      "requirements": {
-      "description": "The player must currently be part of a bonded zone: f_10352dd4 returns 401 when the map at impl+0xbb4 does not parse or does not contain the local UUID. The object's slot +0x78 must not be the base stub, which it is not on this firmware.",
+      "description": "The current map must validate for this player (401 if not). A nonempty replacement must parse, consist only of members of the old map and preserve its primary as first entry (402 if not). Empty replacement is allowed.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10352e14",
-        "notes": "result preset to 401"
+        "address": "0x1035cf40",
+        "notes": "Submitted map parser"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x10352e84",
-        "notes": "current-map parse"
+        "notes": "Current map parser"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x105b503c",
-        "notes": "base-stub comparison in the gate"
+        "address": "0x1035cf90",
+        "notes": "Subset check"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035cfc8",
+        "notes": "Same-primary check"
        }
       ]
      },
      "state_dependencies": {
-      "description": "Reads the bonded map at impl+0xbb4, the local UUID at impl+0x25c and the byte at impl+0xe34, and uses the group and topology objects reached through f_10360784 and f_1035daf8.",
+      "description": "Local teardown reads the current map at impl+0xbb4, UUID at +0x25c, trigger byte at +0xe34, rendering/sonar manager at +0x1a80, flag +0xa54, settings backend +0x960, configuration backend +0x950, and transport manager +0x1a88.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10352e2c",
-        "notes": "impl+0xbb4"
+        "address": "0x10352e84",
+        "notes": "Current map"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10352e74",
-        "notes": "impl+0x25c"
+        "address": "0x10360870",
+        "notes": "Rendering/sonar manager"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10352e5c",
-        "notes": "impl+0xe34"
+        "address": "0x103608bc",
+        "notes": "Flag"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10352f48",
-        "notes": "f_10360784 call path"
+        "address": "0x10360910",
+        "notes": "Settings backend"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360bd4",
+        "notes": "Configuration backend"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360d2c",
+        "notes": "Transport manager"
        }
+      ],
+      "todo": [
+       "Established: f_10360784 validates and updates the local map, then uses configuration and playback delegates.",
+       "Unknown: Which concrete delegates supply the remaining teardown state and how their results affect teardown.",
+       "Close it by following the constructor objects at impl+0x960, +0x950 and +0x1a88 into the calls reached from 0x10360910, 0x10360bd4 and 0x10360d2c."
       ]
      },
      "side_effects": [
@@ -19059,40 +19085,54 @@
       }
      ],
      "events_triggered": {
-      "description": "No GENA event. The in-process bondedZoneChange topology event is published with eventType 'Removed'.",
+      "description": "Validated local teardown requests GENA processing at 0x103608d4 via f_1067c6ec. f_1067c46c checks for a sender; this does not guarantee a wire NOTIFY. The in-process bondedZoneChange publication is separate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1035c968",
-        "notes": "'Removed' literal"
+        "address": "0x1035303c",
+        "notes": "Topology event"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1035ca08",
-        "notes": "publisher"
+        "address": "0x103608d4",
+        "notes": "Dirty event-source request"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c5c8",
+        "notes": "Sender path"
        }
       ]
      },
      "state_transitions": {
-      "description": "On success the named members leave the bonded zone and the stored bonded map changes accordingly; KeepGrouped decides whether they remain in the playback group. A player that is not bonded is left untouched and answers 401.",
+      "description": "The submitted map, not its complement, becomes the local map when it retains the local UUID; an empty or non-local replacement clears impl+0xbb4. KeepGrouped is passed to teardown.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10352e8c",
-        "notes": "not-bonded exit"
+        "address": "0x103608b4",
+        "notes": "Retained map copy"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x105b5058",
-        "notes": "KeepGrouped forwarded"
+        "address": "0x10360b1c",
+        "notes": "Map clear"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10353210",
+        "notes": "Remote results logged"
        }
       ]
      },
