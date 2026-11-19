@@ -42062,7 +42062,7 @@
        ]
       },
       "OtherMembers": {
-       "description": "An empty other-member list or a comma-separated list of up to 32 fixed-width 24-byte identifiers. The base helper validates nonempty framing by length and by each comma's byte position, not each identifier's text.",
+       "description": "List of other player IDs. The normal encoding is 24-byte IDs separated by commas. An empty string means no members to contact. The promotion worker skips its own player ID and attempts to update the remaining listed players.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -42072,14 +42072,14 @@
         "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
-       "format": "Empty, or 24-byte chunks with a single comma between chunks.",
+       "format": "24-byte IDs, comma separated; zero bytes for an empty list",
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_MemberList-domain value",
-       "range": "0 bytes or 25n - 1 bytes, for n from 1 to 32.",
+       "range": "0 to 799 bytes excluding NUL. A nonempty length must equal 25*n - 1, for n from 1 to 32.",
        "special_values": "Empty is accepted by the framing helper.",
        "required": true,
        "default": "none",
-       "validation": "The worker passes the materialized field to f_102ab92c, which checks comma framing in an 800-byte internal buffer; failure maps to 402.",
+       "validation": "Every comma found must occupy the last byte of a 25-byte slot. Missing commas and identifier characters are not checked by the parser; the worker still traverses the buffer in 25-byte steps. Parser rejection returns 402.",
        "evidence": [
         {
          "type": "firmware",
@@ -42118,14 +42118,58 @@
          "address": "0x102df848",
          "notes": "Maps a false return from the OtherMembers helper to 402.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ab958",
+         "notes": "Allows zero length; otherwise requires strlen+1 to be a multiple of 25 and at most 800. The 0x51eb851f multiply-high and right shift by 3 implement unsigned division by 25. Copies the string into an 800-byte destination.",
+         "function": "0x102ab92c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ab9d0",
+         "notes": "Each encountered comma must be at a one-based position divisible by 25 and is replaced with NUL. No check requires a comma at every expected position or verifies the identifier characters. On success writes the original strlen to *r5, not the member count.",
+         "function": "0x102ab92c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df848",
+         "notes": "The coordinator worker maps a false result from f_102ab92c to SOAP fault 402.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df9b8",
+         "notes": "Passes the split buffer as r6 and its original byte length as r7 to the promotion helper, which forwards those arguments to f_10392d80.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10392f20",
+         "notes": "Iterates offsets 0, 25, 50 and so on below the original byte length. Zero length bypasses enumeration. At each offset it uses the string in that slot and skips it if strcmp matches the local identifier at topology+0x210. It resolves other IDs and attempts a remote call when a client is available.",
+         "function": "0x10392d80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10392fcc",
+         "notes": "The normal branch calls the ChangeCoordinator client at 0x10392ff4, while the alternate branch at 0x103931b8 calls SetAVTransportURI with x-rincon:<local ID>. Per-member RPC failure takes a cleanup/continue path and does not turn a valid member list into a 402.",
+         "function": "0x10392d80"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": 4096,
-       "todo": [
-        "Established: f_102ab92c accepts empty or fixed 24-byte IDs separated by commas and framing failure returns 402.",
-        "Trace how the worker uses the individually framed IDs to import or check group membership."
-       ]
+       "buf_cap": 4096
       },
       "CurrentURI": {
        "description": "the URI the zone group is currently rendering (AVTransportURI), carried into the new coordinator so it can resume the stream",
