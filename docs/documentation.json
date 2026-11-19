@@ -92830,7 +92830,7 @@
      "notes": "Statically closed through concrete request queue boundary; no inference that SOAP success means scan completion."
     },
     "RequestResort": {
-     "description": "Requests an index resort (SortOrder) via impl->v[+0x34].",
+     "description": "Maps a requested collation locale to an internal sort mode and queues work only if it differs from current global mode. zh-CN selects1, ja-JP2, other supplied text0. Entering or leaving Chinese mode is promoted to full reindex; other changes request resort. Success is a no-op or queue acceptance, not proof work completed.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10307050",
@@ -92862,11 +92862,13 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x103028f0 ->0x1010f098 ->0x1010ee88; promoted path0x1010eafc",
+      "impl_vfunc": "cd_impl primary0x10eb3f20 +0x34"
      },
      "inputs": {
       "SortOrder": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x103028f0",
+       "description": "Required collation text. Two exact locale tokens receive special modes; this is not an arbitrary sort-expression list.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -92875,29 +92877,39 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x103028f0",
-       "range": "max 1023 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "string",
+       "format": "Case-sensitive NUL-terminated text",
+       "unit": "none",
+       "accepted_values": "zh-CN ->1; ja-JP ->2; every other supplied string ->0.",
+       "range": "1024-byte request buffer including NUL",
+       "special_values": "Present empty/unknown/lowercase text selects0, not402. Desired mode equal global110962c0 returns success with no readiness check or queue.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Required bounded type7 string followed by strcmp mapping. No strict locale enum rejection, integer conversion or sortable-field grammar.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10307090",
-         "notes": "in-arg access site"
+         "function": "0x10307050",
+         "address": "0x103070b0",
+         "notes": "Required SortOrder string cap0x400 via1056157c; validator false ->402 at10307120. Primary+0x34=103028f0 called103070d0. Nonzero forwarded103070ec; zero empty response commit10307134. Binding proven once at service level."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb4358",
-         "notes": "argument name string"
+         "function": "0x103028f0",
+         "address": "0x10302944",
+         "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103028f0",
+         "address": "0x10302970",
+         "notes": "Different desired/current mode ->provider impl+0x34c, tail1010f098 which loads underlying manager+0x4de8 and tailcalls1010ee88. Does not synchronously write global110962c0."
         }
        ],
        "notes": null,
@@ -92906,248 +92918,437 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Only missing required SortOrder produces402. Supplied text always maps to0/1/2. Current-mode equality short-circuits0. Different mode enters concrete manager readiness/queue path; Chinese transition promotes full reindex rather than returning unsupported.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10307050",
-        "notes": "wrapper family decode"
+        "function": "0x10307050",
+        "address": "0x103070b0",
+        "notes": "Required SortOrder string cap0x400 via1056157c; validator false ->402 at10307120. Primary+0x34=103028f0 called103070d0. Nonzero forwarded103070ec; zero empty response commit10307134. Binding proven once at service level."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103028f0",
+        "address": "0x10302944",
+        "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103028f0",
+        "address": "0x10302970",
+        "notes": "Different desired/current mode ->provider impl+0x34c, tail1010f098 which loads underlying manager+0x4de8 and tailcalls1010ee88. Does not synchronously write global110962c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010eecc",
+        "notes": "Rechecks global110962c0. If desired differs and either old or desired mode==1 (Chinese), branch1010f028 promotes to full reindex. Calls1010eafc at1010f07c with display=manager+0x120,args5/6=0,arg7=1,arg8=0,arg9=1,arg10=desired sort, returning its0/720 unchanged. Entering/leaving Chinese changes scan mode, not just comparator."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010eeec",
+        "notes": "Ordinary resort under manager mutex+0x20: shutdown byte+0x4e12 ->720 at1010eef0, !ready+0x100 ->same720 at1010ef48. Waits condition+0xb0 while state+0x52c8!=2. IMPORTANT shutdown seen after wait at1010ef80 branches/falls into1010ef8c queue body, not720: this differs from full-reindex helper."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x34]",
+      "description": "Same-mode no-op requires no manager readiness. Different-mode requests use bound provider impl+0x34c and underlying manager. At entry manager must be ready and not shutdown. Can wait current work idle2; normal resort and promoted full paths differ on shutdown after wait, as recorded in state_transitions.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10307050",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "function": "0x103028f0",
+        "address": "0x10302944",
+        "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103028f0",
+        "address": "0x10302970",
+        "notes": "Different desired/current mode ->provider impl+0x34c, tail1010f098 which loads underlying manager+0x4de8 and tailcalls1010ee88. Does not synchronously write global110962c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010eeec",
+        "notes": "Ordinary resort under manager mutex+0x20: shutdown byte+0x4e12 ->720 at1010eef0, !ready+0x100 ->same720 at1010ef48. Waits condition+0xb0 while state+0x52c8!=2. IMPORTANT shutdown seen after wait at1010ef80 branches/falls into1010ef8c queue body, not720: this differs from full-reindex helper."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ec5c",
+        "notes": "Promoted FULL path: shutdown or !ready at entry ->720; waits idle2 and returns720 if shutdown observed after waiting at1010eca8. On acceptance marks shares, localRequestReindex marker, counters, desired sort+0x124 becausearg9=1, forced-full flags, cached stamp and wake; no synchronous cd_impl indexing flag/SystemUpdateID write."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x34].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x34]",
+      "description": "Global110962c0 current sort mode, manager sort+0x124/display+0x120, readiness+0x100/shutdown+0x4e12/state+0x52c8, mutex+0x20 and condition+0xb0. Queued stamp uses provider time. No ObjectID resolver, XML file transaction or favorites dependency.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10307050",
-        "notes": "member vfunc calls: ['r30 v[+0x34]']"
+        "function": "0x103028f0",
+        "address": "0x10302944",
+        "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010eecc",
+        "notes": "Rechecks global110962c0. If desired differs and either old or desired mode==1 (Chinese), branch1010f028 promotes to full reindex. Calls1010eafc at1010f07c with display=manager+0x120,args5/6=0,arg7=1,arg8=0,arg9=1,arg10=desired sort, returning its0/720 unchanged. Entering/leaving Chinese changes scan mode, not just comparator."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010eeec",
+        "notes": "Ordinary resort under manager mutex+0x20: shutdown byte+0x4e12 ->720 at1010eef0, !ready+0x100 ->same720 at1010ef48. Waits condition+0xb0 while state+0x52c8!=2. IMPORTANT shutdown seen after wait at1010ef80 branches/falls into1010ef8c queue body, not720: this differs from full-reindex helper."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010ef8c",
+        "notes": "Queues marker localRequestResort+0x521c, increments+0x5220/+0x11c, copies identity+0x102, writes desired sort manager+0x124, clears work flags+0x4e0e/0x4e0f/0x4e10 and+0x4e13, refreshes cached stamp+0x4df0 via provider clock, clears wait byte+0x4e11, wakes condition1098761c and returns0. Does not wait newly queued resort completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ec5c",
+        "notes": "Promoted FULL path: shutdown or !ready at entry ->720; waits idle2 and returns720 if shutdown observed after waiting at1010eca8. On acceptance marks shares, localRequestReindex marker, counters, desired sort+0x124 becausearg9=1, forced-full flags, cached stamp and wake; no synchronous cd_impl indexing flag/SystemUpdateID write."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x34].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x34] (call-derived member-method semantics)",
+       "description": "Same-mode no-op has none. Ordinary acceptance queues localRequestResort, writes desired manager sort, counters/stamp/work flags and wakes worker. Entering/leaving Chinese queues full reindex instead, marking shares and forcing full flags. Does not synchronously change global110962c0 or complete sort/index work.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103028f0",
+         "address": "0x10302944",
+         "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ee88",
+         "address": "0x1010eecc",
+         "notes": "Rechecks global110962c0. If desired differs and either old or desired mode==1 (Chinese), branch1010f028 promotes to full reindex. Calls1010eafc at1010f07c with display=manager+0x120,args5/6=0,arg7=1,arg8=0,arg9=1,arg10=desired sort, returning its0/720 unchanged. Entering/leaving Chinese changes scan mode, not just comparator."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ee88",
+         "address": "0x1010ef8c",
+         "notes": "Queues marker localRequestResort+0x521c, increments+0x5220/+0x11c, copies identity+0x102, writes desired sort manager+0x124, clears work flags+0x4e0e/0x4e0f/0x4e10 and+0x4e13, refreshes cached stamp+0x4df0 via provider clock, clears wait byte+0x4e11, wakes condition1098761c and returns0. Does not wait newly queued resort completion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010eafc",
+         "address": "0x1010ec5c",
+         "notes": "Promoted FULL path: shutdown or !ready at entry ->720; waits idle2 and returns720 if shutdown observed after waiting at1010eca8. On acceptance marks shares, localRequestReindex marker, counters, desired sort+0x124 becausearg9=1, forced-full flags, cached stamp and wake; no synchronous cd_impl indexing flag/SystemUpdateID write."
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "No direct GENA notifier, cd_impl SystemUpdateID increment or ShareIndexInProgress mutation in action/queue path. Promoted full indexing may later cause independent share-index status callback10302990; no-op/queue success does not guarantee any wire event. Callback-driven lifecycle remains distinct from this synchronous request.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103028f0",
+        "address": "0x10302944",
+        "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010ef8c",
+        "notes": "Queues marker localRequestResort+0x521c, increments+0x5220/+0x11c, copies identity+0x102, writes desired sort manager+0x124, clears work flags+0x4e0e/0x4e0f/0x4e10 and+0x4e13, refreshes cached stamp+0x4df0 via provider clock, clears wait byte+0x4e11, wakes condition1098761c and returns0. Does not wait newly queued resort completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ec5c",
+        "notes": "Promoted FULL path: shutdown or !ready at entry ->720; waits idle2 and returns720 if shutdown observed after waiting at1010eca8. On acceptance marks shares, localRequestReindex marker, counters, desired sort+0x124 becausearg9=1, forced-full flags, cached stamp and wake; no synchronous cd_impl indexing flag/SystemUpdateID write."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Equal current mode ->0 no-op even when manager unavailable. Otherwise normal queue or Chinese-transition full queue. Entry shutdown/unready ->720. If waiting for idle: promoted full path shutdown ->720; ordinary resort path shutdown wake falls through into queue construction and can return0. Accepted request wakes worker; new operation completes asynchronously, with no completion wait in action.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103028f0",
+        "address": "0x10302944",
+        "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010eecc",
+        "notes": "Rechecks global110962c0. If desired differs and either old or desired mode==1 (Chinese), branch1010f028 promotes to full reindex. Calls1010eafc at1010f07c with display=manager+0x120,args5/6=0,arg7=1,arg8=0,arg9=1,arg10=desired sort, returning its0/720 unchanged. Entering/leaving Chinese changes scan mode, not just comparator."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010eeec",
+        "notes": "Ordinary resort under manager mutex+0x20: shutdown byte+0x4e12 ->720 at1010eef0, !ready+0x100 ->same720 at1010ef48. Waits condition+0xb0 while state+0x52c8!=2. IMPORTANT shutdown seen after wait at1010ef80 branches/falls into1010ef8c queue body, not720: this differs from full-reindex helper."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010ef8c",
+        "notes": "Queues marker localRequestResort+0x521c, increments+0x5220/+0x11c, copies identity+0x102, writes desired sort manager+0x124, clears work flags+0x4e0e/0x4e0f/0x4e10 and+0x4e13, refreshes cached stamp+0x4df0 via provider clock, clears wait byte+0x4e11, wakes condition1098761c and returns0. Does not wait newly queued resort completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ec5c",
+        "notes": "Promoted FULL path: shutdown or !ready at entry ->720; waits idle2 and returns720 if shutdown observed after waiting at1010eca8. On acceptance marks shares, localRequestReindex marker, counters, desired sort+0x124 becausearg9=1, forced-full flags, cached stamp and wake; no synchronous cd_impl indexing flag/SystemUpdateID write."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Missing string402; current mode match0; ordinary/promoted manager rc0 or720 propagated unchanged. Success commits no output arguments. Unknown supplied locale is fallback0, not402/701/711. Ordinary wait-shutdown fallthrough is documented rather than normalized into a nonexistent rejection.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10307050",
+        "address": "0x103070b0",
+        "notes": "Required SortOrder string cap0x400 via1056157c; validator false ->402 at10307120. Primary+0x34=103028f0 called103070d0. Nonzero forwarded103070ec; zero empty response commit10307134. Binding proven once at service level."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103028f0",
+        "address": "0x10302944",
+        "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103028f0",
+        "address": "0x10302970",
+        "notes": "Different desired/current mode ->provider impl+0x34c, tail1010f098 which loads underlying manager+0x4de8 and tailcalls1010ee88. Does not synchronously write global110962c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010eecc",
+        "notes": "Rechecks global110962c0. If desired differs and either old or desired mode==1 (Chinese), branch1010f028 promotes to full reindex. Calls1010eafc at1010f07c with display=manager+0x120,args5/6=0,arg7=1,arg8=0,arg9=1,arg10=desired sort, returning its0/720 unchanged. Entering/leaving Chinese changes scan mode, not just comparator."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010eeec",
+        "notes": "Ordinary resort under manager mutex+0x20: shutdown byte+0x4e12 ->720 at1010eef0, !ready+0x100 ->same720 at1010ef48. Waits condition+0xb0 while state+0x52c8!=2. IMPORTANT shutdown seen after wait at1010ef80 branches/falls into1010ef8c queue body, not720: this differs from full-reindex helper."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee88",
+        "address": "0x1010ef8c",
+        "notes": "Queues marker localRequestResort+0x521c, increments+0x5220/+0x11c, copies identity+0x102, writes desired sort manager+0x124, clears work flags+0x4e0e/0x4e0f/0x4e10 and+0x4e13, refreshes cached stamp+0x4df0 via provider clock, clears wait byte+0x4e11, wakes condition1098761c and returns0. Does not wait newly queued resort completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ec5c",
+        "notes": "Promoted FULL path: shutdown or !ready at entry ->720; waits idle2 and returns720 if shutdown observed after waiting at1010eca8. On acceptance marks shares, localRequestReindex marker, counters, desired sort+0x124 becausearg9=1, forced-full flags, cached stamp and wake; no synchronous cd_impl indexing flag/SystemUpdateID write."
+       }
+      ]
+     },
+     "fault_sites": [],
+     "errors": [
+      {
+       "code": 402,
+       "meaning": "Required SortOrder missing. Empty or unrecognized supplied string maps mode0.",
+       "fault_sites": [
+        "0x10307120"
+       ],
+       "conditions": [
+        {
+         "description": "Required SortOrder missing. Empty or unrecognized supplied string maps mode0.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10307050",
+           "address": "0x103070b0",
+           "notes": "Required SortOrder string cap0x400 via1056157c; validator false ->402 at10307120. Primary+0x34=103028f0 called103070d0. Nonzero forwarded103070ec; zero empty response commit10307134. Binding proven once at service level."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x103028f0",
+           "address": "0x10302944",
+           "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10307050",
-         "notes": "delegate map ['r30 v[+0x34]']; notify-family calls []"
+         "address": "0x103070b0",
+         "notes": "Required SortOrder string cap0x400 via1056157c; validator false ->402 at10307120. Primary+0x34=103028f0 called103070d0. Nonzero forwarded103070ec; zero empty response commit10307134. Binding proven once at service level."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103028f0",
+         "address": "0x10302944",
+         "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x34] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     ],
-     "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10307050",
-        "notes": "bl call scan: notify-family sites = []"
-       }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x34]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10307050",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x34]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x34].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10307050",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "fault_sites": [
-      {
-       "site": "0x103070ec",
-       "code": null,
-       "code_expr": "vret(r5-in,+0x34)"
-      }
-     ],
-     "errors": [
-      {
-       "code": 402,
-       "code_expr": "vret(r5-in,+0x34); parse/req-layer",
-       "meaning": "impl impl literal exit returns 0; one out-branch tail into sched thunk -> f_1010eafc domain {0,720}; rc forwarded verbatim via req v[+0x14] | Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x103070ec"
-       ],
-       "conditions": [
-        {
-         "description": "impl/store gate failed",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10302e2c",
-           "notes": "impl body"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10307050",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302e2c",
-         "notes": "impl rc path"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1010ebe8",
-         "notes": "li r20,0x2d0 gated on lbz *(r31+0x4e12) busy flag"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1010ec5c",
-         "notes": "second 720 path when *(r31+0x100)==0 - share engine not running"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1010ed9c",
-         "notes": "li r20,0 success exits (x3)"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e89cbc",
-         "notes": "'sharelist' / 'request reindex (ad:..)' log strings - worker identity"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103028f0",
-         "notes": "impl body: literal-0 exit + b-tail sched thunk"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10307050",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "domain_note": "domain fully bounded: impl 0x103028f0 exits=[-316, 0, 20, 360]; literal exit paths bounded by accumulator scan",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x34); parse/req-layer; sites: 0x103070ec).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "worker/delegate rc domain adds [701, 711] beyond the documented accumulator bound",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302e2c",
-         "notes": "CD impl layer"
-        }
+       "code": 720,
+       "meaning": "Desired mode differs and manager shutdown/unready at entry, or promoted full-reindex path observes shutdown while waiting for idle. Same-mode no-op bypasses these gates; ordinary resort shutdown after wait instead falls into queue.",
+       "fault_sites": [
+        "0x1010eef0",
+        "0x1010ef48",
+        "0x1010ebf4",
+        "0x1010eca8"
        ],
-       "notes": "propagated reachability; site-level trigger undecoded",
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Desired mode differs and manager shutdown/unready at entry, or promoted full-reindex path observes shutdown while waiting for idle. Same-mode no-op bypasses these gates; ordinary resort shutdown after wait instead falls into queue.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10302e2c",
-           "notes": "CD impl layer"
+           "function": "0x103028f0",
+           "address": "0x10302944",
+           "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1010ee88",
+           "address": "0x1010eecc",
+           "notes": "Rechecks global110962c0. If desired differs and either old or desired mode==1 (Chinese), branch1010f028 promotes to full reindex. Calls1010eafc at1010f07c with display=manager+0x120,args5/6=0,arg7=1,arg8=0,arg9=1,arg10=desired sort, returning its0/720 unchanged. Entering/leaving Chinese changes scan mode, not just comparator."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1010ee88",
+           "address": "0x1010eeec",
+           "notes": "Ordinary resort under manager mutex+0x20: shutdown byte+0x4e12 ->720 at1010eef0, !ready+0x100 ->same720 at1010ef48. Waits condition+0xb0 while state+0x52c8!=2. IMPORTANT shutdown seen after wait at1010ef80 branches/falls into1010ef8c queue body, not720: this differs from full-reindex helper."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1010eafc",
+           "address": "0x1010ec5c",
+           "notes": "Promoted FULL path: shutdown or !ready at entry ->720; waits idle2 and returns720 if shutdown observed after waiting at1010eca8. On acceptance marks shares, localRequestReindex marker, counters, desired sort+0x124 becausearg9=1, forced-full flags, cached stamp and wake; no synchronous cd_impl indexing flag/SystemUpdateID write."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10302e2c emits constant set {701, 711} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103028f0",
+         "address": "0x10302944",
+         "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ee88",
+         "address": "0x1010eecc",
+         "notes": "Rechecks global110962c0. If desired differs and either old or desired mode==1 (Chinese), branch1010f028 promotes to full reindex. Calls1010eafc at1010f07c with display=manager+0x120,args5/6=0,arg7=1,arg8=0,arg9=1,arg10=desired sort, returning its0/720 unchanged. Entering/leaving Chinese changes scan mode, not just comparator."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ee88",
+         "address": "0x1010eeec",
+         "notes": "Ordinary resort under manager mutex+0x20: shutdown byte+0x4e12 ->720 at1010eef0, !ready+0x100 ->same720 at1010ef48. Waits condition+0xb0 while state+0x52c8!=2. IMPORTANT shutdown seen after wait at1010ef80 branches/falls into1010ef8c queue body, not720: this differs from full-reindex helper."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010eafc",
+         "address": "0x1010ec5c",
+         "notes": "Promoted FULL path: shutdown or !ready at entry ->720; waits idle2 and returns720 if shutdown observed after waiting at1010eca8. On acceptance marks shares, localRequestReindex marker, counters, desired sort+0x124 becausearg9=1, forced-full flags, cached stamp and wake; no synchronous cd_impl indexing flag/SystemUpdateID write."
+        }
        ]
       }
      ],
@@ -93167,13 +93368,65 @@
        "build": "86.10-80260",
        "address": "0x10eb4300",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10307050",
+       "address": "0x103070b0",
+       "notes": "Required SortOrder string cap0x400 via1056157c; validator false ->402 at10307120. Primary+0x34=103028f0 called103070d0. Nonzero forwarded103070ec; zero empty response commit10307134. Binding proven once at service level."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103028f0",
+       "address": "0x10302944",
+       "notes": "Exact case-sensitive zh-CN maps1, ja-JP maps2, ALL other supplied strings (including empty/lowercase) map0. ISEL at10302944 chooses2 iff strcmp(ja-JP)==0 else0. Desired mode compared global110962c0 at10302950. Equal ->0 immediately at10302974, without checking provider/manager readiness or queueing work."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103028f0",
+       "address": "0x10302970",
+       "notes": "Different desired/current mode ->provider impl+0x34c, tail1010f098 which loads underlying manager+0x4de8 and tailcalls1010ee88. Does not synchronously write global110962c0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010ee88",
+       "address": "0x1010eecc",
+       "notes": "Rechecks global110962c0. If desired differs and either old or desired mode==1 (Chinese), branch1010f028 promotes to full reindex. Calls1010eafc at1010f07c with display=manager+0x120,args5/6=0,arg7=1,arg8=0,arg9=1,arg10=desired sort, returning its0/720 unchanged. Entering/leaving Chinese changes scan mode, not just comparator."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010ee88",
+       "address": "0x1010eeec",
+       "notes": "Ordinary resort under manager mutex+0x20: shutdown byte+0x4e12 ->720 at1010eef0, !ready+0x100 ->same720 at1010ef48. Waits condition+0xb0 while state+0x52c8!=2. IMPORTANT shutdown seen after wait at1010ef80 branches/falls into1010ef8c queue body, not720: this differs from full-reindex helper."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010ee88",
+       "address": "0x1010ef8c",
+       "notes": "Queues marker localRequestResort+0x521c, increments+0x5220/+0x11c, copies identity+0x102, writes desired sort manager+0x124, clears work flags+0x4e0e/0x4e0f/0x4e10 and+0x4e13, refreshes cached stamp+0x4df0 via provider clock, clears wait byte+0x4e11, wakes condition1098761c and returns0. Does not wait newly queued resort completion."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010eafc",
+       "address": "0x1010ec5c",
+       "notes": "Promoted FULL path: shutdown or !ready at entry ->720; waits idle2 and returns720 if shutdown observed after waiting at1010eca8. On acceptance marks shares, localRequestReindex marker, counters, desired sort+0x124 becausearg9=1, forced-full flags, cached stamp and wake; no synchronous cd_impl indexing flag/SystemUpdateID write."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10307050; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Statically complete through queue boundary, including no-op/readiness ordering and ordinary wait-shutdown fallthrough. No claim that SOAP success confirms completed resort."
     },
     "SetBrowseable": {
      "description": "Unsupported setter in this firmware: a present Browseable argument reaches cd_impl primary slot +0x40 = f_10302488 and always faults with 800, without changing browseability. A missing required argument faults with 402 first. The wrapper parses a signed decimal word using permissive strtol, not the boolean true/false parser. See the ContentDirectory service-level concrete binding proof.",
@@ -95409,7 +95662,7 @@
    "impl_files": [
     "compiled lib (libsonos-upnp family): impl classes generated/static"
    ],
-   "todo": "Established: the service-to-cd_impl binding and per-call TRequest construction are statically traced in resolved_findings. Residual: remaining action records still need their individual implementation, output and fault analyses. Next RE step: follow each remaining handler slot through primary vtable 0x10eb3f20 and document that worker without assuming runtime injection.",
+   "todo": "Established: service-to-cd_impl binding, per-call request construction, and all ContentDirectory action primary slots/outer outputs/fault dispatch are traced. Residual concrete sub-areas only: Browse backend enumeration/DIDL/update semantics at the addresses named in Browse TODOs; share/R/FV XML collectors1034b068/10381428/10381440 and existing-file SAX mutations1038163c/10382c00; authenticated-share trial mount1042b214; savedqueues.rsq item transaction1047ee0c; mutation callback receivers for favorites+0x110 and saved-queue manager+0xc0/virtual+0x14. Next steps and call-specific phase/fault questions are recorded in CreateObject/UpdateObject/DestroyObject. RefreshShareIndex and RequestResort have no remaining action TODOs. Do not reopen runtime-injection or request-freshness questions.",
    "resolved_findings": [
     "The ContentDirectory service is ctx+0x3fa68, vptr 0x10eb4258, constructed by 0x10307e94 at 0x1018fb90. Its implementation is statically bound cd_impl, constructed by 0x10303de4 at 0x103fb000 with primary vptr 0x10eb3f20. The shared service-block initializer f_104d49e8, not a service virtual setter, assigns the pointer: it receives the DeviceProperties-led block at ctx+0x3fa2c as r3 and &media-player+0x190c as r10, saves them to r31/r26, loads [r26] at 0x104d4e48 and stores it to block+0x40 at 0x104d4e54. This is ctx+0x3fa6c, exactly service+4. The ownership pointer is copied to block+0x44 at 0x104d4ecc. Dispatcher 0x10307608 loads service+4 at 0x1030777c and passes it as handler r5 at 0x103077b4.",
     "Binding provenance: ctx constructor computes the service-block pointer at 0x1018ef1c, saves it at sp+0xfc at 0x1018ef2c and passes it as r5 at 0x1018fc28 to f_101b08a0 (call 0x1018fd14). That wrapper saves it in r19 at 0x101b09c0 and passes r4=r19 at 0x101b0dfc to f_1040c02c at 0x101b0ea4; manager+0xbc receives it at 0x1040c0fc. Media-player construction path loads manager+0xbc at 0x10410244, passes it as r6 at 0x104106fc to f_103fa434 at 0x10410744, which saves r6 in r17 and stores it at media-player+0x220 at 0x103fa75c. f_103fd65c loads that field at 0x103fdd08, passes r10=&media-player+0x190c at 0x103fdd20 and calls f_104d49e8 at 0x103fdd60. The cd_impl pointer was stored at media-player+0x190c at 0x103fb048 after construction.",
