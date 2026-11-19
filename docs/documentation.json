@@ -215910,7 +215910,7 @@
      "todo": "Established: public nickname forwarding, UDN selection,810/806/802/809 outcomes, exact duplicate predicate and abort-before-commit ordering are decoded. Remaining: verify all table-update false cases reachable from nickname changes, full save/recovery and account notification payload/delivery, and any upstream parser restrictions on empty or oversized names."
     },
     "account_callbacks": {
-     "description": "The account-manager constructor installs vtable0x10eabc6c. Slot+0x28 is f_10284950, a diagnostic reporter. Normal removal passes operation text del and the removed record; the reporter constructs zpAM fields type, flags, rsid (stored account type) and asn (account serial), then submits them to a diagnostic interface. This is not an account-list event payload or evidence that a controller received a notification. Slot+0x34 is f_102850c4, used after successful shared edits and normal removals once the account lock is released. It returns immediately when the global zone pointer is null; otherwise it calls f_101b8048 on the zone account context. That worker reads an account-manager snapshot, compares it with a cached table and, on a nonzero comparison result, copies the table and invokes f_101bb1d0. Additional work through f_101b7620 is conditional on context state. These bindings establish local refresh and diagnostic paths; their downstream event channels, payloads and delivery outcomes remain unresolved. The public edit/removal status does not incorporate the callback result.",
+     "description": "The account-manager constructor installs vtable0x10eabc6c. Slot+0x28 is f_10284950, a diagnostic reporter: it logs 'zpam: %s,%d,%d,%u' under 'accountsmgr' when enabled, builds a property bag {type=operation text, flags=record+0x1f4, rsid=record+4, asn=record+0} and submits it through the lazy diagnostic singleton returned by f_10559024 (a once-constructed object at0x110a5448 whose vtable holds f_10559b3c/f_10559b48) via vfunc+0x1c with tag 'zpAM' and two flag words of1. Whether that bag is retained, batched or uploaded is the diagnostic service's own policy; the submission interface and payload are what this path establishes, and no per-call queueing or retry exists in the account code. Slot+0x34 is f_102850c4, used after successful shared edits and removals once the account lock is released. It returns when the global facility pointer0x11095f88 is null; otherwise f_102850d4 retains the shared owner at facility+0xaa4c (atomic count at+4, destroy through owner vfunc+0x08 when it reaches zero) and runs f_101b8048 on the zone account context object at facility+0xaa48; with no owner installed it tail-calls f_101b8048 directly. The public operation result never incorporates the callback outcome. f_101b8048 holds the context mutex at ctx+0xa878 while it snapshots the manager through f_1028903c (locks mgr+0x20 and reparses accounts.xml into a stack table of36 stride0x250 rows via f_102887e0; the helper's0/810 result is not tested). It compares the snapshot with the cached table at ctx+0x290 using f_10570398 (count word, then rowwise f_1056efb0 diff over type/serial/flags/+8 text/+0x1fc/+0x220/+0x240 uuid). On any difference it copies the new table into the cache and calls f_101bb1d0(ctx+0xc, flag). f_101bb1d0 emits MusicAccountChangedEvent: it rebinds slot lists0x11096a68/0x11096a70 (refcounted nodes carrying thunks f_100e4768/f_100e47bc/f_100e47d8/f_100e47f4/f_100e4784) when the event-loop marker byte0x11096a48 changes, logging 'Change in event loop detected'; it increments sequence0x11096a4c, logs 'Queued %s(%u) from \"%s\" : { %s }' under 'inprocess-events', inserts the payload into map0x110ba798 via f_10bbca78/f_10bbd280 and swaps the subscriber callable list through f_101bae1c with release thunks f_101ba510/f_101ba624/f_101ba744 before invoking f_100f14ec per entry. Subscriber callbacks are runtime-registered, so wire delivery ends at this in-process queue; no static chain into a socket write exists from here. Independently of the event, when container ctx+0x5134 is empty and the u16 count ctx+0xa864 is nonzero it calls f_101b7620(ctx, loopCheck, hideTuneIn): loopCheck comes from f_1074700c on the facility's second interface at+0x9d6c (consulted only when that interface's vfunc+0x1c differs from local stub f_100c3a2c) and hideTuneIn is f_101b6dbc, which reads R_HideTuneIn through the settings interface ctx+0xa868 vfunc+0x24 (expected vfunc+0x4c f_100c9be8). With loopCheck zero f_101b7620 clears the head word of ctx+0x5134 through f_105716f8; otherwise it tail-runs f_101b6fdc, the household-sync merge that queries interface ctx+0xa86c through f_100c6e20, records per-service serials via f_101b6efc into dedup map ctx+0xa064 (cap256), inserts account rows into container ctx+0x5134 via f_1057082c, registers UUIDs for rows whose type&0x7f is7 or8 through f_100c6d28/f_100c6b10, drops flags&1 rows, skips service0x1f4 entries and maps service0xfe through f_105be5c8, then returns ((ctx+0x5134 or ctx+0xa864 nonzero) and ctx+0xa870<6). Finally f_101b8048 always enqueues f_100bbc80 on event loop0x11095f8c through its vfunc+0x8 with argument0; that job retains the loop-held object and runs f_101b869c, the maintenance worker that itself calls compactor f_10570cdc and re-enters f_101b8048. Byte flag0x11090020 selects an alternate branch inside f_100bbc80.",
      "evidence": [
       {
        "type": "firmware",
@@ -215939,9 +215939,75 @@
        "build": "86.10-80260",
        "address": "0x101b8048",
        "notes": "Account refresh reads manager snapshot via0x1028903c at0x101b8238; compares with cached table at0x101b8250. Nonzero copies rows then invokes0x101bb1d0 at0x101b8290. Further work is conditional at0x101b8294..0x101b82c0. This does not by itself establish external event delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102850d4",
+       "notes": "Shared-owner retention: atomic++ at owner+4, f_101b8048(facility+0xaa48), -- with destroy via owner vfunc+0x08 at zero; null owner tail-calls f_101b8048 at0x102851c0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028903c",
+       "notes": "Snapshot helper: locks mgr+0x20 via f_10988558, calls f_102887e0(mgr,out,0,0,0), isel returns0 or0x32a; caller0x101b8238 does not test the result."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10570398",
+       "notes": "Table compare: count word first, then rowwise f_1056efb0 for count rows of stride0x250; returns1 on first difference,0 when identical."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101bb1d0",
+       "notes": "MusicAccountChangedEvent emitter: event-loop rebind on marker0x11096a48 ('Change in event loop detected'), 'Queued %s(%u) from \"%s\" : { %s }' at0x101bb644, map insert0x110ba798 at0x101bb690/0x101bb6c8, subscriber swap/invoke through0x101bb708..0x101bb73c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b6dbc",
+       "notes": "Reads R_HideTuneIn through ctx+0xa868 vfunc+0x24 with expected vfunc+0x4c f_100c9be8; returns0 on missing interface or failed query."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b7620",
+       "notes": "Household-sync gate: null loopCheck clears *ctx+0x5134 via f_105716f8; else requires ctx+0x5134==0 and ctx+0xa864!=0 then tail-calls f_101b6fdc(ctx, hideTuneIn); asserts lock zpserviceaccounts.cxx:0x605."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b6fdc",
+       "notes": "Household merge: reply object f_10554650, query through ctx+0xa86c via f_100c6e20, per-service f_101b6efc records {svc,sn} into map ctx+0xa064 cap0x100, row insert into ctx+0x5134 via f_1057082c, UUID registration f_100c6d28/f_100c6b10; svc0x1f4 skipped, svc0xfe via f_105be5c8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100bbc80",
+       "notes": "Queued maintenance job on loop0x11095f8c: refcounted access to loop-held object then f_101b869c (compaction f_10570cdc and re-entrant f_101b8048); flag0x11090020 selects alternate branch at0x100bbdbc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10559024",
+       "notes": "Lazy diagnostic singleton at0x110a5448 with vfuncs f_10559b3c/f_10559b48, dtor registered via __cxa_atexit; returns &singleton+8 used for vfunc+0x1c submissions."
       }
      ],
-     "todo": "Established: concrete manager vtable, diagnostic field payload, post-commit refresh target and snapshot/cached-table callback ordering are instruction-traced. Remaining: decode the table comparison and f_101bb1d0/f_101b7620 consumers, join any resulting GENA/Muse events to their serializers/subscribers, and verify delivery/failure policy. Trace diagnostic retention/upload policy separately from controller notifications."
+     "resolved_findings": [
+      "Resolved: the post-commit callback is a local cache refresh plus event emit, not a direct client notification: snapshot-diff at ctx+0x290, MusicAccountChangedEvent queued into the in-process event map0x110ba798, conditional household merge f_101b6fdc, and a queued f_100bbc80 maintenance job. Remote or GENA delivery depends on runtime subscriber registrations behind that map, so the static chain terminates there; the event name 'MusicAccountChangedEvent' is the only externally referenced payload text.",
+      "Resolved: the diagnostic reporter submits {type,flags,rsid,asn} plus the operation text to the global diagnostic singleton via vfunc+0x1c('zpAM',1,1); retention and upload are that service's policy and no account-side queue exists, so diagnostic and controller-notification paths are confirmed separate."
+     ]
     }
    },
    "todo": [
