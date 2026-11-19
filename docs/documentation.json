@@ -67402,7 +67402,7 @@
       ]
      },
      "return_behavior": {
-      "description": "The wrapper commits an empty response on zero, returns 402 on materialization failure and propagates other engine failures. Verified engine faults include 718, 701, 714, 402 and 800. Preparation can return 803 at the queue limit or when the entry loader rejects a flagged capacity or allocation failure; it returns 804 when the stored-entry count equals the count of candidates that failed the playability check.",
+      "description": "The wrapper commits an empty response on zero, returns 402 on materialization failure and propagates other engine failures. Verified engine faults include 718, 701, 714, 402 and 800. Preparation can return 803 at the queue limit or when the entry loader rejects a flagged capacity or allocation failure; it returns 804 when the stored-entry count equals the count of candidates that failed the playability check. On the fallback service route, a successful browse can instead become 802 when its collector sets the documented out flag. On the browse-error normalization path, 801 is conditionally preserved and 1042 through 1045 are preserved; other nonzero browse statuses on that path become 800.",
       "evidence": [
        {
         "type": "firmware",
@@ -67523,11 +67523,83 @@
         "address": "0x10153bf8",
         "notes": "On the error-normalization branch, f_10153a38 preserves 801 when its input byte +0x1d is nonzero. Otherwise it calls f_10c3ba54 and maps statuses outside 1042 through 1045 to 800. The raw isel at 0x10153c1c chooses 800 when the predicate returns zero; this branch alone does not establish which values a callback can actually supply.",
         "function": "0x10153a38"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104634f8",
+        "notes": "The initial playlist classifier f_104605cc tests ASX/WAX/WMX, M3U/M3U8, PLS, RSQ, then WPL. At expansion, f_104634c4 selects the first matching recognizer in this different order: ASX/WAX/WMX => f_10461e04, M3U/M3U8 => f_10462c80, PLS => f_10463164, WPL => f_10462f54, CIFS path => f_10460814, RSQ => f_1047851c. The fifth recognizer tests x-file-cifs:// and is not reachable for the action's HTTP(S) URI. PLS also accepts a case-sensitive /pls suffix, and the RSQ recognizer matches lowercase .rsq immediately before the last #. Dispatch does not try another format when the selected parser fails.",
+        "function": "0x104634c4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10120668",
+        "notes": "Both metadata-resolution helpers call registry slot +0x154 with the parsed metadata. f_101205fc fails on a missing result, nonzero result byte +0x826, or false result-subobject slot +0x3c (+0xba8). On success it copies result byte +0x1ff6 to preparation descriptor +0x662 and copies strings from slots +0x54/+0x58 to +0x41a/+0x4da using two 192-byte buffers.",
+        "function": "0x101205fc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10120a64",
+        "notes": "f_10120904 uses registry slot +0x154 again and only resolves the content root through f_10715a48 (result+0x830) when that result exists and its +0x826 byte is clear. f_1015379c supplies a 192-byte buffer at descriptor +0x59a and no optional flag output, stores the returned content-root pointer at +0x65c, and sets +0x661 only for a nonnull pointer.",
+        "function": "0x10120904"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10153b7c",
+        "notes": "The three concrete objects behind browse slot +8 are installed by f_10711240 (table 0x10f0da70, slot 0x107115dc), f_10711374 (0x10f0dba4, slot 0x10711730), and f_10723e90 (0x10f0e66c, slot 0x1072e800). In that order, the bindings apply to the non-type-2 metadata route, the type-2 route, and the fallback SID lookup. The first forwards to content-server slot +0x4c at 0x107116bc, choosing BrowseMetadata for nonzero browse mode and BrowseDirectChildren for zero. The last loads its service object from +0x13d0 and tail-calls f_1072c518.",
+        "function": "0x10153a38"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10153c98",
+        "notes": "The browse loop initializes its window from input +0x2c/+0x30 and updates its start by the slot +8 returned-count out parameter at 0x10153ba0. It can fetch another page when the slot succeeds, collector byte +0x675 still allows continuation, the updated start is below the end bound, and the returned count is nonzero. Nonzero slot statuses go through the separate normalization path at 0x10153bf8.",
+        "function": "0x10153a38"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10153d00",
+        "notes": "The optional fallback out byte starts at zero and is written on the normal collection-result path only if collector +0x671 is set; the written value is collector +0x672 XOR 1. f_100d03b0 initializes both collector bytes to zero. Collector vtable slot +0xc binds f_100cdd08, which sets +0x671 when +0x675 and +0x674 are nonzero. The eligible entry path at 0x100ce410 calls f_10153914, stores the result at +0x675, and latches +0x672 if that result and collector +0x670 are both nonzero. Only zero browse status plus a set out byte becomes 802 (raw 0x7fde4f9e at 0x10153fcc).",
+        "function": "0x10153a38"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10460b44",
+        "notes": "The preparation callback record at f_10146300 has table 0x10e93668, the queue descriptor, and an initially zero entry count. Shared parser helper f_10461048 checks f_10147bf4, sending a matching entry to f_10460a50 and otherwise going through f_10460c0c when the context byte +0x1078 is clear. f_10460a50 specializes table slot +8 when it equals f_100d1218 (the value at 0x10e93670): it increments the callback record's count at +8, applies the descriptor limits at +0x788 and +0x778, then invokes f_10153914. Exceeding the count limit clears the caller's per-entry continuation flag and returns zero.",
+        "function": "0x10460a50"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10461790",
+        "notes": "M3U and PLS read entries through f_104614b4 and f_104611c8 respectively. Their ordinary entry sites trim the line or value and call f_10461130, which normalizes into a 1025-byte temporary buffer and calls f_10461048. Both streaming loops stop their ordinary entry path when the call returns zero or its per-entry continuation byte clears (M3U 0x10461794 through 0x104617a4; PLS 0x10461360 through 0x10461370).",
+        "function": "0x104614b4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10463b4c",
+        "notes": "WPL supplies the f_10463b84 XML start handler; inside its f_104639c0 implementation the media element's src attribute is read, copied and trimmed before dispatch to the same f_10461048 entry helper. ASX also reaches f_10461048 at 0x104623d4, 0x104628ac, 0x10462984 and 0x10462ae4. RSQ instead dispatches through f_1047851c and f_1047d8dc, so the ASX/M3U/PLS/WPL shared helper is not assumed for RSQ.",
+        "function": "0x104639c0"
        }
       ],
       "todo": [
-       "Established: the worker's local guards and 800/803/804 mapping are traced. The HTTP(S) service path can be selected by a positive metadata-resolution flag or the SA_RINCON fallback; only the fallback branch can directly reach the 802 literal in f_10153e98. Its callback-dependent reachability and the other browse results remain open.",
-       "Resolve the metadata-resolution calls f_101205fc and f_10120904, bind browse callbacks for f_10153ddc, f_10153d24 and f_10153e98, and trace their returns and output flags through f_10153a38 and the SOAP worker."
+       "Established: the metadata registry gates, concrete browse slot bindings, page continuation tests, 802 flag composition and error normalization are traced. The action forwards nonzero preparation results; its 800 path can remap to 803. Exact reachable browse statuses still depend on underlying services.",
+       "Bind registry slot +0x154 and its metadata key and account tests, and identify when collector +0x670 is set. Follow content-server slot +0x4c and the type-2 and fallback workers to prove which raw statuses and flags each HTTP(S)-reachable browse route supplies."
       ]
      },
      "fault_sites": [
@@ -67621,7 +67693,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0xc)",
-       "meaning": "The URI worker can emit 701, 714 or 402 locally or propagate a descriptor preparation result, including 800, 803 and 804.",
+       "meaning": "The URI worker can emit 701, 714 or 402 locally or propagate a descriptor preparation result, including 800, 803 and 804. The fallback can also substitute 802 for zero as described in the browse evidence.",
        "fault_sites": [],
        "conditions": [
         {
@@ -67711,6 +67783,38 @@
            "address": "0x1014b834",
            "notes": "On the metadata-selected branch (f_1015367c returns nonzero), f_1014b700 invokes f_10153fe0 with the descriptor, its parsed ID, and the callback table at 0x10e93668. A result other than 800 is returned directly by f_1014f48c; 800 is checked against the queue/capacity flag at descriptor +0x12 and may become 803.",
            "function": "0x1014b700"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104634f8",
+           "notes": "The initial playlist classifier f_104605cc tests ASX/WAX/WMX, M3U/M3U8, PLS, RSQ, then WPL. At expansion, f_104634c4 selects the first matching recognizer in this different order: ASX/WAX/WMX => f_10461e04, M3U/M3U8 => f_10462c80, PLS => f_10463164, WPL => f_10462f54, CIFS path => f_10460814, RSQ => f_1047851c. The fifth recognizer tests x-file-cifs:// and is not reachable for the action's HTTP(S) URI. PLS also accepts a case-sensitive /pls suffix, and the RSQ recognizer matches lowercase .rsq immediately before the last #. Dispatch does not try another format when the selected parser fails.",
+           "function": "0x104634c4"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10460b44",
+           "notes": "The preparation callback record at f_10146300 has table 0x10e93668, the queue descriptor, and an initially zero entry count. Shared parser helper f_10461048 checks f_10147bf4, sending a matching entry to f_10460a50 and otherwise going through f_10460c0c when the context byte +0x1078 is clear. f_10460a50 specializes table slot +8 when it equals f_100d1218 (the value at 0x10e93670): it increments the callback record's count at +8, applies the descriptor limits at +0x788 and +0x778, then invokes f_10153914. Exceeding the count limit clears the caller's per-entry continuation flag and returns zero.",
+           "function": "0x10460a50"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10461790",
+           "notes": "M3U and PLS read entries through f_104614b4 and f_104611c8 respectively. Their ordinary entry sites trim the line or value and call f_10461130, which normalizes into a 1025-byte temporary buffer and calls f_10461048. Both streaming loops stop their ordinary entry path when the call returns zero or its per-entry continuation byte clears (M3U 0x10461794 through 0x104617a4; PLS 0x10461360 through 0x10461370).",
+           "function": "0x104614b4"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10463b4c",
+           "notes": "WPL supplies the f_10463b84 XML start handler; inside its f_104639c0 implementation the media element's src attribute is read, copied and trimmed before dispatch to the same f_10461048 entry helper. ASX also reaches f_10461048 at 0x104623d4, 0x104628ac, 0x10462984 and 0x10462ae4. RSQ instead dispatches through f_1047851c and f_1047d8dc, so the ASX/M3U/PLS/WPL shared helper is not assumed for RSQ.",
+           "function": "0x104639c0"
           }
          ]
         }
@@ -67827,6 +67931,46 @@
          "address": "0x10153bf8",
          "notes": "On the error-normalization branch, f_10153a38 preserves 801 when its input byte +0x1d is nonzero. Otherwise it calls f_10c3ba54 and maps statuses outside 1042 through 1045 to 800. The raw isel at 0x10153c1c chooses 800 when the predicate returns zero; this branch alone does not establish which values a callback can actually supply.",
          "function": "0x10153a38"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10120668",
+         "notes": "Both metadata-resolution helpers call registry slot +0x154 with the parsed metadata. f_101205fc fails on a missing result, nonzero result byte +0x826, or false result-subobject slot +0x3c (+0xba8). On success it copies result byte +0x1ff6 to preparation descriptor +0x662 and copies strings from slots +0x54/+0x58 to +0x41a/+0x4da using two 192-byte buffers.",
+         "function": "0x101205fc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10120a64",
+         "notes": "f_10120904 uses registry slot +0x154 again and only resolves the content root through f_10715a48 (result+0x830) when that result exists and its +0x826 byte is clear. f_1015379c supplies a 192-byte buffer at descriptor +0x59a and no optional flag output, stores the returned content-root pointer at +0x65c, and sets +0x661 only for a nonnull pointer.",
+         "function": "0x10120904"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10153b7c",
+         "notes": "The three concrete objects behind browse slot +8 are installed by f_10711240 (table 0x10f0da70, slot 0x107115dc), f_10711374 (0x10f0dba4, slot 0x10711730), and f_10723e90 (0x10f0e66c, slot 0x1072e800). In that order, the bindings apply to the non-type-2 metadata route, the type-2 route, and the fallback SID lookup. The first forwards to content-server slot +0x4c at 0x107116bc, choosing BrowseMetadata for nonzero browse mode and BrowseDirectChildren for zero. The last loads its service object from +0x13d0 and tail-calls f_1072c518.",
+         "function": "0x10153a38"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10153c98",
+         "notes": "The browse loop initializes its window from input +0x2c/+0x30 and updates its start by the slot +8 returned-count out parameter at 0x10153ba0. It can fetch another page when the slot succeeds, collector byte +0x675 still allows continuation, the updated start is below the end bound, and the returned count is nonzero. Nonzero slot statuses go through the separate normalization path at 0x10153bf8.",
+         "function": "0x10153a38"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10153d00",
+         "notes": "The optional fallback out byte starts at zero and is written on the normal collection-result path only if collector +0x671 is set; the written value is collector +0x672 XOR 1. f_100d03b0 initializes both collector bytes to zero. Collector vtable slot +0xc binds f_100cdd08, which sets +0x671 when +0x675 and +0x674 are nonzero. The eligible entry path at 0x100ce410 calls f_10153914, stores the result at +0x675, and latches +0x672 if that result and collector +0x670 are both nonzero. Only zero browse status plus a set out byte becomes 802 (raw 0x7fde4f9e at 0x10153fcc).",
+         "function": "0x10153a38"
         }
        ],
        "literal_bound": [
@@ -67840,8 +67984,8 @@
         701
        ],
        "todo": [
-        "Established: the worker's local guards and 800/803/804 mapping are traced. The HTTP(S) service path can be selected by a positive metadata-resolution flag or the SA_RINCON fallback; only the fallback branch can directly reach the 802 literal in f_10153e98. Its callback-dependent reachability and the other browse results remain open.",
-        "Resolve the metadata-resolution calls f_101205fc and f_10120904, bind browse callbacks for f_10153ddc, f_10153d24 and f_10153e98, and trace their returns and output flags through f_10153a38 and the SOAP worker."
+        "Established: the metadata registry gates, concrete browse slot bindings, page continuation tests, 802 flag composition and error normalization are traced. The action forwards nonzero preparation results; its 800 path can remap to 803. Exact reachable browse statuses still depend on underlying services.",
+        "Bind registry slot +0x154 and its metadata key and account tests, and identify when collector +0x670 is set. Follow content-server slot +0x4c and the type-2 and fallback workers to prove which raw statuses and flags each HTTP(S)-reachable browse route supplies."
        ]
       },
       {
@@ -68184,8 +68328,8 @@
      ],
      "notes": null,
      "todo": [
-      "Established: plain HTTP(S) goes through the queue-entry callback, recognized playlist markers select format loaders, and the metadata-selected service branch has its own loader. The counter compared with the stored-entry count for 804 increments when the queue-entry callback's playability check fails.",
-      "Trace each HTTP(S)-reachable playlist parser's entry callback, order, nesting and stop conditions under f_104634c4. Map the metadata combinations that set descriptor +0x661 through f_101205fc and f_10120904 or feed the fallback SA_RINCON parser, then trace concrete browse callbacks and pagination."
+      "Established: the first-match playlist dispatcher and its concrete parser targets are traced. The ASX, M3U/M3U8, PLS and WPL loaders share an entry helper that can invoke f_10153914 directly for this callback table. The ordinary M3U and PLS loops test both its return and entry-continuation byte; service browse slot bindings are also traced.",
+      "Finish the format-specific entry order, nested-input and stop rules: ASX alternatives and entryrefs, M3U HLS variants, PLS fallback paths, WPL XML end handling, and RSQ callbacks below f_1047d8dc. For service input, bind the metadata registry lookup and follow the concrete browse workers to their queue-entry callbacks and raw result codes."
      ]
     },
     "SetPlayMode": {
