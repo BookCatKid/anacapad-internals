@@ -154513,15 +154513,27 @@
      "type": "firmware",
      "address": "0x10f12054",
      "notes": "topology_base block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "member/satellite parsing and callback",
+     "address": "0x1070345c",
+     "callsite": "0x10703548 / 0x10703560 / 0x10703378 / 0x107033a0 / 0x107033c8 / 0x10702f24",
+     "notes": "Both incoming element arms call parser; raw value pointers default null, no conversion at matches, forwarded to injected callback virtualc after required-field validation. This is not emit-site evidence."
     }
    ],
    "todo": [
-    "Residual: printed semantic names of DeactivationState values 0..6 (contexts proven: 2=deactivate-requested, 3=primary-unavailable-remove, 4=activeZone-update, 5=primary-change, 6=offline-primary; exact enum names are internal) and the exact encodings of DeactivationTTL/DeactivationDateTime (epoch vs ISO string) at the emit site."
+    "Established: member and satellite parser reachability, null defaults and raw string-pointer forwarding for DeactivationState/TTL/DateTime, callback slot and required-field rejection. Remaining: bind parser context+8 callback virtual+0xc to its concrete implementation, follow outgoing stack+0x4c/+0x50/+0x54 to state/date/TTL conversion and validation, then trace its storage and actual XML writer for units, epoch/ISO format and omission rules. Recover0..6 writer predicates/original names only where a named consumer supports them; writer contexts are not proof of the accepted wire range. Start at0x10702f18 and f_1070345c callers/constructors. This is actionable static work, not a proven internal-name or external-schema limitation."
    ],
    "resolved_findings": [
     "Resolved: ZP record = the ops set {RTopologyImpl,new_or_updated_zp,upgrade_report,informReplicatedSettingsChange,informLocalSecureRegStateChange,informLocalIdleStateChange,updateLocalMoreInfo,getZPUUIDs,isLocalZPIdle} + emitted events.",
     "ZP record structure bounded: attrs {QuarantineReason, UUID, ZoneName, Icon, Configuration, Invisible=1, IsZoneBridge=1, VoiceConfigState, TVConfigurationError, AirPlayEnabled, VirtualLineInSource, DeactivationState, DeactivationTTL, DeactivationDateTime, OpenPort, HHSSLPort, LastKnownIP, LastSeenUTC, MinCompatibleVersion}; required-field validation: invalid ZoneGroupState XML - missing UDN, Location, Title, or Icon. Member/Group containers: {ZoneGroupMember, ZoneGroup} + {VanishedDevices, QuarantinedDevices} side lists. The ops vocabulary shows the consumer surface: new_or_updated_zp feeds mdns discoveries, informReplicatedSettingsChange/informLocalSecureRegStateChange/informLocalIdleStateChange are the local-state inform hooks, getZPUUIDs/isLocalZPIdle the queries.",
-    "DeactivationState value domain bounded: the ZoneGroupState member parser (f_10702cf8, expat attr walk) collects DeactivationState/DeactivationTTL/DeactivationDateTime/OpenPort/SSLPort/HHSSLPort into per-member stack slots; the member state field obj+0x298 (word) and +0x29c (flag byte) receive literal writes {0,1,2,3,4,5,6} across zonesmgr code: =2 in the muse deactivateZone handler (0x10168a94, after the deactivating-zone log + RemoveHTSatellite + ZoneMemberSettingsChangedEvt), =3 in the primary-unavailable send-Remove-ops path (0x10168c7c), =4 by the updating-ActiveZone path (0x10169344), =5 by the primary-change path (0x101694e4), =6 by the offline-primary path (0x10169580), and {0,1} in member update paths (0x1016a188=1 plus several =0 clears). So DeactivationState is a small-int member lifecycle enum over 0..6, not a string vocabulary; no state-name literals exist in the image."
+    "Known zones-manager writes to member+0x298 include0..6, with a separate byte at+0x29c. Literal2 is stored at0x10168a94 after the deactivating-zone path;3/4/5/6 occur in primary-unavailable, ActiveZone-update, primary-change and offline-primary contexts. These writer contexts are not original enum names and do not prove parser range validation or a complete accepted wire-value domain. The old no-state-name-literals assertion was not a demonstrated whole-image limit.",
+    "Reachable parsing is established by f_1070345c: ZoneGroupMember name equality with active group state calls f_10702cf8 at0x10703548; its Satellite-state arm calls the same parser at0x10703560. This distinguishes incoming ZoneGroupState parsing from an XML emitter.",
+    "DeactivationState/TTL/DateTime are matched by strcmp at0x10703378/0x107033a0/0x107033c8. Their attribute-value pointers are stored unconverted at stack+0xac/+0xb0/+0xb4. All three default to null at parser entry; omitted optional attributes therefore remain null at this layer. There is no epoch, ISO-date or integer conversion in these match arms.",
+    "At0x10702e70-0x10702e8c the DateTime/TTL/State pointers are copied to outgoing stack+0x54/+0x50/+0x4c. After required UDN/Location/Title/Icon validation, parser context+8 supplies a callback whose virtual+0xc is invoked at0x10702f24. Missing required fields take the invalid ZoneGroupState XML log path instead. Numeric/date interpretation, if any, belongs beyond this callback and is not established by the parser accepting a string."
    ]
   },
   "wireless_modes": {
