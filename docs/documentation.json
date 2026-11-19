@@ -87921,7 +87921,7 @@
      ]
     },
     "GetBrowseable": {
-     "description": "Returns IsBrowseable via impl->v[+0x8].",
+     "description": "Always returns IsBrowseable=1 in this firmware. Handler 0x103077d0 calls cd_impl primary slot +0x3c = f_10302470, which writes byte 1 and returns zero without checking the index, scan status or any object field. See the ContentDirectory service-level binding proof.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x103077d0",
@@ -87959,186 +87959,217 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "impl_function": "0x10302470",
+      "impl_vfunc": "cd_impl primary vtable 0x10eb3f20 slot +0x3c"
      },
      "inputs": {},
      "outputs": {
       "IsBrowseable": {
-       "description": "produced by impl 0x10302470 via media-store member this+0x168",
+       "description": "Constant true, not a dynamic index-readiness measurement.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
-        "fmt": null
+        "fmt": "%d"
        },
-       "semantic_type": "signed int32",
-       "format": "%d decimal",
-       "unit": "none - boolean flag",
-       "accepted_values": "unrestricted/impl-validated per 0x10302470",
-       "range": "{0,1}",
-       "special_values": "none observed in this build",
+       "semantic_type": "boolean",
+       "format": "decimal 1",
+       "unit": "none",
+       "accepted_values": "1",
+       "range": "{1}",
+       "special_values": "The getter does not return 0, including during indexing.",
        "required": false,
-       "default": "none - boolean decoded from request text",
-       "validation": "impl-produced",
+       "default": "none; constant 1 written on success",
+       "validation": "f_10302470 unconditionally writes byte 1; handler formats the byte as decimal.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10307894",
-         "notes": "out-arg access site"
+         "function": "0x10302470",
+         "address": "0x1030247c",
+         "notes": "Writes byte 1 to caller output, returns zero, reads no object fields and calls no function; primary table entry 0x10eb3f5c = slot +0x3c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb43f8",
-         "notes": "argument name string"
+         "function": "0x103077d0",
+         "address": "0x10307828",
+         "notes": "Calls primary +0x3c. Creates IsBrowseable at 0x10307894, formats byte with f_1055fcf4 at 0x1030789c, commits at 0x103078b0."
         }
-       ],
-       "notes": null
+       ]
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "No input registration or parser. The fresh request has registered count zero and always validates, so literal 402 at 0x10307878 is dead.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x103077d0",
-        "notes": "wrapper family decode"
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "Service-level binding and per-call request proof: no inputs registered by this wrapper, so validator returns 1 and 402 is dead."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103077d0",
+        "address": "0x10307828",
+        "notes": "Calls primary +0x3c. Creates IsBrowseable at 0x10307894, formats byte with f_1055fcf4 at 0x1030789c, commits at 0x103078b0."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], r30 v[+0x3c]",
+      "description": "No action arguments or library-state preconditions; the worker does not inspect state. Request validity is always true on this no-input SOAP path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x103077d0",
-        "notes": "req-vfunc call map: {'0x14': 1, '0x24': 1, '0xc': 1}"
+        "function": "0x10302470",
+        "address": "0x1030247c",
+        "notes": "Writes byte 1 to caller output, returns zero, reads no object fields and calls no function; primary table entry 0x10eb3f5c = slot +0x3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "Service-level binding and per-call request proof: no inputs registered by this wrapper, so validator returns 1 and 402 is dead."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], r30 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], r30 v[+0x3c]",
+      "description": "None. f_10302470 reads no object fields, configuration, scan flag or cached index state. This getter cannot be used to detect a temporarily unavailable index.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x103077d0",
-        "notes": "member vfunc calls: ['r4 v[+0x8]', 'r30 v[+0x3c]']"
+        "function": "0x10302470",
+        "address": "0x1030247c",
+        "notes": "Writes byte 1 to caller output, returns zero, reads no object fields and calls no function; primary table entry 0x10eb3f5c = slot +0x3c."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], r30 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query delegate: r4 v[+0x8], r30 v[+0x3c] (call-derived member-method semantics)",
+       "description": "Only writes the caller byte and SOAP response. No library mutation or locking.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "function": "0x10302470",
+         "address": "0x1030247c",
+         "notes": "Writes byte 1 to caller output, returns zero, reads no object fields and calls no function; primary table entry 0x10eb3f5c = slot +0x3c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
          "function": "0x103077d0",
-         "notes": "delegate map ['r4 v[+0x8]', 'r30 v[+0x3c]']; notify-family calls []"
+         "address": "0x10307828",
+         "notes": "Calls primary +0x3c. Creates IsBrowseable at 0x10307894, formats byte with f_1055fcf4 at 0x1030789c, commits at 0x103078b0."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r4 v[+0x8], r30 v[+0x3c] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No event or notifier call in the wrapper or constant stub.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10302470",
+        "address": "0x1030247c",
+        "notes": "Writes byte 1 to caller output, returns zero, reads no object fields and calls no function; primary table entry 0x10eb3f5c = slot +0x3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x103077d0",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x10307828",
+        "notes": "Calls primary +0x3c. Creates IsBrowseable at 0x10307894, formats byte with f_1055fcf4 at 0x1030789c, commits at 0x103078b0."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], r30 v[+0x3c]",
+      "description": "None. The returned constant is not stored as mutable browseability state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x103077d0",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', 'r30 v[+0x3c]']"
+        "function": "0x10302470",
+        "address": "0x1030247c",
+        "notes": "Writes byte 1 to caller output, returns zero, reads no object fields and calls no function; primary table entry 0x10eb3f5c = slot +0x3c."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], r30 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Delegate always returns zero, then handler emits decimal IsBrowseable=1 at 0x1030789c and commits at 0x103078b0. Generic nonzero-worker fault at 0x10307844 and literal wrapper 402 are unreachable.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10302470",
+        "address": "0x1030247c",
+        "notes": "Writes byte 1 to caller output, returns zero, reads no object fields and calls no function; primary table entry 0x10eb3f5c = slot +0x3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x103077d0",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x10307828",
+        "notes": "Calls primary +0x3c. Creates IsBrowseable at 0x10307894, formats byte with f_1055fcf4 at 0x1030789c, commits at 0x103078b0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "Service-level binding and per-call request proof: no inputs registered by this wrapper, so validator returns 1 and 402 is dead."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret; parse/req-layer",
-       "meaning": "impl 0x10302470: writes byte 1 to out then returns 0; the action never faults from the impl -- only the handler request-gate can emit 402 | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "unreachable request-validity zero",
+       "meaning": "Dead literal branch at 0x10307878, fault at 0x10307844. No inputs are registered and the delegate always succeeds.",
        "fault_sites": [
-        "0x103077d0"
+        "0x10307844"
        ],
        "conditions": [
         {
-         "description": "impl/store gate failed",
+         "description": "No reachable condition on the proven SOAP path.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1030259c",
-           "notes": "impl body"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x106960f8",
+           "address": "0x10696404",
+           "notes": "Service-level binding and per-call request proof: no inputs registered by this wrapper, so validator returns 1 and 402 is dead."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103077d0",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10302470",
+           "address": "0x1030247c",
+           "notes": "Writes byte 1 to caller output, returns zero, reads no object fields and calls no function; primary table entry 0x10eb3f5c = slot +0x3c."
           }
          ]
         }
@@ -88148,15 +88179,25 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10302470",
-         "notes": "impl domain bounded: {0}"
+         "function": "0x106960f8",
+         "address": "0x10696404",
+         "notes": "Service-level binding and per-call request proof: no inputs registered by this wrapper, so validator returns 1 and 402 is dead."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103077d0",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10302470",
+         "address": "0x1030247c",
+         "notes": "Writes byte 1 to caller output, returns zero, reads no object fields and calls no function; primary table entry 0x10eb3f5c = slot +0x3c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103077d0",
+         "address": "0x10307828",
+         "notes": "Calls primary +0x3c. Creates IsBrowseable at 0x10307894, formats byte with f_1055fcf4 at 0x1030789c, commits at 0x103078b0."
         }
        ]
       }
@@ -88177,13 +88218,33 @@
        "build": "86.10-80260",
        "address": "0x10eb42ac",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10302470",
+       "address": "0x1030247c",
+       "notes": "Writes byte 1 to caller output, returns zero, reads no object fields and calls no function; primary table entry 0x10eb3f5c = slot +0x3c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103077d0",
+       "address": "0x10307828",
+       "notes": "Calls primary +0x3c. Creates IsBrowseable at 0x10307894, formats byte with f_1055fcf4 at 0x1030789c, commits at 0x103078b0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x106960f8",
+       "address": "0x10696404",
+       "notes": "Service-level binding and per-call request proof: no inputs registered by this wrapper, so validator returns 1 and 402 is dead."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x103077d0; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetLastIndexChange": {
      "description": "Returns the cached share-index revision stamp as text, not an unsigned counter or Unix timestamp. Handler 0x103079a8 calls cd_impl primary slot +0x2c = f_1030259c with a 21-byte buffer. The worker snapshots the stamp through provider impl+0x34c, serializes its kind prefix and date fields, and returns zero. Invalid cached stamps produce an empty string. See the ContentDirectory service-level binding proof.",
