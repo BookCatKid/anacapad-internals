@@ -49838,7 +49838,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "The source-state byte can suppress the entire list. Otherwise source mode selects a default mask, a live streamer-derived mask or a live indexed-session mask. The indexed engine checks track-level overrides and whether neighboring tracks are available; the streamer starts with Play and normally Stop, then adds the selected provider's actions.",
+      "description": "The source-state byte can suppress the entire list. Otherwise source mode selects a default mask, a live streamer-derived mask or a live indexed-session mask. The indexed engine checks track-level overrides and whether neighboring tracks are available; the streamer starts with Play and normally Stop, then adds the selected provider's actions. Set is added for indexed and streamer modes, not for the default mode.",
       "evidence": [
        {
         "type": "firmware",
@@ -50240,12 +50240,41 @@
        "address": "0x10ea223c",
        "notes": "The Spotify interface at 0x10ea2210 uses +0x2c thunk f_10212b54. f_10212ae4 calls VLI control slot +0x10 (f_1022ac04, reading byte +0x18c); when zero it returns 0x01018000 (Stop, Pause, Play). Otherwise control slot +0x4c (f_1022b450) returns Play if byte +0x18d is zero, or reads the SpotifyAudioInput bits through f_104dce44 and adds X_DLNA_SeekTrackNr if control+0x380 equals 3.",
        "function": "0x10212ae4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106ab090",
+       "notes": "The streamer constructor zeros all nine registration entries. The only direct branch to f_106a76b8 in .text is the Spotify type 2 registration at 0x10219cf0; there is no aligned absolute function pointer to f_106a76b8 in the image. The source-selection path uses the active record at +0x354."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104da720",
+       "notes": "f_104dce44 locks the audio input and computes capabilities from its +0x4e58 restriction record. f_104da720 starts at 0x01338007. It clears Pause if restriction word +0 is nonzero ignoring bit 0, Play if +4 is nonzero, and SeekTime, Previous and Next if +8, +0x14 and +0x18 respectively are nonzero ignoring bit 0x80. The respective mask sites are 0x104daaac, 0x104daa84, 0x104daa3c, 0x104da96c and 0x104da924. Nonzero words +0xc and +0x10 can log a restriction but do not change the mask. The outer mode 1 baseline includes Play even when the provider clears it."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104da8dc",
+       "notes": "The Spotify provider clears the low Shuffle, Repeat All and Repeat One bits for nonzero restrictions at +0x24, +0x1c and +0x20 respectively (0x104da8dc, 0x104da894, 0x104da84c). The GetCurrentTransportActions formatter does not publish those three bits.",
+       "function": "0x104da720"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107630bc",
+       "notes": "One source-entry updater copies input byte +4 to entry +0x82c when the prior byte differs. Another updater rewrites bits 7 and 6 of the same byte from input word +0x22e8 bits 15 and 14 at 0x10767428 and 0x1076743c while preserving the low six bits. The action tests the resulting byte as a whole, not an individual bit."
       }
      ],
      "notes": null,
      "todo": [
-      "Established: the mode baselines, indexed boundary tests, per-track override formula and Spotify source type 2 dispatch are mapped. A valid home-theater stream URI removes Stop from the streamer baseline; a provider may still supply it.",
-      "Trace the writers of source+0x26e4 and the per-track override words returned by f_1014a190, and determine when session+0x4b3e/+0x4b3f and source-entry+0x82c are set. Finish SpotifyAudioInput capability writers behind f_104da720 and check for other registrations of the streamer interface."
+      "Established: the published mask includes the mode baselines, indexed boundary and override rules, and Spotify type 2's per-action restriction tests. The registration table is initialized empty; Spotify is its only direct registration caller in this build.",
+      "Trace the writers of source+0x26e4 and the per-track override words returned by f_1014a190, and identify the enclosing writes that set session+0x4b3e/+0x4b3f. Decode the source update fields that feed source-entry+0x82c and the writers that fill the SpotifyAudioInput restriction block at +0x4e58."
      ]
     },
     "GetDeviceCapabilities": {
@@ -51800,6 +51829,21 @@
          "address": "0x104882f4",
          "notes": "The helper uses the active streamer pointer at *(impl+0x7758). f_106a9f90 forwards a metadata record and position output to streamer+0x354 -> +8 -> virtual slot +0x1c at 0x106aa01c. Null pointers or a zero method result select the no-data branch at 0x10489a6c; that branch writes Track=1 and NOT_IMPLEMENTED to TrackDuration, TrackMetaData, RelTime and AbsTime.",
          "function": "0x10488248"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10aad62c",
+         "notes": "The stream record begins at stack+304 in f_10488248. Its constructor invokes f_10a8c1b8 at record+0x600, which calls f_10aad4d8 at +0x28 within that object. The latter explicitly clears byte +0x8dc and word +0x8e0, giving zero initial values for the overall record's +0xf04 ordinal-valid and +0xf08 ordinal fields."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104882f4",
+         "notes": "The SOAP caller passes null for the provider's r7 ordinal-like halfword output. f_104de170 only writes audio-input+0x584c to that separate halfword destination when it is nonnull (0x104de424). Its direct record stores update other fields; they do not make the record ordinal valid used by this SOAP action.",
+         "function": "0x10488248"
         }
        ],
        "notes": null
@@ -51948,6 +51992,14 @@
          "address": "0x104882f4",
          "notes": "The helper uses the active streamer pointer at *(impl+0x7758). f_106a9f90 forwards a metadata record and position output to streamer+0x354 -> +8 -> virtual slot +0x1c at 0x106aa01c. Null pointers or a zero method result select the no-data branch at 0x10489a6c; that branch writes Track=1 and NOT_IMPLEMENTED to TrackDuration, TrackMetaData, RelTime and AbsTime.",
          "function": "0x10488248"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104356c4",
+         "notes": "The topology result is an HTTP base, not an XML fragment supplied by another device. f_10487dd0 extracts an art URL candidate from the stream record and f_10435658 tests it for the literal /getaa? prefix. For a matching path it builds a URL from the topology-supplied base and that path (0x104357a4/0x104357d4 or 0x104359a0/0x104359d0). The separate string copied in the wrapper from record+0x608 is emitted as r:tiid when nonempty (0x10449744); the title/creator fields come from the record, not from topology.",
+         "function": "0x10435658"
         }
        ],
        "notes": null
@@ -52072,6 +52124,14 @@
          "address": "0x10c395d8",
          "notes": "f_10c394f0 splits signed seconds into hours, minutes and seconds using division by 3600 and 60. The format pointer loaded from 0x1108dcdc is 0x10fb1300, %s%lld:%02lld:%02lld, with a leading minus only for negative input. Hours have no minimum width.",
          "function": "0x10c394f0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104de668",
+         "notes": "SpotifyAudioInput ordinarily writes position from +0xf4. If it equals -1, the provider first calls f_104dc4a4 and writes +0x100 instead. Its duration candidate comes from f_104eb128 unless both words are zero, or its high word is negative, in which cases the provider writes saved duration from +0x4e04 (0x104de5fc). AVTransport formats only a positive duration.",
+         "function": "0x104de170"
         }
        ],
        "notes": null
@@ -52577,12 +52637,33 @@
        "address": "0x1021992c",
        "notes": "The Spotify object constructs the embedded SpotifyAudioInput at +0x148 via f_104db630, which installs the table with f_104de170 at +0x1c. The same pointer is passed as the streamer source type 2 record's +8 position interface at 0x10219cf0.",
        "function": "0x104db630"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102c100c",
+       "notes": "The AVTransport constructor stores its incoming topology interface pointer (r6) at impl+0x448. The live setup passes the topology object unchanged from the shared pair through f_103fa434 (0x103fb45c/0x103fb5d0) and f_10511f34 (0x1051218c, 0x1051275c or 0x10512b34)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10e8b06c",
+       "notes": "The topology constructor f_10125b54 installs primary address point 0x10e8b024 at 0x10126234; its +0x48 is f_1073de50. That callback matches the supplied source name against entries through f_10765ac0, converts entry+0x820 to text via f_107623e0 and formats http://%s:%hu using the halfword at entry+0x14f2. Lookup or address-conversion failure leaves the destination untouched, so the caller starts it empty."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10aad62c",
+       "notes": "The stream record begins at stack+304 in f_10488248. Its constructor invokes f_10a8c1b8 at record+0x600, which calls f_10aad4d8 at +0x28 within that object. The latter explicitly clears byte +0x8dc and word +0x8e0, giving zero initial values for the overall record's +0xf04 ordinal-valid and +0xf08 ordinal fields."
       }
      ],
      "notes": null,
      "todo": [
-      "Established: all eight output slots are mapped. Indexed values read a snapshot, queue entry and media record. Streamer type 2 calls SpotifyAudioInput f_104de170; the common streamer formatter then combines the provider record with the string from topology slot +0x48.",
-      "Bind topology slot +0x48 at 0x102b1a00 and trace XML-field precedence when its metadata and the stream record disagree. Complete the SpotifyAudioInput metadata/ordinal validity and saved-position fallbacks, and check for other live implementations of the streamer position interface."
+      "Established: all eight output slots are mapped. Topology slot +0x48 supplies an HTTP base for a relative /getaa? art path, not title or creator XML. Spotify writes a position, with a saved-position fallback, and the common wrapper checks the separate record ordinal-valid flag. Spotify is the only direct source registration found in this build.",
+      "Trace the SpotifyAudioInput track/cache callbacks and all indirect record writers to confirm whether they can set record+0xf04/+0xf08. Map which source metadata fields and cache result choose the emitted title, creator and art fields, and trace the /getaa? alternative-URL branch and its downstream DIDL insertion."
      ]
     },
     "GetRemainingSleepTimerDuration": {
@@ -69287,7 +69368,7 @@
       ],
       "todo": [
        "Established: indexed equality suppresses the request's own wake. The bound Spotify streamer control stages a request without a same-mode check or a direct LastChange wake; a Spotify thread consumes it using distinct shuffle and repeat setters.",
-       "Follow Spotify shuffle/repeat change callbacks into the streamer state snapshot and AVTransport LastChange sender, including same-mode behavior, and check for any other registered slot +0x34 implementations."
+       "Follow Spotify shuffle/repeat change callbacks into the streamer state snapshot and AVTransport LastChange sender, including whether the provider emits a callback for an unchanged value. Spotify type 2 is the only direct call to the registration helper in this build."
       ]
      },
      "state_transitions": {
