@@ -13698,7 +13698,7 @@
      },
      "implementation": {
       "concrete_impl_class": "RZPDevicePropertiesStP",
-      "impl_vtable": "0x10ebd214",
+      "impl_vtable": "0x10ebc630",
       "worker": "0x1035a6a8",
       "worker_slot": "0x3c",
       "volume_field": "RZPDevicePropertiesStP+0x1abc (u16 AutoplayVolume)",
@@ -13766,7 +13766,8 @@
        "config_key": "AutoplayVolume",
        "persistence_call": "0x10360584 through the settings object at impl+0x960",
        "range_check": "f_10360484 accepts Volume <= 100; values >100 return 402"
-      }
+      },
+      "base_vtable_same_slot": "0x10ebd214"
      },
      "inputs": {
       "Source": {
@@ -14117,10 +14118,24 @@
        "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
        "build": "86.10-80260",
        "notes": "GetAutoplayVolume declares CurrentVolume output and Source input; AutoplayVolume range 0..100"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10351bf4",
+       "notes": "most-derived vtable 0x10ebc630 installed by f_10351904"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1035e8c4",
+       "notes": "base vtable 0x10ebd214 installed by f_1035e5ac"
       }
      ],
      "notes": null,
-     "implementation_notes": "The older extractor attribution to f_10188024 was incorrect. Concrete RZPDevicePropertiesStP vtable 0x10ebd214 maps slot +0x3c to f_1035a6a8. The worker ignores Source and reads a single u16 field at +0x1abc. The wrapper nevertheless echoes Source through a TRequest output record even though the SCPD marks Source input-only."
+     "implementation_notes": "Runtime vtable correction: the DeviceProperties object actually constructed by f_10351904 carries vtable 0x10ebc630, and slot +0x3c holds the same function there as in the base vtable 0x10ebd214, so the behavior documented here is unchanged. The older extractor attribution to f_10188024 was incorrect. Concrete RZPDevicePropertiesStP vtable 0x10ebd214 maps slot +0x3c to f_1035a6a8. The worker ignores Source and reads a single u16 field at +0x1abc. The wrapper nevertheless echoes Source through a TRequest output record even though the SCPD marks Source input-only."
     },
     "GetButtonLockState": {
      "description": "Returns whether the speaker's physical controls are locked. After TRequest validation, the wrapper calls RZPDevicePropertiesStP slot +0x70 (f_105b4874). That worker reads property selector 0x20001 through the backend at impl+0x950 and returns literal 'Off' when the byte is zero or 'On' when it is nonzero.",
@@ -14136,7 +14151,7 @@
      },
      "implementation": {
       "concrete_impl_class": "RZPDevicePropertiesStP",
-      "impl_vtable": "0x10ebd214",
+      "impl_vtable": "0x10ebc630",
       "worker": "0x105b4874",
       "worker_slot": "0x70",
       "calls": [
@@ -14184,7 +14199,8 @@
        "reader": "0x10bf2c28",
        "setter_sibling": "f_105b4a3c (SetButtonLockState) writes the same selector; exact 'On' maps to 1, every other worker input maps to 0.",
        "provenance": "Same backend dependency as Get/SetLEDState: constructor argument 8 to f_105b66f0, threaded through f_1035e5ac/f_10351904 from the media-player/controller dependency at owner+0x284."
-      }
+      },
+      "base_vtable_same_slot": "0x10ebd214"
      },
      "inputs": {},
      "outputs": {
@@ -14456,10 +14472,24 @@
        "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
        "build": "86.10-80260",
        "notes": "ButtonLockState allowed values On/Off; sendEvents=no"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10351bf4",
+       "notes": "most-derived vtable 0x10ebc630 installed by f_10351904"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1035e8c4",
+       "notes": "base vtable 0x10ebd214 installed by f_1035e5ac"
       }
      ],
      "notes": null,
-     "implementation_notes": "The older extractor attribution to f_101a07dc / fields +0x5730/+0x5734 was incorrect. The service's concrete RZPDevicePropertiesStP vtable 0x10ebd214 maps slot +0x70 directly to f_105b4874, which reads backend selector 0x20001 from impl+0x950."
+     "implementation_notes": "Runtime vtable correction: the DeviceProperties object actually constructed by f_10351904 carries vtable 0x10ebc630, and slot +0x70 holds the same function there as in the base vtable 0x10ebd214, so the behavior documented here is unchanged. The older extractor attribution to f_101a07dc / fields +0x5730/+0x5734 was incorrect. The service's concrete RZPDevicePropertiesStP vtable 0x10ebd214 maps slot +0x70 directly to f_105b4874, which reads backend selector 0x20001 from impl+0x950."
     },
     "GetButtonState": {
      "description": "Returns the button-notify observation accumulator, not a simple current pressed/unpressed bit. A valid call while button-notify config mode is active returns up to four distinct observed input IDs, each formatted as NAME:PRESS_COUNT:AGE_SECONDS from the RZPDevicePropertiesStP observation table. Outside button-notify mode the implementation returns fault 401.",
@@ -14482,7 +14512,9 @@
         "arg4": "r4-in"
        }
       ],
-      "req_vcalls": []
+      "req_vcalls": [],
+      "impl_vtable": "0x10ebc630",
+      "base_vtable_same_slot": "0x10ebd214"
      },
      "inputs": {},
      "outputs": {
@@ -14860,10 +14892,24 @@
        "function": "0x104d49e8",
        "address": "0x104d4a80",
        "notes": "DeviceProperties service binding copies the implementation shared_ptr into service+0x4/+0x8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10351bf4",
+       "notes": "most-derived vtable 0x10ebc630 installed by f_10351904"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1035e8c4",
+       "notes": "base vtable 0x10ebd214 installed by f_1035e5ac"
       }
      ],
      "notes": "The old annotation that this action used an inline read or a runtime-injected delegate was incorrect. The full service-to-RZPDevicePropertiesStP binding and slot +0x68 worker are statically recoverable in this image.",
-     "implementation_notes": "Wrapper f_1073799c validates TRequest and tail-calls f_107378d0. Body f_107378d0 calls the concrete RZPDevicePropertiesStP implementation at vtable 0x10ebd214 slot +0x68 = f_1035a7ec. Implementation object binding: service+0x4 <- f_104d49e8(shared_ptr at media-player+0x19b8).",
+     "implementation_notes": "Runtime vtable correction: the DeviceProperties object actually constructed by f_10351904 carries vtable 0x10ebc630, and slot +0x58 holds the same function there as in the base vtable 0x10ebd214, so the behavior documented here is unchanged. Wrapper f_1073799c validates TRequest and tail-calls f_107378d0. Body f_107378d0 calls the concrete RZPDevicePropertiesStP implementation at vtable 0x10ebd214 slot +0x68 = f_1035a7ec. Implementation object binding: service+0x4 <- f_104d49e8(shared_ptr at media-player+0x19b8).",
      "resolved_findings": [
       "Concrete implementation binding recovered: DeviceProperties service+0x4 is populated by f_104d49e8 from media-player+0x19b8. That shared pointer holds an RZPDevicePropertiesStP object constructed by f_10351904/f_1035e5ac; primary vtable 0x10ebd214 slot +0x68 = f_1035a7ec, the GetButtonState worker.",
       "Button-notify capture decoded: f_1035d0c8 enables impl+0x1a48 and clears four 12-byte records; f_1035d13c disables it; f_1017fcd4 -> f_1035d1a0 records press events (event+4==1) for IDs 1..18, reusing a matching/empty slot, incrementing a u16 count and updating the monotonic timestamp.",
@@ -14884,7 +14930,7 @@
      },
      "implementation": {
       "concrete_impl_class": "RZPDevicePropertiesStP",
-      "impl_vtable": "0x10ebd214",
+      "impl_vtable": "0x10ebc630",
       "worker": "0x105b4b3c",
       "worker_slot": "0x58",
       "calls": [
@@ -14940,7 +14986,8 @@
        "initializer": "0x105e701c",
        "config_key": "HouseholdID",
        "buffer_size": 33
-      }
+      },
+      "base_vtable_same_slot": "0x10ebd214"
      },
      "inputs": {},
      "outputs": {
@@ -15237,10 +15284,24 @@
        "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
        "build": "86.10-80260",
        "notes": "HouseholdID stateVariable is non-evented"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10351bf4",
+       "notes": "most-derived vtable 0x10ebc630 installed by f_10351904"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1035e8c4",
+       "notes": "base vtable 0x10ebd214 installed by f_1035e5ac"
       }
      ],
      "notes": null,
-     "implementation_notes": "The older extractor attribution to f_1019dbb4 / an impl member at +0x901c was incorrect. The concrete DeviceProperties vtable maps +0x58 to f_105b4b3c. The value comes from the global HouseholdID provider at 0x110974f0, initialized by f_105e701c from the configuration key HouseholdID."
+     "implementation_notes": "Runtime vtable correction: the DeviceProperties object actually constructed by f_10351904 carries vtable 0x10ebc630, and slot +0x58 holds the same function there as in the base vtable 0x10ebd214, so the behavior documented here is unchanged. The older extractor attribution to f_1019dbb4 / an impl member at +0x901c was incorrect. The concrete DeviceProperties vtable maps +0x58 to f_105b4b3c. The value comes from the global HouseholdID provider at 0x110974f0, initialized by f_105e701c from the configuration key HouseholdID."
     },
     "GetLEDState": {
      "description": "Returns the user-visible status-light setting. After TRequest validation, the wrapper calls RZPDevicePropertiesStP::GetLEDState (f_105b48f8, vtable 0x10ebd214 slot +0x14). That worker reads the one-byte LED-enable property through the backend at impl+0x950 using selector 0x20000, returns literal 'Off' for zero and 'On' for nonzero, then the wrapper serializes CurrentLEDState and commits the SOAP response.",
@@ -15256,7 +15317,7 @@
      },
      "implementation": {
       "concrete_impl_class": "RZPDevicePropertiesStP",
-      "impl_vtable": "0x10ebd214",
+      "impl_vtable": "0x10ebc630",
       "worker": "0x105b48f8",
       "worker_slot": "0x14",
       "calls": [
@@ -15303,7 +15364,8 @@
        "selector": "0x20000",
        "reader": "0x10bf2c28",
        "provenance": "The pointer is constructor argument 8 to f_105b66f0, passed unchanged through f_1035e5ac/f_10351904; f_103fa434 sources that argument from its owner object's +0x284 field."
-      }
+      },
+      "base_vtable_same_slot": "0x10ebd214"
      },
      "inputs": {},
      "outputs": {
@@ -15571,10 +15633,24 @@
        "build": "86.10-80260",
        "function": "0x105b48f8",
        "notes": "concrete GetLEDState implementation"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10351bf4",
+       "notes": "most-derived vtable 0x10ebc630 installed by f_10351904"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1035e8c4",
+       "notes": "base vtable 0x10ebd214 installed by f_1035e5ac"
       }
      ],
      "notes": null,
-     "implementation_notes": "Concrete implementation binding: DeviceProperties service+0x4/+0x8 is populated by f_104d49e8 from the RZPDevicePropertiesStP shared pointer held by the media-player/controller. Primary vtable 0x10ebd214 slot +0x14 is f_105b48f8. The older extractor attribution to vtable 0x10e98278 / f_10690b78 was incorrect."
+     "implementation_notes": "Runtime vtable correction: the DeviceProperties object actually constructed by f_10351904 carries vtable 0x10ebc630, and slot +0x14 holds the same function there as in the base vtable 0x10ebd214, so the behavior documented here is unchanged. Concrete implementation binding: DeviceProperties service+0x4/+0x8 is populated by f_104d49e8 from the RZPDevicePropertiesStP shared pointer held by the media-player/controller. Primary vtable 0x10ebd214 slot +0x14 is f_105b48f8. The older extractor attribution to vtable 0x10e98278 / f_10690b78 was incorrect."
     },
     "GetUseAutoplayVolume": {
      "description": "Returns the persisted boolean that controls whether the saved autoplay volume is applied. Source is required by the SOAP surface but the concrete worker does not use it to choose per-source state: RZPDevicePropertiesStP slot +0x44 (f_1035a704) locks the object and returns the single byte at impl+0x1abe. The wrapper formats that byte as 0/1 and, as an implementation quirk, also echoes Source in an output record even though the SCPD declares Source input-only.",
@@ -15590,7 +15666,7 @@
      },
      "implementation": {
       "concrete_impl_class": "RZPDevicePropertiesStP",
-      "impl_vtable": "0x10ebd214",
+      "impl_vtable": "0x10ebc630",
       "worker": "0x1035a704",
       "worker_slot": "0x44",
       "state_field": "RZPDevicePropertiesStP+0x1abe (u8 AutoplayUseVolume)",
@@ -15662,7 +15738,8 @@
        "settings_object": "RZPDevicePropertiesStP+0x960",
        "persist_call": "settings-object vtable +0x14 at 0x103606a4",
        "serialized_value": "0 when byte is zero, 1 when nonzero"
-      }
+      },
+      "base_vtable_same_slot": "0x10ebd214"
      },
      "inputs": {
       "Source": {
@@ -16016,10 +16093,24 @@
        "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
        "build": "86.10-80260",
        "notes": "GetUseAutoplayVolume declares UseVolume output and Source input; AutoplayUseVolume is boolean and non-evented"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10351bf4",
+       "notes": "most-derived vtable 0x10ebc630 installed by f_10351904"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1035e8c4",
+       "notes": "base vtable 0x10ebd214 installed by f_1035e5ac"
       }
      ],
      "notes": null,
-     "implementation_notes": "Concrete DeviceProperties binding supersedes the older f_1018a20c/delegate attribution. RZPDevicePropertiesStP vtable 0x10ebd214 maps slot +0x44 to f_1035a704, a direct byte getter at +0x1abe. Source is required and echoed by the wrapper but is not read by the getter worker."
+     "implementation_notes": "Runtime vtable correction: the DeviceProperties object actually constructed by f_10351904 carries vtable 0x10ebc630, and slot +0x44 holds the same function there as in the base vtable 0x10ebd214, so the behavior documented here is unchanged. Concrete DeviceProperties binding supersedes the older f_1018a20c/delegate attribution. RZPDevicePropertiesStP vtable 0x10ebd214 maps slot +0x44 to f_1035a704, a direct byte getter at +0x1abe. Source is required and echoed by the wrapper but is not read by the getter worker."
     },
     "GetZoneAttributes": {
      "description": "Returns the four zone attributes. After TRequest validation the wrapper tail-calls f_10737c18, which calls slot +0x0c of runtime vtable 0x10ebc630, f_105b4490 (the same function in all three DeviceProperties vtables). f_105b4490 performs one batched read through the generic property backend at impl+0x950 (vtable +0x24) using selector table 0x10ef3134 = {0x40000 zone name, 0x40001 icon, 0x40002 configuration, 0x40003 target room name}, copying the name into a 0x400-byte buffer, the icon into a 0x400-byte buffer and the target room name into a 0x41-byte buffer, and formats the configuration integer into a 16-byte buffer with snprintf '%x'. It always returns 0; the wrapper then emits CurrentZoneName, CurrentIcon, CurrentConfiguration and CurrentTargetRoomName in that order and commits.",
@@ -16511,7 +16602,9 @@
         "arg4": "SerialNumber output buffer; remaining output buffers/capacities and HTAudioIn/Flags pointers follow in registers/stack"
        }
       ],
-      "req_vcalls": []
+      "req_vcalls": [],
+      "impl_vtable": "0x10ebc630",
+      "base_vtable_same_slot": "0x10ebd214"
      },
      "inputs": {},
      "outputs": {
@@ -17327,10 +17420,24 @@
        "function": "0x102b07fc",
        "address": "0x102b0890",
        "notes": "AVTransport update path logs 'setting tvInputFormat %08x' and stores the new code at +0x594."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10351bf4",
+       "notes": "most-derived vtable 0x10ebc630 installed by f_10351904"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1035e8c4",
+       "notes": "base vtable 0x10ebd214 installed by f_1035e5ac"
       }
      ],
      "notes": null,
-     "implementation_notes": "Outputs recovered from arg-name string loads inside the impl function (extractor missed them)."
+     "implementation_notes": "Runtime vtable correction: the DeviceProperties object actually constructed by f_10351904 carries vtable 0x10ebc630, and slot +0x70 holds the same function there as in the base vtable 0x10ebd214, so the behavior documented here is unchanged. Outputs recovered from arg-name string loads inside the impl function (extractor missed them)."
     },
     "RemoveBondedZones": {
      "description": "Removes bonded zones (ChannelMapSet, KeepGrouped flag) via impl->v[+0x1c].",
@@ -20637,7 +20744,7 @@
      },
      "implementation": {
       "concrete_impl_class": "RZPDevicePropertiesStP",
-      "impl_vtable": "0x10ebd214",
+      "impl_vtable": "0x10ebc630",
       "worker": "0x10360484",
       "worker_slot": "0x38",
       "volume_field": "RZPDevicePropertiesStP+0x1abc (u16 AutoplayVolume)",
@@ -20710,7 +20817,8 @@
        "event_name": "AutoPlaySettingsEvent",
        "event_name_address": "0x10ebd60c",
        "kind": "internal in-process event path, not UPnP/GENA"
-      }
+      },
+      "base_vtable_same_slot": "0x10ebd214"
      },
      "inputs": {
       "Volume": {
@@ -21162,10 +21270,24 @@
        "binary": "/opt/htdocs/xml/DeviceProperties1.xml",
        "build": "86.10-80260",
        "notes": "SetAutoplayVolume has Volume and Source inputs; AutoplayVolume is ui2 0..100 and non-evented"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10351bf4",
+       "notes": "most-derived vtable 0x10ebc630 installed by f_10351904"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1035e8c4",
+       "notes": "base vtable 0x10ebd214 installed by f_1035e5ac"
       }
      ],
      "notes": null,
-     "implementation_notes": "Concrete DeviceProperties binding supersedes the old runtime-delegate boundary. Source does not select a separate volume field or persistence key: all sources share impl+0x1abc / key AutoplayVolume. Source is used only to label the internal autoplay-settings snapshot/event. Unknown Source is accepted and normalized to the same internal enum as RCA rather than faulted."
+     "implementation_notes": "Runtime vtable correction: the DeviceProperties object actually constructed by f_10351904 carries vtable 0x10ebc630, and slot +0x38 holds the same function there as in the base vtable 0x10ebd214, so the behavior documented here is unchanged. Concrete DeviceProperties binding supersedes the old runtime-delegate boundary. Source does not select a separate volume field or persistence key: all sources share impl+0x1abc / key AutoplayVolume. Source is used only to label the internal autoplay-settings snapshot/event. Unknown Source is accepted and normalized to the same internal enum as RCA rather than faulted."
     },
     "SetButtonLockState": {
      "description": "Sets whether the speaker's physical controls are locked. The wrapper parses required DesiredButtonLockState into a type-7 5-byte text record, validates the TRequest, then calls RZPDevicePropertiesStP slot +0x6c (f_105b4a3c). The worker writes property selector 0x20001 through the backend at impl+0x950: exact case-sensitive 'On' becomes 1, every other parsed value becomes 0.",
@@ -21181,8 +21303,8 @@
      },
      "implementation": {
       "concrete_impl_class": "RZPDevicePropertiesStP",
-      "impl_vtable": "0x10ebd214",
-      "worker": "0x105b4a3c",
+      "impl_vtable": "0x10ebc630",
+      "worker": "0x10353a68 (override); local application in f_105b4a3c",
       "worker_slot": "0x6c",
       "calls": [
        {
@@ -21215,6 +21337,20 @@
         "obj": "TRequest (r4-in)",
         "slot": 12,
         "purpose": "commit success response"
+       },
+       {
+        "site": "0x10353ad8",
+        "purpose": "parse the bonded channel map at impl+0xe60 under the impl+0x268 mutex"
+       },
+       {
+        "site": "0x10353c78",
+        "purpose": "forward SetButtonLockState to bonded members 1..n-1 through f_10359c40"
+       },
+       {
+        "site": "0x10353b04",
+        "obj": "DeviceProperties impl",
+        "target": "0x105b4a3c",
+        "purpose": "apply the setting locally and produce the returned rc"
        }
       ],
       "backend": {
@@ -21223,7 +21359,11 @@
        "writer": "0x10bf76c0",
        "reader_sibling": "f_105b4874 (GetButtonLockState) reads the same selector and maps zero to Off, nonzero to On.",
        "provenance": "Same property-backend dependency used by the LED-state accessors; constructor argument 8 to f_105b66f0 is threaded through the DeviceProperties construction chain."
-      }
+      },
+      "base_vtable": "0x10ebd214",
+      "override": "0x10353a68",
+      "local_worker": "0x105b4a3c",
+      "forwarding": "f_10359c40 with argument writer f_10350564 (DesiredButtonLockState) and response predicate f_10357354, SOAP action SetButtonLockState on urn:schemas-upnp-org:service:DeviceProperties:1"
      },
      "inputs": {
       "DesiredButtonLockState": {
@@ -21335,7 +21475,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Mutates the physical-button lock property in backend impl+0x950 selector 0x20001. GetButtonLockState reads the same selector, proving zero=Off/unlocked and one=On/locked.",
+      "description": "Mutates the physical-button lock property in backend impl+0x950 selector 0x20001. GetButtonLockState reads the same selector, proving zero=Off/unlocked and one=On/locked. The override additionally reads the bonded channel map at impl+0xe60 and the local UUID at impl+0x25c under the impl+0x268 mutex, and the SOAP client context at impl+0xbb0 when forwarding.",
       "evidence": [
        {
         "type": "firmware",
@@ -21364,6 +21504,27 @@
         "build": "86.10-80260",
         "function": "0x105b4874",
         "notes": "sibling getter reads selector 0x20001 and maps zero/nonzero to Off/On"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10353ad0",
+        "notes": "impl+0xe60 map"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10353ac8",
+        "notes": "impl+0x25c local UUID"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10353b5c",
+        "notes": "impl+0xbb0 SOAP context"
        }
       ]
      },
@@ -21384,6 +21545,46 @@
          "build": "86.10-80260",
          "function": "0x10bf76c0",
          "notes": "generic property setter forwards selector/value to backend vtable +0x28"
+        }
+       ]
+      },
+      {
+       "description": "When this player is entry 0 (the primary) of the bonded channel map at impl+0xe60, the same SetButtonLockState request is sent to every other bonded member over SOAP before the local write, with a 2000 ms deadline; member results are only logged ('forwarded %s to %s, rc=%d') and do not affect this action's result.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10353ad8",
+         "notes": "f_1053c234 parses the bonded channel map at impl+0xe60 against the local UUID at impl+0x25c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10353af4",
+         "notes": "forwarding runs only when the local UUID is entry 0 of the map"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10353c78",
+         "notes": "fan-out helper call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10353c38",
+         "notes": "per-request argument writer"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10353bc8",
+         "notes": "SOAP action name literal"
         }
        ]
       }
@@ -21426,28 +21627,28 @@
       ]
      },
      "return_behavior": {
-      "description": "f_105b4a3c always returns 0 after issuing the property write; the wrapper then commits the empty success response. The only reachable SOAP fault is 402 when TRequest validation fails.",
+      "description": "The override returns the local worker result unchanged: 0 on success, otherwise the code f_105b4a3c produced, which the wrapper raises as a SOAP fault. Forwarding results are discarded.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x105b4a8c",
-        "notes": "worker explicitly sets r3=0 before return"
+        "address": "0x10353b08",
+        "notes": "override keeps the local rc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10736444",
-        "notes": "zero worker rc reaches TRequest +0x0c success commit"
+        "address": "0x107363f4",
+        "notes": "wrapper fault path"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10736430",
-        "notes": "validation-failure path loads literal 402"
+        "address": "0x10736414",
+        "notes": "wrapper success commit"
        }
       ]
      },
@@ -21530,7 +21731,7 @@
       }
      ],
      "notes": null,
-     "implementation_notes": "The previous extractor's delegate/accessor attribution was incorrect. The concrete DeviceProperties implementation vtable 0x10ebd214 maps slot +0x6c directly to f_105b4a3c. The worker does not trim or whitelist the text: it compares the parsed capped string directly with case-sensitive literal On, writes selector 0x20001, and returns 0."
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904, which is called only from f_103fa434 at 0x103fc274 and installs vtable 0x10ebc630 at 0x10351bf4 after the base constructor f_1035e5ac has installed 0x10ebd214. 0x10ebd214 is the vtable of the direct base class (constructor f_1035e5ac), not the runtime dispatch table. Slot +0x6c of 0x10ebc630 is the override f_10353a68, which is instruction-for-instruction the same shape as the SetLEDState override: it forwards the request to the other bonded members through f_10359c40 (identical code to f_10359fe8) and then calls the base worker f_105b4a3c at 0x10353b04, returning only the local result."
     },
     "SetLEDState": {
      "description": "Sets the user-visible status-light enable flag. The wrapper fetches required DesiredLEDState into a type-7 4-byte text record, validates the TRequest, then calls RZPDevicePropertiesStP slot +0x10 (f_105b49b0). The worker trims the parsed text, maps exact case-sensitive 'Off' to 0 and every other parsed string to 1, and writes that byte through backend impl+0x950 selector 0x20000.",
@@ -21546,8 +21747,8 @@
      },
      "implementation": {
       "concrete_impl_class": "RZPDevicePropertiesStP",
-      "impl_vtable": "0x10ebd214",
-      "worker": "0x105b49b0",
+      "impl_vtable": "0x10ebc630",
+      "worker": "0x10355a0c (override); local application in f_105b49b0",
       "worker_slot": "0x10",
       "calls": [
        {
@@ -21580,6 +21781,20 @@
         "obj": "TRequest (r4-in)",
         "slot": 12,
         "purpose": "commit success response"
+       },
+       {
+        "site": "0x10355a7c",
+        "purpose": "parse the bonded channel map at impl+0xe60 under the impl+0x268 mutex"
+       },
+       {
+        "site": "0x10355c1c",
+        "purpose": "forward SetLEDState to bonded members 1..n-1 through f_10359fe8"
+       },
+       {
+        "site": "0x10355aa8",
+        "obj": "DeviceProperties impl",
+        "target": "0x105b49b0",
+        "purpose": "apply the setting locally and produce the returned rc"
        }
       ],
       "backend": {
@@ -21587,7 +21802,11 @@
        "selector": "0x20000",
        "writer": "0x10bf76c0",
        "provenance": "The backend pointer is constructor argument 8 to f_105b66f0, passed unchanged through f_1035e5ac/f_10351904; f_103fa434 obtains it from its owner object's +0x284 field."
-      }
+      },
+      "base_vtable": "0x10ebd214",
+      "override": "0x10355a0c",
+      "local_worker": "0x105b49b0",
+      "forwarding": "f_10359fe8 with argument writer f_103505b4 (DesiredLEDState) and response predicate f_103573ac, SOAP action SetLEDState on urn:schemas-upnp-org:service:DeviceProperties:1"
      },
      "inputs": {
       "DesiredLEDState": {
@@ -21713,7 +21932,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Mutates the same user LED-enable property read by GetLEDState: backend pointer at RZPDevicePropertiesStP+0x950, selector 0x20000.",
+      "description": "Mutates the same user LED-enable property read by GetLEDState: backend pointer at RZPDevicePropertiesStP+0x950, selector 0x20000. The override additionally reads the bonded channel map at impl+0xe60 and the local UUID at impl+0x25c under the impl+0x268 mutex, and the SOAP client context at impl+0xbb0 when forwarding.",
       "evidence": [
        {
         "type": "firmware",
@@ -21735,6 +21954,27 @@
         "build": "86.10-80260",
         "address": "0x105b4a08",
         "notes": "writes selected 0/1 value via f_10bf76c0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10355a78",
+        "notes": "impl+0xe60 map"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10355a6c",
+        "notes": "impl+0x25c local UUID"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10355b0c",
+        "notes": "impl+0xbb0 SOAP context"
        }
       ]
      },
@@ -21755,6 +21995,60 @@
          "build": "86.10-80260",
          "function": "0x10bf76c0",
          "notes": "packages selector/value and calls backend vtable +0x28 setter"
+        }
+       ]
+      },
+      {
+       "description": "When this player is entry 0 (the primary) of the bonded channel map at impl+0xe60, the same SetLEDState request is sent to every other member over SOAP before the local write, using at most 32 preallocated clients of 0x2740 bytes and a 2000 ms deadline. Each member result is only logged ('forwarded %s to %s, rc=%d', category zonesutils) and never changes this action's result.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10355a7c",
+         "notes": "f_1053c234 parses the bonded channel map at impl+0xe60 against the local UUID at impl+0x25c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10355a9c",
+         "notes": "forwarding runs only when the local UUID is entry 0 of the map"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10355c1c",
+         "notes": "fan-out helper call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10355bdc",
+         "notes": "per-request argument writer"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10355b6c",
+         "notes": "SOAP action name literal"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035a25c",
+         "notes": "2000 ms deadline added to the current time"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035a2e0",
+         "notes": "per-member log line"
         }
        ]
       }
@@ -21797,28 +22091,35 @@
       ]
      },
      "return_behavior": {
-      "description": "f_105b49b0 always returns 0 after issuing the backend write; the wrapper then commits the empty success response. The only reachable SOAP fault in this action is 402 when TRequest validation fails.",
+      "description": "The override returns exactly what the local worker f_105b49b0 returns: 0 on success, otherwise the worker's code, which the wrapper turns into a SOAP fault. Forwarding failures are logged and discarded, so a bonded member that rejects the setting cannot fail the call.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x105b4a24",
-        "notes": "worker explicitly sets r3=0 after backend setter call"
+        "address": "0x10355aac",
+        "notes": "override keeps the local rc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10735e40",
-        "notes": "zero worker rc reaches TRequest +0x0c success commit"
+        "address": "0x1035a1a8",
+        "notes": "forward failures only increment a counter in the fan-out helper"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10735e2c",
-        "notes": "validation-failure path loads literal 402"
+        "address": "0x10735df8",
+        "notes": "wrapper fault path"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10735e18",
+        "notes": "wrapper success commit"
        }
       ]
      },
@@ -21901,7 +22202,7 @@
       }
      ],
      "notes": null,
-     "implementation_notes": "Concrete implementation binding supersedes the older extractor claim that SetLEDState was a no-op through f_10537870. The real RZPDevicePropertiesStP primary vtable is 0x10ebd214 and slot +0x10 is f_105b49b0. The selector 0x20000 belongs to this generic property backend and must not be conflated with the unrelated R_LED_WAC bit that happens to use the same numeric value in the LED-animation engine."
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904, which is called only from f_103fa434 at 0x103fc274 and installs vtable 0x10ebc630 at 0x10351bf4 after the base constructor f_1035e5ac has installed 0x10ebd214. 0x10ebd214 is the vtable of the direct base class (constructor f_1035e5ac), not the runtime dispatch table. Slot +0x10 of 0x10ebc630 is the override f_10355a0c, which forwards the call to the other members of a bonded set before calling the base worker f_105b49b0 at 0x10355aa8; the earlier attribution of this action to f_10537870 and the claim that 0x10ebd214 is the concrete vtable were both wrong. The selector 0x20000 belongs to the generic property backend at impl+0x950 and is unrelated to the R_LED_WAC bit."
     },
     "SetUseAutoplayVolume": {
      "description": "Sets the global 'use autoplay volume' flag. The wrapper parses UseVolume (boolean, f_10561444) and Source (cap 5) and calls slot +0x40 of runtime vtable 0x10ebc630, f_10360618 (inherited unchanged from base 0x10ebd214). Under the impl+0x268 mutex the worker maps Source to an enum, stores the flag at impl+0x1abe, persists it through impl+0x960 vtable +0x14 as key UseAutoplayVolume with '1' or '0', normalises an unknown source enum 3 to 0, publishes an AutoPlaySettingsEvent snapshot through f_1036679c and returns 0.",
