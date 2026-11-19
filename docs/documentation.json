@@ -85216,7 +85216,7 @@
    },
    "actions": {
     "Browse": {
-     "description": "Browse the content directory. Parses all six spec args into a request record (ObjectID/BrowseFlag/Filter/SortCriteria capped 0x400, StartingIndex/RequestedCount via int helper), runs executor f_103042f0 which dispatches on BrowseFlag: BrowseDirectChildren -> children enumeration vfunc v[+0x28] on the browse object, BrowseMetadata -> metadata path, anything else -> 402. Result/DIDL is emitted per-item through callback writers f_10306088/0x10306098/0x103060a8 via request v[+0x24].",
+     "description": "Browses metadata or direct children using bound cd_impl, with a preflight and a separate deferred Result executor. The top-level ObjectID resolver recognizes 0, A:, S:, Q:, R:, AI:, SQ: and FV:, not an arbitrary URI. The root enumeration and outer paging/response machinery are traced; detailed per-container enumeration and item serialization remain explicitly scoped below.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10306b3c",
@@ -85235,28 +85235,76 @@
         "slot": 60,
         "purpose": "other"
        }
+      ],
+      "impl_function": "0x10304390 (request worker), 0x103042f0 (preflight), 0x10305a98 (deferred executor)",
+      "impl_vfunc": "Direct cd_impl calls after service-level binding; resolved directory-object slots +8 metadata, +0xc children, +0x10 streaming children",
+      "object_id_dispatch": {
+       "0": "Exact root, directory = impl+0x168, f_1034a224.",
+       "A:": "Exact -> directory+8; longer A: -> f_102a3d90(directory+8,id), allocating attribute node and copying id with capacity 0x200.",
+       "S:": "Exact -> directory+0xf8; longer S: -> f_10348c00. Requires S:// and a slash after host (strchr(id+4,47)); otherwise NULL. f_10348af4 percent-decodes path for share lookup.",
+       "Q:": "Exact -> pointer directory+0x354, NULL if no queue directory. Longer -> f_10349640; extracts queue name into 0x20 bytes, separates slash, matches either queue in f_10349424, then f_10349368 for item suffix.",
+       "R:": "Exact -> directory+0x344; longer -> f_1037d250, allocates radio object and copies id to +8 with capacity 0x40.",
+       "AI:": "f_10348d58(directory+0x338,id), requires backing object. Exact AI: -> backing+0x11c; other AI: names resolved by f_10208ff0 and require availability byte +0xa0c.",
+       "SQ:": "Exact -> directory+0x1f0; longer -> f_10349c40. f_10476690 must parse id. A slash selects locked item object +0xa8, otherwise locked playlist object +8.",
+       "FV:": "Exact -> pointer directory+0x34c; longer -> f_1037ccb4.",
+       "other": "NULL, hence early 701, including a top-level EN: ID. No EN: branch in this dispatcher; nested node syntax is a separate residual."
+      },
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10349d00",
+        "address": "0x10349d30",
+        "notes": "Exact/prefix comparisons select A:, S:, Q:, R:, AI:, SQ:, FV:; root 0 is handled separately by f_1034a224 at 0x1034a24c. Unknown prefix returns NULL at 0x10349fd4. Q: requires directory+0x354. All addresses refer to build 86.10-80260, not a generic UPnP object grammar."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10346cec",
+        "address": "0x10346d2c",
+        "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10305a98",
+        "address": "0x10305b40",
+        "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+       }
       ]
      },
      "inputs": {
       "ObjectID": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "description": "Case-sensitive object namespace selected by f_1034a224/f_10349d00; see implementation.object_id_dispatch.",
        "direction": "in",
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, capped 0x400 by f_1056157c",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
-       "range": "<=0x400 chars",
-       "special_values": "impl-defined roots",
+       "semantic_type": "string",
+       "format": "NUL-terminated text in 1024-byte request buffer",
+       "unit": "none",
+       "accepted_values": "0, A:, S:, Q:, R:, AI:, SQ:, FV: families",
+       "range": "at most 1023 stored bytes plus NUL",
+       "special_values": "Exact family roots differ from longer node IDs.",
        "required": true,
-       "default": "none",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Required registration before validator. Lexical buffer truncates with NUL; semantic checks are action-specific.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103043d4",
-         "notes": "ObjectID arg name + parse call"
+         "function": "0x10304390",
+         "address": "0x103044c0",
+         "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "notes": "Type 4 uses strtoul(text,NULL,10), stores low 32-bit result; no end-pointer/errno check. f_105614e0 registers tag4 with 24-byte lexical buffer. String registration f_1056157c uses caller capacity 0x400; parser NUL-terminates at capacity-1 when filled at 0x10560b10."
         }
        ],
        "primitive": {
@@ -85268,31 +85316,33 @@
        }
       },
       "BrowseFlag": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "description": "Exactly BrowseDirectChildren or BrowseMetadata, case-sensitive.",
        "direction": "in",
-       "semantic_type": "SonosEnumArg",
-       "format": "utf-8 literal, capped 0x400",
-       "unit": "n/a",
-       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
-       "range": "2 literals",
-       "special_values": "none",
+       "semantic_type": "string",
+       "format": "NUL-terminated text in 1024-byte request buffer",
+       "unit": "none",
+       "accepted_values": "BrowseDirectChildren | BrowseMetadata",
+       "range": "at most 1023 stored bytes plus NUL",
+       "special_values": "Resolved object is checked before flag; unresolved ID with invalid flag returns 701, not 402.",
        "required": true,
-       "default": "none",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "strcmp in f_103042f0, after ObjectID resolution.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10304324",
-         "notes": "strcmp vs BrowseDirectChildren"
+         "function": "0x10304390",
+         "address": "0x103044c0",
+         "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10304378",
-         "notes": "strcmp vs BrowseMetadata"
+         "function": "0x103042f0",
+         "address": "0x10304314",
+         "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
         }
        ],
        "primitive": {
@@ -85304,24 +85354,41 @@
        }
       },
       "Filter": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "description": "Required text passed to selected metadata or child enumeration method; root passes it to each child metadata method.",
        "direction": "in",
-       "semantic_type": "SonosStringArg",
-       "format": "comma-list filter spec text, capped 0x400",
-       "unit": "n/a",
-       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
-       "range": "<=0x400 chars",
-       "special_values": "* / empty impl-defined",
+       "semantic_type": "string",
+       "format": "NUL-terminated text in 1024-byte request buffer",
+       "unit": "none",
+       "accepted_values": "Outer path does not parse or reject filter text.",
+       "range": "at most 1023 stored bytes plus NUL",
+       "special_values": "No universal empty/* expansion established; concrete serializers remain scoped in action TODO.",
        "required": true,
-       "default": "none",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Required registration before validator. Lexical buffer truncates with NUL; semantic checks are action-specific.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10304420",
-         "notes": "Filter arg name + parse call"
+         "function": "0x10304390",
+         "address": "0x103044c0",
+         "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10305a98",
+         "address": "0x10305b40",
+         "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10346cec",
+         "address": "0x10346d2c",
+         "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
         }
        ],
        "primitive": {
@@ -85333,24 +85400,49 @@
        }
       },
       "StartingIndex": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "description": "Zero-based child offset, passed unchanged to container; ignored for metadata.",
        "direction": "in",
-       "semantic_type": "SonosUintArg",
-       "format": "decimal text via int parse helper",
-       "unit": "index",
-       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
-       "range": "see impl 0x103042f0",
-       "special_values": "none",
+       "semantic_type": "32-bit unsigned word",
+       "format": "strtoul(text,NULL,10), 24-byte request buffer",
+       "unit": "items",
+       "accepted_values": "Permissive C decimal conversion; no checked end pointer or errno.",
+       "range": "stored u32; no outer clamp",
+       "special_values": "Out-of-range root start returns no children.",
        "required": true,
-       "default": "none",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Missing input fails required validation; present empty/nonnumeric text converts to zero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10304448",
-         "notes": "StartingIndex arg + int parse"
+         "function": "0x10304390",
+         "address": "0x103044c0",
+         "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "notes": "Type 4 uses strtoul(text,NULL,10), stores low 32-bit result; no end-pointer/errno check. f_105614e0 registers tag4 with 24-byte lexical buffer. String registration f_1056157c uses caller capacity 0x400; parser NUL-terminates at capacity-1 when filled at 0x10560b10."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10305a98",
+         "address": "0x10305b40",
+         "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10346cec",
+         "address": "0x10346d2c",
+         "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
         }
        ],
        "primitive": {
@@ -85362,24 +85454,49 @@
        }
       },
       "RequestedCount": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "description": "Child limit. Zero is changed to 0xffffffff for enumeration; ignored for metadata.",
        "direction": "in",
-       "semantic_type": "SonosUintArg",
-       "format": "decimal text via int parse helper",
-       "unit": "count",
-       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
-       "range": "see impl 0x103042f0",
-       "special_values": "0",
+       "semantic_type": "32-bit unsigned word",
+       "format": "strtoul(text,NULL,10), 24-byte request buffer",
+       "unit": "items",
+       "accepted_values": "Permissive C decimal conversion; no checked end pointer or errno.",
+       "range": "stored u32; no outer clamp",
+       "special_values": "0 -> 0xffffffff, not a universal 1000-item cap.",
        "required": true,
-       "default": "none",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Missing input fails required validation; present empty/nonnumeric text converts to zero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1030446c",
-         "notes": "RequestedCount arg + int parse"
+         "function": "0x10304390",
+         "address": "0x103044c0",
+         "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "notes": "Type 4 uses strtoul(text,NULL,10), stores low 32-bit result; no end-pointer/errno check. f_105614e0 registers tag4 with 24-byte lexical buffer. String registration f_1056157c uses caller capacity 0x400; parser NUL-terminates at capacity-1 when filled at 0x10560b10."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10305a98",
+         "address": "0x10305b40",
+         "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10346cec",
+         "address": "0x10346d2c",
+         "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
         }
        ],
        "primitive": {
@@ -85391,24 +85508,41 @@
        }
       },
       "SortCriteria": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x103042f0",
+       "description": "Required text passed to direct-child enumeration; ignored by metadata and root-child enumeration.",
        "direction": "in",
-       "semantic_type": "SonosStringArg",
-       "format": "sort spec text, capped 0x400",
-       "unit": "n/a",
-       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
-       "range": "<=0x400 chars",
-       "special_values": "empty string",
+       "semantic_type": "string",
+       "format": "NUL-terminated text in 1024-byte request buffer",
+       "unit": "none",
+       "accepted_values": "No outer whitelist/rejection or general sort capability claim; concrete containers decide.",
+       "range": "at most 1023 stored bytes plus NUL",
+       "special_values": "Empty SortCaps advertisement does not establish this argument is rejected.",
        "required": true,
-       "default": "none",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Required registration before validator. Lexical buffer truncates with NUL; semantic checks are action-specific.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10304490",
-         "notes": "SortCriteria arg + parse call"
+         "function": "0x10304390",
+         "address": "0x103044c0",
+         "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10305a98",
+         "address": "0x10305b40",
+         "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10346cec",
+         "address": "0x10346d2c",
+         "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
         }
        ],
        "primitive": {
@@ -85422,24 +85556,41 @@
      },
      "outputs": {
       "Result": {
-       "description": "produced by impl 0x103042f0 via media-store member this+0x168",
+       "description": "Deferred DIDL-Lite document written by f_10305a98 through f_1054adc0 and concrete metadata/children methods.",
        "direction": "out",
-       "semantic_type": "SonosMetaDataArg",
-       "format": "DIDL-Lite XML",
+       "semantic_type": "XML text",
+       "format": "DIDL-Lite header, serialized items/containers, closing </DIDL-Lite>, carried as SOAP text",
        "unit": "n/a",
-       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
-       "range": "response-sized",
-       "special_values": "empty DIDL for empty containers",
+       "accepted_values": "Container-specific DIDL body; not a fixed-size 0x400 string result.",
+       "range": "streamed through 0x1000 staging buffer, not capped to that document length",
+       "special_values": "No matching children can still produce an empty DIDL-Lite document.",
        "required": false,
        "default": "populated on success",
-       "validation": "impl-produced",
+       "validation": "Preflight succeeds before Result writer runs.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10304618",
-         "notes": "'Result' out-name + emit path"
+         "function": "0x10304390",
+         "address": "0x103044c0",
+         "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10305a98",
+         "address": "0x10305b40",
+         "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1054adc0",
+         "address": "0x1054ae30",
+         "notes": "Stream-mode writer saves sink at +0x24, zeros item count +0x14 and writes DIDL-Lite header through f_1054abd8 using literal 0x10ee8958. Finalizer f_1054b2f4 at 0x1054b340 emits </DIDL-Lite>. Callback ignores finalizer return."
         }
        ],
        "primitive": {
@@ -85448,24 +85599,41 @@
        }
       },
       "NumberReturned": {
-       "description": "produced by impl 0x103042f0 via media-store member this+0x168",
+       "description": "Direct children: DIDL writer item count +0x14 copied at 0x10305ba0. Metadata: 1 only if object+8 returns zero.",
        "direction": "out",
-       "semantic_type": "SonosUintArg",
-       "format": "decimal text",
-       "unit": "count",
-       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
-       "range": "0..N",
-       "special_values": "0 for empty result",
+       "semantic_type": "32-bit word rendered signed decimal",
+       "format": "%d",
+       "unit": "items",
+       "accepted_values": "Source depends on metadata versus children and selected object.",
+       "range": "signed decimal rendering of 32-bit context word",
+       "special_values": "Context initializes zero before deferred Result.",
        "required": false,
-       "default": "populated by emit path",
-       "validation": "impl-produced",
+       "default": "0 before execution",
+       "validation": "Deferred numeric fields follow Result generation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10304604",
-         "notes": "emit path"
+         "function": "0x10304390",
+         "address": "0x10304664",
+         "notes": "Deferred descriptors emit Result, NumberReturned, TotalMatches, UpdateID in that order. Context+8/+0xc/+0x10 initialize zero at 0x10304534/0x1030454c/0x10304560. NumberReturned thunk f_10306098 -> f_10513598 reads +8, TotalMatches f_10306088 -> f_1051362c reads +0xc, UpdateID f_103060a8 -> f_105136c0 reads +0x10. All three use %d, not %u."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10305a98",
+         "address": "0x10305b40",
+         "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10346cec",
+         "address": "0x10346d2c",
+         "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
         }
        ],
        "primitive": {
@@ -85474,24 +85642,41 @@
        }
       },
       "TotalMatches": {
-       "description": "produced by impl 0x103042f0 via media-store member this+0x168",
+       "description": "Direct children: output pointer passed to selected enumerator. Root: directory+0x374. Metadata: 1 on success.",
        "direction": "out",
-       "semantic_type": "SonosUintArg",
-       "format": "decimal text",
-       "unit": "count",
-       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
-       "range": "0..N",
-       "special_values": "0",
+       "semantic_type": "32-bit word rendered signed decimal",
+       "format": "%d",
+       "unit": "items",
+       "accepted_values": "Source depends on metadata versus children and selected object.",
+       "range": "signed decimal rendering of 32-bit context word",
+       "special_values": "Context initializes zero before deferred Result.",
        "required": false,
-       "default": "populated by emit path",
-       "validation": "impl-produced",
+       "default": "0 before execution",
+       "validation": "Deferred numeric fields follow Result generation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10304604",
-         "notes": "emit path"
+         "function": "0x10304390",
+         "address": "0x10304664",
+         "notes": "Deferred descriptors emit Result, NumberReturned, TotalMatches, UpdateID in that order. Context+8/+0xc/+0x10 initialize zero at 0x10304534/0x1030454c/0x10304560. NumberReturned thunk f_10306098 -> f_10513598 reads +8, TotalMatches f_10306088 -> f_1051362c reads +0xc, UpdateID f_103060a8 -> f_105136c0 reads +0x10. All three use %d, not %u."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10305a98",
+         "address": "0x10305b40",
+         "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10346cec",
+         "address": "0x10346d2c",
+         "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
         }
        ],
        "primitive": {
@@ -85500,24 +85685,41 @@
        }
       },
       "UpdateID": {
-       "description": "produced by impl 0x103042f0 via media-store member this+0x168",
+       "description": "Initialized zero, then output pointer passed to concrete metadata/enumeration. Root: cd_impl SystemUpdateID from directory+4 primary+0x10, not a universal direct read for all nodes.",
        "direction": "out",
-       "semantic_type": "SonosUintArg",
-       "format": "decimal text",
-       "unit": "n/a",
-       "accepted_values": "unrestricted/impl-validated per 0x103042f0",
-       "range": "monotonic counter",
-       "special_values": "0",
+       "semantic_type": "32-bit word rendered signed decimal",
+       "format": "%d",
+       "unit": "version",
+       "accepted_values": "Source depends on metadata versus children and selected object.",
+       "range": "signed decimal rendering of 32-bit context word",
+       "special_values": "Context initializes zero before deferred Result.",
        "required": false,
-       "default": "populated by emit path",
-       "validation": "impl-produced",
+       "default": "0 before execution",
+       "validation": "Deferred numeric fields follow Result generation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10304314",
-         "notes": "f_1034a224(obj+0x168,0x2bd) preceding dispatch"
+         "function": "0x10304390",
+         "address": "0x10304664",
+         "notes": "Deferred descriptors emit Result, NumberReturned, TotalMatches, UpdateID in that order. Context+8/+0xc/+0x10 initialize zero at 0x10304534/0x1030454c/0x10304560. NumberReturned thunk f_10306098 -> f_10513598 reads +8, TotalMatches f_10306088 -> f_1051362c reads +0xc, UpdateID f_103060a8 -> f_105136c0 reads +0x10. All three use %d, not %u."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10305a98",
+         "address": "0x10305b40",
+         "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10346cec",
+         "address": "0x10346d2c",
+         "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
         }
        ],
        "primitive": {
@@ -85527,218 +85729,257 @@
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "All six required arguments are registered first. Validator failure gives 402. Otherwise preflight resolves ObjectID (NULL ->701), then compares exact BrowseFlag literals (other ->402). No outer Filter or SortCriteria grammar check and no paging clamp.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10306b3c",
-        "notes": "wrapper family decode"
+        "function": "0x10304390",
+        "address": "0x103044c0",
+        "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103042f0",
+        "address": "0x10304314",
+        "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10305a98",
+        "address": "0x10305b40",
+        "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b40",
+        "notes": "Type 4 uses strtoul(text,NULL,10), stores low 32-bit result; no end-pointer/errno check. f_105614e0 registers tag4 with 24-byte lexical buffer. String registration f_1056157c uses caller capacity 0x400; parser NUL-terminates at capacity-1 when filled at 0x10560b10."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (none); member delegates: r4 v[+0x3c]",
+      "description": "Six arguments required, including empty Filter/SortCriteria text. Object must resolve through service-owned directory; Q: requires queue-directory pointer and AI: requires available backing object. Bound cd_impl is proven at service level; no residual injected-implementation question.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306b3c",
-        "notes": "req-vfunc call map: {}"
+        "function": "0x10304390",
+        "address": "0x103044c0",
+        "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103042f0",
+        "address": "0x10304314",
+        "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10349d00",
+        "address": "0x10349d30",
+        "notes": "Exact/prefix comparisons select A:, S:, Q:, R:, AI:, SQ:, FV:; root 0 is handled separately by f_1034a224 at 0x1034a24c. Unknown prefix returns NULL at 0x10349fd4. Q: requires directory+0x354. All addresses refer to build 86.10-80260, not a generic UPnP object grammar."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Directory graph rooted at impl+0x168; root count +0x374 and children array +0x358, queue directory +0x354, favorites +0x34c. Root UpdateID is global cd_impl counter; other node version sources are container-specific.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10349d00",
+        "address": "0x10349d30",
+        "notes": "Exact/prefix comparisons select A:, S:, Q:, R:, AI:, SQ:, FV:; root 0 is handled separately by f_1034a224 at 0x1034a24c. Unknown prefix returns NULL at 0x10349fd4. Q: requires directory+0x354. All addresses refer to build 86.10-80260, not a generic UPnP object grammar."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10346cec",
+        "address": "0x10346d2c",
+        "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
        }
       ],
       "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (none); member delegates: r4 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: input validation, early faults, top-level namespace dispatch, root enumeration and deferred response layout are traced.",
+       "Remaining: A: attribute enumeration/filter/sort at f_102a203c and its resolved-node vtables from f_102a3c80; S:// share enumeration f_10347138; queue enumeration f_103494fc/f_10347688; SQ: f_10476690 and f_10349c40 node workers; R:/FV: node workers f_1037d250/f_1037ccb4; AI: metadata through f_10348d58. Trace these concrete object +8/+0xc/+0x10 implementations for per-container caps, filter fields, sort support, UpdateID and DIDL item serialization. They are not established by the empty GetSortCapabilities advertisement."
       ]
      },
-     "state_dependencies": "Content-directory index state at browse object +0x168 supplies the UpdateID",
      "side_effects": [
       {
-       "description": "read-only query delegate: r4 v[+0x3c] (call-derived member-method semantics)",
+       "description": "Outer path allocates/locks/releases resolved objects and writes streamed response. Root enumeration calls metadata on children and reads SystemUpdateID under its mutex. This is not a requested content mutation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10306b3c",
-         "notes": "delegate map ['r4 v[+0x3c]']; notify-family calls []"
+         "function": "0x103042f0",
+         "address": "0x10304314",
+         "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10305a98",
+         "address": "0x10305b40",
+         "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10346cec",
+         "address": "0x10346d2c",
+         "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r4 v[+0x3c] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Remaining: audit lazy cache/resource behavior of concrete enumerators listed in action TODO, starting f_102a203c and f_10347138."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No notifier or SystemUpdateID increment in preflight, deferred coordinator or root enumeration. Those routines only resolve, enumerate, serialize and release.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306b3c",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x103042f0",
+        "address": "0x10304314",
+        "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10305a98",
+        "address": "0x10305b40",
+        "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10346cec",
+        "address": "0x10346d2c",
+        "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Remaining: concrete enumerator side-effect audit for lazy resource/cache callbacks, starting f_102a203c and f_10347138; do not infer their event behavior from the coordinator."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c]",
+      "description": "Response context starts counters at zero. Successful metadata sets NumberReturned=TotalMatches=1. Children set NumberReturned from writer count and TotalMatches/UpdateID through backend output pointers. No browseability flag is changed.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306b3c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x3c]']"
+        "function": "0x10304390",
+        "address": "0x10304664",
+        "notes": "Deferred descriptors emit Result, NumberReturned, TotalMatches, UpdateID in that order. Context+8/+0xc/+0x10 initialize zero at 0x10304534/0x1030454c/0x10304560. NumberReturned thunk f_10306098 -> f_10513598 reads +8, TotalMatches f_10306088 -> f_1051362c reads +0xc, UpdateID f_103060a8 -> f_105136c0 reads +0x10. All three use %d, not %u."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10305a98",
+        "address": "0x10305b40",
+        "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10346cec",
+        "address": "0x10346d2c",
+        "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Early errors 402/701 raise SOAP fault through request+0x14. Success registers deferred outputs and invokes request+0x10 at 0x103046f0 (f_10730714 -> f_10730524). Result executes f_10305dd0 -> f_10305a98 before numeric output serialization. Deferred child/metadata return codes are logged at 0x10305d80/0x10305d08, not forwarded through the early fault branch; callback finalizes DIDL and releases object. Do not publish backend literal scans as additional SOAP faults.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306b3c",
-        "notes": "commit/fault slot usage: {}"
+        "function": "0x10304390",
+        "address": "0x103044c0",
+        "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103042f0",
+        "address": "0x10304314",
+        "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10305a98",
+        "address": "0x10305b40",
+        "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10304390",
+        "address": "0x10304664",
+        "notes": "Deferred descriptors emit Result, NumberReturned, TotalMatches, UpdateID in that order. Context+8/+0xc/+0x10 initialize zero at 0x10304534/0x1030454c/0x10304560. NumberReturned thunk f_10306098 -> f_10513598 reads +8, TotalMatches f_10306088 -> f_1051362c reads +0xc, UpdateID f_103060a8 -> f_105136c0 reads +0x10. All three use %d, not %u."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [],
      "errors": [
       {
-       "code": 701,
-       "code_expr": "vret",
-       "meaning": "impl accumulator r31: {701 when object resolver f_1034a224 fails on ObjectID (preset 0x1030430c), 0 on success, call/lwz-derived}; rc forwarded verbatim via req v[+0x14]",
-       "fault_sites": [
-        "0x10306b3c"
-       ],
-       "conditions": [
-        {
-         "description": "impl/store gate failed",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103042f0",
-           "notes": "impl body"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103042f0",
-         "notes": "impl rc path"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1030430c",
-         "notes": "li r31,0x2bd before resolver call"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10304330",
-         "notes": "li r31,0 success path"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10304314",
-         "notes": "bl f_1034a224 - shared ObjectID->object resolver"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10304324",
-         "notes": "strcmp BrowseFlag,'BrowseDirectChildren' gate"
-        }
-       ],
-       "unresolved": {
-        "proven": "literal exit paths bounded by accumulator scan",
-        "unknown": "call-derived rc values from worker/delegate chain | resolver f_1034a224 -> f_10349d00 path-walk (ptr/NULL)",
-        "return_path": "URI/'0' sentinel dispatch into scheme resolver; x-rincon object-ID scheme resolver (A:/S:/Q: prefixes) - content-resolution rc domain",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_1034a224": {
-          "lits": [
-           1056
-          ],
-          "pt": 2
-         },
-         "f_10349d00": {
-          "lits": [
-           8,
-           496
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x103042f0",
-         "lits": [
-          360
-         ],
-         "passthrough_exits": 1
-        }
-       },
-       "literal_bound": [
-        0,
-        402,
-        701,
-        711
-       ],
-       "resolved_note": "CD impl: Browse/search -> {402 invalid-args, 701 no-such-content, 711 no-such-object, browse-engine rc}. verified via impl return-scan.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10306b3c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      },
-      {
        "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192",
+       "meaning": "Required argument missing, or resolved ObjectID with invalid case-sensitive BrowseFlag.",
        "fault_sites": [
-        "0x10306b3c"
+        "0x103045b8",
+        "0x10304388"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "Input validator returns zero, or preflight resolved object then neither flag literal matches.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10306b3c",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10304390",
+           "address": "0x103044c0",
+           "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x103042f0",
+           "address": "0x10304314",
+           "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
           }
          ]
         }
@@ -85748,55 +85989,66 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10306b3c",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10304390",
+         "address": "0x103044c0",
+         "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103042f0",
+         "address": "0x10304314",
+         "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
         }
        ]
       },
       {
-       "code": "402",
-       "meaning": "invalid BrowseFlag: value is neither \"BrowseDirectChildren\" nor \"BrowseMetadata\" (literal strcmp inside executor f_103042f0)",
+       "code": 701,
+       "code_expr": "0x2bd",
+       "meaning": "Preflight ObjectID resolution returns NULL. Takes precedence over invalid BrowseFlag after required-input validation.",
+       "fault_sites": [
+        "0x1030430c"
+       ],
        "conditions": [
         {
-         "description": "BrowseFlag fails both strcmps; executor presets r9=0x192",
+         "description": "Unknown top-level prefix, absent Q: directory, or rejected child-ID lookup.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10304380",
-           "notes": "0x192 preset after second strcmp"
-          }
-         ]
-        },
-        {
-         "description": "Any of the six arg parse helpers fails",
-         "evidence": [
+           "function": "0x103042f0",
+           "address": "0x10304314",
+           "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103045a0",
-           "notes": "req->v[+0x14] fault branch"
+           "function": "0x10349d00",
+           "address": "0x10349d30",
+           "notes": "Exact/prefix comparisons select A:, S:, Q:, R:, AI:, SQ:, FV:; root 0 is handled separately by f_1034a224 at 0x1034a24c. Unknown prefix returns NULL at 0x10349fd4. Q: requires directory+0x354. All addresses refer to build 86.10-80260, not a generic UPnP object grammar."
           }
          ]
         }
        ],
-       "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103042f0",
-         "notes": "BrowseFlag dispatch"
+         "function": "0x103042f0",
+         "address": "0x10304314",
+         "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103045a0",
-         "notes": "fault call in the real handler"
+         "function": "0x10349d00",
+         "address": "0x10349d30",
+         "notes": "Exact/prefix comparisons select A:, S:, Q:, R:, AI:, SQ:, FV:; root 0 is handled separately by f_1034a224 at 0x1034a24c. Unknown prefix returns NULL at 0x10349fd4. Q: requires directory+0x354. All addresses refer to build 86.10-80260, not a generic UPnP object grammar."
         }
        ]
       }
@@ -85817,13 +86069,77 @@
        "build": "86.10-80260",
        "address": "0x10eb4264",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10304390",
+       "address": "0x103044c0",
+       "notes": "Registers all six required inputs, validates, faults 402 on failure at 0x103045b8; preflight f_103042f0 at 0x10304580 precedes registering deferred outputs. Shim f_10306b3c tail-calls this worker with the bound cd_impl; see service-level binding proof."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103042f0",
+       "address": "0x10304314",
+       "notes": "Resolves impl+0x168 first. NULL returns 701; resolved object is released through +0x28. Exact BrowseDirectChildren succeeds, BrowseMetadata succeeds, other flag returns 402 via isel at 0x10304388."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10349d00",
+       "address": "0x10349d30",
+       "notes": "Exact/prefix comparisons select A:, S:, Q:, R:, AI:, SQ:, FV:; root 0 is handled separately by f_1034a224 at 0x1034a24c. Unknown prefix returns NULL at 0x10349fd4. Q: requires directory+0x354. All addresses refer to build 86.10-80260, not a generic UPnP object grammar."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10305a98",
+       "address": "0x10305b40",
+       "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10304390",
+       "address": "0x10304664",
+       "notes": "Deferred descriptors emit Result, NumberReturned, TotalMatches, UpdateID in that order. Context+8/+0xc/+0x10 initialize zero at 0x10304534/0x1030454c/0x10304560. NumberReturned thunk f_10306098 -> f_10513598 reads +8, TotalMatches f_10306088 -> f_1051362c reads +0xc, UpdateID f_103060a8 -> f_105136c0 reads +0x10. All three use %d, not %u."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1054adc0",
+       "address": "0x1054ae30",
+       "notes": "Stream-mode writer saves sink at +0x24, zeros item count +0x14 and writes DIDL-Lite header through f_1054abd8 using literal 0x10ee8958. Finalizer f_1054b2f4 at 0x1054b340 emits </DIDL-Lite>. Callback ignores finalizer return."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10346cec",
+       "address": "0x10346d2c",
+       "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10560a58",
+       "address": "0x10560b40",
+       "notes": "Type 4 uses strtoul(text,NULL,10), stores low 32-bit result; no end-pointer/errno check. f_105614e0 registers tag4 with 24-byte lexical buffer. String registration f_1056157c uses caller capacity 0x400; parser NUL-terminates at capacity-1 when filled at 0x10560b10."
       }
      ],
      "notes": null,
-     "implementation_notes": "table entry is a trampoline; real chain: req v[+0x3c] then f_10304390 -> shared executor f_103042f0 (BrowseFlag strcmp -> 402, resolver -> 701)",
+     "implementation_notes": "Preflight is not enumeration. Correct callback/response ordering matters: streamed backend errors are not automatically SOAP faults. Concrete per-container limits/sort/filter/item serialization are still named residuals, not inferred from standard UPnP semantics.",
      "todo": [
-      "Established: direct dispatch to handler 0x10306b3c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: input validation, early faults, top-level namespace dispatch, root enumeration and deferred response layout are traced.",
+      "Remaining: A: attribute enumeration/filter/sort at f_102a203c and its resolved-node vtables from f_102a3c80; S:// share enumeration f_10347138; queue enumeration f_103494fc/f_10347688; SQ: f_10476690 and f_10349c40 node workers; R:/FV: node workers f_1037d250/f_1037ccb4; AI: metadata through f_10348d58. Trace these concrete object +8/+0xc/+0x10 implementations for per-container caps, filter fields, sort support, UpdateID and DIDL item serialization. They are not established by the empty GetSortCapabilities advertisement."
      ]
     },
     "CreateObject": {
