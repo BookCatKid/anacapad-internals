@@ -215583,7 +215583,7 @@
      "todo": "Established: row offsets used here, family normalization, explicit-user short circuit, null-user flag filter and fallback precedence are decoded. Remaining: trace record-field writers to assign flag meanings and ordering guarantees; audit all caller selector combinations, username/token naming and libc-dependent hexadecimal edge cases."
     },
     "device_auth_acquisition": {
-     "description": "f_10286e44 is called directly by OAuth-code addition at0x1028b568 and OAuth-direct-control addition at0x1028b6dc. It constructs a fresh service descriptor. Only when ((accountType &0x7f) - (1-(accountType&1))) equals7 does it ask manager slot+0x2c for the SID descriptor. It preserves its incoming callbackPath argument only if that lookup succeeds and descriptor authentication byte+0x12c equals4; otherwise it supplies null callbackPath to the provider. It calls f_1072a2a4 with descriptor, householdId, zonePlayerId from manager+0xb0, linkCode, linkDeviceId, callbackPath, authToken output/capacity, privateKey output/capacity and userInfo output. It supplies null login username/password and an additional context value obtained from f_10674084. The provider result is returned unchanged; failure logging does not translate it. The final stack boolean controls timing telemetry, not whether acquisition runs. When enabled it samples clock_gettime(1) around the call and submits a dcLogin object through f_10559024 interface slot+0x1c with fields type=authToken, service=smapi, rsid=original accountType, ms and rc=provider result. The branch does not independently require success before recording this object.",
+     "description": "f_10286e44 is the account manager's credential-acquisition shim around provider call f_1072a2a4 (getDeviceAuthToken). It is called directly only by OAuth-code addition at0x1028b568 inside f_1028b440 and OAuth-direct-control addition at0x1028b6dc inside f_1028b5bc; a full .text census confirms no other call sites. f_1028b440 is reached solely from public delegate f_104b052c (adapter vtable0x10ed75c4+0x1c, AddOAuthAccountX): an empty Token with a nonempty AuthorizationCode tail-calls it at0x104b060c, a nonempty Token instead reaches f_1028b2e4 at0x104b0660 with Tier clamped to0xffff, and both empty tail-calls f_1028ad54 at0x104b05c4. f_1028b5bc ('addAccountForOAuthDirectControl') is called only by f_1020eb2c at0x1020f02c and by the replication driver f_1028fa98 at0x102902ac; it runs manifest precondition f_10287238 before the acquisition. The shim constructs a fresh service descriptor on its stack. Only when ((accountType &0x7f) - (1-(accountType&1))) equals7 does it ask manager slot+0x2c (f_10284ec0) for the SID descriptor at0x10287170-0x10287188. It preserves its incoming callbackPath argument only if that lookup succeeds and descriptor authentication byte+0x12c equals4; otherwise it supplies null callbackPath to the provider (0x10287194-0x102871a0). It calls f_1072a2a4 with the stack descriptor, householdId, zonePlayerId from manager+0xb0, linkCode, linkDeviceId, the gated callbackPath, authToken output/capacity, privateKey output/capacity and userInfo output, plus null login username/password and a context value obtained from f_10674084 stored as the final argument. f_1072a2a4 itself requires descriptor byte+0x12c below5 and auth-table entry+0x44 equal2 (indexed at0x10f0e460); otherwise it logs 'WARNING! getDeviceAuthToken was called for %s (%u), which has credentialType = %u (not OAuth)' through facility 'sonoscp' and returns0x3e8 without traffic. Its request emits a 'credentials' element whose 'login' child carries 'username'/'password' only when both are nonempty, then conditional 'linkCode', 'householdId', 'linkDeviceId' and 'callbackPath' elements under action 'getDeviceAuthToken' in namespace http://www.sonos.com/Services/1.1; reply handling reads the authToken, privateKey, userInfo and getDeviceAuthTokenResult elements and reports transport failure as '%s: %s#%s failed, ret = %hu'. The context provider f_10674084 calls f_10987a78, which loads a pthread key through the GOT and calls pthread_getspecific; a non-null per-thread object is invoked through vfunc+0x18, so the concrete context is a runtime-injected TLS object with no static store to audit. The provider result is returned unchanged; failure logging ('getDeviceAuthToken failed (res = %d)' via 'accountsmgr' level3) does not translate it. The final stack boolean controls timing telemetry, not whether acquisition runs. When enabled it samples clock_gettime clock id1 before and after the call, converts the nanosecond delta to milliseconds by multiply-shift (zero start timestamp yields ms0), and submits a dcLogin object through the f_10559024 diagnostic singleton interface slot+0x1c with fields type=authToken, service=smapi, rsid=original accountType, ms and rc=provider result. The branch does not independently require success before recording this object. Both callers forward acquisition outputs to account core f_1028a224 only when the provider result is zero (0x1028b56c/0x1028b5b0 and0x1028b6e4/0x1028b754); the direct-control path additionally copies a supplementary string through f_1071a19c when its flag byte is set. Inside f_1028a224 the returned userInfo is copied into the new record through f_1056f738 only when both userInfo arguments are non-null and the source buffer is nonempty (0x1028a4b8-0x1028a4e4); after row insertion the store's vfunc+0x24 (f_1028be78) is invoked at0x1028a50c, which emits the 'add' zpAM diagnostic through slot+0x28 (f_10284950) and then the account-cache refresh through slot+0x34 (f_102850c4). Indirect use: f_1072a2a4 has exactly three other call sites - the two shim branches0x10286f40/0x10287000 plus0x1028b0f8 inside f_1028ad54 (the both-empty AddOAuthAccountX route's own descriptor-based acquisition, which submits its own f_10559024 telemetry at0x1028b150) and0x101b8f6c inside household/cloud merge worker f_101b869c, which repeats the same credentialType table check and f_10674084 context provider.",
      "evidence": [
       {
        "type": "firmware",
@@ -215605,9 +215605,64 @@
        "build": "86.10-80260",
        "address": "0x1028b568",
        "notes": "OAuth-code acquisition call; direct-control acquisition at0x1028b6dc. Direct branch census of full .text confirms these two direct callers."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b052c",
+       "notes": "AddOAuthAccountX dispatch: nonempty Token->f_1028b2e4 at0x104b0660 (Tier clamp0xffff); empty Token + nonempty AuthorizationCode->tail f_1028b440 at0x104b060c; both empty->tail f_1028ad54 at0x104b05c4. Only f_1028b440 reaches f_10286e44."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028b568",
+       "notes": "f_1028b440 passes code, redirect URI and OAuthDeviceID-derived args plus two0x801-capacity buffers and userInfo struct to f_10286e44; cmpwi cr0 + branch-if-nonzero at0x1028b570 skips persistence, zero result invokes f_1028a224 at0x1028b5b0 with the returned credential buffers."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028b6dc",
+       "notes": "f_1028b5bc runs precondition f_10287238 at0x1028b644 (zero continues), calls f_10286e44, skips f_1028a224 on nonzero at0x1028b6e4; on zero an extra f_1071a19c copy runs when flag byte0x3d(r1) set and arg nonempty, then f_1028a224 at0x1028b754 with zeroed trailing stack args. Only callers0x1020f02c in f_1020eb2c and0x102902ac in f_1028fa98."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1072a2a4",
+       "notes": "getDeviceAuthToken provider: descriptor+0x12c must be<5 and auth-table entry+0x44==2 (table0x10f0e460, checks0x1072a304-0x1072a34c) else 'WARNING! getDeviceAuthToken was called for %s (%u), which has credentialType = %u (not OAuth)' via sonoscp and return0x3e8. Request emits credentials>login{username,password only when both nonempty}, linkCode, householdId, linkDeviceId, callbackPath; action 'getDeviceAuthToken' ns http://www.sonos.com/Services/1.1; response reads authToken/privateKey/userInfo/getDeviceAuthTokenResult; transport failure logged '%s: %s#%s failed, ret = %hu'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10674084",
+       "notes": "Context provider calls f_10987a78: loads pthread key via GOT at-0x7ff0 and calls pthread_getspecific; non-null per-thread object invoked through vfunc+0x18 at0x106740b4. Static boundary: key and object installed at runtime; no static store binds the concrete context."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10286fbc",
+       "notes": "Timed path only: clock_gettime(1) before0x10287000 and after at0x10287028; ms from sec/nsec delta via multiply constant0x431bde83 (nsec/1e6); zero start timestamp forces ms0 at0x10287164. dcLogin fields {type authToken, service smapi, rsid raw accountType, ms, rc provider result} submitted at0x102870f0-0x1028711c via f_10559024 slot+0x1c('zpAM','dcLogin',1,1) regardless of result; nonzero then logs 'getDeviceAuthToken failed (res = %d)'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028a4d4",
+       "notes": "Inside f_1028a224: userInfo copied into new record via f_1056f738 at0x1028a4dc only when both trailing args non-null and buffer first byte nonzero (0x1028a4b8-0x1028a4d4); post-insert store vfunc+0x24 at0x1028a50c resolves to f_1028be78 (vtable0x10eabc6c), which emits 'add' via slot+0x28 f_10284950 then refresh via slot+0x34 f_102850c4 at0x1028beec."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b8f6c",
+       "notes": "Third f_1072a2a4 call site inside cloud/household worker f_101b869c: repeats credentialType<5 table check (0x101b8e14-0x101b8e30) and f_10674084 context at0x101b8f10. Direct-call census of .text: f_1072a2a4 sites are0x101b8f6c,0x10286f40,0x10287000,0x1028b0f8; f_10286e44 sites are only0x1028b568,0x1028b6dc."
       }
-     ],
-     "todo": "Established: acquisition inputs, two direct callers, AppLink-only callback forwarding, unchanged provider result and timing-telemetry branch are decoded. Remaining: bind every public account argument and optional output, decode the context provider and telemetry duration/error handling, trace credential/userInfo partial writes and subsequent account persistence, and audit indirect callers and observer delivery."
+     ]
     },
     "password_metadata_modifier": {
      "description": "Installed password adapter f_104b0684 and metadata adapter f_104b06d0 call shared account modifier f_1028b760 with new account ID null, selecting the password or metadata optional argument respectively. The worker locks the account mutex and loads account tables through f_102887e0; false returns810. It searches through f_10570e34 with account type, explicit AccountID and selector1; no matching record returns806. It copies the matched record into a candidate. A non-null password pointer replaces its password text with capacity65; a non-null metadata pointer sets the metadata-present marker to ASCII1 and copies the text with capacity128. These copies add no local nonempty-string test; wrapper parsing remains a separate requirement. Other modifier callers can supply replacement ID, nickname and additional optional record fields; those are not part of the two edit wrappers. After preparing revision metadata, f_105709c0 attempts the in-memory row update. False skips the commit and returns retained status0, so SOAP success need not mean a changed account was persisted. That helper can reject a missing row, account-upgrade/capacity policy, no detected row difference or inconsistent account identity. On true table update, f_10289258 performs the commit stage; false maps to809. True commit leaves result0, releases the account lock and invokes manager slot+0x34. The callback result is not used to change the return status. The modifier has no direct provider-login call; validity of the changed credentials with the external service is a distinct question. The installed post-unlock callback is f_102850c4 -> f_101b8048; see account_callbacks for the verified local refresh and remaining delivery limits. All six f_1028b760 callers are now bound: adapters f_104b0684 (EditAccountPasswordX, password field) and f_104b06d0 (EditAccountMd, metadata field) with zero masks; f_1028bb74 (SetAccountNicknameX); f_1028bc8c, which formats a replacement account ID through f_1056fdec into a0x81 buffer and supplies the new-ID argument; f_1028bdc0, which logs 'Pending report for account %u' and passes flagsSet mask2, proving flags bit1 marks a report-pending account; and f_1028c08c under adapter f_104b0b04 (ReplaceAccountX), which forwards caller-supplied optional fields and follows the modifier with account-UID extraction ('can't extract account UID from %s') and zone-side calls f_1027cbf8/f_1037f5b8. For the two public edit wrappers all optional fields and both flag masks are zero, so the only f_105709c0 rejections reachable from them are the no-difference case (silent0 without commit) and the second-chance X_# path for already-inconsistent stored rows; missing-row is impossible inside the locked window and the guest-capacity gate cannot fire because neither wrapper alters flags. No callee in the modifier chain performs a provider or network call (f_102887e0 load, f_10570e34 lookup, strcmp duplicate scan, string stores f_10906304/f_1056f10c/f_1056f738, vclock stamp f_1056ecb4, table update, commit, unlock, vfunc+0x34), so whether the new password or metadata is accepted by the music service is outside this path entirely; durability, replication and delivery are the shared commit and callback machinery documented in account_file_commit and account_callbacks.",
