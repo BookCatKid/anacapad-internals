@@ -49144,7 +49144,7 @@
      ]
     },
     "NotifyDeletedURI": {
-     "description": "Notifies the player that a URI it may be playing has been deleted upstream. Impl f_102d5858: after the 718-gate and impl+0x458 lock it runs strcmp(DeletedURI, impl+0x5dc) (the current source URI. A mismatch is a silent success no-op: the player ignores deletion notices for URIs it is not using. On a match it logs \"job\"/\"deleted uri\", zero-fills a small request record, and submits a recovery job via f_102ceb40(impl+0xa21c, 0x10ea6a2c, 0x10ea6a2c, 0x10ea6a2c, &rec)) likely triggering source-failover or stop behavior for the deleted content.",
+     "description": "For an exact match with the stored transport URI, directly attempts to clear the transport source using f_102ceb40 with empty URI, metadata and UUID and zero options. Derived slot +0x48 binds f_102d5858. Does not delete queue entries, saved playlists or upstream files. Mismatch is a success no-op. Once InstanceID is 0, the source-clear result is ignored and SOAP success does not prove playback stopped.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f912c",
@@ -49162,12 +49162,6 @@
         "obj": "r5-in",
         "slot": 72,
         "arg4": "*(sp-0x430+0x14)"
-       },
-       {
-        "site": "0x102f9238",
-        "obj": "*(sp-0x430+0x42c)",
-        "slot": 12,
-        "arg4": 402
        }
       ],
       "req_vcalls": [
@@ -49175,12 +49169,22 @@
         "site": "0x102f91b0",
         "slot": 8,
         "purpose": "parse"
+       },
+       {
+        "site": "0x102f91f0",
+        "slot": 20,
+        "purpose": "raise-fault"
+       },
+       {
+        "site": "0x102f9238",
+        "slot": 12,
+        "purpose": "commit"
        }
       ]
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Required instance selector; only parsed 0 is accepted. Gate runs after acquiring the implementation lock.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -49190,34 +49194,38 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUintArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
+       "format": "Decimal text converted permissively by strtoul(buffer,NULL,10)",
        "unit": "none - dimensionless count/index",
        "accepted_values": "0",
        "range": "0 only; nonzero InstanceID rejected by impl +0x48 with 718",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Required request descriptor, then parsed nonzero gives 718.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f916c",
-         "notes": "in-arg access site"
+         "function": "0x102f912c",
+         "address": "0x102f9174",
+         "callsite": "0x102f91b0",
+         "notes": "Required InstanceID uses type-4 f_105614e0 (24-byte numeric buffer, strtoul base10 without endptr/errno validation); DeletedURI uses type-7 f_1056157c at 0x102f919c with 0x401-byte buffer. Request +8 validation false loads 402 at 0x102f9224; common fault +0x14 call at 0x102f91f0. Success has no outputs and invokes commit +0x0c at 0x102f9238. The former call-map arg4=402 attached to commit was a stale extractor inference, not an output or commit error."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "function": "0x102d5858",
+         "address": "0x102d5894",
+         "callsite": "0x102d58ec",
+         "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
         }
        ],
        "notes": null
       },
       "DeletedURI": {
-       "description": "URI that was deleted upstream; compared verbatim (strcmp) against the current source URI at impl+0x5dc. Only an exact match triggers the recovery job.",
+       "description": "Required string compared byte-for-byte to stored transport URI. A matching empty string also attempts the clear path; mismatch succeeds without changing the source.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -49227,28 +49235,41 @@
         "via_slot": 28
        },
        "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 1025 bytes (1024 chars + NUL)",
+       "format": "String in a 1025-byte wrapper buffer, including terminator",
        "unit": "n/a - text",
        "accepted_values": "Any string; only exact match with the active source has an effect",
-       "range": "max 1024 chars",
-       "special_values": "none observed in this build",
+       "range": "Wrapper buffer capacity 1025 bytes",
+       "special_values": "Empty string matches only an already empty stored transport URI; no wildcard.",
        "required": true,
        "default": "none - required argument",
-       "validation": "URI that was deleted upstream; compared verbatim (strcmp) against the current source URI at impl+0x5dc. Only an exact match triggers the recovery job.",
+       "validation": "No URI grammar, normalization or membership validation; strcmp exact equality only.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f9190",
-         "notes": "in-arg access site"
+         "function": "0x102f912c",
+         "address": "0x102f9174",
+         "callsite": "0x102f91b0",
+         "notes": "Required InstanceID uses type-4 f_105614e0 (24-byte numeric buffer, strtoul base10 without endptr/errno validation); DeletedURI uses type-7 f_1056157c at 0x102f919c with 0x401-byte buffer. Request +8 validation false loads 402 at 0x102f9224; common fault +0x14 call at 0x102f91f0. Success has no outputs and invokes commit +0x0c at 0x102f9238. The former call-map arg4=402 attached to commit was a stale extractor inference, not an output or commit error."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb32a0",
-         "notes": "argument name string"
+         "function": "0x102d5858",
+         "address": "0x102d5894",
+         "callsite": "0x102d58ec",
+         "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d5858",
+         "address": "0x102d5930",
+         "callsite": "0x102d5968",
+         "notes": "Exact match logs job/deleted uri, initializes option bytes +0..4,+0x14 and words +8,+0xc,+0x10 to zero, and DIRECTLY calls f_102ceb40(impl,empty,empty,empty,&options). Empty string address 0x10ea6a2c. It does not submit a job on impl+0xa21c: that object is only the log receiver at 0x102d5928. The helper return is ignored; r31 stays 0 through unlock at 0x102d58a8 and return 0x102d58ac. Thus downstream 402/800/804/810 etc cannot propagate as this action faults."
         }
        ],
        "notes": null,
@@ -49257,113 +49278,355 @@
      },
      "outputs": {},
      "validation": {
-      "description": "See inputs/impl notes",
+      "description": "Both required descriptors are validated before derived dispatch. InstanceID must parse as 0; DeletedURI is an exact string selector, not a URI to remove from membership.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102f912c",
-        "notes": "wrapper + impl decode"
+        "function": "0x102f912c",
+        "address": "0x102f9174",
+        "callsite": "0x102f91b0",
+        "notes": "Required InstanceID uses type-4 f_105614e0 (24-byte numeric buffer, strtoul base10 without endptr/errno validation); DeletedURI uses type-7 f_1056157c at 0x102f919c with 0x401-byte buffer. Request +8 validation false loads 402 at 0x102f9224; common fault +0x14 call at 0x102f91f0. Success has no outputs and invokes commit +0x0c at 0x102f9238. The former call-map arg4=402 attached to commit was a stale extractor inference, not an output or commit error."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10511f34",
+        "address": "0x10edfc00",
+        "callsite": "0x102f91d4",
+        "notes": "Live derived table 0x10edfbb8+0x48 contains raw word 0x102d5858. Constructor installs table at 0x105123c0; factory call 0x103fb5d8. This is AVTransport implementation dispatch, not a queue-engine table."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d5858",
+        "address": "0x102d5894",
+        "callsite": "0x102d58ec",
+        "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0x48]",
+      "description": "Required InstanceID and DeletedURI; nonzero instance returns 718 under the implementation lock. No version, queue-mode, membership or URI-format gate at action level. Only exact stored-URI equality attempts clearing; inner source setter has override/nested-set gates, whose failures are ignored by the action.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102f912c",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f9174",
+        "callsite": "0x102f91b0",
+        "notes": "Required InstanceID uses type-4 f_105614e0 (24-byte numeric buffer, strtoul base10 without endptr/errno validation); DeletedURI uses type-7 f_1056157c at 0x102f919c with 0x401-byte buffer. Request +8 validation false loads 402 at 0x102f9224; common fault +0x14 call at 0x102f91f0. Success has no outputs and invokes commit +0x0c at 0x102f9238. The former call-map arg4=402 attached to commit was a stale extractor inference, not an output or commit error."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10511f34",
+        "address": "0x10edfc00",
+        "callsite": "0x102f91d4",
+        "notes": "Live derived table 0x10edfbb8+0x48 contains raw word 0x102d5858. Constructor installs table at 0x105123c0; factory call 0x103fb5d8. This is AVTransport implementation dispatch, not a queue-engine table."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d5858",
+        "address": "0x102d5894",
+        "callsite": "0x102d58ec",
+        "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d5858",
+        "address": "0x102d5930",
+        "callsite": "0x102d5968",
+        "notes": "Exact match logs job/deleted uri, initializes option bytes +0..4,+0x14 and words +8,+0xc,+0x10 to zero, and DIRECTLY calls f_102ceb40(impl,empty,empty,empty,&options). Empty string address 0x10ea6a2c. It does not submit a job on impl+0xa21c: that object is only the log receiver at 0x102d5928. The helper return is ignored; r31 stays 0 through unlock at 0x102d58a8 and return 0x102d58ac. Thus downstream 402/800/804/810 etc cannot propagate as this action faults."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ceb40",
+        "address": "0x102cebf0",
+        "callsite": "0x102cf838",
+        "notes": "Clears impl+0x7778 and captures event-loop state through f_102c4cb0. Source replacement is suppressed when impl+0x465c bit1 is set (internal code810), or unsigned(impl+0x7774+1)>2 (internal804). Otherwise increments the nested-set counter. Fixed empty URI/metadata bypass prefix-specific stream/HLS/line-in/VLI/HTA handlers; prefix helpers inspected at f_10147314,f_101475dc,f_10292f78,f_10687e54,f_10293014,f_10147bf4,f_10460708,f_10147014,f_10147f84,f_101478ec,f_10148478. Final empty-byte test 0x102cf8d4 guarantees the generic f_102c3f84 path at 0x102cf838, with empty URI/metadata/UUID, r7=0 and zero options. Option byte0=0 skips buzzer-fallback error recovery (0x102cf550..0x102cf55c). No promise of successful replacement follows from the ignored helper result."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0x48].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x48]",
+      "description": "Uses impl+0x458 lock, stored transport URI +0x5dc and, only on match, inner source flags +0x465c, nesting count +0x7774, source mode +0x4654, session +0x580, source latches and private queue session+0x2b188. It does not search primary queue or saved-queue contents for DeletedURI.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f912c",
-        "notes": "member vfunc calls: ['r30 v[+0x48]']"
+        "function": "0x102d5858",
+        "address": "0x102d5894",
+        "callsite": "0x102d58ec",
+        "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d5858",
+        "address": "0x102d5930",
+        "callsite": "0x102d5968",
+        "notes": "Exact match logs job/deleted uri, initializes option bytes +0..4,+0x14 and words +8,+0xc,+0x10 to zero, and DIRECTLY calls f_102ceb40(impl,empty,empty,empty,&options). Empty string address 0x10ea6a2c. It does not submit a job on impl+0xa21c: that object is only the log receiver at 0x102d5928. The helper return is ignored; r31 stays 0 through unlock at 0x102d58a8 and return 0x102d58ac. Thus downstream 402/800/804/810 etc cannot propagate as this action faults."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ceb40",
+        "address": "0x102cebf0",
+        "callsite": "0x102cf838",
+        "notes": "Clears impl+0x7778 and captures event-loop state through f_102c4cb0. Source replacement is suppressed when impl+0x465c bit1 is set (internal code810), or unsigned(impl+0x7774+1)>2 (internal804). Otherwise increments the nested-set counter. Fixed empty URI/metadata bypass prefix-specific stream/HLS/line-in/VLI/HTA handlers; prefix helpers inspected at f_10147314,f_101475dc,f_10292f78,f_10687e54,f_10293014,f_10147bf4,f_10460708,f_10147014,f_10147f84,f_101478ec,f_10148478. Final empty-byte test 0x102cf8d4 guarantees the generic f_102c3f84 path at 0x102cf838, with empty URI/metadata/UUID, r7=0 and zero options. Option byte0=0 skips buzzer-fallback error recovery (0x102cf550..0x102cf55c). No promise of successful replacement follows from the ignored helper result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c3f84",
+        "address": "0x102c40c8",
+        "callsite": "0x102c42a0",
+        "notes": "When needed converts implementation source mode to 2, marking +0x4658 and requesting event-source notification at 0x102c40dc. Constructs request f_1032e270, tags through f_1032e330 at 0x102c4294: operation kind0 at request+0xe4, empty URI/MD pointers +0xec/+0xf0, options +0x110. f_10255f64 waits for completion. Raw 0x7fea4f9e at 0x102c42c8 is isel r31,r10,r9,30 after cmp submission result, selecting 800 on false and 0 on true. This status is consumed by f_102ceb40, then discarded by NotifyDeletedURI. Kind0 running/stopped relative switch entries 0x10ea8468/0x10ea84d0 resolve to 0x10265dbc/0x10268158."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025832c",
+        "address": "0x102583e8",
+        "callsite": "0x10266ab4",
+        "notes": "Empty URI fails both named-queue URI matches (f_10147f84 requires x-rincon-queue:). Running kind0 reaches 0x10266aa8, stopped reaches 0x10268ed8..0x10268ef4: select type0, NOT selector1 primary queue. Unsigned compare at 0x10258368 sends type0 to 0x102583e8, choosing session+0x2b188. f_1025832c associates session+0x34f0, clears this private queue via f_1014da34, stores source flags at queue+0x26e4 and adjusts modes via f_102581c4. Session ctor f_1025f19c passes empty name r7 to private queue constructor f_1014d000 at 0x1025f630, versus Q:0 at 0x1025f664 and Q:1 at 0x1025f6a0. Private clear therefore bypasses named revision/event branch f_1014da34+0x20..0x30. Saved queues and primary queue 0 membership/version are not edited. Worker refreshes current index/count, resets pending indices and track monitor; f_10258fbc clears cloud context when options+0x16=0. Running sets source-change byte at 0x10265e6c; stopped resets metadata/monitor at 0x102681a8..0x1026821c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ceb40",
+        "address": "0x102cf1cc",
+        "callsite": "0x102cf320",
+        "notes": "Only on successful f_102c3f84 result: f_102ed638 clears stored URI/metadata/UUID at impl+0x5dc/+0x9dd/+0x19de; sets URI latch +0x4251 and conditionally metadata latch +0x4252; increments source generation impl+0xaa78, marks +0x7750, clears related source flags, calls f_102b05e4/f_102af328 and notifies impl+0x10 through f_1067c6ec at 0x102cf320. Snapshot f_102b5658 at 0x102b56b4..0x102b56d8 incorporates these latches. Existing concrete factory-bound event chain f_1067d028 -> f_102e6400 -> f_102e6048 -> f_102e43a0 emits AVTransport LastChange including changed source/metadata/state groups. Notifications depend on ready/pending/snapshot conditions and may coalesce; no event or ordering before SOAP response is guaranteed. Kind0 clears only unnamed private queue, so this path does not generate named Queue UpdateID/ContentDirectory ContainerUpdateIDs events through f_1014d738."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x48].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x48] (call-derived member-method semantics)",
+       "description": "Mismatch leaves source untouched. Match logs and attempts synchronous empty-source replacement; if accepted/completed, clears private source queue and stored source URI/metadata/UUID, resets current-track/source bookkeeping and marks source fields changed. Does not remove tracks from primary queue 0 or edit saved playlists/upstream storage. Downstream failure can leave partial source-mode/bookkeeping effects while SOAP still succeeds.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102f912c",
-         "notes": "delegate map ['r30 v[+0x48]']; notify-family calls []"
+         "function": "0x102d5858",
+         "address": "0x102d5894",
+         "callsite": "0x102d58ec",
+         "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d5858",
+         "address": "0x102d5930",
+         "callsite": "0x102d5968",
+         "notes": "Exact match logs job/deleted uri, initializes option bytes +0..4,+0x14 and words +8,+0xc,+0x10 to zero, and DIRECTLY calls f_102ceb40(impl,empty,empty,empty,&options). Empty string address 0x10ea6a2c. It does not submit a job on impl+0xa21c: that object is only the log receiver at 0x102d5928. The helper return is ignored; r31 stays 0 through unlock at 0x102d58a8 and return 0x102d58ac. Thus downstream 402/800/804/810 etc cannot propagate as this action faults."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102ceb40",
+         "address": "0x102cebf0",
+         "callsite": "0x102cf838",
+         "notes": "Clears impl+0x7778 and captures event-loop state through f_102c4cb0. Source replacement is suppressed when impl+0x465c bit1 is set (internal code810), or unsigned(impl+0x7774+1)>2 (internal804). Otherwise increments the nested-set counter. Fixed empty URI/metadata bypass prefix-specific stream/HLS/line-in/VLI/HTA handlers; prefix helpers inspected at f_10147314,f_101475dc,f_10292f78,f_10687e54,f_10293014,f_10147bf4,f_10460708,f_10147014,f_10147f84,f_101478ec,f_10148478. Final empty-byte test 0x102cf8d4 guarantees the generic f_102c3f84 path at 0x102cf838, with empty URI/metadata/UUID, r7=0 and zero options. Option byte0=0 skips buzzer-fallback error recovery (0x102cf550..0x102cf55c). No promise of successful replacement follows from the ignored helper result."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102c3f84",
+         "address": "0x102c40c8",
+         "callsite": "0x102c42a0",
+         "notes": "When needed converts implementation source mode to 2, marking +0x4658 and requesting event-source notification at 0x102c40dc. Constructs request f_1032e270, tags through f_1032e330 at 0x102c4294: operation kind0 at request+0xe4, empty URI/MD pointers +0xec/+0xf0, options +0x110. f_10255f64 waits for completion. Raw 0x7fea4f9e at 0x102c42c8 is isel r31,r10,r9,30 after cmp submission result, selecting 800 on false and 0 on true. This status is consumed by f_102ceb40, then discarded by NotifyDeletedURI. Kind0 running/stopped relative switch entries 0x10ea8468/0x10ea84d0 resolve to 0x10265dbc/0x10268158."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1025832c",
+         "address": "0x102583e8",
+         "callsite": "0x10266ab4",
+         "notes": "Empty URI fails both named-queue URI matches (f_10147f84 requires x-rincon-queue:). Running kind0 reaches 0x10266aa8, stopped reaches 0x10268ed8..0x10268ef4: select type0, NOT selector1 primary queue. Unsigned compare at 0x10258368 sends type0 to 0x102583e8, choosing session+0x2b188. f_1025832c associates session+0x34f0, clears this private queue via f_1014da34, stores source flags at queue+0x26e4 and adjusts modes via f_102581c4. Session ctor f_1025f19c passes empty name r7 to private queue constructor f_1014d000 at 0x1025f630, versus Q:0 at 0x1025f664 and Q:1 at 0x1025f6a0. Private clear therefore bypasses named revision/event branch f_1014da34+0x20..0x30. Saved queues and primary queue 0 membership/version are not edited. Worker refreshes current index/count, resets pending indices and track monitor; f_10258fbc clears cloud context when options+0x16=0. Running sets source-change byte at 0x10265e6c; stopped resets metadata/monitor at 0x102681a8..0x1026821c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102ceb40",
+         "address": "0x102cf1cc",
+         "callsite": "0x102cf320",
+         "notes": "Only on successful f_102c3f84 result: f_102ed638 clears stored URI/metadata/UUID at impl+0x5dc/+0x9dd/+0x19de; sets URI latch +0x4251 and conditionally metadata latch +0x4252; increments source generation impl+0xaa78, marks +0x7750, clears related source flags, calls f_102b05e4/f_102af328 and notifies impl+0x10 through f_1067c6ec at 0x102cf320. Snapshot f_102b5658 at 0x102b56b4..0x102b56d8 incorporates these latches. Existing concrete factory-bound event chain f_1067d028 -> f_102e6400 -> f_102e6048 -> f_102e43a0 emits AVTransport LastChange including changed source/metadata/state groups. Notifications depend on ready/pending/snapshot conditions and may coalesce; no event or ordering before SOAP response is guaranteed. Kind0 clears only unnamed private queue, so this path does not generate named Queue UpdateID/ContentDirectory ContainerUpdateIDs events through f_1014d738."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x48] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Mismatch generates no action-specific notification. Match may cause AVTransport LastChange through source-mode and successful URI/metadata latch notifications; payload and timing depend on snapshot/ready conditions, and fields may coalesce. No named Queue UpdateID/LastChange or ContentDirectory container revision is generated by clearing the unnamed private source queue. SOAP success does not guarantee an event or completed source replacement.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f912c",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x102d5858",
+        "address": "0x102d5894",
+        "callsite": "0x102d58ec",
+        "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c3f84",
+        "address": "0x102c40c8",
+        "callsite": "0x102c42a0",
+        "notes": "When needed converts implementation source mode to 2, marking +0x4658 and requesting event-source notification at 0x102c40dc. Constructs request f_1032e270, tags through f_1032e330 at 0x102c4294: operation kind0 at request+0xe4, empty URI/MD pointers +0xec/+0xf0, options +0x110. f_10255f64 waits for completion. Raw 0x7fea4f9e at 0x102c42c8 is isel r31,r10,r9,30 after cmp submission result, selecting 800 on false and 0 on true. This status is consumed by f_102ceb40, then discarded by NotifyDeletedURI. Kind0 running/stopped relative switch entries 0x10ea8468/0x10ea84d0 resolve to 0x10265dbc/0x10268158."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025832c",
+        "address": "0x102583e8",
+        "callsite": "0x10266ab4",
+        "notes": "Empty URI fails both named-queue URI matches (f_10147f84 requires x-rincon-queue:). Running kind0 reaches 0x10266aa8, stopped reaches 0x10268ed8..0x10268ef4: select type0, NOT selector1 primary queue. Unsigned compare at 0x10258368 sends type0 to 0x102583e8, choosing session+0x2b188. f_1025832c associates session+0x34f0, clears this private queue via f_1014da34, stores source flags at queue+0x26e4 and adjusts modes via f_102581c4. Session ctor f_1025f19c passes empty name r7 to private queue constructor f_1014d000 at 0x1025f630, versus Q:0 at 0x1025f664 and Q:1 at 0x1025f6a0. Private clear therefore bypasses named revision/event branch f_1014da34+0x20..0x30. Saved queues and primary queue 0 membership/version are not edited. Worker refreshes current index/count, resets pending indices and track monitor; f_10258fbc clears cloud context when options+0x16=0. Running sets source-change byte at 0x10265e6c; stopped resets metadata/monitor at 0x102681a8..0x1026821c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ceb40",
+        "address": "0x102cf1cc",
+        "callsite": "0x102cf320",
+        "notes": "Only on successful f_102c3f84 result: f_102ed638 clears stored URI/metadata/UUID at impl+0x5dc/+0x9dd/+0x19de; sets URI latch +0x4251 and conditionally metadata latch +0x4252; increments source generation impl+0xaa78, marks +0x7750, clears related source flags, calls f_102b05e4/f_102af328 and notifies impl+0x10 through f_1067c6ec at 0x102cf320. Snapshot f_102b5658 at 0x102b56b4..0x102b56d8 incorporates these latches. Existing concrete factory-bound event chain f_1067d028 -> f_102e6400 -> f_102e6048 -> f_102e43a0 emits AVTransport LastChange including changed source/metadata/state groups. Notifications depend on ready/pending/snapshot conditions and may coalesce; no event or ordering before SOAP response is guaranteed. Kind0 clears only unnamed private queue, so this path does not generate named Queue UpdateID/ContentDirectory ContainerUpdateIDs events through f_1014d738."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x48]",
+      "description": "Not a queue-remove or next-track operation. Successful inner replacement selects an empty private source, resets track bookkeeping and can drive the separate playback state machine through TRAN_STOPPED to STOPPED. Source-mode 2 is not the transport state. Mismatch has no transition; ignored inner failure/override can leave playback unchanged, and a successful SOAP response is not a guarantee that STOPPED is already observable.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f912c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x48]']"
+        "function": "0x102d5858",
+        "address": "0x102d5894",
+        "callsite": "0x102d58ec",
+        "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ceb40",
+        "address": "0x102cebf0",
+        "callsite": "0x102cf838",
+        "notes": "Clears impl+0x7778 and captures event-loop state through f_102c4cb0. Source replacement is suppressed when impl+0x465c bit1 is set (internal code810), or unsigned(impl+0x7774+1)>2 (internal804). Otherwise increments the nested-set counter. Fixed empty URI/metadata bypass prefix-specific stream/HLS/line-in/VLI/HTA handlers; prefix helpers inspected at f_10147314,f_101475dc,f_10292f78,f_10687e54,f_10293014,f_10147bf4,f_10460708,f_10147014,f_10147f84,f_101478ec,f_10148478. Final empty-byte test 0x102cf8d4 guarantees the generic f_102c3f84 path at 0x102cf838, with empty URI/metadata/UUID, r7=0 and zero options. Option byte0=0 skips buzzer-fallback error recovery (0x102cf550..0x102cf55c). No promise of successful replacement follows from the ignored helper result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c3f84",
+        "address": "0x102c40c8",
+        "callsite": "0x102c42a0",
+        "notes": "When needed converts implementation source mode to 2, marking +0x4658 and requesting event-source notification at 0x102c40dc. Constructs request f_1032e270, tags through f_1032e330 at 0x102c4294: operation kind0 at request+0xe4, empty URI/MD pointers +0xec/+0xf0, options +0x110. f_10255f64 waits for completion. Raw 0x7fea4f9e at 0x102c42c8 is isel r31,r10,r9,30 after cmp submission result, selecting 800 on false and 0 on true. This status is consumed by f_102ceb40, then discarded by NotifyDeletedURI. Kind0 running/stopped relative switch entries 0x10ea8468/0x10ea84d0 resolve to 0x10265dbc/0x10268158."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025832c",
+        "address": "0x102583e8",
+        "callsite": "0x10266ab4",
+        "notes": "Empty URI fails both named-queue URI matches (f_10147f84 requires x-rincon-queue:). Running kind0 reaches 0x10266aa8, stopped reaches 0x10268ed8..0x10268ef4: select type0, NOT selector1 primary queue. Unsigned compare at 0x10258368 sends type0 to 0x102583e8, choosing session+0x2b188. f_1025832c associates session+0x34f0, clears this private queue via f_1014da34, stores source flags at queue+0x26e4 and adjusts modes via f_102581c4. Session ctor f_1025f19c passes empty name r7 to private queue constructor f_1014d000 at 0x1025f630, versus Q:0 at 0x1025f664 and Q:1 at 0x1025f6a0. Private clear therefore bypasses named revision/event branch f_1014da34+0x20..0x30. Saved queues and primary queue 0 membership/version are not edited. Worker refreshes current index/count, resets pending indices and track monitor; f_10258fbc clears cloud context when options+0x16=0. Running sets source-change byte at 0x10265e6c; stopped resets metadata/monitor at 0x102681a8..0x1026821c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ceb40",
+        "address": "0x102cf1cc",
+        "callsite": "0x102cf320",
+        "notes": "Only on successful f_102c3f84 result: f_102ed638 clears stored URI/metadata/UUID at impl+0x5dc/+0x9dd/+0x19de; sets URI latch +0x4251 and conditionally metadata latch +0x4252; increments source generation impl+0xaa78, marks +0x7750, clears related source flags, calls f_102b05e4/f_102af328 and notifies impl+0x10 through f_1067c6ec at 0x102cf320. Snapshot f_102b5658 at 0x102b56b4..0x102b56d8 incorporates these latches. Existing concrete factory-bound event chain f_1067d028 -> f_102e6400 -> f_102e6048 -> f_102e43a0 emits AVTransport LastChange including changed source/metadata/state groups. Notifications depend on ready/pending/snapshot conditions and may coalesce; no event or ordering before SOAP response is guaranteed. Kind0 clears only unnamed private queue, so this path does not generate named Queue UpdateID/ContentDirectory ContainerUpdateIDs events through f_1014d738."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10265dbc",
+        "address": "0x10265e04",
+        "callsite": "0x10268ef4",
+        "notes": "Matched, allowed and completed source replacement selects an empty private queue and clears current source rather than selecting the next saved-queue track. f_102c3f84 mode word +0x4654=2 is a source mode, NOT a PLAYING/STOPPED transport enum. Playback worker has separate state progression: running marks source changed at 0x10265e6c, stopped refreshes current count/monitor at 0x102681a8; later empty-current-queue loop 0x1026e724..0x1026e758 selects TRAN_STOPPED (state2), and 0x1026f4e8 completes STOPPED (state1) through f_10264be8. Existing pause path also detects empty count at 0x102691d4..0x10269330. Downstream rejection, override and timing can leave the previous source/state: action success alone is not a STOPPED-state acknowledgment. Mismatch has no source or playback transition."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x48].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "No public outputs. Completed action implementation domain is exactly 0 or 718; required-descriptor failure adds wrapper 402. For InstanceID=0 both mismatch and match return 0, even if inner source clearing fails. The log call, source-set status, submission result and unlock return do not replace the accumulator. No streamer/storage/worker return ladder is propagated by this action.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102f912c",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f9174",
+        "callsite": "0x102f91b0",
+        "notes": "Required InstanceID uses type-4 f_105614e0 (24-byte numeric buffer, strtoul base10 without endptr/errno validation); DeletedURI uses type-7 f_1056157c at 0x102f919c with 0x401-byte buffer. Request +8 validation false loads 402 at 0x102f9224; common fault +0x14 call at 0x102f91f0. Success has no outputs and invokes commit +0x0c at 0x102f9238. The former call-map arg4=402 attached to commit was a stale extractor inference, not an output or commit error."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d5858",
+        "address": "0x102d5894",
+        "callsite": "0x102d58ec",
+        "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d5858",
+        "address": "0x102d5930",
+        "callsite": "0x102d5968",
+        "notes": "Exact match logs job/deleted uri, initializes option bytes +0..4,+0x14 and words +8,+0xc,+0x10 to zero, and DIRECTLY calls f_102ceb40(impl,empty,empty,empty,&options). Empty string address 0x10ea6a2c. It does not submit a job on impl+0xa21c: that object is only the log receiver at 0x102d5928. The helper return is ignored; r31 stays 0 through unlock at 0x102d58a8 and return 0x102d58ac. Thus downstream 402/800/804/810 etc cannot propagate as this action faults."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ceb40",
+        "address": "0x102cebf0",
+        "callsite": "0x102cf838",
+        "notes": "Clears impl+0x7778 and captures event-loop state through f_102c4cb0. Source replacement is suppressed when impl+0x465c bit1 is set (internal code810), or unsigned(impl+0x7774+1)>2 (internal804). Otherwise increments the nested-set counter. Fixed empty URI/metadata bypass prefix-specific stream/HLS/line-in/VLI/HTA handlers; prefix helpers inspected at f_10147314,f_101475dc,f_10292f78,f_10687e54,f_10293014,f_10147bf4,f_10460708,f_10147014,f_10147f84,f_101478ec,f_10148478. Final empty-byte test 0x102cf8d4 guarantees the generic f_102c3f84 path at 0x102cf838, with empty URI/metadata/UUID, r7=0 and zero options. Option byte0=0 skips buzzer-fallback error recovery (0x102cf550..0x102cf55c). No promise of successful replacement follows from the ignored helper result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c3f84",
+        "address": "0x102c40c8",
+        "callsite": "0x102c42a0",
+        "notes": "When needed converts implementation source mode to 2, marking +0x4658 and requesting event-source notification at 0x102c40dc. Constructs request f_1032e270, tags through f_1032e330 at 0x102c4294: operation kind0 at request+0xe4, empty URI/MD pointers +0xec/+0xf0, options +0x110. f_10255f64 waits for completion. Raw 0x7fea4f9e at 0x102c42c8 is isel r31,r10,r9,30 after cmp submission result, selecting 800 on false and 0 on true. This status is consumed by f_102ceb40, then discarded by NotifyDeletedURI. Kind0 running/stopped relative switch entries 0x10ea8468/0x10ea84d0 resolve to 0x10265dbc/0x10268158."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -49377,56 +49640,22 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x48)",
-       "meaning": "InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine",
+       "meaning": "Parsed instance is nonzero.",
        "fault_sites": [
         "0x102f91f0"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument is nonzero",
+         "description": "InstanceID != 0 after acquiring impl+0x458; no comparison or source-set attempt.",
          "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102d5858",
-           "notes": "cmpwi r4,0 -> r31=0x2ce at 0x102d5898"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102d5858",
-         "notes": "cmpwi r4,0 -> r31=0x2ce at 0x102d5898"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x48)",
-       "meaning": "impl returns 0 unconditionally after the gate",
-       "fault_sites": [],
-       "conditions": [
-        {
-         "description": "n/a - every post-gate path returns 0",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102d58ac",
-           "notes": "passthrough path"
-          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "function": "0x102d5858",
-           "notes": "impl return path examined"
+           "address": "0x102d5894",
+           "callsite": "0x102d58ec",
+           "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
           }
          ]
         }
@@ -49436,64 +49665,41 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f91f0",
-         "notes": "impl vret passthrough site"
+         "function": "0x10511f34",
+         "address": "0x10edfc00",
+         "callsite": "0x102f91d4",
+         "notes": "Live derived table 0x10edfbb8+0x48 contains raw word 0x102d5858. Constructor installs table at 0x105123c0; factory call 0x103fb5d8. This is AVTransport implementation dispatch, not a queue-engine table."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102d5858",
-         "notes": "impl rc-return semantics as documented; wrapper forwards nonzero rc verbatim"
+         "address": "0x102d5894",
+         "callsite": "0x102d58ec",
+         "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
         }
-       ],
-       "unresolved": {
-        "proven": "impl returns 0 unconditionally after the gate",
-        "unknown": "none identified: the job-submission result is not propagated",
-        "impl_exit_literals": {
-         "function": "0x102d5858",
-         "lits": [
-          58
-         ],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_10557848": {
-          "lits": [
-           0,
-           1,
-           80
-          ],
-          "pt": 3
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "literal_bound": [
-        718
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x48); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+       "meaning": "Required request argument missing.",
        "fault_sites": [
         "0x102f91f0"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
+         "description": "Required descriptor validation returns false before dispatch.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102f912c",
-           "notes": "parse vcall slot +0x8 then fault path"
+           "function": "0x102f912c",
+           "address": "0x102f9174",
+           "callsite": "0x102f91b0",
+           "notes": "Required InstanceID uses type-4 f_105614e0 (24-byte numeric buffer, strtoul base10 without endptr/errno validation); DeletedURI uses type-7 f_1056157c at 0x102f919c with 0x401-byte buffer. Request +8 validation false loads 402 at 0x102f9224; common fault +0x14 call at 0x102f91f0. Success has no outputs and invokes commit +0x0c at 0x102f9238. The former call-map arg4=402 attached to commit was a stale extractor inference, not an output or commit error."
           }
          ]
         }
@@ -49503,45 +49709,11 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f912c",
-         "notes": "wrapper parse + fault path"
+         "function": "0x102f912c",
+         "address": "0x102f9174",
+         "callsite": "0x102f91b0",
+         "notes": "Required InstanceID uses type-4 f_105614e0 (24-byte numeric buffer, strtoul base10 without endptr/errno validation); DeletedURI uses type-7 f_1056157c at 0x102f919c with 0x401-byte buffer. Request +8 validation false loads 402 at 0x102f9224; common fault +0x14 call at 0x102f91f0. Success has no outputs and invokes commit +0x0c at 0x102f9238. The former call-map arg4=402 attached to commit was a stale extractor inference, not an output or commit error."
         }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
-        }
-       ],
-       "conditions": [
-        {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
-          }
-         ]
-        }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
        ]
       }
      ],
@@ -49551,30 +49723,85 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x102f912c",
-       "address": "0x102f912c",
-       "notes": "action wrapper handler"
+       "function": "0x10511f34",
+       "address": "0x10edfc00",
+       "callsite": "0x102f91d4",
+       "notes": "Live derived table 0x10edfbb8+0x48 contains raw word 0x102d5858. Constructor installs table at 0x105123c0; factory call 0x103fb5d8. This is AVTransport implementation dispatch, not a queue-engine table."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10eb312c",
-       "notes": "action dispatch table entry"
+       "function": "0x102f912c",
+       "address": "0x102f9174",
+       "callsite": "0x102f91b0",
+       "notes": "Required InstanceID uses type-4 f_105614e0 (24-byte numeric buffer, strtoul base10 without endptr/errno validation); DeletedURI uses type-7 f_1056157c at 0x102f919c with 0x401-byte buffer. Request +8 validation false loads 402 at 0x102f9224; common fault +0x14 call at 0x102f91f0. Success has no outputs and invokes commit +0x0c at 0x102f9238. The former call-map arg4=402 attached to commit was a stale extractor inference, not an output or commit error."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x102d5858",
-       "notes": "AVT impl vtable 0x10eaf2ec slot +0x48 entry"
+       "address": "0x102d5894",
+       "callsite": "0x102d58ec",
+       "notes": "Locks impl+0x458 BEFORE the instance check. Nonzero InstanceID leaves accumulator r31=718. Zero instance compares DeletedURI by strcmp against impl+0x5dc; accumulator is set to 0 at 0x102d58f0. Mismatch unlocks/returns 0. No URI canonicalization, case folding, queue membership scan or network deletion is performed."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102d5858",
+       "address": "0x102d5930",
+       "callsite": "0x102d5968",
+       "notes": "Exact match logs job/deleted uri, initializes option bytes +0..4,+0x14 and words +8,+0xc,+0x10 to zero, and DIRECTLY calls f_102ceb40(impl,empty,empty,empty,&options). Empty string address 0x10ea6a2c. It does not submit a job on impl+0xa21c: that object is only the log receiver at 0x102d5928. The helper return is ignored; r31 stays 0 through unlock at 0x102d58a8 and return 0x102d58ac. Thus downstream 402/800/804/810 etc cannot propagate as this action faults."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102ceb40",
+       "address": "0x102cebf0",
+       "callsite": "0x102cf838",
+       "notes": "Clears impl+0x7778 and captures event-loop state through f_102c4cb0. Source replacement is suppressed when impl+0x465c bit1 is set (internal code810), or unsigned(impl+0x7774+1)>2 (internal804). Otherwise increments the nested-set counter. Fixed empty URI/metadata bypass prefix-specific stream/HLS/line-in/VLI/HTA handlers; prefix helpers inspected at f_10147314,f_101475dc,f_10292f78,f_10687e54,f_10293014,f_10147bf4,f_10460708,f_10147014,f_10147f84,f_101478ec,f_10148478. Final empty-byte test 0x102cf8d4 guarantees the generic f_102c3f84 path at 0x102cf838, with empty URI/metadata/UUID, r7=0 and zero options. Option byte0=0 skips buzzer-fallback error recovery (0x102cf550..0x102cf55c). No promise of successful replacement follows from the ignored helper result."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102c3f84",
+       "address": "0x102c40c8",
+       "callsite": "0x102c42a0",
+       "notes": "When needed converts implementation source mode to 2, marking +0x4658 and requesting event-source notification at 0x102c40dc. Constructs request f_1032e270, tags through f_1032e330 at 0x102c4294: operation kind0 at request+0xe4, empty URI/MD pointers +0xec/+0xf0, options +0x110. f_10255f64 waits for completion. Raw 0x7fea4f9e at 0x102c42c8 is isel r31,r10,r9,30 after cmp submission result, selecting 800 on false and 0 on true. This status is consumed by f_102ceb40, then discarded by NotifyDeletedURI. Kind0 running/stopped relative switch entries 0x10ea8468/0x10ea84d0 resolve to 0x10265dbc/0x10268158."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1025832c",
+       "address": "0x102583e8",
+       "callsite": "0x10266ab4",
+       "notes": "Empty URI fails both named-queue URI matches (f_10147f84 requires x-rincon-queue:). Running kind0 reaches 0x10266aa8, stopped reaches 0x10268ed8..0x10268ef4: select type0, NOT selector1 primary queue. Unsigned compare at 0x10258368 sends type0 to 0x102583e8, choosing session+0x2b188. f_1025832c associates session+0x34f0, clears this private queue via f_1014da34, stores source flags at queue+0x26e4 and adjusts modes via f_102581c4. Session ctor f_1025f19c passes empty name r7 to private queue constructor f_1014d000 at 0x1025f630, versus Q:0 at 0x1025f664 and Q:1 at 0x1025f6a0. Private clear therefore bypasses named revision/event branch f_1014da34+0x20..0x30. Saved queues and primary queue 0 membership/version are not edited. Worker refreshes current index/count, resets pending indices and track monitor; f_10258fbc clears cloud context when options+0x16=0. Running sets source-change byte at 0x10265e6c; stopped resets metadata/monitor at 0x102681a8..0x1026821c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102ceb40",
+       "address": "0x102cf1cc",
+       "callsite": "0x102cf320",
+       "notes": "Only on successful f_102c3f84 result: f_102ed638 clears stored URI/metadata/UUID at impl+0x5dc/+0x9dd/+0x19de; sets URI latch +0x4251 and conditionally metadata latch +0x4252; increments source generation impl+0xaa78, marks +0x7750, clears related source flags, calls f_102b05e4/f_102af328 and notifies impl+0x10 through f_1067c6ec at 0x102cf320. Snapshot f_102b5658 at 0x102b56b4..0x102b56d8 incorporates these latches. Existing concrete factory-bound event chain f_1067d028 -> f_102e6400 -> f_102e6048 -> f_102e43a0 emits AVTransport LastChange including changed source/metadata/state groups. Notifications depend on ready/pending/snapshot conditions and may coalesce; no event or ordering before SOAP response is guaranteed. Kind0 clears only unnamed private queue, so this path does not generate named Queue UpdateID/ContentDirectory ContainerUpdateIDs events through f_1014d738."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10265dbc",
+       "address": "0x10265e04",
+       "callsite": "0x10268ef4",
+       "notes": "Matched, allowed and completed source replacement selects an empty private queue and clears current source rather than selecting the next saved-queue track. f_102c3f84 mode word +0x4654=2 is a source mode, NOT a PLAYING/STOPPED transport enum. Playback worker has separate state progression: running marks source changed at 0x10265e6c, stopped refreshes current count/monitor at 0x102681a8; later empty-current-queue loop 0x1026e724..0x1026e758 selects TRAN_STOPPED (state2), and 0x1026f4e8 completes STOPPED (state1) through f_10264be8. Existing pause path also detects empty count at 0x102691d4..0x10269330. Downstream rejection, override and timing can leave the previous source/state: action success alone is not a STOPPED-state acknowledgment. Mismatch has no source or playback transition."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102f912c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Deletion notice is an exact current-source match followed by an attempted empty SetAVTransportURI, not a membership deletion or asynchronous recovery job. The implementation intentionally hides the inner source-set result."
     },
     "Pause": {
      "description": "Pauses playback. Impl f_102d2b28 gate (718 on InstanceID!=0) then body f_102d2b38: lock impl+0x458, log 'upnp'/'pause', run f_102b00cc. That worker submits control op 0x19 via f_102aff9c(impl+0x5dc) and, on submission success, invokes the streamer pause vfunc f_106a7880(*(impl+0x5a0)). The worker returns 0 on submission failure or the streamer vfunc result on success. If the worker returned 0 the impl falls back to f_102d0ac8(impl,1,1,-1,-1) and returns its rc.",
