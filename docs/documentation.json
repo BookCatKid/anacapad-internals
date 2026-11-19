@@ -155441,20 +155441,49 @@
   },
   "muse_events": {
    "name": "muse event-type registry",
-   "summary": "{accessorySwapStatus,tvAudioSignalStatus,activeZonesChange,zoneDefinitionsChange,zoneError,alarmClock,alarmVersionChange,areasVersionChange,audioClipStatus,audioInput,availableSoftwareUpdate,avTransport,batteryStatus,wirelessNetworkStatus,microphoneSwitchStatus,waterStatus,bluetoothPairingStatus,bluetoothConnectionStatus,poeStatus,lineInStatus,wiredSubConnectionStatus,cloudRegistration,connectionManager,contentDirectory,deviceProperties,diagnosticSubmissionResults,diagnosticMetadata,effectiveSettingsDataChanged,entitlementsVersionChanged,extendedDeviceStatus,extendedPlaybackStatus,favoritesVersionChange,groupCoordinatorChanged,groupManagement,groupRendering,hdmiStatus,historyVersionChanged,householdUpdateStatus,upgradeManager,htControl,indexerStatus,musicServices,musicServicesChanged,playbackMetadataStatus,playbackStatus,playlistsVersionChange,positioningSessionStatus,positioningSessionError,positioningDeviceStatus,renderingControl,sessionError,sessionInfo,settingsVersionChanged,settingsDataChanged,settingsPlayerSettingsChanged,sleepTimerStatus,systemProperties,trueplayStatus,speakerPresenceStatus,speakerPresenceRateChange,trueroomAdaptationStatusEvent,trueroomCalibrationStatus,trueroomStatusEvent,virtualLineIn,voiceAccountsVersionChange,zoneGroupTopology,upnpEvent}",
+   "summary": "Muse event names are selected through a bounded 73-row topic registry, distinct from schema/type indices and typed payload producers. Output supports already-built raw bodies and producer-based bodies, with a format-dependent common metadata wrapper. The complete topic-to-producer and body-field mapping remains unfinished.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10f960df",
      "notes": "muse event types"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10098d34 and topic registry accessors",
+     "address": "0x110b8ce8",
+     "callsite": "0x10098e78 / 0x10098e98 / 0x109e131c",
+     "notes": "Construction stores alarmVersionChange at row6+4 and type0x18 at row6+8, areasVersionChange at row7+4 with type0x22. f_109e12f8 compares unsigned topic to0x48 and returns row+8 using (index<<2)+(index<<4); invalid topic returns0 at 0x109e1328. f_109e1370 uses the same bound/stride and returns row+4. Big-endian pointer words 0x10f970f4 and 0x10f9711c both point to versionChanged literal0x10f976a4. Reverse lookup f_109e13b0 bounds type<=0x147 then indexes table0x10f95bc0; it is not another topic-name array."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_106c2818 / f_109e98c4 / f_109f6fb0 / f_109f6f0c",
+     "address": "0x106c2888",
+     "callsite": "0x109e98dc / 0x109e98fc / 0x109f6f64",
+     "notes": "Dispatch compares event+0xc at 0x109e98d0; zero calls0x109f6fb0, nonzero0x109f6d7c. Typed adapter at 0x109f6fb4-0x109f6fc4 passes event+20 header, event+cc metadata and producer loaded from event+4 to f_109f6f0c. f_109f6f40 starts object; null-producer gate0x109f6f44-0x109f6f48 skips callback; otherwise invokes its vtable+8 at0x109f6f64, writer flag loaded at0x109f6f54. End-object0x109f6f6c and writer completion0x109f6f90 follow."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f6d7c / f_109f6bc4",
+     "address": "0x109f6dd0",
+     "callsite": "0x109f6e30 / 0x109f6efc / 0x109f6dc4",
+     "notes": "Raw pointer/length loaded event+8/+c at0x109f6dd0/0x109f6dd8. Nonzero null length/pointer guard at0x109f6eec-0x109f6efc throws basic_string construction error; non-null data copied then writer virtual+8 at0x109f6e30. Format4/5 detection uses unsigned (format-4)<=1 at0x109f6db0-0x109f6dc4; analogous typed gate0x109f6f28-0x109f6f38. Common envelope field bindings include namespace0x109f6c0c, response0x109f6c40, success0x109f6c54, type0x109f6c70, cmdId0x109f6c8c, async0x109f6cac, apiVersion0x109f6cf0 and event name0x109f6d18."
     }
    ],
    "todo": [
-    "Residual: per-event JSON payload schemas (the event names and emitters are mapped; payloads are muse-spec contract data)."
+    "Established: the bounded topic registry, separate topic/schema ID spaces, example versionChanged mappings, actual raw-versus-typed sender dispatch, null/empty behavior and common-envelope boundary. Remaining: join every topic row to its concrete event construction call, event+4 producer class or event+8/+0xc raw-body writer, then recover body member types, emission predicates and failure behavior. Start with alarmVersionChange topic6/type0x18 and areasVersionChange topic7/type0x22, follow header type assignments through f_109e8780 and the reverse type->topic lookup f_109e13b0, then bind producer virtual+8 at 0x109f6f64. Registry names and plausible owning subsystems alone do not establish these schemas; this remains actionable static work, not an external-schema limitation."
    ],
    "resolved_findings": [
-    "Resolved: event->emitter map = the ~30-name vocabulary {accessorySwapStatus,tvAudioSignalStatus,activeZonesChange,...} each emitted from its owning subsystem; payloads per event schema.",
-    "Event->emitter map (proven bindings from subsystem decodes): zones events {activeZonesChange, zoneDefinitionsChange, zoneError} <- zones_mgr/zones_storage; alarmClock + alarmVersionChange <- alarm_clock timed jobs; areasVersionChange <- areas; audioClipStatus <- ext_audio_src clip jobs; audioInput <- audio_in; availableSoftwareUpdate + upgradeManager + householdUpdateStatus <- auto_update/update_coordinator; avTransport + playbackStatus + extendedPlaybackStatus + playbackMetadataStatus <- the AVT engine; batteryStatus + microphoneSwitchStatus + waterStatus + bluetoothPairingStatus + bluetoothConnectionStatus + poeStatus + wiredSubConnectionStatus <- capability_guards hardware monitors; cloudRegistration <- cloud_registration; contentDirectory <- content_directory; deviceProperties <- device_props; diagnosticSubmissionResults + diagnosticMetadata <- diagnostics; effectiveSettingsDataChanged <- effective_settings; entitlementsVersionChanged <- entitlements; favoritesVersionChange <- favorites; groupCoordinatorChanged + groupManagement + groupRendering <- group_mgmt/group_rc; hdmiStatus + htControl + tvAudioSignalStatus + accessorySwapStatus <- the HT pipeline; historyVersionChanged <- history_mgr; indexerStatus <- share_indexer; musicServices + musicServicesChanged <- music_services; positioningSessionStatus + positioningSessionE[*] <- positioning; connectionManager + wirelessNetworkStatus + lineInStatus <- the connection/line-in monitors. Events without a proven emitter in this vocabulary remain unbound."
+    "The event registry is not an emitter census. Initializer f_10098d34 writes 20-byte records at 0x110b8ce8; f_109e12f8/f_109e1334/f_109e1370 bound topic indices to 0..0x48 and compute index*20. Row+4 is the event-name pointer; row+8 is a separate schema/type index. For example topic6 alarmVersionChange maps to type0x18, topic7 areasVersionChange maps to type0x22, and topic0x2f playbackStatus maps to type0xb8. The schema-name table at 0x10f97094 names both type0x18 and type0x22 versionChanged. Identical schema-name text therefore does not make the two topic IDs or their implementation bindings interchangeable. The older approximate event count and blanket owner/emitter assignments are not a verified per-event binding census.",
+    "Concrete send path: f_106c2818 creates a writer and invokes f_109e98c4 at 0x106c2888. The dispatcher tests event+0xc: nonzero selects raw serialization f_109f6d7c; zero selects f_109f6fb0, which loads the producer pointer from event+4 and tail-calls f_109f6f0c. The latter starts an object, calls producer virtual+8 with the writer and writer flag +0x1040 when a producer exists, and ends the object. A null typed producer skips that callback, leaving an empty object. Thus the body producer and its member predicates are recoverable code, not necessarily an out-of-image Muse contract.",
+    "Raw bodies use event+8 as pointer and event+0xc as explicit byte length. f_109f6d7c constructs a string of that exact length and forwards it through writer virtual+8, rather than enumerating topic-specific members. A null pointer with nonzero length takes the basic_string null-not-valid exception at 0x109f6ef4-0x109f6efc. The public dispatch chooses this path only for nonzero length; zero length instead takes the typed path. Do not infer that an empty raw body proves a successfully emitted empty JSON object.",
+    "Formats4/5 add a shared array/header envelope through f_109f6d2c before either body representation. f_109f6bc4 emits namespace/addressing metadata when resolved, optional apiVersion, event name or response/success, type, optional cmdId and conditional async. These are envelope fields, not proof that every event body contains them. Both raw/typed paths finish writer state and return its status; reaching the sender is not proof that a producer populated every field or that the remote subscriber accepted the event."
    ]
   },
   "circuit_breaker": {
