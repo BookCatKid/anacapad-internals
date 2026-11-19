@@ -146132,7 +146132,7 @@
    ]
   },
   "log_domain_map": {
-   "summary": "21 anacapa.*.log sinks under /opt/log define the module boundaries; plus sibling-daemon logs and the /tmp/memorylog ring",
+   "summary": "Logging domains are string arguments to the logging gate and emitter; collected anacapa.*.log filenames and configured DiagFile trace sinks are separate namespaces. Verified examples and backend dispatch are recovered, but the complete domain/call-site census is not certified.",
    "anchors": [
     "anacapa.snf.log",
     "anacapa.lechmere.event.log",
@@ -146168,19 +146168,62 @@
      "build": "86.10-80260",
      "address": "0x10e75434",
      "notes": "full /opt/log/anacapa.*.log table"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109b6fe4 / f_109b72ac / f_109b706c",
+     "address": "0x109b7004",
+     "callsite": "0x109b7018 / 0x109b72f8 / 0x109b7114",
+     "notes": "Gate preserves domain/level at 0x109b6ff4/0x109b6ffc, obtains context at 0x109b7004, loads callback +4 and userdata +0x24, invokes at 0x109b7018 and compares descriptor+0 against level at 0x109b7020. Emitter delegates at 0x109b72f8. Worker tests gate argument at 0x109b7078/0x109b70a4, reads clocks at 0x109b70c4/0x109b70d0, stores domain/level/format at stack+0x20/+0x24/+0x28, and invokes context+0 callback with context+0x24 userdata at 0x109b7114. This establishes dispatch, not the concrete sink map."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "literal gate/emitter call sites",
+     "address": "0x102926e4",
+     "callsite": "0x102926f4 / 0x10292718 / 0x1040d3c8 / 0x1040d3ec / 0x10405af4 / 0x10405b2c",
+     "notes": "Raw disassembly binds ai_impl_base at 0x102926c8/0x102926e4, mpmgr at 0x1040d3b8/0x1040d3c0, mp_autoplay at 0x10405ad4/0x10405adc. The corresponding gate and guarded writer sites reuse those exact name registers. All three names were absent from the purported exhaustive list; no inferred count replaces it."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "census boundary regression sites",
+     "address": "0x100d598c",
+     "callsite": "0x100d5aa8 / 0x10103034",
+     "notes": "GNU objdump verifies large-frame prologue lis/mr/ori/stwux at 0x100d598c-0x100d599c, ttm_helper literal at 0x100d5a98/0x100d5a9c and gate at 0x100d5aa8. Separately 0x10103020 is an intra-function backward branch, not an independent entry; shareindex literal at 0x10103024/0x1010302c feeds gate 0x10103034 and emitter 0x10103054. Analysis using real call/prologue entries and available unwind ranges recovers both pairs. This is a regression check on boundaries, not a verified exhaustive domain census."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/conf/anacapa.conf",
+     "build": "86.10-80260",
+     "address": "lines 56-95",
+     "notes": "DiagFile/DiagLevel/DiagMin/DiagMax groups explicitly configure dc.trace, ht.trace, vl.trace, trueplay.trace and snf.trace name selections. Their trace filenames and configured domain lists are distinct from the diagnostic-collection .log filename block."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_107f4808",
+     "address": "0x107f48e8",
+     "notes": "mixerstats branch adds object+0x188 and returns it at 0x107f4910; formatter/llaout adds object+0x3c8 and tail-calls f_10d58614 at 0x107f493c. These branches do not themselves register a filesystem log writer. Earlier global binding interpretation is withdrawn."
     }
    ],
-   "domains": "anacapa.log (main), alarm.job, avt.play (AVTransport playback), chsrc.state (CHSRC source bus), dc (direct control?), ext.audio.action, gm.events (GroupManagement), hdmi, ht (home-theatre), hw.events, lechmere.event (WSS channel), musecmdandrsp (muse request/response trace!), musedebug, museevt (muse events), rc.upnp, snf, spotify.debug, spotify, sps, trueplay, tv, vl (line-in)",
+   "domains": "Collected filename vocabulary, not a complete module/domain registry: anacapa.log (main), alarm.job, avt.play (AVTransport playback), chsrc.state (CHSRC source bus), dc (direct control?), ext.audio.action, gm.events (GroupManagement), hdmi, ht (home-theatre), hw.events, lechmere.event (WSS channel), musecmdandrsp (muse request/response trace!), musedebug, museevt (muse events), rc.upnp, snf, spotify.debug, spotify, sps, trueplay, tv, vl (line-in)",
    "siblings": "btmanager, btservice, chronyd, dropbear, ledmgr.debug, mdnsd, netstartd, sddpd, sonosledmgrd, udhcpc, wacd, wpa_supplicant",
    "todo": [
-    "Residual: per-domain call-site census (each of the ~160 domains' emit sites is mechanical xref of f_109b6fe4; the domain vocabulary itself is now fully enumerated)."
+    "Established: gate/emitter signatures, backend callback dispatch, configured trace selections and concrete literal call-site pairs. The earlier complete-domain count and filename-to-writer assumptions are withdrawn. Remaining work is a verified complete per-domain gate/emitter census, including register/stack-loaded arguments, cold blocks and indirect control-flow edges, followed by binding domain lookup/emission callbacks to their sink registration/configuration consumers. Use actual call targets and stack prologues plus .eh_frame ranges, propagate arguments through wrappers, and validate every unresolved site against raw code; the repaired shareindex and large-frame ttm_helper cases show why inferred function boundaries and partial constant propagation do not certify a total. No complete replacement count is asserted."
    ],
    "resolved_findings": [
-    "Resolved: domain-to-writer map - each anacapa.*.log domain is written by the module sharing its name (avt.play=avt_impl, gm.events=gm_impl, rc.upnp=rc_impl, chsrc.state=chsrc, lechmere.event=lechmere, ht=htaudio, ext.audio.action=extaudiosrc, spotify{,.debug}=spotify_esdk, trueplay=trueplay_tuning, vl=vli, muse{cmdandrsp,evt,debug}=muse, snf=sniffer, sps=spotify session, dc=direct-control, hw.events=hw events, alarm.job=alarm); sibling-daemon logs {netstartd,dropbear,chronyd,sonosledmgrd,ledmgr,sddpd,udhcpc,wacd,wpa_supplicant} are out-of-process.",
-    "Literal block at 0x10e75434 proven to be the diagnostic-collection file manifest: the 21 /opt/log/anacapa.*.log paths sit contiguous with /jffs/upgrade_prev.log, /jffs/upgrade_tmp_prev.log, /jffs/watchdog.dmesg, /jffs/watchdog.log and the sibling-daemon logs (chronyd, dropbear, ledmgr.debug, netstartd, ...) - i.e. the set of files a diagnostic submission tars up. The full anacapa domain list is: alarm.job, avt.play, chsrc.state, dc, ext.audio.action, gm.events, ht, hw.events, lechmere.event, musecmdandrsp, musedebug, museevt, rc.upnp, snf, spotify.debug, spotify, sps, trueplay, vl (plus the main anacapa.log). Domain literals have zero code xrefs - they are consumed through the manifest table, not per-module registration sites, so the domain->writer map cannot be recovered by literal xref; writers hold domain handles obtained at logging init.",
-    "Resolved: the domain-to-writer binding mechanism is a per-subsystem strcmp/strncmp name ladder, not a single global table - f_107f4808 maps the mixer family's domains: 'formatter'/'llaout' select formatter f_107f4914, 'dspout'/'mzdsp' (strncmp prefix 5-6) select f_107f4940, and 'mixer'/'mixerout'/'mixerstats'/'as-dspin-tv'/'as-dspout-tv' select f_107f4b00.",
-    "Resolved (internal trace-domain vocabulary, shipped /opt/conf/anacapa.conf DiagLevel keys): the trace domain names are config-visible, proving them canonical: dc.trace {muse,cloudqueue,spot,spot_abr,spot_q,spot_hal,museauth}, ht.trace {tv_proc,spdif,liblla_input,lla_in_tv,alsa_in_tv,ht_config,htaudio,mixsat,htsat_tx,mixgm,htmesh_tx,autoplay_tv,nsd,decoderset,decoder_pcm,ddlic,dlbdec,dts,dlbdap,dlbdmx,dolbyOAR,UDCSubParams,udcdecoder,timesync,tv_asrc,tv-proc-as,tv-sat-as,tv-dm-as,tv-hp-as}, vl.trace {wake}, trueplay.trace {trueplay_calibration_manager,trueplay_tuning_handler,trueplay_channel_config_handler}, snf.trace {advert,upnpeventing,ana_http,arpchecker,association,assoctracker}. These are the registration-table domain names (written to anacapa.*.trace files, distinct from the *.log collection sinks) - the decoder-side names for the domain handles.",
-    "Resolved: the log-domain vocabulary is enumerable at the gate call f_109b6fe4(domain_name, level) - census of all 168 literal names: {ac_impl, accountsfile, accountsmgr, advert, afifo, ana_server, ap_module, areas, arpchecker, as-dspin, assoctracker, async_http_client, ata, atomtable, audioclip, audiotap_manager, autoplay_tv, avt, avt_impl, bt_audio, buttons, certval, chsnk, chsrc, cloud_registration, cloudqueue, cloudrequest, cprovider, dapst, data, dataio, dcm, decoder_pcm, default, devmode, dns, dolby_utils, dp_impl, dp_zpimpl, dropout_event_logging, dsp_array, dsp_block, dsp_builder, dsp_config_manager, dsp_config_parser, dsp_file_loader, dts, duck, endpointSwitch, entmt, extaudiosrc, favorites, fcs, fdevent, featureconfig, fileio, flac, ftyp, gm_impl, grc, hhsettingsmgr, hlsaudio, household, householdsettings, ht_config, htaudio, htmesh_tx, htsat_tx, httpauth, ic_string, inprocess-events, internalevts, inverter_, iocompress, irdecode, itplist, jwt, lechmere, leds_zp, locSet, locSetUpdMgr, longpress, mdns, mdns-discover, mdns-listener, memlog, mntmgr, mod_zp, mp, mp3, mpeg4, mpvlictrl, muse, muse_token_inspector, museadvertiser, museauth, musicservices, netsettings, noderx, normal, orient, perf-counters, policy, rc_impl, regcert, register, reporting, repset, rest, room_detection_send, rootcerts_download, rxhang, satsw, savedqueues, shadowdir, shadrepl, smartplay, sntp, sntppoll, socket, sonoscp_crypto, sound_device, sound_swap, spdif, spot, spot_abr, spot_hal, spot_q, spotifyzc, ssh, ssl, ssl_client_cache, ssl_server_certs, svcmanifest, thermal, timedjobmanager, timers_impl, timerstorage, timesync, tokencache, topology, topology_events_report, tpm, tqueue, trueplay_calibration_manager, trueplay_calibration_parser, trueplay_dp, trueplay_tuning_handler, trueplay_version, tsclient, tv_proc, udcdecoder, unlock, upnpeventing, usagemetrics, vli, vorbis_dec, watchdog, watchdoghelper, wav, websocketclient, wma, wmadec, zonesmgr, zonesstorage, zp, zp_device, zpsa}. Each site logs via the paired emitter f_109b72ac when the gate passes. Domains are namespaced strings, not handles - the writer census is therefore complete at the domain level; residual narrowed to per-domain call-site count only."
+    "The filename block beginning 0x10e75434 contains diagnostic collection paths, not a per-domain writer table. Similarity between an anacapa.*.log filename and a source-module name does not establish a binding. The previous exhaustive 168-domain claim and same-name domain-to-file map are withdrawn; the image has additional directly verified gate names such as ai_impl_base, mpmgr and mp_autoplay.",
+    "Logging gate f_109b6fe4 saves domain r3 and level r4, obtains its backend context through f_109b6ef0, invokes the lookup callback at context+4 with userdata context+0x24, and compares the returned descriptor word with the requested level. Emitter f_109b72ac takes the domain at r4, level at r5 and format at r6, constructs varargs and calls f_109b706c. That worker ignores a zero gate argument; otherwise it attaches timestamps and the domain/level/format/arguments to a record and invokes backend context+0 with context+0x24 userdata. This is a callback-based logging boundary, not proof of a TCP protocol or a fixed file for every module.",
+    "Verified non-exhaustive gate/emitter pairs: ai_impl_base literal 0x10eacdd4 -> 0x102926f4/0x10292718; mpmgr literal 0x10ecb874 -> 0x1040d3c8/0x1040d3ec; mp_autoplay literal 0x10ecb4c8 -> 0x10405af4/0x10405b2c. The first call in each pair supplies the literal to gate r3; the guarded emitter supplies the same string to r4. These counterexamples invalidate the earlier claimed complete name list without substituting an unverified total.",
+    "The shipped opt/conf/anacapa.conf explicitly associates DiagFile trace sinks with DiagLevel name/level lists: dc.trace selects muse/cloudqueue/spot families; ht.trace selects TV, decoder and home-theatre domains; vl.trace selects wake; trueplay.trace selects three calibration/tuning/channel-config names; snf.trace selects advert/upnpeventing/ana_http/arpchecker/association/assoctracker. These are configured trace selections, not evidence that all domain emit sites or .log writers have been enumerated.",
+    "Boundary correction for census work: use real call targets, stack-frame prologues (including large-frame stwux), and available .eh_frame FDE ranges rather than every inferred post-return function-map entry. False split 0x10103020 is a branch back into its enclosing function; the adjacent shareindex log block at 0x10103024 remains reachable from that function. The large-frame entry at 0x100d598c sets up stwux at 0x100d599c before the ttm_helper gate at 0x100d5aa8; treating it as part of the preceding small-frame function loses that block. Both examples were rechecked after replacing those boundaries. Remaining unknown arguments or unvisited blocks in a partial constant-propagation pass are analysis residuals, not proof of runtime-only names.",
+    "f_107f4808 contains string-based subobject selection, not a global log-to-file registry: formatter/llaout reaches object+0x3c8 and f_10d58614 at 0x107f493c; mixerstats returns object+0x188; dspout/mzdsp use a separate branch and object callback. No complete log sink binding follows from those string comparisons."
    ]
   },
   "media_player_abstraction": {
