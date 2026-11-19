@@ -63544,7 +63544,7 @@
      ]
     },
     "RemoveAllTracks": {
-     "description": "Removes all tracks from the queue identified by QueueID: explicit-id twin of AVTransport.RemoveAllTracksFromQueue; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x18](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+     "description": "Clears every track of the selected queue by submitting a clear-queue request to the session, with optional UpdateID concurrency check. Chain: wrapper f_10464908 parses QueueID and UpdateID as u32 (0x10464950, 0x10464974), faults 402 on parse failure (0x10464a00) and calls qm->v[+0x18](qm, QueueID, UpdateID, &NewUpdateID) at 0x104649b0; qm vtable 0x10ed1bcc slot +0x18 is f_10465a74, which tail-branches to f_102b3a84 with the engine *(qm+0x128). f_102b3a84 locks engine+0x458 (0x102b3acc); queue selection formats QueueID with '%u' and compares it with the ID strings of the two session queue records s+0x2d890 and s+0x2ff98 (s=*(engine+0x580)); no match returns 718 (0x102b3b88); f_10149b24(q, &cur, &len, 0) reads the queue's current UpdateID and u16 length; a nonzero UpdateID argument that differs from cur returns 1028, UpdateID 0 skips the check (0x102b3b40, 0x102b3be0); it then calls f_102b397c(engine, q) (0x102b3b54) and on rc 0 re-reads the UpdateID into NewUpdateID (0x102b3b78/0x102b3b80) before unlocking (0x102b3b90). f_102b397c returns 800 unless engine mode engine+0x4654 is 1 or 2 (0x102b39ac), builds a clear request with f_1032e270 and f_1032e47c(req, kind) using request kind 1 for s+0x2d890 and 2 for s+0x2ff98 (kind 0 for s+0x2b188 and 4 otherwise are coded but unreachable from this selection) (0x102b3a20), submits it to the session with f_10255f64 (0x102b3a2c), returns 800 if the submit fails (0x102b3a40), and on success clears engine+0x6ed8 when f_1014708c(engine+0x5dc) is nonzero (0x102b3a64) and returns 0.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10464908",
@@ -63580,7 +63580,7 @@
      },
      "inputs": {
       "QueueID": {
-       "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
+       "description": "decimal ID of one of the two session queues; unknown ID returns 718",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -63619,19 +63619,24 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "engine queue-table lookup"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b3a84",
+         "address": "0x102b3b88",
+         "notes": "li r28,0x2ce"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `QueueID` is parsed then forwarded verbatim to r5-in vfunc +24 (site 0x104649b0) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `QueueID` = verbatim forward to impl vfunc +24 (obj r5-in, call site 0x104649b0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `QueueID` = verbatim forward to impl vfunc +24 (obj r5-in, call site 0x104649b0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: passed as r4 to f_102b3a84; queue selection formats QueueID with '%u' and compares it with the ID strings of the two session queue records s+0x2d890 and s+0x2ff98 (s=*(engine+0x580)); no match returns 718 (0x102b3b88)."
        ]
       },
       "UpdateID": {
-       "description": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
+       "description": "expected current UpdateID, or 0 to skip the check; mismatch returns 1028",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -63670,21 +63675,26 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "engine worker checks"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b3a84",
+         "address": "0x102b3be0",
+         "notes": "li r28,0x404"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `UpdateID` is parsed then forwarded verbatim to r5-in vfunc +24 (site 0x104649b0) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +24 (obj r5-in, call site 0x104649b0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +24 (obj r5-in, call site 0x104649b0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: passed as r5 (kept in r27); f_10149b24(q, &cur, &len, 0) reads the queue's current UpdateID and u16 length; a nonzero UpdateID argument that differs from cur returns 1028, UpdateID 0 skips the check (0x102b3b44, 0x102b3be0)."
        ]
       }
      },
      "outputs": {
       "NewUpdateID": {
-       "description": "Written by the queue-manager impl on success.",
+       "description": "queue UpdateID read right after the clear request was submitted",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -63720,12 +63730,19 @@
          "build": "86.10-80260",
          "function": "0x10479bb4",
          "notes": "update counter decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b3a84",
+         "address": "0x102b3b80",
+         "notes": "stw r9,0(r26)"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewUpdateID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: after f_102b397c returns 0, f_102b3a84 calls f_10149b24(q, &cur, ...) again (0x102b3b78) and stores cur through the output pointer (0x102b3b80); the wrapper emits it with f_1055fcbc (0x10464a24). The value is read immediately after the submit returns."
        ]
       }
      },
@@ -63742,7 +63759,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x18]",
+      "description": "known QueueID, matching or zero UpdateID, transport mode 1 or 2",
       "evidence": [
        {
         "type": "firmware",
@@ -63750,15 +63767,22 @@
         "build": "86.10-80260",
         "function": "0x10464908",
         "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b397c",
+        "address": "0x102b39ac",
+        "notes": "cmplwi mode-1,1"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: QueueID names one of the two session queues (else 718), UpdateID is 0 or current (else 1028), engine mode is 1 or 2 (else 800), and the session accepts the request (else 800)."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x18]",
+      "description": "queue ID strings and UpdateID, engine mode, engine+0x5dc",
       "evidence": [
        {
         "type": "firmware",
@@ -63766,11 +63790,18 @@
         "build": "86.10-80260",
         "function": "0x10464908",
         "notes": "member vfunc calls: ['r30 v[+0x18]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b397c",
+        "address": "0x102b3994",
+        "notes": "lwz r9,0x4654(r3)"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: reads the session queue records s+0x2d890/s+0x2ff98 (ID strings, UpdateID via f_10149b24), engine mode engine+0x4654, and f_1014708c(engine+0x5dc)."
       ]
      },
      "side_effects": [
@@ -63783,11 +63814,22 @@
          "build": "86.10-80260",
          "function": "0x10464908",
          "notes": "delegate map ['r30 v[+0x18]']; notify-family calls []"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b397c",
+         "address": "0x102b3a2c",
+         "notes": "bl f_10255f64"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x18] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: the action submits one clear-queue request and may zero engine+0x6ed8.",
+        "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
+       ],
+       "resolved_findings": [
+        "Resolved (engine side): the only effects in the traced code are the clear request (f_1032e47c kind 1 or 2) submitted with f_10255f64 at 0x102b3a2c and the conditional store of 0 to engine+0x6ed8 at 0x102b3a64; no notify call is made directly in f_10464908, f_102b3a84 or f_102b397c."
        ]
       }
      ],
@@ -63800,11 +63842,22 @@
         "build": "86.10-80260",
         "function": "0x10464908",
         "notes": "bl call scan: notify-family sites = []"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b397c",
+        "address": "0x102b3a2c",
+        "notes": "bl f_10255f64"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the action submits one clear-queue request and may zero engine+0x6ed8.",
+       "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
+      ],
+      "resolved_findings": [
+       "Resolved (engine side): the only effects in the traced code are the clear request (f_1032e47c kind 1 or 2) submitted with f_10255f64 at 0x102b3a2c and the conditional store of 0 to engine+0x6ed8 at 0x102b3a64; no notify call is made directly in f_10464908, f_102b3a84 or f_102b397c."
       ]
      },
      "state_transitions": {
@@ -63816,15 +63869,26 @@
         "build": "86.10-80260",
         "function": "0x10464908",
         "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x18]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b397c",
+        "address": "0x102b3a2c",
+        "notes": "bl f_10255f64"
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the action submits one clear-queue request and may zero engine+0x6ed8.",
+       "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
+      ],
+      "resolved_findings": [
+       "Resolved (engine side): the only effects in the traced code are the clear request (f_1032e47c kind 1 or 2) submitted with f_10255f64 at 0x102b3a2c and the conditional store of 0 to engine+0x6ed8 at 0x102b3a64; no notify call is made directly in f_10464908, f_102b3a84 or f_102b397c."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "0 with NewUpdateID, or fault 718/1028/800",
       "evidence": [
        {
         "type": "firmware",
@@ -63832,11 +63896,18 @@
         "build": "86.10-80260",
         "function": "0x10464908",
         "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b3a84",
+        "address": "0x102b3b94",
+        "notes": "mr r3,r28"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: f_102b3a84 returns 718, 1028, or the f_102b397c result (800 or 0); 0 commits NewUpdateID, nonzero faults through req->v[+0x14]."
       ]
      },
      "fault_sites": [
@@ -63850,7 +63921,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x18)",
-       "meaning": "worker f_102b3a84: r28 accumulator arg-seeded (r4) + literal {718 (0x102b3b88), 1028 (0x102b3be0)}; AVT session lock pair wraps the op",
+       "meaning": "718 unknown QueueID, 1028 UpdateID mismatch, 800 transport mode not 1/2 or request submit failure",
        "fault_sites": [
         "0x104649cc"
        ],
@@ -63910,6 +63981,14 @@
          "build": "86.10-80260",
          "address": "0x102b3acc",
          "notes": "f_10557cac session lock acquire"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b397c",
+         "address": "0x102b3a40",
+         "notes": "li r3,0x320"
         }
        ],
        "unresolved": {
@@ -63961,9 +64040,8 @@
         300,
         718
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x18); sites: 0x104649cc).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: exit set of f_102b3a84 is {718 (0x102b3b88), 1028 (0x102b3be0), f_102b397c rc}; f_102b397c returns only 800 (0x102b39a4, 0x102b3a40) or 0 (0x102b3a68)."
        ]
       },
       {
@@ -64014,16 +64092,39 @@
        "build": "86.10-80260",
        "address": "0x10ed1a34",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10464908",
+       "address": "0x104649b0",
+       "notes": "qm->v[+0x18]"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b3a84",
+       "address": "0x102b3b54",
+       "notes": "bl f_102b397c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b397c",
+       "address": "0x102b3a20",
+       "notes": "f_1032e47c clear request"
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10464908; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "Resolved: the impl chain is fully static. wrapper f_10464908 parses QueueID and UpdateID as u32 (0x10464950, 0x10464974), faults 402 on parse failure (0x10464a00) and calls qm->v[+0x18](qm, QueueID, UpdateID, &NewUpdateID) at 0x104649b0; qm vtable 0x10ed1bcc slot +0x18 is f_10465a74, which tail-branches to f_102b3a84 with the engine *(qm+0x128). f_102b3a84 locks engine+0x458 (0x102b3acc); queue selection formats QueueID with '%u' and compares it with the ID strings of the two session queue records s+0x2d890 and s+0x2ff98 (s=*(engine+0x580)); no match returns 718 (0x102b3b88); f_10149b24(q, &cur, &len, 0) reads the queue's current UpdateID and u16 length; a nonzero UpdateID argument that differs from cur returns 1028, UpdateID 0 skips the check (0x102b3b40, 0x102b3be0); it then calls f_102b397c(engine, q) (0x102b3b54) and on rc 0 re-reads the UpdateID into NewUpdateID (0x102b3b78/0x102b3b80) before unlocking (0x102b3b90). f_102b397c returns 800 unless engine mode engine+0x4654 is 1 or 2 (0x102b39ac), builds a clear request with f_1032e270 and f_1032e47c(req, kind) using request kind 1 for s+0x2d890 and 2 for s+0x2ff98 (kind 0 for s+0x2b188 and 4 otherwise are coded but unreachable from this selection) (0x102b3a20), submits it to the session with f_10255f64 (0x102b3a2c), returns 800 if the submit fails (0x102b3a40), and on success clears engine+0x6ed8 when f_1014708c(engine+0x5dc) is nonzero (0x102b3a64) and returns 0. In plain terms: RemoveAllTracks checks the queue exists and its UpdateID matches, refuses unless the transport is in mode 1 or 2, and asks the session to clear that queue, returning the queue's UpdateID after the request."
      ]
     },
     "RemoveTrackRange": {
-     "description": "Removes a contiguous range from QueueID: explicit-id twin of AVTransport.RemoveTrackRangeFromQueue (same 1-based UpdateID concurrency family); returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x1c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+     "description": "Removes tracks StartingIndex..StartingIndex+NumberOfTracks-1 (1-based, inclusive) from the selected queue by submitting a remove-range request to the session. Chain: wrapper f_10464a44 parses QueueID, UpdateID, StartingIndex and NumberOfTracks as u32 (0x10464a8c, 0x10464ab0, 0x10464ad4, 0x10464af8), faults 402 on parse failure (0x10464b8c) and calls qm->v[+0x1c](qm, QueueID, UpdateID, StartingIndex, NumberOfTracks, &NewUpdateID) at 0x10464b3c; qm vtable slot +0x1c is f_10465a84, which tail-branches to f_102b3954 with the engine *(qm+0x128). f_102b3954 returns 402 when StartingIndex or NumberOfTracks is 0 (0x102b3954, 0x102b396c) and otherwise tail-branches to f_102aca78 (0x102b3978). f_102aca78 locks engine+0x458 (0x102acad0); queue selection formats QueueID with '%u' and compares it with the ID strings of the two session queue records s+0x2d890 and s+0x2ff98 (s=*(engine+0x580)); no match returns 718 (0x102acc24); f_10149b24(q, &cur, &len, 0) reads the queue's current UpdateID and u16 length; a nonzero UpdateID argument that differs from cur returns 1028, UpdateID 0 skips the check (0x102acb44, 0x102acc84); it computes last = StartingIndex + NumberOfTracks - 1 in 32 bits and returns 402 when the u16 queue length is below last (0x102acb5c/0x102acb64); it returns 800 unless engine mode is 1 or 2 (0x102acb78); it builds f_1032e45c(req, kind, (u16)StartingIndex, (u16)last) with request kind 1 for s+0x2d890 and 2 for s+0x2ff98 (kind 0 for s+0x2b188 and 4 otherwise are coded but unreachable from this selection) (0x102acbc4), submits it with f_10255f64 (0x102acbd4) and returns 800 if that fails; on success it stores the re-read UpdateID in NewUpdateID (0x102acbfc), clears engine+0x6ed8 when f_1014708c(engine+0x5dc) is nonzero (0x102acc10) and returns 0 after unlocking (0x102acc2c).",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10464a44",
@@ -64059,7 +64160,7 @@
      },
      "inputs": {
       "QueueID": {
-       "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
+       "description": "decimal ID of one of the two session queues; unknown ID returns 718",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -64098,19 +64199,24 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "engine queue-table lookup"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acc24",
+         "notes": "li r28,0x2ce"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `QueueID` is parsed then forwarded verbatim to r5-in vfunc +28 (site 0x10464b3c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `QueueID` = verbatim forward to impl vfunc +28 (obj r5-in, call site 0x10464b3c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `QueueID` = verbatim forward to impl vfunc +28 (obj r5-in, call site 0x10464b3c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: passed as r4 to f_102aca78; queue selection formats QueueID with '%u' and compares it with the ID strings of the two session queue records s+0x2d890 and s+0x2ff98 (s=*(engine+0x580)); no match returns 718 (0x102acc24)."
        ]
       },
       "UpdateID": {
-       "description": "Optimistic-concurrency token; nonzero must match the queue's current update-id (family convention; 0 skips).",
+       "description": "expected current UpdateID, or 0 to skip the check; mismatch returns 1028",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -64149,19 +64255,24 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "engine worker checks"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acc84",
+         "notes": "li r28,0x404"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `UpdateID` is parsed then forwarded verbatim to r5-in vfunc +28 (site 0x10464b3c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +28 (obj r5-in, call site 0x10464b3c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +28 (obj r5-in, call site 0x10464b3c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: passed as r5 (kept in r27); f_10149b24(q, &cur, &len, 0) reads the queue's current UpdateID and u16 length; a nonzero UpdateID argument that differs from cur returns 1028, UpdateID 0 skips the check (0x102acb48, 0x102acc84)."
        ]
       },
       "StartingIndex": {
-       "description": "Forwarded to the queue-manager impl vfunc.",
+       "description": "1-based index of the first track to remove; 0 returns 402",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -64200,19 +64311,24 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "engine worker validation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acbbc",
+         "notes": "rlwinm r5,r25,0,16,31"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `StartingIndex` is parsed then forwarded verbatim to r5-in vfunc +28 (site 0x10464b3c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `StartingIndex` = verbatim forward to impl vfunc +28 (obj r5-in, call site 0x10464b3c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `StartingIndex` = verbatim forward to impl vfunc +28 (obj r5-in, call site 0x10464b3c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: 0 returns 402 in f_102b3954 (0x102b3954); it is the first index of the inclusive range, the end being StartingIndex+NumberOfTracks-1 checked against the u16 queue length (0x102acb54..0x102acb64), and it is truncated to 16 bits when placed in the request (rlwinm at 0x102acbbc). The bound check is done on the untruncated 32-bit sum, which can wrap for very large values."
        ]
       },
       "NumberOfTracks": {
-       "description": "Forwarded to the queue-manager impl vfunc.",
+       "description": "count of tracks to remove; 0 or a range past the queue end returns 402",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -64251,21 +64367,26 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "engine worker validation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acb60",
+         "notes": "cmplw len,last"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `NumberOfTracks` is parsed then forwarded verbatim to r5-in vfunc +28 (site 0x10464b3c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `NumberOfTracks` = verbatim forward to impl vfunc +28 (obj r5-in, call site 0x10464b3c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `NumberOfTracks` = verbatim forward to impl vfunc +28 (obj r5-in, call site 0x10464b3c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: 0 returns 402 in f_102b3954 (0x102b396c); last = StartingIndex + NumberOfTracks - 1 must not exceed the u16 queue length read by f_10149b24, else 402 (0x102acb64); the request carries (u16)last (0x102acbb8)."
        ]
       }
      },
      "outputs": {
       "NewUpdateID": {
-       "description": "Written by the queue-manager impl on success.",
+       "description": "queue UpdateID read right after the remove request was submitted",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -64301,12 +64422,19 @@
          "build": "86.10-80260",
          "function": "0x10479bb4",
          "notes": "update counter decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acbfc",
+         "notes": "stw r9,0(r24)"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewUpdateID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: after a successful submit f_102aca78 calls f_10149b24(q, &cur, ...) (0x102acbf0) and stores cur through the output pointer (0x102acbfc); the wrapper emits it with f_1055fcbc (0x10464bb0)."
        ]
       }
      },
@@ -64323,7 +64451,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x1c]",
+      "description": "nonzero in-range track range, known QueueID, matching or zero UpdateID, transport mode 1 or 2",
       "evidence": [
        {
         "type": "firmware",
@@ -64331,15 +64459,22 @@
         "build": "86.10-80260",
         "function": "0x10464a44",
         "notes": "req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acb78",
+        "notes": "mode gate"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: StartingIndex and NumberOfTracks nonzero (else 402), known QueueID (else 718), UpdateID 0 or current (else 1028), last index within the queue length (else 402), engine mode 1 or 2 (else 800), and a successful submit (else 800)."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x1c]",
+      "description": "queue ID strings, UpdateID and length, engine mode, engine+0x5dc",
       "evidence": [
        {
         "type": "firmware",
@@ -64347,11 +64482,18 @@
         "build": "86.10-80260",
         "function": "0x10464a44",
         "notes": "member vfunc calls: ['r30 v[+0x1c]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acb68",
+        "notes": "lwz r9,0x4654(r30)"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: reads the session queue records s+0x2d890/s+0x2ff98 (ID strings, UpdateID and length via f_10149b24), engine mode engine+0x4654 and f_1014708c(engine+0x5dc)."
       ]
      },
      "side_effects": [
@@ -64364,11 +64506,22 @@
          "build": "86.10-80260",
          "function": "0x10464a44",
          "notes": "delegate map ['r30 v[+0x1c]']; notify-family calls []"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acbd4",
+         "notes": "bl f_10255f64"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x1c] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: the action submits one remove-range request and may zero engine+0x6ed8.",
+        "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
+       ],
+       "resolved_findings": [
+        "Resolved (engine side): the only effects in the traced code are the remove-range request (f_1032e45c kind 1 or 2, u16 first and last index) submitted with f_10255f64 at 0x102acbd4 and the conditional store of 0 to engine+0x6ed8 at 0x102acc10; no notify call is made directly in f_10464a44, f_102b3954 or f_102aca78."
        ]
       }
      ],
@@ -64381,11 +64534,22 @@
         "build": "86.10-80260",
         "function": "0x10464a44",
         "notes": "bl call scan: notify-family sites = []"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acbd4",
+        "notes": "bl f_10255f64"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the action submits one remove-range request and may zero engine+0x6ed8.",
+       "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
+      ],
+      "resolved_findings": [
+       "Resolved (engine side): the only effects in the traced code are the remove-range request (f_1032e45c kind 1 or 2, u16 first and last index) submitted with f_10255f64 at 0x102acbd4 and the conditional store of 0 to engine+0x6ed8 at 0x102acc10; no notify call is made directly in f_10464a44, f_102b3954 or f_102aca78."
       ]
      },
      "state_transitions": {
@@ -64397,15 +64561,26 @@
         "build": "86.10-80260",
         "function": "0x10464a44",
         "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x1c]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acbd4",
+        "notes": "bl f_10255f64"
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the action submits one remove-range request and may zero engine+0x6ed8.",
+       "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
+      ],
+      "resolved_findings": [
+       "Resolved (engine side): the only effects in the traced code are the remove-range request (f_1032e45c kind 1 or 2, u16 first and last index) submitted with f_10255f64 at 0x102acbd4 and the conditional store of 0 to engine+0x6ed8 at 0x102acc10; no notify call is made directly in f_10464a44, f_102b3954 or f_102aca78."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "0 with NewUpdateID, or fault 402/718/1028/800",
       "evidence": [
        {
         "type": "firmware",
@@ -64413,11 +64588,18 @@
         "build": "86.10-80260",
         "function": "0x10464a44",
         "notes": "commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acc30",
+        "notes": "mr r3,r28"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: f_102b3954 returns 402 for a zero start or count; f_102aca78 returns 718, 1028, 402 (range), 800 (mode or submit) or 0; 0 commits NewUpdateID, nonzero faults through req->v[+0x14]."
       ]
      },
      "fault_sites": [
@@ -64431,7 +64613,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x1c)",
-       "meaning": "literal gate: r6==0 -> 402 (0x102b3960); else b-tail into worker at 0x102b396c (derived)",
+       "meaning": "402 zero StartingIndex/NumberOfTracks or range past queue end, 718 unknown QueueID, 1028 UpdateID mismatch, 800 transport mode not 1/2 or submit failure",
        "fault_sites": [
         "0x10464b58"
        ],
@@ -64484,6 +64666,14 @@
          "build": "86.10-80260",
          "address": "0x102b3954",
          "notes": "cmpwi r6,0 -> li r3,0x192 gate"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acb5c",
+         "notes": "li r28,0x192"
         }
        ],
        "unresolved": {
@@ -64535,9 +64725,8 @@
        "worker_literal_bound": [
         300
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x1c); sites: 0x10464b58).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: exit set is {402 (0x102b3960, 0x102acb5c), 718 (0x102acc24), 1028 (0x102acc84), 800 (0x102acb6c, 0x102acbd0), 0 (0x102acc14)}."
        ]
       },
       {
@@ -64588,12 +64777,35 @@
        "build": "86.10-80260",
        "address": "0x10ed1a40",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10464a44",
+       "address": "0x10464b3c",
+       "notes": "qm->v[+0x1c]"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b3954",
+       "address": "0x102b3978",
+       "notes": "b f_102aca78"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102aca78",
+       "address": "0x102acbc4",
+       "notes": "f_1032e45c remove-range request"
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10464a44; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "Resolved: the impl chain is fully static. wrapper f_10464a44 parses QueueID, UpdateID, StartingIndex and NumberOfTracks as u32 (0x10464a8c, 0x10464ab0, 0x10464ad4, 0x10464af8), faults 402 on parse failure (0x10464b8c) and calls qm->v[+0x1c](qm, QueueID, UpdateID, StartingIndex, NumberOfTracks, &NewUpdateID) at 0x10464b3c; qm vtable slot +0x1c is f_10465a84, which tail-branches to f_102b3954 with the engine *(qm+0x128). f_102b3954 returns 402 when StartingIndex or NumberOfTracks is 0 (0x102b3954, 0x102b396c) and otherwise tail-branches to f_102aca78 (0x102b3978). f_102aca78 locks engine+0x458 (0x102acad0); queue selection formats QueueID with '%u' and compares it with the ID strings of the two session queue records s+0x2d890 and s+0x2ff98 (s=*(engine+0x580)); no match returns 718 (0x102acc24); f_10149b24(q, &cur, &len, 0) reads the queue's current UpdateID and u16 length; a nonzero UpdateID argument that differs from cur returns 1028, UpdateID 0 skips the check (0x102acb44, 0x102acc84); it computes last = StartingIndex + NumberOfTracks - 1 in 32 bits and returns 402 when the u16 queue length is below last (0x102acb5c/0x102acb64); it returns 800 unless engine mode is 1 or 2 (0x102acb78); it builds f_1032e45c(req, kind, (u16)StartingIndex, (u16)last) with request kind 1 for s+0x2d890 and 2 for s+0x2ff98 (kind 0 for s+0x2b188 and 4 otherwise are coded but unreachable from this selection) (0x102acbc4), submits it with f_10255f64 (0x102acbd4) and returns 800 if that fails; on success it stores the re-read UpdateID in NewUpdateID (0x102acbfc), clears engine+0x6ed8 when f_1014708c(engine+0x5dc) is nonzero (0x102acc10) and returns 0 after unlocking (0x102acc2c). In plain terms: RemoveTrackRange needs a nonzero start and count whose last track is within the queue, a matching or zero UpdateID and transport mode 1 or 2, then asks the session to delete that inclusive range."
      ]
     },
     "ReorderTracks": {
