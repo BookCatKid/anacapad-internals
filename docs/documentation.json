@@ -145112,7 +145112,7 @@
    ]
   },
   "lechmere_wss": {
-   "summary": "lechmere.cxx cloud channel: RFC6455 WSS to lechmere.<env>.ws.sonos.com, negotiated subprotocol 'lechmere.<version>' (lechmere-v1 observed), inner TLV header layer ('failed to read lechmere header'), policy-key auth, app-level ping keepalive with 'TOO_MANY_UNACKED_PINGS' disconnect, and a full close-reason taxonomy driving reconnect decisions INNER FRAME FORMAT RECOVERED: 6-byte ASCII header {protocolVersion:2 chars, messageType:2 chars, extendedHeaderLength:2 chars} followed by extended header + payload (min frame len 6, checked cmpli 6 at f_105d539c). Parse errors 'Bad protocol version: %c%c', 'Bad message type: %c%c; %d', 'Bad extended header length: %c%c', 'could not recv extended header; expected %u read %u'. Message type validated via table lookup (f_11098e98 plt veneer); 2-char code registry AA..AK (.data 0x110941a4, 11 ptrs) dispatched via handler table built at f_10ac47fc region. Tunneled UPnP headers inside: 'x-sonos-method:', 'x-sonos-uri:', 'SOAPACTION:', 'X-Sonos-Udn'. Version str 'lechmere.%hhu%n'. AA..AK REGISTRATION DECODED: two consumers of the type table at 0x110941a4 found - f_10bd59xx walks entries 0..10 building records per code (2 lbz reads of each char, two calls to f_1082dfc0, entropy from mftb-based f_10809f0c, 0x100-byte alloc via plt 0x11098418); f_10bd65xx is a second walker (lwzu r28,[r22+4] over the table, counter 0..10) that strlen-checks each code (cmpli 0xf) and inserts it via f_10806d50 seeded with magic 0xc70f6907 (hash-table insert keyed on the 2-char code) building a per-code context record {+0,+4,+8,+c,+1c fields}. The codes are therefore a FIXED set of channel/stream identifiers registered into a keyed dispatch structure - they are not individually special-cased anywhere in code, so per-code semantics are data-driven (opaque map keys), which is the static-analysis ceiling for AA-AK message-type meaning. .got2 0x1108de34 points at the adjacent namespace/verb registry (0x110941d4). TWO-LETTER-CODE LAYER RESOLVED: the same keyed-map machinery used for AA..AK registration (f_10806d50 insert, seed 0xc70f6907) is consumed by f_1082dfc0 lookups in [Mm] ingestMigrationDataIntoBitFieldAry (0x10bd65xx-0x10bd6axx): migration/patch data is parsed as two-character tokens, each token hash-mapped to a field-id (<0xa, cmplwi 0xa) which sets bit 1<<fieldId in a bitfield array at ctx+0x98. So the two-letter-code alphabet is a shared field/channel registry: message-type codes (AA..AK) and migration field codes live in the same class of keyed dispatch structure. REGISTRATION LOOP FULLY DECODED (0x10bd65a4): the walker counter is bound at 0xa - only TEN codes (AA..AJ) are registered, each into a 0x24-byte record {code-str, len, loop-index at +0x1c} hash-inserted via f_10806d50/seed 0xc70f6907 then map-inserted via f_10bd6ec4; failures unwind through f_10807034 deletes. AA..AJ are the ten location-settings MIGRATION FIELD ids (bit positions 0-9 in ctx+0x98 bitfield); AK, the 11th table entry, is not a migration field - it belongs to a different channel role. Component tags recovered in the adjacent code: [Mg] settings manager, [Mm] locSetMigMgr migration manager (migrationmanager.cxx, keys __migration_data, __location_summation, _settings.json), [Pc] patch-completion ingest ([Pc] completePatchAttributeIngest() type mismatch [%s|%s|%u] vT[%d] aT[%d]), [Rq] request authz (isAuthorizedForNamespace, subvert-read/write guards), [Gp] group settings, [Vf] ValidationFailureMsg. NOTE: the 'uuuuubtnufr' table at 0x10e88fd4 is NOT a type map - it is a JSON escape table (control bytes -> \\u or named \\b\\t\\n\\f\\r) used by the attribute JSON emitter at 0x10a01xxx.; websocket permessage-deflate negotiation params {server_max_window_bits,client_max_window_bits,server_no_context_takeover,client_no_context_takeover} + parser errors 'unexpected parameter encountered'/'unexpected token encountered'",
+   "summary": "Lechmere carries cloud traffic over a negotiated WebSocket connection, with policy-key authentication, application keepalive and explicit close reasons. Its reader consumes an eight-byte ASCII hexadecimal header, not AA-AK message identifiers. The shared Muse subscription layer has a compiled 73-row topic registry and separately serializes event metadata and bodies. Topic names, message-type names and payload schemas are different contracts; the complete per-topic body producer map remains unresolved.",
    "anchors": [
     "websocket_lechmere",
     "lechmere.event",
@@ -145173,16 +145173,6 @@
      "notes": "SONOS_CLIENT_TOO_MANY_UNACKED_PINGS: app-level keepalive"
     },
     {
-     "type": "disassembly",
-     "locator": "0x105d52e0-0x105d55c4",
-     "note": "frame reader: 8B ASCII-hex hdr (ver/type/extlen), bounded enums, ext-header read"
-    },
-    {
-     "type": "disassembly",
-     "locator": "0x105d58a4-0x105d58d8",
-     "note": "upgrade-response parse: Sec-WebSocket-Protocol echo + Date: header for clock"
-    },
-    {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
@@ -145216,6 +145206,118 @@
      "build": "86.10-80260",
      "address": "0x10ef63e0",
      "notes": "lechmere.cxx literal block: frame header fields, headers, conn event keys, error vocabulary"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105d52e0",
+     "address": "0x105d53a8",
+     "notes": "Capacity comparison at 0x105d52e8 and branch 0x105d533c; request size 8 at 0x105d53a8, exact-read comparison 0x105d540c. sscanf version/type/length at 0x105d548c/0x105d54f8/0x105d5574. Raw 0x40bdffb4 at 0x105d54e4 decodes ble, not a version==6 gate. Type upper-bound bgt at 0x105d5558. Empty extension path 0x105d5640; exact nonempty read comparison 0x105d55f8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10098d34",
+     "address": "0x10098d34",
+     "notes": "Straight-line initializer writes 73*20 bytes at 0x110b8ce8. mtctr r5=60 at 0x10098dcc, mfctr r19 at 0x10099040/0x10099160 and mfctr r18 at 0x100996e4 affect later stores; ignoring these transfers produces corrupt ids. Final row stores at 0x10099920-0x10099964. Message-id/name resolver entry 0x109ecb5c indexes 0x10f97094 through id 0x146."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109e10d8",
+     "address": "0x109e1114",
+     "notes": "Signed subtype comparisons at 0x109e10ec-0x109e1144; tag equality at 0x109e1148-0x109e1160 applies to subtype 0 or 1. Found id at 0x109e1164; not-found 0x4a at 0x109e1170. Subscription/renew callers 0x1068ed3c/0x1068f044/0x1068e6e0; WSS rejection at 0x1068f0e0 and invalid namespace at 0x1068f05c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109e98c4",
+     "address": "0x106c2888",
+     "notes": "Concrete sender call. Event+0xc raw-versus-typed dispatch at 0x109e98d0; raw emitter 0x109f6d7c copies pointer event+8/length+0xc through writer slot +8 at 0x109f6e30. Null/nonzero raw input exception path 0x109f6ef4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f6f0c",
+     "address": "0x109f6f64",
+     "notes": "Typed emitter uses producer object event+4 from 0x109f6fbc, checks nonnull at 0x109f6f44 and invokes producer virtual +8 with writer/flag at 0x109f6f64. Empty producer skips the call but retains opening/closing object. Format-4/5 gate 0x109f6f28-0x109f6f38; closing array at 0x109f6f84; return writer status at 0x109f6f98."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f6bc4",
+     "address": "0x109f6c0c",
+     "notes": "Common metadata fields namespace at 0x109f6c0c, apiVersion 0x109f6cf0, response/success 0x109f6c40/0x109f6c54, type 0x109f6c70, cmdId 0x109f6c8c, async 0x109f6cac and event name via corrected registry accessor 0x109f6d0c. Additional source/target metadata delegated to f_109f6b40. These are envelope fields, not event body schemas."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10bd64f8",
+     "address": "0x10bd65a4",
+     "notes": "AA-AK table reference is in migration initialization, not the audited Lechmere frame reader. f_105d52e0 obtains type by sscanf at 0x105d54f8 and bounds it at 0x105d5554; it neither indexes this table nor uses its strings as wire types."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105d52e0",
+     "address": "0x105d53a8",
+     "notes": "Capacity comparison at 0x105d52e8 and branch 0x105d533c; request size 8 at 0x105d53a8, exact-read comparison 0x105d540c. sscanf version/type/length at 0x105d548c/0x105d54f8/0x105d5574. Raw 0x40bdffb4 at 0x105d54e4 decodes ble, not a version==6 gate. Type upper-bound bgt at 0x105d5558. Empty extension path 0x105d5640; exact nonempty read comparison 0x105d55f8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10098d34",
+     "address": "0x10098d34",
+     "notes": "Straight-line initializer writes 73*20 bytes at 0x110b8ce8. mtctr r5=60 at 0x10098dcc, mfctr r19 at 0x10099040/0x10099160 and mfctr r18 at 0x100996e4 affect later stores; ignoring these transfers produces corrupt ids. Final row stores at 0x10099920-0x10099964. Message-id/name resolver entry 0x109ecb5c indexes 0x10f97094 through id 0x146."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109e10d8",
+     "address": "0x109e1114",
+     "notes": "Signed subtype comparisons at 0x109e10ec-0x109e1144; tag equality at 0x109e1148-0x109e1160 applies to subtype 0 or 1. Found id at 0x109e1164; not-found 0x4a at 0x109e1170. Subscription/renew callers 0x1068ed3c/0x1068f044/0x1068e6e0; WSS rejection at 0x1068f0e0 and invalid namespace at 0x1068f05c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109e98c4",
+     "address": "0x106c2888",
+     "notes": "Concrete sender call. Event+0xc raw-versus-typed dispatch at 0x109e98d0; raw emitter 0x109f6d7c copies pointer event+8/length+0xc through writer slot +8 at 0x109f6e30. Null/nonzero raw input exception path 0x109f6ef4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f6f0c",
+     "address": "0x109f6f64",
+     "notes": "Typed emitter uses producer object event+4 from 0x109f6fbc, checks nonnull at 0x109f6f44 and invokes producer virtual +8 with writer/flag at 0x109f6f64. Empty producer skips the call but retains opening/closing object. Format-4/5 gate 0x109f6f28-0x109f6f38; closing array at 0x109f6f84; return writer status at 0x109f6f98."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f6bc4",
+     "address": "0x109f6c0c",
+     "notes": "Common metadata fields namespace at 0x109f6c0c, apiVersion 0x109f6cf0, response/success 0x109f6c40/0x109f6c54, type 0x109f6c70, cmdId 0x109f6c8c, async 0x109f6cac and event name via corrected registry accessor 0x109f6d0c. Additional addressed-header entries delegated to f_109f6b40. These are envelope fields, not event body schemas."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10bd64f8",
+     "address": "0x10bd65a4",
+     "notes": "AA-AK table reference is in migration initialization, not the audited Lechmere frame reader. f_105d52e0 obtains type by sscanf at 0x105d54f8 and bounds it at 0x105d5554; it neither indexes this table nor uses its strings as wire types."
     }
    ],
    "endpoint": "lechmere.%s.ws.sonos.com: %s is the region/env token; Sec-WebSocket-Protocol: lechmere.%u",
@@ -145225,15 +145327,15 @@
    "close_reasons": "standard codes GOING_AWAY/PROTOCOL_ERROR/BAD_DATA/NOT_CONSISTENT/VIOLATED_POLICY/MESSAGE_TOO_BIG/SERVICE_RESTART/TRY_AGAIN_LATER/TLS_HANDSHAKE plus SONOS_* extensions: client-side (REGISTRATION_CERT_REMOVED/CHANGED, DATA_COLLECTION_OPTED_OUT (telemetry opt-out tears down the channel), ACCESS_TOKEN_EXPIRED, TOO_MANY_UNACKED_PINGS, READ/WRITE_ERROR, CUSTOMER_ID_CHANGED, AUTH_METHOD_CHANGED); player-side (SHUTDOWN, IP_ADDRESS_CHANGED, BLUETOOTH, POWERED_OFF, UPGRADE, NEW_SSID, LOW_BATTERY, SLEEPING, RECONNECT); server-side (LECHMERE_RECONNECT_LATER = server steering, PLAYER_UNSUPPORTED)",
    "keepalive": "application-level ping/pong: client disconnects on SONOS_CLIENT_TOO_MANY_UNACKED_PINGS",
    "frame_format": {
-    "header": "6B ASCII: pv(2) type(2) extlen(2)",
-    "msg_types": "2-char codes, registry AA..AK @.data 0x110941a4",
+    "header": "8 ASCII bytes: version parsed at offset 0 with %02x, numeric type at offset 2 with %02x, extended-header length at offset 4 with %04x. Reader rejects parsed version<=6 and type>6; it does not test version==6. These are sscanf conversion checks, not proof of strict whole-field hexadecimal validation.",
+    "msg_types": "Numeric 0..6 in the frame-reader success path; 7..10 are additional reader result statuses, not extra AA-AK wire codes.",
     "tunneled_headers": [
      "x-sonos-method:",
      "x-sonos-uri:",
      "SOAPACTION:",
      "X-Sonos-Udn"
     ],
-    "parser": "f_105d539c"
+    "parser": "f_105d52e0"
    },
    "handshake": "Sec-WebSocket-Protocol: lechmere.%u offered; server response's Sec-WebSocket-Protocol header is parsed back with 'lechmere.%hhu%n' sscanf (f_105d45f8) to confirm the negotiated version; the HTTP 101 Date: header is also consumed: wall-clock sync from the upgrade response",
    "lifecycle": "'IP changed. Bouncing connection': local IP change tears the channel down (SONOS_PLAYER_IP_ADDRESS_CHANGED close reason); authzPolicyKeyLechmere carries a role field ('Could not parse role from lechmere policy key')",
@@ -145243,7 +145345,7 @@
    "auth_fields": "policy-key record fields: userId, policyKey, museVersion",
    "reader_dispatch": "the reader returns a 0..10 code dispatched through a PIC jump table at 0x10ef12c8 in the ws-client read loop f_1059c088. Cases: 0-1 EVENT-class frames ('Unexpected TYPE EVENT' logged; loop continues); 2 HTTP-tunnel frame ('support for HTTP message dropped': the HTTP-over-lechmere tunnel is deprecated/dropped in this build on the OUTBOUND client path; the tunneled-UPnP pseudo-headers seen elsewhere belong to the server side /api/v1/websocket); 3 the real inbound command frame (payload queued at ctx+0x1f8, timestamped +0x310); 4 -> f_1070d01c (registration/ack-class frame); 5 SET_CONFIG-class (registration write; errors 'SET_CONFIG failed to read'/'failed to send registration'); 6 CHECK_CONFIG-class ('CHECK_CONFIG failed to return registration'); 7 'Unrecognized message type' (reader reject); 8 'read timeout'; 9 'read error'; 10 clean end-of-frame continue.",
    "wire_framing": {
-    "header": "binary frame: protocol version (2 chars) + message type (2 chars) + extended-header length + optional extended header (\"Bad protocol version: %c%c\",\"Bad message type: %c%c; %d\",\"Bad extended header length: %c%c\",\"could not recv extended header; expected %u read %u\")",
+    "header": "8 ASCII bytes: version parsed at offset 0 with %02x, numeric type at offset 2 with %02x, extended-header length at offset 4 with %04x. Reader rejects parsed version<=6 and type>6; it does not test version==6. These are sscanf conversion checks, not proof of strict whole-field hexadecimal validation.",
     "request_headers": [
      "x-sonos-method: ",
      "x-sonos-uri: ",
@@ -145275,477 +145377,687 @@
     ]
    },
    "aa_ak_field_ids": {
-    "map": "2-char code -> migration field-id (bit position) via hash lookup f_1082dfc0",
-    "AA": "bit0",
-    "AB": "bit1",
-    "AC": "bit2",
-    "AD": "bit3",
-    "AE": "bit4",
-    "AF": "bit5",
-    "AG": "bit6",
-    "AH": "bit7",
-    "AI": "bit8",
-    "AJ": "bit9",
-    "AK": "not registered by the migration walker (counter bound 0xa) - separate channel role",
-    "record": "0x24 bytes {strbuf ptr, len, data ptr +0xc, index +0x1c} built per code at f_10bd65e0-0x10bd6630"
+    "scope": "The AA-AK literals at 0x110941a4 are not wire message types of f_105d52e0. The direct table reference at 0x10bd65a4 belongs to the location-settings migration initializer f_10bd64f8; similar hash helpers do not establish a shared protocol. Do not infer a special Lechmere channel role for AK from its absence in the ten-field migration loop."
    },
-   "payload_parser": "f_105d4ff4 (pseudo-HTTP request parse on the frame payload: line-scan via memchr('\\n'), strips the '\\r' line-ending, then strncasecmp header names {x-sonos-method: (0x10), x-sonos-uri: (0xd), content-length: (0x10), SOAPACTION: (0xc), X-Sonos-Udn}) i.e. the lechmere frame body is a tunneled minimal HTTP request carrying UPnP/SOAP control to the cloud. The 2-char frame messageType IS the AA..AK code set; 'Bad message type: %c%c; %d' fires when the code is not in the registered table. AA..AJ are also reused as the ten location-settings migration field-ids (the same keyed map); AK is registered in the type table but excluded from the migration walker: a non-migration lechmere message type.",
+   "payload_parser": "The pseudo-HTTP parser f_105d4ff4 and its header-name literals describe one body-processing path, not a schema shared by every Lechmere/Muse event. The frame reader f_105d52e0 parses numeric type with sscanf, not a lookup into the AA-AK table. A topic registry row supplies event identifiers and matching metadata, not its body JSON member set.",
    "todo": [
-    "Residual: per-topic payload schema (the JSON member set each topic carries) is bound per-subscriber client contract; the registry records carry only {id,name,code,extra} - payload field names live in the per-topic event producers already documented under the corresponding muse/service records."
+    "The 73-row registry, WSS subscribe/renew gates and common event envelope are recovered, but the topic-to-body producer map and per-topic member/optional/error contracts remain unresolved. Trace the event construction sites feeding f_106c2818: bind the producer at event+4 to the virtual +8 call in f_109f6f0c and trace writers of raw bytes at event+8/length+0xc used by f_109f6d7c. Join each to the corrected topic/message ids, distinguishing raw bodies from typed emitters and format-4/5 metadata wrappers. This is still actionable binary work, not a demonstrated external-contract or static-analysis ceiling."
    ],
    "wss_topic_registry": {
-    "table": "0x110b8ce8 (.bss, populated by static initializers f_10098d34/f_100999b4/f_10099f70)",
+    "table": "0x110b8ce8, populated by f_10098d34 only; sibling initializers populate other registries.",
     "count": 73,
     "stride": 20,
-    "record_layout": "{u32 topic_id@+0, char* name@+4, u32 secondary_id@+8, u16 tlv_tag@+0xc, s8 match_type@+0xe, u32 kind@+0x10}",
-    "lookup": "f_109e10d8({u16 tag,u8 type} frame) walks all 73 entries: entry match_type -1 = wildcard, 1 = match on type byte alone, 0 = also require u16 tag equality; on match returns entry+0 topic_id, else returns 0x4a (N+1 sentinel, not a valid id)",
-    "accessors": "f_109e12b4(idx)->(entry.kind==2), f_109e12fc(idx)->entry.secondary_id, f_109e1338(idx)->secondary through f_109ecb5c, f_109e1374(idx)->entry.name; all bounds-check idx<=0x48",
-    "kind_values": "observed 0,2,3,4,5,6,8 - serialization/subscription family flag; kind==2 singled out by f_109e12b4",
+    "record_layout": "20 bytes: u32 topic_id@+0, char* topic_name@+4, u32 message_type_id@+8, u16 namespace_tag@+0xc, s8 subtype@+0xe, u32 kind@+0x10.",
+    "lookup": "f_109e10d8 walks 73 records and requires the signed subtype to match. A matching -1 subtype succeeds without a tag test; subtypes 0 and 1 also require namespace-tag equality. Unknown input returns 0x4a. The names below are not alphabetically ordered: tvAudioSignalStatus is row 1 and areasVersionChange is row 7.",
+    "accessors": "Actual entrypoints include a comparison before the stack prologue: 0x109e12b0 tests kind==2, 0x109e12f8 returns message_type_id, 0x109e1334 resolves that id through f_109ecb5c, and 0x109e1370 returns topic_name. Indices above 0x48 return false/zero/empty-name defaults. f_109e13b0 maps message_type_id back to topic_id through 0x10f95bc0; 0x109e8770 reads it from an event header.",
+    "kind_values": "Numeric classification; kind==2 is tested in pending-event handling f_109e1940. No complete serialization/subscription-family meaning is inferred for the other kind values.",
     "entries": [
      {
-      "tag": "0x0012",
+      "topic_id": "0x0",
       "name": "accessorySwapStatus",
-      "topic_id": "0x00",
-      "kind": 4
+      "tag": "0x12",
+      "kind": 4,
+      "message_type_id": "0x3",
+      "message_type_name": "accessorySwap",
+      "subtype": 0
      },
      {
-      "tag": "0x0012",
+      "topic_id": "0x1",
       "name": "tvAudioSignalStatus",
-      "topic_id": "0x01",
-      "kind": 4
+      "tag": "0x12",
+      "kind": 4,
+      "message_type_id": "0x4",
+      "message_type_name": "tvAudioSignalStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x0052",
+      "topic_id": "0x2",
       "name": "activeZonesChange",
-      "topic_id": "0x02",
-      "kind": 0
+      "tag": "0x52",
+      "kind": 0,
+      "message_type_id": "0xc",
+      "message_type_name": "activeZonesChange",
+      "subtype": 0
      },
      {
-      "tag": "0x0052",
+      "topic_id": "0x3",
       "name": "zoneDefinitionsChange",
-      "topic_id": "0x03",
-      "kind": 0
+      "tag": "0x52",
+      "kind": 0,
+      "message_type_id": "0xd",
+      "message_type_name": "zoneDefinitionsChange",
+      "subtype": 0
      },
      {
-      "tag": "0x0052",
+      "topic_id": "0x4",
       "name": "zoneError",
-      "topic_id": "0x04",
-      "kind": 0
+      "tag": "0x52",
+      "kind": 0,
+      "message_type_id": "0xe",
+      "message_type_name": "zoneError",
+      "subtype": 0
      },
      {
-      "tag": "0x007d",
+      "topic_id": "0x5",
       "name": "alarmClock",
-      "topic_id": "0x05",
-      "kind": 4
+      "tag": "0x40",
+      "kind": 4,
+      "message_type_id": "0x14",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x003e",
+      "topic_id": "0x6",
       "name": "alarmVersionChange",
-      "topic_id": "0x06",
-      "kind": 0
+      "tag": "0x1",
+      "kind": 0,
+      "message_type_id": "0x18",
+      "message_type_name": "versionChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x0002",
+      "topic_id": "0x7",
       "name": "areasVersionChange",
-      "topic_id": "0x44",
-      "kind": 0
+      "tag": "0x2",
+      "kind": 0,
+      "message_type_id": "0x22",
+      "message_type_name": "versionChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x0003",
+      "topic_id": "0x8",
       "name": "audioClipStatus",
-      "topic_id": "0x08",
-      "kind": 4
+      "tag": "0x3",
+      "kind": 4,
+      "message_type_id": "0x26",
+      "message_type_name": "audioClipStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x007e",
+      "topic_id": "0x9",
       "name": "audioInput",
-      "topic_id": "0x46",
-      "kind": 4
+      "tag": "0x41",
+      "kind": 4,
+      "message_type_id": "0x28",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x007c",
+      "topic_id": "0xa",
       "name": "availableSoftwareUpdate",
-      "topic_id": "0x47",
-      "kind": 4
+      "tag": "0x3f",
+      "kind": 4,
+      "message_type_id": "0x33",
+      "message_type_name": "availableSoftwareUpdate",
+      "subtype": 0
      },
      {
-      "tag": "0x007f",
+      "topic_id": "0xb",
       "name": "avTransport",
-      "topic_id": "0x48",
-      "kind": 4
+      "tag": "0x42",
+      "kind": 4,
+      "message_type_id": "0x34",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x000f",
+      "topic_id": "0xc",
       "name": "batteryStatus",
-      "topic_id": "0x0c",
-      "kind": 4
+      "tag": "0xf",
+      "kind": 4,
+      "message_type_id": "0x37",
+      "message_type_name": "battery",
+      "subtype": 0
      },
      {
-      "tag": "0x000f",
+      "topic_id": "0xd",
       "name": "wirelessNetworkStatus",
-      "topic_id": "0x0d",
-      "kind": 4
+      "tag": "0xf",
+      "kind": 4,
+      "message_type_id": "0x38",
+      "message_type_name": "wirelessNetworkStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x000f",
+      "topic_id": "0xe",
       "name": "microphoneSwitchStatus",
-      "topic_id": "0x0e",
-      "kind": 4
+      "tag": "0xf",
+      "kind": 4,
+      "message_type_id": "0x39",
+      "message_type_name": "microphoneSwitch",
+      "subtype": 0
      },
      {
-      "tag": "0x000f",
+      "topic_id": "0xf",
       "name": "waterStatus",
-      "topic_id": "0x0f",
-      "kind": 4
+      "tag": "0xf",
+      "kind": 4,
+      "message_type_id": "0x3a",
+      "message_type_name": "waterState",
+      "subtype": 0
      },
      {
-      "tag": "0x000f",
+      "topic_id": "0x10",
       "name": "bluetoothPairingStatus",
-      "topic_id": "0x4d",
-      "kind": 4
+      "tag": "0xf",
+      "kind": 4,
+      "message_type_id": "0x3b",
+      "message_type_name": "bluetoothPairing",
+      "subtype": 0
      },
      {
-      "tag": "0x000f",
+      "topic_id": "0x11",
       "name": "bluetoothConnectionStatus",
-      "topic_id": "0x4e",
-      "kind": 4
+      "tag": "0xf",
+      "kind": 4,
+      "message_type_id": "0x3c",
+      "message_type_name": "bluetooth",
+      "subtype": 0
      },
      {
-      "tag": "0x000f",
+      "topic_id": "0x12",
       "name": "poeStatus",
-      "topic_id": "0x4f",
-      "kind": 4
+      "tag": "0xf",
+      "kind": 4,
+      "message_type_id": "0x3d",
+      "message_type_name": "poeState",
+      "subtype": 0
      },
      {
-      "tag": "0x000f",
+      "topic_id": "0x13",
       "name": "lineInStatus",
-      "topic_id": "0x50",
-      "kind": 4
+      "tag": "0xf",
+      "kind": 4,
+      "message_type_id": "0x3e",
+      "message_type_name": "lineInStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x000f",
-      "name": "wiredSubConnectionStatus",
       "topic_id": "0x14",
-      "kind": 4
+      "name": "wiredSubConnectionStatus",
+      "tag": "0xf",
+      "kind": 4,
+      "message_type_id": "0x3f",
+      "message_type_name": "wiredSubStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x0050",
+      "topic_id": "0x15",
       "name": "cloudRegistration",
-      "topic_id": "0x52",
-      "kind": 0
+      "tag": "0x3c",
+      "kind": 0,
+      "message_type_id": "0x4a",
+      "message_type_name": "cloudRegistrationStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x0080",
+      "topic_id": "0x16",
       "name": "connectionManager",
-      "topic_id": "0x53",
-      "kind": 4
+      "tag": "0x43",
+      "kind": 4,
+      "message_type_id": "0x4d",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x0081",
+      "topic_id": "0x17",
       "name": "contentDirectory",
-      "topic_id": "0x54",
-      "kind": 4
+      "tag": "0x44",
+      "kind": 4,
+      "message_type_id": "0x50",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x0082",
+      "topic_id": "0x18",
       "name": "deviceProperties",
-      "topic_id": "0x55",
-      "kind": 4
+      "tag": "0x45",
+      "kind": 4,
+      "message_type_id": "0x5a",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x0008",
+      "topic_id": "0x19",
       "name": "diagnosticSubmissionResults",
-      "topic_id": "0x56",
-      "kind": 4
+      "tag": "0x8",
+      "kind": 4,
+      "message_type_id": "0x5f",
+      "message_type_name": "diagnosticSubmissionResults",
+      "subtype": 0
      },
      {
-      "tag": "0x0008",
+      "topic_id": "0x1a",
       "name": "diagnosticMetadata",
-      "topic_id": "0x57",
-      "kind": 4
+      "tag": "0x8",
+      "kind": 4,
+      "message_type_id": "0x60",
+      "message_type_name": "diagnosticMetadata",
+      "subtype": 0
      },
      {
-      "tag": "0x0046",
+      "topic_id": "0x1b",
       "name": "effectiveSettingsDataChanged",
-      "topic_id": "0x58",
-      "kind": 4
+      "tag": "0x9",
+      "kind": 4,
+      "message_type_id": "0x65",
+      "message_type_name": "settingsChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x0047",
+      "topic_id": "0x1c",
       "name": "entitlementsVersionChanged",
-      "topic_id": "0x59",
-      "kind": 6
+      "tag": "0xa",
+      "kind": 6,
+      "message_type_id": "0x6a",
+      "message_type_name": "versionChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x0044",
+      "topic_id": "0x1d",
       "name": "extendedDeviceStatus",
-      "topic_id": "0x5a",
-      "kind": 0
+      "tag": "0x7",
+      "kind": 0,
+      "message_type_id": "0x6e",
+      "message_type_name": "extendedDeviceStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x005b",
+      "topic_id": "0x1e",
       "name": "extendedPlaybackStatus",
-      "topic_id": "0x5b",
-      "kind": 2
+      "tag": "0x1e",
+      "kind": 2,
+      "message_type_id": "0x6f",
+      "message_type_name": "extendedPlaybackStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x0048",
+      "topic_id": "0x1f",
       "name": "favoritesVersionChange",
-      "topic_id": "0x5c",
-      "kind": 0
+      "tag": "0xb",
+      "kind": 0,
+      "message_type_id": "0x73",
+      "message_type_name": "versionChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x000d",
+      "topic_id": "0x20",
       "name": "groups",
-      "topic_id": "0x5d",
-      "kind": 0
+      "tag": "0xd",
+      "kind": 0,
+      "message_type_id": "0x85",
+      "message_type_name": "groups",
+      "subtype": 0
      },
      {
-      "tag": "0x000c",
+      "topic_id": "0x21",
       "name": "groupCoordinatorChanged",
-      "topic_id": "0x5e",
-      "kind": 8
+      "tag": "0xc",
+      "kind": 8,
+      "message_type_id": "0x86",
+      "message_type_name": "groupCoordinatorChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x0083",
-      "name": "groupManagement",
       "topic_id": "0x22",
-      "kind": 4
+      "name": "groupManagement",
+      "tag": "0x46",
+      "kind": 4,
+      "message_type_id": "0x88",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x0084",
+      "topic_id": "0x23",
       "name": "groupRendering",
-      "topic_id": "0x60",
-      "kind": 4
+      "tag": "0x47",
+      "kind": 4,
+      "message_type_id": "0x89",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x000e",
+      "topic_id": "0x24",
       "name": "groupVolume",
-      "topic_id": "0x61",
-      "kind": 2
+      "tag": "0xe",
+      "kind": 2,
+      "message_type_id": "0x8a",
+      "message_type_name": "groupVolume",
+      "subtype": 0
      },
      {
-      "tag": "0x004d",
+      "topic_id": "0x25",
       "name": "hdmiStatus",
-      "topic_id": "0x62",
-      "kind": 4
+      "tag": "0x10",
+      "kind": 4,
+      "message_type_id": "0x8c",
+      "message_type_name": "hdmiStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x004e",
-      "name": "historyVersionChanged",
       "topic_id": "0x26",
-      "kind": 0
+      "name": "historyVersionChanged",
+      "tag": "0x11",
+      "kind": 0,
+      "message_type_id": "0x8d",
+      "message_type_name": "versionChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x0014",
+      "topic_id": "0x27",
       "name": "householdUpdateStatus",
-      "topic_id": "0x64",
-      "kind": 5
+      "tag": "0x14",
+      "kind": 5,
+      "message_type_id": "0x93",
+      "message_type_name": "householdUpdateStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x0051",
+      "topic_id": "0x28",
       "name": "upgradeManager",
-      "topic_id": "0x65",
-      "kind": 5
+      "tag": "0x14",
+      "kind": 5,
+      "message_type_id": "0x94",
+      "message_type_name": "upgradeManager",
+      "subtype": 0
      },
      {
-      "tag": "0x0085",
+      "topic_id": "0x29",
       "name": "htControl",
-      "topic_id": "0x66",
-      "kind": 4
+      "tag": "0x48",
+      "kind": 4,
+      "message_type_id": "0x95",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x0054",
+      "topic_id": "0x2a",
       "name": "indexerStatus",
-      "topic_id": "0x67",
-      "kind": 0
+      "tag": "0x17",
+      "kind": 0,
+      "message_type_id": "0x98",
+      "message_type_name": "indexerStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x0006",
+      "topic_id": "0x2b",
       "name": "localDevices",
-      "topic_id": "0x68",
-      "kind": 0
+      "tag": "0x6",
+      "kind": 0,
+      "message_type_id": "0xa0",
+      "message_type_name": "localDevices",
+      "subtype": 0
      },
      {
-      "tag": "0x0086",
+      "topic_id": "0x2c",
       "name": "musicServices",
-      "topic_id": "0x69",
-      "kind": 4
+      "tag": "0x49",
+      "kind": 4,
+      "message_type_id": "0xa6",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x0056",
+      "topic_id": "0x2d",
       "name": "musicServicesChanged",
-      "topic_id": "0x6a",
-      "kind": 0
+      "tag": "0x19",
+      "kind": 0,
+      "message_type_id": "0xa7",
+      "message_type_name": "musicServicesChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x005c",
+      "topic_id": "0x2e",
       "name": "playbackMetadataStatus",
-      "topic_id": "0x6b",
-      "kind": 2
+      "tag": "0x1f",
+      "kind": 2,
+      "message_type_id": "0xb5",
+      "message_type_name": "metadataStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x005a",
+      "topic_id": "0x2f",
       "name": "playbackStatus",
-      "topic_id": "0x6c",
-      "kind": 2
+      "tag": "0x1d",
+      "kind": 2,
+      "message_type_id": "0xb8",
+      "message_type_name": "playbackStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x005a",
+      "topic_id": "0x30",
       "name": "playbackError",
-      "topic_id": "0x6d",
-      "kind": 2
+      "tag": "0x1d",
+      "kind": 2,
+      "message_type_id": "0xb9",
+      "message_type_name": "playbackError",
+      "subtype": 0
      },
      {
-      "tag": "0x005e",
+      "topic_id": "0x31",
       "name": "playerVolume",
-      "topic_id": "0x6e",
-      "kind": 4
+      "tag": "0x21",
+      "kind": 4,
+      "message_type_id": "0xc0",
+      "message_type_name": "playerVolume",
+      "subtype": 0
      },
      {
-      "tag": "0x0022",
+      "topic_id": "0x32",
       "name": "playlistsVersionChange",
-      "topic_id": "0x6f",
-      "kind": 0
+      "tag": "0x22",
+      "kind": 0,
+      "message_type_id": "0xc3",
+      "message_type_name": "versionChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x0060",
+      "topic_id": "0x33",
       "name": "positioningSessionStatus",
-      "topic_id": "0x70",
-      "kind": 4
+      "tag": "0x23",
+      "kind": 4,
+      "message_type_id": "0xd3",
+      "message_type_name": "positioningSessionStatusInfo",
+      "subtype": 0
      },
      {
-      "tag": "0x0060",
-      "name": "positioningSessionError",
       "topic_id": "0x34",
-      "kind": 4
+      "name": "positioningSessionError",
+      "tag": "0x23",
+      "kind": 4,
+      "message_type_id": "0xd4",
+      "message_type_name": "positioningSessionErrorInfo",
+      "subtype": 0
      },
      {
-      "tag": "0x0060",
+      "topic_id": "0x35",
       "name": "positioningDeviceStatus",
-      "topic_id": "0x72",
-      "kind": 4
+      "tag": "0x23",
+      "kind": 4,
+      "message_type_id": "0xd5",
+      "message_type_name": "positioningDeviceStatusInfo",
+      "subtype": 0
      },
      {
-      "tag": "0x0087",
+      "topic_id": "0x36",
       "name": "queue",
-      "topic_id": "0x73",
-      "kind": 4
+      "tag": "0x4a",
+      "kind": 4,
+      "message_type_id": "0xdf",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x0088",
+      "topic_id": "0x37",
       "name": "renderingControl",
-      "topic_id": "0x74",
-      "kind": 4
+      "tag": "0x4b",
+      "kind": 4,
+      "message_type_id": "0xed",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x005d",
+      "topic_id": "0x38",
       "name": "sessionError",
-      "topic_id": "0x75",
-      "kind": 3
+      "tag": "0x20",
+      "kind": 3,
+      "message_type_id": "0xf6",
+      "message_type_name": "sessionError",
+      "subtype": 0
      },
      {
-      "tag": "0x005d",
+      "topic_id": "0x39",
       "name": "sessionInfo",
-      "topic_id": "0x76",
-      "kind": 3
+      "tag": "0x20",
+      "kind": 3,
+      "message_type_id": "0xf7",
+      "message_type_name": "sessionInfo",
+      "subtype": 0
      },
      {
-      "tag": "0x0026",
+      "topic_id": "0x3a",
       "name": "settingsVersionChanged",
-      "topic_id": "0x77",
-      "kind": 0
+      "tag": "0x26",
+      "kind": 0,
+      "message_type_id": "0xfc",
+      "message_type_name": "versionChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x0026",
+      "topic_id": "0x3b",
       "name": "settingsDataChanged",
-      "topic_id": "0x78",
-      "kind": 0
+      "tag": "0x26",
+      "kind": 0,
+      "message_type_id": "0xfd",
+      "message_type_name": "settingsChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x0026",
+      "topic_id": "0x3c",
       "name": "settingsPlayerSettingsChanged",
-      "topic_id": "0x75",
-      "kind": 0
+      "tag": "0x26",
+      "kind": 0,
+      "message_type_id": "0xfe",
+      "message_type_name": "playerSettingsEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x0034",
-      "name": "sleepTimerStatus",
       "topic_id": "0x3d",
-      "kind": 2
+      "name": "sleepTimerStatus",
+      "tag": "0x34",
+      "kind": 2,
+      "message_type_id": "0x103",
+      "message_type_name": "sleepTimerStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x0089",
+      "topic_id": "0x3e",
       "name": "systemProperties",
-      "topic_id": "0x7b",
-      "kind": 4
+      "tag": "0x4c",
+      "kind": 4,
+      "message_type_id": "0x112",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x0078",
+      "topic_id": "0x3f",
       "name": "timers",
-      "topic_id": "0x7c",
-      "kind": 4
+      "tag": "0x3b",
+      "kind": 4,
+      "message_type_id": "0x114",
+      "message_type_name": "timers",
+      "subtype": 0
      },
      {
-      "tag": "0x003d",
+      "topic_id": "0x40",
       "name": "trueplayStatus",
-      "topic_id": "0x7d",
-      "kind": 4
+      "tag": "0x3d",
+      "kind": 4,
+      "message_type_id": "0x120",
+      "message_type_name": "trueplayStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x003d",
+      "topic_id": "0x41",
       "name": "speakerPresenceStatus",
-      "topic_id": "0x7e",
-      "kind": 4
+      "tag": "0x3d",
+      "kind": 4,
+      "message_type_id": "0x121",
+      "message_type_name": "speakerPresenceResultList",
+      "subtype": 0
      },
      {
-      "tag": "0x003d",
+      "topic_id": "0x42",
       "name": "speakerPresenceRateChange",
-      "topic_id": "0x7f",
-      "kind": 4
+      "tag": "0x3d",
+      "kind": 4,
+      "message_type_id": "0x122",
+      "message_type_name": "speakerPresenceEffectiveRate",
+      "subtype": 0
      },
      {
-      "tag": "0x007b",
+      "topic_id": "0x43",
       "name": "trueroomAdaptationStatusEvent",
-      "topic_id": "0x80",
-      "kind": 4
+      "tag": "0x3e",
+      "kind": 4,
+      "message_type_id": "0x124",
+      "message_type_name": "trueroomAdaptationStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x007b",
+      "topic_id": "0x44",
       "name": "trueroomCalibrationStatus",
-      "topic_id": "0x81",
-      "kind": 4
+      "tag": "0x3e",
+      "kind": 4,
+      "message_type_id": "0x125",
+      "message_type_name": "trueroomCalibrationStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x007b",
+      "topic_id": "0x45",
       "name": "trueroomStatusEvent",
-      "topic_id": "0x82",
-      "kind": 4
+      "tag": "0x3e",
+      "kind": 4,
+      "message_type_id": "0x126",
+      "message_type_name": "trueroomStatus",
+      "subtype": 0
      },
      {
-      "tag": "0x008a",
+      "topic_id": "0x46",
       "name": "virtualLineIn",
-      "topic_id": "0x83",
-      "kind": 4
+      "tag": "0x4d",
+      "kind": 4,
+      "message_type_id": "0x135",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      },
      {
-      "tag": "0x008e",
+      "topic_id": "0x47",
       "name": "voiceAccountsVersionChange",
-      "topic_id": "0x84",
-      "kind": 4
+      "tag": "0x51",
+      "kind": 4,
+      "message_type_id": "0x139",
+      "message_type_name": "versionChanged",
+      "subtype": 0
      },
      {
-      "tag": "0x008b",
+      "topic_id": "0x48",
       "name": "zoneGroupTopology",
-      "topic_id": "0x85",
-      "kind": 4
+      "tag": "0x4e",
+      "kind": 4,
+      "message_type_id": "0x142",
+      "message_type_name": "upnpEvent",
+      "subtype": 0
      }
     ]
    },
    "resolved_findings": [
-    "Resolved at grammar level: lechmere frames carry {2-char protocol version %c%c, 2-char message type %c%c, 2-char extended-header length}; validator f_105d52e0 enforces ext-hdr len<=8 and protocol-version==6, rejecting via Bad protocol version/Bad message type/Bad extended header length. Per-type handlers live behind the lechmere.%hhu%n subscribe path.",
-    "WSS topic vocabulary enumerated (66 of 73 registry records named by the f_10098d34 static initializer, 20-byte records {+0 topic_id, +4 name, +8 secondary_id, +0xc tlv_tag, +0xe match_type, +0x10 kind}): accessorySwapStatus, tvAudioSignalStatus, activeZonesChange, zoneDefinitionsChange, zoneError, alarmClock, alarmVersionChange, areasVersionChange, audioClipStatus, audioInput, availableSoftwareUpdate, avTransport, batteryStatus, wirelessNetworkStatus, microphoneSwitchStatus, waterStatus, bluetoothPairingStatus, bluetoothConnectionStatus, poeStatus, lineInStatus, wiredSubConnectionStatus, cloudRegistration, connectionManager, contentDirectory, deviceProperties, diagnosticSubmissionResults, diagnosticMetadata, effectiveSettingsDataChanged, entitlementsVersionChanged, extendedDeviceStatus, extendedPlaybackStatus, favoritesVersionChange, groupCoordinatorChanged, groupManagement, groupRendering, hdmiStatus, historyVersionChanged, householdUpdateStatus, upgradeManager, htControl, indexerStatus, musicServices, musicServicesChanged, playbackMetadataStatus, playbackStatus, playlistsVersionChange, positioningSessionStatus, positioningSessionError, positioningDeviceStatus, renderingControl, sessionError, sessionInfo, settingsVersionChanged, settingsDataChanged, settingsPlayerSettingsChanged, sleepTimerStatus, systemProperties, trueplayStatus, speakerPresenceStatus, speakerPresenceRateChange, trueroomAdaptationStatusEvent, trueroomCalibrationStatus, trueroomStatusEvent, virtualLineIn, voiceAccountsVersionChange, zoneGroupTopology. The name column is alphabetical by construction - it is a sorted topic registry, confirming the table is lookup-ordered rather than insertion-ordered. Sibling static initializers f_100999b4/f_10099f70 register the ie-* internal-event channels instead (RegCertUpdateEvent/ie-cache, NewCertRegistrationEvent/ie-obs, NewMuseHHIDEvent, InfoUpdatedEvent/ie-schd, RuntimePolicyEvent) plus RMuseEventing, RS256/HS256, PerfProfiler, and the urn:dev:ops:44974-zp-/guestPermissionsPolicyKey policy materializations - they are not part of the topic table.",
-    "Topic registry census complete (initializer f_10098d34, BSS table at 0x110b8ce8, 0x14-byte records {id@+0, name@+4, code@+8, extra-ptr@+c,+0x10}): 73 topic slots with ids 0..0x48. Names are drawn from two literal pools - a dedicated 0x10f96xxx pool holding 59 names and the muse-resource name pool contributing 7 interleaved names {groups(0x10e7d218), groupVolume(0x10e7d41c), localDevices(0x10e9bc60), playbackError(0x10e9f768), playerVolume(0x10ea0d20), queue(0x10ea29a4), timers(0x10eab624)}. The dedicated pool in registry order: accessorySwapStatus, tvAudioSignalStatus, activeZonesChange, zoneDefinitionsChange, zoneError, alarmClock, alarmVersionChange, areasVersionChange, audioClipStatus, audioInput, availableSoftwareUpdate, avTransport, batteryStatus, wirelessNetworkStatus, microphoneSwitchStatus, waterStatus, bluetoothPairingStatus, bluetoothConnectionStatus, poeStatus, lineInStatus, wiredSubConnectionStatus, cloudRegistration, connectionManager, contentDirectory, deviceProperties, diagnosticSubmissionResults, diagnosticMetadata, effectiveSettingsDataChanged, entitlementsVersionChanged, extendedDeviceStatus, extendedPlaybackStatus, favoritesVersionChange, groupCoordinatorChanged, groupManagement, groupRendering, hdmiStatus, historyVersionChanged, householdUpdateStatus, upgradeManager, htControl, indexerStatus, musicServices, musicServicesChanged, playbackMetadataStatus, playbackStatus, playlistsVersionChange, positioningSessionStatus, positioningSessionError, positioningDeviceStatus, renderingControl, sessionError, sessionInfo, settingsVersionChanged, settingsDataChanged, settingsPlayerSettingsChanged, sleepTimerStatus, systemProperties, trueplayStatus, speakerPresenceStatus. Tail records (id 0x42-0x48, codes 0x122,0x124,0x125,0x126,0x135,0x139,0x142): speakerPresenceRateChange, trueroomAdaptationStatusEvent, trueroomCalibrationStatus, trueroomStatusEvent, virtualLineIn, voiceAccountsVersionChange, zoneGroupTopology. The sibling initializers f_100999b4/f_10099f70 register ie-* event channels (RMuseEventing, RegCertUpdateEvent, NewCertRegistrationEvent, NewMuseHHIDEvent, InfoUpdatedEvent, RuntimePolicyEvent) into a separate event table at 0x110c92a0, not additional topics. The code field is the AA-AK message-code mapping index used by the frame dispatcher."
+    "Header correction: f_105d52e0 requires the supplied buffer capacity to exceed 0xfffe at 0x105d52e8/0x105d533c, requests exactly eight header bytes at 0x105d53a8, and rejects short/nonpositive reads through distinct reader statuses. It parses version/type/extended length at offsets 0/2/4 with %02x/%02x/%04x. The branch at 0x105d54e4 is ble to the bad-version path: accepted parsed versions exceed 6. The type branch at 0x105d5558 is bgt to bad-type: accepted types are 0..6. No extended-length<=8 predicate exists here; eight is the fixed header size. Zero extended length copies an empty string; nonzero length requires an exact-length read before JSON extended-header parsing.",
+    "Registry reconstruction: constant evaluation of every store in initializer 0x10098d34-0x10099964, including mtctr/mfctr transfers, yields exactly 73 rows with ids 0..0x48. Earlier values above 0x48 were mistaken transient-register values, not actual topic ids. The secondary word is a Muse message-type id, resolved by 0x109ecb5c through the string-pointer table 0x10f97094, not an AA-AK ordinal. Examples: row 0 accessorySwapStatus -> id 3/accessorySwap; row 0x11 bluetoothConnectionStatus -> id 0x3c/bluetooth; row 0x3c settingsPlayerSettingsChanged -> id 0xfe/playerSettingsEvent; row 0x48 zoneGroupTopology -> id 0x142/upnpEvent.",
+    "Reachable subscription boundary: f_1068ec54 calls transport predicate f_109dd184 at 0x1068ed14 and rejects the non-WSS path with Invalid transport: WSS is required. It obtains a topic from f_109e10d8 at 0x1068ed3c/0x1068f044; sentinel 0x4a selects Invalid namespace: UPnP subscribe not supported. f_1068e65c similarly validates renewals at 0x1068e6e0 and rejects unsupported namespaces. Thus registry lookup has real WSS subscribe/renew consumers, but those consumers do not enumerate the event body members.",
+    "Event-output path: sender f_106c2818 invokes f_109e98c4 at 0x106c2888. That dispatcher selects f_109f6d7c when event+0xc is nonzero, otherwise f_109f6fb0 -> f_109f6f0c. The raw path copies event+8 bytes of length event+0xc without enumerating JSON members. A null raw pointer with nonzero length reaches the basic_string null-not-valid exception path. The typed path obtains a producer object at event+4 and calls its virtual slot +8 with the writer and writer+0x1040 flag; a null producer simply emits an empty object. The writer status, not merely a submitted event, determines the returned result.",
+    "Common envelope rather than per-topic schema: formats 4 and 5 invoke f_109f6d2c, which begins an array, emits a metadata object, then leaves the body serializer to emit its element and close the array. f_109f6bc4 emits namespace and additional addressed-header entries when the namespace resolver succeeds, optional apiVersion, response/success for response messages or registry-derived name for events, resolved type, optional cmdId and conditional async=true. This common envelope does not prove a field is present inside any particular topic body.",
+    "The old claim that body member sets are only an external subscriber contract is withdrawn. Raw-body storage and a concrete typed producer callback are present in the shipped image. Their callers and vtables must be joined to the corrected registry before claiming the 73 payload schemas are recovered; a code/name table alone does not establish them."
    ]
   },
   "led_engine": {
