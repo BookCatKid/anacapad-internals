@@ -176923,7 +176923,7 @@
    ]
   },
   "0x105543d0": {
-   "description": "f_105543d0 reads descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer, finds the first literal {device} with strstr and replaces only that occurrence with the two bytes zp. For expanded source length L, replacement requires unsigned destination capacity >=L-5, which fits the new L-6 bytes plus terminator. On insufficient capacity it copies the original unexpanded string with strlcpy and may log Service manifest URI truncated; the fallback can therefore leave {device} intact, and the diagnostic does not itself establish actual truncation. Without a {device} token it also uses strlcpy. The function returns the destination pointer and does not report truncation or {device} token substitution as a separate status. Other {device} tokens and subsequent occurrences are unchanged by this helper.",
+   "description": "Manifest-URI materializer f_105543d0(descriptor, dst, cap): expands the packed URI at descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer (expanded length L<=127), finds the first literal '{device}' with strstr and replaces only that occurrence with the two bytes 'zp'. The substitute path requires unsigned cap>=L-5 (the L-6 result plus terminator); it then memcpys the pre-token part, stores 'z','p', and copies the post-token tail. The tail copy is over-long by 15 bytes: it copies L-off+8 bytes from buf+off+8 to dst+off+2, reading up to 15 bytes past the stack buffer end and writing up to dst+L+9, against an intended extent of L-5; the explicit terminator at dst[L-6] makes the produced string correct, but callers with cap in [L-5, L+9] would see a buffer overrun. No {device} token produces a plain strlcpy(dst, buf, cap) of the expanded URI. Insufficient capacity produces a strlcpy of the expanded URI (cap-1 < L, so the output is genuinely truncated and can retain a literal '{device}' when the token survived the cut) plus a 'Service manifest URI truncated: %s' log on channel 'msd' level 3 gated by f_109b6fe4. The function returns dst and reports no status for either truncation or substitution. Call-site audit: the single caller f_100c6c3c at 0x100c6cec passes cap 0x401 with a same-sized stack buffer, so the capacity guard never fails (L<=127<0x401), the fallback and the log are dead code there, and the overcopy overshoot stays inside the buffer. The descriptor is filled by a vcall on the service object, gated by flag bit 0x400000 at sp+0x140 (skips URI construction when set). Downstream consumer: f_100c6c3c hands the URI to f_1011b710 at r31+0x13ad0 together with a halfword id from the descriptor, and f_1011b710 mutex-guards a 10-second-deadline asynchronous manifest download through f_10546520 ('downloading music service manifest from %s' log) and copies the URI into a request record for completion handling.",
    "why_external": "Determines which manifest URI is requested when a descriptor uses the device {device} token.",
    "required_for_behavior": true,
    "role": "music_service_descriptor_uri",
@@ -176934,9 +176934,45 @@
      "build": "86.10-80260",
      "address": "0x105543d0",
      "notes": "Instruction trace and raw boundary verification; see payload_formats.music_service_descriptor_uri."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1055443c",
+     "function": "0x105543d0",
+     "notes": "Capacity gate: substitute only when cap>=L-5 (cmpl/bc at 0x1055443c-0x10554444). Tail copy n=subfic(8-off)+L = L-off+8 at 0x10554478-0x10554480, exceeding the intended L-off-7 by 15 bytes on both source read and destination write; NUL written at dst[L-6] at 0x10554498."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105544d8",
+     "function": "0x105543d0",
+     "notes": "Insufficient-capacity path: strlcpy(dst, expanded buf, cap) then 'Service manifest URI truncated: %s' via f_109b72ac on channel 'msd' level 3 at 0x1055450c; no-token path silently strlcpy's at 0x10554524."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6cec",
+     "function": "0x100c6c3c",
+     "notes": "Sole caller: dst=sp+0x148 with cap 0x401 under flag test andis. 0x40 at 0x100c6cd4-0x100c6cdc; result forwarded to f_1011b710 at 0x100c6d04 with descriptor halfword id."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b810",
+     "function": "0x1011b710",
+     "notes": "Consumer: f_10546520 starts the async fetch of the URI with a 10s deadline (sonosClockGetTime+timevalAddMs 0x2710 at 0x1011b7d0-0x1011b7dc); '%s downloading music service manifest from %s' logged at 0x1011b90c; URI memcpy'd into a request record at 0x1011b948-0x1011b958."
     }
    ],
-   "todo": "Established: f_105543d0 reads descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer, finds the first literal {device} with strstr and replaces only that occurrence with the two bytes zp. For expanded source length L, replacement requires unsigned destination capacity >=L-5, which fits the new L-6 bytes plus terminator. On insufficient capacity it copies the original unexpanded string with strlcpy and may log Service manifest URI truncated; the fallback can therefore leave {device} intact, and the diagnostic does not itself establish actual truncation. Without a {device} token it also uses strlcpy. The function returns the destination pointer and does not report truncation or {device} token substitution as a separate status. Other {device} tokens and subsequent occurrences are unchanged by this helper. Remaining: Audit call-site capacities and actual request/download consumers, including intact-{device} token fallback."
+   "resolved_findings": [
+    "Resolved: single call site audited - cap 0x401 makes the substitute path always reachable, both strlcpy fallbacks and the truncation log are dead code there, and the off-by-15 overcopy cannot overrun the 0x401 buffer (max write 0x89).",
+    "Resolved: the actual consumer is the mutex-guarded async manifest download in f_1011b710, which logs the URI, fetches it with a 10s deadline and stores it in a request record for completion handling.",
+    "Resolved: on the insufficient-capacity path the diagnostic text is accurate - strlcpy truncates whenever cap<L-5 because cap-1<L - and a literal {device} can survive in the truncated output."
+   ]
   },
   "0x1023a214": {
    "description": "Binder f_1023a214 installs schemaVersion at field index 1 as type 4 (fixed character buffer), target model+0, capacity 17 and flags byte 1. The common field constructor f_109c0eb8 stores that flags byte at descriptor+0x20. Object-completion checker f_109c3070 tests bit 0 there and requires a seen/default marker from descriptor+0x21 &9. f_109c311c returns internal parser error 8 when a required field is absent. Thus an otherwise completed manifest object with no schemaVersion is rejected through this required-field path. Other named manifest fields are bound without this required flag. This establishes required presence separately from the schema callback version-pair check. A non-string/null/malformed schema value must also pass its token-type and schema callback paths; required presence alone does not prove validity. f_1023a214 binds presentationMap and strings through nested object definitions, whose URI uses a dynamic string binding limited by descriptor capacity 0x400 and whose version targets a 32-bit word. Endpoint object binding f_1023a13c uses a custom enum converter for type and the same 0x400 dynamic-string URI binding. apiKey.zp also uses that 0x400 string binding. Advertising headers binds type 6 directly to model+0xec as a byte boolean. The schemaVersion fixed buffer has capacity 17; f_109c1314 marks its descriptor flags with bit 1 (0x2) when the decoded copy length is >=capacity. Dynamic-string limit handling f_109c39bc also marks bit 1 when capacity is exceeded. Binding capacities and per-field truncation flags are proven; aggregate acceptance of oversized values still needs tracing through the enclosing parser and callback checks.",
