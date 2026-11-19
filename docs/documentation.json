@@ -57779,7 +57779,7 @@
      ]
     },
     "SaveQueue": {
-     "description": "Synchronously saves primary live queue 0 into the saved-playlist catalog using derived f_102aa8b4 -> f_10146e94 -> f_104794d4. Empty or negative SQ ObjectID creates; nonnegative SQ ID replaces the matching playlist only if its stored nonempty title equals the trimmed Title. Filters mobile-device and flagged entries and follows current shuffle mapping. Some exclusion errors are returned after replacement. Does not alter live queue membership or playback.",
+     "description": "Synchronously saves primary live queue 0 into the saved-playlist catalog using derived f_102aa8b4 -> f_10146e94 -> f_104794d4. Empty or negative SQ ObjectID creates; nonnegative SQ ID replaces the matching playlist if its stored title is NULL/empty or equals the trimmed Title. Filters mobile-device and flagged entries and follows current shuffle mapping. Some exclusion errors are returned after replacement. Does not alter live queue membership or playback.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f96fc",
@@ -57862,7 +57862,7 @@
        "notes": null
       },
       "Title": {
-       "description": "Saved-playlist title, copied into1024 bytes then trimmed. Required nonempty after trimming with no remaining CR/LF. Replacement must match existing nonempty title byte-for-byte; not a rename.",
+       "description": "Saved-playlist title, copied into1024 bytes then trimmed. Required nonempty after trimming with no remaining CR/LF. Replacement must match a nonempty stored title byte-for-byte; a NULL or empty stored title bypasses comparison and can be filled with the requested title.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -57879,7 +57879,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Required descriptor; trimmed empty/CR/LF or replacement-title mismatch402.",
+       "validation": "Required descriptor; trimmed empty/CR/LF returns 402. A nonempty stored replacement title must match byte-for-byte; NULL/empty stored title skips equality checking.",
        "evidence": [
         {
          "type": "firmware",
@@ -57906,7 +57906,7 @@
          "function": "0x1047e7d4",
          "address": "0x1047e848",
          "callsite": "0x1047e974",
-         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
         }
        ],
        "notes": null,
@@ -57930,7 +57930,7 @@
        "special_values": "Empty or parsed negative ID selects create; SQ:0 is an existing-ID request, not a create sentinel.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Malformed nonempty ID801; absent requested nonnegative ID701; replacement-title mismatch402.",
+       "validation": "Malformed nonempty ID 801; absent requested nonnegative ID 701; mismatch against a nonempty stored title 402. NULL/empty stored title bypasses comparison.",
        "evidence": [
         {
          "type": "firmware",
@@ -57957,7 +57957,7 @@
          "function": "0x1047e7d4",
          "address": "0x1047e848",
          "callsite": "0x1047e974",
-         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
         }
        ],
        "notes": null,
@@ -57998,7 +57998,7 @@
          "function": "0x1047e7d4",
          "address": "0x1047e848",
          "callsite": "0x1047e974",
-         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
         },
         {
          "type": "firmware",
@@ -58050,12 +58050,12 @@
         "function": "0x1047e7d4",
         "address": "0x1047e848",
         "callsite": "0x1047e974",
-        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
        }
       ]
      },
      "requirements": {
-      "description": "Instance0; source mode1or2; trimmed nonempty Title without CR/LF; valid empty/create or SQ signed-numeric selector. Replacement must exist and retain its stored nonempty Title. Default savedqueues.rsq must be readable/valid for rewrite. Exclusion equality can reject all-unusable or empty source with804/805/806. No UpdateID input or worker request.",
+      "description": "Instance0; source mode1or2; trimmed nonempty Title without CR/LF; valid empty/create or SQ signed-numeric selector. Replacement must exist. A nonempty stored Title must equal the trimmed requested Title; NULL or empty stored Title bypasses equality checking and is replaced by the requested title. Default savedqueues.rsq must be readable/valid for rewrite. Exclusion equality can reject all-unusable or empty source with804/805/806. No UpdateID input or worker request.",
       "evidence": [
        {
         "type": "firmware",
@@ -58091,7 +58091,7 @@
         "function": "0x1047e7d4",
         "address": "0x1047e848",
         "callsite": "0x1047e974",
-        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
        },
        {
         "type": "firmware",
@@ -58150,7 +58150,7 @@
         "function": "0x1047e7d4",
         "address": "0x1047e848",
         "callsite": "0x1047e974",
-        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
        },
        {
         "type": "firmware",
@@ -58210,7 +58210,7 @@
          "function": "0x1047e7d4",
          "address": "0x1047e848",
          "callsite": "0x1047e974",
-         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
         },
         {
          "type": "firmware",
@@ -58352,7 +58352,7 @@
         "function": "0x1047e7d4",
         "address": "0x1047e848",
         "callsite": "0x1047e974",
-        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
        },
        {
         "type": "firmware",
@@ -58515,7 +58515,7 @@
            "function": "0x1047e7d4",
            "address": "0x1047e848",
            "callsite": "0x1047e974",
-           "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+           "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
           }
          ]
         }
@@ -58546,7 +58546,7 @@
          "function": "0x1047e7d4",
          "address": "0x1047e848",
          "callsite": "0x1047e974",
-         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
         }
        ]
       },
@@ -58601,7 +58601,7 @@
            "function": "0x1047e7d4",
            "address": "0x1047e848",
            "callsite": "0x1047e974",
-           "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+           "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
           }
          ]
         }
@@ -58614,7 +58614,7 @@
          "function": "0x1047e7d4",
          "address": "0x1047e848",
          "callsite": "0x1047e974",
-         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
         }
        ]
       },
@@ -59000,7 +59000,7 @@
        "function": "0x1047e7d4",
        "address": "0x1047e848",
        "callsite": "0x1047e974",
-       "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+       "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: 0x1047e94c/0x1047e950 skips comparison for a NULL stored title; 0x1047e9ec..0x1047e9f4 skips it for an empty stored title. Only a nonempty stored title calls strcmp at 0x1047ea00 and mismatching comparison returns 402 at 0x1047ea0c. NULL/empty stored titles proceed at 0x1047e954..0x1047e974 and the requested title is written by f_1047e16c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; nonempty stored titles cannot be renamed; this is not compare-and-swap."
       },
       {
        "type": "firmware",
