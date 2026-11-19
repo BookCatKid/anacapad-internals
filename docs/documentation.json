@@ -43330,10 +43330,7 @@
          "notes": "Locks saved manager+0x28. Initializes context at sp+0x18: mode+0x3c=2, requestedID+0x40=-1, assignedID+0x44=-1, Title+0x4c unchanged, source queue+0x5c=NULL, URI+0x60, metadata+0x64, index+0x68=0. Filename savedqueues.rsq, compressed writer limit0x40000, memory buffer48000 bytes. No Title trimming, nonblank or CR/LF check analogous to SaveQueue. Catalog header callback f_1047cc9c reads Next via strtol(NULL endptr), assigns numeric ID at context+0x44, increments Next. Existing title sort compares at0x1047e860/0x1047e93c govern insertion, not duplicate-title rejection or replacement."
         }
        ],
-       "notes": null,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +132 (obj r5-in, call site 0x102fb1cc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "Title": {
        "description": "Required title string passed unchanged to catalog XML escaping. No implementation trimming, blank-title rejection or CR/LF validation; duplicate titles do not select replacement.",
@@ -43348,7 +43345,7 @@
        "semantic_type": "SonosStringArg",
        "format": "String in1024-byte buffer including terminator",
        "unit": "n/a - text",
-       "accepted_values": "display title string <= parse cap; newline rejected -> 402",
+       "accepted_values": "Title text within wrapper capacity, unchanged by worker; no SaveQueue-style whitespace or CR/LF rejection",
        "range": "Wrapper capacity1024 bytes",
        "special_values": "Empty title is not rejected by this worker",
        "required": true,
@@ -43375,10 +43372,7 @@
         }
        ],
        "notes": null,
-       "buf_cap": 1024,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `Title` = verbatim forward to impl vfunc +132 (obj r5-in, call site 0x102fb1cc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 1024
       },
       "EnqueuedURI": {
        "description": "Required string. Empty creates an empty saved playlist. Nonempty URI can expand into multiple accepted saved tracks through ordinary resolver or local .rsq fragment reader; not a request to copy live queue0.",
@@ -43393,7 +43387,7 @@
        "semantic_type": "SonosUriArg",
        "format": "URI string in1025-byte buffer including terminator",
        "unit": "n/a - text",
-       "accepted_values": "any URI string <= parse cap; playlist extensions auto-expanded via f_104634c4",
+       "accepted_values": "Empty string or URI passed to local saved-file reader or ordinary expansion",
        "range": "Wrapper capacity1025 bytes",
        "special_values": "Empty URI succeeds with no initial tracks",
        "required": true,
@@ -43420,10 +43414,7 @@
         }
        ],
        "notes": null,
-       "buf_cap": 1025,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `EnqueuedURI` = verbatim forward to impl vfunc +132 (obj r5-in, call site 0x102fb1cc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 1025
       },
       "EnqueuedURIMetaData": {
        "description": "Required metadata string used by URI resolver and stored per accepted track. Empty metadata is permitted; serializer XML-escapes it and omits empty MD attributes. Unlike live enqueue, this path does not normalize LF before resolver validation.",
@@ -43438,7 +43429,7 @@
        "semantic_type": "SonosMetaDataArg",
        "format": "String in4097-byte buffer including terminator",
        "unit": "n/a - text",
-       "accepted_values": "DIDL-Lite XML string <= parse cap; empty permitted",
+       "accepted_values": "Metadata text passed to selected URI reader/resolver; empty permitted",
        "range": "Wrapper capacity4097 bytes",
        "special_values": "Empty metadata allowed; ignored when URI empty",
        "required": true,
@@ -43465,10 +43456,7 @@
         }
        ],
        "notes": null,
-       "buf_cap": 4097,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `EnqueuedURIMetaData` = verbatim forward to impl vfunc +132 (obj r5-in, call site 0x102fb1cc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 4097
       }
      },
      "outputs": {
@@ -43528,8 +43516,8 @@
        },
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
-       "unit": "none - boolean flag",
-       "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
+       "unit": "tracks",
+       "accepted_values": "Actual emitted saved-playlist track count, including0",
        "range": "0..number of emitted saved tracks",
        "special_values": "Empty URI returns0",
        "required": false,
@@ -43575,8 +43563,8 @@
        },
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
-       "unit": "n/a - text",
-       "accepted_values": "post-create saved-queue UpdateID",
+       "unit": "saved-playlist revision",
+       "accepted_values": "Initial per-playlist Version0",
        "range": "0",
        "special_values": "0 is the initial per-playlist update",
        "required": false,
@@ -43623,7 +43611,7 @@
        "semantic_type": "SonosStringArg",
        "format": "SQ:%d",
        "unit": "n/a - text",
-       "accepted_values": "sq:-family object id assigned by the saved-queue store",
+       "accepted_values": "Uppercase SQ:%d with ID allocated from SavedQueues Next",
        "range": "1024-byte output buffer",
        "special_values": "No output on a SOAP fault",
        "required": false,
