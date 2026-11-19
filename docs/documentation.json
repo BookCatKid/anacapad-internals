@@ -207182,6 +207182,34 @@
      "type": "firmware",
      "address": "0x10fcf2d4",
      "notes": "chirp_sdk error-string table + /code/src/chirp-sdk/ paths + version literals"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fd0af4",
+     "notes": "protocol-encoding JSON keys in rodata: alphabet_bits, crc_length, message_length_max, message_length_min, polyphony, rs_length_max, rs_length_min; 'Invalid key in encoding: %s'/'Invalid key in protocol: %s' error strings; fn-name strings new_chirp_protocol_from_json_value/del_chirp_protocol."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x11094784",
+     "notes": "sonos-cdma encoding block: word1 0x04030a0a = bytes {alphabet_bits=4, polyphony=3, message_length_min=10, message_length_max=10}; word2 0x020a0a00 = {crc_length=2, rs_length_min=10, rs_length_max=10, pad=0}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x11094538",
+     "notes": "audible encoding block: word1 0x08010120 = {alphabet_bits=8, polyphony=1, msg_min=1, msg_max=32}; word2 0x02081000 = {crc=2, rs_min=8, rs_max=16, pad=0}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1109496c",
+     "notes": "sonos_secure_setup encoding block: word1 0x050301c0 = {alphabet_bits=5, polyphony=3, msg_min=1, msg_max=192}; word2 0x01083800 = {crc=1, rs_min=8, rs_max=56, pad=0}."
     }
    ],
    "note": "Asynchronous Inc's Chirp SDK v4.2.3: ultrasonic data-over-audio for device setup (sonos-cdma profile). Error vocabulary recovered: profile/channel validation, modulation-scheme mismatches, payload decode failures ('payload contains unknown symbols', 'Couldn't decode the payload'), gain-level errors, muted-device guard. Source paths leak the SDK layout: /code/src/chirp-sdk/chirp_sdk_process.c, chirp_sdk_states.c, /code/chirp-core/source/utils/src/utils/helpers.c; internal funcs chirp_sdk_process_shorts_{input,output}, chirp_sdk_send, chirp_levenshtein.",
@@ -207193,9 +207221,6 @@
     "chirp_sdk_send",
     "chirp_levenshtein"
    ],
-   "todo": [
-    "Residual: semantic names of the two packed u32s at +0x154/+0x158 ({4,3,10,10} and {2,10,10,0} byte fields - plausible {alphabet-size, symbols-per-frame, tone-count} splits but no literal names) - the structural roles of correction vs weighting rows are now bound by the pointer refs; byte-level field names are not in the image."
-   ],
    "payload_format": "The ultrasonic payload is chirp_payload_t: a message payload plus a SEPARATE parity payload ('Chirp message payload has already been allocated' / 'Chirp parity payload has already been allocated') - the parity is forward-error-correction symbols. Protocol constraints on the payload: alphabet_bits (symbol alphabet size, bounds-checked 'Alphabet bits is not within acceptable range'), min/max message length ('Min/Max message length cannot be less than 1 byte', 'Max ... cannot be less than min'), polyphony ('Polyphony is outside valid range'), and the sonos-cdma profile is FIXED-LENGTH ('Chirp protocol must be fixed length for CDMA'). Encode chain: raw bytes -> chirp_payload_t (payload.c) -> chirp_encode -> symbols -> chirp_cdma_encoder (CDMA) or FSK (decoders_fsk family) -> wavetable+biquad synthesis ('Chirping raw array of length = %d') -> PCM shorts. Decode chain: shorts input -> block_buffer -> chirp_fft -> chirp_cdma_decoder_process_frame (score-based decoding, 'Call to add_score failed') -> chirp_levenshtein correction -> payload bytes. Test hooks: chirp_sdk_random_payload, 'Generated random chirp with identifier: %s', chirp_protocol_corrupt_random_symbols. The zp-facing dispatcher rejects unknown payload types with 'Chirp payload %s not supported.'",
    "sonos_cdma_profile": "The concrete 'sonos-cdma' protocol profile is a compile-time struct in .data at 0x11094630 (not runtime JSON): sample_rate 44100 (0xac44), timing floats {0.05, 0.004, 0.035}s, level ramps {0.2, 0.4, 0.6, 0.8, 0.53}, and an ultrasonic carrier plan {17000->0, 18000->12, 19000->24, 20000->36} = four 1kHz-spaced carriers in the 17-20kHz band with cumulative symbol-index offsets 0/12/24/36 into a 48-symbol codebook (codebook.c). Companion fields: 0x80000 flag word, '1' format tag, internal table ptrs 0x110bb7xx. The protocol constraints validated at new_chirp_protocol: alphabet_bits range, min/max message length >=1 byte, polyphony range - errors are literal 'chirp_protocol_t: <field> is not within acceptable range'. The profile is instantiated via new_chirp_protocol_from_json_value so the same struct shape can be reconfigured by JSON, but this build's compiled-in default is the sonos-cdma values above.",
    "resolved_findings": [
@@ -207205,7 +207230,8 @@
     "Resolved: the complete protocol-profile list is literal @0x10fd04c8+ = {audible, sonos-cdma, sonos_secure_setup, ultrasonic, new_chirp_protocol} (5 profiles). The per-profile parameter dump format is proven: {Frequency base %.1fHz, Frequency interval %.1fHz, Channels %d, Channel interval %.1fHz, Note duration header %.3f, Note duration body %.3f, Envelope duration attack %.3f, ...} (0x10fd0578+) - confirming the profile struct carries {freq_base, freq_interval, channels, channel_interval, note_durations, envelope_durations} numeric fields defined in /code/chirp-core/source/core/src/profile/protocol.c.",
     "Resolved: the embedded SDK is chirp-core 4.2.1_7265 (literal version string 0x10fd3454) with the complete source module map recoverable from assert paths (0x10fce74-0x10fd38c6): chirp_sdk.{c,process.c,states.c}; chirp-private {chirp_private.c, _cdma.c, _fsk.c}; core/common {chirp.c, crc.c, payload.c, reed-solomon.c, template.c, utils.c, bitstring.c, filter.c, multitone.c}; core/profile {profile.c, protocol.c, protocol-acoustic.c, protocol-encoding.c, config.c, config-voter-config.c}; core/cdma {cdma_decoder.c, cdma_encoder.c, codebook.c}; decoder {decoder.c, peaks.c, scorer.c, voter.c, weighting.c, rms.c}; encoder {encoder.c, wavetable.c, decorator.c}; dsp {blockbuffer.c, fft.c, reverb.c}; maths float32 fft init/deinit. The sonos-cdma protocol is selected via chirp_builtin_profile/chirp_profile/chirp_protocol with config objects chirp_default_config + chirp_default_voter_configs. Profile validation gates are literal: \"Alphabet bits is not within acceptable range\", \"Min/Max message length cannot be less than 1 byte\", \"Max message length cannot be less than min message length\", \"Polyphony is outside valid range\" - so the sonos-cdma profile declares {alphabet bits, min/max message length, polyphony} fields. FEC = reed-solomon (chirp_rs_*). Decoder pipeline = fft -> peaks -> scorer -> voter (chirp_voter_set_state, weighting) -> rms. Symbols: chirp_get_symbols, chirp_levenshtein (symbol-distance metric), chirp_decode_metrics_t metrics struct.",
     "Resolved: the compiled protocol-profile table is literal at 0x11094600+ (records ~0x1b0 stride, each with a vptr cluster {0x110bb7xx} + name + flags + float arrays). sonos-cdma profile (0x11094630): flags 0x80000; 5-float threshold run {0.2,0.4,0.6,0.8,0.53}; a 7-entry sub-table pointer list (0x11094768+) indexing 8-float rows - five identical tone maps {17000Hz:0, 18000Hz:12, 19000Hz:24, 20000Hz:36} (the 4-tone alphabet spanning 17-20kHz), a correction row {17000:17.248, 18000:34.405, 19200:34.238, 19400:0}, and a weight row {17000:8, 18000:6, 19000:4, 20000:0}; trailing params {500,100}, packed fields 0x4030a0a/0x20a0a00, carrier-ish float 19000.0, 60.0, and small-float set {0.12,0.06,0.01,0.01,0.03,0.015}. Second protocol sonos_secure_setup (0x110947ec): same flags 0x80000, threshold run {0.97 x5, 0.99, 0.97}, packed 0x30206/0x8000000, same {0.2,0.4,0.6,0.8,0.53} tail - sharing the alphabet but with a much stricter voter threshold (0.97/0.99 vs 0.2-0.8).",
-    "Profile record tail decoded (sonos-cdma @0x11094630, stride 0x1c0): the 7 sub-table blocks split as {5 identical alphabet pair-blocks {17000:0,18000:12,19000:24,20000:36} at +0x28..+0xdf (only 2 are referenced), 1 correction block {17000:17.2,18000:34.4,19200:34.24,19400:0} at +0xf0, 1 weighting block {17000:8,18000:6,19000:4,20000:0} at +0x110}; 4 row pointers at +0x144..+0x150 bind exactly the last 4 blocks. Tail fields: +0x154 packed u32 0x4030a0a (bytes {4,3,10,10}), +0x158 packed u32 0x20a0a00 (bytes {2,10,10,0}), +0x15c base freq 19000.0, +0x160 60.0, +0x164 bitfield 0x1000000, +0x16c param floats {0.12,0.06,0.01,0.01,0,0.03,0.015}, +0x194 bitfield 0x80070000, +0x198 sample rate 44100 (0xac44), +0x19c bitfield 0x8000100, +0x1a0 fn/row ptr cluster ending with next-profile name ptr."
+    "Profile record tail decoded (sonos-cdma @0x11094630, stride 0x1c0): the 7 sub-table blocks split as {5 identical alphabet pair-blocks {17000:0,18000:12,19000:24,20000:36} at +0x28..+0xdf (only 2 are referenced), 1 correction block {17000:17.2,18000:34.4,19200:34.24,19400:0} at +0xf0, 1 weighting block {17000:8,18000:6,19000:4,20000:0} at +0x110}; 4 row pointers at +0x144..+0x150 bind exactly the last 4 blocks. Tail fields: +0x154 packed u32 0x4030a0a (bytes {4,3,10,10}), +0x158 packed u32 0x20a0a00 (bytes {2,10,10,0}), +0x15c base freq 19000.0, +0x160 60.0, +0x164 bitfield 0x1000000, +0x16c param floats {0.12,0.06,0.01,0.01,0,0.03,0.015}, +0x194 bitfield 0x80070000, +0x198 sample rate 44100 (0xac44), +0x19c bitfield 0x8000100, +0x1a0 fn/row ptr cluster ending with next-profile name ptr.",
+    "Resolved: the two packed u32s in each profile tail are the protocol-encoding field block. The protocol-encoding JSON keys are literal in the image at 0x10fd0af4+ = {alphabet_bits, crc_length, message_length_max, message_length_min, polyphony, rs_length_max, rs_length_min} (parsed by new_chirp_protocol_from_json_value; 'Invalid key in encoding: %s'), seven u8 fields packed as two words plus a zero pad. Byte order inside each word is MSB-first (the min<=max constraint fails under reverse order). Decoded per profile: audible {alphabet_bits=8, polyphony=1, message_length_min=1, message_length_max=32} / {crc_length=2, rs_length_min=8, rs_length_max=16}; sonos-cdma {4, 3, 10, 10} / {2, 10, 10, 0}; sonos_secure_setup {5, 3, 1, 192} / {1, 8, 56, 0}. sonos-cdma is the only fully fixed-length encoding (message_length_min==max==10, rs_length_min==max==10) which matches the literal 'Chirp protocol must be fixed length for CDMA' constraint; sonos_secure_setup carries the largest payload (1..192-byte message with 8..56 RS parity symbols, block max 248 <= 255) consistent with credential transfer, and audible is the only monophonic profile (polyphony=1)."
    ]
   },
   "tsclient": {
