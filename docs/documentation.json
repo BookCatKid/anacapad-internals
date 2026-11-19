@@ -78590,7 +78590,7 @@
      ]
     },
     "SetLoudness": {
-     "description": "CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44e8 at slot +0x4c; vtable B overrides with real impl 0x1046d340. SOAP-visible behavior depends on which impl class is installed (selection unresolved).",
+     "description": "Primary slot +0x4c -> f_10470cd8 performs topology proxy processing before local loudness application. f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0. Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073b474",
@@ -78626,7 +78626,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "parsed by the request layer but never read - impl vfunc 0x100e44e8 is a no-op stub",
+       "description": "Required instance selector forwarded unchanged to peers; only zero is accepted locally.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -78638,40 +78638,46 @@
        "semantic_type": "input",
        "format": "per request parse",
        "unit": "none",
-       "accepted_values": "per parse",
-       "range": "unconstrained",
+       "accepted_values": "0 for local application",
+       "range": "ui4 parse; local accepted value 0",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "no impl-level use or validation (stub impl)",
+       "default": "none: required argument",
+       "validation": "Local nonzero returns 702 only after successful proxy processing.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b4b4",
-         "notes": "in-arg access site"
+         "address": "0x10470d08",
+         "notes": "Calls f_1046f9f4 with public flag r7=1; nonzero returns immediately, zero tail-calls f_100db4bc at 0x10470d60."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x1046f9f4",
+         "notes": "f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e44e8",
-         "address": "0x100e44e8",
-         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
+         "address": "0x1046b024",
+         "notes": "Request filler reads InstanceID, Channel and byte from the captured 12-byte record; formats DesiredLoudness through f_1055fc08, not as an unrestricted numeric value."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db4bc",
+         "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
         }
        ],
-       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub."
+       "notes": "Remote preparation can precede local instance validation."
       },
       "Channel": {
-       "description": "parsed by the request layer but never read - impl vfunc 0x100e44e8 is a no-op stub",
+       "description": "Required channel string, forwarded unchanged to peers; local application supports only exact Master.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -78683,41 +78689,49 @@
        "semantic_type": "input",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none",
-       "accepted_values": "per parse",
-       "range": "max 1023 chars",
+       "accepted_values": [
+        "Master"
+       ],
+       "range": "request buffer capacity 1024; exact Master locally",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "no impl-level use or validation (stub impl)",
+       "default": "none: required argument",
+       "validation": "Local non-Master returns 402 after InstanceID and +0x7ff guards.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b4d8",
-         "notes": "in-arg access site"
+         "address": "0x10470d08",
+         "notes": "Calls f_1046f9f4 with public flag r7=1; nonzero returns immediately, zero tail-calls f_100db4bc at 0x10470d60."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10fac460",
-         "notes": "argument name string"
+         "address": "0x1046f9f4",
+         "notes": "f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e44e8",
-         "address": "0x100e44e8",
-         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
+         "address": "0x1046b024",
+         "notes": "Request filler reads InstanceID, Channel and byte from the captured 12-byte record; formats DesiredLoudness through f_1055fc08, not as an unrestricted numeric value."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db4bc",
+         "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
         }
        ],
-       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub.",
+       "notes": "No LF/RF local loudness change; proxy processing precedes the local comparison.",
        "buf_cap": 1024
       },
       "DesiredLoudness": {
-       "description": "parsed by the request layer but never read - impl vfunc 0x100e44e8 is a no-op stub",
+       "description": "Required parsed boolean byte. Captured for remote formatting as 0/1, then stored locally without another value predicate.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -78726,64 +78740,463 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "input",
-       "format": "per request parse",
+       "semantic_type": "boolean byte",
+       "format": "SOAP boolean request text",
        "unit": "none",
-       "accepted_values": "per parse",
-       "range": "unconstrained",
+       "accepted_values": "Boolean parser result; no additional setter value predicate",
+       "range": "parsed byte; not a claim about all numeric lexical forms",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "no impl-level use or validation (stub impl)",
+       "default": "none: required argument",
+       "validation": "f_10561444 configures the type-1 destination. Remote f_1055fc08 formats zero as 0, nonzero as 1; local stage stores the parser byte.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b500",
-         "notes": "in-arg access site"
+         "address": "0x1046b024",
+         "notes": "Request filler reads InstanceID, Channel and byte from the captured 12-byte record; formats DesiredLoudness through f_1055fc08, not as an unrestricted numeric value."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10ed2a54",
-         "notes": "argument name string"
+         "address": "0x100db4bc",
+         "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e44e8",
-         "address": "0x100e44e8",
-         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
+         "address": "0x10561444",
+         "notes": "Configures a required type-1 byte destination and a 24-byte parser buffer; this constructor does not itself parse boolean lexical forms."
         }
        ],
-       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub."
+       "notes": "No setter-side normalization or arbitrary-byte lexical acceptance is inferred."
       }
      },
      "outputs": {},
-     "validation": "Request-layer parse.",
-     "requirements": "impl class determines all behavior",
-     "state_dependencies": "none - no state gating observed beyond argument checks",
+     "validation": {
+      "description": "Required request validation precedes dispatch. Successful local application needs InstanceID zero, guard +0x7ff zero and exact case-sensitive Channel Master, in that order. Proxy processing occurs before those local checks and may already have affected peers on a later failure. The implementation adds no further predicate to the parsed loudness byte. f_10561444 configures the boolean argument descriptor; byte-width storage is not proof that arbitrary numeric lexical forms are accepted.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470d08",
+        "notes": "Calls f_1046f9f4 with public flag r7=1; nonzero returns immediately, zero tail-calls f_100db4bc at 0x10470d60."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f9f4",
+        "notes": "f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b024",
+        "notes": "Request filler reads InstanceID, Channel and byte from the captured 12-byte record; formats DesiredLoudness through f_1055fc08, not as an unrestricted numeric value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db4bc",
+        "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b54c",
+        "notes": "Wrapper freshly tests numeric status with mr.; nonzero faults at 0x1073b560, zero commits an empty response."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10561444",
+        "notes": "Configures a required type-1 byte destination and a 24-byte parser buffer; this constructor does not itself parse boolean lexical forms."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required request validation precedes dispatch. Successful local application needs InstanceID zero, guard +0x7ff zero and exact case-sensitive Channel Master, in that order. Proxy processing occurs before those local checks and may already have affected peers on a later failure. The implementation adds no further predicate to the parsed loudness byte.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470d08",
+        "notes": "Calls f_1046f9f4 with public flag r7=1; nonzero returns immediately, zero tail-calls f_100db4bc at 0x10470d60."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f9f4",
+        "notes": "f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b024",
+        "notes": "Request filler reads InstanceID, Channel and byte from the captured 12-byte record; formats DesiredLoudness through f_1055fc08, not as an unrestricted numeric value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db4bc",
+        "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Uses topology +0xbc8/+0x9c8, request manager +0x3c4, mutex +0x938, guard byte +0x7ff, cached loudness +0x7fd, dirty +0x7fe, port +0x3a8, device +0x3ac, source this+8 and follow-up state +0x894/+0x89c/+0x8a0/+0xbf4. f_102a5380 loads device+0x34 and calls f_107f5db0 on that object+0xe0. The latter guards +0x30 and calls f_10d8dbe4 on its +0xc4 DSP manager. That worker stores the loudness byte at DSP-manager+0x2f0+0x20c*port under its lock, releases the guard before f_10d8db50, marks dirty byte +0xe8+port and calls slot +0x38 on every nonnull observer in the pointer array +0x90..+0xe4. An empty observer array still leaves those cache/dirty updates in place.",
+      "todo": [
+       "Established: RC-to-DSP fields and observer array/slot are recovered.",
+       "Unknown: The concrete registered DSP observer dependencies.",
+       "Next: Find stores into DSP-manager +0x90..+0xe4 and bind slot +0x38 reached from f_10d8db50."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f9f4",
+        "notes": "f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b024",
+        "notes": "Request filler reads InstanceID, Channel and byte from the captured 12-byte record; formats DesiredLoudness through f_1055fc08, not as an unrestricted numeric value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db4bc",
+        "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102a5380",
+        "notes": "f_102a5380 loads device+0x34 and calls f_107f5db0 on that object+0xe0. The latter guards +0x30 and calls f_10d8dbe4 on its +0xc4 DSP manager. That worker stores the loudness byte at DSP-manager+0x2f0+0x20c*port under its lock, releases the guard before f_10d8db50, marks dirty byte +0xe8+port and calls slot +0x38 on every nonnull observer in the pointer array +0x90..+0xe4. An empty observer array still leaves those cache/dirty updates in place."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8dc24",
+        "notes": "Raw 0x579f063e: SH=0 MB=24 ME=31, r31=r28&0xff, not a right shift. Port was loaded by lbz."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053c388",
+        "notes": "Raw 0x7c6a4f9e is isel r3,r10,r9,30 with r10=1,r9=0 after comparing snapshot+0x288 with zero; true means the word is zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "f_100d993c stores a clock word at +0x894 and registers f_100d7d6c with timer +0xbf4. The callback waits until the stored clock word+30 has expired before f_100d78a4. The save worker snapshots settings, clears +0x894, increments sequence +0x89c, coordinates with mutex +0x8a0, and attempts an EQ-key write through object +0x3bc slot +0x14, then f_10167318 on +0xbd4. This deferred path and its collision handling are separate from SOAP success; durable storage is not established here."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "None in impl class A - vfunc is the null stub f_100e44e8. In impl class B it is f_1046d340 (grouped-operation prelude machinery).",
+       "description": "f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0. Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0. f_102a5380 loads device+0x34 and calls f_107f5db0 on that object+0xe0. The latter guards +0x30 and calls f_10d8dbe4 on its +0xc4 DSP manager. That worker stores the loudness byte at DSP-manager+0x2f0+0x20c*port under its lock, releases the guard before f_10d8db50, marks dirty byte +0xe8+port and calls slot +0x38 on every nonnull observer in the pointer array +0x90..+0xe4. An empty observer array still leaves those cache/dirty updates in place. f_100d993c stores a clock word at +0x894 and registers f_100d7d6c with timer +0xbf4. The callback waits until the stored clock word+30 has expired before f_100d78a4. The save worker snapshots settings, clears +0x894, increments sequence +0x89c, coordinates with mutex +0x8a0, and attempts an EQ-key write through object +0x3bc slot +0x14, then f_10167318 on +0xbd4. This deferred path and its collision handling are separate from SOAP success; durable storage is not established here.",
+       "todo": [
+        "Established: Prepared peer requests, RC/DSP caches, dirty bits, event request and deferred save attempt.",
+        "Unknown: Concrete DSP observer effects and durable-storage/session finalization outcomes.",
+        "Next: Bind f_10d8db50 observer +0x38; finish f_106ff898 and storage object +0x3bc slot +0x14 / f_10167318."
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e44e8",
-         "address": "0x100e44e8",
-         "notes": "base stub; derived f_1046d340"
+         "address": "0x10ed2758",
+         "notes": "Bound primary RC vptr 0x10ed270c slot +0x4c contains f_10470cd8."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10470d08",
+         "notes": "Calls f_1046f9f4 with public flag r7=1; nonzero returns immediately, zero tail-calls f_100db4bc at 0x10470d60."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046f9f4",
+         "notes": "f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046b024",
+         "notes": "Request filler reads InstanceID, Channel and byte from the captured 12-byte record; formats DesiredLoudness through f_1055fc08, not as an unrestricted numeric value."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db4bc",
+         "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102a5380",
+         "notes": "f_102a5380 loads device+0x34 and calls f_107f5db0 on that object+0xe0. The latter guards +0x30 and calls f_10d8dbe4 on its +0xc4 DSP manager. That worker stores the loudness byte at DSP-manager+0x2f0+0x20c*port under its lock, releases the guard before f_10d8db50, marks dirty byte +0xe8+port and calls slot +0x38 on every nonnull observer in the pointer array +0x90..+0xe4. An empty observer array still leaves those cache/dirty updates in place."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10d8dc24",
+         "notes": "Raw 0x579f063e: SH=0 MB=24 ME=31, r31=r28&0xff, not a right shift. Port was loaded by lbz."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1053c388",
+         "notes": "Raw 0x7c6a4f9e is isel r3,r10,r9,30 with r10=1,r9=0 after comparing snapshot+0x288 with zero; true means the word is zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d78a4",
+         "notes": "f_100d993c stores a clock word at +0x894 and registers f_100d7d6c with timer +0xbf4. The callback waits until the stored clock word+30 has expired before f_100d78a4. The save worker snapshots settings, clears +0x894, increments sequence +0x89c, coordinates with mutex +0x8a0, and attempts an EQ-key write through object +0x3bc slot +0x14, then f_10167318 on +0xbd4. This deferred path and its collision handling are separate from SOAP success; durable storage is not established here."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100ec660",
+         "notes": "Optional f_100ec3ec result diagnostics use rc_upnp_events log category, level 8 and f_109b72ac; separate from notification request f_1067c6ec."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b54c",
+         "notes": "Wrapper freshly tests numeric status with mr.; nonzero faults at 0x1073b560, zero commits an empty response."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10561444",
+         "notes": "Configures a required type-1 byte destination and a 24-byte parser buffer; this constructor does not itself parse boolean lexical forms."
         }
        ]
       }
      ],
-     "events_triggered": "LastChange via RCS writer f_100e27b0 carrying Loudness (mechanism proven; exact var emission per runtime change)",
-     "state_transitions": "persists Loudness into the RCS settings member; notify->dirty->event pipeline (call-derived, slot-bounded)",
-     "return_behavior": "Class A: stale-cr0 return - likely commits success with uninitialized output / no effect. Class B: real impl at 0x1046d340 (unexplored).",
+     "events_triggered": {
+      "description": "Local success sets dirty +0x7fe and calls f_1067c6ec(this+8) at 0x100db5ac. Diagnostic logs, DSP observers and peer requests are separate paths; none alone proves subscriber delivery.",
+      "todo": [
+       "Established: The exact local dirty flag and source request are recovered.",
+       "Unknown: RC payload serialization, attached sender and eventual subscriber delivery; DSP/peer emitters.",
+       "Next: Bind RC this+8 metadata callback, then f_1067c6ec -> f_1067c46c -> f_10678c50 sender worker and f_10d8db50 observer +0x38."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db4bc",
+        "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102a5380",
+        "notes": "f_102a5380 loads device+0x34 and calls f_107f5db0 on that object+0xe0. The latter guards +0x30 and calls f_10d8dbe4 on its +0xc4 DSP manager. That worker stores the loudness byte at DSP-manager+0x2f0+0x20c*port under its lock, releases the guard before f_10d8db50, marks dirty byte +0xe8+port and calls slot +0x38 on every nonnull observer in the pointer array +0x90..+0xe4. An empty observer array still leaves those cache/dirty updates in place."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100ec660",
+        "notes": "Optional f_100ec3ec result diagnostics use rc_upnp_events log category, level 8 and f_109b72ac; separate from notification request f_1067c6ec."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Local success changes the cached loudness byte, sets dirty, and updates the per-port DSP cache; repeated values still perform these steps. Proxy failure skips local application without undoing earlier prepared peer operations.",
+      "todo": [
+       "Established: Synchronous cache transitions and proxy/local order.",
+       "Unknown: Completed device application and final durable save state.",
+       "Next: Follow f_10d8db50 concrete +0x38 observers and storage object +0x3bc slot +0x14 / f_10167318 before claiming achieved audio or durable settings."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470d08",
+        "notes": "Calls f_1046f9f4 with public flag r7=1; nonzero returns immediately, zero tail-calls f_100db4bc at 0x10470d60."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f9f4",
+        "notes": "f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b024",
+        "notes": "Request filler reads InstanceID, Channel and byte from the captured 12-byte record; formats DesiredLoudness through f_1055fc08, not as an unrestricted numeric value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db4bc",
+        "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102a5380",
+        "notes": "f_102a5380 loads device+0x34 and calls f_107f5db0 on that object+0xe0. The latter guards +0x30 and calls f_10d8dbe4 on its +0xc4 DSP manager. That worker stores the loudness byte at DSP-manager+0x2f0+0x20c*port under its lock, releases the guard before f_10d8db50, marks dirty byte +0xe8+port and calls slot +0x38 on every nonnull observer in the pointer array +0x90..+0xe4. An empty observer array still leaves those cache/dirty updates in place."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8dc24",
+        "notes": "Raw 0x579f063e: SH=0 MB=24 ME=31, r31=r28&0xff, not a right shift. Port was loaded by lbz."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053c388",
+        "notes": "Raw 0x7c6a4f9e is isel r3,r10,r9,30 with r10=1,r9=0 after comparing snapshot+0x288 with zero; true means the word is zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "f_100d993c stores a clock word at +0x894 and registers f_100d7d6c with timer +0xbf4. The callback waits until the stored clock word+30 has expired before f_100d78a4. The save worker snapshots settings, clears +0x894, increments sequence +0x89c, coordinates with mutex +0x8a0, and attempts an EQ-key write through object +0x3bc slot +0x14, then f_10167318 on +0xbd4. This deferred path and its collision handling are separate from SOAP success; durable storage is not established here."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Returns any nonzero proxy result without local work, including 1034 on endpoint preparation failure or the last nonzero prepared-session status. Otherwise returns local 702, 501, 402 or 0 according to the ordered guards. SOAP has no outputs. Parser validation selects 402 before implementation; dispatcher rejection selects 401. Status zero does not prove physical audio application or notification delivery.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2758",
+        "notes": "Bound primary RC vptr 0x10ed270c slot +0x4c contains f_10470cd8."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470d08",
+        "notes": "Calls f_1046f9f4 with public flag r7=1; nonzero returns immediately, zero tail-calls f_100db4bc at 0x10470d60."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f9f4",
+        "notes": "f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b024",
+        "notes": "Request filler reads InstanceID, Channel and byte from the captured 12-byte record; formats DesiredLoudness through f_1055fc08, not as an unrestricted numeric value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db4bc",
+        "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102a5380",
+        "notes": "f_102a5380 loads device+0x34 and calls f_107f5db0 on that object+0xe0. The latter guards +0x30 and calls f_10d8dbe4 on its +0xc4 DSP manager. That worker stores the loudness byte at DSP-manager+0x2f0+0x20c*port under its lock, releases the guard before f_10d8db50, marks dirty byte +0xe8+port and calls slot +0x38 on every nonnull observer in the pointer array +0x90..+0xe4. An empty observer array still leaves those cache/dirty updates in place."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8dc24",
+        "notes": "Raw 0x579f063e: SH=0 MB=24 ME=31, r31=r28&0xff, not a right shift. Port was loaded by lbz."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053c388",
+        "notes": "Raw 0x7c6a4f9e is isel r3,r10,r9,30 with r10=1,r9=0 after comparing snapshot+0x288 with zero; true means the word is zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "f_100d993c stores a clock word at +0x894 and registers f_100d7d6c with timer +0xbf4. The callback waits until the stored clock word+30 has expired before f_100d78a4. The save worker snapshots settings, clears +0x894, increments sequence +0x89c, coordinates with mutex +0x8a0, and attempts an EQ-key write through object +0x3bc slot +0x14, then f_10167318 on +0xbd4. This deferred path and its collision handling are separate from SOAP success; durable storage is not established here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100ec660",
+        "notes": "Optional f_100ec3ec result diagnostics use rc_upnp_events log category, level 8 and f_109b72ac; separate from notification request f_1067c6ec."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b54c",
+        "notes": "Wrapper freshly tests numeric status with mr.; nonzero faults at 0x1073b560, zero commits an empty response."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10561444",
+        "notes": "Configures a required type-1 byte destination and a 24-byte parser buffer; this constructor does not itself parse boolean lexical forms."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073b560",
@@ -78794,21 +79207,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.",
+       "meaning": "Unknown action or null service implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch time",
+         "description": "Unknown action or null service implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null service implementation at dispatcher."
           }
          ]
         }
@@ -78818,30 +79230,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null service implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request parse/validation failure at the wrapper.",
+       "meaning": "Request validation fails, or local InstanceID and configuration guards pass but Channel is not exact Master.",
        "fault_sites": [
         "0x1073b560"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request validation fails, or local InstanceID and configuration guards pass but Channel is not exact Master.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073b560"
+           "address": "0x100db574",
+           "notes": "Request validation fails, or local InstanceID and configuration guards pass but Channel is not exact Master."
           }
          ]
         }
@@ -78851,12 +79260,127 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073b560"
+         "address": "0x100db574",
+         "notes": "Request validation fails, or local InstanceID and configuration guards pass but Channel is not exact Master."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "Local InstanceID is zero but byte +0x7ff is nonzero.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Local InstanceID is zero but byte +0x7ff is nonzero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100db554",
+           "notes": "Local InstanceID is zero but byte +0x7ff is nonzero."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db554",
+         "notes": "Local InstanceID is zero but byte +0x7ff is nonzero."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "Local stage rejects nonzero InstanceID after successful proxy processing.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Local stage rejects nonzero InstanceID after successful proxy processing.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100db500",
+           "notes": "Local stage rejects nonzero InstanceID after successful proxy processing."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db500",
+         "notes": "Local stage rejects nonzero InstanceID after successful proxy processing."
+        }
+       ]
+      },
+      {
+       "code": 1034,
+       "meaning": "Public proxy endpoint preparation fails; already prepared requests are still processed.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Public proxy endpoint preparation fails; already prepared requests are still processed.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1046fd7c",
+           "notes": "Public proxy endpoint preparation fails; already prepared requests are still processed."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046fd7c",
+         "notes": "Public proxy endpoint preparation fails; already prepared requests are still processed."
+        }
+       ]
+      },
+      {
+       "code": null,
+       "meaning": "Last nonzero session-status halfword +0x2722 replaces the proxy result.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Last nonzero session-status halfword +0x2722 replaces the proxy result.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1046fe28",
+           "notes": "Last nonzero session-status halfword +0x2722 replaces the proxy result."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046fe28",
+         "notes": "Last nonzero session-status halfword +0x2722 replaces the proxy result."
+        }
+       ],
+       "todo": [
+        "Established: Status extraction and last-nonzero selection are recovered.",
+        "Unknown: Complete producers and meanings of session-status values.",
+        "Next: Finish f_106ff898 beneath f_106fb998 and concrete SetLoudness session finalizers."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -78865,37 +79389,101 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073b474",
-       "address": "0x1073b474",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2758",
+       "notes": "Bound primary RC vptr 0x10ed270c slot +0x4c contains f_10470cd8."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e6c",
-       "notes": "action dispatch table entry"
+       "address": "0x10470d08",
+       "notes": "Calls f_1046f9f4 with public flag r7=1; nonzero returns immediately, zero tail-calls f_100db4bc at 0x10470d60."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "null stub in vtable A",
-       "function": "0x100e44e8"
+       "address": "0x1046f9f4",
+       "notes": "f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "vtable B slot +0x4c = 0x1046d340",
-       "address": "0x10ed279c"
+       "address": "0x1046b024",
+       "notes": "Request filler reads InstanceID, Channel and byte from the captured 12-byte record; formats DesiredLoudness through f_1055fc08, not as an unrestricted numeric value."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100db4bc",
+       "notes": "Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102a5380",
+       "notes": "f_102a5380 loads device+0x34 and calls f_107f5db0 on that object+0xe0. The latter guards +0x30 and calls f_10d8dbe4 on its +0xc4 DSP manager. That worker stores the loudness byte at DSP-manager+0x2f0+0x20c*port under its lock, releases the guard before f_10d8db50, marks dirty byte +0xe8+port and calls slot +0x38 on every nonnull observer in the pointer array +0x90..+0xe4. An empty observer array still leaves those cache/dirty updates in place."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10d8dc24",
+       "notes": "Raw 0x579f063e: SH=0 MB=24 ME=31, r31=r28&0xff, not a right shift. Port was loaded by lbz."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1053c388",
+       "notes": "Raw 0x7c6a4f9e is isel r3,r10,r9,30 with r10=1,r9=0 after comparing snapshot+0x288 with zero; true means the word is zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d78a4",
+       "notes": "f_100d993c stores a clock word at +0x894 and registers f_100d7d6c with timer +0xbf4. The callback waits until the stored clock word+30 has expired before f_100d78a4. The save worker snapshots settings, clears +0x894, increments sequence +0x89c, coordinates with mutex +0x8a0, and attempts an EQ-key write through object +0x3bc slot +0x14, then f_10167318 on +0xbd4. This deferred path and its collision handling are separate from SOAP success; durable storage is not established here."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100ec660",
+       "notes": "Optional f_100ec3ec result diagnostics use rc_upnp_events log category, level 8 and f_109b72ac; separate from notification request f_1067c6ec."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073b54c",
+       "notes": "Wrapper freshly tests numeric status with mr.; nonzero faults at 0x1073b560, zero commits an empty response."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10561444",
+       "notes": "Configures a required type-1 byte destination and a 24-byte parser buffer; this constructor does not itself parse boolean lexical forms."
       }
      ],
-     "notes": "Loudness exists only on the derived/proxy impl class - plausible device-capability gating.",
+     "notes": "The concrete primary slot is statically bound, not conditional on an unknown player class. This path is not the formerly attributed context writer f_100e27b0.",
      "todo": [
-      "Established: dispatch and handler 0x1073b474 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.",
-      "Residual: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+      "Established: Binding, proxy/local ordering, request fields, guards, RC/DSP cache writes, dirty and notification request sites.",
+      "Unknown: DSP observer effects, complete session-status producers, durable follow-up and subscriber delivery.",
+      "Next: Bind DSP-manager +0x90..+0xe4 slot +0x38 below f_10d8db50; finish f_106ff898, storage object RC+0x3bc slot +0x14 / f_10167318, and the RC event serializer/sender."
+     ],
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x4c",
+      "function": "0x10470cd8",
+      "proxy": "0x1046f9f4",
+      "local_worker": "0x100db4bc",
+      "dsp_worker": "0x10d8dbe4"
+     }
     },
     "SetMute": {
      "description": "Writes the per-channel mute byte (impl+0x7f1/2/3/4) under the impl mutex; on the Master path it additionally syncs the volume u16 (+0x7da -> +0x3c8, with a +0x7e0 -> +0x7da snapshot when both flags +0x7ff and +0x801 are set), applies committed state via f_100d7f34, sets the dirty flag impl+0x7f5=1 and emits two notifications (f_1067c6ec on impl+8, then f_100d993c).",
