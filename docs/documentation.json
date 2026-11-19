@@ -149209,20 +149209,61 @@
   },
   "mpegts_id3": {
    "name": "MPEG-TS demuxer + timed ID3 (HLS radio metadata)",
-   "summary": "TS parse: PAT/PMT PIDs, sectlen/desclen/silen, stype (Unsupported stream type), eslen, \"No audio PID\"/\"Audio PID is 0x%x\", \"non-audio and non-timed_id3 PID\", PTS, peslen/payload; timed-ID3v2 extraction: tag footer detect, \"Ignoring too large timed ID3 size\", OOB guards, \"unsupported mp3 segment\"; PAT/PMT discovery 'found PAT PID'/'found PMT PID 0x%x'/'Can't read PMT', afelen/sectlen/desclen/silen field widths, 'ID3v2 tag is malformed'/'detected ID3v2 footer'/'cannot skip initial ID3v2 tag'",
+   "summary": "The HLS segment path configures a compiled TS/AAC reader. TS PMT stream type0x15 selects a timed-ID3 PID, separately from the AAC audio PID. Metadata is accumulated in a bounded 32768-byte buffer with ID3 header/footer length and overflow handling. This establishes a local extraction mechanism, not a named-service emission allowlist or a complete downstream metadata conversion contract.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10ed9380",
      "notes": "ts/id3 parser region"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103b89bc / f_104cc7e0 / f_104cc758",
+     "address": "0x103b8a2c",
+     "callsite": "0x104cc824 / 0x104cc83c / 0x104cc854 / 0x104cc7a0",
+     "notes": "Segment setup passes embedded object+18 at0x103b8a28 and calls f_104cc7e0. Extension compared case-insensitively with ts/aac/mp3 at0x104cc830/0x104cc848/0x104cc860. ts match stores0 to mode+54 at0x104cc8e8; aac stores1 at0x104cc8b8. mp3 match logs unsupported mp3 segment then returns0x80000004. Constructor at0x104cc758 stores vtable0x10ed9190 at0x104cc7a0; raw table+8=0x104cdff0. These checked predicates are not service-ID comparisons."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104cd500 PMT/PES PID selection",
+     "address": "0x104cdae8",
+     "callsite": "0x104cdb40 / 0x104cda18 / 0x104cdd18 / 0x104ce1f8",
+     "notes": "PMT stream type from five-byte row at0x104cdae8. Type<=0x15 shifted-bit dispatch at0x104cdb20-0x104cdb3c: bit0x200000 sets PID+30 at0x104cdb40; bit0x8000 sets audio PID+10 at0x104cda18. Raw rlwinm r26,r26,0,19,31 at0x104cdb38 keeps low13 PID bits, no shift. Packet PID comparisons at0x104cd654-0x104cd668; metadata PID match0x104cdd10 sets kind1 at+8. Reader calls packet parser at0x104ce1f8 and accumulation at0x104ce144."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104cca78 and bounded timed-ID3 buffer",
+     "address": "0x104cca90",
+     "callsite": "0x104ccadc / 0x104ccaf0 / 0x104cd200 / 0x104ccbbc",
+     "notes": "Header count unsigned>9 gates decode at0x104cca94/98. Objdump/raw-word checked: size bytes at+1b6..+1b9 keep7 bits shifted21/14/7/0; final clrlwi raw0x54e7067e at0x104ccad4 masks without shifting. iseleq at0x104ccadc selects10 or20 from footer flag0x10. Unsigned bgt32768 at0x104ccaf0 sets ignore+81c8, not>=32768. Accumulator count+incoming bound at0x104cd1f0-0x104cd200; overflow reset0x104cd238-0x104cd25c. Copy-out f_104ccb98 bounds copied+requested at0x104ccbb8/0x104ccbbc before memcpy0x104ccc1c and copied-count update0x104ccc28. Reader output pointer saved r26 at0x104ce068, requested length at0x104ce04c, returned count pointer r19 at0x104ce050. Audio-kind0 branch at0x104ce0e0-0x104ce0e4 checks metadata completeness0x104ce238-0x104ce258 and timestamp state0x104ce2a0-0x104ce2c4/0x104ce30c-0x104ce338. It passes r4=r26 to f_104ccb98 at0x104ce2cc-0x104ce2e8; output pointer/count advance0x104ce28c-0x104ce294. This forwards ID3 bytes into the read output, without a direct generic-ID3-parser call."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1051da18 generic PRIV parser diagnostic",
+     "address": "0x1051ffe4",
+     "callsite": "0x1051fff0",
+     "notes": "The generic ID3 parser contains file priv data id does not match framer id at0x1051ffe4 and logs at0x1051fff0. This is evidence of a private-owner/framer comparison in that parser, not a music-service emission table or proof of a completed link from TS reader timed buffer."
     }
    ],
    "todo": [
-    "Residual: which named music services actually emit timed-ID3 (vs ICY or DASL) is service-config data; the extraction grammar is fully proven."
+    "Established: HLS segment setup reaches the TS reader; PMT types0x15/0x0f select timed-ID3/AAC PIDs, with exact bounded tag accumulation and header/footer length handling. Complete eligible tags are copied into the same output stream as audio, rather than proving a separate service-specific metadata callback. Remaining: trace callers/configuration writers of f_103b89bc and reader setup f_104cc7e0 back to service/source/URI selection, then join consumers of reader virtual+8=f_104cdff0 to the generic ID3 parser f_1051da18 and private-owner consumers. Determine whether any compiled service-specific metadata selection exists before classifying named-service mapping as external-only; if none, distinguish compiled acceptance from provider emission observable only in manifests/segments. Complete conversion and malformed-frame grammar are not certified by frame-name literals. These are actionable static joins; the old fully-proven/external-configuration-only limitation is withdrawn."
    ],
    "resolved_findings": [
-    "Resolved: ID3 consumer = stations embedding ID3 in MPEG-TS get the timed-metadata extracted at the demux layer and fed to the stream-metadata path (the tsclient demuxer passes PES private data to the ID3 parser).",
-    "ID3-to-metadata map decoded (id3v2 frame table at 0x10ee49xx): standard v2.3/v2.4 frames with v2.2 aliases {TPE1/TP1 artist, TCOM/TCM composer, TPE2/TP2 album-artist, TALB/TAL album, TIT2/TT2 title, TCON/TCO genre, TRCK/TRK track number, TPOS/TPA disc number}; artwork via APIC/PIC frames with format sniffing {JPG,PNG,GIF}; COM comment frames; vendor extensions MusicMatch_TrackArtist, Media Jukebox: Album Artist, iTunes TCMP/TCP compilation; WXXX user-URL frames carry remote artwork keys {artworkURL_, imageThumbnail, imageSmall, imageMedium} with WXXX=%s emit and skipping unsupported key=%s rejects. PRIV frames are framer-keyed: found PRIV frame id %s len %zu / file priv data id does not match framer id - the same private-data channel as logical track MD %s with %zu bytes of private data (PRIV data for %s is too big, only %zu bytes allowed). Windows Media frames {AverageLevel, WM/WMCollectionID} recognized. Tag framing: ID3 magic + Advancing pos beyond ID3 tag (%zu bytes). Timed-ID3 on TS is the HLS-radio metadata carrier - the PID guard accepts only audio or timed_id3 stream types."
+    "Reachable segment configuration: f_103b89bc calls f_104cc7e0 at 0x103b8a2c for its embedded reader at +0x18, supplying the segment string, source interface and configuration arguments. f_104cc7e0 obtains the segment extension via f_105a3bd4, compares ts/aac/mp3, selects TS mode0 or raw AAC mode1 in reader+0x54 for the first two, and explicitly rejects the recognized mp3 extension with status0x80000004. This checked layer chooses a container mode, not a named music-service ID. That does not prove upstream service-specific source/URI/configuration selection is absent.",
+    "Constructor f_104cc758 installs static reader vtable0x10ed9190; its +8 entry is f_104cdff0. That read method invokes packet parser f_104cd500 at 0x104ce1f8. PMT processing extracts stream type and 13-bit elementary PID; stream type0x15 stores the timed metadata PID at reader+0x30, while type0x0f stores AAC audio PID at +0x10. Later packets compare their PID with these separate slots; timed PID match sets payload-kind1 at reader+8. Other PIDs are skipped through the non-audio and non-timed_id3 path. These are stream-advertised PMT/PES conditions, not proof of which commercial provider emitted the data.",
+    "f_104cdff0 routes payload-kind1 to f_104cd1bc, which accumulates metadata at reader+0x1b0 and count+0x81b8; it then calls f_104cca78 to compute expected tag length at +0x81b0. With at most9 bytes available that helper returns without decoding. With at least10 it combines the low seven bits of header size bytes6..9 in shifts21/14/7/0, then adds10 for the header or20 when header flag0x10 indicates a footer. Expected total above0x8000 sets ignore byte+0x81c8 and logs Ignoring too large timed ID3 size; exactly0x8000 is not rejected by this comparison.",
+    "Two separate bounds guard the same buffer. Accumulation f_104cd1bc detects count+incoming>0x8000, logs reading ID3 would write OOB, resetting and clears accumulated/copied/expected counts, timestamp and ignore state. Copy-out f_104ccb98 checks copied+requested<=0x8000 before memcpy from buffer+copied, otherwise logs reading ID3 would read OOB and does not copy. The read loop also tests expected versus accumulated bytes and timestamp state before exposing metadata. Therefore merely recognizing an ID3 header does not prove complete metadata was returned.",
+    "The output mechanism is stream reinsertion, not a demonstrated separate track-metadata callback. f_104cdff0 saves the caller output pointer in r26 and requested length from *r5 in r27; payload-kind0 is the audio branch. If accumulated metadata reaches expected length, is not ignored and satisfies the timestamp gates, that branch calls f_104ccb98 with r4=r26 at 0x104ce2e8 to copy the ID3 bytes into the caller output, then advances output pointer/count before later audio copying. The generic ID3 parser is not directly called by this reader. Binding its caller chain remains necessary before claiming every timed payload reaches a particular track-metadata/private-owner consumer.",
+    "The prior assertion that the named-service residual is necessarily only external configuration is withdrawn: no service-name/ID predicate appears in the checked segment setup, PMT selector or timed-buffer routines, but the upstream configuration writers and downstream consumer binding have not been exhaustively joined. The generic ID3 frame vocabulary below is not itself proof that every TS metadata payload reaches that parser or that its PRIV owner string denotes a music service. Actual provider emission additionally depends on supplied manifests/segments; no named-service emission list is established here.",
+    "Independent generic ID3 parser vocabulary retained from the earlier trace: standard v2.3/v2.4 frames with v2.2 aliases {TPE1/TP1 artist, TCOM/TCM composer, TPE2/TP2 album-artist, TALB/TAL album, TIT2/TT2 title, TCON/TCO genre, TRCK/TRK track number, TPOS/TPA disc number}; artwork via APIC/PIC frames with format sniffing {JPG,PNG,GIF}; COM comment frames; vendor extensions MusicMatch_TrackArtist, Media Jukebox: Album Artist, iTunes TCMP/TCP compilation; WXXX user-URL frames carry remote artwork keys {artworkURL_, imageThumbnail, imageSmall, imageMedium} with WXXX=%s emit and skipping unsupported key=%s rejects. PRIV frames are framer-keyed: found PRIV frame id %s len %zu / file priv data id does not match framer id - the same private-data channel as logical track MD %s with %zu bytes of private data (PRIV data for %s is too big, only %zu bytes allowed). Windows Media frames {AverageLevel, WM/WMCollectionID} recognized. Tag framing: ID3 magic + Advancing pos beyond ID3 tag (%zu bytes). This vocabulary is not a certified complete TS-to-track-metadata dataflow or full malformed-input grammar audit."
    ]
   },
   "diagnostics": {
