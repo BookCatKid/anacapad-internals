@@ -151826,17 +151826,36 @@
      "type": "firmware",
      "address": "0x10f249f4",
      "notes": "dspconfig block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107c5558",
+     "notes": "Global descriptor pointer resolves to 0x10fbea70."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fbea9c",
+     "notes": "Twelve two-word packed headers decode to tags 1..12."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107c55bc",
+     "notes": "Success presence byte precedes copying 0xfa8-byte decoded payload."
     }
    ],
-   "todo": [
-    "Residual: the semantic name of each numbered field (the tag vocabulary is static-packed and proven; names live in the absent .proto)."
-   ],
+   "todo": "Residual: bind the corrected top-level protobuf tags 1..12 and nested descriptors to semantic names through DSPConfigParams conversion/consumer offsets. Encoded header bytes 5,9,13,... were not field numbers or a per-model scheme; the shipped nanopb iterator now establishes the actual numbering.",
    "resolved_findings": [
-    "Resolved: the nanopb descriptor is the audio-config message; field table inferred from the decode-call offsets.",
     "DSP channel/speaker enums recovered: speaker-mask vocabulary at 0x10fbe650 {SPEAKER_MASK_UNSPECIFIED, THREE_DOT_ONE, FIVE_DOT_ONE, FIVE_DOT_ONE_DOT_TWO, SEVEN_DOT_ONE, NINE_DOT_ONE_DOT_FOUR}; channel-type enum at 0x10fbef08 {UNSPECIFIED, L, R, C, SUB, LS, RS, LRS, RRS, LTM, RTM, LW, RW, MONO, LTR, RTR} + channel-direction {UNSPECIFIED, DIRECT, INDIRECT_ARRAY, INDIRECT_SINGLE_DRIVER}; tone-handler/sub-system types at 0x10fbf1d4 {TONE_HANDLER_TYPE_{STANDARD,SUB}, ARRAY_SUB_SYSTEM_TYPE_{BRAVO,FURY,OPTIMO2,OPTIMO2_SURROUND,LASSO,APOLLO}, VOLTAGE_GAIN_CALCULATOR_TYPE_{BULK_CAPACITORS,BOOSTED_BATTERY,BUCKED_CAPACITOR}}; orientation/measurement enums at 0x10fbff4c {DEVICE_ORIENTATION_*, MEASUREMENT_MODE_{SPATIAL,SPECTRAL}, SUB_POLARITY_{POSITIVE,NEGATIVE}, TUNING_MODE_{INDIVIDUAL_CHANNELS,ALL_CHANNELS_AS_MONO}}; stream-type {INPUT,OUTPUT,SCRATCH} at 0x10fbfed4.",
     "Channel-layout token map at 0x10fe6ba4: {lr=0, c=0, lfe=1, lrs=2, lrrs=3, lrw=4, lrtm=5, lrtf=6, lrtr=7, lre=8, lrrh=9, lrfh=10, lrse=11, lrrs e=12, lrs1=13, lrrs1=14, lrs2=15, lrrs2=16, lrcs=17, cs=18} - speaker-position tokens used in DSP channel-map descriptors.",
-    "The nanopb msgdesc IS static: pb_decode at 0x107c5564 takes fields=*(sdata 0x110954b8)=0x10fbea70, a nanopb-0.4-style descriptor whose packed FIELDINFO byte stream at 0x10fbea9c encodes tags {5,9,13,17,21,25,29,33,37,41,45,49} - 12 fields at stride 4, one slot per model. Sub-descriptors chain at 0x10fbea40/0x10fbea14/0x10fbe668/0x10fbeb1c with their own packed streams carrying tag sets {5,9} and {4,8,12,16,...} (same stride-4 numbering). So the field numbers are not just inferred - they are enumerable from the packed descriptor streams; the submessage layout {field=4k+slot} confirms a per-model positional scheme.",
-    "Established: the /opt/dsp file set, nanopb decode, per-model lookups, and the volume-breakpoint validation taxonomy."
+    "The previous packed-descriptor tag decoding was wrong: 5,9,13,... are encoded field-header low bytes, not protobuf field numbers and not a per-model stride-four scheme. The actual top-level tags are 1 through 12. pb_decode at 0x107c5564 receives descriptor 0x10fbea70 through global 0x110954b8. Its field-info pointer is 0x10fbea9c and field count is twelve. All twelve top-level headers use format 1, meaning two 32-bit words each, from 0x10fbea9c through 0x10fbeaf8.",
+    "This is verified against the shipped decoder, not a guessed nanopb version: lib/libprotobuf-nanopb.so.0 iterator code at 0x10f0 extracts header low two bits as format; format-one code at 0x11e0-0x1208 extracts the low six tag bits with (word>>2)&63 and combines the extra tag bits from the second word. Applying that code to the static headers gives tags {1,2,3,4,5,6,7,8,9,10,11,12}. Descriptor submessage pointers at 0x10fbea8c are {0x10fbea40,0x10fbea14,0x10fbe668}; this establishes nesting but not semantic field names.",
+    "File/decode outcomes are also distinct: file bytes read at 0x107c553c are tested for zero at 0x107c5540-0x107c5544 before stream construction. An empty read logs DSPConfig file is empty at 0x107c5770; failed pb_decode branches to its error diagnostic at 0x107c57b8. A successful decode copies a 0xfa8-byte result through temporary records and sets the output presence byte to one at 0x107c559c-0x107c55d0. Consumer/conversion tracing, rather than absence of a source .proto, is the remaining route to field semantics."
    ]
   },
   "protocol_info": {
