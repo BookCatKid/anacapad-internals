@@ -167719,9 +167719,6 @@
   "fmt_upd": {
    "name": ".upd package format",
    "summary": "The .upd container format, now decoded from package/86.10-80260-1-9.upd. Sections are a linear chain of 16-byte records {magic u32 0x497f1635 (bytes 49 7f 16 35), type u32 LE, length u32 LE including the header, reserved u32} followed by the payload.",
-   "todo": [
-    "Residual: byte-order of {keyId, nonce/iv, wrapped-key, tag} inside the 40-byte block - the section decrypt path is now mapped (keyId@+4 u32BE, ZZ0053 record, ZZ0052 slot-walk, ZZ0075 unwrap, ZZ0033 AEAD); the remaining split is inside ZZ0050/ZZ0047 (update/final) args."
-   ],
    "artifacts": [
     "package/86.10-80260-1-9.upd",
     "package/86.10-80260-1-9-preinstall.sh",
@@ -167730,16 +167727,46 @@
     "VERSION"
    ],
    "resolved_findings": [
-    "Resolved (boundary): .upd layout = header {version, MINCOMPATVER-style minimum fields, model targets} + manifest + signature over the payload; update_machinery covers the check side.",
-    "Section table of the shipped image (all verified by parsing): type 0x01 = target version triplet {cmaj=86, cmin=10, cbld=80260} as u32 LE; type 0x15 = feature manifest, newline-separated capability names ('2021_11_PATCHES:', 'UBI_RED_KEY_WITH_NONCE:', 'MAX_MDP_VERSION_6:', '2023_01/2023_12/2024_12_PATCHES:') - these are the strings the updater's 'Critical UPD feature (%s: %s) not supported by player' check reads; three type 0x02 blocks carry min/max feature-range tuples ({1,9,1,1,0,-2,-1}, {-3,2,0,0,0,0,0x22,7}, {-2,0x20,0,-2,0,-2,-1} with 0xfffffffe/0xffffffff sentinels = open bounds) - the player-feature compatibility ranges.",
-    "Payload sections 0x03 (1.9KB - the preinstall/upgrade script class), 0x06 (1.79MB - kernel.uImage class), 0x04 (13.9MB - rootfs.squashfs class), 0x0d (55KB - device-payload class) all share the same enveloped inner header: u32 magic 0xca996488, u32 0x13a (inner header length 314), u16/u32 fields {ver=1, flags=0, count=1, stamp 0x00140312}, a 40-byte wrapped-key/digest block, then the encrypted blob - matching /bin/upgrade strings 'Enveloped data parse/decrypt*', 'Encrypted section too small', 'Out of space while decrypting section'.",
-    "Trust anchors: type 0x16 (149KB, res=0) is the certificate/manifest bundle - the bytes /bin/upgrade saves to /jffs/sys/run/rcb/upd_cert_bundle.rcb on parse failure; it opens with a u32 timestamp 0x621da74d + table-of-contents counters. type 0x11 (364B, res=1) is the trailing signature section sharing the bundle's timestamp prefix - verified via sonosRcbVerifySig; 'encrypted signature section not supported' and 'invalid Sonos signature section length' guard it.",
-    "The reserved/flags word discriminates plaintext vs enveloped sections: 0 on the version/feature/cert sections, 4 on all enveloped payloads, 1 on the signature. Minimum-version semantics live in the type-0x02 range tuples and the type-0x15 feature names rather than a MINCOMPATVER field - none exists in this image.",
-    "Resolved: the .upd section-type vocabulary is the libsonoscrypto name table @lib fileoff 0x2b90-0x2c54 - 17 stride-12 rows {0x16, name*, sectionId}: {0x20008:UPD, 0x2000c:Kernel, 0x20010:FPGA, 0x20014:M4, 0x20018:LK, 0x2001c:TEE, 0x20020:U-Boot, 0x20024:BL Combined, 0x20028:BL30, 0x2002c:BL31, 0x20030:BL32, 0x20034:BL33, 0x20038:FIP, 0x20040:FIRMWARE, 0x20044:ROOT_CERTS, 0x20048:JFFS_TARBALL, 0x2004c:BOOTSOUND}. Crypto provenance: envelope is mbedtls AEAD (cipher_update_ad + cipher_write_tag/check_tag; error strings \"bad tag (decryption AEAD tag check failed)\", \"bad padding\", \"full block expected\") with numbered signing keys (\"%s signed with key %u\" / \"signing key %u is revoked\") verified against {Sonos Device Authentication Root CA, Sonos Test Device Authentication Root CA} embedded roots. So the 40-byte inner block carries {keyId, aead nonce/iv, wrapped key, tag}-class fields.",
-    "Resolved: the verifier side (/bin/upgrade) names the inner machinery - \"Sonos signature section\" (length-checked, invalid length rejected), \"Extra section %u found after signature\" (signature must be the last section), \"Multiple sections of type %u\" rejected, \"Required section %u missing\" enforced, enveloped-data decrypt is EVP-style {init/update/final} with UBI_RED_KEY_WITH_NONCE key type, and per-section skip flags LACKS_{BOOTSOUND,M4}_PARTITION.",
-    "Recovered: libsonoscrypto.so.3 ZZ0053 (0x6318) parses the signed/encrypted outer container - byte-assembled fields: +0x00 u32 magic == 0x886499ca (xoris 0x779b + cmpwi -0x6636), +0x04 u32 declared length (must be <= input size), +0x08 u16 version == 1, +0x0a u16 flags, +0x0c u32 key-slot count <= 8, then count x 0x108-byte wrapped-key/recipient records at obj+0x10 (each parsed by helper 0x20518). After those: u8 envelope count at +0x850 constrained to {1,2}, then count x 0xa0c-stride envelope records each carrying {u32 blobLen <= 0x7ff @+0x854, u8 scheme @+0x858, blob[blobLen] @+0x859, u32 @+0x1058, u32 len2 <= 0x200 @+0x105c, blob2[len2] @+0x1060}; a final u32 @+0x1c6c is validated (0x20160) and the stream must end exactly at declared length. ZZ0052 (0x69a8) is the decrypt loop: tries each envelope record's unwrap callback (r27 fn ptr), falls back to the next on failure.",
-    "AEAD helper signature proven (libsonoscrypto ZZ0033 @0x4b50, the mbedtls cipher_update_ad/write_tag+check_tag wrapper): call site in /bin/upgrade @0x10002c2c passes {ctx(r3), mode=1(r4), key*(r5), keylen=0x10(r6), iv*(r7), ivlen=0x10(r8), and two zero stack args at 0x8/0xc(r1)} - so the envelope uses 16-byte key and 16-byte iv; ZZ0033 internally does cipher_setup -> setkey(rlwinm keybits) -> set_iv -> update_ad -> cipher_update -> check_tag/write_tag. Key-slot iteration is ZZ0052 @0x69a8: byte at ctx+0x850 is the slot count, records at ctx+0x854+i*0xa0c are 2572-byte wrapped-key entries, a per-slot function pointer is tried on each (r27 bctrl), then ZZ0075+ZZ0048 finalize into a 0x200-byte stack buffer. Per-slot record parse is ZZ0026 @0x3fd4: {u32 word0 whose top bit selects a 2-entry jump-table variant, u32 payload len <=0x100, u8[len] payload memcpy to out+8}.",
-    "Upgrade-side consumer decoded (/bin/upgrade f_100045c8 + libsonoscrypto ZZ0053/ZZ0052): the inner enveloped section carries a u32BE key-slot selector at bytes [4:8] (bounds-checked against the slot count). ZZ0053 parses a THIRD envelope type (magic 0x779b99ca, distinct from outer 0x886499ca and inner 0xca996488) into a 0x1c74-byte record: {u32BE magic@0 == 0x779b99ca, u32BE len@4 <= remaining, u16BE version@8 == 1, u16@0xa, u32@0xc, bound <=8 field, byte@+0x850 = key selector (bound <0x200), tail fields at +0x1c6c..+0x1c73}. ZZ0052 is the unwrap driver: iterates key slots at record+i*0xa0c (i<255, stride 2572 = the ZZ0052/ZZ0026 slot record size), calls a per-slot match callback ({u32@+0x854, u8@+0x858, data@+0x859}), and on match calls ZZ0075 on the slot's +0x1054/+0x1058/+0x1060 fields to produce the session key, then ZZ0038 wipes the key buffer."
+    "Outer section framing is byte magic49 7f 16 35 followed by u32LE type, total length including the sixteen-byte header, and flags. The shipped chain has version type1 (86,10,80260), feature-text type0x15, three range records type2, certificate bundle0x16, encrypted payload types3/6/4/0xd and final signature0x11. Payload flag4 means enveloped data in this image; version/feature/bundle flags are0 and signature flag1. The feature text includes UBI_RED_KEY_WITH_NONCE, but that string does not establish the inner cipher or an IV/key/tag field split.",
+    "The residual forty-byte-block premise was false. For type3 at outer file offset0x249af, the inner header starts at +0x10 with bytes88 64 99 ca. ZZ0053 at library0x6318 copies fields in byte order and reads them natively big-endian: magic0x886499ca, declared header length314 at inner+4, version1 at +8, u16 flags0 at +0xa, recipient-record count0 at +0xc. Byte+0x10 is envelope count1. There is no third magic0x779b99ca and no key-slot selector at +4; the old xoris/cmpwi interpretation and selector claim are withdrawn.",
+    "The single envelope is parsed by 0x6534-0x6668: u32BE identifier length20 at inner+0x11; identifier scheme byte3 at +0x15; twenty identifier bytes at +0x16; u32BE unwrap scheme1 at +0x2a; u32BE wrapped-key length256 at +0x2e; wrapped-key bytes at +0x32..+0x131. The tail has u32BE content-cipher selector1 at +0x132 and u32BE encrypted-stream length1616 at +0x136. Header end +0x13a equals314. Thus the alleged keyId/nonce/wrapped-key/tag block conflated a variable-length key identifier, an RSA-size wrapped key and later stream bytes.",
+    "Parser bounds and failures are concrete: ZZ0053 accepts version1 only; recipient count <=8; envelope count1 or2; identifier length <=0x7ff; wrapped length <=0x200; registered identifier/unwrap/cipher schemes; and exact consumed header length. Failure returns0 at0x6380. /bin/upgrade 0x1000472c-0x1000473c requires the declared header length to be >7 and less than section payload size, invokes ZZ0053 with exactly that length at0x10004788, then requires its returned count to match. At0x100047dc-0x100047e8 the parsed stream length must equal section payload size minus header length.",
+    "Native unwrap reachability: /bin/upgrade 0x100047b8-0x100047d0 passes parsed object, ZZ0070 lookup callback and caller key context into ZZ0052. Its loop at0x6a00-0x6a64 walks the parsed envelope count with internal stride0xa0c (not a wire-record size), calls lookup with identifier length/scheme/bytes, and only after a match invokes ZZ0075 with unwrap scheme and wrapped-key bytes. Scheme1 in ZZ0075 imports the RSA operands, completes the key and selects private operation with PKCS1-v1.5 padding at0x7da8-0x7df0 before mbedtls_rsa_pkcs1_decrypt. It wipes the temporary512-byte session-key workspace via ZZ0038; key material is not a plaintext field of the UPD header.",
+    "Cipher selection is resolved from shipped binaries, not generic AEAD strings. libsonoscrypto table VA0x2004c row1 is {selector1, mbedTLS type5, runtime descriptor, tail-size0}; initializer ZZ0146 at0x36b4 calls mbedtls_cipher_info_from_type and stores descriptors. In shipped libmbedcrypto.so.16 the type5 pair at0x6f008 points to descriptor0x6f168, whose name pointer resolves to AES-128-CBC at0x4cd78 and packed descriptor word is0x84220500. ZZ0029/ZZ0212 extract key length16 and IV length16; ZZ0213 returns the row tail-size0. Relevant rlwinm fields were cross-checked with GNU e500. The current selector is CBC with no per-stream AEAD tag, despite other library cipher modes supporting tags.",
+    "The encrypted-stream split is therefore sixteen raw IV bytes followed by CBC ciphertext, with no integer byte order assigned to IV/key/ciphertext bytes. ZZ0050 buffers the first IV-length bytes at object+0x95, calls ZZ0033 with that IV at0x5b60-0x5be0 and advances the input by the consumed IV count. For selector1 the tag reserve is0. ZZ0047 takes its decryption branch at0x5d08-0x5d1c and delegates finish/padding handling to ZZ0147 -> mbedtls_cipher_finish. ZZ0033 selects padding mode0 for the default decryption flags at0x4cf4-0x4d08. Invalid/incomplete state and finish errors clear output and reset through ZZ0044; they are not accepted plaintext. The outer package signature is distinct from this CBC stream and is not an appended per-payload AEAD tag.",
+    "Artifact cross-check: the type3 stream begins at absolute file0x249af+16+314. Its first16 bytes are the IV and its remaining1600 bytes are CBC ciphertext; the declared encrypted size is1616. The other encrypted payload records have the same header layout and cipher selector. Certificate bundle/signature records remain separate top-level types0x16/0x11; the established updater verifier rejects unsupported encrypted signatures, missing required sections, duplicate sections and sections after the signature."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade",
+     "address": "0x10004728",
+     "notes": "Declared inner header length, parse count and encrypted extent checks; +4 is not a key selector."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "address": "0x6534",
+     "notes": "Envelope identifier, scheme, RSA-wrapped bytes and tail fields are variable-length BE metadata."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "address": "0x2004c",
+     "notes": "Selector1 maps to mbedTLS type5 and tail size0; ZZ0146 installs runtime descriptors."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libmbedcrypto.so.16",
+     "address": "0x6f008",
+     "notes": "Type5 -> descriptor0x6f168 -> AES-128-CBC string0x4cd78; key/IV extraction each yields16."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "address": "0x5b60",
+     "notes": "Decrypt stream accumulates and consumes IV before cipher data; final CBC branch at0x5d08."
+    }
    ]
   },
   "fmt_device_payload": {
