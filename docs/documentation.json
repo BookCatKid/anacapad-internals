@@ -79499,7 +79499,7 @@
      }
     },
     "SetChannelMap": {
-     "description": "Sets the channel-map: entry branches on cr0.eq as an INPUT condition (wrapper pre-sets it), checks whether impl vfunc +0x5c is the base implementation 0x100d7364 (derived-class detection), locks impl+0x938, checks flag +0x7ff, calls f_10988984 for a sub-lock byte result, and strcmp's channel tokens ('Master' seen) to dispatch.",
+     "description": "Primary slot +0x50 -> f_100db9a8 checks InstanceID before parsing the map. Nonzero selects diagnostic status 702 and skips map work, but all normal paths converge on 0x100db9f0, which explicitly returns r3=0. Zero InstanceID parses ChannelMap; parse failure selects diagnostic 402 and skips application, also returning 0. Successful parse calls f_100d96e0 -> f_100d9628 under mutex +0x938, storing all three words at +0x81c/+0x820/+0x824 before calling f_102a56c8. The worker result selects diagnostic 0/402, not SOAP status. There is no forwarding proxy, +0x7ff guard, derived-table detection, or CR0-input dispatch on this bound slot. f_1053d5b0 fills a three-word map using f_10c39fb0 comma tokenization with backslash escapes and a five-byte token buffer. Names are exact case-sensitive table indices 0..17: LF, RF, CC, SW, LR, RR, LS, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2. An unrecognized first token fails; later unrecognized tokens become -1. Tokenization ending or failing after at least one accepted token pads remaining words with -1 and succeeds. After three tokens it returns success without checking remaining text. Empty input or failure on the first token does not apply a map. This permissive implementation grammar is distinct from required-string request parsing. f_102a56c8 loads device+0x34 and tail-calls f_107ea854 on object+0xd0. That bridge calls f_10d93f34(trueplay manager at +0x2cb8, count 3, map), then f_107f5628 on object+0x10 if the first result is true. f_107f5628 is a literal true stub. f_10d93f34 translates every word through f_10d96d18, appends three translated IDs to a descriptor through f_10ddcee8, copies it under manager mutex +0x118 via f_10dddb60/f_10ddcfac into manager+8, calls f_10dda628(manager+0x1a8), and returns true for this in-range count regardless of that follow-up result. Words 0..9 map to 1..10, 10/11 map to 14/15, 12/13 map to 11/12; -1 and 14..17 take the unknown-channel diagnostic path and map to 0. f_10dda628 calls f_10dda4b8 and conditionally f_10dd8168/f_10dd8214 according to bytes +0x17b8/+0x17b9. None of those results reaches the SOAP status.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073ab0c",
@@ -79535,7 +79535,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric instance selector. Read but unconsumed by the impl (dead compare or never read). ",
+       "description": "Required instance selector; only zero attempts map parsing/application, but nonzero is logged and still returns success.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -79547,32 +79547,39 @@
        "semantic_type": "instance selector (integer)",
        "format": "type-tag-4 decimal integer record",
        "unit": "none",
-       "accepted_values": "any parsed integer - not checked in visible impl body",
-       "range": "unconstrained at impl level",
+       "accepted_values": "ui4 parser result; zero attempts a change",
+       "range": "ui4",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "Nonzero skips the map with diagnostic 702, not a SOAP 702 fault.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073ab4c",
-         "notes": "in-arg access site"
+         "address": "0x10ed275c",
+         "notes": "Bound primary RC slot +0x50 contains f_100db9a8, not f_104717f4."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x100db9a8",
+         "notes": "Primary slot +0x50 -> f_100db9a8 checks InstanceID before parsing the map. Nonzero selects diagnostic status 702 and skips map work, but all normal paths converge on 0x100db9f0, which explicitly returns r3=0. Zero InstanceID parses ChannelMap; parse failure selects diagnostic 402 and skips application, also returning 0. Successful parse calls f_100d96e0 -> f_100d9628 under mutex +0x938, storing all three words at +0x81c/+0x820/+0x824 before calling f_102a56c8. The worker result selects diagnostic 0/402, not SOAP status. There is no forwarding proxy, +0x7ff guard, derived-table detection, or CR0-input dispatch on this bound slot."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db9f0",
+         "notes": "Explicit r3=0 after all diagnostic paths is the actual implementation result; 702/402 are log arguments only."
         }
        ],
-       "notes": null
+       "notes": "A successful SOAP response does not prove that the instance was accepted for a setting change."
       },
       "ChannelMap": {
-       "description": "Channel-map descriptor string; the impl strcmps channel tokens including 'Master' and dispatches per-channel setup; the entry tests cr0.eq as an input flag (0x100d7434) - the impl vfunc is invoked with a pre-set condition flag, a convention the wrapper establishes.",
+       "description": "Required string describing up to three comma-separated case-sensitive channel tokens; the implementation parser permits partial/padded maps.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -79584,69 +79591,616 @@
        "semantic_type": "channel map descriptor",
        "format": "utf-8 text, buffer cap 32 bytes (31 chars + NUL)",
        "unit": "none",
-       "accepted_values": "token list per impl strcmp chain",
-       "range": "max 31 chars",
-       "special_values": "none",
+       "accepted_values": [
+        "LF",
+        "RF",
+        "CC",
+        "SW",
+        "LR",
+        "RR",
+        "LS",
+        "RS",
+        "LTF",
+        "RTF",
+        "LTR",
+        "RTR",
+        "LW",
+        "RW",
+        "LTM",
+        "RTM",
+        "AX1",
+        "AX2"
+       ],
+       "range": "request destination capacity 32 bytes; token destination capacity 5 bytes",
+       "special_values": "Later unknown/missing tokens become -1; tokens after the third are ignored.",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "f_1053d5b0 fills a three-word map using f_10c39fb0 comma tokenization with backslash escapes and a five-byte token buffer. Names are exact case-sensitive table indices 0..17: LF, RF, CC, SW, LR, RR, LS, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2. An unrecognized first token fails; later unrecognized tokens become -1. Tokenization ending or failing after at least one accepted token pads remaining words with -1 and succeeds. After three tokens it returns success without checking remaining text. Empty input or failure on the first token does not apply a map. This permissive implementation grammar is distinct from required-string request parsing.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073ab70",
-         "notes": "in-arg access site"
+         "address": "0x100db9a8",
+         "notes": "Primary slot +0x50 -> f_100db9a8 checks InstanceID before parsing the map. Nonzero selects diagnostic status 702 and skips map work, but all normal paths converge on 0x100db9f0, which explicitly returns r3=0. Zero InstanceID parses ChannelMap; parse failure selects diagnostic 402 and skips application, also returning 0. Successful parse calls f_100d96e0 -> f_100d9628 under mutex +0x938, storing all three words at +0x81c/+0x820/+0x824 before calling f_102a56c8. The worker result selects diagnostic 0/402, not SOAP status. There is no forwarding proxy, +0x7ff guard, derived-table detection, or CR0-input dispatch on this bound slot."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e96450",
-         "notes": "argument name string"
+         "address": "0x100db9f0",
+         "notes": "Explicit r3=0 after all diagnostic paths is the actual implementation result; 702/402 are log arguments only."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100d7400",
-         "address": "0x100d7400",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x1053d5b0",
+         "notes": "f_1053d5b0 fills a three-word map using f_10c39fb0 comma tokenization with backslash escapes and a five-byte token buffer. Names are exact case-sensitive table indices 0..17: LF, RF, CC, SW, LR, RR, LS, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2. An unrecognized first token fails; later unrecognized tokens become -1. Tokenization ending or failing after at least one accepted token pads remaining words with -1 and succeeds. After three tokens it returns success without checking remaining text. Empty input or failure on the first token does not apply a map. This permissive implementation grammar is distinct from required-string request parsing."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x11092550",
+         "notes": "18 initialized string pointers are the exact ordered parser vocabulary; last pointer at 0x11092594 is AX2."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c39fb0",
+         "notes": "Tokenization recognizes comma byte 0x2c and backslash byte 0x5c. Raw 0x5463effe at 0x10c39fc8 extracts CR7 LT into a boolean, SH=29 MB=31 ME=31. Full buffers/trailing escape select false, which the map parser treats as successful padding if a previous token exists."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1053d6bc",
+         "notes": "Raw 0x57a9103a scales accepted-token count by 4, SH=2 MB=0 ME=29. Raw 0x554af0be at 0x1053d6d0 shifts the bounded padding byte count right by 2, SH=30 MB=2 ME=31; it is an actual divide-by-four count, not a low-bit mask."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9700",
+         "notes": "Raw SPE 0x10810b21 / 0x10810b01 at 0x100d9708 save/restore the map pointer around locking before f_100d9628; the pointer is not discarded."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073ab74",
+         "notes": "Wrapper configures ChannelMap string destination capacity 0x20, not 1024; required argument validation precedes implementation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073abbc",
+         "notes": "Fresh mr. tests numeric result after primary slot +0x50. Validated calls return zero and commit an empty response; request validation alone can select 402 before dispatch."
         }
        ],
-       "notes": "Impl also checks impl->v[+0x5c] == base fn 0x100d7364 to detect class overrides before applying (0x100d7438-0x100d744c).",
+       "notes": "Only read for InstanceID zero. Initial parse rejection is a successful no-op at SOAP level, not a map assignment or a fault.",
        "buf_cap": 32,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ChannelMap` is parsed then forwarded verbatim to r5-in vfunc +80 (site 0x1073abb4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `ChannelMap` = verbatim forward to impl vfunc +80 (obj r5-in, call site 0x1073abb4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       }
      },
      "outputs": {},
-     "validation": "Request-layer parse; impl does complex conditional dispatch.",
-     "requirements": "impl mutex + sub-lock f_10988984",
-     "state_dependencies": "flag impl+0x7ff gates part of the path",
+     "validation": {
+      "description": "Required InstanceID and ChannelMap must pass request parsing. Actual map application needs InstanceID zero and a successful permissive map parse; implementation rejection is diagnostic only and still reports SOAP success. No +0x7ff fixed-mode restriction or runtime class override applies on this slot. f_1053d5b0 fills a three-word map using f_10c39fb0 comma tokenization with backslash escapes and a five-byte token buffer. Names are exact case-sensitive table indices 0..17: LF, RF, CC, SW, LR, RR, LS, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2. An unrecognized first token fails; later unrecognized tokens become -1. Tokenization ending or failing after at least one accepted token pads remaining words with -1 and succeeds. After three tokens it returns success without checking remaining text. Empty input or failure on the first token does not apply a map. This permissive implementation grammar is distinct from required-string request parsing.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed275c",
+        "notes": "Bound primary RC slot +0x50 contains f_100db9a8, not f_104717f4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db9a8",
+        "notes": "Primary slot +0x50 -> f_100db9a8 checks InstanceID before parsing the map. Nonzero selects diagnostic status 702 and skips map work, but all normal paths converge on 0x100db9f0, which explicitly returns r3=0. Zero InstanceID parses ChannelMap; parse failure selects diagnostic 402 and skips application, also returning 0. Successful parse calls f_100d96e0 -> f_100d9628 under mutex +0x938, storing all three words at +0x81c/+0x820/+0x824 before calling f_102a56c8. The worker result selects diagnostic 0/402, not SOAP status. There is no forwarding proxy, +0x7ff guard, derived-table detection, or CR0-input dispatch on this bound slot."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db9f0",
+        "notes": "Explicit r3=0 after all diagnostic paths is the actual implementation result; 702/402 are log arguments only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053d5b0",
+        "notes": "f_1053d5b0 fills a three-word map using f_10c39fb0 comma tokenization with backslash escapes and a five-byte token buffer. Names are exact case-sensitive table indices 0..17: LF, RF, CC, SW, LR, RR, LS, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2. An unrecognized first token fails; later unrecognized tokens become -1. Tokenization ending or failing after at least one accepted token pads remaining words with -1 and succeeds. After three tokens it returns success without checking remaining text. Empty input or failure on the first token does not apply a map. This permissive implementation grammar is distinct from required-string request parsing."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x11092550",
+        "notes": "18 initialized string pointers are the exact ordered parser vocabulary; last pointer at 0x11092594 is AX2."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10c39fb0",
+        "notes": "Tokenization recognizes comma byte 0x2c and backslash byte 0x5c. Raw 0x5463effe at 0x10c39fc8 extracts CR7 LT into a boolean, SH=29 MB=31 ME=31. Full buffers/trailing escape select false, which the map parser treats as successful padding if a previous token exists."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053d6bc",
+        "notes": "Raw 0x57a9103a scales accepted-token count by 4, SH=2 MB=0 ME=29. Raw 0x554af0be at 0x1053d6d0 shifts the bounded padding byte count right by 2, SH=30 MB=2 ME=31; it is an actual divide-by-four count, not a low-bit mask."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9700",
+        "notes": "Raw SPE 0x10810b21 / 0x10810b01 at 0x100d9708 save/restore the map pointer around locking before f_100d9628; the pointer is not discarded."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9628",
+        "notes": "Copies three map words into RC+0x81c/+0x820/+0x824 before backend call at 0x100d9684; no dirty flag, RC source request, timer or storage call occurs here."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required InstanceID and ChannelMap must pass request parsing. Actual map application needs InstanceID zero and a successful permissive map parse; implementation rejection is diagnostic only and still reports SOAP success. No +0x7ff fixed-mode restriction or runtime class override applies on this slot.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed275c",
+        "notes": "Bound primary RC slot +0x50 contains f_100db9a8, not f_104717f4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db9a8",
+        "notes": "Primary slot +0x50 -> f_100db9a8 checks InstanceID before parsing the map. Nonzero selects diagnostic status 702 and skips map work, but all normal paths converge on 0x100db9f0, which explicitly returns r3=0. Zero InstanceID parses ChannelMap; parse failure selects diagnostic 402 and skips application, also returning 0. Successful parse calls f_100d96e0 -> f_100d9628 under mutex +0x938, storing all three words at +0x81c/+0x820/+0x824 before calling f_102a56c8. The worker result selects diagnostic 0/402, not SOAP status. There is no forwarding proxy, +0x7ff guard, derived-table detection, or CR0-input dispatch on this bound slot."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db9f0",
+        "notes": "Explicit r3=0 after all diagnostic paths is the actual implementation result; 702/402 are log arguments only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053d5b0",
+        "notes": "f_1053d5b0 fills a three-word map using f_10c39fb0 comma tokenization with backslash escapes and a five-byte token buffer. Names are exact case-sensitive table indices 0..17: LF, RF, CC, SW, LR, RR, LS, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2. An unrecognized first token fails; later unrecognized tokens become -1. Tokenization ending or failing after at least one accepted token pads remaining words with -1 and succeeds. After three tokens it returns success without checking remaining text. Empty input or failure on the first token does not apply a map. This permissive implementation grammar is distinct from required-string request parsing."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x11092550",
+        "notes": "18 initialized string pointers are the exact ordered parser vocabulary; last pointer at 0x11092594 is AX2."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10c39fb0",
+        "notes": "Tokenization recognizes comma byte 0x2c and backslash byte 0x5c. Raw 0x5463effe at 0x10c39fc8 extracts CR7 LT into a boolean, SH=29 MB=31 ME=31. Full buffers/trailing escape select false, which the map parser treats as successful padding if a previous token exists."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053d6bc",
+        "notes": "Raw 0x57a9103a scales accepted-token count by 4, SH=2 MB=0 ME=29. Raw 0x554af0be at 0x1053d6d0 shifts the bounded padding byte count right by 2, SH=30 MB=2 ME=31; it is an actual divide-by-four count, not a low-bit mask."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9700",
+        "notes": "Raw SPE 0x10810b21 / 0x10810b01 at 0x100d9708 save/restore the map pointer around locking before f_100d9628; the pointer is not discarded."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9628",
+        "notes": "Copies three map words into RC+0x81c/+0x820/+0x824 before backend call at 0x100d9684; no dirty flag, RC source request, timer or storage call occurs here."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Reads ChannelMap only when InstanceID is zero; valid maps lock +0x938 and use cache +0x81c/+0x820/+0x824, device +0x3ac -> device+0x34 -> +0xd0 and its embedded trueplay manager +0x2cb8. Stages translated descriptor at manager+8 under +0x118; follow-up object +0x1a8 uses +0x17b8/+0x17b9.",
+      "todo": [
+       "Established: Cache, descriptor, mutex and conditional-follow-up fields.",
+       "Unknown: Further configuration dependencies of the concrete trueplay follow-up.",
+       "Next: Trace f_10dda4b8, f_10dd8168 and f_10dd8214 reached from f_10dda628."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9628",
+        "notes": "Copies three map words into RC+0x81c/+0x820/+0x824 before backend call at 0x100d9684; no dirty flag, RC source request, timer or storage call occurs here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107ea854",
+        "notes": "f_102a56c8 loads device+0x34 and tail-calls f_107ea854 on object+0xd0. That bridge calls f_10d93f34(trueplay manager at +0x2cb8, count 3, map), then f_107f5628 on object+0x10 if the first result is true. f_107f5628 is a literal true stub. f_10d93f34 translates every word through f_10d96d18, appends three translated IDs to a descriptor through f_10ddcee8, copies it under manager mutex +0x118 via f_10dddb60/f_10ddcfac into manager+8, calls f_10dda628(manager+0x1a8), and returns true for this in-range count regardless of that follow-up result. Words 0..9 map to 1..10, 10/11 map to 14/15, 12/13 map to 11/12; -1 and 14..17 take the unknown-channel diagnostic path and map to 0. f_10dda628 calls f_10dda4b8 and conditionally f_10dd8168/f_10dd8214 according to bytes +0x17b8/+0x17b9. None of those results reaches the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d96d18",
+        "notes": "Unsigned index range 0..13 uses table-base-relative jump targets from raw offsets at 0x10fec428; first ten returns 1..10, then 14,15,11,12. Other indices return 0 with an optional unknown channel type log."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Invokes this->vfunc[0] (lwz 0(r3) virtual dispatch) wrapped in the +0x938 mutex pair f_10988558/f_10988984; the channel-map string is handed to that virtual call.",
+       "description": "Nonzero instance and initial parse failure only request optional diagnostics. A successfully parsed map updates all three cached map words and stages a translated trueplay descriptor, then attempts conditional configuration follow-up. The literal f_107f5628 true result is not a renderer command. No RC dirty, source-notification, timer or deferred EQ-save call is made directly.",
+       "todo": [
+        "Established: RC cache and trueplay descriptor writes and all swallowed status paths.",
+        "Unknown: Concrete calibration/configuration mutations below conditional follow-up.",
+        "Next: Finish f_10dda628 -> f_10dda4b8 / f_10dd8168 / f_10dd8214, retaining the distinction between staged map and completed rendering."
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100d7400",
-         "address": "0x100d7438",
-         "notes": "lwz vptr,0 at 0x100d7438 inside the lock"
+         "address": "0x10ed275c",
+         "notes": "Bound primary RC slot +0x50 contains f_100db9a8, not f_104717f4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db9a8",
+         "notes": "Primary slot +0x50 -> f_100db9a8 checks InstanceID before parsing the map. Nonzero selects diagnostic status 702 and skips map work, but all normal paths converge on 0x100db9f0, which explicitly returns r3=0. Zero InstanceID parses ChannelMap; parse failure selects diagnostic 402 and skips application, also returning 0. Successful parse calls f_100d96e0 -> f_100d9628 under mutex +0x938, storing all three words at +0x81c/+0x820/+0x824 before calling f_102a56c8. The worker result selects diagnostic 0/402, not SOAP status. There is no forwarding proxy, +0x7ff guard, derived-table detection, or CR0-input dispatch on this bound slot."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db9f0",
+         "notes": "Explicit r3=0 after all diagnostic paths is the actual implementation result; 702/402 are log arguments only."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1053d5b0",
+         "notes": "f_1053d5b0 fills a three-word map using f_10c39fb0 comma tokenization with backslash escapes and a five-byte token buffer. Names are exact case-sensitive table indices 0..17: LF, RF, CC, SW, LR, RR, LS, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2. An unrecognized first token fails; later unrecognized tokens become -1. Tokenization ending or failing after at least one accepted token pads remaining words with -1 and succeeds. After three tokens it returns success without checking remaining text. Empty input or failure on the first token does not apply a map. This permissive implementation grammar is distinct from required-string request parsing."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x11092550",
+         "notes": "18 initialized string pointers are the exact ordered parser vocabulary; last pointer at 0x11092594 is AX2."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c39fb0",
+         "notes": "Tokenization recognizes comma byte 0x2c and backslash byte 0x5c. Raw 0x5463effe at 0x10c39fc8 extracts CR7 LT into a boolean, SH=29 MB=31 ME=31. Full buffers/trailing escape select false, which the map parser treats as successful padding if a previous token exists."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1053d6bc",
+         "notes": "Raw 0x57a9103a scales accepted-token count by 4, SH=2 MB=0 ME=29. Raw 0x554af0be at 0x1053d6d0 shifts the bounded padding byte count right by 2, SH=30 MB=2 ME=31; it is an actual divide-by-four count, not a low-bit mask."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9700",
+         "notes": "Raw SPE 0x10810b21 / 0x10810b01 at 0x100d9708 save/restore the map pointer around locking before f_100d9628; the pointer is not discarded."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9628",
+         "notes": "Copies three map words into RC+0x81c/+0x820/+0x824 before backend call at 0x100d9684; no dirty flag, RC source request, timer or storage call occurs here."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107ea854",
+         "notes": "f_102a56c8 loads device+0x34 and tail-calls f_107ea854 on object+0xd0. That bridge calls f_10d93f34(trueplay manager at +0x2cb8, count 3, map), then f_107f5628 on object+0x10 if the first result is true. f_107f5628 is a literal true stub. f_10d93f34 translates every word through f_10d96d18, appends three translated IDs to a descriptor through f_10ddcee8, copies it under manager mutex +0x118 via f_10dddb60/f_10ddcfac into manager+8, calls f_10dda628(manager+0x1a8), and returns true for this in-range count regardless of that follow-up result. Words 0..9 map to 1..10, 10/11 map to 14/15, 12/13 map to 11/12; -1 and 14..17 take the unknown-channel diagnostic path and map to 0. f_10dda628 calls f_10dda4b8 and conditionally f_10dd8168/f_10dd8214 according to bytes +0x17b8/+0x17b9. None of those results reaches the SOAP status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10d96d18",
+         "notes": "Unsigned index range 0..13 uses table-base-relative jump targets from raw offsets at 0x10fec428; first ten returns 1..10, then 14,15,11,12. Other indices return 0 with an optional unknown channel type log."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073ab74",
+         "notes": "Wrapper configures ChannelMap string destination capacity 0x20, not 1024; required argument validation precedes implementation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073abbc",
+         "notes": "Fresh mr. tests numeric result after primary slot +0x50. Validated calls return zero and commit an empty response; request validation alone can select 402 before dispatch."
         }
        ]
       }
      ],
-     "events_triggered": "LastChange via RCS writer f_100e27b0 carrying channel-map assignment (mechanism proven; exact var emission per runtime change)",
-     "state_transitions": "persists channel-map assignment into the RCS settings member; notify->dirty->event pipeline (call-derived, slot-bounded)",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code.",
+     "events_triggered": {
+      "description": "No direct RC f_1067c6ec call or RC dirty marking occurs in f_100db9a8/f_100d96e0/f_100d9628. Optional diagnostic logs are not external events. Conditional trueplay follow-up is a separate possible emitter path, not proof of LastChange or subscriber delivery.",
+      "todo": [
+       "Established: Absence of a direct RC source request and the reachable trueplay follow-up call.",
+       "Unknown: Events originating in actual configuration application and their concrete sinks.",
+       "Next: Trace conditional f_10dd8168/f_10dd8214 below f_10dda628 to real emitter/listener sites, then any sender bridge."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9628",
+        "notes": "Copies three map words into RC+0x81c/+0x820/+0x824 before backend call at 0x100d9684; no dirty flag, RC source request, timer or storage call occurs here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107ea854",
+        "notes": "f_102a56c8 loads device+0x34 and tail-calls f_107ea854 on object+0xd0. That bridge calls f_10d93f34(trueplay manager at +0x2cb8, count 3, map), then f_107f5628 on object+0x10 if the first result is true. f_107f5628 is a literal true stub. f_10d93f34 translates every word through f_10d96d18, appends three translated IDs to a descriptor through f_10ddcee8, copies it under manager mutex +0x118 via f_10dddb60/f_10ddcfac into manager+8, calls f_10dda628(manager+0x1a8), and returns true for this in-range count regardless of that follow-up result. Words 0..9 map to 1..10, 10/11 map to 14/15, 12/13 map to 11/12; -1 and 14..17 take the unknown-channel diagnostic path and map to 0. f_10dda628 calls f_10dda4b8 and conditionally f_10dd8168/f_10dd8214 according to bytes +0x17b8/+0x17b9. None of those results reaches the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d96d18",
+        "notes": "Unsigned index range 0..13 uses table-base-relative jump targets from raw offsets at 0x10fec428; first ten returns 1..10, then 14,15,11,12. Other indices return 0 with an optional unknown channel type log."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ab74",
+        "notes": "Wrapper configures ChannelMap string destination capacity 0x20, not 1024; required argument validation precedes implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073abbc",
+        "notes": "Fresh mr. tests numeric result after primary slot +0x50. Validated calls return zero and commit an empty response; request validation alone can select 402 before dispatch."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Successful parse stores the three parser IDs in RC and translated IDs in the trueplay descriptor. Invalid first token or nonzero InstanceID leaves that cache unchanged while returning success. Later invalid tokens can become -1 and still change the cached map; extra tokens after the third are ignored. No physical routing or durable persistence follows merely from the empty SOAP response.",
+      "todo": [
+       "Established: Exact cache/descriptor transitions, permissive parsing and swallowed errors.",
+       "Unknown: Completed device routing or calibration transitions.",
+       "Next: Follow f_10dda4b8 and f_10dd8168/f_10dd8214 before interpreting staging as an applied renderer configuration."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed275c",
+        "notes": "Bound primary RC slot +0x50 contains f_100db9a8, not f_104717f4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db9a8",
+        "notes": "Primary slot +0x50 -> f_100db9a8 checks InstanceID before parsing the map. Nonzero selects diagnostic status 702 and skips map work, but all normal paths converge on 0x100db9f0, which explicitly returns r3=0. Zero InstanceID parses ChannelMap; parse failure selects diagnostic 402 and skips application, also returning 0. Successful parse calls f_100d96e0 -> f_100d9628 under mutex +0x938, storing all three words at +0x81c/+0x820/+0x824 before calling f_102a56c8. The worker result selects diagnostic 0/402, not SOAP status. There is no forwarding proxy, +0x7ff guard, derived-table detection, or CR0-input dispatch on this bound slot."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db9f0",
+        "notes": "Explicit r3=0 after all diagnostic paths is the actual implementation result; 702/402 are log arguments only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053d5b0",
+        "notes": "f_1053d5b0 fills a three-word map using f_10c39fb0 comma tokenization with backslash escapes and a five-byte token buffer. Names are exact case-sensitive table indices 0..17: LF, RF, CC, SW, LR, RR, LS, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2. An unrecognized first token fails; later unrecognized tokens become -1. Tokenization ending or failing after at least one accepted token pads remaining words with -1 and succeeds. After three tokens it returns success without checking remaining text. Empty input or failure on the first token does not apply a map. This permissive implementation grammar is distinct from required-string request parsing."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x11092550",
+        "notes": "18 initialized string pointers are the exact ordered parser vocabulary; last pointer at 0x11092594 is AX2."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10c39fb0",
+        "notes": "Tokenization recognizes comma byte 0x2c and backslash byte 0x5c. Raw 0x5463effe at 0x10c39fc8 extracts CR7 LT into a boolean, SH=29 MB=31 ME=31. Full buffers/trailing escape select false, which the map parser treats as successful padding if a previous token exists."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053d6bc",
+        "notes": "Raw 0x57a9103a scales accepted-token count by 4, SH=2 MB=0 ME=29. Raw 0x554af0be at 0x1053d6d0 shifts the bounded padding byte count right by 2, SH=30 MB=2 ME=31; it is an actual divide-by-four count, not a low-bit mask."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9700",
+        "notes": "Raw SPE 0x10810b21 / 0x10810b01 at 0x100d9708 save/restore the map pointer around locking before f_100d9628; the pointer is not discarded."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9628",
+        "notes": "Copies three map words into RC+0x81c/+0x820/+0x824 before backend call at 0x100d9684; no dirty flag, RC source request, timer or storage call occurs here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107ea854",
+        "notes": "f_102a56c8 loads device+0x34 and tail-calls f_107ea854 on object+0xd0. That bridge calls f_10d93f34(trueplay manager at +0x2cb8, count 3, map), then f_107f5628 on object+0x10 if the first result is true. f_107f5628 is a literal true stub. f_10d93f34 translates every word through f_10d96d18, appends three translated IDs to a descriptor through f_10ddcee8, copies it under manager mutex +0x118 via f_10dddb60/f_10ddcfac into manager+8, calls f_10dda628(manager+0x1a8), and returns true for this in-range count regardless of that follow-up result. Words 0..9 map to 1..10, 10/11 map to 14/15, 12/13 map to 11/12; -1 and 14..17 take the unknown-channel diagnostic path and map to 0. f_10dda628 calls f_10dda4b8 and conditionally f_10dd8168/f_10dd8214 according to bytes +0x17b8/+0x17b9. None of those results reaches the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d96d18",
+        "notes": "Unsigned index range 0..13 uses table-base-relative jump targets from raw offsets at 0x10fec428; first ten returns 1..10, then 14,15,11,12. Other indices return 0 with an optional unknown channel type log."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ab74",
+        "notes": "Wrapper configures ChannelMap string destination capacity 0x20, not 1024; required argument validation precedes implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073abbc",
+        "notes": "Fresh mr. tests numeric result after primary slot +0x50. Validated calls return zero and commit an empty response; request validation alone can select 402 before dispatch."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Every normally returning implementation call returns literal zero, including nonzero InstanceID and map syntax rejection. Internal diagnostic 702/402 values and downstream application results do not become SOAP faults. The wrapper freshly tests r3 and emits an empty response. Required-argument parse failure remains 402 before implementation; unknown action/null implementation remains dispatcher 401.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed275c",
+        "notes": "Bound primary RC slot +0x50 contains f_100db9a8, not f_104717f4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db9a8",
+        "notes": "Primary slot +0x50 -> f_100db9a8 checks InstanceID before parsing the map. Nonzero selects diagnostic status 702 and skips map work, but all normal paths converge on 0x100db9f0, which explicitly returns r3=0. Zero InstanceID parses ChannelMap; parse failure selects diagnostic 402 and skips application, also returning 0. Successful parse calls f_100d96e0 -> f_100d9628 under mutex +0x938, storing all three words at +0x81c/+0x820/+0x824 before calling f_102a56c8. The worker result selects diagnostic 0/402, not SOAP status. There is no forwarding proxy, +0x7ff guard, derived-table detection, or CR0-input dispatch on this bound slot."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db9f0",
+        "notes": "Explicit r3=0 after all diagnostic paths is the actual implementation result; 702/402 are log arguments only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053d5b0",
+        "notes": "f_1053d5b0 fills a three-word map using f_10c39fb0 comma tokenization with backslash escapes and a five-byte token buffer. Names are exact case-sensitive table indices 0..17: LF, RF, CC, SW, LR, RR, LS, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2. An unrecognized first token fails; later unrecognized tokens become -1. Tokenization ending or failing after at least one accepted token pads remaining words with -1 and succeeds. After three tokens it returns success without checking remaining text. Empty input or failure on the first token does not apply a map. This permissive implementation grammar is distinct from required-string request parsing."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x11092550",
+        "notes": "18 initialized string pointers are the exact ordered parser vocabulary; last pointer at 0x11092594 is AX2."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10c39fb0",
+        "notes": "Tokenization recognizes comma byte 0x2c and backslash byte 0x5c. Raw 0x5463effe at 0x10c39fc8 extracts CR7 LT into a boolean, SH=29 MB=31 ME=31. Full buffers/trailing escape select false, which the map parser treats as successful padding if a previous token exists."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053d6bc",
+        "notes": "Raw 0x57a9103a scales accepted-token count by 4, SH=2 MB=0 ME=29. Raw 0x554af0be at 0x1053d6d0 shifts the bounded padding byte count right by 2, SH=30 MB=2 ME=31; it is an actual divide-by-four count, not a low-bit mask."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9700",
+        "notes": "Raw SPE 0x10810b21 / 0x10810b01 at 0x100d9708 save/restore the map pointer around locking before f_100d9628; the pointer is not discarded."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9628",
+        "notes": "Copies three map words into RC+0x81c/+0x820/+0x824 before backend call at 0x100d9684; no dirty flag, RC source request, timer or storage call occurs here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107ea854",
+        "notes": "f_102a56c8 loads device+0x34 and tail-calls f_107ea854 on object+0xd0. That bridge calls f_10d93f34(trueplay manager at +0x2cb8, count 3, map), then f_107f5628 on object+0x10 if the first result is true. f_107f5628 is a literal true stub. f_10d93f34 translates every word through f_10d96d18, appends three translated IDs to a descriptor through f_10ddcee8, copies it under manager mutex +0x118 via f_10dddb60/f_10ddcfac into manager+8, calls f_10dda628(manager+0x1a8), and returns true for this in-range count regardless of that follow-up result. Words 0..9 map to 1..10, 10/11 map to 14/15, 12/13 map to 11/12; -1 and 14..17 take the unknown-channel diagnostic path and map to 0. f_10dda628 calls f_10dda4b8 and conditionally f_10dd8168/f_10dd8214 according to bytes +0x17b8/+0x17b9. None of those results reaches the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d96d18",
+        "notes": "Unsigned index range 0..13 uses table-base-relative jump targets from raw offsets at 0x10fec428; first ten returns 1..10, then 14,15,11,12. Other indices return 0 with an optional unknown channel type log."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ab74",
+        "notes": "Wrapper configures ChannelMap string destination capacity 0x20, not 1024; required argument validation precedes implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073abbc",
+        "notes": "Fresh mr. tests numeric result after primary slot +0x50. Validated calls return zero and commit an empty response; request validation alone can select 402 before dispatch."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073abd0",
@@ -79657,21 +80211,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -79681,43 +80234,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
+       "meaning": "Required request argument validation fails before implementation; map grammar rejection inside the implementation is diagnostic only.",
        "fault_sites": [
-        "0x1073abb0",
         "0x1073abd0"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Required request argument validation fails before implementation; map grammar rejection inside the implementation is diagnostic only.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073abb0"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073abd0"
+           "address": "0x1073ac08",
+           "notes": "Required request argument validation fails before implementation; map grammar rejection inside the implementation is diagnostic only."
           }
          ]
         }
@@ -79727,19 +80264,10 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073abb0"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073abd0"
+         "address": "0x1073ac08",
+         "notes": "Required request argument validation fails before implementation; map grammar rejection inside the implementation is diagnostic only."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -79748,34 +80276,109 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073ab0c",
-       "address": "0x1073ab0c",
-       "notes": "action wrapper handler"
+       "address": "0x10ed275c",
+       "notes": "Bound primary RC slot +0x50 contains f_100db9a8, not f_104717f4."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e54",
-       "notes": "action dispatch table entry"
+       "address": "0x100db9a8",
+       "notes": "Primary slot +0x50 -> f_100db9a8 checks InstanceID before parsing the map. Nonzero selects diagnostic status 702 and skips map work, but all normal paths converge on 0x100db9f0, which explicitly returns r3=0. Zero InstanceID parses ChannelMap; parse failure selects diagnostic 402 and skips application, also returning 0. Successful parse calls f_100d96e0 -> f_100d9628 under mutex +0x938, storing all three words at +0x81c/+0x820/+0x824 before calling f_102a56c8. The worker result selects diagnostic 0/402, not SOAP status. There is no forwarding proxy, +0x7ff guard, derived-table detection, or CR0-input dispatch on this bound slot."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "cr0-input entry check; v+0x5c == f_100d7364 override detection; 'Master' strcmp",
-       "function": "0x100d7400"
+       "address": "0x100db9f0",
+       "notes": "Explicit r3=0 after all diagnostic paths is the actual implementation result; 702/402 are log arguments only."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1053d5b0",
+       "notes": "f_1053d5b0 fills a three-word map using f_10c39fb0 comma tokenization with backslash escapes and a five-byte token buffer. Names are exact case-sensitive table indices 0..17: LF, RF, CC, SW, LR, RR, LS, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2. An unrecognized first token fails; later unrecognized tokens become -1. Tokenization ending or failing after at least one accepted token pads remaining words with -1 and succeeds. After three tokens it returns success without checking remaining text. Empty input or failure on the first token does not apply a map. This permissive implementation grammar is distinct from required-string request parsing."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x11092550",
+       "notes": "18 initialized string pointers are the exact ordered parser vocabulary; last pointer at 0x11092594 is AX2."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10c39fb0",
+       "notes": "Tokenization recognizes comma byte 0x2c and backslash byte 0x5c. Raw 0x5463effe at 0x10c39fc8 extracts CR7 LT into a boolean, SH=29 MB=31 ME=31. Full buffers/trailing escape select false, which the map parser treats as successful padding if a previous token exists."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1053d6bc",
+       "notes": "Raw 0x57a9103a scales accepted-token count by 4, SH=2 MB=0 ME=29. Raw 0x554af0be at 0x1053d6d0 shifts the bounded padding byte count right by 2, SH=30 MB=2 ME=31; it is an actual divide-by-four count, not a low-bit mask."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d9700",
+       "notes": "Raw SPE 0x10810b21 / 0x10810b01 at 0x100d9708 save/restore the map pointer around locking before f_100d9628; the pointer is not discarded."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d9628",
+       "notes": "Copies three map words into RC+0x81c/+0x820/+0x824 before backend call at 0x100d9684; no dirty flag, RC source request, timer or storage call occurs here."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107ea854",
+       "notes": "f_102a56c8 loads device+0x34 and tail-calls f_107ea854 on object+0xd0. That bridge calls f_10d93f34(trueplay manager at +0x2cb8, count 3, map), then f_107f5628 on object+0x10 if the first result is true. f_107f5628 is a literal true stub. f_10d93f34 translates every word through f_10d96d18, appends three translated IDs to a descriptor through f_10ddcee8, copies it under manager mutex +0x118 via f_10dddb60/f_10ddcfac into manager+8, calls f_10dda628(manager+0x1a8), and returns true for this in-range count regardless of that follow-up result. Words 0..9 map to 1..10, 10/11 map to 14/15, 12/13 map to 11/12; -1 and 14..17 take the unknown-channel diagnostic path and map to 0. f_10dda628 calls f_10dda4b8 and conditionally f_10dd8168/f_10dd8214 according to bytes +0x17b8/+0x17b9. None of those results reaches the SOAP status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10d96d18",
+       "notes": "Unsigned index range 0..13 uses table-base-relative jump targets from raw offsets at 0x10fec428; first ten returns 1..10, then 14,15,11,12. Other indices return 0 with an optional unknown channel type log."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073ab74",
+       "notes": "Wrapper configures ChannelMap string destination capacity 0x20, not 1024; required argument validation precedes implementation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073abbc",
+       "notes": "Fresh mr. tests numeric result after primary slot +0x50. Validated calls return zero and commit an empty response; request validation alone can select 402 before dispatch."
       }
      ],
-     "notes": "Derived-class B overrides this slot (0x104717f4) - grouped channel-map behavior differs.",
+     "notes": "Replaces the unrelated f_100d7400/f_104717f4 and RCS context-writer attributions. The actual call uses the proven primary slot and the distinct trueplay configuration path.",
      "todo": [
-      "Established: dispatch to handler 0x1073ab0c; derived-class B overrides this slot (0x104717f4) - grouped channel-map behavior differs.",
-      "Residual: what the derived-class override changes semantically. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: Exact bound slot, permissive three-word parser, swallowed statuses, RC cache/trueplay descriptor changes and conditional follow-up.",
+      "Unknown: Concrete calibration/configuration effects and downstream emitters beyond the staged trueplay map.",
+      "Next: Finish f_10dda4b8 and conditional f_10dd8168/f_10dd8214 from f_10dda628; bind their concrete DSP/listener paths before claiming achieved channel routing or notification delivery."
      ],
-     "resolved_findings": [
-      "Resolved: derived override applies the channel-map set through the bonded-pair channel remap documented under bonded_zones.",
-      "Resolved: derived override applies the channel-map set through the bonded-pair channel remap documented under bonded_zones."
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x50",
+      "function": "0x100db9a8",
+      "parser": "0x1053d5b0",
+      "local_apply": "0x100d96e0",
+      "cache_worker": "0x100d9628",
+      "trueplay_map": "0x10d93f34"
+     }
     },
     "SetEQ": {
      "description": "Conditional EQ apply: locks impl+0x938 (f_10988558), invokes worker f_100e27b0(this, InstanceID, 1) when InstanceID==0 and f_100e27b0(this, EQType, 0) when EQType==0, then unlocks (f_10988984) and returns through a tail sequence.",
