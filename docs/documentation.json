@@ -83247,7 +83247,7 @@
      ]
     },
     "StopTransmission": {
-     "description": "Stops the VLI transmission to CoordinatorID via impl->v[+0xc].",
+     "description": "Removes the named transmission coordinator through f_106a8a80/f_106a8940 and requests source-manager thread state 2 when no remote groups remain. A nonempty unknown coordinator is accepted without removal. Invalid ID/text/request faults 402; the selected-source ID need not match.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073d544",
@@ -83279,7 +83279,10 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x106a8a80",
+      "impl_vfunc": "static vtable 0x10f045c4 slot +0x0c",
+      "description": "402 on wrapper validation failure, empty/null CoordinatorID or invalid InstanceID. Otherwise returns zero and commits with no outputs, even if coordinator removal returned 402. Thread-state and transport-configuration returns are not surfaced as SOAP faults."
      },
      "inputs": {
       "InstanceID": {
@@ -83295,7 +83298,7 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "accepted_values": "Exactly 1,2,3,6,8 pass f_10687bac; unlike StartTransmission, there is no comparison with the selected descriptor ID.",
        "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
@@ -83332,7 +83335,7 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "any non-empty string parseable by f_1056157c",
+       "accepted_values": "Nonempty parsed text. A coordinator not matching the stored group string still produces success because f_106a8940 ignores the removal result.",
        "range": "length-bounded by parse-helper buffer cap",
        "special_values": "none observed in this build",
        "required": true,
@@ -83371,101 +83374,375 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0xc]",
+      "description": "Request parsing/validation must succeed, CoordinatorID must be nonempty, and InstanceID must be in {1,2,3,6,8}. There is no selected-source equality gate and no requirement that the coordinator currently exist: removal failure is ignored.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a8ac4",
+        "function": "0x106a8a80",
+        "notes": "Bound +0xc f_106a8a80 locks manager+0x150, preserves CoordinatorID in SPE r5 (store/load at 0x106a8ab0/ab8), and calls f_106a8940. The worker rejects null/empty CoordinatorID or f_10687bac(InstanceID)==0 with 402 at 0x106a89d0. It does not compare the selected ID. At 0x106a8a24 it invokes f_106a7348(group=manager+0x360, CoordinatorID, local=strcmp(CoordinatorID,manager+0x128)==0). The removal return code is ignored. If remote count manager+0x368 is zero, it calls f_106a81d4(2) at 0x106a8a78; either path returns zero from 0x106a8a64. Raw 0x409eff68 at 0x106a8a6c skips that call when remote count is nonzero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10687bc8",
+        "function": "0x10687bac",
+        "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a73ec",
+        "function": "0x106a7348",
+        "notes": "If requested coordinator differs from group+0xc, returns 402 at 0x106a73bc with no group change. Match clears the coordinator at 0x106a73ec, decrements total count at 0x106a73f4, and decrements remote count only if the local flag is false (0x106a7404). If callback is nonnull, calls slot +0xc at 0x106a7428 and returns zero. Concrete callback f_106a6430 -> f_106a6390 calls transport+0x44(false) and clears manager+0x388."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a7450",
+        "function": "0x106a7450",
+        "notes": "Group record is manager+0x360: callback at +0, remote count +4, total count +8, coordinator bytes +0xc (manager+0x36c). strcmp at 0x106a74c0 returns 801 for the existing coordinator (0x106a7540/0x106a760c); a different nonempty slot returns 800 at 0x106a7508/0x106a7634. An empty slot receives strlcpy(capacity 25) at 0x106a7578, increments total count and, unless local, remote count. Callback +8 at 0x106a75b0 may cause rollback through f_106a7348 at 0x106a75c8 if nonzero. Constructor f_106aae20 stores manager+0x11c as this callback at 0x106ab1e0; its vptr 0x10f0466c has +8=f_106a6f5c and +0xc=f_106a6430. These thunks adjust this by -0x11c and call f_106a6e60/f_106a6390."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106cba20",
+        "function": "0x106cb99c",
+        "notes": "Constructor f_106aae20 calls f_106cb99c at 0x106ab110 and stores that concrete transport at manager+0x358 at 0x106ab1cc. Its primary table 0x10f07a58 is installed at 0x106cba20: +0x40=f_106ace10 (returns true), +0x44=f_106ca000, +0x64=f_106c9abc (returns this+0x74). Group-added callback f_106a6e60 checks +0x388, tests transport +0x40, calls +0x44(true) at 0x106a6f18, sets manager+0x388=1 and returns zero. Group-removed callback f_106a6390 calls +0x44(false) at 0x106a640c and clears +0x388. f_106ca000 locks transport+0xd0 and calls the object at transport+0x6c, slot +0x34, with transport+0x1b0 for true or null for false (0x106ca034-0x106ca054). That downstream binding is not established by this trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a8248",
+        "function": "0x106a81d4",
+        "notes": "Source-manager thread state helper, not controller playback completion: desired states are bounded to 2..4, current +0x2e0 to 1..3 (unsigned subtract/range checks at 0x106a8210-0x106a8230). If different, desired +0x2e4 is set only when zero, and the condition variable +0x1e0 is signaled/waited through f_1098761c/f_10987540. Desired 2 also calls transport +0x3c at 0x106a82f4; table 0x10f07a58 binds that slot to f_106c9d68, which locks transport+0xd0 and sets byte +0x798 to one at 0x106c9d98. Return is current-state equality, not a SOAP fault code; transmission workers ignore that return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073d5ec",
         "function": "0x1073d544",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Wrapper parses InstanceID and CoordinatorID, validates through request+8 at 0x1073d5c8, selects 402 at 0x1073d63c on zero validation, and calls implementation +0xc at 0x1073d5ec. Nonzero result faults at 0x1073d608; zero commits without outputs at 0x1073d650."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0xc]",
+      "description": "Under manager mutex +0x150, uses local ID +0x128 and coordinator/count record +0x360. Reads remote count +0x368 after removal to decide whether to request thread state 2. Removal invokes group callback +0xc, bound to f_106a6430/f_106a6390, which uses concrete transport +0x358 and manager flag +0x388.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a8ac4",
+        "function": "0x106a8a80",
+        "notes": "Bound +0xc f_106a8a80 locks manager+0x150, preserves CoordinatorID in SPE r5 (store/load at 0x106a8ab0/ab8), and calls f_106a8940. The worker rejects null/empty CoordinatorID or f_10687bac(InstanceID)==0 with 402 at 0x106a89d0. It does not compare the selected ID. At 0x106a8a24 it invokes f_106a7348(group=manager+0x360, CoordinatorID, local=strcmp(CoordinatorID,manager+0x128)==0). The removal return code is ignored. If remote count manager+0x368 is zero, it calls f_106a81d4(2) at 0x106a8a78; either path returns zero from 0x106a8a64. Raw 0x409eff68 at 0x106a8a6c skips that call when remote count is nonzero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10687bc8",
+        "function": "0x10687bac",
+        "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a73ec",
+        "function": "0x106a7348",
+        "notes": "If requested coordinator differs from group+0xc, returns 402 at 0x106a73bc with no group change. Match clears the coordinator at 0x106a73ec, decrements total count at 0x106a73f4, and decrements remote count only if the local flag is false (0x106a7404). If callback is nonnull, calls slot +0xc at 0x106a7428 and returns zero. Concrete callback f_106a6430 -> f_106a6390 calls transport+0x44(false) and clears manager+0x388."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a7450",
+        "function": "0x106a7450",
+        "notes": "Group record is manager+0x360: callback at +0, remote count +4, total count +8, coordinator bytes +0xc (manager+0x36c). strcmp at 0x106a74c0 returns 801 for the existing coordinator (0x106a7540/0x106a760c); a different nonempty slot returns 800 at 0x106a7508/0x106a7634. An empty slot receives strlcpy(capacity 25) at 0x106a7578, increments total count and, unless local, remote count. Callback +8 at 0x106a75b0 may cause rollback through f_106a7348 at 0x106a75c8 if nonzero. Constructor f_106aae20 stores manager+0x11c as this callback at 0x106ab1e0; its vptr 0x10f0466c has +8=f_106a6f5c and +0xc=f_106a6430. These thunks adjust this by -0x11c and call f_106a6e60/f_106a6390."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106cba20",
+        "function": "0x106cb99c",
+        "notes": "Constructor f_106aae20 calls f_106cb99c at 0x106ab110 and stores that concrete transport at manager+0x358 at 0x106ab1cc. Its primary table 0x10f07a58 is installed at 0x106cba20: +0x40=f_106ace10 (returns true), +0x44=f_106ca000, +0x64=f_106c9abc (returns this+0x74). Group-added callback f_106a6e60 checks +0x388, tests transport +0x40, calls +0x44(true) at 0x106a6f18, sets manager+0x388=1 and returns zero. Group-removed callback f_106a6390 calls +0x44(false) at 0x106a640c and clears +0x388. f_106ca000 locks transport+0xd0 and calls the object at transport+0x6c, slot +0x34, with transport+0x1b0 for true or null for false (0x106ca034-0x106ca054). That downstream binding is not established by this trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a8248",
+        "function": "0x106a81d4",
+        "notes": "Source-manager thread state helper, not controller playback completion: desired states are bounded to 2..4, current +0x2e0 to 1..3 (unsigned subtract/range checks at 0x106a8210-0x106a8230). If different, desired +0x2e4 is set only when zero, and the condition variable +0x1e0 is signaled/waited through f_1098761c/f_10987540. Desired 2 also calls transport +0x3c at 0x106a82f4; table 0x10f07a58 binds that slot to f_106c9d68, which locks transport+0xd0 and sets byte +0x798 to one at 0x106c9d98. Return is current-state equality, not a SOAP fault code; transmission workers ignore that return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073d5ec",
         "function": "0x1073d544",
-        "notes": "member vfunc calls: ['r30 v[+0xc]']"
+        "notes": "Wrapper parses InstanceID and CoordinatorID, validates through request+8 at 0x1073d5c8, selects 402 at 0x1073d63c on zero validation, and calls implementation +0xc at 0x1073d5ec. Nonzero result faults at 0x1073d608; zero commits without outputs at 0x1073d650."
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: group record, callback and thread-state offsets are traced. Residual: recover transport+0x6c object binding for f_106ca054 and enumerate dependencies of state-2 cleanup in f_106ab4d4."
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0xc] (call-derived member-method semantics)",
+       "description": "A matching coordinator is cleared; total count and, for a remote coordinator, remote count are decremented. Group-removed calls f_106ca000(false) and clears +0x388. A mismatch leaves group data unchanged but still reaches the remote-count test. If remote count is zero, requests thread state 2, including f_106c9d68 setting transport byte +0x798.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "address": "0x106a8ac4",
+         "function": "0x106a8a80",
+         "notes": "Bound +0xc f_106a8a80 locks manager+0x150, preserves CoordinatorID in SPE r5 (store/load at 0x106a8ab0/ab8), and calls f_106a8940. The worker rejects null/empty CoordinatorID or f_10687bac(InstanceID)==0 with 402 at 0x106a89d0. It does not compare the selected ID. At 0x106a8a24 it invokes f_106a7348(group=manager+0x360, CoordinatorID, local=strcmp(CoordinatorID,manager+0x128)==0). The removal return code is ignored. If remote count manager+0x368 is zero, it calls f_106a81d4(2) at 0x106a8a78; either path returns zero from 0x106a8a64. Raw 0x409eff68 at 0x106a8a6c skips that call when remote count is nonzero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10687bc8",
+         "function": "0x10687bac",
+         "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a73ec",
+         "function": "0x106a7348",
+         "notes": "If requested coordinator differs from group+0xc, returns 402 at 0x106a73bc with no group change. Match clears the coordinator at 0x106a73ec, decrements total count at 0x106a73f4, and decrements remote count only if the local flag is false (0x106a7404). If callback is nonnull, calls slot +0xc at 0x106a7428 and returns zero. Concrete callback f_106a6430 -> f_106a6390 calls transport+0x44(false) and clears manager+0x388."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a7450",
+         "function": "0x106a7450",
+         "notes": "Group record is manager+0x360: callback at +0, remote count +4, total count +8, coordinator bytes +0xc (manager+0x36c). strcmp at 0x106a74c0 returns 801 for the existing coordinator (0x106a7540/0x106a760c); a different nonempty slot returns 800 at 0x106a7508/0x106a7634. An empty slot receives strlcpy(capacity 25) at 0x106a7578, increments total count and, unless local, remote count. Callback +8 at 0x106a75b0 may cause rollback through f_106a7348 at 0x106a75c8 if nonzero. Constructor f_106aae20 stores manager+0x11c as this callback at 0x106ab1e0; its vptr 0x10f0466c has +8=f_106a6f5c and +0xc=f_106a6430. These thunks adjust this by -0x11c and call f_106a6e60/f_106a6390."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106cba20",
+         "function": "0x106cb99c",
+         "notes": "Constructor f_106aae20 calls f_106cb99c at 0x106ab110 and stores that concrete transport at manager+0x358 at 0x106ab1cc. Its primary table 0x10f07a58 is installed at 0x106cba20: +0x40=f_106ace10 (returns true), +0x44=f_106ca000, +0x64=f_106c9abc (returns this+0x74). Group-added callback f_106a6e60 checks +0x388, tests transport +0x40, calls +0x44(true) at 0x106a6f18, sets manager+0x388=1 and returns zero. Group-removed callback f_106a6390 calls +0x44(false) at 0x106a640c and clears +0x388. f_106ca000 locks transport+0xd0 and calls the object at transport+0x6c, slot +0x34, with transport+0x1b0 for true or null for false (0x106ca034-0x106ca054). That downstream binding is not established by this trace."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a8248",
+         "function": "0x106a81d4",
+         "notes": "Source-manager thread state helper, not controller playback completion: desired states are bounded to 2..4, current +0x2e0 to 1..3 (unsigned subtract/range checks at 0x106a8210-0x106a8230). If different, desired +0x2e4 is set only when zero, and the condition variable +0x1e0 is signaled/waited through f_1098761c/f_10987540. Desired 2 also calls transport +0x3c at 0x106a82f4; table 0x10f07a58 binds that slot to f_106c9d68, which locks transport+0xd0 and sets byte +0x798 to one at 0x106c9d98. Return is current-state equality, not a SOAP fault code; transmission workers ignore that return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073d5ec",
          "function": "0x1073d544",
-         "notes": "delegate map ['r30 v[+0xc]']; notify-family calls []"
+         "notes": "Wrapper parses InstanceID and CoordinatorID, validates through request+8 at 0x1073d5c8, selects 402 at 0x1073d63c on zero validation, and calls implementation +0xc at 0x1073d5ec. Nonzero result faults at 0x1073d608; zero commits without outputs at 0x1073d650."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0xc] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "todo": "Established: coordinator/count mutation, +0x388 clear, configuration(false), stop flag +0x798 and state-2 request are traced. Residual: enumerate resource/transport effects below f_106ca000 slot +0x34 at 0x106ca054 and asynchronous state-2 cleanup in f_106ab4d4."
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The synchronous group-removed callback is proven: f_106a7348 -> f_106a6430 -> f_106a6390 -> f_106ca000(false). It is not the controller StopTransmission callback. No particular GENA/WSS delivery follows solely from this call graph.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a8ac4",
+        "function": "0x106a8a80",
+        "notes": "Bound +0xc f_106a8a80 locks manager+0x150, preserves CoordinatorID in SPE r5 (store/load at 0x106a8ab0/ab8), and calls f_106a8940. The worker rejects null/empty CoordinatorID or f_10687bac(InstanceID)==0 with 402 at 0x106a89d0. It does not compare the selected ID. At 0x106a8a24 it invokes f_106a7348(group=manager+0x360, CoordinatorID, local=strcmp(CoordinatorID,manager+0x128)==0). The removal return code is ignored. If remote count manager+0x368 is zero, it calls f_106a81d4(2) at 0x106a8a78; either path returns zero from 0x106a8a64. Raw 0x409eff68 at 0x106a8a6c skips that call when remote count is nonzero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10687bc8",
+        "function": "0x10687bac",
+        "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a73ec",
+        "function": "0x106a7348",
+        "notes": "If requested coordinator differs from group+0xc, returns 402 at 0x106a73bc with no group change. Match clears the coordinator at 0x106a73ec, decrements total count at 0x106a73f4, and decrements remote count only if the local flag is false (0x106a7404). If callback is nonnull, calls slot +0xc at 0x106a7428 and returns zero. Concrete callback f_106a6430 -> f_106a6390 calls transport+0x44(false) and clears manager+0x388."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a7450",
+        "function": "0x106a7450",
+        "notes": "Group record is manager+0x360: callback at +0, remote count +4, total count +8, coordinator bytes +0xc (manager+0x36c). strcmp at 0x106a74c0 returns 801 for the existing coordinator (0x106a7540/0x106a760c); a different nonempty slot returns 800 at 0x106a7508/0x106a7634. An empty slot receives strlcpy(capacity 25) at 0x106a7578, increments total count and, unless local, remote count. Callback +8 at 0x106a75b0 may cause rollback through f_106a7348 at 0x106a75c8 if nonzero. Constructor f_106aae20 stores manager+0x11c as this callback at 0x106ab1e0; its vptr 0x10f0466c has +8=f_106a6f5c and +0xc=f_106a6430. These thunks adjust this by -0x11c and call f_106a6e60/f_106a6390."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106cba20",
+        "function": "0x106cb99c",
+        "notes": "Constructor f_106aae20 calls f_106cb99c at 0x106ab110 and stores that concrete transport at manager+0x358 at 0x106ab1cc. Its primary table 0x10f07a58 is installed at 0x106cba20: +0x40=f_106ace10 (returns true), +0x44=f_106ca000, +0x64=f_106c9abc (returns this+0x74). Group-added callback f_106a6e60 checks +0x388, tests transport +0x40, calls +0x44(true) at 0x106a6f18, sets manager+0x388=1 and returns zero. Group-removed callback f_106a6390 calls +0x44(false) at 0x106a640c and clears +0x388. f_106ca000 locks transport+0xd0 and calls the object at transport+0x6c, slot +0x34, with transport+0x1b0 for true or null for false (0x106ca034-0x106ca054). That downstream binding is not established by this trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a8248",
+        "function": "0x106a81d4",
+        "notes": "Source-manager thread state helper, not controller playback completion: desired states are bounded to 2..4, current +0x2e0 to 1..3 (unsigned subtract/range checks at 0x106a8210-0x106a8230). If different, desired +0x2e4 is set only when zero, and the condition variable +0x1e0 is signaled/waited through f_1098761c/f_10987540. Desired 2 also calls transport +0x3c at 0x106a82f4; table 0x10f07a58 binds that slot to f_106c9d68, which locks transport+0xd0 and sets byte +0x798 to one at 0x106c9d98. Return is current-state equality, not a SOAP fault code; transmission workers ignore that return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073d5ec",
         "function": "0x1073d544",
-        "notes": "bl call scan: notify-family sites = []"
+        "notes": "Wrapper parses InstanceID and CoordinatorID, validates through request+8 at 0x1073d5c8, selects 402 at 0x1073d63c on zero validation, and calls implementation +0xc at 0x1073d5ec. Nonzero result faults at 0x1073d608; zero commits without outputs at 0x1073d650."
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: the concrete group-removed callback and transport configuration(false) chain are traced. Residual: inspect transport+0x6c slot +0x34 and f_106ab4d4 state-2 cleanup for notification/internal-event sites; no controller-event attribution is supported."
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0xc]",
+      "description": "When manager+0x368 is zero after the removal attempt, requests numeric source-manager thread state 2 through f_106a81d4. That helper calls transport stop flag setter f_106c9d68 and may wait on +0x1e0. It does not expose its boolean as a SOAP error. A nonzero remote count skips the state request.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a8ac4",
+        "function": "0x106a8a80",
+        "notes": "Bound +0xc f_106a8a80 locks manager+0x150, preserves CoordinatorID in SPE r5 (store/load at 0x106a8ab0/ab8), and calls f_106a8940. The worker rejects null/empty CoordinatorID or f_10687bac(InstanceID)==0 with 402 at 0x106a89d0. It does not compare the selected ID. At 0x106a8a24 it invokes f_106a7348(group=manager+0x360, CoordinatorID, local=strcmp(CoordinatorID,manager+0x128)==0). The removal return code is ignored. If remote count manager+0x368 is zero, it calls f_106a81d4(2) at 0x106a8a78; either path returns zero from 0x106a8a64. Raw 0x409eff68 at 0x106a8a6c skips that call when remote count is nonzero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10687bc8",
+        "function": "0x10687bac",
+        "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a73ec",
+        "function": "0x106a7348",
+        "notes": "If requested coordinator differs from group+0xc, returns 402 at 0x106a73bc with no group change. Match clears the coordinator at 0x106a73ec, decrements total count at 0x106a73f4, and decrements remote count only if the local flag is false (0x106a7404). If callback is nonnull, calls slot +0xc at 0x106a7428 and returns zero. Concrete callback f_106a6430 -> f_106a6390 calls transport+0x44(false) and clears manager+0x388."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a7450",
+        "function": "0x106a7450",
+        "notes": "Group record is manager+0x360: callback at +0, remote count +4, total count +8, coordinator bytes +0xc (manager+0x36c). strcmp at 0x106a74c0 returns 801 for the existing coordinator (0x106a7540/0x106a760c); a different nonempty slot returns 800 at 0x106a7508/0x106a7634. An empty slot receives strlcpy(capacity 25) at 0x106a7578, increments total count and, unless local, remote count. Callback +8 at 0x106a75b0 may cause rollback through f_106a7348 at 0x106a75c8 if nonzero. Constructor f_106aae20 stores manager+0x11c as this callback at 0x106ab1e0; its vptr 0x10f0466c has +8=f_106a6f5c and +0xc=f_106a6430. These thunks adjust this by -0x11c and call f_106a6e60/f_106a6390."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106cba20",
+        "function": "0x106cb99c",
+        "notes": "Constructor f_106aae20 calls f_106cb99c at 0x106ab110 and stores that concrete transport at manager+0x358 at 0x106ab1cc. Its primary table 0x10f07a58 is installed at 0x106cba20: +0x40=f_106ace10 (returns true), +0x44=f_106ca000, +0x64=f_106c9abc (returns this+0x74). Group-added callback f_106a6e60 checks +0x388, tests transport +0x40, calls +0x44(true) at 0x106a6f18, sets manager+0x388=1 and returns zero. Group-removed callback f_106a6390 calls +0x44(false) at 0x106a640c and clears +0x388. f_106ca000 locks transport+0xd0 and calls the object at transport+0x6c, slot +0x34, with transport+0x1b0 for true or null for false (0x106ca034-0x106ca054). That downstream binding is not established by this trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a8248",
+        "function": "0x106a81d4",
+        "notes": "Source-manager thread state helper, not controller playback completion: desired states are bounded to 2..4, current +0x2e0 to 1..3 (unsigned subtract/range checks at 0x106a8210-0x106a8230). If different, desired +0x2e4 is set only when zero, and the condition variable +0x1e0 is signaled/waited through f_1098761c/f_10987540. Desired 2 also calls transport +0x3c at 0x106a82f4; table 0x10f07a58 binds that slot to f_106c9d68, which locks transport+0xd0 and sets byte +0x798 to one at 0x106c9d98. Return is current-state equality, not a SOAP fault code; transmission workers ignore that return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073d5ec",
         "function": "0x1073d544",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0xc]']"
+        "notes": "Wrapper parses InstanceID and CoordinatorID, validates through request+8 at 0x1073d5c8, selects 402 at 0x1073d63c on zero validation, and calls implementation +0xc at 0x1073d5ec. Nonzero result faults at 0x1073d608; zero commits without outputs at 0x1073d650."
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: remote-count gate, desired state 2 and stop byte +0x798 are traced. Residual: trace f_106ab4d4 state-2 completion/cleanup and the transport configuration(false) callback before assigning an end-to-end transport state."
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "402 on wrapper validation failure, empty/null CoordinatorID or invalid InstanceID. Otherwise returns zero and commits with no outputs, even if coordinator removal returned 402. Thread-state and transport-configuration returns are not surfaced as SOAP faults.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a8ac4",
+        "function": "0x106a8a80",
+        "notes": "Bound +0xc f_106a8a80 locks manager+0x150, preserves CoordinatorID in SPE r5 (store/load at 0x106a8ab0/ab8), and calls f_106a8940. The worker rejects null/empty CoordinatorID or f_10687bac(InstanceID)==0 with 402 at 0x106a89d0. It does not compare the selected ID. At 0x106a8a24 it invokes f_106a7348(group=manager+0x360, CoordinatorID, local=strcmp(CoordinatorID,manager+0x128)==0). The removal return code is ignored. If remote count manager+0x368 is zero, it calls f_106a81d4(2) at 0x106a8a78; either path returns zero from 0x106a8a64. Raw 0x409eff68 at 0x106a8a6c skips that call when remote count is nonzero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10687bc8",
+        "function": "0x10687bac",
+        "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a73ec",
+        "function": "0x106a7348",
+        "notes": "If requested coordinator differs from group+0xc, returns 402 at 0x106a73bc with no group change. Match clears the coordinator at 0x106a73ec, decrements total count at 0x106a73f4, and decrements remote count only if the local flag is false (0x106a7404). If callback is nonnull, calls slot +0xc at 0x106a7428 and returns zero. Concrete callback f_106a6430 -> f_106a6390 calls transport+0x44(false) and clears manager+0x388."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a7450",
+        "function": "0x106a7450",
+        "notes": "Group record is manager+0x360: callback at +0, remote count +4, total count +8, coordinator bytes +0xc (manager+0x36c). strcmp at 0x106a74c0 returns 801 for the existing coordinator (0x106a7540/0x106a760c); a different nonempty slot returns 800 at 0x106a7508/0x106a7634. An empty slot receives strlcpy(capacity 25) at 0x106a7578, increments total count and, unless local, remote count. Callback +8 at 0x106a75b0 may cause rollback through f_106a7348 at 0x106a75c8 if nonzero. Constructor f_106aae20 stores manager+0x11c as this callback at 0x106ab1e0; its vptr 0x10f0466c has +8=f_106a6f5c and +0xc=f_106a6430. These thunks adjust this by -0x11c and call f_106a6e60/f_106a6390."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106cba20",
+        "function": "0x106cb99c",
+        "notes": "Constructor f_106aae20 calls f_106cb99c at 0x106ab110 and stores that concrete transport at manager+0x358 at 0x106ab1cc. Its primary table 0x10f07a58 is installed at 0x106cba20: +0x40=f_106ace10 (returns true), +0x44=f_106ca000, +0x64=f_106c9abc (returns this+0x74). Group-added callback f_106a6e60 checks +0x388, tests transport +0x40, calls +0x44(true) at 0x106a6f18, sets manager+0x388=1 and returns zero. Group-removed callback f_106a6390 calls +0x44(false) at 0x106a640c and clears +0x388. f_106ca000 locks transport+0xd0 and calls the object at transport+0x6c, slot +0x34, with transport+0x1b0 for true or null for false (0x106ca034-0x106ca054). That downstream binding is not established by this trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a8248",
+        "function": "0x106a81d4",
+        "notes": "Source-manager thread state helper, not controller playback completion: desired states are bounded to 2..4, current +0x2e0 to 1..3 (unsigned subtract/range checks at 0x106a8210-0x106a8230). If different, desired +0x2e4 is set only when zero, and the condition variable +0x1e0 is signaled/waited through f_1098761c/f_10987540. Desired 2 also calls transport +0x3c at 0x106a82f4; table 0x10f07a58 binds that slot to f_106c9d68, which locks transport+0xd0 and sets byte +0x798 to one at 0x106c9d98. Return is current-state equality, not a SOAP fault code; transmission workers ignore that return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073d5ec",
         "function": "0x1073d544",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Wrapper parses InstanceID and CoordinatorID, validates through request+8 at 0x1073d5c8, selects 402 at 0x1073d63c on zero validation, and calls implementation +0xc at 0x1073d5ec. Nonzero result faults at 0x1073d608; zero commits without outputs at 0x1073d650."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -83478,33 +83755,70 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0xc); parse/req-layer",
-       "meaning": "request-layer parse/impl gate failure | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "402",
+       "meaning": "Request validation or implementation argument gate failed.",
        "fault_sites": [
         "0x1073d608"
        ],
        "conditions": [
         {
-         "description": "parse or impl arg gate failed",
+         "description": "Request validation returns zero, CoordinatorID is null/empty, or InstanceID fails f_10687bac. An unknown coordinator is not an exposed error: f_106a7348 returns 402, but f_106a8940 discards it.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10415d38",
-           "notes": "impl/handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "address": "0x106a8ac4",
+           "function": "0x106a8a80",
+           "notes": "Bound +0xc f_106a8a80 locks manager+0x150, preserves CoordinatorID in SPE r5 (store/load at 0x106a8ab0/ab8), and calls f_106a8940. The worker rejects null/empty CoordinatorID or f_10687bac(InstanceID)==0 with 402 at 0x106a89d0. It does not compare the selected ID. At 0x106a8a24 it invokes f_106a7348(group=manager+0x360, CoordinatorID, local=strcmp(CoordinatorID,manager+0x128)==0). The removal return code is ignored. If remote count manager+0x368 is zero, it calls f_106a81d4(2) at 0x106a8a78; either path returns zero from 0x106a8a64. Raw 0x409eff68 at 0x106a8a6c skips that call when remote count is nonzero."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073d544",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10687bc8",
+           "function": "0x10687bac",
+           "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106a73ec",
+           "function": "0x106a7348",
+           "notes": "If requested coordinator differs from group+0xc, returns 402 at 0x106a73bc with no group change. Match clears the coordinator at 0x106a73ec, decrements total count at 0x106a73f4, and decrements remote count only if the local flag is false (0x106a7404). If callback is nonnull, calls slot +0xc at 0x106a7428 and returns zero. Concrete callback f_106a6430 -> f_106a6390 calls transport+0x44(false) and clears manager+0x388."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106a7450",
+           "function": "0x106a7450",
+           "notes": "Group record is manager+0x360: callback at +0, remote count +4, total count +8, coordinator bytes +0xc (manager+0x36c). strcmp at 0x106a74c0 returns 801 for the existing coordinator (0x106a7540/0x106a760c); a different nonempty slot returns 800 at 0x106a7508/0x106a7634. An empty slot receives strlcpy(capacity 25) at 0x106a7578, increments total count and, unless local, remote count. Callback +8 at 0x106a75b0 may cause rollback through f_106a7348 at 0x106a75c8 if nonzero. Constructor f_106aae20 stores manager+0x11c as this callback at 0x106ab1e0; its vptr 0x10f0466c has +8=f_106a6f5c and +0xc=f_106a6430. These thunks adjust this by -0x11c and call f_106a6e60/f_106a6390."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106cba20",
+           "function": "0x106cb99c",
+           "notes": "Constructor f_106aae20 calls f_106cb99c at 0x106ab110 and stores that concrete transport at manager+0x358 at 0x106ab1cc. Its primary table 0x10f07a58 is installed at 0x106cba20: +0x40=f_106ace10 (returns true), +0x44=f_106ca000, +0x64=f_106c9abc (returns this+0x74). Group-added callback f_106a6e60 checks +0x388, tests transport +0x40, calls +0x44(true) at 0x106a6f18, sets manager+0x388=1 and returns zero. Group-removed callback f_106a6390 calls +0x44(false) at 0x106a640c and clears +0x388. f_106ca000 locks transport+0xd0 and calls the object at transport+0x6c, slot +0x34, with transport+0x1b0 for true or null for false (0x106ca034-0x106ca054). That downstream binding is not established by this trace."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106a8248",
+           "function": "0x106a81d4",
+           "notes": "Source-manager thread state helper, not controller playback completion: desired states are bounded to 2..4, current +0x2e0 to 1..3 (unsigned subtract/range checks at 0x106a8210-0x106a8230). If different, desired +0x2e4 is set only when zero, and the condition variable +0x1e0 is signaled/waited through f_1098761c/f_10987540. Desired 2 also calls transport +0x3c at 0x106a82f4; table 0x10f07a58 binds that slot to f_106c9d68, which locks transport+0xd0 and sets byte +0x798 to one at 0x106c9d98. Return is current-state equality, not a SOAP fault code; transmission workers ignore that return."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1073d5ec",
+           "function": "0x1073d544",
+           "notes": "Wrapper parses InstanceID and CoordinatorID, validates through request+8 at 0x1073d5c8, selects 402 at 0x1073d63c on zero validation, and calls implementation +0xc at 0x1073d5ec. Nonzero result faults at 0x1073d608; zero commits without outputs at 0x1073d650."
           }
          ]
         }
@@ -83514,21 +83828,58 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10415d38",
-         "notes": "402 path"
+         "address": "0x106a8ac4",
+         "function": "0x106a8a80",
+         "notes": "Bound +0xc f_106a8a80 locks manager+0x150, preserves CoordinatorID in SPE r5 (store/load at 0x106a8ab0/ab8), and calls f_106a8940. The worker rejects null/empty CoordinatorID or f_10687bac(InstanceID)==0 with 402 at 0x106a89d0. It does not compare the selected ID. At 0x106a8a24 it invokes f_106a7348(group=manager+0x360, CoordinatorID, local=strcmp(CoordinatorID,manager+0x128)==0). The removal return code is ignored. If remote count manager+0x368 is zero, it calls f_106a81d4(2) at 0x106a8a78; either path returns zero from 0x106a8a64. Raw 0x409eff68 at 0x106a8a6c skips that call when remote count is nonzero."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073d544",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10687bc8",
+         "function": "0x10687bac",
+         "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a73ec",
+         "function": "0x106a7348",
+         "notes": "If requested coordinator differs from group+0xc, returns 402 at 0x106a73bc with no group change. Match clears the coordinator at 0x106a73ec, decrements total count at 0x106a73f4, and decrements remote count only if the local flag is false (0x106a7404). If callback is nonnull, calls slot +0xc at 0x106a7428 and returns zero. Concrete callback f_106a6430 -> f_106a6390 calls transport+0x44(false) and clears manager+0x388."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a7450",
+         "function": "0x106a7450",
+         "notes": "Group record is manager+0x360: callback at +0, remote count +4, total count +8, coordinator bytes +0xc (manager+0x36c). strcmp at 0x106a74c0 returns 801 for the existing coordinator (0x106a7540/0x106a760c); a different nonempty slot returns 800 at 0x106a7508/0x106a7634. An empty slot receives strlcpy(capacity 25) at 0x106a7578, increments total count and, unless local, remote count. Callback +8 at 0x106a75b0 may cause rollback through f_106a7348 at 0x106a75c8 if nonzero. Constructor f_106aae20 stores manager+0x11c as this callback at 0x106ab1e0; its vptr 0x10f0466c has +8=f_106a6f5c and +0xc=f_106a6430. These thunks adjust this by -0x11c and call f_106a6e60/f_106a6390."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106cba20",
+         "function": "0x106cb99c",
+         "notes": "Constructor f_106aae20 calls f_106cb99c at 0x106ab110 and stores that concrete transport at manager+0x358 at 0x106ab1cc. Its primary table 0x10f07a58 is installed at 0x106cba20: +0x40=f_106ace10 (returns true), +0x44=f_106ca000, +0x64=f_106c9abc (returns this+0x74). Group-added callback f_106a6e60 checks +0x388, tests transport +0x40, calls +0x44(true) at 0x106a6f18, sets manager+0x388=1 and returns zero. Group-removed callback f_106a6390 calls +0x44(false) at 0x106a640c and clears +0x388. f_106ca000 locks transport+0xd0 and calls the object at transport+0x6c, slot +0x34, with transport+0x1b0 for true or null for false (0x106ca034-0x106ca054). That downstream binding is not established by this trace."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a8248",
+         "function": "0x106a81d4",
+         "notes": "Source-manager thread state helper, not controller playback completion: desired states are bounded to 2..4, current +0x2e0 to 1..3 (unsigned subtract/range checks at 0x106a8210-0x106a8230). If different, desired +0x2e4 is set only when zero, and the condition variable +0x1e0 is signaled/waited through f_1098761c/f_10987540. Desired 2 also calls transport +0x3c at 0x106a82f4; table 0x10f07a58 binds that slot to f_106c9d68, which locks transport+0xd0 and sets byte +0x798 to one at 0x106c9d98. Return is current-state equality, not a SOAP fault code; transmission workers ignore that return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073d5ec",
+         "function": "0x1073d544",
+         "notes": "Wrapper parses InstanceID and CoordinatorID, validates through request+8 at 0x1073d5c8, selects 402 at 0x1073d63c on zero validation, and calls implementation +0xc at 0x1073d5ec. Nonzero result faults at 0x1073d608; zero commits without outputs at 0x1073d650."
         }
-       ],
-       "domain_note": "domain fully bounded: impl 0x10415d38 exits=[32]; VLI impl rc surfaced",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0xc); parse/req-layer; sites: 0x1073d608).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -83538,23 +83889,69 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073d544",
-       "address": "0x1073d544",
-       "notes": "action wrapper handler"
+       "address": "0x104d4f64",
+       "function": "0x104d49e8",
+       "notes": "The services-block write at block+0x58 is VLI service+4 (zone-player+0x3fa84). Its source is media-player+0x19a0, constructed by f_106aae20 at 0x103fbe30; final primary vptr 0x10f045c4 is installed at 0x106aaf5c. The containing block is retained at media-player+0x220 (0x103fa75c) and loaded by initializer f_103fd65c at 0x103fdd08. This is the source manager, not the controller at media-player+0x1998."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11f34",
-       "notes": "action dispatch table entry"
+       "address": "0x106a8ac4",
+       "function": "0x106a8a80",
+       "notes": "Bound +0xc f_106a8a80 locks manager+0x150, preserves CoordinatorID in SPE r5 (store/load at 0x106a8ab0/ab8), and calls f_106a8940. The worker rejects null/empty CoordinatorID or f_10687bac(InstanceID)==0 with 402 at 0x106a89d0. It does not compare the selected ID. At 0x106a8a24 it invokes f_106a7348(group=manager+0x360, CoordinatorID, local=strcmp(CoordinatorID,manager+0x128)==0). The removal return code is ignored. If remote count manager+0x368 is zero, it calls f_106a81d4(2) at 0x106a8a78; either path returns zero from 0x106a8a64. Raw 0x409eff68 at 0x106a8a6c skips that call when remote count is nonzero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10687bc8",
+       "function": "0x10687bac",
+       "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106a73ec",
+       "function": "0x106a7348",
+       "notes": "If requested coordinator differs from group+0xc, returns 402 at 0x106a73bc with no group change. Match clears the coordinator at 0x106a73ec, decrements total count at 0x106a73f4, and decrements remote count only if the local flag is false (0x106a7404). If callback is nonnull, calls slot +0xc at 0x106a7428 and returns zero. Concrete callback f_106a6430 -> f_106a6390 calls transport+0x44(false) and clears manager+0x388."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106a7450",
+       "function": "0x106a7450",
+       "notes": "Group record is manager+0x360: callback at +0, remote count +4, total count +8, coordinator bytes +0xc (manager+0x36c). strcmp at 0x106a74c0 returns 801 for the existing coordinator (0x106a7540/0x106a760c); a different nonempty slot returns 800 at 0x106a7508/0x106a7634. An empty slot receives strlcpy(capacity 25) at 0x106a7578, increments total count and, unless local, remote count. Callback +8 at 0x106a75b0 may cause rollback through f_106a7348 at 0x106a75c8 if nonzero. Constructor f_106aae20 stores manager+0x11c as this callback at 0x106ab1e0; its vptr 0x10f0466c has +8=f_106a6f5c and +0xc=f_106a6430. These thunks adjust this by -0x11c and call f_106a6e60/f_106a6390."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106cba20",
+       "function": "0x106cb99c",
+       "notes": "Constructor f_106aae20 calls f_106cb99c at 0x106ab110 and stores that concrete transport at manager+0x358 at 0x106ab1cc. Its primary table 0x10f07a58 is installed at 0x106cba20: +0x40=f_106ace10 (returns true), +0x44=f_106ca000, +0x64=f_106c9abc (returns this+0x74). Group-added callback f_106a6e60 checks +0x388, tests transport +0x40, calls +0x44(true) at 0x106a6f18, sets manager+0x388=1 and returns zero. Group-removed callback f_106a6390 calls +0x44(false) at 0x106a640c and clears +0x388. f_106ca000 locks transport+0xd0 and calls the object at transport+0x6c, slot +0x34, with transport+0x1b0 for true or null for false (0x106ca034-0x106ca054). That downstream binding is not established by this trace."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106a8248",
+       "function": "0x106a81d4",
+       "notes": "Source-manager thread state helper, not controller playback completion: desired states are bounded to 2..4, current +0x2e0 to 1..3 (unsigned subtract/range checks at 0x106a8210-0x106a8230). If different, desired +0x2e4 is set only when zero, and the condition variable +0x1e0 is signaled/waited through f_1098761c/f_10987540. Desired 2 also calls transport +0x3c at 0x106a82f4; table 0x10f07a58 binds that slot to f_106c9d68, which locks transport+0xd0 and sets byte +0x798 to one at 0x106c9d98. Return is current-state equality, not a SOAP fault code; transmission workers ignore that return."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073d5ec",
+       "function": "0x1073d544",
+       "notes": "Wrapper parses InstanceID and CoordinatorID, validates through request+8 at 0x1073d5c8, selects 402 at 0x1073d63c on zero validation, and calls implementation +0xc at 0x1073d5ec. Nonzero result faults at 0x1073d608; zero commits without outputs at 0x1073d650."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x1073d544; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "The controller table 0x10ecbe2c is not this SOAP delegate; controller callback/boolean/event semantics must not be substituted for the proven source-manager slot.",
+     "todo": "Established: f_106a8a80 -> f_106a8940, ID/text validation, coordinator removal, ignored removal error and state-2 request are traced. Residual: finish transport+0x6c slot +0x34 configuration and asynchronous state-2 cleanup below f_106ab4d4; the earlier controller attribution is removed."
     }
    },
    "state_variables": {
