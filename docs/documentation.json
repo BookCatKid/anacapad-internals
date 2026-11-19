@@ -195513,8 +195513,8 @@
     "Established: the device-token inspector (muse_token_inspector, 'jwt' domain) has the complete status vocabulary: {'Device token not minted in this HH.','Token is expired, security settings have changed since the token was issued.','Device token expired.','Device token missing expiration time.','Device token has invalid expiration time.','Device token not minted by this device.','Device token is valid.'}; token mint requires trusted time + reg cert, exp = now+3600, iss prefixes urn:sonos:hhid:/urn:sonos:unit-hhid:; settings keys 'guest_token','guest_token_pin','authzTokenStatus','tokenStatus' exist.",
     "Resolved: the device signing-request (sr:) pipeline is literal (0x10f04288-0x10f043a4): token alg RS256 (distinct from the muse HS256 JWT path), token-type names {RS256, SMAPI}; the pipeline is header-encode -> payload-encode -> signature-generate -> base64 with hard gates \"sr: trusted time not available; cannot generate token\" and \"sr: reg cert not available; cannot generate token\" - signed requests require both trusted time and the registration cert, and \"token type not valid (%d)\" rejects unknown types. So SR tokens are RS256 signatures over header+payload, gated on reg cert + trusted clock.",
     "Resolved (todo was stale): the lifecycle internals the earlier residual asked about are in fact decoded - file-backed token cache per account, last-refresh timestamp, action-int FSM, waiter queue, JWT/expiration validity checks, and revocation events are all documented; the sr: signing pipeline (RS256 vs muse HS256) and the inspector status vocabulary are enumerated.",
-     "Resolved: the refresh-interval constant is the staleness gate in f_1021c108 at 0x1021c438 - timevalDiff(now, acct-last-update) > 0x36ee7f (3599999 ms = the established 3600 s token lifetime minus 1 ms) marks the SMAPI token expired; refresh is otherwise reactive on HTTP 401 through cqatrs_tx, so there is no separate periodic token timer to pin down. The device-cert check interval is fully decoded in f_105a6984 (randomized no-cert windows 2-7d/7-13.9d, expiry-lead 32d-jittered schedule, half-life under 32d, 3600 s under 2h, doubling failure backoff 15 s to 3600 s).",
-     "Resolved: revocation arrives on the wire as the 'DeviceCertRevoked' SOAP fault (code 0x415 via f_10716614 -> SMAPI result 0x80000030) and inside the process as TrustDevCertChangedEvent queued by f_106b33fc on trust-state change - payload = refcounted copy of the watched trust-state value plus the new flag byte in a 0x14-byte event node (vptr 0x10e87548, atomic refcounts, payload ptr at +0x10); the typed-event payload schema is per event type, and this producer's concrete layout is now recorded."
+    "Resolved: the refresh-interval constant is the staleness gate in f_1021c108 at 0x1021c438 - timevalDiff(now, acct-last-update) > 0x36ee7f (3599999 ms = the established 3600 s token lifetime minus 1 ms) marks the SMAPI token expired; refresh is otherwise reactive on HTTP 401 through cqatrs_tx, so there is no separate periodic token timer to pin down. The device-cert check interval is fully decoded in f_105a6984 (randomized no-cert windows 2-7d/7-13.9d, expiry-lead 32d-jittered schedule, half-life under 32d, 3600 s under 2h, doubling failure backoff 15 s to 3600 s).",
+    "Resolved: revocation arrives on the wire as the 'DeviceCertRevoked' SOAP fault (code 0x415 via f_10716614 -> SMAPI result 0x80000030) and inside the process as TrustDevCertChangedEvent queued by f_106b33fc on trust-state change - payload = refcounted copy of the watched trust-state value plus the new flag byte in a 0x14-byte event node (vptr 0x10e87548, atomic refcounts, payload ptr at +0x10); the typed-event payload schema is per event type, and this producer's concrete layout is now recorded."
    ]
   },
   "media_player_mgr": {
@@ -225274,17 +225274,122 @@
      "function": "0x105071e4",
      "address": "0x105072b8",
      "notes": "Aggregate serializer constructs Accounts attributes including the two clocks and MuseHouseholdID; writes via 0x10507374."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10505ea8",
+     "address": "0x10505ee4",
+     "notes": "Parse-ctx init stores caller-supplied sink at ctx+8, vtable 0x10edecf4 at +0, depth counter at +0xc; f_10c3fd88 registers {end? start, chars} handlers f_105065c0/f_1050649c/f_105067e8 (thunks to f_105064a8, f_10505fac, f_105065cc)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105073c4",
+     "address": "0x105073cc",
+     "notes": "Status-path sink adapter ctor installs vtable 0x10eded78 and delegate at +4; vfunc[+8] slot = f_10507b9c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10507b9c",
+     "address": "0x10507c60",
+     "notes": "f_10507b9c rebuilds the 8 Accounts attrs into an <Accounts> element via f_105784a4 and forwards serialized XML to delegate->f_10769df4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10506828",
+     "address": "0x10506834",
+     "notes": "Pull-path adapter ctor installs vtable 0x10eded28, secondary clockpair vtable 0x10eabc4c at +0x68, delegate (manager->+8) at +0xb0; vfunc2=f_1050591c vfunc3=f_10508bd8(stub) vfunc4=f_10505e1c vfunc5=f_10508be4(stub)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105069f4",
+     "address": "0x105069fc",
+     "notes": "Doc adapter ctor installs vtable 0x10eded48, ClockPair subobjects at +0x6c/+0xb4 (vtable 0x10eabc4c), uuid at +0xfc; vfunc2=f_105056d4 vfunc4=f_10505170 vfunc5=f_10505474."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1050591c",
+     "address": "0x10505984",
+     "notes": "Pull-adapter Accounts-attrs impl: strlen(LastUpdateDevice)==24 gate, strtol Version/NextSerialNum, paranoid_atoui PSN, paranoid_atoi SchemaVersion, ClockPair pack of VCH/VCC, strlcpy MuseHouseholdID."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10505e1c",
+     "address": "0x10505dc8",
+     "notes": "Pull-adapter per-Account impl only fires when strtol(Type) maps to 7 (r9==7): calls delegate->vfunc+0x130 (or delegate->+0x11a4->vfunc+0x20) with type byte, stores result bit to adapter+0xb4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105065cc",
+     "address": "0x105067d0",
+     "notes": "</Account> commit calls sink vfunc[+0x14] after validating nine field-buffer lengths (caps 0x82/0x42/0x42/0x42/0x802/0x802/0x1a/4); violation sets ctx+0x1c error flag."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105064a8",
+     "address": "0x105064d4",
+     "notes": "characterData handler: depth==3 gate, element index -> jump table 0x10edec94, appends text via f_10c3a06c into per-element ctx buffers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10505170",
+     "address": "0x105052ec",
+     "notes": "Doc-adapter per-Account attrs: Type->+0x10c, SerialNum->+0x110, Flags->+0x114, Deleted->+0x64, Id->uuid +0xfc, VCH/VCC->ClockPair +0xb4; Flags&4 with no serial sets +0x65."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10505474",
+     "address": "0x10505568",
+     "notes": "Account commit: UN parsed <=0xff else zeroed, Deleted routes to +0x118 table, else f_10570688 appends 0x250 record (cap 0x21, rejects Flags&5==5)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1056efb0",
+     "address": "0x1056f03c",
+     "notes": "Per-account identity compare: serial/type/flags, UN strcmp, VCH(+0x1fc) strcmp, VCC(+0x220) strcmp, uuid equality - merge conflict basis in mergeAccounts f_10285e18."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102884ec",
+     "address": "0x10288704",
+     "notes": "Pull ingest: post-parse strlcpy source name into manager+0xb8 (LastUpdateDevice), doc scalars -> manager+0xd4..+0x10b, rename() installs accounts.xml, manager->vfunc+0x34 notified."
     }
    ],
    "detail": "matching {performsSMAPIAccountMatching,\"Account matched g=%d,sn=%u,h=%s\",\"New account matched to existing guest account with SN=%u, Hash=%s\"}; DC outcomes {login failed,no account,stale account,unsupported service,unexpected,Could not resolve serviceId}; corruption {emptyUUID,dupUUID,caller,accountCorruption,\"Error reading file while detecting stale anonymous/corrupted accounts\",\"Found corrupted accounts\"}; guest {\"Link code required to add guest account\",\"Added guest account with SN=%u\",\"Updating guest account nickname\",\"addAccount failed: guest upgrade not allowed via reauth.\",\"account already exists on household\"}; maintenance {restore,addAccount,migrate,\"Removed account with corrupted type. SN=%d, SID=%u, UID=%u\",corruptedAccountRemoval,\"removing duplicate account with SID\",duplicateAccountRemoval,\"Removed account multiple\",numAccounts}; migrations {\"Migrated Pandora built-in (%d,%d->%d)\",pre-cloud,anonymous,\"Migrated Account with SID %u. (%u,%u->%u)\",legacyTuneInReplaced,\"UserIdHash [%s] already exists and will not be updated for SN=%u\"}; replication status XML <AccountsInfo><Replication><ReplicationOperation>%s|n/a</ReplicationOperation><ReplicationResult>%d|n/a</ReplicationResult></Replication><ReplicationPlayer>%s</ReplicationPlayer><ReplicationTime>%Y-%m-%d %H:%M:%S</ReplicationTime></AccountsInfo>; outcomes {\"Pull successful\",\"Corrupted accounts not updated\",\"Pull rescheduled in %lld\",\"Push successful\",\"Push rescheduled in %lld\"}; \"Rejected version %u, schema %u from %s\"; \"replicating accounts file from %s\"; spotifyTransferStartDirectControlEx; R_SvcAccounts",
-   "todo": [
-    "Residual: bind the Accounts parser sink at *(parser+8), virtual slot +8 called at 0x10506208, to its concrete implementation and trace clock comparison and LastUpdateDevice tie-breaking there. Trace per-account parsing separately; f_105071e4 is an Accounts aggregate serializer, not a per-entry parser."
-   ],
    "resolved_findings": [
     "Resolved: pull/push version compare = the ops {markAccountsForPushLocked, addAccount* family, modifyAccount} using replicated-store version fields; detail sub-block holds the flow.",
     "Version comparison and conflict resolution proven (accountsmgr.cxx, accountsmgr/accountReplication/accountsMgr log domains, accounts.xml store): replication is vector-clock based - each account carries a household vector clock and cloud records carry vcCloud; pullFromReplicationService validates cloud records against {missing service ID, missing service uuid, missing account type, missing metadata, missing cloud vector clock, missing serial number, missing account ID, missing household vector clock} then Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]. mergeAccounts resolves per-account into outcomes {retry, conflicted, updated, added, deleted} bounded by exceeded max deleted accounts; addNicknameIfNecessary fills display names; invalidCloud{,Serial,Reason} marks unmergeable entries. Guest migration path: migrateGuestAccount rejects non-guest accounts and validates UDN+UserIDHash (Bad guest migration: UDN = %s - UserIDHash = %s); Migrated %s replication account (%d) and Migrated tombstoned cover the migration+log path. markAccountsForPushLocked stages dirty accounts for pushToReplicationService; zpam report line %s,%d,%d,%u with asn (account serial number) + retry field.",
     "Resolved (review.xsl projection of the status document): the Accounts aggregate node carries scalar attributes {LastUpdateDevice,MuseHouseholdID,NextSerialNum,PreferredSerialNum,VClockCloud,VClockHousehold,Version} - so the replication clocks are two scope-scalars (VClockCloud + VClockHousehold) plus a per-doc Version, not a per-node counter vector. Accounts themselves also carry those attrs per-row.",
-    "Parser-to-sink boundary verified: f_10505fac scans name/value pairs with 8-byte stride. It binds LastUpdateDevice to r29, Version to r26, NextSerialNum to r23, PreferredSerialNum to r19, SchemaVersion to r18, VClockHousehold to r17, and VClockCloud to r15. At 0x105061d4-0x10506208 it loads the sink from parser+8 and calls its vtable slot +8 with these string pointers (plus the final collected attribute as a stack argument). This is forwarding, not an elementwise clock comparator. Correction: f_105071e4 formats four unsigned integers with __snprintf_chk and constructs an eight-attribute Accounts element through f_105784a4 at 0x10507374. It is the aggregate writer, including MuseHouseholdID, not the previously claimed per-Account entry parse ladder. Its input has LastUpdateDevice at +0, Version at +4, NextSerialNum at +8, PreferredSerialNum at +0x10, SchemaVersion at +0xc, a clock object at +0x1c (text at +4 and +0x28), and MuseHouseholdID at +0x24. Clock merge ordering remains unresolved."
+    "Parser-to-sink boundary verified: f_10505fac scans name/value pairs with 8-byte stride. It binds LastUpdateDevice to r29, Version to r26, NextSerialNum to r23, PreferredSerialNum to r19, SchemaVersion to r18, VClockHousehold to r17, and VClockCloud to r15. At 0x105061d4-0x10506208 it loads the sink from parser+8 and calls its vtable slot +8 with these string pointers (plus the final collected attribute as a stack argument). This is forwarding, not an elementwise clock comparator. Correction: f_105071e4 formats four unsigned integers with __snprintf_chk and constructs an eight-attribute Accounts element through f_105784a4 at 0x10507374. It is the aggregate writer, including MuseHouseholdID, not the previously claimed per-Account entry parse ladder. Its input has LastUpdateDevice at +0, Version at +4, NextSerialNum at +8, PreferredSerialNum at +0x10, SchemaVersion at +0xc, a clock object at +0x1c (text at +4 and +0x28), and MuseHouseholdID at +0x24. Clock merge ordering remains unresolved.",
+    "Resolved (SAX sink binding): the Accounts parser ctx is a ~0x1200-byte object with vtable 0x10edecf4; its +8 member is a caller-supplied sink whose vfunc[+8] (vfunc 2) receives the 8 aggregate attributes {LastUpdateDevice,Version,NextSerialNum,PreferredSerialNum,SchemaVersion,VClockHousehold,VClockCloud,MuseHouseholdID} collected by startElement f_10505fac at callsite 0x10506208. Three concrete sink adapters install it: vtable 0x10eded48 (ctor f_105069f4, full-document adapter used by f_102887e0/f_10506b0c whole-file ingest), vtable 0x10eded28 (ctor f_10506828, replication-pull adapter inside f_102884ec with delegate at +0xb0 = manager->+8), and vtable 0x10eded78 (ctor f_105073c4, status adapter in the AccountsInfo path f_10291974 whose vfunc[2] f_10507b9c re-serializes the attrs into an <Accounts> element and forwards it to the delegate).",
+    "Resolved (aggregate attr impls): f_1050591c (pull adapter) and f_105056d4 (doc adapter) both require LastUpdateDevice non-NULL with strlen==24 and Version/NextSerialNum non-NULL, strlcpy LUD (0x19), strtol Version and NextSerialNum (setting the has-document flag only when NSN!=0), paranoid_atoui PreferredSerialNum and paranoid_atoi SchemaVersion with 'accountsfile'-domain logs 'Error reading PreferredSerialNum'/'Error reading schema version', pack VClockHousehold[0x24]+VClockCloud[0x1f] into a ClockPair via f_1056ed84, and strlcpy MuseHouseholdID (0x36). Neither performs a clock comparison - the sinks store clock strings verbatim.",
+    "Resolved (per-Account parse, separate from the aggregate serializer): on <Account> at depth==2 with ctx+0x10==0, sink vfunc[+0x10] (vfunc 4) receives {Type,SerialNum,Flags,Deleted,Id,VClockHousehold,VClockCloud} and the ctx per-element seen-flag bytes are reset; characterData at depth==3 appends via f_10c3a06c into nine fixed ctx buffers selected by a jump table at 0x10edec94: UN@+0x1d(0x82), PW@+0x121(0x42), MD@+0x9f(0x82), NN@+0x163(0x42), OADevID@+0x1a5(0x42), Token@+0x1e7(0x802), Key@+0x9e9(0x802), Hash@+0x11eb(0x1a), Tier@+0x1205(4); on </Account> the endElement handler f_105065cc validates each buffer length against its cap (any violation sets ctx+0x1c, reported by the parse driver) and calls sink vfunc[+0x14] (vfunc 5) to commit the account. Doc adapter impls: vfunc[4]=f_10505170 stores Type@+0x10c(strtol), SerialNum@+0x110, Flags@+0x114(paranoid_atoui, failure sets +0x65), Deleted@+0x64, Id@+0xfc(sonos_uuid_parse), VCH/VCC@+0xb4 ClockPair, marks +0x65 when Type missing or Flags&4 with no serial; vfunc[5]=f_10505474 requires UN<=0xff and appends a 0x250-byte record via f_10570688 (cap 0x21 entries, rejects Flags&5==5, Deleted routes to the +0x118 tombstone table). Pull adapter: vfunc[4]=f_10505e1c only services Type mapping to 7 - a special account consumed immediately via delegate->vfunc[+0x130] (or delegate->+0x11a4->vfunc[+0x20]) - and sets +0xb4 to end processing; its vfunc[3]/vfunc[5] are stubs f_10508bd8/f_10508be4 so the pull path never materializes account rows.",
+    "Resolved (clock comparison and LastUpdateDevice): the parse sinks do no numeric clock compare. Comparison happens downstream in mergeAccounts (f_10285e18, 'svcacct'/accountsmgr domains): per-cloud-record validation f_10285a94 emits 'Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]', entry matching f_1057082c/f_105709c0 guards guest upgrades ('modifyRecord failed to upgrade guest account (sn=%u)'), and record identity compare f_1056efb0 is exact equality of serial, type, flags, UN string, VCH(+0x1fc), VCC(+0x220) and uuid(+0x240) - divergence feeds the outcome counters serialized by f_10284b70 {conflicted,updated,added,deleted,invalidCloud,invalidCloudSerial,invalidCloudReason}. Doc level: f_102884ec ('replicating accounts file from %s') gates version/schema via f_10660e58, parses the pulled doc into the scalar adapter, copies Version/SchemaVersion/NextSerialNum/PreferredSerialNum/VCH[0x24]/VCC[0x1f] into manager+0xd4..+0x10b, strlcpy's the source name into manager+0xb8 (the LastUpdateDevice attribution string), fires manager->+0xc vfunc+0x14, then atomic rename() installs the new accounts.xml and manager->vfunc+0x34 notifies. LastUpdateDevice is therefore stored and reported as an opaque 24-byte identifier; no numeric tie-break on it exists in this path - conflict resolution is the per-account clock-string equality plus outcome counting documented above."
    ]
   },
   "audioin_groups": {
