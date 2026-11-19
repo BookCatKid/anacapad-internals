@@ -45954,7 +45954,7 @@
        "notes": null
       },
       "NewCoordinator": {
-       "description": "Target player UUID. Empty strings and the local UUID are rejected; the worker can also reject membership or home-theater capability, or fail to look up the remote control URI.",
+       "description": "Target player ID. The engine rejects an empty target or local player ID. Membership and primary checks choose between direct handoff and state copy; the rejoin route can also require home-theater support.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -45977,43 +45977,43 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fa378",
-         "notes": "Engine +0x58 receives InstanceID, NewCoordinator, RejoinGroup and ClearSource. Failed materialization sets 402 at 0x102fa3cc.",
-         "function": "0x102fa26c"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102de1f8",
-         "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
-         "function": "0x102de180"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102ddb1c",
-         "notes": "Rejects the local player UUID with 402. Continuation checks group membership and, on the home-theater path, remote HT audio support; rejection paths load 402 at 0x102ddc80 and 0x102ddffc.",
+         "address": "0x102ddbac",
+         "notes": "After excluding the local UUID, forwards target, RejoinGroup and ClearSource to f_102dd77c. The worker's membership lookup uses impl+0x57c, then separates joined-target and state-copy arms.",
          "function": "0x102ddae8"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102de104",
-         "notes": "Failure to look up the target's AVTransport control URI yields 802. The path at 0x102de160 propagates the remote request fault stored in r29, except for the wrapper's 803 normalization.",
-         "function": "0x102ddae8"
+         "address": "0x102dd7c0",
+         "notes": "When f_10392560 finds the target, tests the additional target/primary checks at 0x102dd88c through 0x102dd9d4, rejecting with 402 on the not-primary arm. If accepted, RejoinGroup zero calls standalone setup at 0x102dda7c; nonzero formats x-rincon:<target> and calls the local URI worker at 0x102dd968.",
+         "function": "0x102dd77c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dd828",
+         "notes": "On a false membership predicate, captures sleep, alarm and restart records, passes current URI and metadata to the topology state-copy helper, and propagates its nonzero result. When the copy succeeds, ClearSource true and nonempty impl+0x5dc cause a separate empty-URI call at 0x102ddac4; its return is ignored.",
+         "function": "0x102dd77c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102cf768",
+         "notes": "The URI worker can reach f_102ddbb0 for the home-theater route. It applies a separate target membership and HT capability check; one accepted arm prepares the source to stop, then recursively calls delegation with RejoinGroup=true and ClearSource=false at 0x102ddea0. Zero or 803 can continue into the AVTransport control URI lookup.",
+         "function": "0x102ceb40"
         }
        ],
        "notes": null,
        "buf_cap": 25,
        "todo": [
-        "Map the exact target membership decisions for normal versus home-theater or fallback delegation in f_102ddae8."
+        "Identify the live topology predicates behind f_104d82ac, f_1074720c and f_1075bf54."
        ]
       },
       "RejoinGroup": {
-       "description": "Flag forwarded verbatim to f_102ddae8: requests rejoining the group under the new coordinator.",
+       "description": "On the member arm, true sets x-rincon:<target> through the local URI engine, while false invokes standalone setup. The nonmember state-copy arm repurposes this register after selecting the branch.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -46036,21 +46036,39 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fa300",
-         "notes": "in-arg access site"
+         "address": "0x102ddbac",
+         "notes": "After excluding the local UUID, forwards target, RejoinGroup and ClearSource to f_102dd77c. The worker's membership lookup uses impl+0x57c, then separates joined-target and state-copy arms.",
+         "function": "0x102ddae8"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb342c",
-         "notes": "argument name string"
+         "address": "0x102dd7c0",
+         "notes": "When f_10392560 finds the target, tests the additional target/primary checks at 0x102dd88c through 0x102dd9d4, rejecting with 402 on the not-primary arm. If accepted, RejoinGroup zero calls standalone setup at 0x102dda7c; nonzero formats x-rincon:<target> and calls the local URI worker at 0x102dd968.",
+         "function": "0x102dd77c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ddad8",
+         "notes": "Successful URI rejoin stores the synthesized URI and sets internal result 803, which engine +0x58 converts to zero at 0x102de214. Nonzero URI results otherwise propagate.",
+         "function": "0x102dd77c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dd828",
+         "notes": "On a false membership predicate, captures sleep, alarm and restart records, passes current URI and metadata to the topology state-copy helper, and propagates its nonzero result. When the copy succeeds, ClearSource true and nonempty impl+0x5dc cause a separate empty-URI call at 0x102ddac4; its return is ignored.",
+         "function": "0x102dd77c"
         }
        ],
        "notes": null
       },
       "ClearSource": {
-       "description": "Flag forwarded verbatim to f_102ddae8: requests clearing the current source during delegation.",
+       "description": "Forwarded into the nonmember state-copy helper. Once that copy succeeds, true also requests a local empty-URI operation if the previous URI was nonempty.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -46073,15 +46091,25 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fa324",
-         "notes": "in-arg access site"
+         "address": "0x102ddbac",
+         "notes": "After excluding the local UUID, forwards target, RejoinGroup and ClearSource to f_102dd77c. The worker's membership lookup uses impl+0x57c, then separates joined-target and state-copy arms.",
+         "function": "0x102ddae8"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3438",
-         "notes": "argument name string"
+         "address": "0x102dd828",
+         "notes": "On a false membership predicate, captures sleep, alarm and restart records, passes current URI and metadata to the topology state-copy helper, and propagates its nonzero result. When the copy succeeds, ClearSource true and nonempty impl+0x5dc cause a separate empty-URI call at 0x102ddac4; its return is ignored.",
+         "function": "0x102dd77c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10397634",
+         "notes": "Topology state-copy helper sends the AVTransport RPC through f_106f1780, whose action string at 0x106f187c is BecomeGroupCoordinator. The RPC is distinct from the local URI worker or final SOAP response.",
+         "function": "0x1039734c"
         }
        ],
        "notes": null
@@ -46130,73 +46158,193 @@
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x58]",
+      "description": "Reads current player and coordinator topology, the target membership/primary predicates, and the current transport/auxiliary state used to prepare a handoff. The home-theater URI arm performs a separate HT target-support check.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa26c",
-        "notes": "member vfunc calls: ['r30 v[+0x58]']"
+        "address": "0x102ddbac",
+        "notes": "After excluding the local UUID, forwards target, RejoinGroup and ClearSource to f_102dd77c. The worker's membership lookup uses impl+0x57c, then separates joined-target and state-copy arms.",
+        "function": "0x102ddae8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dd7c0",
+        "notes": "When f_10392560 finds the target, tests the additional target/primary checks at 0x102dd88c through 0x102dd9d4, rejecting with 402 on the not-primary arm. If accepted, RejoinGroup zero calls standalone setup at 0x102dda7c; nonzero formats x-rincon:<target> and calls the local URI worker at 0x102dd968.",
+        "function": "0x102dd77c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dd828",
+        "notes": "On a false membership predicate, captures sleep, alarm and restart records, passes current URI and metadata to the topology state-copy helper, and propagates its nonzero result. When the copy succeeds, ClearSource true and nonempty impl+0x5dc cause a separate empty-URI call at 0x102ddac4; its return is ignored.",
+        "function": "0x102dd77c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102cf768",
+        "notes": "The URI worker can reach f_102ddbb0 for the home-theater route. It applies a separate target membership and HT capability check; one accepted arm prepares the source to stop, then recursively calls delegation with RejoinGroup=true and ClearSource=false at 0x102ddea0. Zero or 803 can continue into the AVTransport control URI lookup.",
+        "function": "0x102ceb40"
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x58].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Identify what exact topology metadata controls f_104d82ac, f_1074720c and f_1075bf54."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x58] (call-derived member-method semantics)",
+       "description": "Depending on membership and RejoinGroup, runs standalone setup, changes the local URI to the target coordinator, or sends coordinator state to the target. A successful copy can clear local source; one home-theater path also stops then retries and asks the new coordinator to set its URI.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102fa26c",
-         "notes": "delegate map ['r30 v[+0x58]']; notify-family calls []"
+         "address": "0x102dd7c0",
+         "notes": "When f_10392560 finds the target, tests the additional target/primary checks at 0x102dd88c through 0x102dd9d4, rejecting with 402 on the not-primary arm. If accepted, RejoinGroup zero calls standalone setup at 0x102dda7c; nonzero formats x-rincon:<target> and calls the local URI worker at 0x102dd968.",
+         "function": "0x102dd77c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ddad8",
+         "notes": "Successful URI rejoin stores the synthesized URI and sets internal result 803, which engine +0x58 converts to zero at 0x102de214. Nonzero URI results otherwise propagate.",
+         "function": "0x102dd77c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dd828",
+         "notes": "On a false membership predicate, captures sleep, alarm and restart records, passes current URI and metadata to the topology state-copy helper, and propagates its nonzero result. When the copy succeeds, ClearSource true and nonempty impl+0x5dc cause a separate empty-URI call at 0x102ddac4; its return is ignored.",
+         "function": "0x102dd77c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10397634",
+         "notes": "Topology state-copy helper sends the AVTransport RPC through f_106f1780, whose action string at 0x106f187c is BecomeGroupCoordinator. The RPC is distinct from the local URI worker or final SOAP response.",
+         "function": "0x1039734c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102cf768",
+         "notes": "The URI worker can reach f_102ddbb0 for the home-theater route. It applies a separate target membership and HT capability check; one accepted arm prepares the source to stop, then recursively calls delegation with RejoinGroup=true and ClearSource=false at 0x102ddea0. Zero or 803 can continue into the AVTransport control URI lookup.",
+         "function": "0x102ceb40"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ddf7c",
+         "notes": "Home-theater fallback sends SetAVTransportURI through f_106ee53c (action string 0x106ee5e8) after resolving the target's control URI. Lookup failure loads 802; a nonzero remote result becomes the retained return at 0x102de160.",
+         "function": "0x102ddbb0"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x58] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Trace the final sink-side effects of the source stop variants and the serialized queue and renderer payloads on the state-copy RPC."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The engine wrapper itself does not notify. The home-theater fallback can schedule LastChange for the mode change and conditional flag clears; the normal rejoin and clear operations use the common URI worker, and the non-rejoin branch uses standalone setup.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa26c",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102dd7c0",
+        "notes": "When f_10392560 finds the target, tests the additional target/primary checks at 0x102dd88c through 0x102dd9d4, rejecting with 402 on the not-primary arm. If accepted, RejoinGroup zero calls standalone setup at 0x102dda7c; nonzero formats x-rincon:<target> and calls the local URI worker at 0x102dd968.",
+        "function": "0x102dd77c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dd828",
+        "notes": "On a false membership predicate, captures sleep, alarm and restart records, passes current URI and metadata to the topology state-copy helper, and propagates its nonzero result. When the copy succeeds, ClearSource true and nonempty impl+0x5dc cause a separate empty-URI call at 0x102ddac4; its return is ignored.",
+        "function": "0x102dd77c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102cf768",
+        "notes": "The URI worker can reach f_102ddbb0 for the home-theater route. It applies a separate target membership and HT capability check; one accepted arm prepares the source to stop, then recursively calls delegation with RejoinGroup=true and ClearSource=false at 0x102ddea0. Zero or 803 can continue into the AVTransport control URI lookup.",
+        "function": "0x102ceb40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dddbc",
+        "notes": "Home-theater fallback can change impl+0x4654 to 1, mark +0x4658, schedule LastChange and dispatch SessionChange. The success tail schedules an update and calls f_102b4b48(impl,1); that helper can clear +0x6ed0 and +0x5a86 while setting their paired dirty bytes +0x6ed1 and +0x5a87.",
+        "function": "0x102ddbb0"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Match the +0x4658, +0x6ed1 and +0x5a87 flags to subscriber fields and identify the subset emitted by each URI and standalone arm."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x58]",
+      "description": "A successful direct rejoin stores the new coordinator URI and completes with internal 803. For state copy instead, a successful remote transfer may clear the local source. In the HT branch, a fallback stops the existing source then re-enters delegation with fixed flags.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa26c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x58]']"
+        "address": "0x102dd7c0",
+        "notes": "When f_10392560 finds the target, tests the additional target/primary checks at 0x102dd88c through 0x102dd9d4, rejecting with 402 on the not-primary arm. If accepted, RejoinGroup zero calls standalone setup at 0x102dda7c; nonzero formats x-rincon:<target> and calls the local URI worker at 0x102dd968.",
+        "function": "0x102dd77c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ddad8",
+        "notes": "Successful URI rejoin stores the synthesized URI and sets internal result 803, which engine +0x58 converts to zero at 0x102de214. Nonzero URI results otherwise propagate.",
+        "function": "0x102dd77c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dd828",
+        "notes": "On a false membership predicate, captures sleep, alarm and restart records, passes current URI and metadata to the topology state-copy helper, and propagates its nonzero result. When the copy succeeds, ClearSource true and nonempty impl+0x5dc cause a separate empty-URI call at 0x102ddac4; its return is ignored.",
+        "function": "0x102dd77c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102cf768",
+        "notes": "The URI worker can reach f_102ddbb0 for the home-theater route. It applies a separate target membership and HT capability check; one accepted arm prepares the source to stop, then recursively calls delegation with RejoinGroup=true and ClearSource=false at 0x102ddea0. Zero or 803 can continue into the AVTransport control URI lookup.",
+        "function": "0x102ceb40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dddbc",
+        "notes": "Home-theater fallback can change impl+0x4654 to 1, mark +0x4658, schedule LastChange and dispatch SessionChange. The success tail schedules an update and calls f_102b4b48(impl,1); that helper can clear +0x6ed0 and +0x5a86 while setting their paired dirty bytes +0x6ed1 and +0x5a87.",
+        "function": "0x102ddbb0"
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x58].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Document the resulting queue and streamer modes from f_102d4e80 and from per-scheme URI outcomes."
       ]
      },
      "return_behavior": {
-      "description": "Returns 402 for the described request and target checks, or 718 for invalid ID. The worker can return 802 for missing AVTransport URI; other nonzero worker results pass through except 803, which becomes success.",
+      "description": "Returns 402 for the request or topology checks, 718 for invalid ID, or an unmodified state-copy or URI error except for the engine's normalization of 803 to zero. The HT retry can return 802 when control URI lookup fails.",
       "evidence": [
        {
         "type": "firmware",
@@ -46229,10 +46377,50 @@
         "address": "0x102de104",
         "notes": "Failure to look up the target's AVTransport control URI yields 802. The path at 0x102de160 propagates the remote request fault stored in r29, except for the wrapper's 803 normalization.",
         "function": "0x102ddae8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dd7c0",
+        "notes": "When f_10392560 finds the target, tests the additional target/primary checks at 0x102dd88c through 0x102dd9d4, rejecting with 402 on the not-primary arm. If accepted, RejoinGroup zero calls standalone setup at 0x102dda7c; nonzero formats x-rincon:<target> and calls the local URI worker at 0x102dd968.",
+        "function": "0x102dd77c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ddad8",
+        "notes": "Successful URI rejoin stores the synthesized URI and sets internal result 803, which engine +0x58 converts to zero at 0x102de214. Nonzero URI results otherwise propagate.",
+        "function": "0x102dd77c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10397634",
+        "notes": "Topology state-copy helper sends the AVTransport RPC through f_106f1780, whose action string at 0x106f187c is BecomeGroupCoordinator. The RPC is distinct from the local URI worker or final SOAP response.",
+        "function": "0x1039734c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102cf768",
+        "notes": "The URI worker can reach f_102ddbb0 for the home-theater route. It applies a separate target membership and HT capability check; one accepted arm prepares the source to stop, then recursively calls delegation with RejoinGroup=true and ClearSource=false at 0x102ddea0. Zero or 803 can continue into the AVTransport control URI lookup.",
+        "function": "0x102ceb40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ddf7c",
+        "notes": "Home-theater fallback sends SetAVTransportURI through f_106ee53c (action string 0x106ee5e8) after resolving the target's control URI. Lookup failure loads 802; a nonzero remote result becomes the retained return at 0x102de160.",
+        "function": "0x102ddbb0"
        }
       ],
       "todo": [
-       "Identify the exact downstream worker and remote action status domain and classify all fallback results."
+       "Bound the remote BecomeGroupCoordinator and SetAVTransportURI error domains separately from local transport errors."
       ]
      },
      "fault_sites": [
@@ -46342,27 +46530,43 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x58)",
-       "meaning": "Worker and remote request faults can propagate. Failed remote control URI lookup returns 802; an engine worker result of 803 is mapped to zero.",
+       "meaning": "Can pass through state-copy, URI worker or remote request faults. URI rejoin success produces internal 803, normalized by engine +0x58. The HT fallback loads 802 when it cannot find the target control URI.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "Worker and remote request faults can propagate. Failed remote control URI lookup returns 802; an engine worker result of 803 is mapped to zero.",
+         "description": "Can pass through state-copy, URI worker or remote request faults. URI rejoin success produces internal 803, normalized by engine +0x58. The HT fallback loads 802 when it cannot find the target control URI.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102de1f8",
-           "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
-           "function": "0x102de180"
+           "address": "0x102ddad8",
+           "notes": "Successful URI rejoin stores the synthesized URI and sets internal result 803, which engine +0x58 converts to zero at 0x102de214. Nonzero URI results otherwise propagate.",
+           "function": "0x102dd77c"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102de104",
-           "notes": "Failure to look up the target's AVTransport control URI yields 802. The path at 0x102de160 propagates the remote request fault stored in r29, except for the wrapper's 803 normalization.",
-           "function": "0x102ddae8"
+           "address": "0x10397634",
+           "notes": "Topology state-copy helper sends the AVTransport RPC through f_106f1780, whose action string at 0x106f187c is BecomeGroupCoordinator. The RPC is distinct from the local URI worker or final SOAP response.",
+           "function": "0x1039734c"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102cf768",
+           "notes": "The URI worker can reach f_102ddbb0 for the home-theater route. It applies a separate target membership and HT capability check; one accepted arm prepares the source to stop, then recursively calls delegation with RejoinGroup=true and ClearSource=false at 0x102ddea0. Zero or 803 can continue into the AVTransport control URI lookup.",
+           "function": "0x102ceb40"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102ddf7c",
+           "notes": "Home-theater fallback sends SetAVTransportURI through f_106ee53c (action string 0x106ee5e8) after resolving the target's control URI. Lookup failure loads 802; a nonzero remote result becomes the retained return at 0x102de160.",
+           "function": "0x102ddbb0"
           }
          ]
         }
@@ -46372,17 +46576,33 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102de1f8",
-         "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
-         "function": "0x102de180"
+         "address": "0x102ddad8",
+         "notes": "Successful URI rejoin stores the synthesized URI and sets internal result 803, which engine +0x58 converts to zero at 0x102de214. Nonzero URI results otherwise propagate.",
+         "function": "0x102dd77c"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102de104",
-         "notes": "Failure to look up the target's AVTransport control URI yields 802. The path at 0x102de160 propagates the remote request fault stored in r29, except for the wrapper's 803 normalization.",
-         "function": "0x102ddae8"
+         "address": "0x10397634",
+         "notes": "Topology state-copy helper sends the AVTransport RPC through f_106f1780, whose action string at 0x106f187c is BecomeGroupCoordinator. The RPC is distinct from the local URI worker or final SOAP response.",
+         "function": "0x1039734c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102cf768",
+         "notes": "The URI worker can reach f_102ddbb0 for the home-theater route. It applies a separate target membership and HT capability check; one accepted arm prepares the source to stop, then recursively calls delegation with RejoinGroup=true and ClearSource=false at 0x102ddea0. Zero or 803 can continue into the AVTransport control URI lookup.",
+         "function": "0x102ceb40"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ddf7c",
+         "notes": "Home-theater fallback sends SetAVTransportURI through f_106ee53c (action string 0x106ee5e8) after resolving the target's control URI. Lookup failure loads 802; a nonzero remote result becomes the retained return at 0x102de160.",
+         "function": "0x102ddbb0"
         }
        ],
        "unresolved": {
@@ -46442,7 +46662,7 @@
         402
        ],
        "todo": [
-        "Enumerate remote fault codes from the delegated actions and conditions that retry or suppress them."
+        "Bound the remote BecomeGroupCoordinator and SetAVTransportURI error domains separately from local transport errors."
        ]
       }
      ],
@@ -46512,7 +46732,7 @@
       }
      },
      "todo": [
-      "Trace RejoinGroup and ClearSource across the seamless and stop-and-retry paths, including exact remote calls, 803 production, and local notification fields."
+      "Trace the target topology predicates and the unbounded local URI and outgoing SOAP error domains; finish LastChange attribution for the URI, standalone and home-theater branches."
      ]
     },
     "EndDirectControlSession": {
