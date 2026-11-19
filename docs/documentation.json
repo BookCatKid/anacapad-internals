@@ -40884,7 +40884,7 @@
        ]
       },
       "CurrentURI": {
-       "description": "Supplies the incoming coordinator URI. This action accepts the line-in prefix and length predicate or the VLI parser, not an arbitrary playable AVTransportURI. On success the original text is written to the engine URI at +0x5dc (0x102dee08). A line-in URI uses a source identifier from the transport snapshot when present, or from the URI otherwise.",
+       "description": "Supplies the incoming coordinator URI. This action accepts the line-in prefix and length predicate or the VLI parser, not an arbitrary playable AVTransportURI. On success the original text is written to the engine URI at +0x5dc (0x102dee08). For line-in, the lookup/start path runs only when the transport snapshot includes a source identifier. When that field is empty, the worker copies the URI identifier without starting a remote source at this step.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -40947,7 +40947,7 @@
          "build": "86.10-80260",
          "address": "0x102def24",
          "function": "0x102de740",
-         "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+         "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 repeats f_10292f78's URI predicate and copies 24 bytes at URI+0x10, then adds NUL. Its 402 exit at 0x102df0cc does not independently reject a stable URI that passed the earlier identical predicate. The branch at 0x102def34 tests snapshot+0x1c, not the output buffer, so the URI-only fallback does not start a remote source."
         },
         {
          "type": "firmware",
@@ -40956,13 +40956,21 @@
          "address": "0x102def60",
          "function": "0x102de740",
          "notes": "With a VLI URI, the non-clone case first tests f_103917b4 for the active source type and source identifier; a match reuses its local snapshot and bypasses incoming VLI state parsing and source activation. The clone case and non-matches require f_106a715c to parse CurrentVLIState. Failure returns 402 at 0x102df05c, as does an unsupported snapshot type or a failed f_106a924c source install after temporarily enabling the streamer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102def34",
+         "function": "0x102de740",
+         "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 repeats f_10292f78's URI predicate and copies 24 bytes at URI+0x10, then adds NUL. Its 402 exit at 0x102df0cc does not independently reject a stable URI that passed the earlier identical predicate. The branch at 0x102def34 tests snapshot+0x1c, not the output buffer, so the URI-only fallback does not start a remote source."
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": 1025
       },
       "CurrentURIMetaData": {
-       "description": "DIDL-Lite metadata for CurrentURI, carried into the new coordinator for track-info continuity across the handoff",
+       "description": "Required metadata text accompanying CurrentURI. The promotion worker stores the materialized text with the current URI; it does not require valid DIDL-Lite to do so. A successful import may also save the text in the restore descriptor, depending on the restored state and URI.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -40972,14 +40980,14 @@
         "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
-       "format": "utf-8 text (large blob arg via req slot)",
+       "format": "Text, copied without a DIDL-Lite parse in the adapter",
        "unit": "n/a",
-       "accepted_values": "AVTransportURIMetaData-domain value",
-       "range": "destination buffer: 4097 bytes including space for NUL",
-       "special_values": "none identified",
+       "accepted_values": "Text; the required field may be empty",
+       "range": "At most 4096 bytes retained, plus NUL",
+       "special_values": "Empty text is stored as empty metadata",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "Exact-name materialization into a type 7 buffer; overlong text is truncated rather than rejected by the adapter.",
        "evidence": [
         {
          "type": "firmware",
@@ -40992,7 +41000,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102f9d40",
-         "notes": "Looks up CurrentURIMetaData and installs a type 7 caller-buffer descriptor (4097 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "notes": "Looks up CurrentURIMetaData by exact name and installs a type 7 caller-buffer descriptor with capacity 4097.",
          "function": "0x102f9c00"
         },
         {
@@ -41010,13 +41018,53 @@
          "address": "0x102dee08",
          "notes": "Copies the input URI and metadata to engine +0x5dc/+0x9dd with f_102ed638, then marks +0x4251 and conditionally clears and marks a previously stored next URI. The worker sets mode 1 and marks +0x4658 on that import arm.",
          "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560720",
+         "function": "0x10560708",
+         "notes": "Type 7 copies up to its registered capacity without typed conversion. f_10560a58 terminates the copied text or overwrites the last byte when the buffer is full; the retained limit is capacity minus one."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ed670",
+         "function": "0x102ed638",
+         "notes": "The descriptor helper uses strlcpy for URI (1025), metadata (4097) and the third string (37). The metadata copy at descriptor+0x401 has no parse or normalization step."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dec8c",
+         "function": "0x102de740",
+         "notes": "The metadata buffer at sp+0x17f44 is also stored as selection record +0xc for f_106a924c. Only the incoming VLI snapshot activation branch uses that record, not the active-source reuse or line-in paths. The main descriptor copy rereads the buffer at 0x102dee08."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df078",
+         "function": "0x102de740",
+         "notes": "On a nonzero f_102b0974 result, copy current URI and metadata to restore fields +0x2e2a and +0x322b before signaling the event source. The restore predicate tests the restored state object and URI, not the metadata."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022bd14",
+         "function": "0x1022bb7c",
+         "notes": "Spotify control slot +0x10 (f_1022bfa8) receives the selection record built at 0x102dec78. On coordinator import record+4 points to the incoming snapshot. The provider reads it rather than parsing the metadata at record+0xc; metadata is read only on the no-snapshot selection arm at 0x1022be60. The snapshot arm reads snapshot+0xec, +0xf8, +0xfc, +0x100, +0x104, +0x10c, +0x110 and +0x114; the 64-bit copy from +0x100/+0x104 is in the 0x1022bc48 evlddx/0x1022bc54 evstddx pair. The backend call through Spotify object+0x3f4 slot +8 returns the selection result. Failure clears Spotify object flags +0x18c/+0x18d/+0x190/+0x191 and propagates its nonzero result to f_106a8b08, which clears the selected record and reports false. The AVTransport worker maps false to 402."
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "DIDL-Lite is the advertised metadata convention, not an adapter validation rule.",
        "buf_cap": 4097,
        "todo": [
-        "Established: the adapter asks for a 4097-byte destination and the accepted import copies metadata into engine +0x9dd",
-        "Trace whether any supported alternate source branch transforms or discards the input metadata."
+        "Established: the adapter retains up to 4096 bytes, the descriptor copy does not parse DIDL-Lite, and only incoming VLI activation forwards the metadata buffer to a provider before the copy.",
+        "Spotify does not read this pointer when the snapshot is present. Trace selection record +0xc in each of the other registered providers' slot +0x10 to determine whether it uses or modifies the text."
        ]
       },
       "SleepTimerState": {
@@ -41512,13 +41560,29 @@
          "address": "0x106a9108",
          "function": "0x106a90c4",
          "notes": "The support query looks for the decoded type in nine 12-byte entries at streamer+0x2e8, requires a nonnull control pointer at entry+4 and asks its slot +0x20. If that returns zero the action faults; otherwise f_106a924c calls f_106a8b08, which either keeps a usable current source or selects the requested registration. An unmatched type or a nonzero source slot +0x10 result when installing the snapshot fails the install."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102debfc",
+         "function": "0x102de740",
+         "notes": "The support query passes the address of a byte at sp+87. Spotify's type-2 registration at 0x10219cf0 uses control vtable 0x10ea53a8 (installed at 0x1022d94c). Its slot +0x20 is thunk f_1022ab8c to f_1022ab6c, which writes 1 through that byte pointer and returns 1. This provider's support result is unconditional once registered; a successful install with a zero support byte takes the later f_102b0a48 branch at 0x102df3d8."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022bd14",
+         "function": "0x1022bb7c",
+         "notes": "Spotify control slot +0x10 (f_1022bfa8) receives the selection record built at 0x102dec78. On coordinator import record+4 points to the incoming snapshot. The provider reads it rather than parsing the metadata at record+0xc; metadata is read only on the no-snapshot selection arm at 0x1022be60. The snapshot arm reads snapshot+0xec, +0xf8, +0xfc, +0x100, +0x104, +0x10c, +0x110 and +0x114; the 64-bit copy from +0x100/+0x104 is in the 0x1022bc48 evlddx/0x1022bc54 evstddx pair. The backend call through Spotify object+0x3f4 slot +8 returns the selection result. Failure clears Spotify object flags +0x18c/+0x18d/+0x190/+0x191 and propagates its nonzero result to f_106a8b08, which clears the selected record and reports false. The AVTransport worker maps false to 402."
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": 85,
        "todo": [
         "Established: the active non-clone source match skips decoding; otherwise invalid length, insufficient conversions, invalid type, unsupported source or install failure returns 402. The binary binds all conversions to offsets.",
-        "Identify the meaning and installation site of each numeric snapshot field in the concrete streamer controls reached via f_106a90c4 and f_106a8b08."
+        "Identify each numeric field at its producer or final consumer. The Spotify type-2 provider's reads are now bound to the snapshot; trace the callback at Spotify object+0x3f4 and bind reads in the other registered providers."
        ]
       }
      },
@@ -41897,7 +41961,7 @@
         "build": "86.10-80260",
         "address": "0x102def24",
         "function": "0x102de740",
-        "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+        "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 repeats f_10292f78's URI predicate and copies 24 bytes at URI+0x10, then adds NUL. Its 402 exit at 0x102df0cc does not independently reject a stable URI that passed the earlier identical predicate. The branch at 0x102def34 tests snapshot+0x1c, not the output buffer, so the URI-only fallback does not start a remote source."
        },
        {
         "type": "firmware",
@@ -41930,11 +41994,35 @@
         "address": "0x10762c30",
         "function": "0x10762c30",
         "notes": "The topology device data contains the same network source at +0x2744 (constructor call at 0x107627e4). f_102ee9d4 needs a valid device record (f_10765a00) and then calls f_10762c30. Its vtable[-0xc] adjustments select the source and destination secondary tables at 0x10f09770. f_10762a24 checks source slot +0x3c, f_106faf24, which requires byte +4 and at least one of bytes +0x1a5 and +0x265 (offsets relative to the adjusted pointer). Only then does it copy fields through the destination slots."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102debfc",
+        "function": "0x102de740",
+        "notes": "The support query passes the address of a byte at sp+87. Spotify's type-2 registration at 0x10219cf0 uses control vtable 0x10ea53a8 (installed at 0x1022d94c). Its slot +0x20 is thunk f_1022ab8c to f_1022ab6c, which writes 1 through that byte pointer and returns 1. This provider's support result is unconditional once registered; a successful install with a zero support byte takes the later f_102b0a48 branch at 0x102df3d8."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022bd14",
+        "function": "0x1022bb7c",
+        "notes": "Spotify control slot +0x10 (f_1022bfa8) receives the selection record built at 0x102dec78. On coordinator import record+4 points to the incoming snapshot. The provider reads it rather than parsing the metadata at record+0xc; metadata is read only on the no-snapshot selection arm at 0x1022be60. The snapshot arm reads snapshot+0xec, +0xf8, +0xfc, +0x100, +0x104, +0x10c, +0x110 and +0x114; the 64-bit copy from +0x100/+0x104 is in the 0x1022bc48 evlddx/0x1022bc54 evstddx pair. The backend call through Spotify object+0x3f4 slot +8 returns the selection result. Failure clears Spotify object flags +0x18c/+0x18d/+0x190/+0x191 and propagates its nonzero result to f_106a8b08, which clears the selected record and reports false. The AVTransport worker maps false to 402."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106ff354",
+        "function": "0x106ff03c",
+        "notes": "f_106eb284 sets ObjectID from f_1029337c (URI+0x28), CoordinatorID from impl+0x3dc's pointer, and the serialized CurrentTransportSettings. It passes the f_106ff03c result through. The synchronous request helper starts with 1001 and retains it when endpoint preparation f_106fdf60 fails or reply processing is disabled (request byte +0xa45 clear). With reply processing enabled it translates a nonzero f_1053a060 result through f_10c3b8ac. Otherwise it reads the reply result through f_10562e6c, except that HTTP 401 maps to 1037 when request byte +0xa47 is set. Any nonzero final result becomes fault 402 at 0x102df1b0."
        }
       ],
       "todo": [
        "Established: The wrapper commits on zero and reports a nonzero engine result unchanged. The active-secondary override adds 1023 if the product code does not bypass it; nonzero base engine mode without the clone header returns 800 before parsing; a parsed nonzero InstanceID returns 718. The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
-       "Trace the concrete VLI source registrations' support and install slots and the network StartTransmissionToGroup helper's nonzero exits to enumerate the remaining downstream conditions behind 402."
+       "Identify the remaining VLI provider registrations and trace their support and onSelect slots, including the backend bound at Spotify object+0x3f4. For the line-in call, bind the request option bytes in f_106fe328 and trace the status and SOAP reply parser populating the fields read by f_10562e6c."
       ]
      },
      "fault_sites": [
@@ -42008,7 +42096,7 @@
            "build": "86.10-80260",
            "address": "0x102def24",
            "function": "0x102de740",
-           "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+           "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 repeats f_10292f78's URI predicate and copies 24 bytes at URI+0x10, then adds NUL. Its 402 exit at 0x102df0cc does not independently reject a stable URI that passed the earlier identical predicate. The branch at 0x102def34 tests snapshot+0x1c, not the output buffer, so the URI-only fallback does not start a remote source."
           },
           {
            "type": "firmware",
@@ -42041,6 +42129,30 @@
            "address": "0x10762c30",
            "function": "0x10762c30",
            "notes": "The topology device data contains the same network source at +0x2744 (constructor call at 0x107627e4). f_102ee9d4 needs a valid device record (f_10765a00) and then calls f_10762c30. Its vtable[-0xc] adjustments select the source and destination secondary tables at 0x10f09770. f_10762a24 checks source slot +0x3c, f_106faf24, which requires byte +4 and at least one of bytes +0x1a5 and +0x265 (offsets relative to the adjusted pointer). Only then does it copy fields through the destination slots."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102debfc",
+           "function": "0x102de740",
+           "notes": "The support query passes the address of a byte at sp+87. Spotify's type-2 registration at 0x10219cf0 uses control vtable 0x10ea53a8 (installed at 0x1022d94c). Its slot +0x20 is thunk f_1022ab8c to f_1022ab6c, which writes 1 through that byte pointer and returns 1. This provider's support result is unconditional once registered; a successful install with a zero support byte takes the later f_102b0a48 branch at 0x102df3d8."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1022bd14",
+           "function": "0x1022bb7c",
+           "notes": "Spotify control slot +0x10 (f_1022bfa8) receives the selection record built at 0x102dec78. On coordinator import record+4 points to the incoming snapshot. The provider reads it rather than parsing the metadata at record+0xc; metadata is read only on the no-snapshot selection arm at 0x1022be60. The snapshot arm reads snapshot+0xec, +0xf8, +0xfc, +0x100, +0x104, +0x10c, +0x110 and +0x114; the 64-bit copy from +0x100/+0x104 is in the 0x1022bc48 evlddx/0x1022bc54 evstddx pair. The backend call through Spotify object+0x3f4 slot +8 returns the selection result. Failure clears Spotify object flags +0x18c/+0x18d/+0x190/+0x191 and propagates its nonzero result to f_106a8b08, which clears the selected record and reports false. The AVTransport worker maps false to 402."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106ff354",
+           "function": "0x106ff03c",
+           "notes": "f_106eb284 sets ObjectID from f_1029337c (URI+0x28), CoordinatorID from impl+0x3dc's pointer, and the serialized CurrentTransportSettings. It passes the f_106ff03c result through. The synchronous request helper starts with 1001 and retains it when endpoint preparation f_106fdf60 fails or reply processing is disabled (request byte +0xa45 clear). With reply processing enabled it translates a nonzero f_1053a060 result through f_10c3b8ac. Otherwise it reads the reply result through f_10562e6c, except that HTTP 401 maps to 1037 when request byte +0xa47 is set. Any nonzero final result becomes fault 402 at 0x102df1b0."
           }
          ]
         }
@@ -42098,7 +42210,7 @@
          "build": "86.10-80260",
          "address": "0x102def24",
          "function": "0x102de740",
-         "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+         "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 repeats f_10292f78's URI predicate and copies 24 bytes at URI+0x10, then adds NUL. Its 402 exit at 0x102df0cc does not independently reject a stable URI that passed the earlier identical predicate. The branch at 0x102def34 tests snapshot+0x1c, not the output buffer, so the URI-only fallback does not start a remote source."
         },
         {
          "type": "firmware",
@@ -42131,6 +42243,30 @@
          "address": "0x10762c30",
          "function": "0x10762c30",
          "notes": "The topology device data contains the same network source at +0x2744 (constructor call at 0x107627e4). f_102ee9d4 needs a valid device record (f_10765a00) and then calls f_10762c30. Its vtable[-0xc] adjustments select the source and destination secondary tables at 0x10f09770. f_10762a24 checks source slot +0x3c, f_106faf24, which requires byte +4 and at least one of bytes +0x1a5 and +0x265 (offsets relative to the adjusted pointer). Only then does it copy fields through the destination slots."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102debfc",
+         "function": "0x102de740",
+         "notes": "The support query passes the address of a byte at sp+87. Spotify's type-2 registration at 0x10219cf0 uses control vtable 0x10ea53a8 (installed at 0x1022d94c). Its slot +0x20 is thunk f_1022ab8c to f_1022ab6c, which writes 1 through that byte pointer and returns 1. This provider's support result is unconditional once registered; a successful install with a zero support byte takes the later f_102b0a48 branch at 0x102df3d8."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022bd14",
+         "function": "0x1022bb7c",
+         "notes": "Spotify control slot +0x10 (f_1022bfa8) receives the selection record built at 0x102dec78. On coordinator import record+4 points to the incoming snapshot. The provider reads it rather than parsing the metadata at record+0xc; metadata is read only on the no-snapshot selection arm at 0x1022be60. The snapshot arm reads snapshot+0xec, +0xf8, +0xfc, +0x100, +0x104, +0x10c, +0x110 and +0x114; the 64-bit copy from +0x100/+0x104 is in the 0x1022bc48 evlddx/0x1022bc54 evstddx pair. The backend call through Spotify object+0x3f4 slot +8 returns the selection result. Failure clears Spotify object flags +0x18c/+0x18d/+0x190/+0x191 and propagates its nonzero result to f_106a8b08, which clears the selected record and reports false. The AVTransport worker maps false to 402."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106ff354",
+         "function": "0x106ff03c",
+         "notes": "f_106eb284 sets ObjectID from f_1029337c (URI+0x28), CoordinatorID from impl+0x3dc's pointer, and the serialized CurrentTransportSettings. It passes the f_106ff03c result through. The synchronous request helper starts with 1001 and retains it when endpoint preparation f_106fdf60 fails or reply processing is disabled (request byte +0xa45 clear). With reply processing enabled it translates a nonzero f_1053a060 result through f_10c3b8ac. Otherwise it reads the reply result through f_10562e6c, except that HTTP 401 maps to 1037 when request byte +0xa47 is set. Any nonzero final result becomes fault 402 at 0x102df1b0."
         }
        ],
        "domain_note": "The group-aware override adds 1023. The live adapter +8 returns zero or 402. The base worker's nonzero results are 402, 718 and 800; downstream source results do not pass through.",
@@ -42142,7 +42278,7 @@
        ],
        "todo": [
         "Established: The wrapper commits on zero and reports a nonzero engine result unchanged. The active-secondary override adds 1023 if the product code does not bypass it; nonzero base engine mode without the clone header returns 800 before parsing; a parsed nonzero InstanceID returns 718. The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
-        "Trace the concrete VLI source registrations' support and install slots and the network StartTransmissionToGroup helper's nonzero exits to enumerate the remaining downstream conditions behind 402."
+        "Identify the remaining VLI provider registrations and trace their support and onSelect slots, including the backend bound at Spotify object+0x3f4. For the line-in call, bind the request option bytes in f_106fe328 and trace the status and SOAP reply parser populating the fields read by f_10562e6c."
        ]
       },
       {
@@ -42234,7 +42370,7 @@
            "build": "86.10-80260",
            "address": "0x102def24",
            "function": "0x102de740",
-           "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+           "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 repeats f_10292f78's URI predicate and copies 24 bytes at URI+0x10, then adds NUL. Its 402 exit at 0x102df0cc does not independently reject a stable URI that passed the earlier identical predicate. The branch at 0x102def34 tests snapshot+0x1c, not the output buffer, so the URI-only fallback does not start a remote source."
           },
           {
            "type": "firmware",
@@ -42267,6 +42403,30 @@
            "address": "0x10762c30",
            "function": "0x10762c30",
            "notes": "The topology device data contains the same network source at +0x2744 (constructor call at 0x107627e4). f_102ee9d4 needs a valid device record (f_10765a00) and then calls f_10762c30. Its vtable[-0xc] adjustments select the source and destination secondary tables at 0x10f09770. f_10762a24 checks source slot +0x3c, f_106faf24, which requires byte +4 and at least one of bytes +0x1a5 and +0x265 (offsets relative to the adjusted pointer). Only then does it copy fields through the destination slots."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102debfc",
+           "function": "0x102de740",
+           "notes": "The support query passes the address of a byte at sp+87. Spotify's type-2 registration at 0x10219cf0 uses control vtable 0x10ea53a8 (installed at 0x1022d94c). Its slot +0x20 is thunk f_1022ab8c to f_1022ab6c, which writes 1 through that byte pointer and returns 1. This provider's support result is unconditional once registered; a successful install with a zero support byte takes the later f_102b0a48 branch at 0x102df3d8."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1022bd14",
+           "function": "0x1022bb7c",
+           "notes": "Spotify control slot +0x10 (f_1022bfa8) receives the selection record built at 0x102dec78. On coordinator import record+4 points to the incoming snapshot. The provider reads it rather than parsing the metadata at record+0xc; metadata is read only on the no-snapshot selection arm at 0x1022be60. The snapshot arm reads snapshot+0xec, +0xf8, +0xfc, +0x100, +0x104, +0x10c, +0x110 and +0x114; the 64-bit copy from +0x100/+0x104 is in the 0x1022bc48 evlddx/0x1022bc54 evstddx pair. The backend call through Spotify object+0x3f4 slot +8 returns the selection result. Failure clears Spotify object flags +0x18c/+0x18d/+0x190/+0x191 and propagates its nonzero result to f_106a8b08, which clears the selected record and reports false. The AVTransport worker maps false to 402."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106ff354",
+           "function": "0x106ff03c",
+           "notes": "f_106eb284 sets ObjectID from f_1029337c (URI+0x28), CoordinatorID from impl+0x3dc's pointer, and the serialized CurrentTransportSettings. It passes the f_106ff03c result through. The synchronous request helper starts with 1001 and retains it when endpoint preparation f_106fdf60 fails or reply processing is disabled (request byte +0xa45 clear). With reply processing enabled it translates a nonzero f_1053a060 result through f_10c3b8ac. Otherwise it reads the reply result through f_10562e6c, except that HTTP 401 maps to 1037 when request byte +0xa47 is set. Any nonzero final result becomes fault 402 at 0x102df1b0."
           }
          ]
         }
@@ -42350,7 +42510,7 @@
          "build": "86.10-80260",
          "address": "0x102def24",
          "function": "0x102de740",
-         "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 uses the same f_10292f78 predicate and copies 24 bytes starting at URI +0x10 followed by NUL. The 402 fallback at 0x102df0cc exists in the code but is not a separate rejection for a stable URI that passed the earlier identical check. With a UUID in the snapshot, the worker enters the start-transmission path; without one, it skips that path."
+         "notes": "When VLI parsing fails but the URI is line-in, f_1066e538 copies the snapshot source UUID if snapshot+0x1c is nonzero. Otherwise f_10293270 repeats f_10292f78's URI predicate and copies 24 bytes at URI+0x10, then adds NUL. Its 402 exit at 0x102df0cc does not independently reject a stable URI that passed the earlier identical predicate. The branch at 0x102def34 tests snapshot+0x1c, not the output buffer, so the URI-only fallback does not start a remote source."
         },
         {
          "type": "firmware",
@@ -42391,11 +42551,35 @@
          "address": "0x10762c30",
          "function": "0x10762c30",
          "notes": "The topology device data contains the same network source at +0x2744 (constructor call at 0x107627e4). f_102ee9d4 needs a valid device record (f_10765a00) and then calls f_10762c30. Its vtable[-0xc] adjustments select the source and destination secondary tables at 0x10f09770. f_10762a24 checks source slot +0x3c, f_106faf24, which requires byte +4 and at least one of bytes +0x1a5 and +0x265 (offsets relative to the adjusted pointer). Only then does it copy fields through the destination slots."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102debfc",
+         "function": "0x102de740",
+         "notes": "The support query passes the address of a byte at sp+87. Spotify's type-2 registration at 0x10219cf0 uses control vtable 0x10ea53a8 (installed at 0x1022d94c). Its slot +0x20 is thunk f_1022ab8c to f_1022ab6c, which writes 1 through that byte pointer and returns 1. This provider's support result is unconditional once registered; a successful install with a zero support byte takes the later f_102b0a48 branch at 0x102df3d8."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022bd14",
+         "function": "0x1022bb7c",
+         "notes": "Spotify control slot +0x10 (f_1022bfa8) receives the selection record built at 0x102dec78. On coordinator import record+4 points to the incoming snapshot. The provider reads it rather than parsing the metadata at record+0xc; metadata is read only on the no-snapshot selection arm at 0x1022be60. The snapshot arm reads snapshot+0xec, +0xf8, +0xfc, +0x100, +0x104, +0x10c, +0x110 and +0x114; the 64-bit copy from +0x100/+0x104 is in the 0x1022bc48 evlddx/0x1022bc54 evstddx pair. The backend call through Spotify object+0x3f4 slot +8 returns the selection result. Failure clears Spotify object flags +0x18c/+0x18d/+0x190/+0x191 and propagates its nonzero result to f_106a8b08, which clears the selected record and reports false. The AVTransport worker maps false to 402."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106ff354",
+         "function": "0x106ff03c",
+         "notes": "f_106eb284 sets ObjectID from f_1029337c (URI+0x28), CoordinatorID from impl+0x3dc's pointer, and the serialized CurrentTransportSettings. It passes the f_106ff03c result through. The synchronous request helper starts with 1001 and retains it when endpoint preparation f_106fdf60 fails or reply processing is disabled (request byte +0xa45 clear). With reply processing enabled it translates a nonzero f_1053a060 result through f_10c3b8ac. Otherwise it reads the reply result through f_10562e6c, except that HTTP 401 maps to 1037 when request byte +0xa47 is set. Any nonzero final result becomes fault 402 at 0x102df1b0."
         }
        ],
        "todo": [
         "Established: The adapter returns 402 for missing required inputs and the worker returns 402 for invalid OtherMembers or a URI satisfying neither the line-in nor VLI predicate. For an incoming VLI snapshot, decode, provider support and source-install failures also return 402. For line-in with a source UUID in TransportSettings, an unavailable network source or a nonzero StartTransmissionToGroup result returns 402.",
-        "Trace the concrete VLI source registrations' support and install slots and the network StartTransmissionToGroup helper's nonzero exits to enumerate the remaining downstream conditions behind 402."
+        "Identify the remaining VLI provider registrations and trace their support and onSelect slots, including the backend bound at Spotify object+0x3f4. For the line-in call, bind the request option bytes in f_106fe328 and trace the status and SOAP reply parser populating the fields read by f_10562e6c."
        ]
       }
      ],
