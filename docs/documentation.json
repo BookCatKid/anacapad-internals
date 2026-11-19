@@ -185159,12 +185159,88 @@
      "build": "86.10-80260",
      "address": "0x1028c34c",
      "notes": "Second account-manager direct caller; nonempty string gates0x1028c314..0x1028c338 and false branch0x1028c354."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10732564",
+     "function": "0x10732454",
+     "notes": "OAuthDeviceID parsed to sp+0x88 tag-7 buffer capacity0x42; explicit strlen>64 faults402."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104b0544",
+     "function": "0x104b052c",
+     "notes": "Delegate carries OAuthDeviceID as r7 into token route f_1028b2e4 and code route f_1028b440; both forward it to f_1028a224 r8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028c344",
+     "function": "0x1028c08c",
+     "notes": "UID output word zeroed before helper call; r3=OAuthDeviceID (r9 of worker); false path logs diagnostic, formats Token with UID0 and returns402 via0x1028c2b8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028a708",
+     "function": "0x1028a224",
+     "notes": "Record constructor f_1056fa28 receives worker r5 (=OAuthDeviceID) as initializer r8; f_1056f5cc stores r8 at record+0x18c with capacity0x41."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1056f5cc",
+     "notes": "Sole +0x18c writer family: initializer copies r8 arg into65-byte field; constructors f_1056f738/f_1056f854/f_1056f9f0/f_1056fa28/f_1056fb1c/f_1056fc20/f_1057045c/f_10570694 all funnel here."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10570b28",
+     "function": "0x105709c0",
+     "notes": "modifyRecord requires both stored and replacement records to pass f_1057007c; reads r29+0x18c afterward at0x10570b4c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1056ff2c",
+     "notes": "Local UID generator: ZZ0071 4-byte RNG XOR sonosClockGetTime word, low byte of random discarded via rotl8 mask, loops until nonzero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10570040",
+     "function": "0x1056ffb0",
+     "notes": "strtoul(text+33,&end,16) then *end==NUL required; output word written only on that acceptance."
     }
    ],
-   "todo": "Established: UID-helper pointer/output semantics,32-byte boundary, underscore suffix, end-pointer policy, three direct callers, account-add failure4001 independent of logging, generated Token/Key names and permissive consistency/extraction behavior are decoded. Remaining: bind public arguments and record+0x18c writers, trace the complete account-manager caller0x1028c34c and consistency-check effects/callers, audit indirect references and linked libc overflow/locale behavior, and characterize identifier generation and formatting boundaries.",
    "callers": "Direct branch census finds calls at0x1028a53c,0x1028c34c and0x10570104. The first is the account-add worker; the second is another account-manager path after two nonempty-string checks. The third is the consistency checker f_1057007c, which ignores the helper boolean and compares the output word anyway. Indirect references still require audit.",
    "credential_names": "f_1056fdec formats X_#Svc%u-%x-Token and f_1056fe24 formats X_#Svc%u-%x-Key through snprintf. Companion parser f_1056feb0 requires the exact first6 bytes X_#Svc and parses decimal text from byte6 with strtoul. Although it supplies an end pointer, it never inspects that pointer or errno and therefore does not independently require the later hyphen, UID, Token/Key suffix or any digit. Companion f_1056fe5c searches the first hyphen and parses hexadecimal text after it with no end-pointer validation. These are permissive extraction helpers, not enforcement of the generated format.",
-   "record_consistency": "f_1057007c returns true immediately for records not classified by f_1056fd48. Classified records require f_1056feb0(username at record+8) to equal record type+4. It then extracts the suffix UID from record+0x18c with f_1056ffb0 but ignores that helper result, extracts hexadecimal UID after the first username hyphen with f_1056fe5c, and returns their equality. A failed suffix parse leaves its output zero, so it can still compare equal to a username UID extraction yielding zero. Type and UID equality alone do not validate the full credential-name grammar."
+   "record_consistency": "f_1057007c returns true immediately for records not classified by f_1056fd48. Classified records require f_1056feb0(username at record+8) to equal record type+4. It then extracts the suffix UID from record+0x18c with f_1056ffb0 but ignores that helper result, extracts hexadecimal UID after the first username hyphen with f_1056fe5c, and returns their equality. A failed suffix parse leaves its output zero, so it can still compare equal to a username UID extraction yielding zero. Type and UID equality alone do not validate the full credential-name grammar.",
+   "public_argument_binding": "On the OAuth add path the extracted text is the public OAuthDeviceID argument, delivered as worker argument r8 of f_1028a224. The SystemProperties handler 0x10732454 parses OAuthDeviceID into a tag-7 buffer with capacity66; an explicit strlen above64 faults402, so the extractor sees at most64 bytes. Request parse site0x10732564 supplies sp+0x88, which the delegate carries as r7 into both f_1028b2e4 (token route) and f_1028b440 (code route); each forwards it to the same r8 position of f_1028a224. Consequently the effective wire contract is: a device identifier of32 or fewer bytes yields UID0 and is not examined further; a longer one must have underscore at byte32 and a fully consumed hexadecimal suffix, and may be at most64 request bytes, bounding the suffix to31 characters. On the ReplaceAccountX path the same helper receives OAuthDeviceID again: handler 0x107329ac parses it to sp+0x58 (capacity66), delegate f_104b0b04 forwards it as r9 to f_1028c08c, where it becomes the UID-helper input r3 at0x1028c344 and also the modifier's OAuth-device argument r10.",
+   "caller_f_1028c08c": "f_1028c08c is the complete ReplaceAccountX worker. It decodes AccountUDN (806 on failure) into a local record, stores decoded type r23, queries the service through account-manager vfunc +0x2c with type<<24, and requires byte sp+0x15c<=4 plus an indexed table value<=2 before reaching the UID path. It then demands nonempty AccountToken (r29) and nonempty OAuthDeviceID (r28); missing either, or a false UID-helper result, logs the shared 'can't extract account UID from %s' diagnostic, formats the Token credential name with UID0 anyway, and returns402 (0x192) rather than the AddOAuthAccountX path's4001. On success it formats X_#Svc%u-%x-Token with the extracted word, then calls modifier f_1028b760 with that generated name, NewAccountPassword, OAuthDeviceID, AccountToken and AccountKey. The simpler NewAccountID+NewAccountPassword branch skips UID extraction entirely: it zeroes the device/token/key arguments before the same modifier call. After a successful modify whose returned name equals NewAccountID it invokes f_104b16b4 and f_1028bdc0 for post-modify handling, and formats NewAccountUDN through f_1056f2ac.",
+   "consistency_effects": "Consistency checker f_1057007c has four callsites: 0x102865dc inside account-update worker f_102863a8 (failure selects806, the 'exceeded max deleted accounts' delete path nearby); 0x1028c750 inside record-scan worker f_1028c680 (counts inconsistent rows); 0x104cb860 inside trackplaymonitor-adjacent f_104cb228 (failure diverts before downstream vfunc calls, near a type!=254 gate); and 0x10570b08/0x10570b28 inside modifyRecord worker f_105709c0, which requires BOTH the stored record (r29) and the replacement (r30) to pass before proceeding with the guest-account upgrade, then reads record+0x18c as a string at0x10570b4c. Because the checker ignores the UID helper's boolean and compares the extracted words anyway, a record whose +0x18c UID text fails to extract still compares UID0 against the username-embedded UID; they are equal exactly when the username UID also extracts to0.",
+   "record_18c_field": "record+0x18c is a65-byte string field holding the caller-supplied OAuthDeviceID-style text (the same >32 format the helper reads). The only writers are the record-initializer family: f_1056f5cc stores its r8 argument there with f_10906304 capacity0x41; record constructors f_1056f738, f_1056f854, f_1056f9f0, f_1056fa28, f_1056fb1c, f_1056fc20, f_1057045c and f_10570694 all reach that initializer. In the OAuth add worker the f_1056fa28 call at0x1028a708 forwards worker argument r5 as initializer r8; on both token and code routes that argument is the same OAuthDeviceID text the UID helper reads, so the stored +0x18c preserves the UID-bearing device identifier (truncated to64 bytes). Whole-record copies such as f_1056f854 carry +0x18c forward verbatim while normalizing type aliases.",
+   "identifier_provenance": "Two UID provenances exist. For classified credential records the UID is caller-supplied: it is the hexadecimal word embedded after byte33 of the device-identifier text, extracted by this helper or by the first-hyphen hex reader f_1056fe5c. For unclassified records the UDN-to-UID path f_1071e120 falls back to local generator f_1056ff2c, which loops ZZ0071 four-byte random draws XORed with a sonosClockGetTime word until nonzero; the random word is rotated so its low byte is discarded before the XOR. There is no local derivation from account credentials, serials or hashes in this binary: generation means either suffix extraction or the RNG fallback. Generated credential names embed the resulting word as lowercase hex (%x) through snprintf in f_1056fdec/f_1056fe24, so formatting boundaries are: UID0 prints as '-0-', values use minimal lowercase hex with no padding, and names are truncated only by the caller's capacity (0x81 in the audited workers).",
+   "numeric_semantics": "The suffix parse uses the shipped libc strtoul base16, which skips leading locale whitespace, accepts +/- signs, accepts a 0x/0X prefix under base16, and returns ULONG_MAX with errno ERANGE on overflow. This helper never reads errno, so an oversized all-hex suffix silently yields0xFFFFFFFF; a sign or leading whitespace is consumed before the hex digits; and a bare '0x' is rejected only because no digit is consumed before the NUL. The end-pointer rule is the sole enforcement: the suffix must consume the entire remaining string, so any trailing non-hex byte fails while leaving the earlier zero output.",
+   "resolved_findings": [
+    "Resolved: the helper's complete direct-caller census is0x1028a53c (f_1028a224),0x1028c34c (f_1028c08c) and0x10570104 (f_1057007c); census plus full data-section scan finds no indirect reference, so this is the entire reachability set for this binary.",
+    "Resolved: the public UID text is OAuthDeviceID on both the add and replace paths, bounded at64 request bytes (capacity66 tag-7 buffer, >64 faults402).",
+    "Resolved: f_1028c08c's UID failure returns402 with a UID0-formatted Token name, distinct from f_1028a224's4001.",
+    "Resolved: record+0x18c is a65-byte field written only through the f_1056f5cc initializer family; on the OAuth path it stores the same device identifier the helper parses, preserving the embedded UID for later consistency checks.",
+    "Resolved: consistency checker f_1057007c callers are f_102863a8, f_1028c680, f_104cb228 and two sites in modifyRecord f_105709c0; it compares extracted words even when extraction failed, so UID0==UID0 still passes.",
+    "Resolved: UID generation is either suffix extraction or the RNG-XOR-clock fallback f_1056ff2c; no local credential-derived generation exists in this binary.",
+    "Resolved: strtoul base16 in the shipped libc accepts whitespace, signs and 0x prefixes and saturates on overflow; the helper ignores errno and enforces only the end-pointer-NUL rule."
+   ]
   },
   "music_service_accounts_file": {
    "name": "Music-service accounts file header and save behavior",
