@@ -67994,15 +67994,32 @@
          "function": "0x1014e0b0",
          "address": "0x1014e55c",
          "notes": "queue UUID regenerated"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7798",
+         "address": "0x102f78d8",
+         "notes": "op-14 request: first 1, last CurrentTrackIndex-1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10266458",
+         "notes": "op-14 consumer f_1014e9a8(q, +0xfc, +0xfe)"
         }
        ],
        "todo": [
-        "Established: pre-clear remove-range (op 14), cancel (op 19) and commit (op 16) effects are traced.",
-        "Residual: the remove-range arguments that f_102f7bd0 passes to f_1032e45c before the clear are not decoded. Next step is the call site before 0x102f78e4."
+        "Established: pre-clear remove-range (op 14, tracks 1 to CurrentTrackIndex-1), cancel (op 19) and commit (op 16) effects are traced.",
+        "Residual: the conditions under which f_102f7798 takes the op-14 path (branches at 0x102f786c and 0x102f7884 after f_10149b24) and the value of r30 are not decoded. Next step is to disassemble f_102f7798 from 0x102f7798 to 0x102f78d8."
        ],
        "resolved_findings": [
         "Resolved (dispatch): the first entry submits a clear-queue request f_1032e47c via f_102f7798 (0x102f7994), then entries are inserted by f_1014f808/f_1014fb34 and a commit request f_1032e398 is submitted (0x102f7fe0); the empty-list path submits only the f_1032e47c clear (0x102f80a4).",
-        "Established: f_1032e45c, submitted before the clear at 0x102f78e4, is the op-14 remove-range builder (req+0xe4 = 14, +0xfc, +0xfe, +0x100). The failure request f_1032e5b4 is op 19, which only clears the append flag (f_1014b1a8), so staged rows never become part of the queue. On commit f_1014e0b0 appends the new rows after the old ones, drops the old block by shifting the track array, regenerates the queue UUID at q+0x38 (sonos_uuid_generate at 0x1014e55c) and calls f_1014d738 for a named queue (0x1014e610)."
+        "Established: f_1032e45c, submitted before the clear at 0x102f78e4, is the op-14 remove-range builder (req+0xe4 = 14, +0xfc, +0xfe, +0x100). The failure request f_1032e5b4 is op 19, which only clears the append flag (f_1014b1a8), so staged rows never become part of the queue. On commit f_1014e0b0 appends the new rows after the old ones, drops the old block by shifting the track array, regenerates the queue UUID at q+0x38 (sonos_uuid_generate at 0x1014e55c) and calls f_1014d738 for a named queue (0x1014e610).",
+        "Established (pre-commit removal): f_102f7798 builds the op-14 request with f_1032e45c at 0x102f78d8: +0xfc = 1, +0xfe = CurrentTrackIndex (job+0x141c) - 1 as u16, and +0x100 = r30. It submits it at 0x102f78e4. The op-14 consumer selects the queue from +0x100 (0x10266414..0x10266424) and calls f_1014e9a8(q, first +0xfc, last +0xfe) (0x10266458). So on that path the tracks before the current track, 1 to CurrentTrackIndex-1, are removed before the new rows are committed."
        ]
       }
      ],
