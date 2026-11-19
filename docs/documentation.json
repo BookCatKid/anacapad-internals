@@ -80381,7 +80381,7 @@
      }
     },
     "SetEQ": {
-     "description": "Conditional EQ apply: locks impl+0x938 (f_10988558), invokes worker f_100e27b0(this, InstanceID, 1) when InstanceID==0 and f_100e27b0(this, EQType, 0) when EQType==0, then unlocks (f_10988984) and returns through a tail sequence.",
+     "description": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938. f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection. Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence. Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero. For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check. SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established. ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073c6f4",
@@ -80417,7 +80417,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "validated at the request layer; the impl receives only the two EQ records plus the out pointer and never sees this value",
+       "description": "Unsigned32 instance passed unchanged to forwarding and local implementation.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -80429,42 +80429,118 @@
        "semantic_type": "instance selector (integer)",
        "format": "type-tag-4 decimal integer record",
        "unit": "none",
-       "accepted_values": "any parsed integer - not enforced by this impl",
-       "range": "unconstrained at impl level",
+       "accepted_values": "0 for local application",
+       "range": "0 locally",
        "special_values": {
-        "0": "triggers worker call f_100e27b0(this,0,1)"
+        "0": "Local rendering instance."
        },
        "required": true,
        "default": "none",
-       "validation": "not forwarded to impl f_100e323c (impl tests only the EQType/DesiredValue record pointers for null)",
+       "validation": "Local nonzero returns 702 after any peer forwarding.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c734",
-         "notes": "in-arg access site"
+         "address": "0x10ed2750",
+         "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x10470c4c",
+         "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e323c",
-         "address": "0x100e3278",
-         "notes": "impl arg usage - no InstanceID compare"
+         "address": "0x1046f4d8",
+         "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1734",
+         "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1a68",
+         "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1b44",
+         "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1c34",
+         "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1ce4",
+         "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101222ac",
+         "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1da8",
+         "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1cb8",
+         "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e19b0",
+         "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107c81f4",
+         "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c7cc",
+         "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
         }
        ],
        "notes": null
       },
       "EQType": {
-       "description": "Optional at impl level: the record pointer is applied only if non-null (separate f_100e27b0 calls keyed by position)",
+       "description": "Required selector string interpreted by the selector branches in f_100e1654.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -80473,46 +80549,120 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "EQ band selector",
+       "semantic_type": "rendering EQ/directive selector",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none",
-       "accepted_values": "any parsed value",
+       "accepted_values": "FV, FV: directives, FVPXY, VolumeScalingFactor and the exact sub/HT/bonded selectors documented in the action.",
        "range": "max 1023 chars",
-       "special_values": {
-        "0": "triggers worker call f_100e27b0(this,0,0)"
-       },
+       "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "null record -> silently skipped; non-null -> applied via f_100e27b0(this,rec,flag) (flag=1 EQType, flag=0 DesiredValue)",
+       "validation": "Only FV: prefix, FVPXY and VolumeScalingFactor comparisons are case-insensitive; numeric FV: parsing remains case-sensitive. Other names are exact. Unknown names return 402 after earlier guards.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c758",
-         "notes": "in-arg access site"
+         "address": "0x10ed2750",
+         "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aae8",
-         "notes": "argument name string"
+         "address": "0x10470c4c",
+         "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e323c",
-         "address": "0x100e3278",
-         "notes": "null test on arg ptr -> skip; bl f_100e27b0"
+         "address": "0x1046f4d8",
+         "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1734",
+         "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1a68",
+         "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1b44",
+         "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1c34",
+         "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1ce4",
+         "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101222ac",
+         "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1da8",
+         "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1cb8",
+         "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e19b0",
+         "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107c81f4",
+         "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c7cc",
+         "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
         }
        ],
-       "notes": "Both args act as independent zero-gated worker triggers - unusual semantics; whether the worker treats them as band indices or flags is unresolved.",
+       "notes": null,
        "buf_cap": 1024
       },
       "DesiredValue": {
-       "description": "Optional at impl level: the record pointer is applied only if non-null (separate f_100e27b0 calls keyed by position)",
+       "description": "Signed16 selector-specific setting or directive; not a pointer to an optional record.",
        "direction": "in",
        "primitive": {
         "type_tag": 3,
@@ -80521,64 +80671,862 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "EQ level",
+       "semantic_type": "selector-specific signed setting",
        "format": "integer",
        "unit": "none",
-       "accepted_values": "parsed value",
-       "range": "unconstrained",
+       "accepted_values": "Selector-dependent; see action selector branches.",
+       "range": "Signed16 at SOAP boundary; HeightChannelLevel clamps -10..10, surround levels -15..15; no common local range check.",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "null record -> silently skipped; non-null -> applied via f_100e27b0(this,rec,flag) (flag=1 EQType, flag=0 DesiredValue)",
+       "validation": "Fast-volume directive, boolean, scaling, bonded-mask and bridge checks differ by selector; peer requests use the original signed16 value.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c780",
-         "notes": "in-arg access site"
+         "address": "0x10ed2750",
+         "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aaf0",
-         "notes": "argument name string"
+         "address": "0x10470c4c",
+         "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e323c",
-         "address": "0x100e3278",
-         "notes": "null test on arg ptr -> skip; bl f_100e27b0"
+         "address": "0x1046f4d8",
+         "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1734",
+         "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1a68",
+         "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1b44",
+         "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1c34",
+         "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1ce4",
+         "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101222ac",
+         "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1da8",
+         "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1cb8",
+         "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e19b0",
+         "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107c81f4",
+         "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c7cc",
+         "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
         }
        ],
        "notes": null
       }
      },
      "outputs": {},
-     "validation": "Request-layer parse; impl branches only on ==0 per arg.",
-     "requirements": "impl mutex",
-     "state_dependencies": "none beyond arg-zero gating",
+     "validation": {
+      "description": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938. Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence. For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check. SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established. ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2750",
+        "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470c4c",
+        "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f4d8",
+        "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1734",
+        "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1a68",
+        "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1b44",
+        "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1c34",
+        "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1ce4",
+        "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101222ac",
+        "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1da8",
+        "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1cb8",
+        "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e19b0",
+        "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c81f4",
+        "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c7cc",
+        "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required parsed InstanceID, EQType text and signed16 DesiredValue. Local InstanceID must be zero and device +0x3ac nonnull. Forwarding precedes these local guards. Selector and configuration determine acceptance; this is not a generic bass/treble setter.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2750",
+        "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470c4c",
+        "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f4d8",
+        "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1734",
+        "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1a68",
+        "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1b44",
+        "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1c34",
+        "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1ce4",
+        "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101222ac",
+        "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1da8",
+        "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1cb8",
+        "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e19b0",
+        "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c81f4",
+        "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c7cc",
+        "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Local +0x7ff mode, device +0x3ac/port +0x3a8, HT bridge +0x828, scaling +0x7e2, calibration +0x847/+0x849, topology UUID +0x9c8 and selector-specific cached fields.",
+      "todo": [
+       "Established: Direct guards and fields plus topology-based bonded validation.",
+       "Unknown: Dependencies of concrete observers and final application.",
+       "Next: Finish f_100e0e5c -> f_102a5568 and its in-process observers; f_100d973c -> f_102a56dc/f_100d9628; f_107f6328/f_107f7d2c crossover/device listeners; f_107c919c -> f_105d24f8/f_105d22a4 concrete HT callbacks; f_100f48d4/f_100f4dfc -> f_100f14ec concrete DuckingEvent/proxy listeners; and the f_10559024 playback/gainConfig receiver."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2750",
+        "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470c4c",
+        "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f4d8",
+        "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1734",
+        "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1a68",
+        "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1b44",
+        "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1c34",
+        "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1ce4",
+        "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101222ac",
+        "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1da8",
+        "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1cb8",
+        "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e19b0",
+        "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c81f4",
+        "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c7cc",
+        "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Each non-null EQ arg record is applied via f_100e27b0(this,rec,flag) under mutex +0x938 (flag=1 on the EQType path, 0 on DesiredValue); then an 8-byte record is copied from global 0x1109b010 into the out arg. Null arg records are silently skipped.",
+       "description": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection. Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence. Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero. For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check. SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established. ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions.",
+       "todo": [
+        "Established: Peer requests, selector-specific cache/configuration changes, in-process submissions and RC source/timer requests. Scaling restores its cache on apply failure but not its timer request.",
+        "Unknown: Final concrete callback/device work and durable storage.",
+        "Next: Finish f_100e0e5c -> f_102a5568 and its in-process observers; f_100d973c -> f_102a56dc/f_100d9628; f_107f6328/f_107f7d2c crossover/device listeners; f_107c919c -> f_105d24f8/f_105d22a4 concrete HT callbacks; f_100f48d4/f_100f4dfc -> f_100f14ec concrete DuckingEvent/proxy listeners; and the f_10559024 playback/gainConfig receiver. Trace deferred +0x3bc slot +0x14 and f_10167318."
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e323c",
-         "address": "0x100e328c",
-         "notes": "f_100e27b0 flag=1 at 0x100e328c, flag=0 at 0x100e32a4; 8-byte copy at 0x100e32b8"
+         "address": "0x10ed2750",
+         "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10470c4c",
+         "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046f4d8",
+         "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1734",
+         "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1a68",
+         "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1b44",
+         "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1c34",
+         "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1ce4",
+         "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101222ac",
+         "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1da8",
+         "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1cb8",
+         "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e19b0",
+         "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107c81f4",
+         "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c7cc",
+         "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
         }
        ]
       }
      ],
-     "events_triggered": "The impl writes EQ state through worker f_100e27b0 and copies an 8-byte record from global 0x1109b010 to the out arg; no explicit notify call is present in the impl body - any LastChange emission is downstream of f_100e27b0",
-     "state_transitions": "persists Treble/Bass EQ value into the RCS settings member; notify->dirty->event pipeline (call-derived, slot-bounded)",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code.",
+     "events_triggered": {
+      "description": "Normal accepted sub/HT/scaling paths request f_1067c6ec(this+8) and f_100d993c. Fast-volume directives instead use device calls or in-process DuckingEvent/proxy event submission; bonded paths have their own topology/in-process effects. None proves subscriber delivery.",
+      "todo": [
+       "Established: Selector-dependent notification request sites; no unconditional RC request on every success.",
+       "Unknown: Concrete event consumers and RC sender delivery.",
+       "Next: Bind f_100f48d4/f_100f4dfc scheduling through f_100f14ec, bonded observers and RC source f_1067c6ec -> f_1067c46c -> f_10678c50 sender."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2750",
+        "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470c4c",
+        "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f4d8",
+        "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1734",
+        "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1a68",
+        "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1b44",
+        "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1c34",
+        "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1ce4",
+        "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101222ac",
+        "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1da8",
+        "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1cb8",
+        "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e19b0",
+        "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c81f4",
+        "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c7cc",
+        "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Peer acceptance can precede local rejection. Local success is selector-specific cached/configuration acceptance or request submission; fast-volume and HT callbacks may do further work. Unknown names fault rather than reset defaults.",
+      "todo": [
+       "Established: All local branches and cache writes, including scaling rollback and unchanged-value cases.",
+       "Unknown: Completed audio/topology application and asynchronous outcomes.",
+       "Next: Finish f_100e0e5c -> f_102a5568 and its in-process observers; f_100d973c -> f_102a56dc/f_100d9628; f_107f6328/f_107f7d2c crossover/device listeners; f_107c919c -> f_105d24f8/f_105d22a4 concrete HT callbacks; f_100f48d4/f_100f4dfc -> f_100f14ec concrete DuckingEvent/proxy listeners; and the f_10559024 playback/gainConfig receiver. Trace f_106ff898 session finalization."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2750",
+        "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470c4c",
+        "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f4d8",
+        "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1734",
+        "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1a68",
+        "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1b44",
+        "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1c34",
+        "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1ce4",
+        "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101222ac",
+        "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1da8",
+        "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1cb8",
+        "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e19b0",
+        "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c81f4",
+        "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c7cc",
+        "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Empty success for numeric zero; nonzero propagated as SOAP fault. Local statuses: 702 instance, 401 missing device, 402 unknown selector/invalid fast directive, 501 mode/helper rejection or SpeechEnhanceEnabled, 1033 bonded validation mismatch. Proxy statuses can fault before local checks. Zero is not a hardware-completion acknowledgement.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2750",
+        "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470c4c",
+        "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046f4d8",
+        "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1734",
+        "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1a68",
+        "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1b44",
+        "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1c34",
+        "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1ce4",
+        "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101222ac",
+        "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1da8",
+        "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1cb8",
+        "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e19b0",
+        "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c81f4",
+        "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c7cc",
+        "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073c7e0",
@@ -80590,20 +81538,20 @@
       {
        "code": 401,
        "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Null service implementation at dispatch or null local device +0x3ac.",
        "fault_sites": [
-        "0x1073a83c"
+        "0x1073c7e0"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Null service implementation at dispatch or null local device +0x3ac.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x100e1718",
+           "notes": "Null service implementation at dispatch or null local device +0x3ac."
           }
          ]
         }
@@ -80613,8 +81561,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x100e1718",
+         "notes": "Null service implementation at dispatch or null local device +0x3ac."
         }
        ],
        "unresolved": null,
@@ -80623,33 +81571,20 @@
       {
        "code": 402,
        "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
+       "meaning": "Required request parse failure, unknown selector or invalid fast-volume directive/index after earlier guards.",
        "fault_sites": [
-        "0x1073c734",
         "0x1073c7e0"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Required request parse failure, unknown selector or invalid fast-volume directive/index after earlier guards.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073c734"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073c7e0"
+           "address": "0x1073c814",
+           "notes": "Required request parse failure, unknown selector or invalid fast-volume directive/index after earlier guards."
           }
          ]
         }
@@ -80659,19 +81594,273 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073c734"
+         "address": "0x1073c814",
+         "notes": "Required request parse failure, unknown selector or invalid fast-volume directive/index after earlier guards."
+        }
+       ],
+       "unresolved": null,
+       "notes": null
+      },
+      {
+       "code": 702,
+       "code_expr": null,
+       "meaning": "Nonzero local InstanceID. Peer forwarding can precede this check.",
+       "fault_sites": [
+        "0x1073c7e0"
+       ],
+       "conditions": [
+        {
+         "description": "Nonzero local InstanceID. Peer forwarding can precede this check.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100e16d0",
+           "notes": "Nonzero local InstanceID. Peer forwarding can precede this check."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e16d0",
+         "notes": "Nonzero local InstanceID. Peer forwarding can precede this check."
+        }
+       ],
+       "unresolved": null,
+       "notes": null
+      },
+      {
+       "code": 501,
+       "code_expr": null,
+       "meaning": "Fixed-mode rejection outside special selectors, SpeechEnhanceEnabled, failed local helper or missing topology record during bonded validation.",
+       "fault_sites": [
+        "0x1073c7e0"
+       ],
+       "conditions": [
+        {
+         "description": "Fixed-mode rejection outside special selectors, SpeechEnhanceEnabled, failed local helper or missing topology record during bonded validation.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100e1a7c",
+           "notes": "Fixed-mode rejection outside special selectors, SpeechEnhanceEnabled, failed local helper or missing topology record during bonded validation."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1a7c",
+         "notes": "Fixed-mode rejection outside special selectors, SpeechEnhanceEnabled, failed local helper or missing topology record during bonded validation."
+        }
+       ],
+       "unresolved": null,
+       "notes": null
+      },
+      {
+       "code": 1033,
+       "code_expr": null,
+       "meaning": "Active bonded topology does not validate against the requested state.",
+       "fault_sites": [
+        "0x1073c7e0"
+       ],
+       "conditions": [
+        {
+         "description": "Active bonded topology does not validate against the requested state.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x101223c4",
+           "notes": "Active bonded topology does not validate against the requested state."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101223c4",
+         "notes": "Active bonded topology does not validate against the requested state."
+        }
+       ],
+       "unresolved": null,
+       "notes": null
+      },
+      {
+       "code": 1034,
+       "code_expr": null,
+       "meaning": "Remote endpoint preparation failed; prepared requests may already have been submitted.",
+       "fault_sites": [
+        "0x1073c7e0"
+       ],
+       "conditions": [
+        {
+         "description": "Remote endpoint preparation failed; prepared requests may already have been submitted.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1046f860",
+           "notes": "Remote endpoint preparation failed; prepared requests may already have been submitted."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046f860",
+         "notes": "Remote endpoint preparation failed; prepared requests may already have been submitted."
+        }
+       ],
+       "unresolved": null,
+       "notes": null
+      },
+      {
+       "code": null,
+       "code_expr": "vret(r5-in,+0x44)",
+       "meaning": "Additional nonzero proxy/session result propagates without a local application attempt.",
+       "fault_sites": [
+        "0x1073c7e0"
+       ],
+       "conditions": [
+        {
+         "description": "f_1046f4d8 returns nonzero from its prepared-session status scan.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1046f90c",
+           "notes": "Last nonzero +0x2722 status becomes proxy result."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10ed2750",
+         "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073c7e0"
+         "address": "0x10470c4c",
+         "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046f4d8",
+         "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1734",
+         "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1a68",
+         "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1b44",
+         "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1c34",
+         "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1ce4",
+         "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101222ac",
+         "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1da8",
+         "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1cb8",
+         "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e19b0",
+         "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107c81f4",
+         "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c7cc",
+         "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
         }
        ],
        "unresolved": null,
-       "notes": null
+       "notes": null,
+       "todo": [
+        "Established: Explicit local statuses and proxy status propagation.",
+        "Unknown: Full downstream session/provider status inventory.",
+        "Next: Finish f_106fb998 -> f_106ff898 completion/status producers for the f_1046f4d8 batch."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -80680,30 +81869,114 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073c6f4",
-       "address": "0x1073c6f4",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2750",
+       "notes": "Bound RC primary slot +0x44 contains 0x10470c4c."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e60",
-       "notes": "action dispatch table entry"
+       "address": "0x10470c4c",
+       "notes": "Bound primary +0x44 -> f_10470c4c first forwards through f_1046f4d8(flag=1). A nonzero proxy status returns immediately; only zero reaches f_100e1654. There is no argument-zero dual-record worker or implementation-class gate. SOAP supplies InstanceID, EQType text and signed16 DesiredValue, with no outputs. f_100e1654 returns 702 for nonzero InstanceID and 401 for null device +0x3ac, then locks +0x938."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl: lock; instID==0 -> f_100e27b0(this,instID,1); EQType==0 -> f_100e27b0(this,EQType,0); unlock",
-       "function": "0x100e323c"
+       "address": "0x1046f4d8",
+       "notes": "f_1046f4d8 snapshots +0xbc8/+0x9c8. Snapshot byte +0 nonzero and word +0x288 zero permit remote forwarding, bounded to 32 entries. Constant-true f_1047260c admits entries; f_1046bfd4 clones 12 captured bytes and f_1046b228 sends original InstanceID/EQType/signed16 DesiredValue. Endpoint preparation failure selects 1034; prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes the result. Earlier remote changes are not rolled back on failure or later local rejection."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100e1734",
+       "notes": "Special selectors precede the fixed-mode +0x7ff guard. A case-insensitive FV: prefix or exact FV enters fast-volume directives. sscanf uses case-sensitive FV:%zu. Values 0/1 call f_102a51ec(false)/f_102a5680 and ignore their results; these directives do not require a parsed index. Value 2 submits an activation record to f_100f48d4: exact suffix GC-HB selects mask 0x100000000, GC selects 0x8000000000000000, otherwise a parsed index 0..18 selects 0x100 << index. Value 3 submits a deactivation record for GC or a parsed index 0..18. Other directives/invalid indices return 402. Case-insensitive FVPXY accepts 0/1 and submits inverted boolean 1/0 through f_100f4dfc; other values return 402. These paths do not directly request the normal RC dirty/timer sequence."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100e1a68",
+       "notes": "Case-insensitive VolumeScalingFactor passes DesiredValue & 0xffff to f_100dbb74. Equal cached +0x7e2 returns true. A change writes +0x7e2, schedules f_100d993c and calls f_100d7f34. Zero apply restores the old +0x7e2 but does not undo the timer request, then SetEQ returns 501. Nonzero apply submits playback/gainConfig through the object from f_10559024, slot +0x1c. True, including equality, requests f_1067c6ec(this+8) and f_100d993c and returns zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100e1b44",
+       "notes": "For every remaining selector, nonzero +0x7ff returns 501 before recognition. Names are otherwise exact/case-sensitive. SpeakerSize calls f_102a53e8 with desired and an output pointer at +0x816; zero status stores desired at +0x810, marks +0x81a, resets SubGain through f_102a5450(0) and stores +0x814=0. SubGain and SubCrossover call f_102a5450/f_102a541c and on zero store signed16 desired at +0x814/+0x816. SubPolarity skips its f_102a5318 call when calibration bytes +0x847/+0x849 are both nonzero; otherwise requires zero status. It stores desired unchanged at +0x818, not a normalized boolean. These sub paths mark +0x81a and request the RC source/timer after acceptance. Nonzero bridge status becomes 501; there is no common SetEQ value-range check."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100e1c34",
+       "notes": "SubEnable, SurroundEnable and NightMode normalize desired != 0 and call f_1023d154/f_1023d144/f_1023d194; true stores +0x802/+0x838/+0x842 and marks +0x81a/+0x846/+0x846. HeightChannelLevel clamps to -10..10 and calls f_1023d264, storing +0x844. SurroundLevel and MusicSurroundLevel clamp to -15..15 and call f_1023d204/f_1023d1f4, storing +0x834/+0x836. DialogLevel calls f_1023d164 -> f_107c9f10 and stores +0x830 on true; that configuration helper stores its +0xf8 and invokes f_107c919c only on change. SpeechEnhanceEnabled returns 501 without calling a setter. AudioDelay and AudioDelayLeftRear/AudioDelayRightRear call f_1023d104/f_1023d114(indices 4/5), storing +0x83a/+0x83c/+0x83e on true. SurroundMode maps desired 1/2 to backend modes 1/2 and every other value to 0 through f_107c81dc, but stores the original desired at +0x840 on acceptance. HT false returns 501; accepted paths mark +0x846 (SubEnable uses +0x81a) and request the RC source/timer. No completed DSP application is established."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100e1ce4",
+       "notes": "ValidateBondedState calls f_101222ac and returns its status without the normal RC source/timer path. The helper looks up local UUID under topology lock: missing local record gives 501; an inactive bonded record succeeds. Active records require a qualifying first member and an exact match between DesiredValue and the role mask assembled from qualifying members; otherwise 1033. BondedState first performs the same validation, then calls f_100e0e5c(this, desired&1, (desired>>1)&1) and f_100d973c(this, desired), returning zero. f_100e0e5c changes +0x804/+0x80c and submits device/topology/in-process work; f_100d973c can select a device channel map through f_102a56dc/f_100d9628. These are not merely a pair of cached flag writes. Unknown selectors return 402, including Bass, Treble and Loudness; those have their own actions."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101222ac",
+       "notes": "Topology validation returns only 0, 1033 or 501. Raw 0x7fa9ef9e at 0x10122434 selects the role-1 bit value when role 2 comparison matches, otherwise retains the role-2 bit value."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100e1da8",
+       "notes": "Raw 0x5785fffe is SH=31 MB=31 ME=31, extracting original bit 1; 0x578407fe at 0x100e1dac is SH=0 MB=31 ME=31, extracting bit 0. Raw 0x5784043e at 0x100e1a68 is SH=0 MB=16 ME=31, a low16 mask."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100e1cb8",
+       "notes": "Raw 0x7fe0f79e selects 0 or r30=1 on desired==0; 0x57ff063e at 0x100e1cc0 is SH=0 MB=24 ME=31, a low-byte mask. Identical select/mask words implement NightMode at 0x100e1ef4/0x100e1ef8 and SurroundEnable at 0x100e1f20/0x100e1f28."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100e19b0",
+       "notes": "Raw 0x7d463830 is slw, 0x7ce84430 at 0x100e19c0 is srw and 0x7d4a4830 at 0x100e19c4 is slw. Selects 0x7d08371e/0x7d2af71e at 0x100e19c8/0x100e19cc assemble the mask halves using CR7.lt. Index is already bounded to 0..18."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107c81f4",
+       "notes": "Raw 0x7c691f9e selects r9=2 when desired==2, otherwise r3=0; desired==1 has a separate literal-1 return."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073c7cc",
+       "notes": "Fresh mr. tests returned numeric status: zero emits empty success via request+0x0c at 0x1073c828; nonzero faults through request+0x14 at 0x1073c7e0. Parse failure loads 402 at 0x1073c814."
       }
      ],
-     "notes": "Zero-gated dual worker calls are an unusual pattern - possibly 'apply defaults when selector is 0'. Worth revisiting with f_100e27b0.",
+     "notes": "Request submission and cached acceptance do not establish completed device application, durable settings saving or subscriber delivery.",
      "todo": [
-      "Established: dispatch and handler 0x1073c6f4 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.",
-      "Residual: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+      "Established: Primary binding, all local selector branches, forwarding, cached writes and numeric status handling.",
+      "Unknown: Concrete device/HT/bonded/fast-volume observers, final session behavior, persistence and delivery.",
+      "Next: Finish f_100e0e5c -> f_102a5568 and its in-process observers; f_100d973c -> f_102a56dc/f_100d9628; f_107f6328/f_107f7d2c crossover/device listeners; f_107c919c -> f_105d24f8/f_105d22a4 concrete HT callbacks; f_100f48d4/f_100f4dfc -> f_100f14ec concrete DuckingEvent/proxy listeners; and the f_10559024 playback/gainConfig receiver. Finish f_106ff898, storage +0x3bc slot +0x14 / f_10167318 and RC sender."
+     ],
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x44",
+      "function": "0x10470c4c",
+      "proxy": "0x1046f4d8",
+      "local": "0x100e1654"
+     }
     },
     "SetLoudness": {
      "description": "Primary slot +0x4c -> f_10470cd8 performs topology proxy processing before local loudness application. f_1046f9f4 snapshots topology from RC+0xbc8/+0x9c8 through f_10759984. It forwards only when snapshot byte +0 is nonzero and word +0x288 is zero; unlike the dedicated bass/treble proxies it has no f_1053cad8 exclusion. Entries 1..count-1 all pass constant-true filter f_10472638. Each RenderingControl SetLoudness request carries the original InstanceID and Channel; f_1046b024 formats the captured loudness byte as 0 for zero or 1 for nonzero. Endpoint preparation failure selects 1034 and stops new preparations, but prepared requests still enter f_106fb998 with a 2000-ms deadline. The last nonzero session status halfword +0x2722 becomes the proxy result. Skipped forwarding or an empty remote set can return 0. Only proxy status zero reaches f_100db4bc. Under mutex +0x938 it rejects nonzero InstanceID with 702, then nonzero guard byte +0x7ff with 501, then Channel other than exact Master with 402. It stores the parsed loudness byte at +0x7fd without another value predicate, calls f_102a5380 on device +0x3ac using port byte +0x3a8, sets dirty +0x7fe=1, requests f_1067c6ec(this+8), and schedules f_100d993c. The backend result is ignored. Same-value writes still mark dirty and request follow-up; optional action-result diagnostics are emitted before unlocking and returning 0.",
