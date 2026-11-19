@@ -96510,7 +96510,7 @@
      ]
     },
     "EnableRDM": {
-     "description": "Stores the parsed RDMValue byte as unsigned decimal text under SystemSettings key R_RDM, returning the settings-write status and notifying settings observers after success.",
+     "description": "Converts required RDMValue text to0/1, stores that decimal flag under SystemSettings R_RDM, and on successful write advances UpdateID and notifies SystemProperties clients and local observers.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10732c80",
@@ -96546,7 +96546,7 @@
      },
      "inputs": {
       "RDMValue": {
-       "description": "Required flag argument; the handler loads the parsed byte and the delegate formats that byte as unsigned decimal R_RDM text.",
+       "description": "Required text flag, normalized by the request boolean parser to a byte0 or1 before persistence.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -96555,15 +96555,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "flag byte",
-       "format": "request type-tag-1 text",
+       "semantic_type": "boolean flag",
+       "format": "Case-insensitive whole-string1,true,yes for true; every other present text value is false",
        "unit": "none",
-       "accepted_values": "Values accepted by the shared type-tag-1 request parser; no subsequent R_RDM-specific value check.",
-       "range": "Parsed byte is zero-extended; numeric formatting can represent 0 through 255, not a claim that all these wire values are accepted.",
-       "special_values": "Stored zero reads back false; a successfully parsed nonzero stored integer reads back true in GetRDM.",
+       "accepted_values": "Any present text is accepted. Exactly1,true,yes (case-insensitive) become1. Empty, whitespace,0,false,no,2,junk,+1,-1,01, and strings with leading/trailing whitespace become0.",
+       "range": "Parsed and stored0 or1 only; arbitrary numeric values do not pass through as bytes.",
+       "special_values": "An empty but present argument writes0; an absent required argument faults402. Overlong text truncates to23 payload bytes before comparison, rather than rejecting.",
        "required": true,
        "default": "none; required",
-       "validation": "Named lookup, type-tag-1 descriptor, then request +8 validation; failure faults 402 before any write.",
+       "validation": "Required named lookup and descriptor0x10561444(tag1,capacity24); request+8 rejects missing materialization, not malformed boolean text. No whitespace trimming, sign/base conversion, overflow/clamping or post-parse R_RDM value restriction.",
        "evidence": [
         {
          "type": "firmware",
@@ -96588,18 +96588,29 @@
          "address": "0x104b0c68",
          "function": "0x104b0b8c",
          "notes": "GetRDM parses R_RDM with paranoid_atoui; successful nonzero integer maps to output true, zero maps to false."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "TRequest vtable0x10f10f20 +8 retrieves the descriptor name, looks up input through backend+8, copies present text with0x10560708 and materializes with0x10560a58. Missing nonoptional input fails; conversion status is ignored. Capacity24 truncates to23 payload bytes then NUL."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560b78",
+         "function": "0x10560a58",
+         "notes": "Tag1 factory0x10561444 selects comparisons with1,true,yes via strcasecmp and stores comparison-success as a byte. Any other present text stores0. No whitespace trim, sign handling, numeric conversion, overflow or range rejection. Tag7 factory0x1056157c uses caller buffer/capacity and bypasses numeric conversion; shared string arguments truncate to capacity-1 and accept empty present text."
         }
-       ],
-       "todo": [
-        "Established: required type-tag-1 argument becomes a byte formatted with %u and written to R_RDM.",
-        "Residual: exact accepted lexical forms and normalization of the shared type-tag-1 parser are not traced.",
-        "Next step: trace request +8 processing of the descriptor registered by 0x10561444."
        ]
       }
      },
      "outputs": {},
      "validation": {
-      "description": "Request validation failure produces 402. After validation, the fixed R_RDM key passes the shared property validator, bypasses URL and UMTracking special cases, and bypasses the insecure X_ key rejection.",
+      "description": "Only missing required RDMValue materialization produces402. Every present lexical value normalizes to0/1. Fixed R_RDM passes the property validator and bypasses URL/UMTracking and insecure X_ special cases.",
       "evidence": [
        {
         "type": "firmware",
@@ -96632,11 +96643,27 @@
         "address": "0x1066999c",
         "function": "0x10669844",
         "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "TRequest vtable0x10f10f20 +8 retrieves the descriptor name, looks up input through backend+8, copies present text with0x10560708 and materializes with0x10560a58. Missing nonoptional input fails; conversion status is ignored. Capacity24 truncates to23 payload bytes then NUL."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10560b78",
+        "function": "0x10560a58",
+        "notes": "Tag1 factory0x10561444 selects comparisons with1,true,yes via strcasecmp and stores comparison-success as a byte. Any other present text stores0. No whitespace trim, sign handling, numeric conversion, overflow or range rejection. Tag7 factory0x1056157c uses caller buffer/capacity and bypasses numeric conversion; shared string arguments truncate to capacity-1 and accept empty present text."
        }
       ]
      },
      "requirements": {
-      "description": "RDMValue must pass request validation and the SystemSettings backend must be initialized. No separate R_RDM authorization, account, feature-availability, or value predicate is tested on the traced validation/write path.",
+      "description": "Named RDMValue must be present and SystemSettings initialized. No strict boolean lexical check, R_RDM-specific authorization, account or diagnostic feature-availability predicate is tested.",
       "evidence": [
        {
         "type": "firmware",
@@ -96669,27 +96696,51 @@
         "address": "0x1066999c",
         "function": "0x10669844",
         "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
-       }
-      ]
-     },
-     "state_dependencies": {
-      "description": "Uses delegate+0x164 SystemSettings, its mutex at +0x10, file path +0xa4 (syssettings.xml), format id +0xbc (4), version +0xe0, recovery byte +0xe4, last-update device +0xe8, and replication member +0xec. Success also invokes delegate observers and feature refreshers.",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x1066ab28",
-        "function": "0x1066aa24",
-        "notes": "R_RDM matches neither OnlineUpdateBaseURL normalization nor UMTracking rejection. Passes one key/value pair to *(this+0x164)->v[+0x20]. Initialization 0x10198298/0x101982e0 passes Z+0x29178 through 0x104b101c to 0x1066b4bc, which stores it at +0x164 (0x1066b4f8). Constructor 0x1018f2d4 / 0x1066a514 installs SystemSettings vptr 0x10efe958."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1066bf44",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "TRequest vtable0x10f10f20 +8 retrieves the descriptor name, looks up input through backend+8, copies present text with0x10560708 and materializes with0x10560a58. Missing nonoptional input fails; conversion status is ignored. Capacity24 truncates to23 payload bytes then NUL."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10560b78",
+        "function": "0x10560a58",
+        "notes": "Tag1 factory0x10561444 selects comparisons with1,true,yes via strcasecmp and stores comparison-success as a byte. Any other present text stores0. No whitespace trim, sign handling, numeric conversion, overflow or range rejection. Tag7 factory0x1056157c uses caller buffer/capacity and bypasses numeric conversion; shared string arguments truncate to capacity-1 and accept empty present text."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Delegate+164 points to SystemSettings. Uses settings mutex+10, configured path+a4(default /opt/settings/syssettings.xml), selector+bc=4, saved LUD+c4, version+e0, recovery-needed+e4, local-ID pointer+e8 and concrete replication receiver+ec. Success updates delegate UpdateID+204/dirty+200 and refreshes shared property, usage-data, media-server and browse-sort caches.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1068ab6c",
+        "function": "0x1068ab6c",
+        "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bfec",
         "function": "0x1066bee0",
-        "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
        },
        {
         "type": "firmware",
@@ -96697,7 +96748,15 @@
         "build": "86.10-80260",
         "address": "0x1066b38c",
         "function": "0x1066b320",
-        "notes": "Successful write callback 0x104b1e48 calls 0x1066b320 at 0x104b1ec4 for R_RDM (not null or R_TrialZPSerial). Under delegate+0x170 mutex sets +0x200=1 and increments +0x204. Calls 0x1067c6ec on delegate+8, which tail-calls event notifier 0x1067c46c. It also calls override hook 0x10557388, optional singleton refresher 0x10707cd4 and property subject 0x1066d22c."
+        "notes": "Success callback104b1e48 calls1066b320 for R_RDM: under delegate+170 mutex increments+204 and sets+200 dirty.1067c6ec(delegate+8)->1067c46c marks source+110 dirty and signals sender10678c50. Worker10679e54->10683da0 dispatch1068406c source v+18; secondary vtable10ed7628+18=1067ab54 forwards v+14=1066b0a0 thunk->1066af90->1066ad04. Propertyset contains CustomerID always; delta UpdateID from+204 when+200 dirty; full additionally UpdateIDX(+20c),ThirdPartyHash(+211). Delta may include those if other dirty flags+208/+210. Flags clear after delta. Ordinary standalone RDM write therefore notifies CustomerID and incremented UpdateID, not RDMValue or R_RDM. This concrete UPnP serializer is not evidence for the distinct WSS topic settingsVersionChanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b418",
+        "function": "0x1066b320",
+        "notes": "1066d22c queues SystemPropertiesChangeEvent through100f14ec: source sysprop initialized1066a684..6d0, key R_RDM, value0/1, secure=false(selector4!=9). Closure1066cdcc copies strings and delivers to registered observers; absent event loop logs/returnsfalse, ignored by write.1066b320 also refreshes override cache10557388(NULL) and optional usage-data singleton10707914->10707cd4: rereads R_CustomerID, refreshes usageDataSharing via10577870. No R_RDM-specific diagnostic-service activation."
        },
        {
         "type": "firmware",
@@ -96705,26 +96764,21 @@
         "build": "86.10-80260",
         "address": "0x104b1ed4",
         "function": "0x104b1e48",
-        "notes": "For fixed R_RDM key, calls 0x10121518, skips R_RadioLocation, R_VolNormMode, R_CrossfadeDuration and R_AirplayIncludeLinked special updates, then calls 0x10110ee0 and leaf 0x103c79b8. Detailed transitive effects of the first two refreshers and observer dispatch remain untraced."
+        "notes": "R_RDM success calls10121518: reads R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), caches+11cd/+11ce; changes clear server-description cache10760d48, notify that service1067c6ec, optionally refresh external servers10741ac4. Then10110ee0 reads R_BrowseByFolderSort: Tracknum/Title/File map global110953e0 to2/0/1; missing/unknown seeds Tracknum using SetString, potentially another settings write/callback. Changed sort refreshes10107dc4, increments share-store+b8 and sends known update backend10117654.103c79b8 is empty leaf. Fixed R_RDM skips RadioLocation/VolNormMode/CrossfadeDuration/AirplayIncludeLinked-specific updates."
        }
-      ],
-      "todo": [
-       "Established: concrete SystemSettings backend and persistence metadata are identified.",
-       "Residual: complete state read by the post-write feature refreshers and replication/observer callbacks is not enumerated.",
-       "Next step: trace 0x10121518, 0x10110ee0 and the settings+0xec replication object, then 0x1066d22c subscribers."
       ]
      },
      "side_effects": [
       {
-       "description": "Attempts a persisted one-pair R_RDM update through the XML writer. Success advances settings version, submits replication work, marks SystemProperties dirty, notifies settings clients, and invokes post-write property/feature refreshers. The command does not itself establish that any diagnostic access service started.",
+       "description": "Rewrites R_RDM as0/1 in configured syssettings.xml via XML-escaped temporary-file replacement (maximum32768 bytes). Success increments settings version, clears recovery flag and advertises local replication version; remote delivery is asynchronous, not guaranteed. Invalid source rebuilds factory defaults plus requested values, then attempts recovery metadata/CustomerID rewrite without propagating that secondary failure. Successful main write increments SystemProperties UpdateID, schedules notification and local observer event, refreshes shared caches. Browse-sort initialization can cause a second settings write. fflush/fsync errors are ignored by the close helper; success does not prove durable media flush or diagnostic-service activation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x104b07a0",
-         "function": "0x104b0760",
-         "notes": "Formats the incoming unsigned byte with %u into a 16-byte stack buffer, then calls this->v[+8](R_RDM, buffer) at 0x104b07c0 and returns that status unchanged. Key literal 0x10ed7694; format 0x10f94c94."
+         "address": "0x1068ab6c",
+         "function": "0x1068ab6c",
+         "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
         },
         {
          "type": "firmware",
@@ -96732,15 +96786,23 @@
          "build": "86.10-80260",
          "address": "0x1066bf44",
          "function": "0x1066bee0",
-         "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1066999c",
-         "function": "0x10669844",
-         "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
+         "address": "0x1066bfec",
+         "function": "0x1066bee0",
+         "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1019911c",
+         "function": "0x10198e54",
+         "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
         },
         {
          "type": "firmware",
@@ -96748,7 +96810,15 @@
          "build": "86.10-80260",
          "address": "0x1066b38c",
          "function": "0x1066b320",
-         "notes": "Successful write callback 0x104b1e48 calls 0x1066b320 at 0x104b1ec4 for R_RDM (not null or R_TrialZPSerial). Under delegate+0x170 mutex sets +0x200=1 and increments +0x204. Calls 0x1067c6ec on delegate+8, which tail-calls event notifier 0x1067c46c. It also calls override hook 0x10557388, optional singleton refresher 0x10707cd4 and property subject 0x1066d22c."
+         "notes": "Success callback104b1e48 calls1066b320 for R_RDM: under delegate+170 mutex increments+204 and sets+200 dirty.1067c6ec(delegate+8)->1067c46c marks source+110 dirty and signals sender10678c50. Worker10679e54->10683da0 dispatch1068406c source v+18; secondary vtable10ed7628+18=1067ab54 forwards v+14=1066b0a0 thunk->1066af90->1066ad04. Propertyset contains CustomerID always; delta UpdateID from+204 when+200 dirty; full additionally UpdateIDX(+20c),ThirdPartyHash(+211). Delta may include those if other dirty flags+208/+210. Flags clear after delta. Ordinary standalone RDM write therefore notifies CustomerID and incremented UpdateID, not RDMValue or R_RDM. This concrete UPnP serializer is not evidence for the distinct WSS topic settingsVersionChanged."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066b418",
+         "function": "0x1066b320",
+         "notes": "1066d22c queues SystemPropertiesChangeEvent through100f14ec: source sysprop initialized1066a684..6d0, key R_RDM, value0/1, secure=false(selector4!=9). Closure1066cdcc copies strings and delivers to registered observers; absent event loop logs/returnsfalse, ignored by write.1066b320 also refreshes override cache10557388(NULL) and optional usage-data singleton10707914->10707cd4: rereads R_CustomerID, refreshes usageDataSharing via10577870. No R_RDM-specific diagnostic-service activation."
         },
         {
          "type": "firmware",
@@ -96756,34 +96826,37 @@
          "build": "86.10-80260",
          "address": "0x104b1ed4",
          "function": "0x104b1e48",
-         "notes": "For fixed R_RDM key, calls 0x10121518, skips R_RadioLocation, R_VolNormMode, R_CrossfadeDuration and R_AirplayIncludeLinked special updates, then calls 0x10110ee0 and leaf 0x103c79b8. Detailed transitive effects of the first two refreshers and observer dispatch remain untraced."
+         "notes": "R_RDM success calls10121518: reads R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), caches+11cd/+11ce; changes clear server-description cache10760d48, notify that service1067c6ec, optionally refresh external servers10741ac4. Then10110ee0 reads R_BrowseByFolderSort: Tracknum/Title/File map global110953e0 to2/0/1; missing/unknown seeds Tracknum using SetString, potentially another settings write/callback. Changed sort refreshes10107dc4, increments share-store+b8 and sends known update backend10117654.103c79b8 is empty leaf. Fixed R_RDM skips RadioLocation/VolNormMode/CrossfadeDuration/AirplayIncludeLinked-specific updates."
         }
-       ],
-       "todo": [
-        "Established: XML write, version update and notification dispatch execute on the successful backend path.",
-        "Residual: transitive replication, recovery and feature-refresh effects are not fully enumerated.",
-        "Next step: trace settings+0xec slot +0x14, recovery helper 0x1066ba04, 0x10121518 and 0x10110ee0."
        ]
       }
      ],
      "events_triggered": {
-      "description": "Successful backend write calls delegate +0x44 -> 0x104b1e48 -> 0x1066b320 -> 0x1067c6ec(delegate+8). Thus a settings-notification attempt is proven, not merely inferred from the wrapper. Property subject 0x1066d22c also receives the key/value. Backend failure returns before this callback. Network delivery depends on the notifier and subscription state.",
+      "description": "Successful main write schedules the SystemProperties UPnP propertyset: CustomerID plus dirty UpdateID (incremented per callback); full snapshots also include UpdateIDX and ThirdPartyHash, and coalesced deltas can include their independently dirty values. No RDMValue/R_RDM field is serialized there. Separately queues SystemPropertiesChangeEvent(source sysprop,key R_RDM,value0/1,securefalse) and, on accepted local-version change, ReplicatedSettingsChangedEvent carrying the version-table snapshot. These are distinct paths, not proof that1067c6ec emits WSS settingsVersionChanged. Feature-cache changes can independently notify the media-server/share services. Failure of main persistence skips its success callbacks; delivery depends on event loop/subscriptions.",
       "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x1066999c",
-        "function": "0x10669844",
-        "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
-       },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x1066b38c",
         "function": "0x1066b320",
-        "notes": "Successful write callback 0x104b1e48 calls 0x1066b320 at 0x104b1ec4 for R_RDM (not null or R_TrialZPSerial). Under delegate+0x170 mutex sets +0x200=1 and increments +0x204. Calls 0x1067c6ec on delegate+8, which tail-calls event notifier 0x1067c46c. It also calls override hook 0x10557388, optional singleton refresher 0x10707cd4 and property subject 0x1066d22c."
+        "notes": "Success callback104b1e48 calls1066b320 for R_RDM: under delegate+170 mutex increments+204 and sets+200 dirty.1067c6ec(delegate+8)->1067c46c marks source+110 dirty and signals sender10678c50. Worker10679e54->10683da0 dispatch1068406c source v+18; secondary vtable10ed7628+18=1067ab54 forwards v+14=1066b0a0 thunk->1066af90->1066ad04. Propertyset contains CustomerID always; delta UpdateID from+204 when+200 dirty; full additionally UpdateIDX(+20c),ThirdPartyHash(+211). Delta may include those if other dirty flags+208/+210. Flags clear after delta. Ordinary standalone RDM write therefore notifies CustomerID and incremented UpdateID, not RDMValue or R_RDM. This concrete UPnP serializer is not evidence for the distinct WSS topic settingsVersionChanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b418",
+        "function": "0x1066b320",
+        "notes": "1066d22c queues SystemPropertiesChangeEvent through100f14ec: source sysprop initialized1066a684..6d0, key R_RDM, value0/1, secure=false(selector4!=9). Closure1066cdcc copies strings and delivers to registered observers; absent event loop logs/returnsfalse, ignored by write.1066b320 also refreshes override cache10557388(NULL) and optional usage-data singleton10707914->10707cd4: rereads R_CustomerID, refreshes usageDataSharing via10577870. No R_RDM-specific diagnostic-service activation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
        },
        {
         "type": "firmware",
@@ -96791,41 +96864,36 @@
         "build": "86.10-80260",
         "address": "0x104b1ed4",
         "function": "0x104b1e48",
-        "notes": "For fixed R_RDM key, calls 0x10121518, skips R_RadioLocation, R_VolNormMode, R_CrossfadeDuration and R_AirplayIncludeLinked special updates, then calls 0x10110ee0 and leaf 0x103c79b8. Detailed transitive effects of the first two refreshers and observer dispatch remain untraced."
+        "notes": "R_RDM success calls10121518: reads R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), caches+11cd/+11ce; changes clear server-description cache10760d48, notify that service1067c6ec, optionally refresh external servers10741ac4. Then10110ee0 reads R_BrowseByFolderSort: Tracknum/Title/File map global110953e0 to2/0/1; missing/unknown seeds Tracknum using SetString, potentially another settings write/callback. Changed sort refreshes10107dc4, increments share-store+b8 and sends known update backend10117654.103c79b8 is empty leaf. Fixed R_RDM skips RadioLocation/VolNormMode/CrossfadeDuration/AirplayIncludeLinked-specific updates."
        }
-      ],
-      "todo": [
-       "Established: successful R_RDM write reaches settings notifier 0x1067c6ec and property subject 0x1066d22c.",
-       "Residual: exact serialized event payload and complete downstream subscriber/refresh notifications are not traced.",
-       "Next step: trace event-source serialization through 0x1067c46c and property-subject subscribers at 0x1066d22c."
       ]
      },
      "state_transitions": {
-      "description": "On successful persistence, R_RDM becomes the formatted parsed byte, settings version advances, delegate+0x200 becomes 1 and +0x204 increments. No equality/no-change check exists before this write. Backend failure does not execute the normal success notification callback.",
+      "description": "On main write success R_RDM becomes0/1, saved LUD becomes local ID, settings version increments modulo2^32 and recovery-needed clears; eligible replication cache accepts the new version/LUD. Success callback increments UpdateID modulo2^32 and marks it dirty until serialized. No equality/no-change test suppresses this write. Invalid source first rebuilds defaults and attempts FileRecoverVersion/CustomerID metadata; that secondary failure is ignored. Shared media-server flags and browse-sort state refresh; absent/unknown browse sort seeds Tracknum through another write. Main write failure skips normal metadata/success-callback transitions, but an attempted temporary file may have been created or unlinked.",
       "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x104b07a0",
-        "function": "0x104b0760",
-        "notes": "Formats the incoming unsigned byte with %u into a 16-byte stack buffer, then calls this->v[+8](R_RDM, buffer) at 0x104b07c0 and returns that status unchanged. Key literal 0x10ed7694; format 0x10f94c94."
-       },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x1066bf44",
         "function": "0x1066bee0",
-        "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1066999c",
-        "function": "0x10669844",
-        "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
+        "address": "0x1066bfec",
+        "function": "0x1066bee0",
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
        },
        {
         "type": "firmware",
@@ -96833,17 +96901,20 @@
         "build": "86.10-80260",
         "address": "0x1066b38c",
         "function": "0x1066b320",
-        "notes": "Successful write callback 0x104b1e48 calls 0x1066b320 at 0x104b1ec4 for R_RDM (not null or R_TrialZPSerial). Under delegate+0x170 mutex sets +0x200=1 and increments +0x204. Calls 0x1067c6ec on delegate+8, which tail-calls event notifier 0x1067c46c. It also calls override hook 0x10557388, optional singleton refresher 0x10707cd4 and property subject 0x1066d22c."
+        "notes": "Success callback104b1e48 calls1066b320 for R_RDM: under delegate+170 mutex increments+204 and sets+200 dirty.1067c6ec(delegate+8)->1067c46c marks source+110 dirty and signals sender10678c50. Worker10679e54->10683da0 dispatch1068406c source v+18; secondary vtable10ed7628+18=1067ab54 forwards v+14=1066b0a0 thunk->1066af90->1066ad04. Propertyset contains CustomerID always; delta UpdateID from+204 when+200 dirty; full additionally UpdateIDX(+20c),ThirdPartyHash(+211). Delta may include those if other dirty flags+208/+210. Flags clear after delta. Ordinary standalone RDM write therefore notifies CustomerID and incremented UpdateID, not RDMValue or R_RDM. This concrete UPnP serializer is not evidence for the distinct WSS topic settingsVersionChanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "R_RDM success calls10121518: reads R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), caches+11cd/+11ce; changes clear server-description cache10760d48, notify that service1067c6ec, optionally refresh external servers10741ac4. Then10110ee0 reads R_BrowseByFolderSort: Tracknum/Title/File map global110953e0 to2/0/1; missing/unknown seeds Tracknum using SetString, potentially another settings write/callback. Changed sort refreshes10107dc4, increments share-store+b8 and sends known update backend10117654.103c79b8 is empty leaf. Fixed R_RDM skips RadioLocation/VolNormMode/CrossfadeDuration/AirplayIncludeLinked-specific updates."
        }
-      ],
-      "todo": [
-       "Established: normal write-success transitions and callback gating are recovered.",
-       "Residual: recovery and post-write feature refresher state transitions are not fully traced.",
-       "Next step: trace 0x1066ba04 and the R_RDM-reachable paths in 0x10121518 and 0x10110ee0."
       ]
      },
      "return_behavior": {
-      "description": "Failed request validation faults 402. Validated requests return the settings status unchanged: writer failure maps to 800, success to 0. The wrapper faults on nonzero and commits an empty successful response on zero. Replication and observer return values are not mapped to additional SOAP errors.",
+      "description": "Missing required RDMValue faults402; any present text normalizes0/1. Main XML writer false maps800; success0 commits an empty response. Recovery metadata failure, replication rejection/queue failure, observer delivery and ignored fflush/fsync results do not become additional SOAP errors.",
       "evidence": [
        {
         "type": "firmware",
@@ -96889,9 +96960,49 @@
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "TRequest vtable0x10f10f20 +8 retrieves the descriptor name, looks up input through backend+8, copies present text with0x10560708 and materializes with0x10560a58. Missing nonoptional input fails; conversion status is ignored. Capacity24 truncates to23 payload bytes then NUL."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10560b78",
+        "function": "0x10560a58",
+        "notes": "Tag1 factory0x10561444 selects comparisons with1,true,yes via strcasecmp and stores comparison-success as a byte. Any other present text stores0. No whitespace trim, sign handling, numeric conversion, overflow or range rejection. Tag7 factory0x1056157c uses caller buffer/capacity and bypasses numeric conversion; shared string arguments truncate to capacity-1 and accept empty present text."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "address": "0x1066bf44",
         "function": "0x1066bee0",
-        "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bfec",
+        "function": "0x1066bee0",
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b418",
+        "function": "0x1066b320",
+        "notes": "1066d22c queues SystemPropertiesChangeEvent through100f14ec: source sysprop initialized1066a684..6d0, key R_RDM, value0/1, secure=false(selector4!=9). Closure1066cdcc copies strings and delivers to registered observers; absent event loop logs/returnsfalse, ignored by write.1066b320 also refreshes override cache10557388(NULL) and optional usage-data singleton10707914->10707cd4: rereads R_CustomerID, refreshes usageDataSharing via10577870. No R_RDM-specific diagnostic-service activation."
        }
       ]
      },
@@ -96910,13 +97021,13 @@
      "errors": [
       {
        "code": 402,
-       "meaning": "Required input/request validation failed before the R_RDM write.",
+       "meaning": "Required RDMValue could not be materialized.",
        "fault_sites": [
         "0x10732d18"
        ],
        "conditions": [
         {
-         "description": "Request +8 returns zero after RDMValue descriptor registration; handler loads literal 0x192.",
+         "description": "Required named RDMValue absent at request validation; empty/malformed/overlong present text does not produce402.",
          "evidence": [
           {
            "type": "firmware",
@@ -96925,6 +97036,22 @@
            "address": "0x10732cc0",
            "function": "0x10732c80",
            "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10730480",
+           "function": "0x10730414",
+           "notes": "TRequest vtable0x10f10f20 +8 retrieves the descriptor name, looks up input through backend+8, copies present text with0x10560708 and materializes with0x10560a58. Missing nonoptional input fails; conversion status is ignored. Capacity24 truncates to23 payload bytes then NUL."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10560b78",
+           "function": "0x10560a58",
+           "notes": "Tag1 factory0x10561444 selects comparisons with1,true,yes via strcasecmp and stores comparison-success as a byte. Any other present text stores0. No whitespace trim, sign handling, numeric conversion, overflow or range rejection. Tag7 factory0x1056157c uses caller buffer/capacity and bypasses numeric conversion; shared string arguments truncate to capacity-1 and accept empty present text."
           }
          ]
         }
@@ -96948,7 +97075,7 @@
        ],
        "conditions": [
         {
-         "description": "0x106c6118 returns false to 0x1066bee0, which returns 0x320; settings, SetString and EnableRDM propagate it to the wrapper. Includes source/temp-file or XML/output/rename failure reported by that writer.",
+         "description": "Main106c6118 writer reportsfalse: temporary-file open/write, XML/root construction, final size/tell, close or rename failure; final XML must be<=32768 bytes. Missing/invalid source can instead recover successfully. Secondary recovery metadata failure, fflush/fsync failures ignored by close, and asynchronous notification/replication failure do not produce800.",
          "evidence": [
           {
            "type": "firmware",
@@ -96956,39 +97083,15 @@
            "build": "86.10-80260",
            "address": "0x1066bf44",
            "function": "0x1066bee0",
-           "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+           "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1066999c",
-           "function": "0x10669844",
-           "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1066ab28",
-           "function": "0x1066aa24",
-           "notes": "R_RDM matches neither OnlineUpdateBaseURL normalization nor UMTracking rejection. Passes one key/value pair to *(this+0x164)->v[+0x20]. Initialization 0x10198298/0x101982e0 passes Z+0x29178 through 0x104b101c to 0x1066b4bc, which stores it at +0x164 (0x1066b4f8). Constructor 0x1018f2d4 / 0x1066a514 installs SystemSettings vptr 0x10efe958."
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x104b07a0",
-           "function": "0x104b0760",
-           "notes": "Formats the incoming unsigned byte with %u into a 16-byte stack buffer, then calls this->v[+8](R_RDM, buffer) at 0x104b07c0 and returns that status unchanged. Key literal 0x10ed7694; format 0x10f94c94."
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10732cc0",
-           "function": "0x10732c80",
-           "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
+           "address": "0x1066bfec",
+           "function": "0x1066bee0",
+           "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
           }
          ]
         }
@@ -97000,23 +97103,15 @@
          "build": "86.10-80260",
          "address": "0x1066bf44",
          "function": "0x1066bee0",
-         "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1066999c",
-         "function": "0x10669844",
-         "notes": "R_RDM does not have insecure X_ prefix; dispatches SystemSettings +0x34 = 0x1066bee0 under settings+0x10 mutex. Failure returns without callbacks. Success invokes owner +0x44 = 0x104b1e48 with key, value, settings format id 4, then returns 0."
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10732cc0",
-         "function": "0x10732c80",
-         "notes": "Required RDMValue lookup, descriptor 0x10561444, request +8 validation at 0x10732cdc. Zero validation result loads 402 at 0x10732d4c. Parsed byte goes to delegate +0x3c at 0x10732cfc; zero result commits at 0x10732d60, nonzero faults at 0x10732d18."
+         "address": "0x1066bfec",
+         "function": "0x1066bee0",
+         "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
         }
        ]
       }
@@ -97075,9 +97170,49 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x10730480",
+       "function": "0x10730414",
+       "notes": "TRequest vtable0x10f10f20 +8 retrieves the descriptor name, looks up input through backend+8, copies present text with0x10560708 and materializes with0x10560a58. Missing nonoptional input fails; conversion status is ignored. Capacity24 truncates to23 payload bytes then NUL."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560b78",
+       "function": "0x10560a58",
+       "notes": "Tag1 factory0x10561444 selects comparisons with1,true,yes via strcasecmp and stores comparison-success as a byte. Any other present text stores0. No whitespace trim, sign handling, numeric conversion, overflow or range rejection. Tag7 factory0x1056157c uses caller buffer/capacity and bypasses numeric conversion; shared string arguments truncate to capacity-1 and accept empty present text."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1068ab6c",
+       "function": "0x1068ab6c",
+       "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "address": "0x1066bf44",
        "function": "0x1066bee0",
-       "notes": "Writer 0x106c6118 rewrites syssettings.xml using %s.tmp, XML Setting Name/Value entries, close and rename. False result maps to 800 at 0x1066bf48. True result advances version through 0x1066a3c0 and calls replication member at settings+0xec, slot +0x14; its result is ignored. Writer recovery branch 0x1066bfec invokes 0x1066ba04 when writer validity byte is zero."
+       "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066bfec",
+       "function": "0x1066bee0",
+       "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1019911c",
+       "function": "0x10198e54",
+       "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
       },
       {
        "type": "firmware",
@@ -97085,7 +97220,15 @@
        "build": "86.10-80260",
        "address": "0x1066b38c",
        "function": "0x1066b320",
-       "notes": "Successful write callback 0x104b1e48 calls 0x1066b320 at 0x104b1ec4 for R_RDM (not null or R_TrialZPSerial). Under delegate+0x170 mutex sets +0x200=1 and increments +0x204. Calls 0x1067c6ec on delegate+8, which tail-calls event notifier 0x1067c46c. It also calls override hook 0x10557388, optional singleton refresher 0x10707cd4 and property subject 0x1066d22c."
+       "notes": "Success callback104b1e48 calls1066b320 for R_RDM: under delegate+170 mutex increments+204 and sets+200 dirty.1067c6ec(delegate+8)->1067c46c marks source+110 dirty and signals sender10678c50. Worker10679e54->10683da0 dispatch1068406c source v+18; secondary vtable10ed7628+18=1067ab54 forwards v+14=1066b0a0 thunk->1066af90->1066ad04. Propertyset contains CustomerID always; delta UpdateID from+204 when+200 dirty; full additionally UpdateIDX(+20c),ThirdPartyHash(+211). Delta may include those if other dirty flags+208/+210. Flags clear after delta. Ordinary standalone RDM write therefore notifies CustomerID and incremented UpdateID, not RDMValue or R_RDM. This concrete UPnP serializer is not evidence for the distinct WSS topic settingsVersionChanged."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066b418",
+       "function": "0x1066b320",
+       "notes": "1066d22c queues SystemPropertiesChangeEvent through100f14ec: source sysprop initialized1066a684..6d0, key R_RDM, value0/1, secure=false(selector4!=9). Closure1066cdcc copies strings and delivers to registered observers; absent event loop logs/returnsfalse, ignored by write.1066b320 also refreshes override cache10557388(NULL) and optional usage-data singleton10707914->10707cd4: rereads R_CustomerID, refreshes usageDataSharing via10577870. No R_RDM-specific diagnostic-service activation."
       },
       {
        "type": "firmware",
@@ -97093,15 +97236,10 @@
        "build": "86.10-80260",
        "address": "0x104b1ed4",
        "function": "0x104b1e48",
-       "notes": "For fixed R_RDM key, calls 0x10121518, skips R_RadioLocation, R_VolNormMode, R_CrossfadeDuration and R_AirplayIncludeLinked special updates, then calls 0x10110ee0 and leaf 0x103c79b8. Detailed transitive effects of the first two refreshers and observer dispatch remain untraced."
+       "notes": "R_RDM success calls10121518: reads R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), caches+11cd/+11ce; changes clear server-description cache10760d48, notify that service1067c6ec, optionally refresh external servers10741ac4. Then10110ee0 reads R_BrowseByFolderSort: Tracknum/Title/File map global110953e0 to2/0/1; missing/unknown seeds Tracknum using SetString, potentially another settings write/callback. Changed sort refreshes10107dc4, increments share-store+b8 and sends known update backend10117654.103c79b8 is empty leaf. Fixed R_RDM skips RadioLocation/VolNormMode/CrossfadeDuration/AirplayIncludeLinked-specific updates."
       }
      ],
-     "notes": "RDM is the API/key name. Actual diagnostic-access enforcement is not established by this settings-write trace. The delegate is statically constructed, not an unknown runtime-injected vptr.",
-     "todo": [
-      "Established: constructor/vtable/handler chain, fixed-key validation, XML write return domain and successful settings notification are recovered.",
-      "Residual: shared input lexical parsing and full transitive recovery, replication, observer and post-write feature-refresher behavior remain untraced.",
-      "Next step: trace request type-tag-1 validation, 0x1066ba04, settings+0xec slot +0x14, 0x1066d22c, 0x10121518 and 0x10110ee0 to their leaves."
-     ]
+     "notes": "Concrete delegate is installed by104b0e84 at10ed75c4; handler10732e94 receives it at1018e594, slot+3c targets104b0760 and SetString slot+8 targets1066aa24. Observers and replication are asynchronous backend endpoints, not proof of remote delivery or activation of diagnostic access."
     },
     "GetRDM": {
      "description": "Returns RDMValue as 0 or 1 by reading SystemSettings key R_RDM and testing a successfully parsed unsigned integer for nonzero. Missing backend/key, failed lookup or failed numeric parse yields 0 without a SOAP error.",
