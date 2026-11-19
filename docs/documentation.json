@@ -105357,7 +105357,7 @@
      ]
     },
     "ReplaceAccountX": {
-     "description": "Replaces an account's credentials: AccountUDN plus five new fields via impl->v[+0x34].",
+     "description": "Replaces selected fields of an existing account, not the entire credential record. Service descriptor and type select ID/password or OAuth-token/device-ID mode. A zero result constructs NewAccountUDN and attempts reference-store updates even when the shared modifier skipped saving. Only UDN is request-required; omitted optional string buffers are uninitialized despite subsequent strlen calls, so provide all strings (empty for unused fields) for defined input handling.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107329ac",
@@ -105372,27 +105372,9 @@
       "calls": [
        {
         "site": "0x10732c08",
-        "obj": "*(*(sp-0x1260+0x1250)+0x4)",
+        "obj": "*(r3-in+0x4)",
         "slot": 52,
-        "arg4": "sp+0x1b0"
-       },
-       {
-        "site": "0x10732c44",
-        "obj": "vret(*(sp-0x1260+0x125c),+0x28)",
-        "slot": 16,
-        "arg4": "sp+0x120"
-       },
-       {
-        "site": "0x10732c58",
-        "obj": "*(sp-0x1260+0x125c)",
-        "slot": 12,
-        "arg4": "?"
-       },
-       {
-        "site": "0x10732c74",
-        "obj": "*(sp-0x1260+0x125c)",
-        "slot": 20,
-        "arg4": 402
+        "arg4": "AccountUDN"
        }
       ],
       "req_vcalls": [
@@ -105410,7 +105392,7 @@
      },
      "inputs": {
       "AccountUDN": {
-       "description": "Account credential field consumed by impl vfunc +0x34",
+       "description": "Existing account UDN; malformed grammar or absent stored identity gives806.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -105419,50 +105401,81 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 146 bytes (145 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap; consumed by the impl vfunc",
-       "range": "max 145 chars",
-       "special_values": "none observed in this build",
-       "required": "conditional",
-       "default": "absent tolerated - optional lookup via request v[+0x20]",
-       "validation": "optional arg fetched via request v[+0x20]; absent value tolerated, content capped at helper bound",
+       "semantic_type": "account UDN",
+       "format": "Untrimmed tag-7 text with explicit maximum length check.",
+       "unit": "bytes",
+       "accepted_values": "Materialized empty text passes length checks; delegate applies branch-specific nonempty/grammar tests.",
+       "range": "0..144 bytes; longer strings return402, including unused inputs.",
+       "special_values": "Existing account UDN; malformed grammar or absent stored identity gives806.",
+       "required": true,
+       "default": "None; required.",
+       "validation": "Missing UDN returns402. Bad UDN grammar or no stored match returns806.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732a08",
-         "notes": "in-arg access site"
+         "address": "0x10732a44",
+         "function": "0x107329ac",
+         "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f111c0",
-         "notes": "argument name string"
+         "address": "0x10732b2c",
+         "function": "0x107329ac",
+         "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107329ac",
-         "notes": "v+0x20 lookup slot usage in handler"
+         "address": "0x1028c0fc",
+         "function": "0x1028c08c",
+         "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c178",
+         "function": "0x1028c08c",
+         "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c190",
+         "function": "0x1028c08c",
+         "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c314",
+         "function": "0x1028c08c",
+         "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c1f4",
+         "function": "0x1028c08c",
+         "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
         }
        ],
        "notes": null,
        "buf_cap": 146,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `AccountUDN` is parsed then forwarded verbatim to *(*(sp-0x1260+0x1250)+0x4) vfunc +52 (site 0x10732c08) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `AccountUDN` = verbatim forward to impl vfunc +52 (obj *(*(sp-0x1260+0x1250)+0x4), call site 0x10732c08); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete mode selection, mutation and explicit length checks recovered; optional descriptor does not initialize omitted string storage."
        ]
       },
       "NewAccountID": {
-       "description": "Account credential field consumed by impl vfunc +0x34",
+       "description": "Nonempty replacement ID in ID/password mode; ignored in OAuth mode.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -105471,50 +105484,81 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 130 bytes (129 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap; consumed by the impl vfunc",
-       "range": "max 129 chars",
-       "special_values": "none observed in this build",
-       "required": "conditional",
-       "default": "absent tolerated - optional lookup via request v[+0x20]",
-       "validation": "optional arg fetched via request v[+0x20]; absent value tolerated, content capped at helper bound",
+       "semantic_type": "credential byte string",
+       "format": "Untrimmed tag-7 text with explicit maximum length check.",
+       "unit": "bytes",
+       "accepted_values": "Materialized empty text passes length checks; delegate applies branch-specific nonempty/grammar tests.",
+       "range": "0..128 bytes; longer strings return402, including unused inputs.",
+       "special_values": "Nonempty replacement ID in ID/password mode; ignored in OAuth mode.",
+       "required": false,
+       "default": "No initialized default. Absent optional descriptor leaves its stack string indeterminate and later strlen reads it.",
+       "validation": "Descriptor optional flag set, but safe omission is NOT established: supply a materialized string. Mode-specific constraints and lengths apply.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732a30",
-         "notes": "in-arg access site"
+         "address": "0x10732a44",
+         "function": "0x107329ac",
+         "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11298",
-         "notes": "argument name string"
+         "address": "0x10732b2c",
+         "function": "0x107329ac",
+         "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107329ac",
-         "notes": "v+0x20 lookup slot usage in handler"
+         "address": "0x1028c0fc",
+         "function": "0x1028c08c",
+         "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c178",
+         "function": "0x1028c08c",
+         "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c190",
+         "function": "0x1028c08c",
+         "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c314",
+         "function": "0x1028c08c",
+         "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c1f4",
+         "function": "0x1028c08c",
+         "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
         }
        ],
        "notes": null,
        "buf_cap": 130,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `NewAccountID` is parsed then forwarded verbatim to *(*(sp-0x1260+0x1250)+0x4) vfunc +52 (site 0x10732c08) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `NewAccountID` = verbatim forward to impl vfunc +52 (obj *(*(sp-0x1260+0x1250)+0x4), call site 0x10732c08); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete mode selection, mutation and explicit length checks recovered; optional descriptor does not initialize omitted string storage."
        ]
       },
       "NewAccountPassword": {
-       "description": "Account credential field consumed by impl vfunc +0x34",
+       "description": "Nonempty replacement password in ID/password mode; OAuth mode ignores it and clears stored PW.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -105523,50 +105567,81 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "SonosBoolArg",
-       "format": "utf-8 text, buffer cap 66 bytes (65 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "value within the request parse cap; consumed by the impl vfunc",
-       "range": "max 65 chars",
-       "special_values": "none observed in this build",
-       "required": "conditional",
-       "default": "absent tolerated - optional lookup via request v[+0x20]",
-       "validation": "optional arg fetched via request v[+0x20]; absent value tolerated, content capped at helper bound",
+       "semantic_type": "credential byte string",
+       "format": "Untrimmed tag-7 text with explicit maximum length check.",
+       "unit": "bytes",
+       "accepted_values": "Materialized empty text passes length checks; delegate applies branch-specific nonempty/grammar tests.",
+       "range": "0..64 bytes; longer strings return402, including unused inputs.",
+       "special_values": "Nonempty replacement password in ID/password mode; OAuth mode ignores it and clears stored PW.",
+       "required": false,
+       "default": "No initialized default. Absent optional descriptor leaves its stack string indeterminate and later strlen reads it.",
+       "validation": "Descriptor optional flag set, but safe omission is NOT established: supply a materialized string. Mode-specific constraints and lengths apply.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732a60",
-         "notes": "in-arg access site"
+         "address": "0x10732a44",
+         "function": "0x107329ac",
+         "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11200",
-         "notes": "argument name string"
+         "address": "0x10732b2c",
+         "function": "0x107329ac",
+         "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107329ac",
-         "notes": "v+0x20 lookup slot usage in handler"
+         "address": "0x1028c0fc",
+         "function": "0x1028c08c",
+         "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c178",
+         "function": "0x1028c08c",
+         "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c190",
+         "function": "0x1028c08c",
+         "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c314",
+         "function": "0x1028c08c",
+         "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c1f4",
+         "function": "0x1028c08c",
+         "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
         }
        ],
        "notes": null,
        "buf_cap": 66,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `NewAccountPassword` is parsed then forwarded verbatim to *(*(sp-0x1260+0x1250)+0x4) vfunc +52 (site 0x10732c08) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `NewAccountPassword` = verbatim forward to impl vfunc +52 (obj *(*(sp-0x1260+0x1250)+0x4), call site 0x10732c08); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete mode selection, mutation and explicit length checks recovered; optional descriptor does not initialize omitted string storage."
        ]
       },
       "AccountToken": {
-       "description": "Account credential field consumed by impl vfunc +0x34",
+       "description": "Nonempty replacement token in OAuth mode; ignored/preserved in ID/password mode.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -105575,50 +105650,81 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 2050 bytes (2049 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap; consumed by the impl vfunc",
-       "range": "max 2049 chars",
-       "special_values": "none observed in this build",
-       "required": "conditional",
-       "default": "absent tolerated - optional lookup via request v[+0x20]",
-       "validation": "optional arg fetched via request v[+0x20]; absent value tolerated, content capped at helper bound",
+       "semantic_type": "credential byte string",
+       "format": "Untrimmed tag-7 text with explicit maximum length check.",
+       "unit": "bytes",
+       "accepted_values": "Materialized empty text passes length checks; delegate applies branch-specific nonempty/grammar tests.",
+       "range": "0..2048 bytes; longer strings return402, including unused inputs.",
+       "special_values": "Nonempty replacement token in OAuth mode; ignored/preserved in ID/password mode.",
+       "required": false,
+       "default": "No initialized default. Absent optional descriptor leaves its stack string indeterminate and later strlen reads it.",
+       "validation": "Descriptor optional flag set, but safe omission is NOT established: supply a materialized string. Mode-specific constraints and lengths apply.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732a90",
-         "notes": "in-arg access site"
+         "address": "0x10732a44",
+         "function": "0x107329ac",
+         "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11224",
-         "notes": "argument name string"
+         "address": "0x10732b2c",
+         "function": "0x107329ac",
+         "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107329ac",
-         "notes": "v+0x20 lookup slot usage in handler"
+         "address": "0x1028c0fc",
+         "function": "0x1028c08c",
+         "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c178",
+         "function": "0x1028c08c",
+         "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c190",
+         "function": "0x1028c08c",
+         "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c314",
+         "function": "0x1028c08c",
+         "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c1f4",
+         "function": "0x1028c08c",
+         "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
         }
        ],
        "notes": null,
        "buf_cap": 2050,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `AccountToken` is parsed then forwarded verbatim to *(*(sp-0x1260+0x1250)+0x4) vfunc +52 (site 0x10732c08) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `AccountToken` = verbatim forward to impl vfunc +52 (obj *(*(sp-0x1260+0x1250)+0x4), call site 0x10732c08); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete mode selection, mutation and explicit length checks recovered; optional descriptor does not initialize omitted string storage."
        ]
       },
       "AccountKey": {
-       "description": "Account credential field consumed by impl vfunc +0x34",
+       "description": "Replacement key in OAuth mode; empty preserves stored Key. Ignored/preserved in ID/password mode.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -105627,50 +105733,81 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 2050 bytes (2049 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap; consumed by the impl vfunc",
-       "range": "max 2049 chars",
-       "special_values": "none observed in this build",
-       "required": "conditional",
-       "default": "absent tolerated - optional lookup via request v[+0x20]",
-       "validation": "optional arg fetched via request v[+0x20]; absent value tolerated, content capped at helper bound",
+       "semantic_type": "credential byte string",
+       "format": "Untrimmed tag-7 text with explicit maximum length check.",
+       "unit": "bytes",
+       "accepted_values": "Materialized empty text passes length checks; delegate applies branch-specific nonempty/grammar tests.",
+       "range": "0..2048 bytes; longer strings return402, including unused inputs.",
+       "special_values": "Replacement key in OAuth mode; empty preserves stored Key. Ignored/preserved in ID/password mode.",
+       "required": false,
+       "default": "No initialized default. Absent optional descriptor leaves its stack string indeterminate and later strlen reads it.",
+       "validation": "Descriptor optional flag set, but safe omission is NOT established: supply a materialized string. Mode-specific constraints and lengths apply.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732ac0",
-         "notes": "in-arg access site"
+         "address": "0x10732a44",
+         "function": "0x107329ac",
+         "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11234",
-         "notes": "argument name string"
+         "address": "0x10732b2c",
+         "function": "0x107329ac",
+         "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107329ac",
-         "notes": "v+0x20 lookup slot usage in handler"
+         "address": "0x1028c0fc",
+         "function": "0x1028c08c",
+         "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c178",
+         "function": "0x1028c08c",
+         "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c190",
+         "function": "0x1028c08c",
+         "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c314",
+         "function": "0x1028c08c",
+         "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c1f4",
+         "function": "0x1028c08c",
+         "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
         }
        ],
        "notes": null,
        "buf_cap": 2050,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `AccountKey` is parsed then forwarded verbatim to *(*(sp-0x1260+0x1250)+0x4) vfunc +52 (site 0x10732c08) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `AccountKey` = verbatim forward to impl vfunc +52 (obj *(*(sp-0x1260+0x1250)+0x4), call site 0x10732c08); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete mode selection, mutation and explicit length checks recovered; optional descriptor does not initialize omitted string storage."
        ]
       },
       "OAuthDeviceID": {
-       "description": "Account credential field consumed by impl vfunc +0x34",
+       "description": "Nonempty device identity in OAuth mode; determines UID/computed new ID. Ignored/preserved in ID/password mode.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -105679,310 +105816,1360 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 66 bytes (65 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap; consumed by the impl vfunc",
-       "range": "max 65 chars",
-       "special_values": "none observed in this build",
-       "required": "conditional",
-       "default": "absent tolerated - optional lookup via request v[+0x20]",
-       "validation": "optional arg fetched via request v[+0x20]; absent value tolerated, content capped at helper bound",
+       "semantic_type": "credential byte string",
+       "format": "Untrimmed tag-7 text with explicit maximum length check.",
+       "unit": "bytes",
+       "accepted_values": "Materialized empty text passes length checks; delegate applies branch-specific nonempty/grammar tests.",
+       "range": "0..64 bytes; longer strings return402, including unused inputs.",
+       "special_values": "Nonempty device identity in OAuth mode; determines UID/computed new ID. Ignored/preserved in ID/password mode.",
+       "required": false,
+       "default": "No initialized default. Absent optional descriptor leaves its stack string indeterminate and later strlen reads it.",
+       "validation": "Descriptor optional flag set, but safe omission is NOT established: supply a materialized string. Mode-specific constraints and lengths apply.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732af0",
-         "notes": "in-arg access site"
+         "address": "0x10732a44",
+         "function": "0x107329ac",
+         "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11240",
-         "notes": "argument name string"
+         "address": "0x10732b2c",
+         "function": "0x107329ac",
+         "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107329ac",
-         "notes": "v+0x20 lookup slot usage in handler"
+         "address": "0x1028c0fc",
+         "function": "0x1028c08c",
+         "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c178",
+         "function": "0x1028c08c",
+         "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c190",
+         "function": "0x1028c08c",
+         "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c314",
+         "function": "0x1028c08c",
+         "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c1f4",
+         "function": "0x1028c08c",
+         "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
         }
        ],
        "notes": null,
        "buf_cap": 66,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `OAuthDeviceID` is parsed then forwarded verbatim to *(*(sp-0x1260+0x1250)+0x4) vfunc +52 (site 0x10732c08) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `OAuthDeviceID` = verbatim forward to impl vfunc +52 (obj *(*(sp-0x1260+0x1250)+0x4), call site 0x10732c08); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete mode selection, mutation and explicit length checks recovered; optional descriptor does not initialize omitted string storage."
        ]
       }
      },
      "outputs": {
       "NewAccountUDN": {
        "direction": "out",
-       "format": "impl-defined",
+       "format": "SA_RINCON%u_ID, using new supplied or computed ID and canonical account type.",
        "type": "",
        "accepted": "impl-produced",
-       "required": false,
+       "required": true,
        "parse_helper": null,
-       "description": "replacement account UDN",
-       "unit": "n/a",
+       "description": "Constructed replacement UDN, emitted on every normal zero result.",
+       "unit": "bytes",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732c20",
-         "notes": "out-arg name load + req->v[+0x24/+0x28] emit call"
+         "address": "0x10732b2c",
+         "function": "0x107329ac",
+         "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c25c",
+         "function": "0x1028c08c",
+         "notes": "Constructs a fresh temporary identity with new ID and canonical type, then 0x1056f2ac -> 0x1056f254 formats SA_RINCON%u_ID into caller capacity144. Type canonicalization again maps1/2 to51719 and13/14 to51975 (isel 0x7ef74f5e at 0x1028c238); parsed old type is normally already remapped. Does not allocate serial or read back persisted record. Zero after false/no-save array update still constructs new UDN and invokes outer reference updates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b0b54",
+         "function": "0x104b0b04",
+         "notes": "Every zero core result calls member+0x278 0x1027cbf8(oldUDN,newUDN), then member+0x280 0x1037f5b8(oldUDN,newUDN), ignoring both results. First takes mutex+0x170, passes old/new strings to 0x10283998, and only on its zero return runs 0x10279c0c, updates cached LUD+0x7f10/version+0x7f2c and advertises receiver selector5. Second takes mutex+0x30, runs 0x10384490 with operation6 and old/new pointers, and on zero calls 0x1037e554(\"2\",0). These are subsequent local reference-store paths, not part of accounts.xml atomicity; their deeper persistence/event leaves remain identified residuals."
         }
        ],
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "default": "none; written on success",
-       "validation": "emitted via req->v[+0x24/+0x28] response writer vfunc",
-       "accepted_values": "impl-produced"
+       "semantic_type": "account UDN",
+       "range": "At most143 payload bytes plus NUL in output capacity144.",
+       "special_values": "False array update can return0 without storing the replacement, yet still produce this UDN and subsequent reference updates.",
+       "default": "Emitted only on normal zero result.",
+       "validation": "Core output formatter followed by response string writer at0x10732c44; no output on normal nonzero fault.",
+       "accepted_values": "Bounded constructed text, not readback confirmation.",
+       "resolved_findings": [
+        "Output construction is traced independently from conditional persistence; it is not a serial-number allocation."
+       ]
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Missing required UDN returns 402. Five credential descriptors are optional but do not initialize absent stack strings; all undergo strlen before delegation. For defined handling supply materialized strings, including empty unused values. Explicit length and mode-specific credential checks produce the documented faults.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x107329ac",
-        "notes": "wrapper family decode"
+        "address": "0x10732c08",
+        "function": "0x107329ac",
+        "notes": "Delegate primary table 0x10ed75c4 +0x34 = 0x104b0b04. Passes UDN,NewID,PW,Token,Key,OADevID,output buffer in r4..r10 and output capacity144 on stack. Delegate loads account manager +0x26c, adds embedded store +0x118 and calls 0x1028c08c at 0x104b0b3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732a44",
+        "function": "0x107329ac",
+        "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732b2c",
+        "function": "0x107329ac",
+        "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c190",
+        "function": "0x1028c08c",
+        "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c314",
+        "function": "0x1028c08c",
+        "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×2, optional-arg fetch×6, 0x28×1, validate×1, commit×1); member delegates: *(r28+4) v[+?]",
+      "description": "Provide a materialized UDN and all five credential strings for defined buffer handling, even though only UDN descriptor is required. ID/password mode requires nonempty NewID/PW; OAuth mode requires nonempty Token/OAuthDeviceID and accepted device UID syntax. Existing old identity and no different-record new-ID collision are required; no credential authentication is performed by the immediate modification core.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732c08",
         "function": "0x107329ac",
-        "notes": "req-vfunc call map: {'0x20': 6, '0x8': 1, '0x14': 2, '0x28': 1, '0x10': 1, '0xc': 1}"
+        "notes": "Delegate primary table 0x10ed75c4 +0x34 = 0x104b0b04. Passes UDN,NewID,PW,Token,Key,OADevID,output buffer in r4..r10 and output capacity144 on stack. Delegate loads account manager +0x26c, adds embedded store +0x118 and calls 0x1028c08c at 0x104b0b3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732a44",
+        "function": "0x107329ac",
+        "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732b2c",
+        "function": "0x107329ac",
+        "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c0fc",
+        "function": "0x1028c08c",
+        "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c178",
+        "function": "0x1028c08c",
+        "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c190",
+        "function": "0x1028c08c",
+        "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c314",
+        "function": "0x1028c08c",
+        "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570e40",
+        "function": "0x10570e34",
+        "notes": "Strict lookup compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then case-sensitive AccountID; empty ID matches only empty stored ID. Raw 0x548907fe retains bit 0; 0x5495066e clears 0x80, not a shift. Strict flag 1 disables fallback selection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c1f4",
+        "function": "0x1028c08c",
+        "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102891ec",
+        "function": "0x102890b0",
+        "notes": "Callback-enabled 0x10289258 saves accounts.xml, default /opt/settings/accounts.xml with configured roots, via 0x10508988. Main success increments Version +0xd4, updates cached LUD +0xb8 and advertises selector 11 through receiver 0x10efcf88/+0x14 = 0x10652074 with false advertisement flag. NextSerialNum is supplied unchanged by these actions. Writer tests 0x10285878 and can queue 0x10285338 -> 0x100ba320 even on failure. Serialization/close failure may attempt root-only fallback replacement and still return failure; fflush/fsync results are ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c388",
+        "function": "0x1028c08c",
+        "notes": "After zero modification, changed ID calls 0x104b16b4(store member+0x18,type,newID). True result calls 0x1028bdc0 -> 0x1028b760 with set-Flags mask2 (Pending report), potentially a second save/cache refresh. Nested result is ignored before constructing output. No new account-operation add/del publication in this immediate core. Remote registration/reporting leaves remain shared residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c25c",
+        "function": "0x1028c08c",
+        "notes": "Constructs a fresh temporary identity with new ID and canonical type, then 0x1056f2ac -> 0x1056f254 formats SA_RINCON%u_ID into caller capacity144. Type canonicalization again maps1/2 to51719 and13/14 to51975 (isel 0x7ef74f5e at 0x1028c238); parsed old type is normally already remapped. Does not allocate serial or read back persisted record. Zero after false/no-save array update still constructs new UDN and invokes outer reference updates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0b54",
+        "function": "0x104b0b04",
+        "notes": "Every zero core result calls member+0x278 0x1027cbf8(oldUDN,newUDN), then member+0x280 0x1037f5b8(oldUDN,newUDN), ignoring both results. First takes mutex+0x170, passes old/new strings to 0x10283998, and only on its zero return runs 0x10279c0c, updates cached LUD+0x7f10/version+0x7f2c and advertises receiver selector5. Second takes mutex+0x30, runs 0x10384490 with operation6 and old/new pointers, and on zero calls 0x1037e554(\"2\",0). These are subsequent local reference-store paths, not part of accounts.xml atomicity; their deeper persistence/event leaves remain identified residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028884c",
+        "function": "0x102887e0",
+        "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10508a54",
+        "function": "0x10508988",
+        "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101bb690",
+        "function": "0x101bb1d0",
+        "notes": "Queues MusicAccountChangedEvent. Incoming r4 is unused; this event has no password/account payload. Constructs empty payload text, dispatches monitoring paths 0x10bbca78 and 0x10bbd280, and queues an event-loop callable via 0x100f14ec. Source ptr/length comes from emitter+4/+8, not the account. No-event-loop branch reports the event through 0x10bbd098 instead of scheduling that callable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b82b8",
+        "function": "0x101b8048",
+        "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1065215c",
+        "function": "0x10652074",
+        "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×2, optional-arg fetch×6, 0x28×1, validate×1, commit×1); member delegates: *(r28+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r28+4) v[+?]",
+      "description": "Depends on descriptor credential classification, old account snapshot, normalized type lookup, ID collision, copied record state, account XML clocks/version and two subsequent reference stores. Optional missing strings can expose stale stack contents before delegate; they are not a reliable empty default.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732c08",
         "function": "0x107329ac",
-        "notes": "member vfunc calls: ['*(r28+4) v[+?]']"
+        "notes": "Delegate primary table 0x10ed75c4 +0x34 = 0x104b0b04. Passes UDN,NewID,PW,Token,Key,OADevID,output buffer in r4..r10 and output capacity144 on stack. Delegate loads account manager +0x26c, adds embedded store +0x118 and calls 0x1028c08c at 0x104b0b3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732a44",
+        "function": "0x107329ac",
+        "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732b2c",
+        "function": "0x107329ac",
+        "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c0fc",
+        "function": "0x1028c08c",
+        "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c178",
+        "function": "0x1028c08c",
+        "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c190",
+        "function": "0x1028c08c",
+        "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c314",
+        "function": "0x1028c08c",
+        "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570e40",
+        "function": "0x10570e34",
+        "notes": "Strict lookup compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then case-sensitive AccountID; empty ID matches only empty stored ID. Raw 0x548907fe retains bit 0; 0x5495066e clears 0x80, not a shift. Strict flag 1 disables fallback selection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c1f4",
+        "function": "0x1028c08c",
+        "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102891ec",
+        "function": "0x102890b0",
+        "notes": "Callback-enabled 0x10289258 saves accounts.xml, default /opt/settings/accounts.xml with configured roots, via 0x10508988. Main success increments Version +0xd4, updates cached LUD +0xb8 and advertises selector 11 through receiver 0x10efcf88/+0x14 = 0x10652074 with false advertisement flag. NextSerialNum is supplied unchanged by these actions. Writer tests 0x10285878 and can queue 0x10285338 -> 0x100ba320 even on failure. Serialization/close failure may attempt root-only fallback replacement and still return failure; fflush/fsync results are ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c388",
+        "function": "0x1028c08c",
+        "notes": "After zero modification, changed ID calls 0x104b16b4(store member+0x18,type,newID). True result calls 0x1028bdc0 -> 0x1028b760 with set-Flags mask2 (Pending report), potentially a second save/cache refresh. Nested result is ignored before constructing output. No new account-operation add/del publication in this immediate core. Remote registration/reporting leaves remain shared residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c25c",
+        "function": "0x1028c08c",
+        "notes": "Constructs a fresh temporary identity with new ID and canonical type, then 0x1056f2ac -> 0x1056f254 formats SA_RINCON%u_ID into caller capacity144. Type canonicalization again maps1/2 to51719 and13/14 to51975 (isel 0x7ef74f5e at 0x1028c238); parsed old type is normally already remapped. Does not allocate serial or read back persisted record. Zero after false/no-save array update still constructs new UDN and invokes outer reference updates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0b54",
+        "function": "0x104b0b04",
+        "notes": "Every zero core result calls member+0x278 0x1027cbf8(oldUDN,newUDN), then member+0x280 0x1037f5b8(oldUDN,newUDN), ignoring both results. First takes mutex+0x170, passes old/new strings to 0x10283998, and only on its zero return runs 0x10279c0c, updates cached LUD+0x7f10/version+0x7f2c and advertises receiver selector5. Second takes mutex+0x30, runs 0x10384490 with operation6 and old/new pointers, and on zero calls 0x1037e554(\"2\",0). These are subsequent local reference-store paths, not part of accounts.xml atomicity; their deeper persistence/event leaves remain identified residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028884c",
+        "function": "0x102887e0",
+        "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10508a54",
+        "function": "0x10508988",
+        "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101bb690",
+        "function": "0x101bb1d0",
+        "notes": "Queues MusicAccountChangedEvent. Incoming r4 is unused; this event has no password/account payload. Constructs empty payload text, dispatches monitoring paths 0x10bbca78 and 0x10bbd280, and queues an event-loop callable via 0x100f14ec. Source ptr/length comes from emitter+4/+8, not the account. No-event-loop branch reports the event through 0x10bbd098 instead of scheduling that callable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b82b8",
+        "function": "0x101b8048",
+        "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1065215c",
+        "function": "0x10652074",
+        "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r28+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: Depends on descriptor credential classification, old account snapshot, normalized type lookup, ID collision, copied record state, account XML clocks/version and two subsequent reference stores. Optional missing strings can expose stale stack contents before delegate; they are not a reliable empty default.",
+       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects. Also finish 0x104b16b4 registration/reporting and UDN-reference leaves 0x10283998/0x10279c0c, 0x10384490/0x1037e554 and their concrete receivers.",
+       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: *(r28+4) v[+?] (call-derived member-method semantics)",
+       "description": "ID/password mode changes only ID/PW; OAuth mode changes computed ID, clears PW, updates device ID/token and nonempty key. Preserves serial/nickname/metadata and does not allocate serial. Conditional account save may be followed by ignored-status pending-report save and two independent UDN-reference update attempts. This is not an atomic replacement across stores.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "address": "0x10732c08",
          "function": "0x107329ac",
-         "notes": "delegate map ['*(r28+4) v[+?]']; notify-family calls []"
+         "notes": "Delegate primary table 0x10ed75c4 +0x34 = 0x104b0b04. Passes UDN,NewID,PW,Token,Key,OADevID,output buffer in r4..r10 and output capacity144 on stack. Delegate loads account manager +0x26c, adds embedded store +0x118 and calls 0x1028c08c at 0x104b0b3c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10732a44",
+         "function": "0x107329ac",
+         "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10732b2c",
+         "function": "0x107329ac",
+         "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c0fc",
+         "function": "0x1028c08c",
+         "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c178",
+         "function": "0x1028c08c",
+         "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c190",
+         "function": "0x1028c08c",
+         "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c314",
+         "function": "0x1028c08c",
+         "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10570e40",
+         "function": "0x10570e34",
+         "notes": "Strict lookup compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then case-sensitive AccountID; empty ID matches only empty stored ID. Raw 0x548907fe retains bit 0; 0x5495066e clears 0x80, not a shift. Strict flag 1 disables fallback selection."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c1f4",
+         "function": "0x1028c08c",
+         "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102891ec",
+         "function": "0x102890b0",
+         "notes": "Callback-enabled 0x10289258 saves accounts.xml, default /opt/settings/accounts.xml with configured roots, via 0x10508988. Main success increments Version +0xd4, updates cached LUD +0xb8 and advertises selector 11 through receiver 0x10efcf88/+0x14 = 0x10652074 with false advertisement flag. NextSerialNum is supplied unchanged by these actions. Writer tests 0x10285878 and can queue 0x10285338 -> 0x100ba320 even on failure. Serialization/close failure may attempt root-only fallback replacement and still return failure; fflush/fsync results are ignored."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c388",
+         "function": "0x1028c08c",
+         "notes": "After zero modification, changed ID calls 0x104b16b4(store member+0x18,type,newID). True result calls 0x1028bdc0 -> 0x1028b760 with set-Flags mask2 (Pending report), potentially a second save/cache refresh. Nested result is ignored before constructing output. No new account-operation add/del publication in this immediate core. Remote registration/reporting leaves remain shared residuals."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c25c",
+         "function": "0x1028c08c",
+         "notes": "Constructs a fresh temporary identity with new ID and canonical type, then 0x1056f2ac -> 0x1056f254 formats SA_RINCON%u_ID into caller capacity144. Type canonicalization again maps1/2 to51719 and13/14 to51975 (isel 0x7ef74f5e at 0x1028c238); parsed old type is normally already remapped. Does not allocate serial or read back persisted record. Zero after false/no-save array update still constructs new UDN and invokes outer reference updates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b0b54",
+         "function": "0x104b0b04",
+         "notes": "Every zero core result calls member+0x278 0x1027cbf8(oldUDN,newUDN), then member+0x280 0x1037f5b8(oldUDN,newUDN), ignoring both results. First takes mutex+0x170, passes old/new strings to 0x10283998, and only on its zero return runs 0x10279c0c, updates cached LUD+0x7f10/version+0x7f2c and advertises receiver selector5. Second takes mutex+0x30, runs 0x10384490 with operation6 and old/new pointers, and on zero calls 0x1037e554(\"2\",0). These are subsequent local reference-store paths, not part of accounts.xml atomicity; their deeper persistence/event leaves remain identified residuals."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028884c",
+         "function": "0x102887e0",
+         "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10508a54",
+         "function": "0x10508988",
+         "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101bb690",
+         "function": "0x101bb1d0",
+         "notes": "Queues MusicAccountChangedEvent. Incoming r4 is unused; this event has no password/account payload. Constructs empty payload text, dispatches monitoring paths 0x10bbca78 and 0x10bbd280, and queues an event-loop callable via 0x100f14ec. Source ptr/length comes from emitter+4/+8, not the account. No-event-loop branch reports the event through 0x10bbd098 instead of scheduling that callable."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101b82b8",
+         "function": "0x101b8048",
+         "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1065215c",
+         "function": "0x10652074",
+         "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r28+4) v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: ID/password mode changes only ID/PW; OAuth mode changes computed ID, clears PW, updates device ID/token and nonempty key. Preserves serial/nickname/metadata and does not allocate serial. Conditional account save may be followed by ignored-status pending-report save and two independent UDN-reference update attempts. This is not an atomic replacement across stores.",
+        "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects. Also finish 0x104b16b4 registration/reporting and UDN-reference leaves 0x10283998/0x10279c0c, 0x10384490/0x1037e554 and their concrete receivers.",
+        "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "True account saves advertise selector11 version/LUD and can queue local MusicAccountChangedEvent on cache differences; optional pending-report save may repeat this. Reference helperA advertises selector5 after its own successful operation, independently of SOAP result. Reference helperB calls 0x1037e554(\"2\",0) only on its own success. No immediate remote login or transport credential exchange is established.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732c08",
         "function": "0x107329ac",
-        "notes": "bl call scan: notify-family sites = []"
+        "notes": "Delegate primary table 0x10ed75c4 +0x34 = 0x104b0b04. Passes UDN,NewID,PW,Token,Key,OADevID,output buffer in r4..r10 and output capacity144 on stack. Delegate loads account manager +0x26c, adds embedded store +0x118 and calls 0x1028c08c at 0x104b0b3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732a44",
+        "function": "0x107329ac",
+        "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732b2c",
+        "function": "0x107329ac",
+        "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c0fc",
+        "function": "0x1028c08c",
+        "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c178",
+        "function": "0x1028c08c",
+        "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c190",
+        "function": "0x1028c08c",
+        "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c314",
+        "function": "0x1028c08c",
+        "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570e40",
+        "function": "0x10570e34",
+        "notes": "Strict lookup compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then case-sensitive AccountID; empty ID matches only empty stored ID. Raw 0x548907fe retains bit 0; 0x5495066e clears 0x80, not a shift. Strict flag 1 disables fallback selection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c1f4",
+        "function": "0x1028c08c",
+        "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102891ec",
+        "function": "0x102890b0",
+        "notes": "Callback-enabled 0x10289258 saves accounts.xml, default /opt/settings/accounts.xml with configured roots, via 0x10508988. Main success increments Version +0xd4, updates cached LUD +0xb8 and advertises selector 11 through receiver 0x10efcf88/+0x14 = 0x10652074 with false advertisement flag. NextSerialNum is supplied unchanged by these actions. Writer tests 0x10285878 and can queue 0x10285338 -> 0x100ba320 even on failure. Serialization/close failure may attempt root-only fallback replacement and still return failure; fflush/fsync results are ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c388",
+        "function": "0x1028c08c",
+        "notes": "After zero modification, changed ID calls 0x104b16b4(store member+0x18,type,newID). True result calls 0x1028bdc0 -> 0x1028b760 with set-Flags mask2 (Pending report), potentially a second save/cache refresh. Nested result is ignored before constructing output. No new account-operation add/del publication in this immediate core. Remote registration/reporting leaves remain shared residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c25c",
+        "function": "0x1028c08c",
+        "notes": "Constructs a fresh temporary identity with new ID and canonical type, then 0x1056f2ac -> 0x1056f254 formats SA_RINCON%u_ID into caller capacity144. Type canonicalization again maps1/2 to51719 and13/14 to51975 (isel 0x7ef74f5e at 0x1028c238); parsed old type is normally already remapped. Does not allocate serial or read back persisted record. Zero after false/no-save array update still constructs new UDN and invokes outer reference updates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0b54",
+        "function": "0x104b0b04",
+        "notes": "Every zero core result calls member+0x278 0x1027cbf8(oldUDN,newUDN), then member+0x280 0x1037f5b8(oldUDN,newUDN), ignoring both results. First takes mutex+0x170, passes old/new strings to 0x10283998, and only on its zero return runs 0x10279c0c, updates cached LUD+0x7f10/version+0x7f2c and advertises receiver selector5. Second takes mutex+0x30, runs 0x10384490 with operation6 and old/new pointers, and on zero calls 0x1037e554(\"2\",0). These are subsequent local reference-store paths, not part of accounts.xml atomicity; their deeper persistence/event leaves remain identified residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028884c",
+        "function": "0x102887e0",
+        "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10508a54",
+        "function": "0x10508988",
+        "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101bb690",
+        "function": "0x101bb1d0",
+        "notes": "Queues MusicAccountChangedEvent. Incoming r4 is unused; this event has no password/account payload. Constructs empty payload text, dispatches monitoring paths 0x10bbca78 and 0x10bbd280, and queues an event-loop callable via 0x100f14ec. Source ptr/length comes from emitter+4/+8, not the account. No-event-loop branch reports the event through 0x10bbd098 instead of scheduling that callable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b82b8",
+        "function": "0x101b8048",
+        "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1065215c",
+        "function": "0x10652074",
+        "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: True account saves advertise selector11 version/LUD and can queue local MusicAccountChangedEvent on cache differences; optional pending-report save may repeat this. Reference helperA advertises selector5 after its own successful operation, independently of SOAP result. Reference helperB calls 0x1037e554(\"2\",0) only on its own success. No immediate remote login or transport credential exchange is established.",
+       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects. Also finish 0x104b16b4 registration/reporting and UDN-reference leaves 0x10283998/0x10279c0c, 0x10384490/0x1037e554 and their concrete receivers.",
+       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r28+4) v[+?]",
+      "description": "Validate materialized inputs/lengths, parse old UDN, choose mode, enforce branch prerequisites, look up old record/check new-ID collision, modify and optionally save. After zero: optional pending-report mutation, output construction, then independent reference attempts. Any first modifier nonzero bypasses output and reference attempts; later nested statuses are ignored. Omitted optional strings can instead cause undefined stack reads before this sequence completes.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732c08",
         "function": "0x107329ac",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r28+4) v[+?]']"
+        "notes": "Delegate primary table 0x10ed75c4 +0x34 = 0x104b0b04. Passes UDN,NewID,PW,Token,Key,OADevID,output buffer in r4..r10 and output capacity144 on stack. Delegate loads account manager +0x26c, adds embedded store +0x118 and calls 0x1028c08c at 0x104b0b3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732a44",
+        "function": "0x107329ac",
+        "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732b2c",
+        "function": "0x107329ac",
+        "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c0fc",
+        "function": "0x1028c08c",
+        "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c178",
+        "function": "0x1028c08c",
+        "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c190",
+        "function": "0x1028c08c",
+        "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c314",
+        "function": "0x1028c08c",
+        "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570e40",
+        "function": "0x10570e34",
+        "notes": "Strict lookup compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then case-sensitive AccountID; empty ID matches only empty stored ID. Raw 0x548907fe retains bit 0; 0x5495066e clears 0x80, not a shift. Strict flag 1 disables fallback selection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c1f4",
+        "function": "0x1028c08c",
+        "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102891ec",
+        "function": "0x102890b0",
+        "notes": "Callback-enabled 0x10289258 saves accounts.xml, default /opt/settings/accounts.xml with configured roots, via 0x10508988. Main success increments Version +0xd4, updates cached LUD +0xb8 and advertises selector 11 through receiver 0x10efcf88/+0x14 = 0x10652074 with false advertisement flag. NextSerialNum is supplied unchanged by these actions. Writer tests 0x10285878 and can queue 0x10285338 -> 0x100ba320 even on failure. Serialization/close failure may attempt root-only fallback replacement and still return failure; fflush/fsync results are ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c388",
+        "function": "0x1028c08c",
+        "notes": "After zero modification, changed ID calls 0x104b16b4(store member+0x18,type,newID). True result calls 0x1028bdc0 -> 0x1028b760 with set-Flags mask2 (Pending report), potentially a second save/cache refresh. Nested result is ignored before constructing output. No new account-operation add/del publication in this immediate core. Remote registration/reporting leaves remain shared residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c25c",
+        "function": "0x1028c08c",
+        "notes": "Constructs a fresh temporary identity with new ID and canonical type, then 0x1056f2ac -> 0x1056f254 formats SA_RINCON%u_ID into caller capacity144. Type canonicalization again maps1/2 to51719 and13/14 to51975 (isel 0x7ef74f5e at 0x1028c238); parsed old type is normally already remapped. Does not allocate serial or read back persisted record. Zero after false/no-save array update still constructs new UDN and invokes outer reference updates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0b54",
+        "function": "0x104b0b04",
+        "notes": "Every zero core result calls member+0x278 0x1027cbf8(oldUDN,newUDN), then member+0x280 0x1037f5b8(oldUDN,newUDN), ignoring both results. First takes mutex+0x170, passes old/new strings to 0x10283998, and only on its zero return runs 0x10279c0c, updates cached LUD+0x7f10/version+0x7f2c and advertises receiver selector5. Second takes mutex+0x30, runs 0x10384490 with operation6 and old/new pointers, and on zero calls 0x1037e554(\"2\",0). These are subsequent local reference-store paths, not part of accounts.xml atomicity; their deeper persistence/event leaves remain identified residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028884c",
+        "function": "0x102887e0",
+        "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10508a54",
+        "function": "0x10508988",
+        "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101bb690",
+        "function": "0x101bb1d0",
+        "notes": "Queues MusicAccountChangedEvent. Incoming r4 is unused; this event has no password/account payload. Constructs empty payload text, dispatches monitoring paths 0x10bbca78 and 0x10bbd280, and queues an event-loop callable via 0x100f14ec. Source ptr/length comes from emitter+4/+8, not the account. No-event-loop branch reports the event through 0x10bbd098 instead of scheduling that callable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b82b8",
+        "function": "0x101b8048",
+        "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1065215c",
+        "function": "0x10652074",
+        "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r28+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: Validate materialized inputs/lengths, parse old UDN, choose mode, enforce branch prerequisites, look up old record/check new-ID collision, modify and optionally save. After zero: optional pending-report mutation, output construction, then independent reference attempts. Any first modifier nonzero bypasses output and reference attempts; later nested statuses are ignored. Omitted optional strings can instead cause undefined stack reads before this sequence completes.",
+       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects. Also finish 0x104b16b4 registration/reporting and UDN-reference leaves 0x10283998/0x10279c0c, 0x10384490/0x1037e554 and their concrete receivers.",
+       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "For initialized materialized string inputs, normal synchronous domain0/402/806/809/810. 402: missing required UDN, explicit overlength, missing mode-specific nonempty credentials, or malformed long OAuthDeviceID. 806: invalid UDN, no old record or new-ID collision. 810: false initial snapshot read. 809: false first account writer. Zero includes skipped-save false array update and ignores later pending-report/reference failures; emits NewAccountUDN. Omitted optional strings leave uninitialized buffers consumed by strlen; neither deterministic SOAP status nor memory-safe completion can be promised for that path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732c08",
         "function": "0x107329ac",
-        "notes": "commit/fault slot usage: {'0x20': 6, '0x8': 1, '0x14': 2, '0x28': 1, '0x10': 1, '0xc': 1}"
+        "notes": "Delegate primary table 0x10ed75c4 +0x34 = 0x104b0b04. Passes UDN,NewID,PW,Token,Key,OADevID,output buffer in r4..r10 and output capacity144 on stack. Delegate loads account manager +0x26c, adds embedded store +0x118 and calls 0x1028c08c at 0x104b0b3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732a44",
+        "function": "0x107329ac",
+        "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732b2c",
+        "function": "0x107329ac",
+        "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c0fc",
+        "function": "0x1028c08c",
+        "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c178",
+        "function": "0x1028c08c",
+        "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c190",
+        "function": "0x1028c08c",
+        "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c314",
+        "function": "0x1028c08c",
+        "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570e40",
+        "function": "0x10570e34",
+        "notes": "Strict lookup compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then case-sensitive AccountID; empty ID matches only empty stored ID. Raw 0x548907fe retains bit 0; 0x5495066e clears 0x80, not a shift. Strict flag 1 disables fallback selection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c1f4",
+        "function": "0x1028c08c",
+        "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102891ec",
+        "function": "0x102890b0",
+        "notes": "Callback-enabled 0x10289258 saves accounts.xml, default /opt/settings/accounts.xml with configured roots, via 0x10508988. Main success increments Version +0xd4, updates cached LUD +0xb8 and advertises selector 11 through receiver 0x10efcf88/+0x14 = 0x10652074 with false advertisement flag. NextSerialNum is supplied unchanged by these actions. Writer tests 0x10285878 and can queue 0x10285338 -> 0x100ba320 even on failure. Serialization/close failure may attempt root-only fallback replacement and still return failure; fflush/fsync results are ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c388",
+        "function": "0x1028c08c",
+        "notes": "After zero modification, changed ID calls 0x104b16b4(store member+0x18,type,newID). True result calls 0x1028bdc0 -> 0x1028b760 with set-Flags mask2 (Pending report), potentially a second save/cache refresh. Nested result is ignored before constructing output. No new account-operation add/del publication in this immediate core. Remote registration/reporting leaves remain shared residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c25c",
+        "function": "0x1028c08c",
+        "notes": "Constructs a fresh temporary identity with new ID and canonical type, then 0x1056f2ac -> 0x1056f254 formats SA_RINCON%u_ID into caller capacity144. Type canonicalization again maps1/2 to51719 and13/14 to51975 (isel 0x7ef74f5e at 0x1028c238); parsed old type is normally already remapped. Does not allocate serial or read back persisted record. Zero after false/no-save array update still constructs new UDN and invokes outer reference updates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0b54",
+        "function": "0x104b0b04",
+        "notes": "Every zero core result calls member+0x278 0x1027cbf8(oldUDN,newUDN), then member+0x280 0x1037f5b8(oldUDN,newUDN), ignoring both results. First takes mutex+0x170, passes old/new strings to 0x10283998, and only on its zero return runs 0x10279c0c, updates cached LUD+0x7f10/version+0x7f2c and advertises receiver selector5. Second takes mutex+0x30, runs 0x10384490 with operation6 and old/new pointers, and on zero calls 0x1037e554(\"2\",0). These are subsequent local reference-store paths, not part of accounts.xml atomicity; their deeper persistence/event leaves remain identified residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028884c",
+        "function": "0x102887e0",
+        "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10508a54",
+        "function": "0x10508988",
+        "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101bb690",
+        "function": "0x101bb1d0",
+        "notes": "Queues MusicAccountChangedEvent. Incoming r4 is unused; this event has no password/account payload. Constructs empty payload text, dispatches monitoring paths 0x10bbca78 and 0x10bbd280, and queues an event-loop callable via 0x100f14ec. Source ptr/length comes from emitter+4/+8, not the account. No-event-loop branch reports the event through 0x10bbd098 instead of scheduling that callable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b82b8",
+        "function": "0x101b8048",
+        "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1065215c",
+        "function": "0x10652074",
+        "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10732b48",
+       "code": null,
+       "code_expr": "402 on request validation failure; otherwise the documented concrete delegate status."
+      },
+      {
+       "site": "0x10732c74",
        "code": 402,
-       "code_expr": "const"
+       "code_expr": "Missing required UDN materialization."
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x10732b48"
-       ],
+       "meaning": "Required UDN missing, materialized input exceeds explicit limit, mode-required credential empty, or long OAuthDeviceID UID syntax rejected.",
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "Required UDN missing, materialized input exceeds explicit limit, mode-required credential empty, or long OAuthDeviceID UID syntax rejected.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107329ac",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x107329ac",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x107329ac",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x107329ac",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "observable": [
-        {
-         "op": "recorded-impl",
-         "result": "ReplaceAccountX",
-         "basis": "disassembled impl body + store-vfunc mapping",
-         "provenance": "disas0x10e97e10"
-        }
-       ],
-       "domain_note": "domain fully bounded: impl 0x1017fbe0 exits=[-900, 8, 28, 936]; impl result in r3 -> req v[+0x14] fault code; CR0.eq = success",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x10732b48).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1066a788",
-         "notes": "sp_impl {800,811,812}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1028ef24",
-         "notes": "accountsmgr update {803,806,809,810}"
-        }
-       ],
-       "conditions": [
-        {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1066a788",
-           "notes": "sp_impl {800,811,812}"
+           "address": "0x10732a44",
+           "function": "0x107329ac",
+           "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1028ef24",
-           "notes": "accountsmgr update {803,806,809,810}"
+           "address": "0x10732b2c",
+           "function": "0x107329ac",
+           "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028c190",
+           "function": "0x1028c08c",
+           "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028c314",
+           "function": "0x1028c08c",
+           "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x10732b48",
+        "0x10732c74"
        ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x1028ef24 emits constant set {553, 564, 592, 599, 611, 635, 636, 647, 648, 684, 688, 696, 803, 806, 809, 810} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10732a44",
+         "function": "0x107329ac",
+         "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10732b2c",
+         "function": "0x107329ac",
+         "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c190",
+         "function": "0x1028c08c",
+         "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c314",
+         "function": "0x1028c08c",
+         "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+        }
+       ]
+      },
+      {
+       "code": 806,
+       "meaning": "Malformed old UDN, missing strict old record, or another record matches changed new ID.",
+       "conditions": [
+        {
+         "description": "Malformed old UDN, missing strict old record, or another record matches changed new ID.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028c0fc",
+           "function": "0x1028c08c",
+           "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10570e40",
+           "function": "0x10570e34",
+           "notes": "Strict lookup compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then case-sensitive AccountID; empty ID matches only empty stored ID. Raw 0x548907fe retains bit 0; 0x5495066e clears 0x80, not a shift. Strict flag 1 disables fallback selection."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028c1f4",
+           "function": "0x1028c08c",
+           "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [
+        "0x10732b48"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c0fc",
+         "function": "0x1028c08c",
+         "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10570e40",
+         "function": "0x10570e34",
+         "notes": "Strict lookup compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then case-sensitive AccountID; empty ID matches only empty stored ID. Raw 0x548907fe retains bit 0; 0x5495066e clears 0x80, not a shift. Strict flag 1 disables fallback selection."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c1f4",
+         "function": "0x1028c08c",
+         "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+        }
+       ]
+      },
+      {
+       "code": 809,
+       "meaning": "First accounts.xml save returned false; later optional saves/reference statuses are ignored.",
+       "conditions": [
+        {
+         "description": "First accounts.xml save returned false; later optional saves/reference statuses are ignored.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028c1f4",
+           "function": "0x1028c08c",
+           "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102891ec",
+           "function": "0x102890b0",
+           "notes": "Callback-enabled 0x10289258 saves accounts.xml, default /opt/settings/accounts.xml with configured roots, via 0x10508988. Main success increments Version +0xd4, updates cached LUD +0xb8 and advertises selector 11 through receiver 0x10efcf88/+0x14 = 0x10652074 with false advertisement flag. NextSerialNum is supplied unchanged by these actions. Writer tests 0x10285878 and can queue 0x10285338 -> 0x100ba320 even on failure. Serialization/close failure may attempt root-only fallback replacement and still return failure; fflush/fsync results are ignored."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028c388",
+           "function": "0x1028c08c",
+           "notes": "After zero modification, changed ID calls 0x104b16b4(store member+0x18,type,newID). True result calls 0x1028bdc0 -> 0x1028b760 with set-Flags mask2 (Pending report), potentially a second save/cache refresh. Nested result is ignored before constructing output. No new account-operation add/del publication in this immediate core. Remote registration/reporting leaves remain shared residuals."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104b0b54",
+           "function": "0x104b0b04",
+           "notes": "Every zero core result calls member+0x278 0x1027cbf8(oldUDN,newUDN), then member+0x280 0x1037f5b8(oldUDN,newUDN), ignoring both results. First takes mutex+0x170, passes old/new strings to 0x10283998, and only on its zero return runs 0x10279c0c, updates cached LUD+0x7f10/version+0x7f2c and advertises receiver selector5. Second takes mutex+0x30, runs 0x10384490 with operation6 and old/new pointers, and on zero calls 0x1037e554(\"2\",0). These are subsequent local reference-store paths, not part of accounts.xml atomicity; their deeper persistence/event leaves remain identified residuals."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [
+        "0x10732b48"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c1f4",
+         "function": "0x1028c08c",
+         "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102891ec",
+         "function": "0x102890b0",
+         "notes": "Callback-enabled 0x10289258 saves accounts.xml, default /opt/settings/accounts.xml with configured roots, via 0x10508988. Main success increments Version +0xd4, updates cached LUD +0xb8 and advertises selector 11 through receiver 0x10efcf88/+0x14 = 0x10652074 with false advertisement flag. NextSerialNum is supplied unchanged by these actions. Writer tests 0x10285878 and can queue 0x10285338 -> 0x100ba320 even on failure. Serialization/close failure may attempt root-only fallback replacement and still return failure; fflush/fsync results are ignored."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c388",
+         "function": "0x1028c08c",
+         "notes": "After zero modification, changed ID calls 0x104b16b4(store member+0x18,type,newID). True result calls 0x1028bdc0 -> 0x1028b760 with set-Flags mask2 (Pending report), potentially a second save/cache refresh. Nested result is ignored before constructing output. No new account-operation add/del publication in this immediate core. Remote registration/reporting leaves remain shared residuals."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b0b54",
+         "function": "0x104b0b04",
+         "notes": "Every zero core result calls member+0x278 0x1027cbf8(oldUDN,newUDN), then member+0x280 0x1037f5b8(oldUDN,newUDN), ignoring both results. First takes mutex+0x170, passes old/new strings to 0x10283998, and only on its zero return runs 0x10279c0c, updates cached LUD+0x7f10/version+0x7f2c and advertises receiver selector5. Second takes mutex+0x30, runs 0x10384490 with operation6 and old/new pointers, and on zero calls 0x1037e554(\"2\",0). These are subsequent local reference-store paths, not part of accounts.xml atomicity; their deeper persistence/event leaves remain identified residuals."
+        }
+       ]
+      },
+      {
+       "code": 810,
+       "meaning": "Initial accounts snapshot reader returned false.",
+       "conditions": [
+        {
+         "description": "Initial accounts snapshot reader returned false.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028c1f4",
+           "function": "0x1028c08c",
+           "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [
+        "0x10732b48"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c1f4",
+         "function": "0x1028c08c",
+         "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+        }
        ]
       }
      ],
@@ -105992,29 +107179,152 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x10732c08",
        "function": "0x107329ac",
-       "address": "0x107329ac",
-       "notes": "action wrapper handler"
+       "notes": "Delegate primary table 0x10ed75c4 +0x34 = 0x104b0b04. Passes UDN,NewID,PW,Token,Key,OADevID,output buffer in r4..r10 and output capacity144 on stack. Delegate loads account manager +0x26c, adds embedded store +0x118 and calls 0x1028c08c at 0x104b0b3c."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11180",
-       "notes": "action dispatch table entry"
+       "address": "0x10732a44",
+       "function": "0x107329ac",
+       "notes": "Only AccountUDN remains required. Five credential descriptors explicitly get optional byte +0x30=1 after setup at 0x10732a44/74/aa4/ad4/b04. Unlike Refresh numeric UID, their stack buffers are NOT initialized: only NewAccountUDN output gets memset at 0x107329ec. 0x1056157c merely registers buffer pointers. Validator 0x10730414 skips copy/finalization for absent arguments and accepts +0x30 nonzero. Thus omitted optional strings remain indeterminate, yet unconditional strlen checks at 0x10732b84/b94/ba4/bb4/bc4 read them. Empty materialized strings are safe; omission is not a defined empty-string default."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1017fbe0",
-       "notes": "shared manager secondary-base impl, slot +0x34 (thunk)"
+       "address": "0x10732b2c",
+       "function": "0x107329ac",
+       "notes": "Explicit maximum payload lengths are AccountUDN144, NewAccountID128, NewAccountPassword64, AccountToken2048, AccountKey2048, OAuthDeviceID64. Each tag-7 buffer is max+2, so overlength materialization retains enough to reject at max+1 instead of accepting truncation. All six strlen checks precede delegate, even for unused branch inputs. Missing required UDN faults at 0x10732c74; lengths and propagated statuses at 0x10732b48. Zero emits NewAccountUDN then commits at 0x10732c58."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c0fc",
+       "function": "0x1028c08c",
+       "notes": "0x1056fc20 requires case-sensitive SA_RINCON prefix, unchecked decimal strtoul with endpoint underscore and nonzero remapped type; types1/2 map51719,13/14 map51975, arbitrary retained suffix including empty is allowed. Copies at most128 ID bytes. Bad grammar returns806. Numeric signs/whitespace and unchecked overflow follow strtoul, not a stricter UDN grammar. Raw isel 0x7c634f5e at 0x1056fc94 is conditional selection, not a shift."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c178",
+       "function": "0x1028c08c",
+       "notes": "Let C(t)=((t & 0x7f)-((t & 1)^1)) modulo2^32. Only C(type)==7 tries store +0x2c descriptor lookup(service=type>>8). If lookup succeeds, raw credential byte +0x12c <=4 and mapping [3,3,1,2,2] at 0x10eaba54 equals2 (raw byte3/4), OAuth branch is taken; every other case takes ID/password branch. Raw words 0x56e907fe and 0x56ea067e at 0x1028c178/17c are masks; 0x56e4c23e at 0x1028c2d0 is unsigned type>>8; 0x5529103a at 0x1028c2fc multiplies index by4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c190",
+       "function": "0x1028c08c",
+       "notes": "ID/password branch requires both NewAccountID and NewAccountPassword nonempty, else402. Discards supplied Token/Key/OAuthDeviceID after handler checks by setting their update pointers NULL. Calls 0x1028b760 with parsed old type/ID, NewID/PW and NULL metadata/nickname, flag masks0. Stored token/key/OAuth device ID are preserved, not wholesale replaced. Present empty password is rejected here, unlike EditAccountPasswordX."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c314",
+       "function": "0x1028c08c",
+       "notes": "OAuth branch requires nonempty Token and OAuthDeviceID, else402. NewID/PW ignored after handler length checks; key may be empty. 0x1056ffb0 derives UID: any device string <=32 bytes gives UID0; longer requires underscore at index32 and fully consumed hexadecimal suffix, ignoring errno/no-digit conversion. Empty suffix accepted as0, trailing text rejected. Failure returns402 without modification (unlike AddOAuthAccountX core4001). Success computes X_#Svc%u-%x-Token with full parsed type and UID, supplies this as new ID, an EMPTY non-NULL password (clears PW), and supplied OAuthDeviceID/Token/Key. Nonempty token replaces stored Token; empty Key preserves stored Key through 0x1056ebb0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10570e40",
+       "function": "0x10570e34",
+       "notes": "Strict lookup compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then case-sensitive AccountID; empty ID matches only empty stored ID. Raw 0x548907fe retains bit 0; 0x5495066e clears 0x80, not a shift. Strict flag 1 disables fallback selection."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c1f4",
+       "function": "0x1028c08c",
+       "notes": "Shared modify 0x1028b760 reads snapshot (false810), strict normalized-type/exact-old-ID lookup (missing806), checks changed-ID collision (another match806), copies existing serial/flags/nickname/metadata/tier/clocks/UUID, applies selected new fields and stamps household Version+1. No nickname duplicate802 branch because nickname pointerNULL. False array update returns0 without save; true update calls callback-enabled accounts writer (false809). NextSerialNum/preferred serial unchanged."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102891ec",
+       "function": "0x102890b0",
+       "notes": "Callback-enabled 0x10289258 saves accounts.xml, default /opt/settings/accounts.xml with configured roots, via 0x10508988. Main success increments Version +0xd4, updates cached LUD +0xb8 and advertises selector 11 through receiver 0x10efcf88/+0x14 = 0x10652074 with false advertisement flag. NextSerialNum is supplied unchanged by these actions. Writer tests 0x10285878 and can queue 0x10285338 -> 0x100ba320 even on failure. Serialization/close failure may attempt root-only fallback replacement and still return failure; fflush/fsync results are ignored."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c388",
+       "function": "0x1028c08c",
+       "notes": "After zero modification, changed ID calls 0x104b16b4(store member+0x18,type,newID). True result calls 0x1028bdc0 -> 0x1028b760 with set-Flags mask2 (Pending report), potentially a second save/cache refresh. Nested result is ignored before constructing output. No new account-operation add/del publication in this immediate core. Remote registration/reporting leaves remain shared residuals."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c25c",
+       "function": "0x1028c08c",
+       "notes": "Constructs a fresh temporary identity with new ID and canonical type, then 0x1056f2ac -> 0x1056f254 formats SA_RINCON%u_ID into caller capacity144. Type canonicalization again maps1/2 to51719 and13/14 to51975 (isel 0x7ef74f5e at 0x1028c238); parsed old type is normally already remapped. Does not allocate serial or read back persisted record. Zero after false/no-save array update still constructs new UDN and invokes outer reference updates."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b0b54",
+       "function": "0x104b0b04",
+       "notes": "Every zero core result calls member+0x278 0x1027cbf8(oldUDN,newUDN), then member+0x280 0x1037f5b8(oldUDN,newUDN), ignoring both results. First takes mutex+0x170, passes old/new strings to 0x10283998, and only on its zero return runs 0x10279c0c, updates cached LUD+0x7f10/version+0x7f2c and advertises receiver selector5. Second takes mutex+0x30, runs 0x10384490 with operation6 and old/new pointers, and on zero calls 0x1037e554(\"2\",0). These are subsequent local reference-store paths, not part of accounts.xml atomicity; their deeper persistence/event leaves remain identified residuals."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028884c",
+       "function": "0x102887e0",
+       "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10508a54",
+       "function": "0x10508988",
+       "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101bb690",
+       "function": "0x101bb1d0",
+       "notes": "Queues MusicAccountChangedEvent. Incoming r4 is unused; this event has no password/account payload. Constructs empty payload text, dispatches monitoring paths 0x10bbca78 and 0x10bbd280, and queues an event-loop callable via 0x100f14ec. Source ptr/length comes from emitter+4/+8, not the account. No-event-loop branch reports the event through 0x10bbd098 instead of scheduling that callable."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b82b8",
+       "function": "0x101b8048",
+       "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1065215c",
+       "function": "0x10652074",
+       "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
       }
      ],
-     "notes": "None Optionality measured per-arg: [] via required-lookup v[+0x1c], ['AccountUDN', 'NewAccountID', 'NewAccountPassword', 'AccountToken', 'AccountKey', 'OAuthDeviceID'] via optional-lookup v[+0x20].",
+     "notes": "Static trace of build 86.10-80260. Immediate local results are distinct from queued work and remote/subscriber outcomes.",
      "todo": [
-      "Established: virtual dispatch to handler 0x107329ac; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: concrete delegate, parsing, immediate mutation, persistence and synchronous fault domain are recovered.",
+      "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects.",
+      "Next step: finish shared selected-account, queued-maintenance and cloud response/merge tracing; also finish any action-specific post-save leaves identified below."
      ]
     },
     "SetAccountNicknameX": {
