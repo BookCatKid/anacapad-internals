@@ -215573,7 +215573,7 @@
      "todo": "Established: acquisition inputs, two direct callers, AppLink-only callback forwarding, unchanged provider result and timing-telemetry branch are decoded. Remaining: bind every public account argument and optional output, decode the context provider and telemetry duration/error handling, trace credential/userInfo partial writes and subsequent account persistence, and audit indirect callers and observer delivery."
     },
     "password_metadata_modifier": {
-     "description": "Installed password adapter f_104b0684 and metadata adapter f_104b06d0 call shared account modifier f_1028b760 with new account ID null, selecting the password or metadata optional argument respectively. The worker locks the account mutex and loads account tables through f_102887e0; false returns810. It searches through f_10570e34 with account type, explicit AccountID and selector1; no matching record returns806. It copies the matched record into a candidate. A non-null password pointer replaces its password text with capacity65; a non-null metadata pointer sets the metadata-present marker to ASCII1 and copies the text with capacity128. These copies add no local nonempty-string test; wrapper parsing remains a separate requirement. Other modifier callers can supply replacement ID, nickname and additional optional record fields; those are not part of the two edit wrappers. After preparing revision metadata, f_105709c0 attempts the in-memory row update. False skips the commit and returns retained status0, so SOAP success need not mean a changed account was persisted. That helper can reject a missing row, account-upgrade/capacity policy, no detected row difference or inconsistent account identity. On true table update, f_10289258 performs the commit stage; false maps to809. True commit leaves result0, releases the account lock and invokes manager slot+0x34. The callback result is not used to change the return status. The modifier has no direct provider-login call; validity of the changed credentials with the external service is a distinct question. The installed post-unlock callback is f_102850c4 -> f_101b8048; see account_callbacks for the verified local refresh and remaining delivery limits.",
+     "description": "Installed password adapter f_104b0684 and metadata adapter f_104b06d0 call shared account modifier f_1028b760 with new account ID null, selecting the password or metadata optional argument respectively. The worker locks the account mutex and loads account tables through f_102887e0; false returns810. It searches through f_10570e34 with account type, explicit AccountID and selector1; no matching record returns806. It copies the matched record into a candidate. A non-null password pointer replaces its password text with capacity65; a non-null metadata pointer sets the metadata-present marker to ASCII1 and copies the text with capacity128. These copies add no local nonempty-string test; wrapper parsing remains a separate requirement. Other modifier callers can supply replacement ID, nickname and additional optional record fields; those are not part of the two edit wrappers. After preparing revision metadata, f_105709c0 attempts the in-memory row update. False skips the commit and returns retained status0, so SOAP success need not mean a changed account was persisted. That helper can reject a missing row, account-upgrade/capacity policy, no detected row difference or inconsistent account identity. On true table update, f_10289258 performs the commit stage; false maps to809. True commit leaves result0, releases the account lock and invokes manager slot+0x34. The callback result is not used to change the return status. The modifier has no direct provider-login call; validity of the changed credentials with the external service is a distinct question. The installed post-unlock callback is f_102850c4 -> f_101b8048; see account_callbacks for the verified local refresh and remaining delivery limits. All six f_1028b760 callers are now bound: adapters f_104b0684 (EditAccountPasswordX, password field) and f_104b06d0 (EditAccountMd, metadata field) with zero masks; f_1028bb74 (SetAccountNicknameX); f_1028bc8c, which formats a replacement account ID through f_1056fdec into a0x81 buffer and supplies the new-ID argument; f_1028bdc0, which logs 'Pending report for account %u' and passes flagsSet mask2, proving flags bit1 marks a report-pending account; and f_1028c08c under adapter f_104b0b04 (ReplaceAccountX), which forwards caller-supplied optional fields and follows the modifier with account-UID extraction ('can't extract account UID from %s') and zone-side calls f_1027cbf8/f_1037f5b8. For the two public edit wrappers all optional fields and both flag masks are zero, so the only f_105709c0 rejections reachable from them are the no-difference case (silent0 without commit) and the second-chance X_# path for already-inconsistent stored rows; missing-row is impossible inside the locked window and the guest-capacity gate cannot fire because neither wrapper alters flags. No callee in the modifier chain performs a provider or network call (f_102887e0 load, f_10570e34 lookup, strcmp duplicate scan, string stores f_10906304/f_1056f10c/f_1056f738, vclock stamp f_1056ecb4, table update, commit, unlock, vfunc+0x34), so whether the new password or metadata is accepted by the music service is outside this path entirely; durability, replication and delivery are the shared commit and callback machinery documented in account_file_commit and account_callbacks.",
      "evidence": [
       {
        "type": "firmware",
@@ -215644,9 +215644,46 @@
        "build": "86.10-80260",
        "address": "0x101b8048",
        "notes": "Account refresh reads manager snapshot via0x1028903c at0x101b8238; compares with cached table at0x101b8250. Nonzero copies rows then invokes0x101bb1d0 at0x101b8290. Further work is conditional at0x101b8294..0x101b82c0. This does not by itself establish external event delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028bdc0",
+       "notes": "Report-pending caller: 'Pending report for account %u' then f_1028b760 with mask value2 stored to the flagsSet stack arg at0x1028be2c; establishes flags bit1 = report pending."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028bc8c",
+       "notes": "Rename-ID caller: f_1056fdec formats the replacement ID into a0x81 buffer; f_1028b760 invoked at0x1028bd30 with the new-ID argument supplied."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c08c",
+       "notes": "ReplaceAccountX worker under adapter f_104b0b04: forwards optional fields into f_1028b760 at0x1028c1f4, then 'can't extract account UID from %s' handling."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b0b04",
+       "notes": "Installed ReplaceAccountX adapter (vtable0x10ed75c4+0x34): calls f_1028c08c on ctx+0x26c+0x118, then calls f_1027cbf8 and f_1037f5b8 on objects at+0x278/+0x280 only when result0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028b760",
+       "notes": "Caller census: f_104b0684, f_104b06d0, f_1028bb74, f_1028bc8c, f_1028bdc0, f_1028c08c are the only six call sites; callee list contains no provider or network call."
       }
      ],
-     "todo": "Established: password/metadata public forwarding, load810, selection806, candidate copy, false-update success-without-commit, commit809 and post-commit callback ordering are decoded. Remaining: complete commit helper durability/replication and callback delivery, candidate validation/upgrade predicates and all modifier caller fields; verify which shared-table rejection cases are reachable from the two public edit commands and externally visible credential-validation behavior."
+     "resolved_findings": [
+      "Resolved: for the two edit wrappers the observable outcomes are810 load failure,806 no selected account,809 commit failure and0 for committed or silently-unchanged results; flags bit0 is guest and bit1 is report-pending (set by f_1028bdc0), neither mask is exercised by password or metadata edits, and no credential-validation call to the external service exists in this chain, so a0 result only asserts the local store accepted the write."
+     ]
     },
     "public_account_removal": {
      "description": "SystemProperties.RemoveAccount uses installed settings delegate f_104b0918. Its full AccountType equality check against65031 (0xFE07, service254/type7) selects a TuneIn-specific path that writes the setting R_HideTuneIn to literal true. It does not invoke the normal account-deletion worker or consult AccountID on that branch, although wrapper request parsing/validation still applies. The settings operation returning zero yields success0; a nonzero result yields809. Other account types enter f_1028c5f4 with the supplied AccountType/AccountID. That locks the account mutex and invokes f_1028c3b8. Failure to load account tables or failure of commit helper f_10289258 maps to809; row-removal helper f_102863a8 can return806 when no matching account is found and its other nonzero statuses propagate. After zero removal result and a successful commit, the core conditionally attempts service-manifest deletion using descriptor capability and remaining-family lookup; it ignores the manifest-deletion result and submits the del diagnostic through manager slot+0x28 (f_10284950). The outer wrapper then unlocks and invokes manager slot+0x34 only when the core returned zero. Callback return does not replace the removal status. This separates a TuneIn visibility-setting operation, normal account deletion, manifest cleanup, diagnostics and local refresh from any provider-side credential revocation, which is not established by these local paths.",
