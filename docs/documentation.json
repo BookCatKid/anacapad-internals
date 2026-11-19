@@ -11436,35 +11436,85 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "0x192 at 0x103549c4",
-       "meaning": "Request or map validation fails, or the HT map is nonempty.",
+       "code_expr": "0x192 at 0x103549c4 or 0x10735f1c",
+       "meaning": "TRequest validation failed, the submitted map failed local validation, an existing bonded map failed local validation, or the HT map is nonempty.",
        "fault_sites": [
         "0x10735ee8"
        ],
        "conditions": [
         {
-         "description": "Request or map validation fails, or the HT map is nonempty.",
+         "description": "TRequest validation failed",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10735f1c",
+           "notes": "Wrapper loads 402 for an invalid request"
+          }
+         ]
+        },
+        {
+         "description": "The submitted map fails the parse against the local UUID",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x103549b8",
-           "notes": "Submitted-map validation"
+           "notes": "Parse submitted map"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10354bcc",
-           "notes": "Valid existing map rejoins the HT-map gate"
+           "address": "0x103549c0",
+           "notes": "A zero parse result falls through to 402"
+          }
+         ]
+        },
+        {
+         "description": "A nonempty existing bonded map fails the parse against the local UUID",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10354a50",
+           "notes": "Nonempty existing map goes to the second parse"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10354bc0",
+           "notes": "Parse existing bonded map"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10354bc8",
+           "notes": "Zero result branches to 402"
+          }
+         ]
+        },
+        {
+         "description": "The existing HT map is nonempty",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10354a54",
+           "notes": "Load first byte of impl+0xe60"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x10354a5c",
-           "notes": "Nonempty HT map leads to 402"
+           "notes": "Nonzero first byte branches to 402"
           }
          ]
         }
