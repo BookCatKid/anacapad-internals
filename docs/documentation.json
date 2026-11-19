@@ -60967,7 +60967,7 @@
      ]
     },
     "SetCrossfadeMode": {
-     "description": "Sets crossfade on/off. Impl f_102b99fc gate (718) then body f_102b9a0c: lock impl+0x458, log 'upnp'/'change crossfade', call f_102b26dc. The worker REQUIRES mode impl+0x4654==2 (indexed) - anything else -> 712 immediately. In indexed mode it further requires f_101471f0(impl+0x5dc)!=0 AND strncmp(current URI,'x-sonosapi-hls:',15)!=0 AND f_101475dc!=0 (crossfade-capable, non-HLS source). When the source cannot crossfade: arg==0 still succeeds silently, arg!=0 -> 712. When capable: a request record (f_1032e270 + f_1032e550(rec,arg,1)) is submitted via f_10255f64(impl+0x580); success clears impl+0x6ed8.",
+     "description": "Sets the session's crossfade flag with an indexed op-12 request. All non-indexed calls return 712; for excluded radio or HLS prefixes, a request to turn crossfade off returns success without submitting a change, while a request to turn it on returns 712.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fa158",
@@ -61100,36 +61100,44 @@
       ]
      },
      "requirements": {
-      "description": "Only meaningful when a queued/indexed source is active (mode==2); streaming sources reject nonzero crossfade.",
+      "description": "InstanceID must parse to zero; the engine requires indexed source mode for both on and off.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b99fc",
+        "notes": "Checks parsed InstanceID before taking the operation path. Nonzero falls through to 718 at 0x102b9a04.",
+        "function": "0x102b99fc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b2704",
+        "notes": "Non-indexed source (mode != 2) returns 712 for either boolean. Mode 2 additionally checks f_101471f0, strncmp at 0x102b276c, and f_101475dc; all three must return zero to reach submission.",
+        "function": "0x102b26dc"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Uses source mode at impl+0x4654 and the raw URI at impl+0x5dc. Radio and HLS prefixes may not be submitted to the indexed session.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x102b2704",
-        "notes": "cmpwi mode,2 -> 712 otherwise",
-        "function": "f_102b26dc"
-       }
-      ]
-     },
-     "state_dependencies": {
-      "description": "Source must be crossfade-capable (f_101471f0, f_101475dc) and not an 'x-sonosapi-hls:' URI - HLS streams cannot crossfade.",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x102b2768",
-        "notes": "strncmp(uri,'x-sonosapi-hls:',15)",
-        "function": "f_102b26dc"
+        "notes": "Non-indexed source (mode != 2) returns 712 for either boolean. Mode 2 additionally checks f_101471f0, strncmp at 0x102b276c, and f_101475dc; all three must return zero to reach submission.",
+        "function": "0x102b26dc"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b277c",
-        "notes": "f_101475dc cap check",
-        "function": "f_102b26dc"
+        "address": "0x102b27cc",
+        "notes": "Excluded source prefixes are x-rincon-mp3radio:// (f_101471f0), x-sonosapi-hls: (direct prefix check), and the HLS prefixes hls-aac://, hls-radio:// and x-sonosapi-hls: (f_101475dc). An excluded source returns 712 for nonzero and takes the clear-0x6ed8 success tail for zero without submitting.",
+        "function": "0x102b26dc"
        }
       ]
      },
@@ -61157,19 +61165,35 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Neither the wrapper nor the submit routine directly emits LastChange. The engine signals the indexed session request and waits for its result; the op-12 consumer's notification behavior is not yet mapped.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa158",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1032e550",
+        "notes": "Record op 12: writes crossfade argument as halfword at +0xfc and 1 as halfword at +0xfe.",
+        "function": "0x1032e550"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b27a8",
+        "notes": "Submits the record to *(impl+0x580). A zero result gives 712; a nonzero result clears impl+0x6ed8 and returns zero to the wrapper.",
+        "function": "0x102b26dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e6a8",
+        "notes": "Submission f_10255f64 stores the record at session+0x2594, signals session+0x2e8, then tail-calls this helper, which waits for request byte +0xe0 and returns byte +0xe1.",
+        "function": "0x1032e658"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Find the indexed session's op-12 consumer for the record posted to +0x2594 and determine whether a successful change produces a CrossfadeMode LastChange field, including unchanged-value handling."
       ]
      },
      "state_transitions": {
@@ -61186,15 +61210,47 @@
       ]
      },
      "return_behavior": {
-      "description": "0 on success (incl. silent no-op); 712 for wrong mode, incapable source, or submit failure.",
+      "description": "A nonzero InstanceID gives 718. Mode/source rejection or a false op-12 result gives 712. Success is either indexed acceptance or the excluded-source disable no-submit path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b270c",
-        "notes": "li r3,0x2c8",
-        "function": "f_102b26dc"
+        "address": "0x102b99fc",
+        "notes": "Checks parsed InstanceID before taking the operation path. Nonzero falls through to 718 at 0x102b9a04.",
+        "function": "0x102b99fc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b2704",
+        "notes": "Non-indexed source (mode != 2) returns 712 for either boolean. Mode 2 additionally checks f_101471f0, strncmp at 0x102b276c, and f_101475dc; all three must return zero to reach submission.",
+        "function": "0x102b26dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b27cc",
+        "notes": "Excluded source prefixes are x-rincon-mp3radio:// (f_101471f0), x-sonosapi-hls: (direct prefix check), and the HLS prefixes hls-aac://, hls-radio:// and x-sonosapi-hls: (f_101475dc). An excluded source returns 712 for nonzero and takes the clear-0x6ed8 success tail for zero without submitting.",
+        "function": "0x102b26dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b27a8",
+        "notes": "Submits the record to *(impl+0x580). A zero result gives 712; a nonzero result clears impl+0x6ed8 and returns zero to the wrapper.",
+        "function": "0x102b26dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e6a8",
+        "notes": "Submission f_10255f64 stores the record at session+0x2594, signals session+0x2e8, then tail-calls this helper, which waits for request byte +0xe0 and returns byte +0xe1.",
+        "function": "0x1032e658"
        }
       ]
      },
@@ -61209,34 +61265,21 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x44)",
-       "meaning": "impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v[+0x1c] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived",
+       "meaning": "Parsed InstanceID was nonzero.",
        "fault_sites": [
         "0x102fa20c"
        ],
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "Only the zero-ID branch enters f_102b9a0c, so no indexed worker can produce this return.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b9a04",
-           "notes": "li 0x2ce",
-           "function": "f_102b99fc"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x102b99fc",
-           "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
+           "address": "0x102b99fc",
+           "notes": "Checks parsed InstanceID before taking the operation path. Nonzero falls through to 718 at 0x102b9a04.",
+           "function": "0x102b99fc"
           }
          ]
         }
@@ -61246,22 +61289,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b9a04",
-         "notes": "li 0x2ce",
-         "function": "f_102b99fc"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102b99fc",
-         "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
+         "address": "0x102b99fc",
+         "notes": "Checks parsed InstanceID before taking the operation path. Nonzero falls through to 718 at 0x102b9a04.",
+         "function": "0x102b99fc"
         }
        ],
        "unresolved": {
@@ -61286,64 +61316,50 @@
         0,
         718
        ],
-       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x44); sites: 0x102fa20c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker."
       },
       {
        "code": 712,
        "code_expr": "vret(r5-in,+0x44)",
-       "meaning": "Crossfade rejected: transport mode !=2 (not indexed), source not crossfade-capable, HLS stream, nonzero arg on incapable source, or submit failed.",
+       "meaning": "Not in indexed source mode, enabling on an excluded source, or the indexed op-12 result was false.",
        "fault_sites": [
         "0x102fa20c"
        ],
        "conditions": [
         {
-         "description": "impl+0x4654 mode != 2",
+         "description": "The worker returns 712 for either value outside mode 2, for nonzero CrossfadeMode on an excluded URI prefix in mode 2, or for a submitted record whose result byte is zero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b2708",
-           "notes": "mode check -> 0x2c8",
-           "function": "f_102b26dc"
-          }
-         ]
-        },
-        {
-         "description": "f_101471f0 or f_101475dc returned 0, or URI starts with x-sonosapi-hls:, with arg != 0",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102b2768",
-           "notes": "HLS strncmp gate",
-           "function": "f_102b26dc"
+           "address": "0x102b2704",
+           "notes": "Non-indexed source (mode != 2) returns 712 for either boolean. Mode 2 additionally checks f_101471f0, strncmp at 0x102b276c, and f_101475dc; all three must return zero to reach submission.",
+           "function": "0x102b26dc"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b27cc",
-           "notes": "blocked-path arg check",
-           "function": "f_102b26dc"
-          }
-         ]
-        },
-        {
-         "description": "f_10255f64 submit returned nonzero",
-         "evidence": [
+           "notes": "Excluded source prefixes are x-rincon-mp3radio:// (f_101471f0), x-sonosapi-hls: (direct prefix check), and the HLS prefixes hls-aac://, hls-radio:// and x-sonosapi-hls: (f_101475dc). An excluded source returns 712 for nonzero and takes the clear-0x6ed8 success tail for zero without submitting.",
+           "function": "0x102b26dc"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b27ac",
-           "notes": "submit rc check -> 0x2c8",
-           "function": "f_102b26dc"
+           "address": "0x102b27a8",
+           "notes": "Submits the record to *(impl+0x580). A zero result gives 712; a nonzero result clears impl+0x6ed8 and returns zero to the wrapper.",
+           "function": "0x102b26dc"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1032e6a8",
+           "notes": "Submission f_10255f64 stores the record at session+0x2594, signals session+0x2e8, then tail-calls this helper, which waits for request byte +0xe0 and returns byte +0xe1.",
+           "function": "0x1032e658"
           }
          ]
         }
@@ -61353,9 +61369,33 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b270c",
-         "notes": "712 returns",
-         "function": "f_102b26dc"
+         "address": "0x102b2704",
+         "notes": "Non-indexed source (mode != 2) returns 712 for either boolean. Mode 2 additionally checks f_101471f0, strncmp at 0x102b276c, and f_101475dc; all three must return zero to reach submission.",
+         "function": "0x102b26dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b27cc",
+         "notes": "Excluded source prefixes are x-rincon-mp3radio:// (f_101471f0), x-sonosapi-hls: (direct prefix check), and the HLS prefixes hls-aac://, hls-radio:// and x-sonosapi-hls: (f_101475dc). An excluded source returns 712 for nonzero and takes the clear-0x6ed8 success tail for zero without submitting.",
+         "function": "0x102b26dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b27a8",
+         "notes": "Submits the record to *(impl+0x580). A zero result gives 712; a nonzero result clears impl+0x6ed8 and returns zero to the wrapper.",
+         "function": "0x102b26dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1032e6a8",
+         "notes": "Submission f_10255f64 stores the record at session+0x2594, signals session+0x2e8, then tail-calls this helper, which waits for request byte +0xe0 and returns byte +0xe1.",
+         "function": "0x1032e658"
         }
        ]
       },
@@ -61430,13 +61470,57 @@
        "build": "86.10-80260",
        "address": "0x10eb31c8",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b99fc",
+       "notes": "Checks parsed InstanceID before taking the operation path. Nonzero falls through to 718 at 0x102b9a04.",
+       "function": "0x102b99fc"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b2704",
+       "notes": "Non-indexed source (mode != 2) returns 712 for either boolean. Mode 2 additionally checks f_101471f0, strncmp at 0x102b276c, and f_101475dc; all three must return zero to reach submission.",
+       "function": "0x102b26dc"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b27cc",
+       "notes": "Excluded source prefixes are x-rincon-mp3radio:// (f_101471f0), x-sonosapi-hls: (direct prefix check), and the HLS prefixes hls-aac://, hls-radio:// and x-sonosapi-hls: (f_101475dc). An excluded source returns 712 for nonzero and takes the clear-0x6ed8 success tail for zero without submitting.",
+       "function": "0x102b26dc"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1032e550",
+       "notes": "Record op 12: writes crossfade argument as halfword at +0xfc and 1 as halfword at +0xfe.",
+       "function": "0x1032e550"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b27a8",
+       "notes": "Submits the record to *(impl+0x580). A zero result gives 712; a nonzero result clears impl+0x6ed8 and returns zero to the wrapper.",
+       "function": "0x102b26dc"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1032e6a8",
+       "notes": "Submission f_10255f64 stores the record at session+0x2594, signals session+0x2e8, then tail-calls this helper, which waits for request byte +0xe0 and returns byte +0xe1.",
+       "function": "0x1032e658"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102fa158; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "SetNextAVTransportURI": {
      "description": "Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, then a hard mode gate: impl+0x4654 must equal 2 (indexed/queued mode); any other mode returns 800, so next-URI only works on queue playback. In mode 2 it calls worker f_102af1c8(engine, NextURI, NextURIMetaData), which stores the URI into the next-track record at impl+0x6edc/0x6ee0 (f_106faeb8), manages pending flags impl+0x754c/+0x75cd (cleared) and impl+0x764e (set), fetches the current source URI via f_10293270(impl+0x5dc) and compares it against the engine source name impl+0x3dc: when they differ, the URI is forwarded through the member/topology path (member obj impl+0x448 -> f_10765a00/f_10762c30/f_106fbef4, with \"lookup of %s URIs for %s failed\" topology logging on failure), i.e. the next-track request can be delegated to the actual playback member.",
