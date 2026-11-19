@@ -11996,7 +11996,7 @@
       ]
      },
      "return_behavior": {
-      "description": "Primary path: after the checks, f_1034dd80 sends joinZone to each secondary ('sendJoinZoneCmd(%s): %s(%s)'). It returns 402 for a map that does not parse or has at most one entry, and 1034 when this player is not the map's primary or a joinZone send failed (the failed satellite is rolled back through f_1034d858). Otherwise it persists the map and returns 0. Satellite path: the result after the conversion to satellite mode is r31 at the return of f_1034cf38. f_1034f5b0 passes 1032 and 1035 through and maps 1000..9999 to 800, so 'Primary device %s is not found' (1000) reaches the client as 800. The wrapper commits 0 and 1032, the latter followed by the slot +0x74 step, and raises any other code.",
+      "description": "Primary path: after the checks, f_1034dd80 sends joinZone to each secondary ('sendJoinZoneCmd(%s): %s(%s)'). It returns 402 for a map that does not parse or has at most one entry, and 1034 when this player is not the map's primary or a joinZone send failed (the failed satellite is rolled back through f_1034d858). Otherwise it persists the map and returns 0. Satellite path: after the switch to satellite mode ('Change from ZP to Sat mode') f_1034cf38 loads the map's entry count from sp+0x630 and uses isel at 0x1034d64c to select 1032 when the map has exactly two entries (this satellite is the primary's first) and 0 otherwise. When the result is 0 it calls slot +0x80 itself with (0, 1, 0). When it is 1032 the wrapper performs the equivalent step through slot +0x74, which calls slot +0x80 with (0, 5, 0). f_1034f5b0 passes 1032 and 1035 through and maps 1000..9999 to 800, so 'Primary device %s is not found' (1000) reaches the client as 800. The wrapper commits 0 and 1032, the latter followed by the slot +0x74 step, and raises any other code.",
       "evidence": [
        {
         "type": "firmware",
@@ -12039,12 +12039,28 @@
         "build": "86.10-80260",
         "address": "0x10737ea8",
         "notes": "1032 rule"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034d62c",
+        "notes": "entry count"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034d64c",
+        "notes": "isel r31, 1032 or 0 on count == 2"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034d6b0",
+        "notes": "result 0 calls slot +0x80 directly"
        }
-      ],
-      "todo": [
-       "Established: every rejection on both paths and the primary path's final result are bound to their conditions.",
-       "Unknown: the success value of the satellite path. After 'Change from ZP to Sat mode' r31 is reloaded from sp+0x630 at 0x1034d62c and logged as the 'HT Zone setup (%u)' count before the function returns it, so whether success returns 0 or 1032 depends on that value.",
-       "Close it by resolving what f_1034cf38 stores at sp+0x630 before 0x1034d62c and what the epilogue at 0x1034d000 returns."
       ]
      },
      "fault_sites": [
@@ -13031,7 +13047,7 @@
        ]
       },
       "Options": {
-       "description": "Mode options string (cap 128) forwarded unchanged to the selected mode entry function and to satellites. For Mode 'trueroom' the room-calibration entry f_10364360 parses it as a structured object (f_10c3b6c4) and reads the string fields 'mode' (compared with 'spectral' and 'plug-in spectral'), 'ver', 'tone' and 'force' through f_10c39d5c and the integer fields 'polarity', 'volume' and 'tone_duration' through f_10c39e3c; the requested volume can be clipped ('Sonar cal volume - using clipped volume %d instead of requested %d') and a calibration tone is started as x-rincon-configmode:sonar-calibrate-tone. The button-notify and speaker-detect entries receive the same string.",
+       "description": "Mode options string (cap 128), forwarded unchanged to the selected mode entry and to satellites. For Mode 'room_calibration-calibrate' the entry f_10364360 parses it as a structured object (f_10c3b6c4). The string field 'mode' must be 'spectral' or 'plug-in spectral'. 'ver' and 'tone' are validated by f_10364284 (log 'invalid input parameters v:%s t:%s', result 402). 'force' selects the path that removes the existing Trueplay asset directory through f_1035d8bc. The integer fields 'polarity', 'volume' (clipped, 'Sonar cal volume - using clipped volume %d instead of requested %d') and 'tone_duration' configure the calibration tone, which is played as x-rincon-configmode:sonar-calibrate-tone. Mode 'trueroom' validates its own options in f_10362190 and returns 800 when they are missing or invalid. button-notify and speaker-detect do not read Options.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -13168,6 +13184,48 @@
          "build": "86.10-80260",
          "address": "0x10364814",
          "notes": "calibration tone URI"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103644e4",
+         "notes": "'plug-in spectral'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1036431c",
+         "notes": "402 from f_10364284"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364568",
+         "notes": "f_1035d8bc Trueplay asset removal"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103624c4",
+         "notes": "trueroom options 800"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1035d0c8",
+         "notes": "button-notify entry ignores Options"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10363450",
+         "notes": "speaker-detect entry ignores Options"
         }
        ],
        "notes": null,
@@ -13176,9 +13234,9 @@
         "Resolved: post-parse handling of `Options` = verbatim forward to impl vfunc +96 (obj r5-in, call site 0x107361d0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ],
        "todo": [
-        "Established: for trueroom, Options is parsed by f_10c3b6c4 and the keys mode, ver, tone, force, polarity, volume and tone_duration are read at the cited sites; mode is compared with 'spectral' and 'plug-in spectral'.",
-        "Unknown: the accepted values and effect of ver, tone, force and polarity, the volume clip bounds, the tone_duration unit, and whether button-notify (f_1035d0c8) and speaker-detect (f_10363450) read Options at all.",
-        "Close it by tracing each key's consumer in f_10364360 (f_1035d8bc, f_10364284, f_1035d318, f_1035d42c, f_1035d7e8) and the Options use in f_1035d0c8 and f_10363450."
+        "Established: the keys, their parse sites, the accepted 'mode' values, the ver and tone validation, the force asset-removal path and the tone parameters are traced, as is the absence of Options use in button-notify and speaker-detect.",
+        "Unknown: the accepted ranges for ver, tone, polarity and tone_duration and the volume clip bounds, which are checked inside f_10364284 and in the sonar helpers f_102a5124 and f_105d24f8.",
+        "Close it by tracing the comparisons in f_10364284, f_102a5124 and f_105d24f8."
        ]
       }
      },
@@ -13363,7 +13421,7 @@
       ]
      },
      "return_behavior": {
-      "description": "0 commits State. 402 is TRequest validation and 810 an unrecognised Mode. trueroom (f_10362190) returns 800 when its options are invalid ('One or more Trueroom options...', 'Missing or invalid volume', 'Failed to delete old Trueroom...') and 824 when f_1035d318 fails. room_calibration-calibrate (f_10364360) returns 825 from the Options 'mode' check at 0x10364410 and 824 when f_1035d318 fails. On a home-theater primary a satellite refusal, or a local result of 1024, becomes 1034 after the local mode is rolled back.",
+      "description": "0 commits State. 402 is TRequest validation and 810 an unrecognised Mode. trueroom (f_10362190) returns 800 when its options are invalid ('One or more Trueroom options...', 'Missing or invalid volume', 'Failed to delete old Trueroom...') and 824 when f_1035d318 fails. room_calibration-calibrate (f_10364360) returns 825 from the Options 'mode' check at 0x10364410 and 824 when f_1035d318 fails. On a home-theater primary a satellite refusal, or a local result of 1024, becomes 1034 after the local mode is rolled back. speaker-detect (f_10363450) returns 0 when the topology check f_1075d770 or f_1075c4d0 says there is nothing to do. Otherwise it returns 823 when the impl+0x1a88 audio object's slot +0x28 call fails (f_1035d318), 821 when the home-theater level and delay restore in f_1035d42c fails, and 822 when starting x-rincon-configmode:speaker-detect through slot +0x08 of the same object fails (f_1035d7e8). After a failure at the 821 or 822 step it calls the speaker-detect exit f_103625a8 to roll back.",
       "evidence": [
        {
         "type": "firmware",
@@ -13420,12 +13478,42 @@
         "build": "86.10-80260",
         "address": "0x10352828",
         "notes": "1024 to 1034"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103634f0",
+        "notes": "f_1035d318 result"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035d3c4",
+        "notes": "823"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035d4d8",
+        "notes": "821"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035d834",
+        "notes": "822"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10363540",
+        "notes": "rollback through f_103625a8"
        }
-      ],
-      "todo": [
-       "Established: mode dispatch, state ids, the button-notify, trueroom and room-calibration results, and the satellite 1034 rule are traced.",
-       "Unknown: what speaker-detect entry f_10363450 returns in r30 when f_1035d318, f_1035d42c or f_1035d7e8 fail.",
-       "Close it by tracing the r30 assignments in f_10363450 between 0x103634e8 and 0x10363548."
       ]
      },
      "fault_sites": [
