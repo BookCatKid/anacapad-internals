@@ -63691,7 +63691,7 @@
       }
      ],
      "events_triggered": {
-      "description": "Neither the wrapper nor the submit routine directly emits LastChange. The engine signals the indexed session request and waits for its result; the op-12 consumer's notification behavior is not yet mapped.",
+      "description": "Neither the wrapper nor the submit routine directly emits LastChange. The engine signals the indexed session request and waits for its result; the op-12 consumer's notification behavior is not yet mapped. The AVTransport LastChange serializer does emit the corresponding transport snapshot field.",
       "evidence": [
        {
         "type": "firmware",
@@ -63716,6 +63716,22 @@
         "address": "0x1032e6a8",
         "notes": "Submission f_10255f64 stores the record at session+0x2594, signals session+0x2e8, then tail-calls this helper, which waits for request byte +0xe0 and returns byte +0xe1.",
         "function": "0x1032e658"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e61f8",
+        "notes": "Both engine tables bind +0x200 to 0x102e6048 (table words 0x10eaf4ec and 0x10edfdb8). It locks impl+0x458 and calls f_102e43a0 at 0x102e61d4 and 0x102e61f8 for the two subscriber groups, with r7=1 and r7=0 respectively. The formatter opens LastChange for InstanceID 0 at 0x102e47b0.",
+        "function": "0x102e6048"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e481c",
+        "notes": "The serializer writes CurrentPlayMode from the collected string at stack +0x60de and CurrentCrossfadeMode from the collected boolean at stack +0x8bc0. The serializer calls f_102b5a1c at 0x102e4698 to collect the transport snapshot.",
+        "function": "0x102e43a0"
        }
       ],
       "todo": [
