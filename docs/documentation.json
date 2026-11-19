@@ -55874,10 +55874,7 @@
          "notes": "Derived AVTransport table0x10edfbb8+0x8c binds f_102bd238, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Handler0x102fc078 parses required InstanceID/UpdateID with f_105614e0 at0x102fc0c0/10c, ObjectID cap1024 at0e8, TrackList cap4097 at134, NewPositionList cap2049 at15c. Validates170, faults at0x102fc1cc including parse402. Outputs QueueLengthChange signed f_1055fcf4 at224, NewQueueLength/NewUpdateID unsigned f_1055fcbc at248/26c, commits280. Implementation nonzero instance718 else direct singleton0x11096770 -> f_1047a3bc; no source-mode gate or live worker request."
         }
        ],
-       "notes": null,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +140 (obj r5-in, call site 0x102fc1b0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "ObjectID": {
        "description": "Required uppercase SQ:%d matching an existing nonnegative catalog ID. Numeric prefix/trailing junk accepted; malformed or negative801. ID0 is an ordinary existing-ID request on this action.",
@@ -55892,7 +55889,7 @@
        "semantic_type": "SonosStringArg",
        "format": "sscanf SQ:%d",
        "unit": "n/a - text",
-       "accepted_values": "saved-queue object id string",
+       "accepted_values": "Uppercase SQ:%d with existing nonnegative numeric ID",
        "range": "1024-byte buffer including terminator",
        "special_values": "SQ:0 does not select creation",
        "required": true,
@@ -55919,10 +55916,7 @@
         }
        ],
        "notes": null,
-       "buf_cap": 1024,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `ObjectID` = verbatim forward to impl vfunc +140 (obj r5-in, call site 0x102fc1b0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 1024
       },
       "UpdateID": {
        "description": "Required unsigned saved-playlist Version, compared exactly including0. Mismatch1028; not a live queue revision and not an optional ignore sentinel.",
@@ -55936,7 +55930,7 @@
        },
        "semantic_type": "SonosUintArg",
        "format": "strtoul(buffer,NULL,10) in24-byte buffer",
-       "unit": "n/a - text",
+       "unit": "saved-playlist revision",
        "accepted_values": "client-held saved-queue UpdateID",
        "range": "uint32",
        "special_values": "0 must match stored version0",
@@ -55963,10 +55957,7 @@
          "notes": "Worker mode8 contextsp1c: requestedID+40/actualID+44, expectedUpdate+48, sourcequeue+5c=NULL, list object+88 points tosp4100. Filename savedqueues.rsq, writer limit0x40000, memory48000. Missing requested ID701. Matching stored Version parsed by strtol or initialized0; exact unsigned comparison with expected UpdateID, including0, else1028. Equal increments context+80 modulo32 bits and writes new Version at0x1047ea20..ea68; no semantic no-op bypass. Header NumTracks, when present, adjusted by signed list+20 at0x1047ea6c..eab4. Actual output count still computed from emitted Track elements."
         }
        ],
-       "notes": null,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +140 (obj r5-in, call site 0x102fc1b0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "TrackList": {
        "description": "Required comma-separated source indices or inclusive A-B ranges in original zero-based saved-playlist coordinates. At least one token; components trimmed, permissive decimal strtol, source start and length narrowed to16bits. Up to256 ranges. Overlap is normalized and can cause copying when moved to separate destinations.",
@@ -55981,7 +55972,7 @@
        "semantic_type": "SonosStringArg",
        "format": "CSV of decimal indices or inclusive A-B ranges; backslash escaping in token helper",
        "unit": "n/a - text",
-       "accepted_values": "comma-separated u32 track indices <= parse cap",
+       "accepted_values": "Comma-separated original zero-based indices or inclusive ranges; permissive numeric conversion and16-bit stored start/length",
        "range": "4097-byte buffer;32-byte token buffers;256 ranges",
        "special_values": "Empty list402; nonnumeric nonblank may convert0; length65536 narrows0",
        "required": true,
@@ -56008,10 +55999,7 @@
         }
        ],
        "notes": null,
-       "buf_cap": 4097,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `TrackList` = verbatim forward to impl vfunc +140 (obj r5-in, call site 0x102fc1b0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 4097
       },
       "NewPositionList": {
        "description": "Required comma-separated destinations, one per source range when present. Each nonempty token is the range first FINAL zero-based output position. Empty or missing trailing destination deletes that source range. Extra destinations402; nonempty destination intervals must be ascending and nonoverlapping. Values are stored as16bits after permissive decimal conversion.",
@@ -56023,10 +56011,10 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosUintArg",
+       "semantic_type": "SonosStringArg",
        "format": "CSV of destination indices or empty deletion slots",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "comma-separated u32 positions <= parse cap; must match TrackList arity",
+       "unit": "list of final track positions",
+       "accepted_values": "Comma-separated final zero-based destination indices or empty deletion slots; missing trailing destinations delete sources; extra destinations rejected",
        "range": "2049-byte wrapper buffer;32-byte token buffers; stored16-bit destinations",
        "special_values": "Empty entire string deletes all specified source ranges; no append sentinel",
        "required": true,
@@ -56053,10 +56041,7 @@
         }
        ],
        "notes": null,
-       "buf_cap": 2049,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `NewPositionList` = verbatim forward to impl vfunc +140 (obj r5-in, call site 0x102fc1b0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 2049
       }
      },
      "outputs": {
@@ -56069,7 +56054,7 @@
        },
        "semantic_type": "signed int32",
        "format": "%d decimal",
-       "unit": "n/a - text",
+       "unit": "tracks",
        "accepted_values": "signed delta applied by the reorder",
        "range": "signed int32",
        "special_values": "none",
@@ -56116,8 +56101,8 @@
        },
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
-       "unit": "none - boolean flag",
-       "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
+       "unit": "tracks",
+       "accepted_values": "Actual emitted saved-playlist track count, including0",
        "range": "uint32 saved track count",
        "special_values": "none observed in this build",
        "required": false,
@@ -56163,8 +56148,8 @@
        },
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
-       "unit": "n/a - text",
-       "accepted_values": "post-mutation queue UpdateID",
+       "unit": "saved-playlist revision",
+       "accepted_values": "Incremented saved-playlist Version",
        "range": "uint32 saved version",
        "special_values": "none",
        "required": false,
