@@ -155192,15 +155192,37 @@
      "build": "86.10-80260",
      "address": "0x1024b064",
      "notes": "IR-code lookup creator selects irdecode and IR service string at 0x1024b0b4; creation at 0x1024b200."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb9a10",
+     "notes": "Registers start-element callback 0x10bb9858 before common creation at 0x10bb9a20 and file streaming at 0x10bb9a44."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb98d4",
+     "notes": "Depth-zero callback compares the root with sonos-key-and-cert at 0x10faf114; mismatch sets the error byte at 0x10bb98e8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106c4f50",
+     "notes": "Direct caller invokes the key/certificate XML parser; zero-success path releases output objects via ZZ0077 and ZZ0128 at 0x106c4f64/0x106c4f6c."
     }
    ],
-   "todo": "Established: common creator, seven immediate creation sites and direct wrapper-site counts 24/18/4/3/3 are recovered; f_1024b048 is IR-code lookup, not an unnamed direct consumer. Unknown: semantic subsystem attribution of the remaining wrapper callers and f_10bb99ac, additional indirect construction edges and caller-selected parser/entropy policy. Next: follow the direct caller functions exemplified by 0x1010ba90/0x10505ee0/0x10562888/0x10574744/0x103704ac into their owners and installed handlers, bind f_10bb99ac, and inspect stored wrapper addresses and entropy/configuration paths around f_10c4a530; do not treat direct branch counts as a complete runtime census.",
+   "todo": "Established: common creator, seven immediate creation sites and wrapper direct-site counts 24/18/4/3/3 are recovered; f_1024b048 is IR-code lookup and f_10bb99ac parses sonos-key-and-cert XML through callback f_10bb9858. Unknown: semantic subsystem attribution of the remaining wrapper callers, additional indirect construction edges and caller-selected parser/entropy policy. Next: follow wrapper caller functions exemplified by 0x1010ba90/0x10505ee0/0x10562888/0x10574744/0x103704ac into their owners and installed handlers, inspect stored wrapper addresses, and trace entropy/configuration paths around f_10c4a530; do not treat direct branch counts as a complete runtime census.",
    "resolved_findings": [
     "The constructor symbols are stripped, but native parser creation is recovered: f_10c4a8cc passes null memory-suite/namespace arguments to f_10c4a530, and f_10c4a8e4 supplies a one-byte namespace separator. f_10c4a530 allocates a 0x220-byte parser structure, stores allocator functions and allocates its subsidiary buffers at 0x10c4a56c-0x10c4a5dc. Its other callers are reset/external-parser machinery inside the same Expat implementation. No application literal XML_ParserCreate is required for this path to execute.",
     "Both application creation variants funnel through f_10c3f81c: namespace separator zero calls f_10c4a8cc at 0x10c3f960; nonzero calls f_10c4a8e4 at 0x10c3f8b4. This wrapper validates callback combinations before allocation, allocates a twelve-byte wrapper, installs handlers through f_10c3f27c, and returns zero for invalid combinations or wrapper allocation failure at 0x10c3f920. The old claim of one parser instance is false: each call creates a separate parser around the shared engine.",
     "Direct branch census for f_10c3f81c yields seven creation call sites: 0x1024b200 in f_1024b048, 0x10bb9a20 in f_10bb99ac, plus constructor wrappers 0x10c3fd30/0x10c3fde0/0x10c3fe94/0x10c3ff58/0x10c40024 in f_10c3fcd4/f_10c3fd88/f_10c3fe28/f_10c3fefc/f_10c3ffa8. Those five wrappers store the created instance at object+4 and explicitly handle zero creation results, for example 0x10c3fd34-0x10c3fd64. Counting only the two direct application calls misses all constructor-mediated consumers. The direct wrapper census is recovered below, but subsystem attribution and indirect edges remain open; every XML-looking string is not evidence of Expat use.",
     "Version getter f_10c4c254 returns expat_2.5.0 at 0x10fb2674. Entity-amplification accounting and entropy diagnostics establish compiled support, not proof that every parser invocation enforces a particular caller-selected threshold. The shared engine and native creation paths are in the shipped ELF, so library provenance is not an obstacle to completing the consumer map.",
-    "Executable relative-branch census independently finds 24, 18, 4, 3 and 3 incoming direct sites for wrappers 0x10c3fcd4/0x10c3fd88/0x10c3fe28/0x10c3fefc/0x10c3ffa8 respectively. Example sites are 0x1010ba90/0x10505ee0/0x10562888/0x10574744/0x103704ac. These are direct branch sites, not counts of runtime instances or distinct subsystems, and do not exhaust possible indirect calls. Direct creator f_1024b048 is bound to IR-code lookup: it selects the irdecode domain at 0x1024b064 and the IR service string at 0x1024b0b4, then calls the common creator at 0x1024b200. The old open request to mechanically enumerate direct wrapper callers is settled, not evidence that semantic ownership of every caller is settled."
+    "Executable relative-branch census independently finds 24, 18, 4, 3 and 3 incoming direct sites for wrappers 0x10c3fcd4/0x10c3fd88/0x10c3fe28/0x10c3fefc/0x10c3ffa8 respectively. Example sites are 0x1010ba90/0x10505ee0/0x10562888/0x10574744/0x103704ac. These are direct branch sites, not counts of runtime instances or distinct subsystems, and do not exhaust possible indirect calls. Direct creator f_1024b048 is bound to IR-code lookup: it selects the irdecode domain at 0x1024b064 and the IR service string at 0x1024b0b4, then calls the common creator at 0x1024b200. The old open request to mechanically enumerate direct wrapper callers is settled, not evidence that semantic ownership of every caller is settled.",
+    "The second direct application creator is semantically bound: f_10bb99ac installs start-element callback f_10bb9858 at 0x10bb9a10, invokes the common parser creator at 0x10bb9a20 and streams its input file through sonosStreamFile at 0x10bb9a44. The start callback selects the depth-zero arm at 0x10bb9888-0x10bb988c, compares the root with sonos-key-and-cert (literal 0x10faf114) at 0x10bb98d4-0x10bb98e0 and marks an error byte on a mismatch. Thus it parses key/certificate XML rather than an unidentified generic subsystem. Caller 0x106c4f50 invokes this parser and, on its zero-success return, releases the resulting objects via ZZ0077/ZZ0128 at 0x106c4f64/0x106c4f6c. Neither this role nor the wrapper census establishes all wrapper owners or caller-specific entropy policy."
    ]
   },
   "telemetry_client": {
