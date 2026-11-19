@@ -88547,12 +88547,12 @@
    },
    "actions": {
     "QPlayAuth": {
-     "description": "QPlay authentication handshake (fully decoded end to end): dispatcher f_1073a4f0 strcmp-matches QPlayAuth -> exec f_1073a5d0. Exec calls req->v[+0x1c] to fetch arg Seed (0x10f11d64), parses via f_1056157c into a stack buffer capped at 0x80, gates on req->v[+0x08] parse-ok -> emits 402 (0x192) Invalid Args on failure, 401 (0x191) for unknown action names. On success it calls impl->v[+0x08](impl, seedBuf, codeOut, 0x80, midOut, 0x15, didOut, 0x15) where impl = req member +0x04. IMPL PROVEN STATIC: the impl object is constructed by f_10466750 (vptr 0x10ed1d18, installed at ctor site 0x1018f280) and its v[+0x08] = f_104666b4. f_104666b4 computes Code via f_1064548c(codeOut,0x80,seed) -> f_106453bc: ZZ0062 digest-init type 2 (proven MD5 - libsonoscrypto ZZ0062 dispatches type1=SHA-256, type2=MD5, type3=SHA-1 at 0x6b60-0x6b78), ZZ0064 update with seed bytes, ZZ0064 update with a 16-byte static key at 0x10efc7ac (53 6f 6e 6f 73 03 11 19 88 09 10 17 1e 22 ff ff = \"Sonos\"+11 bytes, preceded by literal 62800021), ZZ0061 finish, then RserializeData(digest,0x10,out,cap) serializes the 16-byte MD5 into codeOut. So Code = serialize(MD5(Seed || key16)). MID = \"62800021\" - f_106453a8 returns that literal (0x10efc7a0), copied via strlcpy f_10906304 cap 0x15; DID = snprintf \"%u\" of singleton 0x110b8150 member +0xcc (f_106454a8 -> getInstance f_1090ad44 -> f_10908350 reads +0xcc). Outputs emitted individually via req->v[+0x24] with names Code(0x10eb95c4)/MID(0x10f11d6c)/DID(0x10f11d70), response committed via req->v[+0x0c]. Correction: an earlier note claiming f_104666b4 was a MuseDebugInfo formatter and a wrong attribution is itself wrong - the impl vtable at 0x10ed1d18 statically binds it as v[+0x08]; the nearby MuseDebugInfo literals belong to a different function.",
+     "description": "QPlay authentication handshake: dispatcher f_1073a4f0 strcmp-matches QPlayAuth -> exec f_1073a5d0. Exec calls req->v[+0x1c] to fetch arg Seed (0x10f11d64), parses via f_1056157c into a stack buffer capped at 0x80, gates on req->v[+0x08] parse-ok -> emits 402 (0x192) Invalid Args on failure, the dispatcher independently emits 401 (0x191) for any other action name. On success it calls impl->v[+0x08](impl, seedBuf, codeOut, 0x80, midOut, 0x15, didOut, 0x15) where impl = the service object's member at +0x04. IMPL PROVEN STATIC: the impl object is constructed by f_10466750 (vptr 0x10ed1d18, installed at ctor site 0x1018f280) and its v[+0x08] = f_104666b4. f_104666b4 computes Code via f_1064548c(codeOut,0x80,seed) -> f_106453bc: ZZ0062 digest-init type 2 (proven MD5 - libsonoscrypto ZZ0062 dispatches type1=SHA-256, type2=MD5, type3=SHA-1 at 0x6b60-0x6b78), ZZ0064 update with seed bytes, ZZ0064 update with a 16-byte static key at 0x10efc7ac (53 6f 6e 6f 73 03 11 19 88 09 10 17 1e 22 ff ff = \"Sonos\"+11 bytes, preceded by literal 62800021), ZZ0061 finish, then RserializeData(digest,0x10,out,cap) serializes the 16-byte MD5 into codeOut. So Code = serialize(MD5(Seed || key16)). MID = \"62800021\" - f_106453a8 returns that literal (0x10efc7a0), copied via strlcpy f_10906304 cap 0x15; DID = snprintf \"%u\" of singleton 0x110b8150 member +0xcc (f_106454a8 -> getInstance f_1090ad44 -> f_10908350 reads +0xcc). Outputs emitted individually via req->v[+0x24] with names Code(0x10eb95c4)/MID(0x10f11d6c)/DID(0x10f11d70), response committed via req->v[+0x0c]. Correction: an earlier note claiming f_104666b4 was a MuseDebugInfo formatter and a wrong attribution is itself wrong - the impl vtable at 0x10ed1d18 statically binds it as v[+0x08]; the nearby MuseDebugInfo literals belong to a different function.",
      "visibility": "advertised",
      "reachability": "callable",
-     "handler": "0x1073a4f0",
-     "handler_func": "0x1073a4f0",
-     "req_arg": null,
+     "handler": "0x1073a5d0",
+     "handler_func": "0x1073a5d0",
+     "req_arg": "r4-in",
      "dispatch": {
       "kind": "strcmp-dispatched",
       "entry_addr": null,
@@ -88560,12 +88560,35 @@
       "compare_pc": "0x1073a528"
      },
      "implementation": {
-      "calls": [],
-      "req_vcalls": []
+      "calls": [
+       {
+        "site": "0x1073a668",
+        "obj": "*(r3-in+0x4) from service",
+        "slot": 8,
+        "target": "0x104666b4"
+       }
+      ],
+      "req_vcalls": [
+       {
+        "site": "0x1073a610",
+        "slot": 28,
+        "purpose": "bind Seed"
+       },
+       {
+        "site": "0x1073a630",
+        "slot": 8,
+        "purpose": "validate request"
+       },
+       {
+        "site": "0x1073a75c",
+        "slot": 12,
+        "purpose": "commit"
+       }
+      ]
      },
      "inputs": {
       "Seed": {
-       "description": "client seed string feeding the auth-code computation f_10906304; required",
+       "description": "The controller's challenge text supplied to the authentication-code computation.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -88575,10 +88598,10 @@
         "via_slot": 28
        },
        "semantic_type": "string argument",
-       "format": "utf-8 text, buffer cap 128 bytes (127 chars + NUL)",
+       "format": "Text, stored in a 128-byte buffer including the terminating NUL.",
        "unit": "n/a - text",
-       "accepted_values": "seed string consumed verbatim by auth hash f_10906304",
-       "range": "max 127 chars",
+       "accepted_values": "The worker uses the NUL-terminated text stored by the request parser.",
+       "range": "Up to 127 payload bytes in the worker's C string.",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
@@ -88597,6 +88620,20 @@
          "build": "86.10-80260",
          "address": "0x104666b4",
          "notes": "impl consumes Seed in f_10906304"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073a620",
+         "notes": "f_1056157c configures a required type-7 Seed input with capacity 0x80. The text buffer is NUL-terminated; the worker receives the stored string."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073a630",
+         "notes": "f_1073a5d0 tests request slot +0x08. Zero loads 402 at 0x1073a6b8 and branches to the shared fault call at 0x1073a684."
         }
        ],
        "notes": null,
@@ -88605,7 +88642,7 @@
      },
      "outputs": {
       "Code": {
-       "description": "device auth code computed from Seed + device identity; string <=127 chars",
+       "description": "Response text computed from the controller seed and fixed QPlay integration data.",
        "direction": "out",
        "required": true,
        "optional": false,
@@ -88616,10 +88653,19 @@
        "special_values": "none",
        "default": "none",
        "validation": "impl-side (stub returns 402 upstream of outputs)",
-       "unit": "n/a"
+       "unit": "n/a",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073a6e8",
+         "notes": "Writes Code from the codeOut buffer at sp+0xcc."
+        }
+       ]
       },
       "MID": {
-       "description": "machine-id, 20-char string + NUL",
+       "description": "Fixed QPlay integration identifier; this output does not vary by player.",
        "direction": "out",
        "required": true,
        "optional": false,
@@ -88630,10 +88676,19 @@
        "special_values": "none",
        "default": "none",
        "validation": "impl-side (stub returns 402 upstream of outputs)",
-       "unit": "n/a"
+       "unit": "n/a",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073a718",
+         "notes": "Writes MID from sp+0x1c after the worker copies its fixed integration identifier."
+        }
+       ]
       },
       "DID": {
-       "description": "device-id, 20-char string + NUL",
+       "description": "The local device number in unsigned decimal text.",
        "direction": "out",
        "required": true,
        "optional": false,
@@ -88644,56 +88699,79 @@
        "special_values": "none",
        "default": "none",
        "validation": "impl-side (stub returns 402 upstream of outputs)",
-       "unit": "n/a"
+       "unit": "n/a",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073a748",
+         "notes": "Writes DID from sp+0x34 after the worker formats the local device number as unsigned decimal."
+        }
+       ]
       }
      },
      "validation": {
-      "description": "req->v[+0x08] validation gate; failure emits 402 (literal 0x192 at 0x1073a6b8)",
+      "description": "A required Seed record is bound before the request gate. If the gate returns zero the worker is not called.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1073a5d0",
-        "notes": "validate gate + 0x192 literal"
+        "address": "0x1073a620",
+        "notes": "f_1056157c configures a required type-7 Seed input with capacity 0x80. The text buffer is NUL-terminated; the worker receives the stored string."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1073a6b8",
-        "notes": "0x192 -> req->v[+0x14]"
+        "address": "0x1073a630",
+        "notes": "f_1073a5d0 tests request slot +0x08. Zero loads 402 at 0x1073a6b8 and branches to the shared fault call at 0x1073a684."
        }
       ]
      },
      "requirements": {
-      "description": "Seed is required: parse via f_1056157c precedes the impl call and the req->v[+0x08] gate rejects missing/malformed args with 402",
+      "description": "Requires the Seed input to pass the request record gate. No active playback session is required.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1073a5d0",
-        "notes": "required-arg parse order + gate"
-       }
-      ]
-     },
-     "state_dependencies": {
-      "description": "auth computation reads device-identity material via f_106453a8/f_1064548c lookups inside impl f_104666b4; impl object injected into svc+4 by ctor f_1073a768 (called at 0x1018f28c)",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x104666b4",
-        "notes": "device-material lookups"
+        "address": "0x1073a620",
+        "notes": "f_1056157c configures a required type-7 Seed input with capacity 0x80. The text buffer is NUL-terminated; the worker receives the stored string."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1018f28c",
-        "notes": "impl ctor injection site"
+        "address": "0x1073a630",
+        "notes": "f_1073a5d0 tests request slot +0x08. Zero loads 402 at 0x1073a6b8 and branches to the shared fault call at 0x1073a684."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed1d20",
+        "notes": "The constructor at 0x1018f280 installs core table 0x10ed1d18; f_1073a768 stores the bound core at service+4 at 0x1073a774. At 0x1073a668, core slot +0x08 selects f_104666b4."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "The bound static worker uses the Seed, a fixed integration value and a local device number. It does not look up playback sessions.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed1d20",
+        "notes": "The constructor at 0x1018f280 installs core table 0x10ed1d18; f_1073a768 stores the bound core at service+4 at 0x1073a774. At 0x1073a668, core slot +0x08 selects f_104666b4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10466734",
+        "notes": "The single worker return is zero after filling all three local output buffers, without starting playback or creating a session."
        }
       ]
      },
@@ -88713,122 +88791,108 @@
       }
      ],
      "events_triggered": {
-      "description": "none emitted: impl f_104666b4 returns 0 unconditionally with no event/notify call; the only side effect is the action-name store into ctx+0x70 member +0xe0 and TLS+0x28",
+      "description": "None. The authentication worker fills local output buffers and the handler only returns a SOAP response.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x104666b4",
-        "notes": "unconditional return 0, no event emitter calls"
-       }
-      ]
-     },
-     "state_transitions": {
-      "description": "none: no state-machine mutation in handler f_1073a5d0 or impl f_104666b4 beyond the action-name/TLS stores",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x104666b4",
-        "notes": "read-only auth computation + return 0"
-       }
-      ]
-     },
-     "return_behavior": {
-      "description": "impl returns 0 unconditionally -> success response commits Code/MID/DID via req->v[+0x24] emitters then req->v[+0x0c]; nonzero would surface via the same fault/commit path",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x104666b4",
-        "notes": "return 0"
+        "address": "0x10ed1d20",
+        "notes": "The constructor at 0x1018f280 installs core table 0x10ed1d18; f_1073a768 stores the bound core at service+4 at 0x1073a774. At 0x1073a668, core slot +0x08 selects f_104666b4."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1073a5d0",
-        "notes": "emit + commit tail"
+        "address": "0x10466734",
+        "notes": "The single worker return is zero after filling all three local output buffers, without starting playback or creating a session."
        }
       ]
      },
-     "fault_sites": [],
+     "state_transitions": {
+      "description": "None. The dispatcher records the action name for request bookkeeping; neither the handler nor the worker opens a streaming session.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10f11d54",
+        "notes": "f_1073a4f0's matched branch calls service slot +0x0c at 0x1073a59c; it selects f_1073a5d0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10466734",
+        "notes": "The single worker return is zero after filling all three local output buffers, without starting playback or creating a session."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "An accepted request commits Code, MID, and DID via request slot +0x0c at 0x1073a75c. A failed request gate emits 402. The worker is bound to a routine that always returns zero.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073a630",
+        "notes": "f_1073a5d0 tests request slot +0x08. Zero loads 402 at 0x1073a6b8 and branches to the shared fault call at 0x1073a684."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10466734",
+        "notes": "The single worker return is zero after filling all three local output buffers, without starting playback or creating a session."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073a6e8",
+        "notes": "Writes Code from the codeOut buffer at sp+0xcc."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073a718",
+        "notes": "Writes MID from sp+0x1c after the worker copies its fixed integration identifier."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073a748",
+        "notes": "Writes DID from sp+0x34 after the worker formats the local device number as unsigned decimal."
+       }
+      ]
+     },
+     "fault_sites": [
+      {
+       "site": "0x1073a684",
+       "code": 402,
+       "code_expr": "const"
+      }
+     ],
      "errors": [
       {
        "code": 402,
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1073a5d0",
-         "notes": "gate"
-        }
-       ],
-       "fault_sites": [],
-       "meaning": "request-validate gate failed (req->v[+0x08] returned 0)",
-       "conditions": [
-        {
-         "description": "req->v[+0x08] request gate fails (handler literal 0x192 at 0x1073a6b8)",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x1073a5d0",
-           "notes": "gate"
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "code": 401,
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1073a4f0",
-         "notes": "strcmp dispatch"
-        }
-       ],
-       "fault_sites": [],
-       "meaning": "unknown action name on QPlay dispatcher",
-       "conditions": [
-        {
-         "description": "action name != QPlayAuth (dispatcher strcmp) (dispatcher fault 0x1073a548)",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x1073a4f0",
-           "notes": "strcmp dispatch"
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "code": 401,
-       "meaning": "action-name strcmp miss in wrapper f_1073a4f0 -> req v[+0x14] emit 0x191",
+       "code_expr": "const",
+       "meaning": "The request validator rejected the required Seed record.",
        "fault_sites": [
-        "0x1073a53c"
+        "0x1073a684"
        ],
        "conditions": [
         {
-         "description": "dispatched action name != \"QPlayAuth\" (strcmp fallthrough)",
+         "description": "Request slot +0x08 returns zero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073a528",
-           "notes": "strcmp + bc 12,30 -> body; else addi r4,0x191 + mtctr req v[+0x14]"
+           "address": "0x1073a630",
+           "notes": "f_1073a5d0 tests request slot +0x08. Zero loads 402 at 0x1073a6b8 and branches to the shared fault call at 0x1073a684."
           }
          ]
         }
@@ -88838,8 +88902,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073a53c",
-         "notes": "addi r4,0x191; mtctr; bctrl on req v[+0x14]"
+         "address": "0x1073a630",
+         "notes": "f_1073a5d0 tests request slot +0x08. Zero loads 402 at 0x1073a6b8 and branches to the shared fault call at 0x1073a684."
         }
        ]
       }
@@ -88866,26 +88930,49 @@
        "build": "86.10-80260",
        "function": "0x104666b4",
        "notes": "impl: auth-code computation + %u format; unconditional return 0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10f11d54",
+       "notes": "f_1073a4f0's matched branch calls service slot +0x0c at 0x1073a59c; it selects f_1073a5d0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ed1d20",
+       "notes": "The constructor at 0x1018f280 installs core table 0x10ed1d18; f_1073a768 stores the bound core at service+4 at 0x1073a774. At 0x1073a668, core slot +0x08 selects f_104666b4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073a630",
+       "notes": "f_1073a5d0 tests request slot +0x08. Zero loads 402 at 0x1073a6b8 and branches to the shared fault call at 0x1073a684."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10466734",
+       "notes": "The single worker return is zero after filling all three local output buffers, without starting playback or creating a session."
       }
      ],
      "notes": null,
-     "implementation_notes": "Dispatcher f_1073a4f0 strcmp-matches \"QPlayAuth\", stores the action name into ctx+0x70 member +0xe0 and into TLS+0x28 via f_100ad1bc/f_100a9750, then calls svc->v[+0x0c] = f_1073a5d0: parses required Seed (cap 0x80 via f_1056157c), req->v[+0x08] gate (else 402), then impl->v[+0x08] = f_104666b4 which computes Code via f_10906304 over the Seed plus device material (f_106453a8/f_1064548c lookups), formats a %u device value into the MID/DID buffers via snprintf_chk, and unconditionally returns 0. Success emits Code/MID/DID via req->v[+0x24] then commits via req->v[+0x0c].",
+     "implementation_notes": "The dispatcher matches QPlayAuth and records its name before calling service slot +0x0c. f_1073a5d0 validates Seed, then calls the statically bound helper at 0x104666b4 through the service+4 core. Each output has a separate string writer. The dispatcher-level 401 is not an authentication-worker result.",
      "exchange": {
       "flow": "controller sends Seed -> impl member fn computes Code/MID/DID -> emitted as out args",
       "seed_cap": "0x80",
       "code_cap": "0x80",
       "mid_did_cap": "0x15 (20 chars)",
       "errors": {
-       "0x191": "invalid action",
-       "0x192": "missing/invalid Seed"
+       "0x192": "request validator rejected the Seed record"
       },
       "impl_slot": "v[+0x08]",
       "emit": "req->v[+0x24] per out-arg, commit req->v[+0x0c]"
-     },
-     "todo": [
-      "Established: dispatch and handler 0x1073a4f0 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.",
-      "Residual: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     }
     }
    },
    "state_variables": {
