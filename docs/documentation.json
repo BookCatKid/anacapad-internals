@@ -55294,7 +55294,7 @@
      "notes": "Deletion notice is an exact current-source match followed by an attempted empty SetAVTransportURI, not a membership deletion or asynchronous recovery job. The implementation intentionally hides the inner source-set result."
     },
     "Pause": {
-     "description": "Requests pause through the streamer when the control submission succeeds. Otherwise mode 1 performs local source and state updates, and mode 2 requests indexed pause or stop according to the source URI. The fallback returns 701 for an ineligible home-theater source, an unsupported mode or a rejected indexed transition.",
+     "description": "Requests pause through the streamer if URI resolution does not identify a different source. Otherwise mode 1 performs local source and state updates, and mode 2 requests indexed pause or stop according to the source URI. The fallback returns 701 for an ineligible home-theater source, an unsupported mode or a rejected indexed transition.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8588",
@@ -55403,7 +55403,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "The fast path depends on successful submission to the current URI and a nonzero streamer pause result. The fallback checks the current URI and source mode and may send indexed pause work or do local state cleanup.",
+      "description": "A zero result from f_102aff9c permits the streamer callback; a different resolved URI or a zero streamer result reaches the fallback. The fallback checks the current URI and source mode.",
       "evidence": [
        {
         "type": "firmware",
@@ -55428,12 +55428,20 @@
         "address": "0x102d0b78",
         "notes": "Fallback first zeroes impl+0x777c and +0x7778, rejects a true f_102931f0 source test with 701, then uses the indexed mode-2, mode-1, or other-mode branch. The indexed path can use f_10256a84 op 1 or f_102569dc depending on source.",
         "function": "0x102d0ac8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b0084",
+        "notes": "f_102aff9c asks f_10687e54 to resolve op 0x19 and returns 1 only when resolution succeeds with a different URI from impl+0x3dc. Play and Pause call their streamer callbacks only on the helper's zero result; a different resolved URI bypasses the streamer callback rather than submitting work there.",
+        "function": "0x102aff9c"
        }
       ]
      },
      "side_effects": [
       {
-       "description": "Impl locks the engine mutex at impl+0x458 (f_10557cac/f_10557848) for the operation. Op-0x19 submitted to impl+0x5dc; streamer pause vfunc invoked when submission succeeds.",
+       "description": "The engine takes the impl+0x458 mutex. It tests op 0x19 against the current URI path and invokes the streamer pause callback only if the URI test does not identify a different source.",
        "evidence": [
         {
          "type": "firmware",
@@ -55450,6 +55458,14 @@
          "address": "0x102b0134",
          "notes": "f_106a7880(impl+0x5a0)",
          "function": "f_102b00cc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b0084",
+         "notes": "f_102aff9c asks f_10687e54 to resolve op 0x19 and returns 1 only when resolution succeeds with a different URI from impl+0x3dc. Play and Pause call their streamer callbacks only on the helper's zero result; a different resolved URI bypasses the streamer callback rather than submitting work there.",
+         "function": "0x102aff9c"
         }
        ]
       }
@@ -55882,12 +55898,20 @@
        "address": "0x102b06d4",
        "notes": "The common home-theater update f_102b05e4 calls f_10293208 on the current URI. For a recognized source it calls f_1023d324 and writes 1 to impl+0x775c via f_1048811c, setting +0x7760 on change; otherwise it executes URI reconciliation and returns zero. Callers use the update result to decide whether to invoke eventing, not as a new SOAP fault.",
        "function": "0x102b05e4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b0084",
+       "notes": "f_102aff9c asks f_10687e54 to resolve op 0x19 and returns 1 only when resolution succeeds with a different URI from impl+0x3dc. Play and Pause call their streamer callbacks only on the helper's zero result; a different resolved URI bypasses the streamer callback rather than submitting work there.",
+       "function": "0x102aff9c"
       }
      ],
      "notes": null
     },
     "Play": {
-     "description": "Starts playback. Impl f_102d4078: InstanceID!=0 -> 718; strcmp(Speed,'1')!=0 -> 717 (speeds other than literal '1' are rejected outright); then locks impl+0x458, logs 'upnp'/'play', and dispatches on source mode. A 'Received play for non-muse source' path rebuilds the source via f_102c350c+f_102b2ee4; the normal path runs f_102b0058 and, when it returns 0, submits play via f_102cfa50(impl,-1,-1,0). A state-changed emit via f_100caad8 follows on the submit path.",
+     "description": "Requests playback at exactly speed 1. The engine reconciles any MUSE session first, then tries the current streamer's play callback. If the callback is skipped or does not accept the request, the fallback uses the current source mode to start the sink, update a local source, or request indexed playback.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f9244",
@@ -56036,7 +56060,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "After ID and speed validation, f_102d39ac determines whether to reconcile the source. A source branch can log non-muse state and restore the stored source before trying to submit play.",
+      "description": "InstanceID must be zero and Speed must match the single-byte string 1. The active playback target, MUSE descriptor state and source-mode word determine which worker receives the request.",
       "evidence": [
        {
         "type": "firmware",
@@ -56061,6 +56085,30 @@
         "address": "0x102d41d0",
         "notes": "f_102b0058 tries op 0x19 and calls f_106a77d0 when submission succeeds. A nonzero path result is converted to success; otherwise Play forwards f_102cfa50 at 0x102d4204.",
         "function": "0x102d4078"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b0084",
+        "notes": "f_102aff9c asks f_10687e54 to resolve op 0x19 and returns 1 only when resolution succeeds with a different URI from impl+0x3dc. Play and Pause call their streamer callbacks only on the helper's zero result; a different resolved URI bypasses the streamer callback rather than submitting work there.",
+        "function": "0x102aff9c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102cfad4",
+        "notes": "The ordinary Play call passes r5=-1, r6=-1 and r7=0; f_102cfa50 bypasses its optional-context arm, runs f_102ae2d0 and sets impl+0x777c, then selects on impl+0x4654. Mode 0 requests sink state 7 through f_103088ec and discards the result. Mode 1 chooses the recognized home-theater update, ordinary shared cleanup, or one of two forwarded source-acquisition helpers. Mode 2 uses the indexed worker. Other modes set return code 701 at 0x102cfaf0.",
+        "function": "0x102cfa50"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d39ec",
+        "notes": "The source reconciliation helper exposes the MUSE descriptor state through f_10a0732c (zero for inactive, otherwise the descriptor's +0x164 word). State 2 queues a resume request and writes a five-second deadline; on entry in state 3, a deadline earlier than the current clock triggers f_102c350c and f_102d094c. The helper rereads descriptor state before returning. When that result equals 1, Play tries f_102b2ee4 and may rebuild the non-MUSE source; either route rejoins the same fast/fallback selection rather than returning a reconciliation status.",
+        "function": "0x102d39ac"
        }
       ]
      },
@@ -56080,7 +56128,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The call that follows submission is mutex-guard cleanup, not transport event delivery. The streaming and fallback workers handle source changes.",
+      "description": "The Play wrapper's cleanup is not a notification. The fallback and MUSE reconciliation can schedule eventing for dirty transport fields, including r:RestartPending clearing.",
       "evidence": [
        {
         "type": "firmware",
@@ -56097,11 +56145,27 @@
         "address": "0x102d41d0",
         "notes": "f_102b0058 tries op 0x19 and calls f_106a77d0 when submission succeeds. A nonzero path result is converted to success; otherwise Play forwards f_102cfa50 at 0x102d4204.",
         "function": "0x102d4078"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102cfe3c",
+        "notes": "The mode-one tail clears impl+0x7764 and sets dirty byte +0x7765 before scheduling eventing, and can separately clear +0x6ed0 and set +0x6ed1 at 0x102cfe58. The indexed path has equivalent conditional event sites at 0x102cfc90 and 0x102cfd88, and the MUSE resume helper notifies at 0x102d3a9c.",
+        "function": "0x102cfa50"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d39ec",
+        "notes": "The source reconciliation helper exposes the MUSE descriptor state through f_10a0732c (zero for inactive, otherwise the descriptor's +0x164 word). State 2 queues a resume request and writes a five-second deadline; on entry in state 3, a deadline earlier than the current clock triggers f_102c350c and f_102d094c. The helper rereads descriptor state before returning. When that result equals 1, Play tries f_102b2ee4 and may rebuild the non-MUSE source; either route rejoins the same fast/fallback selection rather than returning a reconciliation status.",
+        "function": "0x102d39ac"
        }
       ],
       "todo": [
-       "Established: The call that follows submission is mutex-guard cleanup, not transport event delivery.",
-       "Trace the event publishers and changed transport fields reached through f_106a77d0 and each successful f_102cfa50 source mode."
+       "Established: mode-one and indexed branches dirty the restart and suspension state bytes under different predicates; MUSE resume also queues an event.",
+       "Resolve the streamer f_106a77d0 vtable chain (first +0x2c, returned object +0x08 at 0x106a7838) and the scheduled event readers to enumerate subscriber-visible effects of a fast Play."
       ]
      },
      "state_transitions": {
@@ -56118,7 +56182,7 @@
       ]
      },
      "return_behavior": {
-      "description": "rc of f_102cfa50 (or the non-muse path result) is returned as the impl status; cr0.eq=success convention -> SOAP emit vs req->v[+0x14] fault.",
+      "description": "Nonzero streamer acceptance returns zero to SOAP. Otherwise f_102cfa50's result is returned unchanged. The MUSE reconciliation step does not independently return a SOAP fault.",
       "evidence": [
        {
         "type": "firmware",
@@ -56126,6 +56190,30 @@
         "build": "86.10-80260",
         "address": "0x102f9244",
         "notes": "wrapper decode"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102cfad4",
+        "notes": "The ordinary Play call passes r5=-1, r6=-1 and r7=0; f_102cfa50 bypasses its optional-context arm, runs f_102ae2d0 and sets impl+0x777c, then selects on impl+0x4654. Mode 0 requests sink state 7 through f_103088ec and discards the result. Mode 1 chooses the recognized home-theater update, ordinary shared cleanup, or one of two forwarded source-acquisition helpers. Mode 2 uses the indexed worker. Other modes set return code 701 at 0x102cfaf0.",
+        "function": "0x102cfa50"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102cffa0",
+        "notes": "The indexed branch presets 701, calls f_10256934 and clears the code for any nonzero return. A radio reconnect path can instead take f_102b1c5c. For content refresh, f_102b377c maps a false f_10255f64 result to 501; subsequent result-kind dispatch can overwrite success with 720 when waiting for server content or when playback is deferred.",
+        "function": "0x102cfa50"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d39ec",
+        "notes": "The source reconciliation helper exposes the MUSE descriptor state through f_10a0732c (zero for inactive, otherwise the descriptor's +0x164 word). State 2 queues a resume request and writes a five-second deadline; on entry in state 3, a deadline earlier than the current clock triggers f_102c350c and f_102d094c. The helper rereads descriptor state before returning. When that result equals 1, Play tries f_102b2ee4 and may rebuild the non-MUSE source; either route rejoins the same fast/fallback selection rather than returning a reconciliation status.",
+        "function": "0x102d39ac"
        }
       ]
      },
@@ -56218,7 +56306,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x2c)",
-       "meaning": "The return from f_102cfa50 is forwarded only when the fast submit path returns zero.",
+       "meaning": "The fallback can generate 701 (unsupported mode or rejected indexed start), 501 (content refresh submission failure), and 720 (waiting for server content or deferred playback). Mode-one source acquisition and indexed radio reconnect can forward additional helper results.",
        "fault_sites": [],
        "conditions": [
         {
@@ -56259,6 +56347,30 @@
          "address": "0x102cfad4",
          "notes": "The fallback clears impl+0x777c, reads source mode and dispatches into separate branches; modes above 2 return 701 at 0x102cfaf0.",
          "function": "0x102cfa50"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102cfad4",
+         "notes": "The ordinary Play call passes r5=-1, r6=-1 and r7=0; f_102cfa50 bypasses its optional-context arm, runs f_102ae2d0 and sets impl+0x777c, then selects on impl+0x4654. Mode 0 requests sink state 7 through f_103088ec and discards the result. Mode 1 chooses the recognized home-theater update, ordinary shared cleanup, or one of two forwarded source-acquisition helpers. Mode 2 uses the indexed worker. Other modes set return code 701 at 0x102cfaf0.",
+         "function": "0x102cfa50"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102cffa0",
+         "notes": "The indexed branch presets 701, calls f_10256934 and clears the code for any nonzero return. A radio reconnect path can instead take f_102b1c5c. For content refresh, f_102b377c maps a false f_10255f64 result to 501; subsequent result-kind dispatch can overwrite success with 720 when waiting for server content or when playback is deferred.",
+         "function": "0x102cfa50"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102c3bd4",
+         "notes": "The VLI acquisition arm can return 402 after a URI mismatch, incompatible VLI type or failed StartTransmission. Activation status from f_106a8e40 is also returned unchanged at 0x102c3c84.",
+         "function": "0x102c3a34"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x102d4078 exits=[128, 718]; helper rc returned verbatim as impl status | worker literal bound [718] (worker_err_literals.json)",
@@ -56266,8 +56378,8 @@
         718
        ],
        "todo": [
-        "Established: The return from f_102cfa50 is forwarded only when the fast submit path returns zero.",
-        "Enumerate the result codes in f_102cfa50 for the (-1,-1,0) arguments and each mode; identify which cases are locally remapped before Play receives them."
+        "Established: unsupported mode and indexed refusal produce 701, refresh failure can produce 501, and waiting or deferred content can produce 720. The VLI acquisition arm can return 402.",
+        "Follow the source-acquisition calls at 0x102d0008 and 0x102d010c to their activation and topology callbacks (f_106a8e40, f_10762c30) and the indexed radio reconnect call at 0x102cff00 through f_102ac030 to bound the remaining forwarded status codes."
        ]
       },
       {
@@ -56443,12 +56555,52 @@
        "address": "0x102cfad4",
        "notes": "The fallback clears impl+0x777c, reads source mode and dispatches into separate branches; modes above 2 return 701 at 0x102cfaf0.",
        "function": "0x102cfa50"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b0084",
+       "notes": "f_102aff9c asks f_10687e54 to resolve op 0x19 and returns 1 only when resolution succeeds with a different URI from impl+0x3dc. Play and Pause call their streamer callbacks only on the helper's zero result; a different resolved URI bypasses the streamer callback rather than submitting work there.",
+       "function": "0x102aff9c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102cfad4",
+       "notes": "The ordinary Play call passes r5=-1, r6=-1 and r7=0; f_102cfa50 bypasses its optional-context arm, runs f_102ae2d0 and sets impl+0x777c, then selects on impl+0x4654. Mode 0 requests sink state 7 through f_103088ec and discards the result. Mode 1 chooses the recognized home-theater update, ordinary shared cleanup, or one of two forwarded source-acquisition helpers. Mode 2 uses the indexed worker. Other modes set return code 701 at 0x102cfaf0.",
+       "function": "0x102cfa50"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102cffa0",
+       "notes": "The indexed branch presets 701, calls f_10256934 and clears the code for any nonzero return. A radio reconnect path can instead take f_102b1c5c. For content refresh, f_102b377c maps a false f_10255f64 result to 501; subsequent result-kind dispatch can overwrite success with 720 when waiting for server content or when playback is deferred.",
+       "function": "0x102cfa50"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d39ec",
+       "notes": "The source reconciliation helper exposes the MUSE descriptor state through f_10a0732c (zero for inactive, otherwise the descriptor's +0x164 word). State 2 queues a resume request and writes a five-second deadline; on entry in state 3, a deadline earlier than the current clock triggers f_102c350c and f_102d094c. The helper rereads descriptor state before returning. When that result equals 1, Play tries f_102b2ee4 and may rebuild the non-MUSE source; either route rejoins the same fast/fallback selection rather than returning a reconciliation status.",
+       "function": "0x102d39ac"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102cfe3c",
+       "notes": "The mode-one tail clears impl+0x7764 and sets dirty byte +0x7765 before scheduling eventing, and can separately clear +0x6ed0 and set +0x6ed1 at 0x102cfe58. The indexed path has equivalent conditional event sites at 0x102cfc90 and 0x102cfd88, and the MUSE resume helper notifies at 0x102d3a9c.",
+       "function": "0x102cfa50"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: only literal speed 1 is accepted, and a false fast submit takes the f_102cfa50 fallback.",
-      "Finish the source-mode and return matrix in f_102cfa50 and the f_102d39ac == 1 source-reconciliation cases. The speed gate, submit/fallback choice and post-submit guard cleanup are verified."
+      "Established: f_102d39ac's source reconciliation returns a descriptor state, not a SOAP result. The fast path and all four top-level fallback outcomes are identified.",
+      "Complete the forwarded mode-one source acquisition and indexed radio reconnect result domains and determine their exact source-specific mutations past the lower-layer activation callbacks."
      ]
     },
     "Previous": {
