@@ -88166,7 +88166,7 @@
      "notes": null
     },
     "GetAllPrefixLocations": {
-     "description": "Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl->v[+0x1c].",
+     "description": "Returns alphabet-navigation prefix/position pairs for a supported library attribute node, not a generic list of arbitrary object-ID prefixes. Missing letters are represented by a prefix with an empty position. Empty supported catalog views still advertise # and A..Z groups. The A: backend reports UpdateID0; unsupported resolved objects return800.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x103072ac",
@@ -88216,288 +88216,484 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "impl_function": "0x10302cb4; A: node override0x102a3744",
+      "impl_vfunc": "cd_impl primary0x10eb3f20 +0x1c; resolved object+0x18"
      },
      "inputs": {
       "ObjectID": {
        "direction": "in",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
+       "format": "NUL-terminated text in1024-byte request buffer",
        "type": "",
        "accepted": "impl-side grammar applies",
        "required": true,
        "parse_helper": "req->v[+0x1c] (required-arg parser)",
-       "description": "CD object identifier to enumerate prefix locations for",
-       "unit": "n/a",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103072e0",
-         "notes": "in-arg name load + req->v[+0x1c] parse call"
-        }
-       ],
-       "primitive": {
-        "type_tag": 7,
-        "parse_helper": "0x1056157c",
-        "buf_cap": null,
-        "fmt": null,
-        "via_slot": 28
-       },
-       "semantic_type": "SonosStringArg",
-       "range": "max 1023 chars",
-       "special_values": "none identified",
-       "default": "none - required argument",
-       "validation": "consumed by the impl vfunc",
-       "accepted_values": "impl-side grammar applies",
-       "buf_cap": 1024
-      }
-     },
-     "outputs": {
-      "TotalPrefixes": {
-       "description": "produced by impl 0x10302cb4 via media-store member this+0x168",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": "0x1055fcbc",
-        "fmt": null
-       },
-       "semantic_type": "unsigned int32",
-       "format": "%u decimal",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x10302cb4",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "see impl 0x10302cb4",
-       "required": false,
-       "default": "see impl 0x10302cb4",
-       "validation": "impl-produced",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103073a8",
-         "notes": "out-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eb4364",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      },
-      "PrefixAndIndexCSV": {
-       "description": "produced by impl 0x10302cb4 via media-store member this+0x168",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": null
-       },
-       "semantic_type": "SonosUintArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "unrestricted/impl-validated per 0x10302cb4",
-       "range": "see impl 0x10302cb4",
-       "special_values": "none observed in this build",
-       "required": false,
-       "default": "see impl 0x10302cb4",
-       "validation": "impl-produced",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103073cc",
-         "notes": "out-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eb4374",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      },
-      "UpdateID": {
-       "description": "produced by impl 0x10302cb4 via media-store member this+0x168",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": "0x1055fcbc",
-        "fmt": null
-       },
-       "semantic_type": "unsigned int32",
-       "format": "%u decimal",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x10302cb4",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "see impl 0x10302cb4",
-       "required": false,
-       "default": "see impl 0x10302cb4",
-       "validation": "impl-produced",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103073fc",
-         "notes": "out-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10f14438",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x103072ac",
-        "notes": "wrapper family decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×3, validate×1, commit×1); member delegates: r30 v[+0x1c]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x103072ac",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 3, '0x10': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×3, validate×1, commit×1); member delegates: r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x1c]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x103072ac",
-        "notes": "member vfunc calls: ['r30 v[+0x1c]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "read-only query delegate: r30 v[+0x1c] (call-derived member-method semantics)",
+       "description": "Library object resolved through impl+0x168; must override prefix-location method. Bare A: directory root does not; parsed A: child attribute node does.",
+       "unit": "none",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x103072ac",
-         "notes": "delegate map ['r30 v[+0x1c]']; notify-family calls []"
+         "address": "0x1030733c",
+         "notes": "Registers required ObjectID using f_1056157c with0x400 capacity. Validator at0x1030730c false ->402; primary+0x1c invokes f_10302cb4 with TotalPrefixes*,CSV buffer(cap0x400),UpdateID*. Zero outputs via f_1055fcbc / string+0x10 and commits at0x10307418; nonzero fault at0x10307358."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10302cb4",
+         "address": "0x10302d10",
+         "notes": "Resolve ObjectID via f_1034a224: NULL ->701. Compares resolved +0x18 with default f_10113da4: EQUALITY ->800, otherwise calls override0x10302d68 and releases+0x28. No dynamic-binding gap; service-level cd_impl proof applies."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3744",
+         "address": "0x102a3780",
+         "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3b74",
+         "address": "0x102a3c0c",
+         "notes": "Four attribute child nodes use0x10eadf4c with prefix overrides102a3510/102a3744. A: directory root uses0x10eadf80 with unsupported defaults. f_102a3d90 copies child ID using0x200 capacity. Parser f_102a1aa0 initializes filter sentinel0x00040000; mode categories0..6; percent-decodes slash components and looks up names with f_10102b28."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r30 v[+0x1c] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "primitive": {
+        "type_tag": 7,
+        "parse_helper": "0x1056157c",
+        "buf_cap": 1024,
+        "fmt": null,
+        "via_slot": 28
+       },
+       "semantic_type": "string",
+       "range": "1023 stored bytes plus NUL; A: child copy further bounded to511 plus NUL",
+       "special_values": "Unknown object701, resolved default-method object800. TRACKS with specific track-filter bits800.",
+       "default": "none; required",
+       "validation": "Required parse before resolve/capability gate; then concrete node parser/mask checks.",
+       "accepted_values": "Valid parsed A: category and descendant node; GENRE,COMPOSER,ARTIST,ALBUMARTIST,ALBUM,TRACKS,PLAYLISTS modes.",
+       "buf_cap": 1024
+      }
+     },
+     "outputs": {
+      "TotalPrefixes": {
+       "description": "Number of prefix groups emitted by selected catalog helper, including empty-position groups. This is not item count and not only the number of populated letters.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": "0x1055fcbc",
+        "fmt": null
+       },
+       "semantic_type": "u32",
+       "format": "%u decimal",
+       "unit": "prefix groups",
+       "accepted_values": "Catalog helper16-bit group count, widened for output.",
+       "range": "16-bit helper count",
+       "special_values": "Empty supported catalog view returns27 for # and A..Z.",
+       "required": false,
+       "default": "none; produced on success",
+       "validation": "Helper return stored as data; overall rc is0.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103072ac",
+         "address": "0x1030733c",
+         "notes": "Registers required ObjectID using f_1056157c with0x400 capacity. Validator at0x1030730c false ->402; primary+0x1c invokes f_10302cb4 with TotalPrefixes*,CSV buffer(cap0x400),UpdateID*. Zero outputs via f_1055fcbc / string+0x10 and commits at0x10307418; nonzero fault at0x10307358."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3744",
+         "address": "0x102a3780",
+         "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3744",
+         "address": "0x102a37d0",
+         "notes": "Jump table0x10eade98: mode0 GENRE->10103f04,1 COMPOSER->10104394,2 ARTIST->10104824,3 ALBUMARTIST->10104cd4,4 ALBUM->101051f0,5 TRACKS->10105774,6 PLAYLISTS->101062d8. Other than TRACKS, any non-sentinel filter ID at+0x218..+0x228 selects synthetic-leading-entry index offset1, unless stored node ID starts NA:. Helpers return counts, not fault codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10103f04",
+         "address": "0x10103fa8",
+         "notes": "Iterates names with16-bit position cursor. ASCII lowercase initial is uppercased; non-ASCII uses locale comparisons f_10906e2c against A/Z and f_10906b88 for initial. Below-A initial maps #, above-Z clamps Z. On bucket transition emits missing #/A..Z with EMPTY index fields, then actual bucket and first numeric position. Final fills through Z. Empty catalog produces27 prefix groups with empty positions, not zero groups. Filtered iterator variant f_101051f0 and track variant f_10105774 use same bucket/padding scheme."
+        }
+       ],
+       "notes": null
+      },
+      "PrefixAndIndexCSV": {
+       "description": "Alternating prefix,index CSV fields for # and A..Z navigation groups. Populated groups carry first item position; absent groups have empty index, not zero. Synthetic leading entry adds1 to actual positions in filtered views.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "CSV text",
+       "format": "prefix,index,prefix,index,...; comma/backslash escaped with backslash",
+       "unit": "none",
+       "accepted_values": "Letter/bucket strings paired with decimal index or empty field.",
+       "range": "1024-byte output buffer, at most1023 stored bytes plus NUL",
+       "special_values": "Empty view: #,,A,,B,,... through Z with empty positions. Truncation does not change helper status to fault.",
+       "required": false,
+       "default": "none; generated on success",
+       "validation": "Bounded CSV builder; not an unsigned argument.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103072ac",
+         "address": "0x1030733c",
+         "notes": "Registers required ObjectID using f_1056157c with0x400 capacity. Validator at0x1030730c false ->402; primary+0x1c invokes f_10302cb4 with TotalPrefixes*,CSV buffer(cap0x400),UpdateID*. Zero outputs via f_1055fcbc / string+0x10 and commits at0x10307418; nonzero fault at0x10307358."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3744",
+         "address": "0x102a3780",
+         "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10103f04",
+         "address": "0x10103fa8",
+         "notes": "Iterates names with16-bit position cursor. ASCII lowercase initial is uppercased; non-ASCII uses locale comparisons f_10906e2c against A/Z and f_10906b88 for initial. Below-A initial maps #, above-Z clamps Z. On bucket transition emits missing #/A..Z with EMPTY index fields, then actual bucket and first numeric position. Final fills through Z. Empty catalog produces27 prefix groups with empty positions, not zero groups. Filtered iterator variant f_101051f0 and track variant f_10105774 use same bucket/padding scheme."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10c39b10",
+         "address": "0x10c39b58",
+         "notes": "CSV append reserves NUL, adds commas between fields, escapes comma/backslash, truncates when capacity exhausted and writes terminator. String append f_10c39c44, decimal position f_10c39c78. Caller supplies0x400 bytes; no SOAP buffer-overflow fault is synthesized from truncation."
+        }
+       ],
+       "notes": null
+      },
+      "UpdateID": {
+       "description": "Unconditionally0 from the A: prefix-location backend.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": "0x1055fcbc",
+        "fmt": null
+       },
+       "semantic_type": "u32",
+       "format": "%u decimal",
+       "unit": "version",
+       "accepted_values": "0",
+       "range": "{0} on traced supported backend",
+       "special_values": "Not the global SystemUpdateID.",
+       "required": false,
+       "default": "0",
+       "validation": "Written before node parse, serialized only on success.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103072ac",
+         "address": "0x1030733c",
+         "notes": "Registers required ObjectID using f_1056157c with0x400 capacity. Validator at0x1030730c false ->402; primary+0x1c invokes f_10302cb4 with TotalPrefixes*,CSV buffer(cap0x400),UpdateID*. Zero outputs via f_1055fcbc / string+0x10 and commits at0x10307418; nonzero fault at0x10307358."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3744",
+         "address": "0x102a3780",
+         "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+        }
+       ],
+       "notes": null
+      }
+     },
+     "validation": {
+      "description": "Required ObjectID missing ->402. Otherwise resolve first (NULL701), reject base unsupported +0x18 method (800), then parse supported attribute node (false701), mode>6 (701), unsupported specific-track mask (800). No input Prefix or count argument.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103072ac",
+        "address": "0x1030733c",
+        "notes": "Registers required ObjectID using f_1056157c with0x400 capacity. Validator at0x1030730c false ->402; primary+0x1c invokes f_10302cb4 with TotalPrefixes*,CSV buffer(cap0x400),UpdateID*. Zero outputs via f_1055fcbc / string+0x10 and commits at0x10307418; nonzero fault at0x10307358."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302cb4",
+        "address": "0x10302d10",
+        "notes": "Resolve ObjectID via f_1034a224: NULL ->701. Compares resolved +0x18 with default f_10113da4: EQUALITY ->800, otherwise calls override0x10302d68 and releases+0x28. No dynamic-binding gap; service-level cd_impl proof applies."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3744",
+        "address": "0x102a3780",
+        "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Resolved object with non-default prefix-location method. A: pooled child nodes qualify, A: directory root and base queue/share/saved-queue objects do not. Parsed node mode0..6 required; TRACKS requires (+0x228 &0xfffbffff)==0.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302cb4",
+        "address": "0x10302d10",
+        "notes": "Resolve ObjectID via f_1034a224: NULL ->701. Compares resolved +0x18 with default f_10113da4: EQUALITY ->800, otherwise calls override0x10302d68 and releases+0x28. No dynamic-binding gap; service-level cd_impl proof applies."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3744",
+        "address": "0x102a3780",
+        "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3744",
+        "address": "0x102a37d0",
+        "notes": "Jump table0x10eade98: mode0 GENRE->10103f04,1 COMPOSER->10104394,2 ARTIST->10104824,3 ALBUMARTIST->10104cd4,4 ALBUM->101051f0,5 TRACKS->10105774,6 PLAYLISTS->101062d8. Other than TRACKS, any non-sentinel filter ID at+0x218..+0x228 selects synthetic-leading-entry index offset1, unless stored node ID starts NA:. Helpers return counts, not fault codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3b74",
+        "address": "0x102a3c0c",
+        "notes": "Four attribute child nodes use0x10eadf4c with prefix overrides102a3510/102a3744. A: directory root uses0x10eadf80 with unsupported defaults. f_102a3d90 copies child ID using0x200 capacity. Parser f_102a1aa0 initializes filter sentinel0x00040000; mode categories0..6; percent-decodes slash components and looks up names with f_10102b28."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Global catalog0x1109cc9c under mutex0x1109cd28 via f_10107e20/f_10107e38; node parsed category+0x230, filters+0x218..+0x228, catalog locale and ordering. No read of cd_impl SystemUpdateID for this output.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3744",
+        "address": "0x102a3780",
+        "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3744",
+        "address": "0x102a37d0",
+        "notes": "Jump table0x10eade98: mode0 GENRE->10103f04,1 COMPOSER->10104394,2 ARTIST->10104824,3 ALBUMARTIST->10104cd4,4 ALBUM->101051f0,5 TRACKS->10105774,6 PLAYLISTS->101062d8. Other than TRACKS, any non-sentinel filter ID at+0x218..+0x228 selects synthetic-leading-entry index offset1, unless stored node ID starts NA:. Helpers return counts, not fault codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10103f04",
+        "address": "0x10103fa8",
+        "notes": "Iterates names with16-bit position cursor. ASCII lowercase initial is uppercased; non-ASCII uses locale comparisons f_10906e2c against A/Z and f_10906b88 for initial. Below-A initial maps #, above-Z clamps Z. On bucket transition emits missing #/A..Z with EMPTY index fields, then actual bucket and first numeric position. Final fills through Z. Empty catalog produces27 prefix groups with empty positions, not zero groups. Filtered iterator variant f_101051f0 and track variant f_10105774 use same bucket/padding scheme."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3b74",
+        "address": "0x102a3c0c",
+        "notes": "Four attribute child nodes use0x10eadf4c with prefix overrides102a3510/102a3744. A: directory root uses0x10eadf80 with unsupported defaults. f_102a3d90 copies child ID using0x200 capacity. Parser f_102a1aa0 initializes filter sentinel0x00040000; mode categories0..6; percent-decodes slash components and looks up names with f_10102b28."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Temporarily parses/marks attribute node busy under catalog lock, builds response, clears busy and returns node to pool. No library content or persistent display/sort option write.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3744",
+         "address": "0x102a3780",
+         "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3744",
+         "address": "0x102a37d0",
+         "notes": "Jump table0x10eade98: mode0 GENRE->10103f04,1 COMPOSER->10104394,2 ARTIST->10104824,3 ALBUMARTIST->10104cd4,4 ALBUM->101051f0,5 TRACKS->10105774,6 PLAYLISTS->101062d8. Other than TRACKS, any non-sentinel filter ID at+0x218..+0x228 selects synthetic-leading-entry index offset1, unless stored node ID starts NA:. Helpers return counts, not fault codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3b74",
+         "address": "0x102a3c0c",
+         "notes": "Four attribute child nodes use0x10eadf4c with prefix overrides102a3510/102a3744. A: directory root uses0x10eadf80 with unsupported defaults. f_102a3d90 copies child ID using0x200 capacity. Parser f_102a1aa0 initializes filter sentinel0x00040000; mode categories0..6; percent-decodes slash components and looks up names with f_10102b28."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No ContentDirectory notifier or update increment in wrapper, worker, catalog prefix iterators or pooled-node release. Mutex/condition signaling only recycles the temporary node.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x103072ac",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1030733c",
+        "notes": "Registers required ObjectID using f_1056157c with0x400 capacity. Validator at0x1030730c false ->402; primary+0x1c invokes f_10302cb4 with TotalPrefixes*,CSV buffer(cap0x400),UpdateID*. Zero outputs via f_1055fcbc / string+0x10 and commits at0x10307418; nonzero fault at0x10307358."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302cb4",
+        "address": "0x10302d10",
+        "notes": "Resolve ObjectID via f_1034a224: NULL ->701. Compares resolved +0x18 with default f_10113da4: EQUALITY ->800, otherwise calls override0x10302d68 and releases+0x28. No dynamic-binding gap; service-level cd_impl proof applies."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3744",
+        "address": "0x102a3780",
+        "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10103f04",
+        "address": "0x10103fa8",
+        "notes": "Iterates names with16-bit position cursor. ASCII lowercase initial is uppercased; non-ASCII uses locale comparisons f_10906e2c against A/Z and f_10906b88 for initial. Below-A initial maps #, above-Z clamps Z. On bucket transition emits missing #/A..Z with EMPTY index fields, then actual bucket and first numeric position. Final fills through Z. Empty catalog produces27 prefix groups with empty positions, not zero groups. Filtered iterator variant f_101051f0 and track variant f_10105774 use same bucket/padding scheme."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3b74",
+        "address": "0x102a3c0c",
+        "notes": "Four attribute child nodes use0x10eadf4c with prefix overrides102a3510/102a3744. A: directory root uses0x10eadf80 with unsupported defaults. f_102a3d90 copies child ID using0x200 capacity. Parser f_102a1aa0 initializes filter sentinel0x00040000; mode categories0..6; percent-decodes slash components and looks up names with f_10102b28."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x1c]",
+      "description": "Temporary parse/busy/free-list state only; UpdateID output fixed0. Does not change alphabet order or start indexing.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x103072ac",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x1c]']"
+        "function": "0x102a3744",
+        "address": "0x102a3780",
+        "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3744",
+        "address": "0x102a37d0",
+        "notes": "Jump table0x10eade98: mode0 GENRE->10103f04,1 COMPOSER->10104394,2 ARTIST->10104824,3 ALBUMARTIST->10104cd4,4 ALBUM->101051f0,5 TRACKS->10105774,6 PLAYLISTS->101062d8. Other than TRACKS, any non-sentinel filter ID at+0x218..+0x228 selects synthetic-leading-entry index offset1, unless stored node ID starts NA:. Helpers return counts, not fault codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3b74",
+        "address": "0x102a3c0c",
+        "notes": "Four attribute child nodes use0x10eadf4c with prefix overrides102a3510/102a3744. A: directory root uses0x10eadf80 with unsupported defaults. f_102a3d90 copies child ID using0x200 capacity. Parser f_102a1aa0 initializes filter sentinel0x00040000; mode categories0..6; percent-decodes slash components and looks up names with f_10102b28."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Zero backend rc emits TotalPrefixes%u, CSV string and UpdateID%u then commits. Nonzero worker rc forwarded unchanged. Catalog helper integer return is TotalPrefixes DATA and cannot be treated as a SOAP error literal. Buffer truncation has no separate error return.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x103072ac",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 3, '0x10': 1, '0xc': 1}"
+        "address": "0x1030733c",
+        "notes": "Registers required ObjectID using f_1056157c with0x400 capacity. Validator at0x1030730c false ->402; primary+0x1c invokes f_10302cb4 with TotalPrefixes*,CSV buffer(cap0x400),UpdateID*. Zero outputs via f_1055fcbc / string+0x10 and commits at0x10307418; nonzero fault at0x10307358."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302cb4",
+        "address": "0x10302d10",
+        "notes": "Resolve ObjectID via f_1034a224: NULL ->701. Compares resolved +0x18 with default f_10113da4: EQUALITY ->800, otherwise calls override0x10302d68 and releases+0x28. No dynamic-binding gap; service-level cd_impl proof applies."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3744",
+        "address": "0x102a3780",
+        "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3744",
+        "address": "0x102a37d0",
+        "notes": "Jump table0x10eade98: mode0 GENRE->10103f04,1 COMPOSER->10104394,2 ARTIST->10104824,3 ALBUMARTIST->10104cd4,4 ALBUM->101051f0,5 TRACKS->10105774,6 PLAYLISTS->101062d8. Other than TRACKS, any non-sentinel filter ID at+0x218..+0x228 selects synthetic-leading-entry index offset1, unless stored node ID starts NA:. Helpers return counts, not fault codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c39b10",
+        "address": "0x10c39b58",
+        "notes": "CSV append reserves NUL, adds commas between fields, escapes comma/backslash, truncates when capacity exhausted and writes terminator. String append f_10c39c44, decimal position f_10c39c78. Caller supplies0x400 bytes; no SOAP buffer-overflow fault is synthesized from truncation."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret; parse/req-layer",
-       "meaning": "impl accumulator r30: {701 resolver fail (0x10302ce4), 800 vfunc type check fail - vtbl[+0x18] != f_10113da4 (0x10302d08), call-derived}; rc forwarded verbatim via req v[+0x14] | Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Required ObjectID missing.",
        "fault_sites": [
-        "0x103072ac"
+        "0x1030738c"
        ],
        "conditions": [
         {
-         "description": "req or impl gate failed",
+         "description": "Request validator false before worker call.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10302cb4",
-           "notes": "impl"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103072ac",
-           "notes": "parse vcalls then fault path"
+           "function": "0x103072ac",
+           "address": "0x1030733c",
+           "notes": "Registers required ObjectID using f_1056157c with0x400 capacity. Validator at0x1030730c false ->402; primary+0x1c invokes f_10302cb4 with TotalPrefixes*,CSV buffer(cap0x400),UpdateID*. Zero outputs via f_1055fcbc / string+0x10 and commits at0x10307418; nonzero fault at0x10307358."
           }
          ]
         }
@@ -88507,104 +88703,125 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10302cb4",
-         "notes": "rc path"
-        },
+         "function": "0x103072ac",
+         "address": "0x1030733c",
+         "notes": "Registers required ObjectID using f_1056157c with0x400 capacity. Validator at0x1030730c false ->402; primary+0x1c invokes f_10302cb4 with TotalPrefixes*,CSV buffer(cap0x400),UpdateID*. Zero outputs via f_1055fcbc / string+0x10 and commits at0x10307418; nonzero fault at0x10307358."
+        }
+       ]
+      },
+      {
+       "code": 701,
+       "meaning": "Object resolver NULL, supported attribute parser false, or parsed mode>6.",
+       "fault_sites": [
+        "0x10302ce4",
+        "0x102a3848",
+        "0x102a39b4"
+       ],
+       "conditions": [
         {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302ce4",
-         "notes": "li r30,0x2bd resolver-fail"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302d08",
-         "notes": "li r30,0x320 type-check fail"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103072ac",
-         "notes": "wrapper parse + fault path"
+         "description": "Resolver fails or concrete node is not a recognized parsed category.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10302cb4",
+           "address": "0x10302d10",
+           "notes": "Resolve ObjectID via f_1034a224: NULL ->701. Compares resolved +0x18 with default f_10113da4: EQUALITY ->800, otherwise calls override0x10302d68 and releases+0x28. No dynamic-binding gap; service-level cd_impl proof applies."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102a3744",
+           "address": "0x102a3780",
+           "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102a3b74",
+           "address": "0x102a3c0c",
+           "notes": "Four attribute child nodes use0x10eadf4c with prefix overrides102a3510/102a3744. A: directory root uses0x10eadf80 with unsupported defaults. f_102a3d90 copies child ID using0x200 capacity. Parser f_102a1aa0 initializes filter sentinel0x00040000; mode categories0..6; percent-decodes slash components and looks up names with f_10102b28."
+          }
+         ]
         }
        ],
-       "unresolved": {
-        "proven": "literal exit paths bounded by accumulator scan",
-        "unknown": "call-derived rc values from worker/delegate chain | resolver f_1034a224 -> f_10349d00 path-walk (ptr/NULL)",
-        "return_path": "URI/'0' sentinel dispatch into scheme resolver; x-rincon object-ID scheme resolver (A:/S:/Q: prefixes) - content-resolution rc domain",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_1034a224": {
-          "lits": [
-           1056
-          ],
-          "pt": 2
-         },
-         "f_10349d00": {
-          "lits": [
-           8,
-           496
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
          "function": "0x10302cb4",
-         "lits": [
-          360,
-          1024
-         ],
-         "passthrough_exits": 2
+         "address": "0x10302d10",
+         "notes": "Resolve ObjectID via f_1034a224: NULL ->701. Compares resolved +0x18 with default f_10113da4: EQUALITY ->800, otherwise calls override0x10302d68 and releases+0x28. No dynamic-binding gap; service-level cd_impl proof applies."
         },
-        "delegated_sources": {
-         "f_103031e4": {
-          "lits": [
-           24
-          ],
-          "pt": 4
-         }
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3744",
+         "address": "0x102a3780",
+         "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
         },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "worker_literal_bound": [
-        800
-       ],
-       "literal_bound": [
-        0,
-        402,
-        701,
-        711
-       ],
-       "resolved_note": "CD impl: Browse/search -> {402 invalid-args, 701 no-such-content, 711 no-such-object, browse-engine rc}. verified via impl return-scan.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; parse/req-layer; sites: 0x103072ac).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3b74",
+         "address": "0x102a3c0c",
+         "notes": "Four attribute child nodes use0x10eadf4c with prefix overrides102a3510/102a3744. A: directory root uses0x10eadf80 with unsupported defaults. f_102a3d90 copies child ID using0x200 capacity. Parser f_102a1aa0 initializes filter sentinel0x00040000; mode categories0..6; percent-decodes slash components and looks up names with f_10102b28."
+        }
        ]
       },
       {
        "code": 800,
-       "code_expr": "r30 accumulator",
-       "meaning": "Resolved-object capability check: vtbl[+0x18] must equal the prefix-search entry point f_10113da4; resolved objects whose class fills that slot with a different implementation fault 800 (\"not a prefix-searchable directory object\"). Census of .rodata finds SEVENTEEN vtables carrying f_10113d94@+0x14 + f_10113da4@+0x18: the 10-member queue/share/saved-queue family @0x10ebb598-0x10ebb7f4, the three favorites classes @0x10ec0ad4/0x10ec0b08/0x10ec0c28, dirObjAttr @0x10eadf80, two audio-in classes @0x10ea11f4/0x10ea129c (SPDIF/dioInputZP neighborhood), plus a 9-slot variant @0x10ea0f7c carrying the pair at +0x0c/+0x10 (older/alternate interface layout). 800 therefore fires on unresolved objects and on non-directory classes, not on most real dirObj classes.",
+       "meaning": "Resolved object uses default unsupported prefix-location method, or TRACKS filter identifies a specific track.",
        "fault_sites": [
-        "0x10302d08"
+        "0x10302d08",
+        "0x102a3870"
+       ],
+       "conditions": [
+        {
+         "description": "object+0x18 equals f_10113da4, or mode5 and (field+0x228 &0xfffbffff)!=0.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10302cb4",
+           "address": "0x10302d10",
+           "notes": "Resolve ObjectID via f_1034a224: NULL ->701. Compares resolved +0x18 with default f_10113da4: EQUALITY ->800, otherwise calls override0x10302d68 and releases+0x28. No dynamic-binding gap; service-level cd_impl proof applies."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102a3744",
+           "address": "0x102a3780",
+           "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+          }
+         ]
+        }
        ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "full-.rodata vtable census for f_10113d94@+0x14/f_10113da4@+0x18: 17 vtables {0x10ea0f7c(+0c/+10 variant),0x10ea11f4,0x10ea129c,0x10eadf80,0x10ebb598,0x10ebb5cc,0x10ebb644,0x10ebb6a8,0x10ebb6dc,0x10ebb710,0x10ebb744,0x10ebb778,0x10ebb7ac,0x10ebb7f4,0x10ec0ad4,0x10ec0b08,0x10ec0c28}; earlier 'three classes' claim was a region-limited scan artifact"
+         "function": "0x10302cb4",
+         "address": "0x10302d10",
+         "notes": "Resolve ObjectID via f_1034a224: NULL ->701. Compares resolved +0x18 with default f_10113da4: EQUALITY ->800, otherwise calls override0x10302d68 and releases+0x28. No dynamic-binding gap; service-level cd_impl proof applies."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3744",
+         "address": "0x102a3780",
+         "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
         }
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: r30 accumulator; sites: 0x10302d08).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -88624,13 +88841,66 @@
        "build": "86.10-80260",
        "address": "0x10eb42a0",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103072ac",
+       "address": "0x1030733c",
+       "notes": "Registers required ObjectID using f_1056157c with0x400 capacity. Validator at0x1030730c false ->402; primary+0x1c invokes f_10302cb4 with TotalPrefixes*,CSV buffer(cap0x400),UpdateID*. Zero outputs via f_1055fcbc / string+0x10 and commits at0x10307418; nonzero fault at0x10307358."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10302cb4",
+       "address": "0x10302d10",
+       "notes": "Resolve ObjectID via f_1034a224: NULL ->701. Compares resolved +0x18 with default f_10113da4: EQUALITY ->800, otherwise calls override0x10302d68 and releases+0x28. No dynamic-binding gap; service-level cd_impl proof applies."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a3744",
+       "address": "0x102a3780",
+       "notes": "A: pooled-node vtable0x10eadf4c +0x18. Writes UpdateID0, locks global catalog f_10107e20, sets busy byte+4, parses via f_102a1aa0. False ->701. Mode+0x230 >6 ->701. TRACKS mode5 with (+0x228 &0xfffbffff)!=0 ->800, otherwise dispatch CSV helper and store count, rc0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a3744",
+       "address": "0x102a37d0",
+       "notes": "Jump table0x10eade98: mode0 GENRE->10103f04,1 COMPOSER->10104394,2 ARTIST->10104824,3 ALBUMARTIST->10104cd4,4 ALBUM->101051f0,5 TRACKS->10105774,6 PLAYLISTS->101062d8. Other than TRACKS, any non-sentinel filter ID at+0x218..+0x228 selects synthetic-leading-entry index offset1, unless stored node ID starts NA:. Helpers return counts, not fault codes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10103f04",
+       "address": "0x10103fa8",
+       "notes": "Iterates names with16-bit position cursor. ASCII lowercase initial is uppercased; non-ASCII uses locale comparisons f_10906e2c against A/Z and f_10906b88 for initial. Below-A initial maps #, above-Z clamps Z. On bucket transition emits missing #/A..Z with EMPTY index fields, then actual bucket and first numeric position. Final fills through Z. Empty catalog produces27 prefix groups with empty positions, not zero groups. Filtered iterator variant f_101051f0 and track variant f_10105774 use same bucket/padding scheme."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10c39b10",
+       "address": "0x10c39b58",
+       "notes": "CSV append reserves NUL, adds commas between fields, escapes comma/backslash, truncates when capacity exhausted and writes terminator. String append f_10c39c44, decimal position f_10c39c78. Caller supplies0x400 bytes; no SOAP buffer-overflow fault is synthesized from truncation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a3b74",
+       "address": "0x102a3c0c",
+       "notes": "Four attribute child nodes use0x10eadf4c with prefix overrides102a3510/102a3744. A: directory root uses0x10eadf80 with unsupported defaults. f_102a3d90 copies child ID using0x200 capacity. Parser f_102a1aa0 initializes filter sentinel0x00040000; mode categories0..6; percent-decodes slash components and looks up names with f_10102b28."
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x103072ac; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Default-stub comparison polarity corrected: stub equality rejects, override inequality dispatches. No speculative raw-literal fault inventory remains."
     },
     "GetBrowseable": {
      "description": "Always returns IsBrowseable=1 in this firmware. Handler 0x103077d0 calls cd_impl primary slot +0x3c = f_10302470, which writes byte 1 and returns zero without checking the index, scan status or any object field. See the ContentDirectory service-level binding proof.",
