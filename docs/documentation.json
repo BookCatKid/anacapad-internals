@@ -7207,7 +7207,7 @@
         "site": "0x10733fa8",
         "obj": "*(sp-0x60+0x5c)",
         "slot": 12,
-        "arg4": 402
+        "arg4": 0
        }
       ],
       "req_vcalls": [
@@ -7802,6 +7802,14 @@
        "address": "0x10733fa8",
        "callsite": "0x10733f44",
        "notes": "The only wrapper success commit is gated on worker return zero at 0x10733f54. Static worker f_10272f60 always returns 401. Therefore neither success commit nor any backing-store save is reached. The prior association with alarmclock.xml writer f_10283998 and codes 501/800/801/802 was not a reachable SetTimeNow call chain; those codes are not this action fault surface."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10733e98",
+       "address": "0x10733fa8",
+       "notes": "0x10733f4c is mr. r4,r3 (raw 0x7c641b79, Rc=1), copying worker status and setting CR0. 0x10733f54 (raw 0x4182004c, BO=12, BI=2) branches on CR0.EQ to 0x10733fa0, which loads request slot +0x0c (raw 0x8129000c). No intervening instruction changes r4 before bctrl at 0x10733fa8 (raw 0x4e800421), so r4 is zero on this success-commit predecessor, not 402. Validation failure instead loads literal 402 at 0x10733f94 (raw 0x38800192), then calls fault slot +0x14 at 0x10733f60. The installed primary vtable word 0x10eaa9c4 is 0x10272f60; complete worker 0x10272f60..0x10272f6c returns 401 through li r3,401 at 0x10272f64 (raw 0x38600191). Thus this zero-status commit predecessor is unreachable for the installed worker; valid requests fault 401 instead."
       }
      ],
      "notes": "This build exposes the action but does not implement clock setting. No date/time parser, including f_10c3d2c4, is reachable through the installed engine target."
@@ -8218,7 +8226,7 @@
         "site": "0x107343f8",
         "obj": "*(sp-0x30+0x2c)",
         "slot": 12,
-        "arg4": 402
+        "arg4": 0
        }
       ],
       "req_vcalls": [
@@ -8813,6 +8821,14 @@
        "address": "0x107343b0",
        "callsite": "0x10734394",
        "notes": "Request validation-zero loads 402 at 0x107343e4; engine nonzero is forwarded verbatim. Both use one request fault slot +0x14 call 0x107343b0. Zero worker result reaches output-free success commit request+0x0c at 0x107343f8. Stack-guard failure at 0x10734400 aborts, not SOAP."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x107342f0",
+       "address": "0x107343f8",
+       "notes": "0x1073439c is mr. r4,r3 (raw 0x7c641b79, Rc=1), copying worker status and setting CR0. 0x107343a4 (raw 0x4182004c, BO=12, BI=2) branches on CR0.EQ to 0x107343f0, which loads request slot +0x0c (raw 0x8129000c). No intervening instruction changes r4 before bctrl at 0x107343f8 (raw 0x4e800421), so r4 is zero on this success-commit predecessor, not 402. Validation failure instead loads literal 402 at 0x107343e4 (raw 0x38800192), then calls fault slot +0x14 at 0x107343b0."
       }
      ],
      "notes": "Unknown nonnegative IDs are not rejected. Error codes are contextual: save worker 800/801 branches require a nonnull alarm argument absent from this setter."
@@ -57506,7 +57522,7 @@
         "site": "0x102f9a9c",
         "obj": "*(sp-0x70+0x6c)",
         "slot": 12,
-        "arg4": 402
+        "arg4": 0
        }
       ],
       "req_vcalls": [
@@ -58204,6 +58220,14 @@
        "address": "0x102dbb94",
        "callsite": "0x102dbc1c",
        "notes": "Registered callback f_102dbc14 tails to f_102dbb00. Under impl+0x458 it returns saved +0x6ecc deadline through callback output while current clock-ID-1 seconds are earlier. At/after deadline, if +0x5a86 still nonzero it invokes f_102da774 using saved URI/metadata/mode/volume/duration. Then clears snooze active +0x6ed0, sets dirty +0x6ed1 and calls f_1067c6ec(impl+0x10) at 0x102dbbf4. Inactive/expired returns 0x7fffffff scheduling sentinel. No AlarmClock service dispatch in this callback."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102f9990",
+       "address": "0x102f9a9c",
+       "notes": "0x102f9a40 is mr. r4,r3 (raw 0x7c641b79, Rc=1), copying worker status and setting CR0. 0x102f9a48 (raw 0x4182004c, BO=12, BI=2) branches on CR0.EQ to 0x102f9a94, which loads request slot +0x0c (raw 0x8129000c). No intervening instruction changes r4 before bctrl at 0x102f9a9c (raw 0x4e800421), so r4 is zero on this success-commit predecessor, not 402. Validation failure instead loads literal 402 at 0x102f9a88 (raw 0x38800192), then calls fault slot +0x14 at 0x102f9a54."
       }
      ],
      "notes": "Snooze uses AVTransport saved alarm state. The pause-family helper may fail while the action still succeeds and schedules snooze. Clock-ID-1 deadline arithmetic is 32-bit; no explicit overflow check."
@@ -103372,16 +103396,19 @@
     }
    },
    "availability": {
-    "enabled_source": {
-     "store_pc": "0x1068bc70",
-     "size": "stw",
-     "raw_expr": "*(r2+0xffff8ff8)",
-     "kind": "field",
-     "base": "r2",
-     "off": -28680
-    },
+    "enabled_source": null,
     "cap_flags": "0x8",
-    "notes": "Service object constructed at zone-player init; always registered in this build - no feature-gate found at the registration site"
+    "notes": "Service object constructed at zone-player init. Router f_1068bc0c has no per-record enable field or pre-dispatch enable check: the topology record contains getter result, path, name and flags only. cap_flags 0x8 participates in an optional post-dispatch reporting mask, not service enablement. No enabled_source is present in this router.",
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1068bc0c",
+      "address": "0x1068bc70",
+      "notes": "Complete router 0x1068bc0c..0x1068befc reserves a 144-byte frame and zeroes 64 bytes from sp+28 at 0x1068bc44..0x1068bc78: four 16-byte service records ending at sp+91. Topology record is sp+76 getter result (0x1068bd4c loads manager slot +0x88, raw 0x81290088; 0x1068bd5c stores its result, raw 0x9061004c), sp+80 path (0x1068bcf4), sp+84 name (0x1068bd00), and sp+88 flags=8 (0x1068bd04..0x1068bd08). There is no fifth enable field. At 0x1068bc6c (raw 0x81228ff8), r9 loads the thread-local guard at r2-28680; 0x1068bc70 (raw 0x9121005c) spills it at sp+92 outside the records. Epilogue reloads sp+92 at 0x1068beb0, reloads the guard at 0x1068beb4, compares through xor. at 0x1068beb8 (raw 0x7d295279), and branches at 0x1068bec0 to __stack_chk_fail at 0x1068befc on mismatch. Path matching selects a record and directly invokes service slot +8 at 0x1068bdc8 (raw 0x4e800421), without an enable predicate. Optional mask at 0x1068bdf0 (raw 0x7fff4838) occurs after dispatch and gates reporting fields service/method/result, not action execution."
+     }
+    ]
    },
    "object": {
     "expr": "vret(r3-in,+0x88)",
@@ -105298,7 +105325,7 @@
         "site": "0x1073390c",
         "obj": "r4-in",
         "slot": 20,
-        "arg4": 402
+        "arg4": "402 on validation failure; otherwise 501 from the installed worker or default-stub guard"
        },
        {
         "site": "0x10733990",
@@ -106051,6 +106078,14 @@
        "address": "0x10e8b050",
        "callsite": "0x10748ec4",
        "notes": "Primary slot +0x2c is f_1012ba50 at 0x10e8b050. Worker recognizes this forwarding method at 0x10748e9c and directly invokes provider *(topology+0x580) slot +0x0c with output pointer and capacity 54 at 0x10748ec4; alternate path calls slot +0x2c at 0x10748f70 and also discards its return. Base constructor f_1074043c stores this provider pointer from sixth-argument shared handle at 0x10740a20. Thus output is provider-supplied current Muse household text, not the selected room name/group ID or DeviceProperties HouseholdID. No Muse lookup by UUID and no SOAP fault conversion of provider return."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10733878",
+       "address": "0x1073390c",
+       "notes": "Shared request fault slot +0x14 is loaded at 0x10733904 (raw 0x81290014) and called at 0x1073390c (raw 0x4e800421). Validation failure retains r4=402 from 0x107338f0 (raw 0x38800192); 0x107338f8 (raw 0x409e004c) skips this tail only when validation succeeds. Worker call 0x10733990 instead returns into mr. r4,r3 at 0x10733994 (raw 0x7c641b79, Rc=1), then 0x10733998 (raw 0x40a2ff64, BO=5, BI=2) branches on nonzero to 0x107338fc without overwriting r4. Installed primary slot +0x24 word 0x10e8b048 is f_10748dc8, whose UUID-failure path selects 501 at 0x10748f54 and returns via 0x10748ed0; successful reads return zero and do not take this fault branch. A separate default-stub comparison at 0x1073395c..0x10733960 also reaches this tail with literal r4=501 loaded at 0x10733948 (raw 0x388001f5). The fault call therefore does not have a constant 402 argument."
       }
      ],
      "notes": "CurrentMuseHouseholdId is supplied by its household provider, not DeviceProperties HouseholdID. No implementation v[+?] or runtime-injection boundary remains."
