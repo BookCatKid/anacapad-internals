@@ -73375,7 +73375,7 @@
      ]
     },
     "GetSupportsOutputFixed": {
-     "description": "Locks impl+0x938, builds a small record via f_10203ec8, calls impl->v[+0xf0](impl,&rec), and when that returns nonzero copies rec+0x24 into the out param; return value is 63 (rc==0 path) or 52 (rc!=0 path).",
+     "description": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073aea4",
@@ -73411,7 +73411,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric instance selector. Read but unconsumed by the impl (dead compare or never read). ",
+       "description": "Required rendering-instance selector. Only numeric zero reaches the read; other values return 702.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -73423,88 +73423,159 @@
        "semantic_type": "instance selector (integer)",
        "format": "type-tag-4 decimal integer record",
        "unit": "none",
-       "accepted_values": "any parsed integer - ignored by impl",
-       "range": "unconstrained at impl level",
+       "accepted_values": "0",
+       "range": "0",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "Required request argument configured with f_105614e0; implementation rejects nonzero with 702",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073aee4",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x100d6adc",
+         "notes": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation."
         }
        ],
-       "notes": null
+       "notes": "No fallback rendering instance is selected."
       }
      },
      "outputs": {
       "CurrentSupportsFixed": {
-       "description": "Written from a record field filled by impl->v[+0xf0](impl,&rec) when that call returns nonzero; emitted u32@rec+0x24.",
+       "description": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": "boolean ('0'/'1')",
-       "format": "'0'/'1' literal",
+       "semantic_type": "boolean",
+       "format": "SOAP boolean formatted as 0 or 1",
        "unit": "none",
-       "accepted_values": "0/1 nominal",
-       "range": "unconstrained",
+       "accepted_values": "false only",
+       "range": "0 only",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Emitted only on zero implementation status; f_1055fc08 maps zero to text 0 and any nonzero byte to text 1.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073af90",
-         "notes": "out-arg access site"
+         "address": "0x100d6b1c",
+         "notes": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0af30",
-         "notes": "argument name string"
+         "address": "0x1073af94",
+         "notes": "Wrapper output load/format path after the zero-status test."
         }
        ],
-       "notes": "Return convention is unusual: impl presets r3=0x3f(63), calls v+0xf0; rc==0 -> skip out write, return 63; rc!=0 -> write rec+0x24 to out, return 52 (0x34). The numeric returns are likely internal status enums the request layer interprets."
+       "notes": "The output is not a write to renderer state."
       }
      },
-     "validation": "Request-layer parse.",
-     "requirements": "vfunc +0xf0 exists on the impl (all classes observed implement it)",
-     "state_dependencies": "none",
+     "validation": {
+      "description": "Requires request-layer validation and InstanceID zero; nonzero InstanceID returns 702 before reading rendering state. Output formatting follows the explicit zero-status test, not an inherited condition-register value.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073af2c",
+        "notes": "Fresh record-form move before the success/fault branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6adc",
+        "notes": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Requires request-layer validation and InstanceID zero; nonzero InstanceID returns 702 before reading rendering state.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2760",
+        "notes": "Concrete primary vptr 0x10ed270c slot 0x54 contains 0x100d6adc; service+4 writer 0x104d4dc0 is proven."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6adc",
+        "notes": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Uses the constructed RC object and mutex +0x938. Data source: 0x3ac. The support-query terminal function is a constant false stub, not a hardware query.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6b1c",
+        "notes": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Builds a query record on the stack via f_10203ec8 under mutex +0x938 and returns its verdict; the support-bit derivation is internal to that helper.",
+       "description": "Acquires and releases mutex +0x938 and writes caller-owned output storage. No renderer setting, dirty byte, notification request, member request or persistence write occurs in the complete getter path.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100d6764",
-         "address": "0x100d679c",
-         "notes": "bl f_10203ec8 at 0x100d679c inside the +0x938 guard"
+         "address": "0x100d6adc",
+         "notes": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation."
         }
        ]
       }
      ],
-     "events_triggered": "none",
-     "state_transitions": "none",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code. The impl's own returns (63/52) become the SOAP status via cr0 - the request layer may treat nonzero rc as fault depending on the convention at 0x1073aea4.",
+     "events_triggered": "none: the complete concrete getter path makes no event-source or observer call.",
+     "state_transitions": "none: this action does not change renderer settings or operation state.",
+     "return_behavior": {
+      "description": "Implementation status is 0 on the documented valid-input path and 702 for nonzero InstanceID. The wrapper emits its output and commits only on status zero; otherwise it forwards the numeric implementation status as a SOAP fault. Request-layer validation failure separately selects 402. Null service+4 and unknown action names use the dispatcher 401 path.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2760",
+        "notes": "Concrete primary vptr 0x10ed270c slot 0x54 contains 0x100d6adc; service+4 writer 0x104d4dc0 is proven."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6adc",
+        "notes": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073af2c",
+        "notes": "Wrapper uses mr. r4,r3 to set CR0 from the implementation return, then branches on equality to zero; stale CR0 does not control success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073af94",
+        "notes": "Wrapper output load and formatter are reached only on zero implementation status."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073af40",
@@ -73515,21 +73586,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call."
           }
          ]
         }
@@ -73539,43 +73609,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
+       "meaning": "Request-layer validation failed.",
        "fault_sites": [
-        "0x1073af40",
-        "0x1073af70"
+        "0x1073af40"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request-layer validation failed.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073af70"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073af40"
+           "address": "0x1073af40",
+           "notes": "Request-layer validation failed."
           }
          ]
         }
@@ -73585,19 +73639,38 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073af70"
-        },
+         "address": "0x1073af40",
+         "notes": "Request-layer validation failed."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "InstanceID is nonzero; tested before any output write or mutex acquisition.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is nonzero; tested before any output write or mutex acquisition.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d6adc",
+           "notes": "InstanceID is nonzero; tested before any output write or mutex acquisition."
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073af40"
+         "address": "0x100d6adc",
+         "notes": "InstanceID is nonzero; tested before any output write or mutex acquisition."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -73606,31 +73679,38 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073aea4",
-       "address": "0x1073aea4",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2760",
+       "notes": "Concrete primary vptr 0x10ed270c slot 0x54 contains 0x100d6adc; service+4 writer 0x104d4dc0 is proven."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11ddc",
-       "notes": "action dispatch table entry"
+       "address": "0x100d6adc",
+       "notes": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "v+0xf0 call on &rec; rc!=0 -> stw rec+0x24->out, r3=0x34; rc==0 -> r3=0x3f",
-       "address": "0x100d67ac",
-       "function": "0x100d6764"
+       "address": "0x1073af2c",
+       "notes": "Wrapper uses mr. r4,r3 to set CR0 from the implementation return, then branches on equality to zero; stale CR0 does not control success."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073af94",
+       "notes": "Wrapper output load and formatter are reached only on zero implementation status."
       }
      ],
      "notes": "Verify at runtime: the 63/52 returns suggest this getter may fault or emit distinct statuses depending on the delegate result.",
-     "todo": [
-      "Established: dispatch and handler 0x1073aea4 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.",
-      "Residual: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x54",
+      "function": "0x100d6adc",
+      "binding_store": "0x104d4dc0"
+     }
     },
     "GetTreble": {
      "description": "Returns the cached treble value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7fa and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. No context acquisition or f_100e1fec call occurs on this SOAP path.",
