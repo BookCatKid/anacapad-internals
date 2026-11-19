@@ -59458,7 +59458,7 @@
   "/MediaRenderer/Queue/Control": {
    "name": "Queue",
    "control_path": "/MediaRenderer/Queue/Control",
-   "description": "Sonos-internal queue-management service exposing the queue-registry impl object (svc member +0x3fa74). Dispatcher 0x10464268 binary-searches the 12-byte-entry name table 0x10ed19ec; unknown action -> req->v[+0x14](req,401). Matched entries tail-call svc->v[+0x38] which invokes the action handler with (req, impl=r5-in); impl is the queue-manager singleton whose vfuncs +0x08..+0x30 back the eleven actions. Unlike AVTransport (implicit engine queue), every mutation here takes an explicit QueueID and reports back NewUpdateID for optimistic concurrency.",
+   "description": "Sonos-internal queue-management service. dispatcher f_10464268 binary-searches the 11-entry table 0x10ed19ec (12-byte entries: name, member-function pointer, this adjustment; strcmp at 0x104642f0); a miss, or a hit while the queue-manager pointer *(svc+4) is NULL (0x10464374), calls req->v[+0x14](req, 401) at 0x10464320. A hit calls f_100ad1bc(*(r4+0x70), name) (0x10464380) and then the handler through the Itanium member-function pointer (virtual when the pointer's low bit is set, 0x1046438c) as handler(svc+adj, req, qm) at 0x104643b0. Both paths end with a tail call req->v[+0x38](req) (0x10464368). The queue manager qm has vtable 0x10ed1bcc (stored by its constructor f_10465fac) and wraps the queue engine at qm+0x128 (vptr 0x10edfbb8, stored by f_10511f34 at 0x105123c0) and the ContentDirectory object tree at qm+0x12c. Slots: +0x08 AddURI, +0x0c AttachQueue, +0x10 Backup (constant 800), +0x14 CreateQueue, +0x18 RemoveAllTracks, +0x1c RemoveTrackRange, +0x20 ReorderTracks, +0x24 SaveAsSonosPlaylist, +0x28 Browse, +0x2c AddMultipleURIs, +0x30 ReplaceAllTracks. QueueID selects one of the two session queue records s+0x2d890 and s+0x2ff98 (s=*(engine+0x580)) in the mutating actions.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -67631,7 +67631,7 @@
     {
      "code": 401,
      "code_expr": null,
-     "meaning": "unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler",
+     "meaning": "action name not in the 11-entry table, or the service's queue-manager pointer *(svc+4) is NULL; no handler runs",
      "fault_sites": [
       "0x10464320"
      ],
@@ -67647,6 +67647,19 @@
          "notes": "dispatcher unknown-action fault branch; reached when the binary-search name lookup misses"
         }
        ]
+      },
+      {
+       "description": "name matched but *(svc+4) is NULL",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10464268",
+         "address": "0x10464374",
+         "notes": "beq to the 401 path"
+        }
+       ]
       }
      ],
      "evidence": [
@@ -67656,15 +67669,20 @@
        "build": "86.10-80260",
        "address": "0x10464320",
        "notes": "fault raise site"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10464268",
+       "address": "0x10464310",
+       "notes": "li r4,0x191"
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
-      "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x10464310); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
+      "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x10464310); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails.",
+      "Resolved: 0x10464320 is the only 401 site in f_10464268 (li r4,0x191 at 0x10464310); it is reached from the search miss (0x104642c8, 0x10464308) and from the NULL qm check (0x10464374)."
      ]
     }
    ],
@@ -67696,6 +67714,30 @@
      "build": "86.10-80260",
      "address": "0x102bd0a4",
      "notes": "saved-queue shim loads singleton 0x11096770 as worker `this`"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10464268",
+     "address": "0x10464320",
+     "notes": "401 fault"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10465fac",
+     "address": "0x104660d0",
+     "notes": "qm vptr store"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10511f34",
+     "address": "0x105123c0",
+     "notes": "engine vptr store"
     }
    ],
    "notes": "None Impl provenance: *(svc+4) resolves to the queue-manager singleton at global 0x11096770 (the same `this` pointer passed to all 0x1047xxxx saved-queue workers by the AVTransport impl shims at 0x102bd048/0x102bd140/0x102bd238). Companion global 0x11096774 holds a refcounted session token: *(token+4) is atomically incremented (stwcx.) before each worker call and released with f_100c5050 afterwards; a null token degrades to a plain tail call. Queue-manager vtable resolved: 0x10ed1bcc (ctor f_10465fac, log tag Queue). All action vfuncs +0x08..+0x30 forward to the shared queue engine at *(qm+0x128) - the same engine workers AVTransport queue ops use (f_102b6948 AddURI, f_102b3a84 RemoveAllTracks): the two services are SOAP facades over one queue engine. All four playlist-format workers share one skeleton: playlist log tag + iterateXxxPlayList %s, fetch through the stream abstraction (f_10545064 open / f_10546520 read / f_1054103c close), per-entry job submission on shared delegate machinery. Formats: ASX (asx/wax/wmx), M3U (m3u8/m3u), PLS, WPL (logged as WLP).",
@@ -67703,12 +67745,9 @@
     "zoneplayer/tqueue.cxx",
     "zoneplayer/spotify/spotify_queue.cxx"
    ],
-   "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
-   ],
    "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
+    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable.",
+    "Resolved: the earlier claim that the delegates have runtime-injected vptrs is wrong. The qm vtable 0x10ed1bcc is stored by f_10465fac (0x104660d0), the engine vtable 0x10edfbb8 by f_10511f34 (0x105123c0), and every slot used by the eleven actions was resolved statically to a named function (see each action). Action-specific residuals are kept on the action records. In plain terms: the whole Queue service call graph is static and documented down to the engine workers."
    ]
   },
   "/MediaRenderer/RenderingControl/Control": {
