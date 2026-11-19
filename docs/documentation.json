@@ -13959,7 +13959,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Base slot +0x60 is f_10364848 itself; the override adds only the satellite propagation and rollback."
     },
     "ExitConfigMode": {
-     "description": "Leaves the current configuration mode. The wrapper parses Options (cap 128) and calls slot +0x64 of runtime vtable 0x10ebc630, overridden by 0x10351230, which parses the home-theater map, calls f_103632e0 (which takes the impl+0x268 lock and calls f_10363050) and then propagates to satellites. f_10363050 exits the active mode: speaker-detect through f_103625a8, button-notify through f_1035d13c and room calibration through f_10360ea4, logging 'Exiting %s config mode.' and 'failure when exiting %s config mode (%d)'. When the local player is entry 0 of its home-theater map at impl+0xe60 and the map has more than one entry, the override then sends the same action to every other entry over SOAP, after resolving each one's URIs through the topology ('lookup of %s URIs for %s failed' when that fails). A satellite failure is only logged ('failed to call ExitConfigMode on satellite %s (%d)') and does not change the result.",
+     "description": "The SOAP wrapper invokes runtime +0x64, f_10351230, which always calls the local exit worker. An active mode is cleared before its mode-specific exit runs: room_calibration-calibrate calls f_10360ea4, button-notify f_1035d13c, speaker-detect f_103625a8 and trueroom f_103619c8. A home-theater primary attempts remote exit with empty Options. A nonzero local result takes precedence; otherwise the first satellite failure can supply the result. Results 1001, 1002 and 1024 map to 1034; other results are not changed by this mapping.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10736270",
@@ -14020,7 +14020,7 @@
      },
      "inputs": {
       "Options": {
-       "description": "Options string (cap 128) passed to the local exit and forwarded to satellites.",
+       "description": "The supplied Options (cap 128) is passed to the local exit at 0x103512cc. Remote propagation uses an empty string at 0x10351334/0x10351358, not the caller's argument.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -14073,12 +14073,33 @@
          "build": "86.10-80260",
          "address": "0x103512c4",
          "notes": "forwarded to f_103632e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103512cc",
+         "notes": "Local exit"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10351358",
+         "notes": "Empty Options in r4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10351360",
+         "notes": "Remote call"
         }
        ],
        "notes": null,
        "buf_cap": 128,
        "resolved_findings": [
-        "Resolved: post-parse handling of `Options` = verbatim forward to impl vfunc +100 (obj r5-in, call site 0x107362f0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "The wrapper forwards parsed Options through runtime +0x64 at 0x107362f0. The override passes it to local exit but supplies empty Options to remote calls at 0x10351360."
        ]
       }
      },
@@ -14115,85 +14136,160 @@
       ]
      },
      "state_dependencies": {
-      "description": "Reads impl+0xe60, impl+0x25c and the active-mode state under the impl+0x268 lock.",
+      "description": "Reads impl+0xe60, impl+0x25c and the active-mode state under the impl+0x268 lock. Button-notify also locks impl+0x19b8 and clears +0x1a48. Calibration exit reads saved rendering fields at +0x1580, +0x1590, +0x158e and +0x157f.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x103512ac",
-        "notes": "impl+0xe60"
+        "address": "0x1035d160",
+        "notes": "Button-state lock"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x103512a0",
-        "notes": "lock"
+        "address": "0x1035d178",
+        "notes": "Button flag"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10361084",
+        "notes": "Saved rendering field"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103610b0",
+        "notes": "Saved rendering field"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103610d8",
+        "notes": "Saved rendering field"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10361104",
+        "notes": "Saved rendering field"
        }
+      ],
+      "todo": [
+       "Established: Local exit dispatches by active mode and restores saved rendering settings on the calibration path.",
+       "Unknown: Which concrete rendering and transport receivers restore the remaining saved state and what their failures leave changed.",
+       "Next: Bind the mode-specific receivers used from 0x10361084 through 0x10361104 and follow the restore and failure branches in f_10360ea4 and f_103619c8."
       ]
      },
      "side_effects": [
       {
-       "description": "Exits the active mode locally and on satellites; failures are logged per mode and per satellite.",
+       "description": "Before dispatching an active mode's exit worker, f_10363050 clears the local countdown and active mode, marks settings dirty and requests notification. State 4 reaches the separate trueroom exit at 0x103632d4. The bookkeeping and notification happen even when the subsequent exit worker fails.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10363140",
-         "notes": "speaker-detect exit"
+         "address": "0x103630c4",
+         "notes": "Countdown clear"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10363198",
-         "notes": "button-notify exit"
+         "address": "0x103630cc",
+         "notes": "Mode clear"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1036326c",
-         "notes": "room-calibration exit"
+         "address": "0x103630d8",
+         "notes": "Notification request"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103632d4",
+         "notes": "Trueroom exit"
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "No GENA event and no in-process publisher call in the override or f_10363050.",
+      "description": "Active local exit requests GENA processing before mode-specific teardown. The generic sender must be configured for the sender path to run. Trueroom and room-calibration exits also have Trueplay event publication paths.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10363050",
-        "notes": "no publisher call"
+        "address": "0x103630d8",
+        "notes": "Settings notification"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10351230",
-        "notes": "no publisher call"
+        "address": "0x1067c5c8",
+        "notes": "Sender path"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103626dc",
+        "notes": "Trueplay event call"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360fe0",
+        "notes": "Trueplay event call"
        }
       ]
      },
      "state_transitions": {
-      "description": "The player and its satellites leave config mode.",
+      "description": "Local active mode is cleared before mode-specific cleanup, even if cleanup fails. Satellite exit attempts continue after individual logged failures; a failed satellite is not known to have left its mode.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x103632a8",
-        "notes": "'Exiting %s config mode.'"
+        "address": "0x103630cc",
+        "notes": "Clear local active mode"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103632d4",
+        "notes": "Later mode-specific call"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10351430",
+        "notes": "Per-satellite error path"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10351470",
+        "notes": "Result precedence"
        }
       ]
      },
      "return_behavior": {
-      "description": "Returns the local exit result. f_10363050 reads the mode state at impl+0x1570 and returns 0 when no mode is active. Otherwise it calls the matching exit (button-notify 0; speaker-detect f_103625a8 and room calibration f_10360ea4 return 821 'failed to restore common...', 822 'failed to %sset AVT' or, for room calibration, 824 'failed to enable sonar'; trueroom f_103619c8 returns 822 'Failed to reset AVT.', 824 'Failed to re-enable Trueplay' or 821 'Failed to restore RC.') and logs any failure as 'failure when exiting %s config mode (%d)'. The override then maps 1001, 1002 and 1024 to 1034, none of which these exit functions return. TRequest validation failure is 402.",
+      "description": "Preserves a nonzero local result; a satellite failure can replace a zero result. f_10363050 reads the mode state at impl+0x1570 and returns 0 when no mode is active. Otherwise it calls the matching exit (button-notify 0; speaker-detect f_103625a8 and room calibration f_10360ea4 return 821 'failed to restore common...', 822 'failed to %sset AVT' or, for room calibration, 824 'failed to enable sonar'; trueroom f_103619c8 returns 822 'Failed to reset AVT.', 824 'Failed to re-enable Trueplay' or 821 'Failed to restore RC.') and logs any failure as 'failure when exiting %s config mode (%d)'. Results 1001, 1002 and 1024 map to 1034; other results are not changed by this mapping. TRequest validation failure is 402.",
       "evidence": [
        {
         "type": "firmware",
@@ -14264,6 +14360,27 @@
         "build": "86.10-80260",
         "address": "0x10736340",
         "notes": "402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10351470",
+        "notes": "Preserve existing nonzero result"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103514a8",
+        "notes": "Result-band calculation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103514c0",
+        "notes": "Remap to 1034"
        }
       ]
      },
@@ -14309,7 +14426,7 @@
       {
        "code": 1034,
        "code_expr": "0x40a at 0x1035152c",
-       "meaning": "Band mapping in the override: a local exit result of 1001, 1002 or 1024 is reported as 1034. The exit functions traced on this firmware return only 0, 821, 822 or 824, so this code is not produced in practice.",
+       "meaning": "The selected local or satellite result was 1001, 1002 or 1024; the override reports 1034.",
        "fault_sites": [
         "0x1073630c"
        ],
