@@ -137152,9 +137152,9 @@
   "upnp_eventing_impl": {
    "files": "upnpeventing_sender.cxx and upnpeventing_source.cxx, with service/provider integration. Sender scheduling, source data production and per-subscription transport are separate layers.",
    "sender_queue": "f_10678c50 takes the sender lock, sets byte +0x10e and signals its condition variable. This is pending list/work-change state, not a dedup-enable flag. The sender loop f_10679b14 clears that byte, applies pending source removals through f_10679678, snapshots the source-pointer vector [+0x110,+0x114) and releases the lock before calling sources. Removal compares pointer identity and compacts the live list; memmove copies the snapshot in bytes. The 0x3fffffff comparison bounds a shifted element count for allocation, not a time window. Empty vectors skip source processing; termination and wake/timed-wait paths are explicit.",
-   "source_scheduling": "For each source the sender calls f_1067d028, examines a source timeval obtained through virtual slot +0x10, and calls f_10683da0 when notification work is due. A zero source timeval takes the immediate path. For a nonzero timeval, the loop computes elapsed microseconds from current/source time, divides by 1000, and subtracts elapsed milliseconds from the source interval returned through virtual slot +0xc. Positive remaining delay is logged as ddim and added to the next wake time; nonpositive delay fires notifications. A delay greater than 1000 ms reaches a warning/fallback branch rather than representing a fixed dedup window. The default interval method f_100c9bbc returns zero. Thus ddim is a scheduling-time delta, not the byte span at +0x110/+0x114.",
+   "source_scheduling": "Before readiness testing, f_10679b14 checks each pointer in its active-list snapshot against current pending removals. Empty pending lists bypass search. f_1067a9f0 returns the matching iterator or pending end: equality with end at 0x10679cf8 branches to readiness, while a found match falls through to skip. This also prevents a source removed after the snapshot from being collected in that pass. For remaining sources, f_1067d028 determines readiness. A zero last-send timeval from source virtual +0x10 goes directly to f_10683da0. Otherwise elapsed milliseconds are subtracted from the minimum spacing returned through virtual +0xc; a positive remainder contributes a later deadline, while a due source is collected. The default interval f_100c9bbc returns zero. A remainder greater than 1000 ms takes a warning/fallback branch. The logged ddim is this scheduling delta, not a byte span or deduplication window.",
    "feature_flag": "enableUPnPEventingGNDOptimization is present as a configuration/schema boolean. f_10a581b0 reads config byte +0xec1 and calls f_109d14e0 with its name; that helper writes a property name followed by literal true or false through an output interface. This is serialization, not evidence of a settings setter or a notify-time getter. Direct accesses to +0xec1 in this image belong to construction, copy, equality and serialization in f_10a56e7c/f_10a5702c/f_10a575f0/f_10a57aa0/f_10a581b0. Neither this reference nor the LocalSettingsEventing completion API establishes a GENA same-setting/in-flight coalescing implementation. The previous expansion of GND as GENA Notify Dedup, runtime flag linkage, identical-wire guarantee and fewer-NOTIFY claim were unsupported and are not part of this contract.",
-   "subscription_transport": "f_10683da0 walks eligible source subscriptions and drives notification transport; source and connection state can defer or skip work. Instrumentation f_1067ba44 emits success/failure, first-try/retry, connect/handshake/read/write/timeout counts and handshake/round-trip averages, with zero-count branches for averages. These are measured counters, not promises of unlimited retries or exactly-once delivery. HTTP subscription authorization in f_1068faa4 has a denied branch that returns status 403. f_10693df4 reads separate main, connect and eventing timeout settings and reports their effective values.",
+   "subscription_transport": "f_10683da0 walks eligible source subscriptions and drives notification transport; source and connection state can defer or skip work. Instrumentation f_1067ba44 emits success/failure, first-try/retry, connect/handshake/read/write/timeout counts and handshake/round-trip averages, with zero-count branches for averages. These are measured counters, not promises of unlimited retries or exactly-once delivery. HTTP subscription authorization in f_1068faa4 has a denied branch that returns status 403. f_10693df4 reads separate main, connect and eventing timeout settings and reports their effective values. Source property production is conditional: f_10683da0 groups subscriptions by name and invokes source virtual +0x18 at 0x1068406c only on its eligible populated-group path. Static reachability does not establish a live subscriber, successful wire delivery or WSS publication.",
    "status_xml": "f_1067c980 and surrounding status writer emit Service name/current/max rows and Subscription children with EventKey, NotifyErrors, SubscriptionID and NotificationAddr. NotificationAddr is either a normal address string or wss://host:port (muse); IsSecure is emitted separately. These diagnostic rows describe active subscription state, not an additional subscription wire protocol. Sender counter fields are countEventsSuccess, countEventsFailure, countEventsSuccessFirstTry, countEventsSuccessRetry, countFailuresRetry, countFailuresConnect, countFailuresHandshake, countFailuresRead, countFailuresWrite, countFailuresTimeout, avgHandshakeTimeMsOnSuccess/Failure and avgRoundTripTimeMsOnSuccess/Failure.",
    "peer_compatibility": "f_10763f90 extracts peer version bytes, evaluates major/minor compatibility branches including 85/86/89/94, and selects secure versus insecure eventing. It also consults owner/service capability state and writes interface flags; the result is not a simple major >=89 rule. Secure and legacy modes coexist. The discovery diagnostic alone does not establish encryption for every subscription or tie compatibility selection to the GND configuration field.",
    "evidence": [
@@ -137211,8 +137211,36 @@
      "address": "0x1068faa4",
      "callsite": "0x1068faf8-0x1068fb60; 0x10693df4-0x10693f20; 0x10763fd4-0x1076422c",
      "notes": "Reachable subscription-denied 403, separate timeout loads and diagnostic, and multi-branch major/minor peer compatibility/capability selection. Does not conflate generic LocalSettingsEventing methods with GENA sender behavior."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_1067938c/f_106795b4/f_106794f0/f_10679678",
+     "address": "0x1067938c",
+     "callsite": "0x10679414-0x106794e4/0x10679634-0x1067966c/0x10679570-0x106795a8/0x106796d4-0x1067986c",
+     "notes": "Shared-owner registration appends active pointer and retains owner; raw registration appends only pointer. Removal requests append +0x128; consumer compacts active and owner lists and clears pending vector. This disconfirms interpreting the removal-request helper as registration."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10679b14/f_1067a9f0",
+     "address": "0x10679bd8",
+     "callsite": "0x10679bd4-0x10679c64/0x10679cec-0x10679d00/0x10679d88-0x10679db0/0x1067aabc",
+     "notes": "Snapshot uses active +0x110/+0x114. Before readiness, search current pending removals; absent iterator equals pending end and BEQ at 0x10679cfc reaches readiness. Found entries skip; empty vectors bypass search. Raw 0x7f895000 at 0x10679cf8 compares end with returned iterator, and raw 0x419e00a0 branches on equality."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10683da0",
+     "address": "0x10684060",
+     "callsite": "0x10683da0-0x1068406c",
+     "notes": "Subscription grouping/eligibility gates source virtual +0x18. Conditional source property production is distinct from successful wire transport."
     }
-   ]
+   ],
+   "source_registration": "Sender +0x110/+0x114/+0x118 is the active raw source-pointer vector, not notification data or a deduplication window. f_1067938c appends the source pointer there and retains its shared owner separately in +0x11c/+0x120/+0x124. f_106795b4 appends a raw source without retaining that shared owner. Both registration forms check shutdown byte +0x10d. In contrast, f_106794f0 appends to pending-removal vector +0x128/+0x12c/+0x130; it is not source registration. f_10679678 removes matching pointers from the active list and retained owners, then resets the pending end to its begin. Empty pending lists leave the active list unchanged."
   },
   "audioin_impl": {
    "files": "ai_impl_base.cxx + spotify/ai_spotify.cxx",
