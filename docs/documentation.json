@@ -56868,7 +56868,7 @@
      ]
     },
     "SaveQueue": {
-     "description": "Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4: 718-gate, lock impl+0x458, mode impl+0x4654 must be 1 or 2 (else 800). Title is bounded-copied into a 0x400-byte buffer (f_10906304), whitespace-trimmed via sonosTrimWhitespace, then validated: empty-after-trim -> 402, and strpbrk rejects any \\r or \\n -> 402. On success it calls f_10146e94(session+0x2d890, title, ObjectID, out-params) (the same persistence/path helper BackupQueue uses) storing the queue under the given ObjectID and writing the assigned object id.",
+     "description": "Synchronously saves primary live queue 0 into the saved-playlist catalog using derived f_102aa8b4 -> f_10146e94 -> f_104794d4. Empty or negative SQ ObjectID creates; nonnegative SQ ID replaces the matching playlist only if its stored nonempty title equals the trimmed Title. Filters mobile-device and flagged entries and follows current shuffle mapping. Some exclusion errors are returned after replacement. Does not alter live queue membership or playback.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f96fc",
@@ -56910,7 +56910,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Required instance selector; only parsed0 accepted after implementation lock acquisition.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -56920,34 +56920,38 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUintArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
+       "format": "strtoul(buffer,NULL,10), permissive decimal conversion in24-byte buffer",
        "unit": "none - dimensionless count/index",
        "accepted_values": "0",
        "range": "0 only; nonzero InstanceID rejected by impl +0x7c with 718",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Required descriptor, then nonzero718.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f973c",
-         "notes": "in-arg access site"
+         "function": "0x10511f34",
+         "address": "0x10edfc34",
+         "callsite": "0x102f97d8",
+         "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "function": "0x102aa8b4",
+         "address": "0x102aa908",
+         "callsite": "0x102aa9e0",
+         "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
         }
        ],
        "notes": null
       },
       "Title": {
-       "description": "Saved-queue name, copied into a 0x400-byte buffer then whitespace-trimmed.",
+       "description": "Saved-playlist title, copied into1024 bytes then trimmed. Required nonempty after trimming with no remaining CR/LF. Replacement must match existing nonempty title byte-for-byte; not a rename.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -56957,35 +56961,48 @@
         "via_slot": 28
        },
        "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
+       "format": "String in1024-byte buffer including terminator",
        "unit": "n/a - text",
        "accepted_values": "Non-empty after sonosTrimWhitespace, and must not contain carriage-return or line-feed characters - violations fault 402",
-       "range": "max 1023 chars",
+       "range": "1024-byte wrapper and implementation buffers",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Saved-queue name, copied into a 0x400-byte buffer then whitespace-trimmed.",
+       "validation": "Required descriptor; trimmed empty/CR/LF or replacement-title mismatch402.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f9760",
-         "notes": "in-arg access site"
+         "function": "0x10511f34",
+         "address": "0x10edfc34",
+         "callsite": "0x102f97d8",
+         "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e776cc",
-         "notes": "argument name string"
+         "function": "0x102aa8b4",
+         "address": "0x102aa908",
+         "callsite": "0x102aa9e0",
+         "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e848",
+         "callsite": "0x1047e974",
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
         }
        ],
        "notes": null,
        "buf_cap": 1024
       },
       "ObjectID": {
-       "description": "Requested object id / parent selector passed through to f_10146e94.",
+       "description": "Required string: empty creates a new playlist; case-sensitive SQ:%d parses a requested numeric ID. Negative IDs also create. Nonnegative ID replaces an existing same-title playlist; it is not a parent-container selector.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -56995,28 +57012,41 @@
         "via_slot": 28
        },
        "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
+       "format": "Empty or sscanf pattern SQ:%d; trailing text after the conversion is not rejected",
        "unit": "n/a - text",
-       "accepted_values": "Any string accepted by the persistence helper",
-       "range": "max 1023 chars",
-       "special_values": "none observed in this build",
+       "accepted_values": "Empty or one successful signed-decimal conversion after uppercase SQ:",
+       "range": "1024-byte wrapper buffer including terminator",
+       "special_values": "Empty or parsed negative ID selects create; SQ:0 is an existing-ID request, not a create sentinel.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Requested object id / parent selector passed through to f_10146e94.",
+       "validation": "Malformed nonempty ID801; absent requested nonnegative ID701; replacement-title mismatch402.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f9788",
-         "notes": "in-arg access site"
+         "function": "0x10511f34",
+         "address": "0x10edfc34",
+         "callsite": "0x102f97d8",
+         "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb32f8",
-         "notes": "argument name string"
+         "function": "0x104794d4",
+         "address": "0x10479544",
+         "callsite": "0x10146ecc",
+         "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e848",
+         "callsite": "0x1047e974",
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
         }
        ],
        "notes": null,
@@ -57025,159 +57055,421 @@
      },
      "outputs": {
       "AssignedObjectID": {
-       "description": "Object id assigned to the new saved queue, written by f_10146e94 through the out pointer.",
+       "description": "Uppercase SQ: followed by the actual stored signed numeric playlist ID: catalog Next for creation, requested existing ID for replacement. Only emitted on status0; status803 also populates the internal output buffer but takes SOAP fault path.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
+       "format": "SQ:%d",
        "unit": "n/a - text",
-       "accepted_values": "sq:-family object id assigned by the saved-queue store",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none",
+       "accepted_values": "Actual saved-playlist object ID in uppercase SQ: namespace",
+       "range": "1024-byte output buffer",
+       "special_values": "No output on any SOAP fault, including partial-save803.",
        "required": false,
        "default": "none; written on success",
-       "validation": "output of the persistence path f_10146e94",
+       "validation": "Formatted from context+0x44 after persistence0/803; wrapper publishes only when implementation returns0.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f9844",
-         "notes": "out-arg access site"
+         "function": "0x10511f34",
+         "address": "0x10edfc34",
+         "callsite": "0x102f97d8",
+         "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb32f0",
-         "notes": "argument name string"
+         "function": "0x1047e7d4",
+         "address": "0x1047e848",
+         "callsite": "0x1047e974",
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10146e94",
-         "notes": "persistence path returns the assigned id"
+         "function": "0x104794d4",
+         "address": "0x10479864",
+         "callsite": "0x1047988c",
+         "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `AssignedObjectID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       }
      },
      "validation": {
-      "description": "See inputs/impl notes",
+      "description": "Required InstanceID/Title/ObjectID. Instance gate precedes source-mode and Title checks; persistence then parses ObjectID and validates requested replacement against catalog contents.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102f96fc",
-        "notes": "wrapper + impl decode"
+        "function": "0x10511f34",
+        "address": "0x10edfc34",
+        "callsite": "0x102f97d8",
+        "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aa8b4",
+        "address": "0x102aa908",
+        "callsite": "0x102aa9e0",
+        "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479544",
+        "callsite": "0x10146ecc",
+        "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047e7d4",
+        "address": "0x1047e848",
+        "callsite": "0x1047e974",
+        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x7c]",
+      "description": "Instance0; source mode1or2; trimmed nonempty Title without CR/LF; valid empty/create or SQ signed-numeric selector. Replacement must exist and retain its stored nonempty Title. Default savedqueues.rsq must be readable/valid for rewrite. Exclusion equality can reject all-unusable or empty source with804/805/806. No UpdateID input or worker request.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f96fc",
-        "notes": "req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "function": "0x10511f34",
+        "address": "0x10edfc34",
+        "callsite": "0x102f97d8",
+        "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aa8b4",
+        "address": "0x102aa908",
+        "callsite": "0x102aa9e0",
+        "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479544",
+        "callsite": "0x10146ecc",
+        "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047e7d4",
+        "address": "0x1047e848",
+        "callsite": "0x1047e974",
+        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047eef4",
+        "callsite": "0x1047f2f0",
+        "notes": "Builds configured savedqueues.rsq path, appends .tmp, compressed writer opens flags0x241/mode0600 via f_103d1ca8, reads/re-emits existing catalog then writes closing SavedQueues and finalizes. Writer f_103d1aec uses deflate window12 and configured0x40000 limit; f_103d16e0/f_103d1b24 handle buffering/finalization. Rename commits at0x1047f2f0 only after validation; prior failure unlinks temporary file. fsync/close statuses are ignored by the shared writer. Read/open/XML or ordinary write/finalize/rename failures501; writer-limit flag selects802. No BackupQueue post-write statvfs or five-minute cleanup is called. No empty-queue early success bypass like BackupQueue: the later exclusion equality rejects source count0 with804."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047f2a4",
+        "callsite": "0x1047f52c",
+        "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x7c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x7c]",
+      "description": "Locks implementation+0x458 and saved manager+0x28. Reads primary queue0 packed entries, current shuffle mapping, URI authority and flag bits12/4, configured settings path, catalog Next/per-playlist update IDs, manager device/revision, compression writer limit and filesystem statuses. Does not select the currently playing alternate/private queue.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f96fc",
-        "notes": "member vfunc calls: ['r30 v[+0x7c]']"
+        "function": "0x102aa8b4",
+        "address": "0x102aa908",
+        "callsite": "0x102aa9e0",
+        "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479544",
+        "callsite": "0x10146ecc",
+        "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479734",
+        "callsite": "0x10479838",
+        "notes": "Prepass examines primary queue entries through f_10146a1c. Default catalog filtering calls f_10475f00: f_10c3a920 parses URI components; requires scheme, authority and path pointers, authority length>12, case-sensitive prefix mobile- and suffix .x-udn (0x10475f30..0x10475fa0; authority fields established 0x10c3aaa8..0x10c3aab8). Counts mobile exclusions at context+0x40de, bit12 exclusions via f_101482c0 at +0x40e0, total exclusions including f_1014829c bit4 at +0x40dc. Mobile classification takes precedence. f_1047e16c repeats filtering before writing. Flag0 at +0x40e2 means active shuffle mapping is followed (0x1047e2a0..0x1047e2e0), not always underlying ordinary order. Raw rotate/mask instructions and record-form andi. at 0x1047e2c4 inspected with corrected decoder."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047e7d4",
+        "address": "0x1047e848",
+        "callsite": "0x1047e974",
+        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047eef4",
+        "callsite": "0x1047f2f0",
+        "notes": "Builds configured savedqueues.rsq path, appends .tmp, compressed writer opens flags0x241/mode0600 via f_103d1ca8, reads/re-emits existing catalog then writes closing SavedQueues and finalizes. Writer f_103d1aec uses deflate window12 and configured0x40000 limit; f_103d16e0/f_103d1b24 handle buffering/finalization. Rename commits at0x1047f2f0 only after validation; prior failure unlinks temporary file. fsync/close statuses are ignored by the shared writer. Read/open/XML or ordinary write/finalize/rename failures501; writer-limit flag selects802. No BackupQueue post-write statvfs or five-minute cleanup is called. No empty-queue early success bypass like BackupQueue: the later exclusion equality rejects source count0 with804."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479864",
+        "callsite": "0x1047988c",
+        "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x7c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x7c] (call-derived member-method semantics)",
+       "description": "Rewrites compressed savedqueues.rsq using a temporary file and rename, preserving other catalog playlists while adding/replacing selected ID with filtered queue0 order. Replacement increments its stored update revision. Persistence0/803 also advances manager catalog revision, saved-root event sequence and peer/CD notifications;807/808 may commit the file without that manager update. Does not modify live membership, live queue update ID, source URI or alarm deadline. Failure is not a universal atomic-no-side-effects guarantee.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102f96fc",
-         "notes": "delegate map ['r30 v[+0x7c]']; notify-family calls []"
+         "function": "0x102aa8b4",
+         "address": "0x102aa908",
+         "callsite": "0x102aa9e0",
+         "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x10479544",
+         "callsite": "0x10146ecc",
+         "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x10479734",
+         "callsite": "0x10479838",
+         "notes": "Prepass examines primary queue entries through f_10146a1c. Default catalog filtering calls f_10475f00: f_10c3a920 parses URI components; requires scheme, authority and path pointers, authority length>12, case-sensitive prefix mobile- and suffix .x-udn (0x10475f30..0x10475fa0; authority fields established 0x10c3aaa8..0x10c3aab8). Counts mobile exclusions at context+0x40de, bit12 exclusions via f_101482c0 at +0x40e0, total exclusions including f_1014829c bit4 at +0x40dc. Mobile classification takes precedence. f_1047e16c repeats filtering before writing. Flag0 at +0x40e2 means active shuffle mapping is followed (0x1047e2a0..0x1047e2e0), not always underlying ordinary order. Raw rotate/mask instructions and record-form andi. at 0x1047e2c4 inspected with corrected decoder."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e848",
+         "callsite": "0x1047e974",
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047eef4",
+         "callsite": "0x1047f2f0",
+         "notes": "Builds configured savedqueues.rsq path, appends .tmp, compressed writer opens flags0x241/mode0600 via f_103d1ca8, reads/re-emits existing catalog then writes closing SavedQueues and finalizes. Writer f_103d1aec uses deflate window12 and configured0x40000 limit; f_103d16e0/f_103d1b24 handle buffering/finalization. Rename commits at0x1047f2f0 only after validation; prior failure unlinks temporary file. fsync/close statuses are ignored by the shared writer. Read/open/XML or ordinary write/finalize/rename failures501; writer-limit flag selects802. No BackupQueue post-write statvfs or five-minute cleanup is called. No empty-queue early success bypass like BackupQueue: the later exclusion equality rejects source count0 with804."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a4",
+         "callsite": "0x1047f52c",
+         "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x10479864",
+         "callsite": "0x1047988c",
+         "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047cd90",
+         "address": "0x10477c44",
+         "callsite": "0x10477cb4",
+         "notes": "f_1047cd90 stores manager deviceID+0xd0/revision+0xec, calls configured peer broadcaster at manager+0xc0 slot+0x14 with kind2, then manager virtual+0x14. Concrete singleton construction f_1014d634 calls f_10476560 at0x1014d6d0; ctor installs vtable0x10ed3054 at0x10476600 whose +0x14 is f_10477bd0. That increments manager+0xcc, posts CdNotifyUpdateID root SQ:, sequence+0x30 and device/revision+0x18/+0x34 through manager+8 ->f_10117654. Shared global observer registration f_10304e78 at0x1030502c/0x103050b4 reaches f_10304808: marks root/container dirty, increments SystemUpdateID, copies SavedQueuesUpdateID source through f_1030470c and schedules1067c6ec. Constructor maps SQ: to SavedQueuesUpdateID at0x10304104..0x1030411c. Producer f_103035c4 emits pending SystemUpdateID/ContainerUpdateIDs and SavedQueuesUpdateID device:revision, subject to notification/dirty/coalescing conditions. Current snapshot fallback f_10477010 ->f_10476e3c formats %s:%u. No live queue revision, Queue LastChange or direct AVTransport transport-state notification is generated by saving."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x7c] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Persistence0/803 advances saved catalog revision and invokes concrete manager notifier/peer broadcaster, posting SQ: CdNotifyUpdateID. ContentDirectory updates SystemUpdateID, ContainerUpdateIDs and SavedQueuesUpdateID under normal observer readiness/dirty/coalescing rules.803 still faults;807/808 can replace the file without manager notification. No named live-queue revision, Queue LastChange or direct AVTransport playback notification is caused by this save.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f96fc",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x104794d4",
+        "address": "0x10479864",
+        "callsite": "0x1047988c",
+        "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047cd90",
+        "address": "0x10477c44",
+        "callsite": "0x10477cb4",
+        "notes": "f_1047cd90 stores manager deviceID+0xd0/revision+0xec, calls configured peer broadcaster at manager+0xc0 slot+0x14 with kind2, then manager virtual+0x14. Concrete singleton construction f_1014d634 calls f_10476560 at0x1014d6d0; ctor installs vtable0x10ed3054 at0x10476600 whose +0x14 is f_10477bd0. That increments manager+0xcc, posts CdNotifyUpdateID root SQ:, sequence+0x30 and device/revision+0x18/+0x34 through manager+8 ->f_10117654. Shared global observer registration f_10304e78 at0x1030502c/0x103050b4 reaches f_10304808: marks root/container dirty, increments SystemUpdateID, copies SavedQueuesUpdateID source through f_1030470c and schedules1067c6ec. Constructor maps SQ: to SavedQueuesUpdateID at0x10304104..0x1030411c. Producer f_103035c4 emits pending SystemUpdateID/ContainerUpdateIDs and SavedQueuesUpdateID device:revision, subject to notification/dirty/coalescing conditions. Current snapshot fallback f_10477010 ->f_10476e3c formats %s:%u. No live queue revision, Queue LastChange or direct AVTransport transport-state notification is generated by saving."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x7c]",
+      "description": "No live transport/source/playback state transition or queue-worker operation. Source mode is only checked, not changed; filesystem catalog replacement and saved-catalog revision progression are distinct from AVTransport state. Faults803/807/808 can follow persisted changes.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f96fc",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x7c]']"
+        "function": "0x102aa8b4",
+        "address": "0x102aa908",
+        "callsite": "0x102aa9e0",
+        "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047eef4",
+        "callsite": "0x1047f2f0",
+        "notes": "Builds configured savedqueues.rsq path, appends .tmp, compressed writer opens flags0x241/mode0600 via f_103d1ca8, reads/re-emits existing catalog then writes closing SavedQueues and finalizes. Writer f_103d1aec uses deflate window12 and configured0x40000 limit; f_103d16e0/f_103d1b24 handle buffering/finalization. Rename commits at0x1047f2f0 only after validation; prior failure unlinks temporary file. fsync/close statuses are ignored by the shared writer. Read/open/XML or ordinary write/finalize/rename failures501; writer-limit flag selects802. No BackupQueue post-write statvfs or five-minute cleanup is called. No empty-queue early success bypass like BackupQueue: the later exclusion equality rejects source count0 with804."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047f2a4",
+        "callsite": "0x1047f52c",
+        "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479864",
+        "callsite": "0x1047988c",
+        "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x7c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Synchronous, no worker. Completed public domain0/402/501/701/718/800/801/802/803/804/805/806/807/808. Status0 emits AssignedObjectID and commits. Any nonzero status faults with no public output, including partial-save803/807/808 after rename. Raw offset1176 is implementation lock+0x458, not a return code. Empty source reaches all-excluded equality and returns804 rather than BackupQueue empty-success bypass.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f96fc",
-        "notes": "commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "function": "0x10511f34",
+        "address": "0x10edfc34",
+        "callsite": "0x102f97d8",
+        "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aa8b4",
+        "address": "0x102aa908",
+        "callsite": "0x102aa9e0",
+        "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479544",
+        "callsite": "0x10146ecc",
+        "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047e7d4",
+        "address": "0x1047e848",
+        "callsite": "0x1047e974",
+        "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047eef4",
+        "callsite": "0x1047f2f0",
+        "notes": "Builds configured savedqueues.rsq path, appends .tmp, compressed writer opens flags0x241/mode0600 via f_103d1ca8, reads/re-emits existing catalog then writes closing SavedQueues and finalizes. Writer f_103d1aec uses deflate window12 and configured0x40000 limit; f_103d16e0/f_103d1b24 handle buffering/finalization. Rename commits at0x1047f2f0 only after validation; prior failure unlinks temporary file. fsync/close statuses are ignored by the shared writer. Read/open/XML or ordinary write/finalize/rename failures501; writer-limit flag selects802. No BackupQueue post-write statvfs or five-minute cleanup is called. No empty-queue early success bypass like BackupQueue: the later exclusion equality rejects source count0 with804."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047f2a4",
+        "callsite": "0x1047f52c",
+        "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479864",
+        "callsite": "0x1047988c",
+        "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -57190,138 +57482,32 @@
      "errors": [
       {
        "code": 718,
-       "code_expr": "vret(r5-in,+0x7c)",
-       "meaning": "InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine",
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "InstanceID parses nonzero.",
        "fault_sites": [
         "0x102f97f4"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument is nonzero",
+         "description": "InstanceID parses nonzero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102aa8b4",
-           "notes": "cmpwi r4,0 at 0x102aa90c -> r31=0x2ce"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102aa8b4",
-         "notes": "cmpwi r4,0 at 0x102aa90c -> r31=0x2ce"
-        }
-       ]
-      },
-      {
-       "code": 800,
-       "code_expr": "vret(r5-in,+0x7c)",
-       "meaning": "Transport mode impl+0x4654 is not 1 or 2.",
-       "fault_sites": [
-        "0x102f97f4"
-       ],
-       "conditions": [
-        {
-         "description": "(impl+0x4654 - 1) unsigned > 1",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102aa8b4",
-           "notes": "cmplwi 0x1 at 0x102aa970 -> r31=0x320"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102aa8b4",
-         "notes": "cmplwi 0x1 at 0x102aa970 -> r31=0x320"
-        }
-       ]
-      },
-      {
-       "code": 402,
-       "code_expr": "vret(r5-in,+0x7c)",
-       "meaning": "Title was empty after whitespace trimming, or contained a CR/LF character.",
-       "fault_sites": [
-        "0x102f97f4"
-       ],
-       "conditions": [
-        {
-         "description": "trimmed Title[0]==0 or strpbrk(Title,\"\\r\\n\")!=NULL",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102aa8b4",
-           "notes": "lbz check at 0x102aa994; strpbrk at 0x102aa9ac -> r31=0x192"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102f96fc",
-           "notes": "parse vcall slot +0x8 then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102aa8b4",
-         "notes": "lbz check at 0x102aa994; strpbrk at 0x102aa9ac -> r31=0x192"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102f96fc",
-         "notes": "wrapper parse + fault path"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x7c)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800, 402, callee-fwd: producers at 0x102aa910/0x102aa968/0x102aa984",
-       "fault_sites": [],
-       "conditions": [
-        {
-         "description": "f_10146e94 returned a nonzero code",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102aa9e0",
-           "notes": "passthrough path"
+           "function": "0x10511f34",
+           "address": "0x10edfc34",
+           "callsite": "0x102f97d8",
+           "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "function": "0x102aa8b4",
-           "notes": "rc site"
+           "address": "0x102aa908",
+           "callsite": "0x102aa9e0",
+           "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
           }
          ]
         }
@@ -57331,153 +57517,530 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f97f4",
-         "notes": "impl vret passthrough site"
+         "function": "0x10511f34",
+         "address": "0x10edfc34",
+         "callsite": "0x102f97d8",
+         "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102aa8b4",
-         "notes": "rc producers decoded"
+         "address": "0x102aa908",
+         "callsite": "0x102aa9e0",
+         "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
         }
-       ],
-       "unresolved": {
-        "proven": "f_10146e94 persistence rc returned",
-        "unknown": "concrete codes the saved-queue persistence helper can produce (storage/duplicate errors)",
-        "bounded_domain": [
-         0
-        ],
-        "bound_evidence": "worker literal-exit scan: f_10146e94->[0];f_10146e94->[0]",
-        "raw_exit_literals": {
-         "f_10146e94": {
-          "lits": [
-           0,
-           1,
-           15,
-           44
-          ],
-          "pt": 7
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x102aa8b4",
-         "lits": [
-          1176
-         ],
-         "passthrough_exits": 5
-        },
-        "delegated_sources": {
-         "f_10557848": {
-          "lits": [
-           0,
-           1,
-           80
-          ],
-          "pt": 3
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "literal_bound": [
-        718
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x7c); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1047ee0c",
-         "notes": "savedqueues.xml save; literal exits {501,701,802-808,810-812}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1047db08",
-         "notes": "add-to-savedqueue worker; {805,814}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10477fe8",
-         "notes": "reorder engine; {600,812,813,850,899}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10476cb4",
-         "notes": "reorder guard returns 899 when positions equal"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10ed2edc",
-         "notes": "savedqueue dirObj vtable block into 0x1047b4xx-0x1047be68"
-        }
+       "code": 800,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "Source mode outside1or2.",
+       "fault_sites": [
+        "0x102f97f4"
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Source mode outside1or2.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1047ee0c",
-           "notes": "savedqueues.xml save; literal exits {501,701,802-808,810-812}"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1047db08",
-           "notes": "add-to-savedqueue worker; {805,814}"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10477fe8",
-           "notes": "reorder engine; {600,812,813,850,899}"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10476cb4",
-           "notes": "reorder guard returns 899 when positions equal"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10ed2edc",
-           "notes": "savedqueue dirObj vtable block into 0x1047b4xx-0x1047be68"
+           "function": "0x102aa8b4",
+           "address": "0x102aa908",
+           "callsite": "0x102aa9e0",
+           "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aa8b4",
+         "address": "0x102aa908",
+         "callsite": "0x102aa9e0",
+         "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "Missing required descriptor, empty/CR/LF trimmed Title, or replacement existing nonempty title does not strcmp-equal trimmed Title.",
+       "fault_sites": [
+        "0x102f97f4"
        ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10ed2edc emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "conditions": [
+        {
+         "description": "Missing required descriptor, empty/CR/LF trimmed Title, or replacement existing nonempty title does not strcmp-equal trimmed Title.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10511f34",
+           "address": "0x10edfc34",
+           "callsite": "0x102f97d8",
+           "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102aa8b4",
+           "address": "0x102aa908",
+           "callsite": "0x102aa9e0",
+           "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047e7d4",
+           "address": "0x1047e848",
+           "callsite": "0x1047e974",
+           "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10511f34",
+         "address": "0x10edfc34",
+         "callsite": "0x102f97d8",
+         "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aa8b4",
+         "address": "0x102aa908",
+         "callsite": "0x102aa9e0",
+         "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e848",
+         "callsite": "0x1047e974",
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+        }
+       ]
+      },
+      {
+       "code": 801,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "Nonempty ObjectID fails one sscanf SQ:%d conversion.",
+       "fault_sites": [
+        "0x102f97f4"
+       ],
+       "conditions": [
+        {
+         "description": "Nonempty ObjectID fails one sscanf SQ:%d conversion.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x104794d4",
+           "address": "0x10479544",
+           "callsite": "0x10146ecc",
+           "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x10479544",
+         "callsite": "0x10146ecc",
+         "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+        }
+       ]
+      },
+      {
+       "code": 701,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "Nonnegative requested saved-playlist ID absent from catalog.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Nonnegative requested saved-playlist ID absent from catalog.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047e7d4",
+           "address": "0x1047e848",
+           "callsite": "0x1047e974",
+           "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e848",
+         "callsite": "0x1047e974",
+         "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "Catalog open/read/XML failure or ordinary temporary-write/finalization/rename failure, excluding writer limit.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Catalog open/read/XML failure or ordinary temporary-write/finalization/rename failure, excluding writer limit.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047eef4",
+           "callsite": "0x1047f2f0",
+           "notes": "Builds configured savedqueues.rsq path, appends .tmp, compressed writer opens flags0x241/mode0600 via f_103d1ca8, reads/re-emits existing catalog then writes closing SavedQueues and finalizes. Writer f_103d1aec uses deflate window12 and configured0x40000 limit; f_103d16e0/f_103d1b24 handle buffering/finalization. Rename commits at0x1047f2f0 only after validation; prior failure unlinks temporary file. fsync/close statuses are ignored by the shared writer. Read/open/XML or ordinary write/finalize/rename failures501; writer-limit flag selects802. No BackupQueue post-write statvfs or five-minute cleanup is called. No empty-queue early success bypass like BackupQueue: the later exclusion equality rejects source count0 with804."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047eef4",
+         "callsite": "0x1047f2f0",
+         "notes": "Builds configured savedqueues.rsq path, appends .tmp, compressed writer opens flags0x241/mode0600 via f_103d1ca8, reads/re-emits existing catalog then writes closing SavedQueues and finalizes. Writer f_103d1aec uses deflate window12 and configured0x40000 limit; f_103d16e0/f_103d1b24 handle buffering/finalization. Rename commits at0x1047f2f0 only after validation; prior failure unlinks temporary file. fsync/close statuses are ignored by the shared writer. Read/open/XML or ordinary write/finalize/rename failures501; writer-limit flag selects802. No BackupQueue post-write statvfs or five-minute cleanup is called. No empty-queue early success bypass like BackupQueue: the later exclusion equality rejects source count0 with804."
+        }
+       ]
+      },
+      {
+       "code": 802,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "Compressed writer limit0x40000 reached/rejected.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Compressed writer limit0x40000 reached/rejected.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x104794d4",
+           "address": "0x10479544",
+           "callsite": "0x10146ecc",
+           "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047eef4",
+           "callsite": "0x1047f2f0",
+           "notes": "Builds configured savedqueues.rsq path, appends .tmp, compressed writer opens flags0x241/mode0600 via f_103d1ca8, reads/re-emits existing catalog then writes closing SavedQueues and finalizes. Writer f_103d1aec uses deflate window12 and configured0x40000 limit; f_103d16e0/f_103d1b24 handle buffering/finalization. Rename commits at0x1047f2f0 only after validation; prior failure unlinks temporary file. fsync/close statuses are ignored by the shared writer. Read/open/XML or ordinary write/finalize/rename failures501; writer-limit flag selects802. No BackupQueue post-write statvfs or five-minute cleanup is called. No empty-queue early success bypass like BackupQueue: the later exclusion equality rejects source count0 with804."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x10479544",
+         "callsite": "0x10146ecc",
+         "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047eef4",
+         "callsite": "0x1047f2f0",
+         "notes": "Builds configured savedqueues.rsq path, appends .tmp, compressed writer opens flags0x241/mode0600 via f_103d1ca8, reads/re-emits existing catalog then writes closing SavedQueues and finalizes. Writer f_103d1aec uses deflate window12 and configured0x40000 limit; f_103d16e0/f_103d1b24 handle buffering/finalization. Rename commits at0x1047f2f0 only after validation; prior failure unlinks temporary file. fsync/close statuses are ignored by the shared writer. Read/open/XML or ordinary write/finalize/rename failures501; writer-limit flag selects802. No BackupQueue post-write statvfs or five-minute cleanup is called. No empty-queue early success bypass like BackupQueue: the later exclusion equality rejects source count0 with804."
+        }
+       ]
+      },
+      {
+       "code": 803,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "After successful replacement: some mobile-authority exclusions, no bit12 exclusions; manager revision/event still advances but SOAP faults.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "After successful replacement: some mobile-authority exclusions, no bit12 exclusions; manager revision/event still advances but SOAP faults.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047f2a4",
+           "callsite": "0x1047f52c",
+           "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x104794d4",
+           "address": "0x10479864",
+           "callsite": "0x1047988c",
+           "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a4",
+         "callsite": "0x1047f52c",
+         "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x10479864",
+         "callsite": "0x1047988c",
+         "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
+        }
+       ]
+      },
+      {
+       "code": 804,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "Before rename: source count equals mobile exclusions and no bit12 exclusions, including source count0.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Before rename: source count equals mobile exclusions and no bit12 exclusions, including source count0.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047f2a4",
+           "callsite": "0x1047f52c",
+           "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a4",
+         "callsite": "0x1047f52c",
+         "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+        }
+       ]
+      },
+      {
+       "code": 805,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "Before rename: all source entries excluded by bit12 and none classified mobile.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Before rename: all source entries excluded by bit12 and none classified mobile.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047f2a4",
+           "callsite": "0x1047f52c",
+           "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a4",
+         "callsite": "0x1047f52c",
+         "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+        }
+       ]
+      },
+      {
+       "code": 806,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "Before rename: source count equals mixed mobile and bit12 exclusions.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Before rename: source count equals mixed mobile and bit12 exclusions.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047f2a4",
+           "callsite": "0x1047f52c",
+           "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a4",
+         "callsite": "0x1047f52c",
+         "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+        }
+       ]
+      },
+      {
+       "code": 807,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "After successful replacement: bit12 exclusions but no mobile exclusions; manager update/output branch skipped.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "After successful replacement: bit12 exclusions but no mobile exclusions; manager update/output branch skipped.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047f2a4",
+           "callsite": "0x1047f52c",
+           "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x104794d4",
+           "address": "0x10479864",
+           "callsite": "0x1047988c",
+           "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a4",
+         "callsite": "0x1047f52c",
+         "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x10479864",
+         "callsite": "0x1047988c",
+         "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
+        }
+       ]
+      },
+      {
+       "code": 808,
+       "code_expr": "wrapper/derived implementation/persistence",
+       "meaning": "After successful replacement: both mobile and bit12 exclusions; manager update/output branch skipped.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "After successful replacement: both mobile and bit12 exclusions; manager update/output branch skipped.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047f2a4",
+           "callsite": "0x1047f52c",
+           "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x104794d4",
+           "address": "0x10479864",
+           "callsite": "0x1047988c",
+           "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a4",
+         "callsite": "0x1047f52c",
+         "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x10479864",
+         "callsite": "0x1047988c",
+         "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
+        }
        ]
       }
      ],
@@ -57487,30 +58050,85 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x102f96fc",
-       "address": "0x102f96fc",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x10eb31a4",
-       "notes": "action dispatch table entry"
+       "function": "0x10511f34",
+       "address": "0x10edfc34",
+       "callsite": "0x102f97d8",
+       "notes": "Live derived AVTransport table 0x10edfbb8+0x7c contains f_102aa8b4; constructor store 0x105123c0 and factory call 0x103fb5d8 establish binding. Wrapper 0x102f96fc parses required InstanceID (f_105614e0 at 0x102f9744), Title (f_1056157c at 0x102f976c, cap1024) and ObjectID (0x102f9794, cap1024), validates at 0x102f97a8, faults at 0x102f97f4 or formats AssignedObjectID via string slot +0x10 at 0x102f9858 then commits at 0x102f986c. No numeric output or worker submission."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x102aa8b4",
-       "notes": "AVT impl vtable 0x10eaf2ec slot +0x7c entry"
+       "address": "0x102aa908",
+       "callsite": "0x102aa9e0",
+       "notes": "Takes impl+0x458 lock before instance gate; nonzero718. Mode must satisfy unsigned(impl+0x4654-1)<=1 else800. Copies Title into1024 bytes using f_10906304, trims sonosTrimWhitespace, rejects empty or remaining CR/LF with402. Calls f_10146e94 with session+0x2d890 primary queue0, trimmedtitle,ObjectID,out,cap1024,filenameNULL,limit0,flag0. Synchronously forwards persistence result; does not choose the currently active alternate/private queue or mutate source/playback."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104794d4",
+       "address": "0x10479544",
+       "callsite": "0x10146ecc",
+       "notes": "f_10146e94 loads singleton 0x11096770 and rearranges arguments into manager f_104794d4. Empty ObjectID gives requestedID=-1; nonempty uses sscanf(ObjectID,\"SQ:%d\",&id), accepts exactly one conversion including numeric prefixes/trailing junk, returns801 otherwise. Negative parsed IDs choose create mode0 just like empty; nonnegative choose replace mode1. Manager+0x28 lock protects catalog rewrite. NULL filename selects savedqueues.rsq at 0x104798e8 and context+0x58/+0x59=0. Default limit selected at 0x1047957c is0x40000 bytes. Raw isel7ecab79e RT22 RA10 RB22 BC30 chooses default on limit==0; 7d40549e at 0x10479658 RT10 RA0 RB10 BC18 selects0 for NULLfilename. These differ from BackupQueue explicit-file gates."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104794d4",
+       "address": "0x10479734",
+       "callsite": "0x10479838",
+       "notes": "Prepass examines primary queue entries through f_10146a1c. Default catalog filtering calls f_10475f00: f_10c3a920 parses URI components; requires scheme, authority and path pointers, authority length>12, case-sensitive prefix mobile- and suffix .x-udn (0x10475f30..0x10475fa0; authority fields established 0x10c3aaa8..0x10c3aab8). Counts mobile exclusions at context+0x40de, bit12 exclusions via f_101482c0 at +0x40e0, total exclusions including f_1014829c bit4 at +0x40dc. Mobile classification takes precedence. f_1047e16c repeats filtering before writing. Flag0 at +0x40e2 means active shuffle mapping is followed (0x1047e2a0..0x1047e2e0), not always underlying ordinary order. Raw rotate/mask instructions and record-form andi. at 0x1047e2c4 inspected with corrected decoder."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047e7d4",
+       "address": "0x1047e848",
+       "callsite": "0x1047e974",
+       "notes": "Compressed catalog reader f_1047ec6c supplies XML callbacks via parser f_1047bffc. Header callback f_1047cc9c assigns new object ID from SavedQueues Next (strtol NULL endptr at 0x1047cd4c), writes Next+1; new entry inserted in title ordering by f_10906e2c/f_10906404. For replace mode1 switch table0x10ed2eb0+4 resolves0x1047e94c: existing nonempty title must strcmp-equal trimmed requested Title, else402 at0x1047ea0c. Matching ID sets found byte+0x6f. Existing per-playlist update parsed into context+0x80 then incremented by f_1047e16c at0x1047e610..0x1047e63c. Missing requested nonnegative ID yields701 at0x1047f288..0x1047f2a0. New entries have no caller-supplied update check; this is not rename or compare-and-swap."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047ee0c",
+       "address": "0x1047eef4",
+       "callsite": "0x1047f2f0",
+       "notes": "Builds configured savedqueues.rsq path, appends .tmp, compressed writer opens flags0x241/mode0600 via f_103d1ca8, reads/re-emits existing catalog then writes closing SavedQueues and finalizes. Writer f_103d1aec uses deflate window12 and configured0x40000 limit; f_103d16e0/f_103d1b24 handle buffering/finalization. Rename commits at0x1047f2f0 only after validation; prior failure unlinks temporary file. fsync/close statuses are ignored by the shared writer. Read/open/XML or ordinary write/finalize/rename failures501; writer-limit flag selects802. No BackupQueue post-write statvfs or five-minute cleanup is called. No empty-queue early success bypass like BackupQueue: the later exclusion equality rejects source count0 with804."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047ee0c",
+       "address": "0x1047f2a4",
+       "callsite": "0x1047f52c",
+       "notes": "Let M=context+0x40de mobile count, U=+0x40e0 bit12 count, N=sourcequeue count. If N==M+U: U==0 gives804 (therefore empty queue N=0 also yields804); U>0,M==0 gives805; U>0,M>0 gives806. These reject before rename. Bit4-only exclusions do not participate in this equality. After rename: M>0,U==0 gives803; M==0,U>0 gives807; both positive808; neither0. Raw isel7fca4f9e at0x1047f47c chooses805 on M==0 else806, same rawword at0x1047f52c chooses803 on U==0 else808; raw7fc04f9e at0x1047f314 chooses0 on U==0 else807. Thus partial-exclusion faults803/807/808 can follow file replacement, unlike804/805/806. Empty queue behavior derived from literal equality, not inferred from action name."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104794d4",
+       "address": "0x10479864",
+       "callsite": "0x1047988c",
+       "notes": "Only persistence statuses0 or803 copy found/new ID from context+0x44 (stack+0x68), update manager+0xf0 bookkeeping and take default-filename notification branch. Increment manager catalog revision+0xec, call f_1047cd90(own deviceID manager+0xc8,newrevision), format AssignedObjectID with uppercase SQ:%d at0x104798b0 into output1024. 803 therefore advances/notifies but SOAP faults without outputs; 807/808 replace file yet bypass these updates/output formatting. AssignedObjectID on SOAP success is actual stored numeric ID, not the Title or raw caller string."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047cd90",
+       "address": "0x10477c44",
+       "callsite": "0x10477cb4",
+       "notes": "f_1047cd90 stores manager deviceID+0xd0/revision+0xec, calls configured peer broadcaster at manager+0xc0 slot+0x14 with kind2, then manager virtual+0x14. Concrete singleton construction f_1014d634 calls f_10476560 at0x1014d6d0; ctor installs vtable0x10ed3054 at0x10476600 whose +0x14 is f_10477bd0. That increments manager+0xcc, posts CdNotifyUpdateID root SQ:, sequence+0x30 and device/revision+0x18/+0x34 through manager+8 ->f_10117654. Shared global observer registration f_10304e78 at0x1030502c/0x103050b4 reaches f_10304808: marks root/container dirty, increments SystemUpdateID, copies SavedQueuesUpdateID source through f_1030470c and schedules1067c6ec. Constructor maps SQ: to SavedQueuesUpdateID at0x10304104..0x1030411c. Producer f_103035c4 emits pending SystemUpdateID/ContainerUpdateIDs and SavedQueuesUpdateID device:revision, subject to notification/dirty/coalescing conditions. Current snapshot fallback f_10477010 ->f_10476e3c formats %s:%u. No live queue revision, Queue LastChange or direct AVTransport transport-state notification is generated by saving."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102f96fc; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "SaveQueue is primary-queue catalog serialization, not BackupQueue persistence and not a saved-queue add worker. Existing ID replacement is not a rename. Post-rename warning faults require refreshing catalog state."
     },
     "Seek": {
      "description": "Repositions playback within the current transport source, dispatched to the zone-player engine as impl vfunc +0x34 -> f_102b95a8(engine,InstanceID,Unit,Target): queue/track ordinal seek (TRACK_NR) or time seek (REL_TIME absolute / TIME_DELTA relative).",
