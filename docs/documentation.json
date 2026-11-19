@@ -97082,7 +97082,7 @@
      },
      "side_effects": [
       {
-       "description": "Rewrites R_RDM as0/1 in configured syssettings.xml via XML-escaped temporary-file replacement (maximum32768 bytes). Success increments settings version, clears recovery flag and advertises local replication version; remote delivery is asynchronous, not guaranteed. Invalid source rebuilds factory defaults plus requested values, then attempts recovery metadata/CustomerID rewrite without propagating that secondary failure. Successful main write increments SystemProperties UpdateID, schedules notification and local observer event, refreshes shared caches. Browse-sort initialization can cause a second settings write. fflush/fsync errors are ignored by the close helper; success does not prove durable media flush or diagnostic-service activation.",
+       "description": "Rewrites R_RDM as0/1 in configured syssettings.xml via XML-escaped temporary-file replacement (maximum32768 bytes). Source open failure returns800. An opened malformed source can retain parsed unaffected entries or emit a fresh root header plus requested value, not factory seed settings. Invalid parse status after main replacement triggers a secondary FileRecoverVersion/registration CustomerID rewrite whose failure is ignored. Main success increments settings version, clears recovery-needed and advertises local replication version, then increments SystemProperties UpdateID, schedules notifications/local observer event and refreshes shared caches. Browse-sort initialization can cause a second write. Ignored fflush/fsync failures mean success does not prove durable flush, remote replication or diagnostic-service activation.",
        "evidence": [
         {
          "type": "firmware",
@@ -97098,7 +97098,7 @@
          "build": "86.10-80260",
          "address": "0x1066bf44",
          "function": "0x1066bee0",
-         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
         },
         {
          "type": "firmware",
@@ -97181,7 +97181,7 @@
       ]
      },
      "state_transitions": {
-      "description": "On main write success R_RDM becomes0/1, saved LUD becomes local ID, settings version increments modulo2^32 and recovery-needed clears; eligible replication cache accepts the new version/LUD. Success callback increments UpdateID modulo2^32 and marks it dirty until serialized. No equality/no-change test suppresses this write. Invalid source first rebuilds defaults and attempts FileRecoverVersion/CustomerID metadata; that secondary failure is ignored. Shared media-server flags and browse-sort state refresh; absent/unknown browse sort seeds Tracknum through another write. Main write failure skips normal metadata/success-callback transitions, but an attempted temporary file may have been created or unlinked.",
+      "description": "On main write success R_RDM becomes0/1, saved LUD becomes local ID, settings version increments modulo2^32 and recovery-needed clears; eligible replication cache accepts new version/LUD. Callback increments UpdateID modulo2^32 and marks it dirty until serialized, without equality suppression. A malformed opened source can retain its parsed prefix or receive a fresh root header, but no factory seed entries are inserted by this writer. Parse-invalid status triggers secondary FileRecoverVersion/CustomerID rewrite with ignored failure. Shared media flags and browse sort refresh; missing/unknown sort can seed Tracknum in another write. Failed main write skips success transitions, though temporary-file I/O may have occurred.",
       "evidence": [
        {
         "type": "firmware",
@@ -97189,7 +97189,7 @@
         "build": "86.10-80260",
         "address": "0x1066bf44",
         "function": "0x1066bee0",
-        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
        },
        {
         "type": "firmware",
@@ -97290,7 +97290,7 @@
         "build": "86.10-80260",
         "address": "0x1066bf44",
         "function": "0x1066bee0",
-        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
        },
        {
         "type": "firmware",
@@ -97395,7 +97395,7 @@
            "build": "86.10-80260",
            "address": "0x1066bf44",
            "function": "0x1066bee0",
-           "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+           "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
           },
           {
            "type": "firmware",
@@ -97415,7 +97415,7 @@
          "build": "86.10-80260",
          "address": "0x1066bf44",
          "function": "0x1066bee0",
-         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
         },
         {
          "type": "firmware",
@@ -97508,7 +97508,7 @@
        "build": "86.10-80260",
        "address": "0x1066bf44",
        "function": "0x1066bee0",
-       "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+       "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
       },
       {
        "type": "firmware",
