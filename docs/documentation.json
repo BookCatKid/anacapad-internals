@@ -176810,7 +176810,7 @@
    "todo": "Established: both save paths and their observable return/order distinctions are decoded. Remaining: trace underlying writes, memory-allocation exceptions, temporary-file path ABI and interrupted-write/reload behavior."
   },
   "0x10552c20": {
-   "description": "Catalog XML start adapter: literal name/attribute recognition, active-state flags, numeric/version gates and processor callback argument mapping. Ratings retain parser+0x14 when Id is absent; see payload_formats.music_service_catalog.input_rules.",
+   "description": "Catalog XML start adapter f_10552c20(parser, name, attrs), registered with end adapter f_10552938 by constructor f_105528ac: it installs thunks f_10554c70/f_10554c64 into the shared SAX engine via f_10c3fcd4 (engine context f_10c3f81c at parser+4), stores the delegate object at parser+8, and clears flag bytes +0xc..+0x13,+0x16 and context halfword +0x14. Recognition is a fixed-order cascade over independent active-state bytes, not a depth stack. With flag +0xd clear only 'Services' is accepted: attributes LastUpdateDevice, Version(strtoul), SchemaVersion(strtoul) and ETag are collected; SchemaVersion>5 leaves parser+0xc (the catalog-valid byte that caller f_10554918 requires for success) cleared and never sets +0xd, so a too-new root silently disables the whole document, while delegate vfunc+8(version, schemaVer, lastUpdate, etag) is still called when installed over stub f_10552734. With +0xd set and +0xe clear, 'Service' collects Id (strtoul, default -1), Name, SecureUri, Version, ContainerType, Capabilities(strtoul) and MService; Name, SecureUri and Version are required, and Version must parse as exactly '1.2' via two-field '%d.%d' sscanf helper f_10552b38; an Id bound check against 0xffffffff is compiled in but can never fire. vfunc+0xc beginService(id, name, versionStr, secureUri, containerType, capabilities) is then called unconditionally: a false result logs 'Skipping service SID %u (%s) because beginService failed (URLs too long?)' on 'msd' level 3 and leaves +0xe clear (children are still parsed but only elements in the +0xe-clear chain are recognized, including a nested 'Service'), while true sets +0xe. With +0xe set: 'Policy' sets +0xf and tail-calls vfunc+0x14(auth, userId, pollInterval) with PollInterval defaulting to 0x1e; 'Presentation' sets +0x10 and calls guarded vfunc+0x18; with +0x10 set, 'Strings' and 'PresentationMap' share one {Uri, Version-required} handler and dispatch on which literal matched: 'Strings' calls unguarded vfunc+0x1c(uri, version) and 'PresentationMap' calls unguarded vfunc+0x20(uri, version), logging 'Failed to load strings %s'/'Failed to load pmap %s (URLs too long?)' on false; with +0x10 clear, 'Manifest' sets +0x11, requires Uri, rejects non-https schemes ('Manifest URL must use HTTPS: %s') unless devmode feature 7 permits them (f_1054bdc8 -> f_1054bd60 sorted-list probe against the devmode.cxx object at 0x11097374 under its +0x568 lock), and calls unguarded vfunc+0x28(version, uri), logging 'Failed to load manifest %s' on false; 'Ratings' sets +0x12 and calls guarded vfunc+0x2c. With +0x12 set and +0x13 clear, 'Rating' sets +0x13, parses Id through u16-saturating f_105527f8 into parser+0x14 (a missing Id retains the previous rating's value), StringId, AutoSkip and OnSuccessStringId, then calls guarded vfunc+0x30(lhz +0x14, stringId, autoSkip, onSuccess). With +0x13 set, 'Icon' collects Controller, LastModified and Uri and calls guarded vfunc+0x34(lhz +0x14, controller, lastModified, uri). 'BuiltInService' requires +0xd set and +0x16 clear (reusing the entry cr4 flag-d test), parses Type through f_105527f8 and Name, requires Type nonnull, sets +0x16 and calls guarded vfunc+0x10(type, name). Guarded slots skip the call when the delegate vtable still holds the corresponding trivial no-op stub (f_10552734, f_1055276c, f_10552778 or f_10552784). Lexical behavior: attributes arrive as {name,value} pointer pairs walked until a NULL name; all names and attribute keys are case-sensitive strcmp; unrecognized attributes are skipped in the chain; numeric attributes use base-10 strtoul and f_105527f8 saturates to 0xffff above 0xfffe with an 'msd' level-3 warning. Malformed/repeated nesting: flags are booleans, so a second same-name element while its flag is set is silently unrecognized (e.g. a nested <Service> while +0xe is set falls through to the Policy-chain), elements outside their parent's active range still match whenever the flag happens to be set, and nothing reports an error to the engine - the adapter always returns void and malformed documents only manifest as unset flags, saturated values or level-3 'msd' logs.",
    "why_external": "Defines which downloaded or stored catalog entries reach descriptor processors.",
    "required_for_behavior": true,
    "role": "music_service_catalog_parser",
@@ -176819,11 +176819,52 @@
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
+     "address": "0x105528ac",
+     "function": "0x105528ac",
+     "notes": "Constructor installs start thunk f_10554c70 -> f_10552c20 and end thunk f_10554c64 -> f_10552938 via shared SAX engine ctor f_10c3fcd4 (ctx f_10c3f81c at parser+4, base vtable 0x10fb1694); stores delegate at +8; clears flags +0xc..+0x13,+0x16 and halfword +0x14. Parser constructed per parse in f_10554918 (delegate = global object at arg2+0x90, doc from fd via f_10c4009c, callers f_100c6068/f_100c6d3c close the fd and gate success on parser+0xc)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
      "address": "0x10552c20",
-     "notes": "Start/end parser instruction audit; see music_service_catalog input_rules and evidence."
+     "notes": "Full cascade audit: flag-ordered strcmp dispatch; Services attrs {LastUpdateDevice, Version, SchemaVersion, ETag} with SchemaVersion>5 -> flag +0xc stays 0 (still calls vfunc+8 at 0x10552d24/0x105535e4 guarded by f_10552734); unreachable Id>0xffffffff check at 0x10553408; beginService vfunc+0xc at 0x10553460 (false -> 'Skipping service SID %u (%s) because beginService failed' at 0x105538ac, +0xe unset)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552e24",
+     "notes": "Policy: flag +0xf set, attrs Auth/UserId/PollInterval (default 0x1e) -> unguarded tail call vfunc+0x14. Presentation at 0x10553218: flag +0x10, vfunc+0x18 guarded by f_10552784. Strings/PresentationMap shared handler: Version required at 0x10552f20; Strings -> vfunc+0x1c ('Failed to load strings %s' at 0x10552f74), PresentationMap -> vfunc+0x20 ('Failed to load pmap %s' at 0x105534f4), both unguarded."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105534fc",
+     "notes": "Manifest: Uri required; devmode-7 probe f_1054bdc8 (devmode.cxx obj 0x11097374, +0x568 lock, sorted-list search f_1054bd60) bypasses the https strncmp; non-https otherwise rejected with 'Manifest URL must use HTTPS: %s' at 0x10553938; unguarded vfunc+0x28(version, uri) at 0x10553550 -> 'Failed to load manifest %s (URLs too long?)'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553714",
+     "notes": "Rating: flag +0x13; Id attr via f_105527f8 stored to parser+0x14 at 0x10553720 (retains prior value when absent); vfunc+0x30(lhz +0x14, StringId, AutoSkip, OnSuccessStringId) at 0x1055376c guarded by f_1055276c. Icon inside Rating: attrs {Controller, LastModified, Uri} -> vfunc+0x34(lhz +0x14, ...) at 0x105537f0 guarded by f_1055276c. Ratings open at 0x10553658: flag +0x12 + vfunc+0x2c guarded by f_10552784. BuiltInService: flag +0x16, Type via f_105527f8 + required nonnull, Name -> vfunc+0x10 at 0x10553838 guarded by f_10552778."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105527f8",
+     "notes": "Shared numeric saturator: strtoul base 10; result >0xfffe clamps to 0xffff and logs 'Value '%s' too large. Setting to USHRT_MAX' on 'msd' level 3 at 0x1055284c-0x10552888."
     }
    ],
-   "todo": "Established: active-state dispatch and Ratings/Icon callbacks are decoded. Remaining: trace all installed processors, return/error handling, malformed/repeated nesting effects and shared XML-engine lexical behavior."
+   "resolved_findings": [
+    "Resolved: complete processor inventory - delegate vfuncs +8 beginCatalog, +0xc beginService(bool, unguarded), +0x10 BuiltInService, +0x14 Policy, +0x18 Presentation, +0x1c loadStrings(bool), +0x20 loadPmap(bool), +0x28 loadManifest(bool, https-enforced modulo devmode flag 7), +0x2c beginRatings, +0x30 Rating, +0x34 RatingIcon; guarded slots skip trivial stubs f_10552734/f_1055276c/f_10552778/f_10552784.",
+    "Resolved: return/error handling - the adapter always returns void to the engine; failures surface only as unset flags (beginService false leaves +0xe clear, SchemaVersion>5 leaves +0xc clear so f_10554918 reports failure), u16 saturation via f_105527f8, or level-3 'msd' logs; the engine's own well-formedness result still gates the caller's success byte.",
+    "Resolved: malformed/repeated nesting - boolean flags make recognition order-dependent rather than structural: repeated elements while a flag is set are silently ignored, stale flags let recognized elements fire outside their parent (e.g. Rating outside a Ratings that never closed), and a rejected Service subtree still recognizes a nested Service element.",
+    "Resolved: shared engine semantics - SAX-style start/end callbacks installed via f_10554c70/f_10554c64 into the f_10c3fcd4 context at parser+4; attributes are {name,value} pairs walked to NULL; case-sensitive strcmp; no character-data callback installed, so element text is never consumed."
+   ]
   },
   "0x10552938": {
    "description": "The start/end adapter uses active-state bytes, not an element-depth stack. Its constructor clears valid/catalog/Service/Policy/Presentation/Manifest/Ratings/Rating/BuiltInService flags at +0x0c..+0x13 and +0x16. Start recognition uses literal case-sensitive strcmp and current flags. End handler f_10552938 checks active Policy first, then Presentation, Manifest, Rating, Ratings, Service, BuiltInService and Services. Once it finds an active branch it compares only that branch name and returns even if the closing name differs. A matching close clears that flag. Thus this adapter is not an independent strict parent/child grammar validator. Unknown elements do not create a subtree-skip depth in this adapter; recognized descendants can still reach its handlers while the corresponding flags remain active. The underlying XML parser still enforces XML well-formedness.",
