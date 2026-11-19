@@ -156561,16 +156561,88 @@
      "type": "firmware",
      "address": "0x10fd690c",
      "notes": "korn"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10213e60",
+     "address": "0x102141f4",
+     "notes": "Player builds configuration and calls f_10cf4f60, whose SpInit diagnostic is at 0x10cf4fac; call 0x10cf4f94 reaches f_10cffa8c. API-version check 0x10cffbd0 compares 79; further validation/socket checks precede the arena loads and f_10d0a170 call 0x10d0008c. Player failure log at 0x1021421c.",
+     "callsite": "0x102141f4"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d0a170",
+     "address": "0x10d0a178",
+     "notes": "Loads fixed table 0x10fd77a0, stores pointer/count 6 at 0x110bdb48/+4, passes r5=table/r6=6 to f_10d08d64 at 0x10d0a19c. Sole direct initialization wrapper call is 0x10d0008c; reinit at 0x10d010b8 returns through the same f_10cffa8c path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d08d64",
+     "address": "0x10d08fac",
+     "notes": "Null arena and unsigned size>0x2067 gates at 0x10d08da8/0x10d08db0. Runtime allocation is count*20. Raw 0x7d27512e at 0x10d08fac decodes stwx r9,r7,r10: descriptor name stored at runtime entry+0. Initializer from descriptor+0 at 0x10d08fb4 called at 0x10d08fc8 with entry pointer, descriptor stride 12 at 0x10d08fc0, success count increment at 0x10d09060. Failure return paths at 0x10d09230/0x10d09238/0x10d09258."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d0a170",
+     "address": "0x10fd77a0",
+     "notes": "Six 12-byte rows, in order: {0x10d0e578,0x10d0e60c,0x10fd77e8}; {0x10d033bc,0x10d0346c,0x10ebd920}; {0x10d13d88,0,0x10fd77f8}; {0x10d0c5cc,0,0x10fd7804}; {0x10d2c494,0x10d2c484,0x10fd780c}; {0x10d214d0,0,0x10fd7818}. Third words point to SocketManager, API, MediaOut, APConn, Streamer, TrackPlayback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d0e578",
+     "address": "0x10d0e5ac",
+     "notes": "SocketManager requests 0x70 and stores pump/event at runtime+0xc/+0x10 at 0x10d0e5ac/0x10d0e5b8. API requests 0xd00 and stores event/pump at 0x10d03424/0x10d03430. MediaOut requests 0x78 plus a f_10d228b4-sized allocation at 0x10d13e14 and stores pump/event at 0x10d13e38/0x10d13e44."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d0c5cc",
+     "address": "0x10d0c61c",
+     "notes": "APConn requests 0x68a0 and stores pump/event at 0x10d0c61c/0x10d0c628. Streamer requests 0x2120 and stores pump/event at 0x10d2c4f0/0x10d2c4fc. TrackPlayback requests 0x1f198 and stores event/pump at 0x10d21528/0x10d21538. All six initializer assignments were inspected, rather than inferred from row names."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d07b40",
+     "address": "0x10d07cb8",
+     "notes": "Runtime pump pointer +0xc, call at 0x10d07cd4; negative status selects named log at 0x10d07d0c and continues. Entry stride 20 and initialized count at manager+4. f_10d08534 event-handler +0x10 load/call at 0x10d086fc/0x10d0870c; recursive-entry guard manager+0x10 at 0x10d085a0. Wrapper f_10d08838 invokes pump/event loop at 0x10d0888c/0x10d088dc; successful initialization also calls event loop at 0x10d0016c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d0964c",
+     "address": "0x10d0969c",
+     "notes": "Shutdown wrapper 0x10d0a1a0 passes saved table/count 6. Reverse stride-12 descriptor walk reads shutdown word +4, skips null pointers, calls with matching reverse stride-20 runtime entry at 0x10d096b8. SocketManager shutdown 0x10d0e60c and Streamer 0x10d2c484 return zero; API 0x10d0346c clears 0x110bb7a8. Init failure cleanup call at 0x10d000e4."
     }
    ],
-   "todo": [
-    "Residual: the module list registered in module_manager (eSDK modules register at init; the registry is runtime data)."
-   ],
    "resolved_findings": [
-    "Resolved: modules = the init sequence driving sp_korn_event_count + temp-ram allocator asserts; event loop = the %s module pump dispatch.",
+    "The eSDK module manager has a fixed six-descriptor input in this build, not an undiscoverable runtime-supplied module list. Runtime state and callback storage are allocated during initialization, but module names and initialization/shutdown entrypoints come from the compiled table at 0x10fd77a0.",
     "Architecture proven: korn is the Spotify eSDK runtime kernel (esdk/src/korn/korn.c). It owns three subsystems - (1) a bump/scratch allocator: _temp_ram region with _temp_ram_free/_temp_ram_num_allocs accounting, MAX_KORN_TEMP_RAM_ALLOCS bound, LIFO discipline (ptr == korn_ptr->_temp_ram), and leak asserts (TEMP_RAM not freed at end of pump!, Too many returns of temp ram!); (2) a module manager (korn_ptr->module_manager, (%s) failed to initialize); (3) an event queue bounded by SP_MAX_EVENTS (sp_korn_event_count() < SP_MAX_EVENTS) with shutdown leak checks (shutdown. Possible memory leak.).",
     "Korn event-queue vocabulary recovered at 0x10fd64fc: the full eSDK event enum - {KORN_INITIALIZED, KORN_SHUTDOWN, WEBSERVER_*, ZEROCONF_* (START, DEVICE_ADDED, TRANSFER_CRED, TRANSFER_STATUS, AUTH_TOKEN, AUTH_CODE), MDNS_* (START, PAUSE, RESUME, DEVICES, DEVICE_DISCOVERED, DEVICE_EVICTED, RETRIGGER_DISCOVERED_DEVICES), HOSTNAME, PAUSE, PLAYBACK_*, TRACK_*, SKIP_*, QUEUE_*, SET_SHUFFLE/REPEAT, CONNECT_SET_VOLUME, SET_VOLUME, AUDIO_DELIVERY_DONE, CONTEXT_FAILED, TW_UPDATED, PLAY_FALLBACK_FILE, MEDIA_SEEK, PLAYBACK_INITIATED, NOTIFY_*_TRACK_*, SEEK_COMPLETE, EXTERNAL_UNDERRUN_COUNT_*, ...} - the event names the esdk event queue publishes.",
-    "Established: korn = eSDK kernel owning module_manager + event queue + temp-ram bump allocator with leak asserts."
+    "Established: korn = eSDK kernel owning module_manager + event queue + temp-ram bump allocator with leak asserts.",
+    "Registration reachability: player initialization f_10213e60 calls the SpInit wrapper f_10cf4f60 at 0x102141f4; the wrapper calls f_10cffa8c at 0x10cf4f94. After configuration and socket initialization checks, that function loads the supplied arena pointer/size from configuration+4/+8 and calls f_10d0a170 at 0x10d0008c. The latter stores descriptor pointer 0x10fd77a0 and count 6 at 0x110bdb48/+4, then tail-calls f_10d08d64 with exactly those descriptors and count. Thus the table is consumed on the actual player SpInit success path, not merely an unused adjacent string list. A reinitialization call in API pump f_10d00dec at 0x10d010b8 reaches the same initialization function and fixed table.",
+    "Descriptor/runtime formats: each compiled descriptor is 12 bytes {initialize,shutdown,name}. f_10d08d64 allocates and clears 20-byte runtime entries {name,state_pointer,state_size,pump,event_handler}. It copies descriptor+8 into runtime+0 at 0x10d08fac (raw stwx), calls descriptor+0 with the runtime entry at 0x10d08fc8, advances the descriptor by 12, and increments the initialized count only after a zero return. Initializers allocate their private state and install pump/event callbacks into runtime+0xc/+0x10. This distinguishes the descriptor shutdown pointer from the runtime pump callback.",
+    "Descriptor 0 at 0x10fd77a0: SocketManager, name 0x10fd77e8, initialize f_10d0e578, shutdown f_10d0e60c. The initializer requests 0x70 private bytes and installs pump f_10d0c958 and event handler f_10d0c73c. Its shutdown callback is a zero-return stub, not a missing pointer.",
+    "Descriptor 1 at 0x10fd77ac: API, name 0x10ebd920, initialize f_10d033bc, shutdown f_10d0346c. The initializer requests 0xd00 private bytes and installs pump f_10d00dec and event handler f_10cfa318. Shutdown clears the API global at 0x110bb7a8 and returns zero.",
+    "Descriptor 2 at 0x10fd77b8: MediaOut, name 0x10fd77f8, initialize f_10d13d88, no descriptor shutdown callback. The initializer requests 0x78 private bytes, makes a further allocation sized by f_10d228b4, and installs pump f_10d0fc5c and event handler f_10d12414.",
+    "Descriptor 3 at 0x10fd77c4: APConn, name 0x10fd7804, initialize f_10d0c5cc, no descriptor shutdown callback. The initializer requests 0x68a0 private bytes and installs pump f_10d0b3f8 and event handler f_10d0a5d8.",
+    "Descriptor 4 at 0x10fd77d0: Streamer, name 0x10fd780c, initialize f_10d2c494, shutdown f_10d2c484. The initializer requests 0x2120 private bytes and installs pump f_10d2b2b8 and event handler f_10d2ac60. Its shutdown callback is another zero-return stub.",
+    "Descriptor 5 at 0x10fd77dc: TrackPlayback, name 0x10fd7818, initialize f_10d214d0, no descriptor shutdown callback. The initializer requests 0x1f198 private bytes and installs pump f_10d19508 and event handler f_10d1eb48.",
+    "Dispatch and boundaries: f_10d07b40 iterates the initialized runtime entries in registration order, invokes each nonnull +0xc pump, and logs a negative result with that entry name while continuing the loop. f_10d08534 dispatches queued events through each nonnull +0x10 event handler in the same order and suppresses recursive event-loop entry. Initialization rejects a null arena or size below 0x2068, and further allocation/module-init failures can stop the sequence before all six succeed; the fixed table is not a guarantee that every component initialized on a particular boot. The player checks the SpInit result and logs failure instead of treating a submitted initialization as completed.",
+    "Shutdown uses the same descriptor table: f_10d0a1a0 loads the saved pointer/count and calls f_10d0964c. That function walks all six descriptors and corresponding 20-byte runtime slots in reverse order, skipping null shutdown pointers; a nonzero callback result stops the walk and is reported. The actual nonnull callbacks here are Streamer and SocketManager zero-return stubs and API global-pointer clearing. No shutdown call is invented for MediaOut, APConn or TrackPlayback. The error path after module-init failure calls this wrapper at 0x10d000e4 when API state exists."
    ]
   },
   "korn_events": {
