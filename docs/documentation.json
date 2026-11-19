@@ -168162,7 +168162,7 @@
    "name": "Atheros WiFi modules",
    "summary": "The Qualcomm Atheros 802.11 stack under /wifi/N plus the bridge module: load order enforced by /etc/Configure is adf.ko -> asf.ko -> ath_hal.ko -> dfs.ko (if present) -> ath_driver.ko, then /wifi/bridge.ko.",
    "todo": [
-    "Residual: per-cmd param-name binding for the ~300 leaf/marshal-arm cases (each is an inline set/get of one driver field; the copyin size and destination offset per case are decodable but the semantic name per cmd is the remaining join)."
+    "Established: the correct table base and REL32 formula reduce the supposed ~300 leaf cases to 119 non-default slots, with 117 distinct non-default entry PCs; two slots are epilogue-only, and 266 slots share the fallback after ath_lmac_ioctl declines. Outer ioctl framing and selected household-id, UUID, deauth and chain-count bindings are documented. Remaining: join the actual inline/marshal parameter arms to athconfig verbs and field meanings, and audit the other named-handler payloads rather than assign semantics from the first call. Candidate inline/marshal slots requiring that join are 0x4,0xc,0xe,0xf,0x15-0x17,0x19-0x1b,0x1d,0x1f-0x21,0x23,0x27,0x2d,0x2e,0x30,0x35-0x3a,0x49-0x4c,0x53,0x54,0x64,0x66,0x67,0x9b,0xce-0xd0,0xd3,0xdc,0xdd,0xe3-0xe5,0xe7,0xe8,0x137,0x13a-0x13c,0x164,0x16b,0x176,0x17e-0x180. Trace their corrected case entry PCs through shared copy paths and cross-reference the userspace five-word envelope builders. Lower-layer ath_lmac_ioctl handling precedes this switch and must also be checked before interpreting a fallback slot as globally unsupported."
    ],
    "artifacts": [
     "wifi/N/adf.ko",
@@ -168177,9 +168177,48 @@
     "Load order/dependencies (modinfo): adf.ko 'Qualcomm Atheros Device Framework' (no deps), asf.ko 'Atheros Device Module' (adf services), ath_hal.ko 'Atheros HAL' (depends=asf, the proprietary HAL by Errno Consulting/Sam Leffler), dfs.ko 'DFS Support for Atheros 802.11' (optional), ath_driver.ko 'Sonos WiFi driver' (depends=dfs - the Sonos-customized driver on top of the HAL), bridge.ko (GPL, ethernet bridging for br0).",
     "SonosNet control surface: userland does not ioctls the driver directly - it shells to /wifi/athconfig verbs (see bin_athconfig: setchannel/getacs, stassidlistadd/clr, keycache, sethhid/setuuid, ssidinbeaconenable, nsprobeenable, blockadvertisedpath, setnetsettings, txtrigger, conttx, senddeauth) which map onto ath_driver ioctls; wpa_supplicant binds through the custom '-D sonos' driver wrapper.",
     "DFS flow: dfs.ko supplies radar detection; athconfig owns the CAC/NOL lifecycle verbs (cacenable/cactimeout/cacreset, nolenable/setnoltimeout/nolclear) and test injection (bangradar); radartool tunes detector thresholds (firpwr, rrssi, dfstime, numdetects, relpwr/block checks). Channel vacate on radar = driver event -> dfs.ko NOL entry -> netstartd channel reselection via getacs.",
-    "athconfig verb->ioctl map RECOVERED: ath_driver.ko is NOT stripped (full .symtab present). ath_ioctl (.text+0xf85c, 0x3580B) bounds-checks cmd<=0x180 then dispatches through a 0x181-entry self-relative jump table at .rodata+0x5c (entries filled by .rela.rodata relocs); cmd>0x180 goes to a tail chain at 0x11524 (handles 0x752f and the 0x8b.. SIOCDEVPRIVATE range). Named handler bindings resolved via relocs: set_uuid=0x97, set_hhid=0x2, set_hhid_aes_key_channel=0x8, set_aes_key=0x15, set_nchains=0xf, set_channel={0x35,0xd9,0xe9}, hostap_set_key=0x28, hostap_clear_key=0xe8, del_key={0x9a,0xc8}, scan_start=0x9d, scan_abort=0x136, scan_get_results=0x163, scan_clear_ssid=0xe4, send_deauth=0x164, sta_get_state=0x139, sta_has_wireless_cnx=0x133, send_netstart={0xd,0x1b,0x1d,0x29-0x2c}, get_wd_info=0x17f, path_mgr_{get_learned_hops=0x65,set_have_uwc=0x9b,get_have_uwc=0x13c}, get_channel_list={0x52,0x53,0x58}, deauth_sta=0x20, sta_scan_start_event=0xdc, sta_simple_data_event=0x17c, rx_hist_to_user=0x16d, wait_on_txqs=0x6e, continuous_beacon_change={0x20,0x21,0x23}, mibcc_show={0xcb,0xcc}.",
-    "Refined mechanism: the .rodata+0x5c table is a GCC switch jump table of case-body PCs inside ath_ioctl itself (reloc addends land at intra-function labels, not handler functions). Case bodies share a marshalling pattern: copyin bounds-check via cmplw against r2-relative end-of-user-space + addis 0x4000 wraparound reject (-EFAULT), then subfic length clamp and branch to shared epilogues (b 0xfa18/0xff64...). Per-cmd handler binding requires tracing each body past the marshal - the ioctl numbers are cmd indices 0..0x180.",
-    "Full 0x181-entry cmd-dispatch census via .rela.rodata jump-table targets + .rela.text call relocs (ath_ioctl, cmd<=0x180 bound): first-link-call per case body gives family bindings - cmds 0x01-0x0d route to ath_rincon_parse_vendor (Rincon vendor-cmd family; 0x0e=ath_handle_probe_req_standard); 0x10-0x15 scan-start family (ath_ctl_scan_start_ioctl; 0x13 and 0x15 reach sta_start_roaming_scan); 0x24,0x32,0x34,0x40-0x43 -> ath_ctl_send_netstart_ioctl (netstart channel cmds); 0x37,0x38,0x3a -> infra_handle_continuous_beacon_change; 0x3f -> ath_hostap_set_key; 0x69-0x6b,0x6f -> ath_ctl_get_channel_list_ioctl; 0x7c -> ath_path_mgr_get_learned_hops; 0x80-0x85 -> ath_wait_on_txqs (txq drain family); 0xa8-0xae -> ath_ioctl_set_uuid family; 0xaf-0xb0 -> ath_del_key; 0xb2 -> ath_path_mgr_set_have_uwc; 0xb4-0xb5 -> ath_ctl_scan_start_ioctl. The remaining ~300 cases are leaf set-param stubs or marshal arms whose first call is __copy_tofrom_user (get-param copyout), memset, printk (unsupported/param echo), or local_bh_{disable,enable} (locked set paths) - consistent with the earlier claim that most slots share marshalling arms."
+    "Corrected dispatch census: ath_ioctl at .text+0xf85c checks capable(12), then calls ath_lmac_ioctl with an out-parameter indicating whether the lower layer handled the request. Only a declined request reaches the cmd<=0x180 switch. Its table at .rodata+0x5c uses R_PPC_REL32 relocations: runtime target = .text + relocation_addend - 4*cmd, because each relocation subtracts its own entry address but dispatch adds the table base. There are 385 entries and 118 distinct entry PCs. Of these, 266 entries go to .text+0x11524, the printk/-95 fallback, not individual field setters. Values above 0x180 also reach that fallback after lower-layer decline. The previous approximately 300 leaf-arm claim and both incompatible command maps are withdrawn.",
+    "Concrete reachability: Linux ioctl 0x89f0 reaches ath_do_ioctl (.text+0x12ddc). It reads the ifreq pointer at +0x10, copies a 20-byte envelope from userspace, and passes its five words as cmd,r5,r6,r7,r8 to ath_ioctl at .text+0x12e7c. This is distinct from outer requests 0x89f1 and 0x89f2. The switch values 0..0x180 are envelope command words, not Linux ioctl request numbers; .text+0x11524 is not an outer SIOCDEVPRIVATE dispatcher.",
+    "Verified corrected handler bindings: envelope cmd 0x2 enters .text+0x11428 and calls ath_ioctl_set_hhid at +0x114a8; cmd 0x3b enters +0x10394 and reaches ath_ioctl_set_uuid at +0x11780; cmd 0x13 enters +0x114fc and calls ath_ioctl_set_nchains at +0x11504. Cmds 0x2a and 0x2b share +0x11118 and ath_ctl_deauth_sta_ioctl at +0x11120. Cmds 0x138 and 0x139 both enter the shared epilogue +0xfa18 without another operation after lower-layer decline. These examples independently check the relocation formula; reading each relocation addend as an absolute case PC, or using .rodata+0 as the table start, produces different and incorrect command bindings.",
+    "Household-id input contract on cmd 0x2: envelope word 1 (r5) is an unsigned length checked <=32 at .text+0x11428. The arm zeroes a 33-byte local buffer, copies that length from the user pointer in envelope word 3 (r7), checks copy failure, and passes the buffer and low-byte length to ath_ioctl_set_hhid. It does not treat word 1 as a pointer. This is one concrete semantic binding across the shared marshalling paths, not evidence that every arm uses the same word layout.",
+    "Chain-count input contract on cmd 0x13: envelope word 1 is passed directly to ath_ioctl_set_nchains. Positive values 1,2,3,4 select masks 1,3,7,15. Negative inputs select the low eight bits of the negated word, accepted only when that result is <=15; this is not a general full-width negative-mask range check. Other nonnegative values return -22. The selected mask is compared with driver bytes +0x552c/+0x552d, then written to both, with spatial-stream counts written at +0x552e/+0x552f. A present HAL callback at +0x8c receives the masks; callback failure returns -22 after the stored bytes have already changed."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_ioctl",
+     "address": ".text+0xf8dc",
+     "notes": "capable(12) at +0xf8a4 and ath_lmac_ioctl at +0xf8cc precede switch. Out-parameter at stack+0x6c gates fallback. cmplwi 0x180, lwzx at +0xf8f4 and table-base add at +0xf8f8; 385 R_PPC_REL32 rows at .rela.rodata offsets 0x5c..0x65c yield 118 unique targets, 266 to +0x11524. Cmd 2 relocation .rodata+0x64 addend 0x11430 yields 0x11428; cmd 0x3b yields 0x10394. Fallback +0x11534 returns -95 through +0xfa18."
+    },
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_do_ioctl",
+     "address": ".text+0x12e34",
+     "callsite": ".text+0x12e7c",
+     "notes": "Raw outer request 0x89f0 selects 20-byte copy from ifreq+0x10; five stack words loaded at +0x12e64..+0x12e78 become ath_ioctl r4..r8. Outer 0x89f1/0x89f2 use separate branches. Copy/access failure branches at +0x13018/+0x13028."
+    },
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_ioctl",
+     "address": ".text+0x11428",
+     "callsite": ".text+0x114a8",
+     "notes": "Cmd 2 length<=32, 33-byte zeroed buffer, user pointer r27 (original r7), copy at +0x1148c or shared +0x11d94, then ath_ioctl_set_hhid; too-long branch +0x12d54. Cmd 0x3b reaches +0x10394 and set_uuid call +0x11780. Shared deauth cases 0x2a/0x2b target +0x11118/call +0x11120; 0x138/0x139 target epilogue +0xfa18."
+    },
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_ioctl_set_nchains",
+     "address": ".text+0x8168",
+     "callsite": ".text+0x11504",
+     "notes": "Cmd 0x13 target +0x114fc. Count tests at +0x8170/+0x8184/+0x818c/+0x824c select masks 1/3/7/15. Negative path +0x8270..+0x8288 negates, masks low byte, compares <=15. Driver mask/count bytes updated at +0x81c0..+0x81dc before optional HAL callback +0x8200; failure +0x828c returns -22."
+    }
    ]
   },
   "fmt_upd": {
