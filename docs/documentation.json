@@ -67399,17 +67399,42 @@
          "function": "0x102f7bd0",
          "address": "0x102f7f10",
          "notes": "lwz r8,0x141c(r31) then snprintf"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f7f38",
+         "notes": "CurrentTrackIndex formatted as list A"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f7fd4",
+         "notes": "op-16 request"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e0b0",
+         "address": "0x1014e548",
+         "notes": "shuffle order head"
         }
        ],
        "notes": "Formatted as decimal text and passed to the replace-commit request.",
        "buf_cap": null,
        "todo": [
-        "Established: CurrentTrackIndex reaches the commit request f_1032e398 as decimal text.",
-        "Residual: how the request consumer uses it to reposition playback is not traced; next step is to disassemble f_1032e398 and the consumer behind f_10255f64."
+        "Established: CurrentTrackIndex becomes list A of the op-16 request; f_1014e0b0 uses it only to pick the new current index, which it stores in the shuffle order head.",
+        "Residual: the op-16 consumer branches to the shared tail at 0x10265908 after f_1014e0b0 returns, and whether that tail repositions the playing track is not traced. Next step is to disassemble 0x10265908 in f_1026571c."
        ],
        "resolved_findings": [
         "Resolved: post-parse handling of `CurrentTrackIndex` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (binding and use): bound as a u32 by f_105614e0 into job+0x141c (parse site 0x10465490); on the success path it is formatted with snprintf('%u') at 0x102f7f38 and the text is passed as r8 of the commit-request builder f_1032e398 at 0x102f7fd4."
+        "Resolved (binding and use): bound as a u32 by f_105614e0 into job+0x141c (parse site 0x10465490); on the success path it is formatted with snprintf('%u') at 0x102f7f38 and the text is passed as r8 of the commit-request builder f_1032e398 at 0x102f7fd4.",
+        "Established (commit path): the RAT worker f_102f7bd0 builds the op-16 request with f_1032e398 at 0x102f7fd4: position r24, generation job+0x147c, count u16 job+0x1478, flag +0x100 = 0, list A = sp+0x349c, list B = sp+0x3488 when job+0x1468 is nonzero and NULL otherwise, and the NewQueueLength pointer at req+0x114. List A is the text '%u' (fmt 0x10f94c94) of CurrentTrackIndex job+0x141c, written by __snprintf_chk at 0x102f7f38; list B is '%u' of job+0x1464 - job+0x1468 (0x102f7fa4). The op-16 consumer (0x10265fbc..0x10265ff8) passes these to f_1014e0b0 with r9 = 0 and NULL result pointers except NewQueueLength. f_1014e0b0 replaces a NULL list by '' (0x1014e760, 0x1014e76c) and reads A and B as parallel decimal lists (strtol at 0x1014e358 and 0x1014e36c). When A is 0 and B is nonzero, the new current position is old length + B (0x1014e2a0..0x1014e2ac); otherwise the loop ends with position old length + 1 (0x1014e618). After the old block is removed the position minus the old length becomes the new current index (0x1014e4dc), which f_1014e0b0 writes only to the shuffle order head q+0x26c4[0] (0x1014e548) and to the result pointer r19, which this consumer passes as NULL."
        ]
       },
       "NewCurrentTrackIndices": {
@@ -67453,17 +67478,42 @@
          "function": "0x102f7bd0",
          "address": "0x102f7ed8",
          "notes": "f_10c39f14 token loop"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f7ed8",
+         "notes": "tokenizer f_10c39f14"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f7ec8",
+         "notes": "upper bound = inserted count"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f7cb4",
+         "notes": "402"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the argument is a comma-separated index list, parsed at three sites and range-checked against the inserted count.",
-        "Residual: the exact acceptance rule of the f_10c39f14 loop (role of job+0x1468 and the sign test at 0x102f7eb8) is not fully decoded; next step is to disassemble f_10c39f14 and trace job+0x1468 writes from f_1014f808."
+        "Established: tokens are bounded to 0..inserted count (402 otherwise) and are not passed to the commit.",
+        "Residual: which code writes job+0x1464 and job+0x1468, which switch the check from the token value to their difference, is not traced. Next step is a store scan for offsets 0x1464 and 0x1468 in the f_1014f808 insert path."
        ],
        "resolved_findings": [
         "Resolved: post-parse handling of `NewCurrentTrackIndices` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (binding): bound as a string by f_1056157c into job+0x1420 (parse site 0x104654bc). f_102f7634 strchr's it for ',' and, when absent, strtol's it into job+0x1464 (0x102f7774); f_102f7798 strtoul's it with errno checking (0x102f77fc) on the first entry; the success path tokenises it with f_10c39f14 and range-checks each value against the inserted count u16 job+0x1478, returning 402 when out of range (0x102f7f08)."
+        "Resolved (binding): bound as a string by f_1056157c into job+0x1420 (parse site 0x104654bc). f_102f7634 strchr's it for ',' and, when absent, strtol's it into job+0x1464 (0x102f7774); f_102f7798 strtoul's it with errno checking (0x102f77fc) on the first entry; the success path tokenises it with f_10c39f14 and range-checks each value against the inserted count u16 job+0x1478, returning 402 when out of range (0x102f7f08).",
+        "Established (validation, f_102f7bd0 0x102f7ea0..0x102f7f08): f_10c39f14 splits the argument into tokens of up to 0x20 bytes at sp+0x349c. When job+0x1468 is zero each token is converted with strtol(token, NULL, 10) and rejected when it is negative (0x102f7f04) or greater than the inserted count u16 job+0x1478 (0x102f7ec8). When job+0x1468 is nonzero the token text is not converted; the check is applied to job+0x1464 - job+0x1468 instead (0x102f7eac). A rejection makes the action fail with 402 (0x192, 0x102f7cb4). The token buffer is then overwritten with CurrentTrackIndex (0x102f7f38), so no NewCurrentTrackIndices value reaches the queue commit. In plain terms: each listed index must lie between 0 and the number of tracks added, otherwise the action returns 402, and the list is only checked, never applied."
        ]
       },
       "NumberOfURIs": {
@@ -67643,16 +67693,37 @@
          "function": "0x102f7bd0",
          "address": "0x102f8000",
          "notes": "lhz r4,0x20(r1)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10265fe0",
+         "notes": "req+0x114 as stack arg"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e0b0",
+         "address": "0x1014e4c4",
+         "notes": "old block removed"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e0b0",
+         "address": "0x1014e5e0",
+         "notes": "NewQueueLength store"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: the value is written by the commit-request builder f_1032e398.",
-        "Residual: f_1032e398's computation is not traced; next step is to disassemble f_1032e398."
-       ],
        "resolved_findings": [
-        "Resolved (provenance): u16 out-param sp+0x20 of f_1032e398 (r10 at 0x102f7fb0), passed as r4 of adapter->v[+0xc] at 0x102f8000 and stored at adapter+8."
+        "Resolved (provenance): u16 out-param sp+0x20 of f_1032e398 (r10 at 0x102f7fb0), passed as r4 of adapter->v[+0xc] at 0x102f8000 and stored at adapter+8.",
+        "Resolved: req+0x114 is passed by the op-16 consumer as the sixth stack argument of f_1014e0b0 (sp+0x18 at 0x10265fe0), which lands in r16 (0x1014e154). f_1014e0b0 adds the inserted count to the old length (0x1014e38c), then removes the old block by moving the track array q+0x26c0 down by the old length (0x1014e4c4, 0x1014e4f0..0x1014e530), and stores the final q+0x26c8 through r16 (0x1014e5e0). So NewQueueLength is the queue length after the replacement, which equals the number of tracks inserted by this action."
        ]
       }
      },
@@ -67732,14 +67803,31 @@
          "function": "0x102f7798",
          "address": "0x102f7994",
          "notes": "clear request submit"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1032e45c",
+         "address": "0x1032e460",
+         "notes": "op 14"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e0b0",
+         "address": "0x1014e55c",
+         "notes": "queue UUID regenerated"
         }
        ],
        "todo": [
-        "Established: clear, insert and commit requests are identified with call sites.",
-        "Residual: what f_1032e45c (submitted before the clear at 0x102f78e4) requests, and whether the f_1032e5b4 mismatch request rolls back the inserts, is not traced; next step is to disassemble f_1032e45c and f_1032e5b4."
+        "Established: pre-clear remove-range (op 14), cancel (op 19) and commit (op 16) effects are traced.",
+        "Residual: the remove-range arguments that f_102f7bd0 passes to f_1032e45c before the clear are not decoded. Next step is the call site before 0x102f78e4."
        ],
        "resolved_findings": [
-        "Resolved (dispatch): the first entry submits a clear-queue request f_1032e47c via f_102f7798 (0x102f7994), then entries are inserted by f_1014f808/f_1014fb34 and a commit request f_1032e398 is submitted (0x102f7fe0); the empty-list path submits only the f_1032e47c clear (0x102f80a4)."
+        "Resolved (dispatch): the first entry submits a clear-queue request f_1032e47c via f_102f7798 (0x102f7994), then entries are inserted by f_1014f808/f_1014fb34 and a commit request f_1032e398 is submitted (0x102f7fe0); the empty-list path submits only the f_1032e47c clear (0x102f80a4).",
+        "Established: f_1032e45c, submitted before the clear at 0x102f78e4, is the op-14 remove-range builder (req+0xe4 = 14, +0xfc, +0xfe, +0x100). The failure request f_1032e5b4 is op 19, which only clears the append flag (f_1014b1a8), so staged rows never become part of the queue. On commit f_1014e0b0 appends the new rows after the old ones, drops the old block by shifting the track array, regenerates the queue UUID at q+0x38 (sonos_uuid_generate at 0x1014e55c) and calls f_1014d738 for a named queue (0x1014e610)."
        ]
       }
      ],
