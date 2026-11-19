@@ -171961,7 +171961,7 @@
    ]
   },
   "0x1039fbd4": {
-   "description": "'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event.",
+   "description": "'process GroupVolumeSetActionEvent (%u,%d)' - async task launcher for the internal group-volume bookkeeping event, not a synchronous handler. The worker copies the incoming 12-byte event {u8@+0, u16@+2, u32@+4, u32@+8} into stack frames, snapshots the manager emitter at this+0x280 through its virtual slot +8 (out object at sp+0xa4, emitter vtable family 0x10e86f94/0x10e86fa4), then installs three callback closures into emitter slots 0, 2 and 4. Closure A binds a 0x20-byte heap block {mgr, packed event bytes, snapshot words, vli object from event+8} with manager f_1039beb0 and invoker f_103a39bc -> task body f_103a37b0; it is wrapped by generic adaptor f_100efd2c, which heap-allocates a node and installs adaptor pair f_100e574c/f_100e4fb4 around the typed closure. Closures B and C bind 0x10-byte blocks {mgr, event+4, event+8} with managers f_1039bfb4/f_1039c26c and invokers f_103a1520 ('async processGroupSetVolEvt task stopped') / f_103a1634 ('scheduler failed to run processGroupSetVolEvt task'), moved by f_1099b054/f_1099b0e4 which copy the four words and clear the source. All three manager functions are std::function-style lifecycle ops only (1=shallow copy, 2=heap clone, 3=sized free); none is an invoke path. The worker then hands the emitter to f_103a5020(this+0x2a0, emitter), which builds a heap emitter copy plus refcounted control node, clones the bound-data blocks (manager op 2), and posts the package to the bounded executor through f_1099bd70 - an atomic counter claim under global mutex 0x11096a40 instrumented by sonos perfcounters - wrapped in invoker f_103a760c -> emitter drain f_100efee0. On executor-claim failure the task's failure callback is invoked instead. Every stack copy is then destroyed via manager op 3, the snapshot emitter via f_100e7754 and four leftover heap blocks via f_100c5050. None of the three invokers is called inside the worker: the run path is fully deferred to executor execution. Deferred consumers: f_103a37b0 logs 'running GroupVolumeSetActionEvent (vol:%u,mute:%d,vligrouping:%d)', applies group volume through f_103a3388 or member mute through manager vfunc+0xc/f_103a2160 gated by f_103a2c4c and f_1075cf7c, then fires VliVolumeProcessingCompleteEvent carrying the apply result byte on the emitter at bound-obj+0x10+0x1a4 via f_103a7b74; the stopped and sched-fail callbacks fire the same completion event with result byte 0 when bound-data+0xc (the event+8 vli object) is nonnull.",
    "why_external": "Shows group volume/mute changes are carried by an internal event object, relevant to accepted-vs-completed timing semantics.",
    "evidence": [
     {
@@ -171969,27 +171969,54 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x1039fbd4",
-     "notes": "'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event."
+     "notes": "'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event; arg order confirmed: %u=lhz event+2, %d=lbz event+0 (0x1039fc20-0x1039fc58)."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x1039fcd0",
-     "notes": "The first direct allocation argument is 0x20; the other two are 0x10. The shared helper f_10809f0c calls malloc at 0x10809f54 and returns storage on success, not a queued event."
+     "address": "0x1039fd80",
+     "function": "0x100efd2c",
+     "notes": "Closure A wrapped into emitter slot 0 (sp+0xd8): allocates a 0x10 node, repacks the typed closure inside it and installs generic adaptor pair f_100e574c (mgr) / f_100e4fb4 (invoker), destroying displaced slot contents via mgr op 3."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x1039fe18",
-     "notes": "f_1099b054 moves a four-word wrapper to a new destination and clears its source callback slot; f_1099b0e4 at 0x1039fe8c has the same wrapper-transfer shape. Neither performs dispatch."
+     "notes": "Closures B (slot 2, sp+0xf8) and C (slot 4, sp+0x118) moved by f_1099b054/f_1099b0e4: four-word copy plus source clear; manager fns f_1039beb0/f_1039bfb4/f_1039c26c are lifecycle-only (op1 copy, op2 heap clone, op3 sized free via f_108094fc); invokers are f_103a39bc/f_103a1520/f_103a1634."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1039ffd4",
+     "function": "0x103a5020",
+     "notes": "Enqueue path: builds heap emitter copy (0xa4) + refcounted control node, clones bound data (op 2) and posts each wrapped task via f_1099bd70, the bounded-executor atomic slot claim under mutex 0x11096a40 with perfcounters instrumentation; post failure invokes the task failure callback; invoker f_103a760c drains the emitter through f_100efee0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103a37b0",
+     "notes": "Deferred run body: 'running GroupVolumeSetActionEvent (vol:%u,mute:%d,vligrouping:%d)'; volume apply f_103a3388 (flag path) or member-mute vfunc+0xc / f_103a2160 gated by f_103a2c4c and f_1075cf7c; then 'firing VliVolumeProcessingCompleteEvent vliType %s' via f_103a7b74 on emitter bound+0x10+0x1a4 with apply-result byte."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103a1520",
+     "notes": "Stopped callback f_103a1520 ('async processGroupSetVolEvt task stopped') and sched-fail callback f_103a1634 ('scheduler failed to run processGroupSetVolEvt task'): when bound-data+0xc vli object nonnull, both fire VliVolumeProcessingCompleteEvent through f_103a7b74 on mgr+0x1a4 with result byte 0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1039ffe4",
+     "notes": "Local teardown: every emitter slot destroyed via mgr op 3 (0x1039ffe4-0x103a0080), snapshot emitter via f_100e7754 at 0x1039ffe0, four leftover heap blocks via f_100c5050; no invoker call inside the worker."
     }
    ],
    "required_for_behavior": true,
-   "todo": [
-    "Residual: trace the three constructed callback wrappers through their downstream dispatch, identify which are enqueued rather than invoked or cleaned up locally, and bind any posted event to its consumers. Allocation and wrapper moves are not evidence of a post."
-   ],
    "disasm_digest": {
     "insns": 344,
     "calls": [
@@ -172049,9 +172076,11 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 344-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_10809f0c, f_100efd2c, f_1099b054, f_1099b0e4, f_101a473c, f_100eb990, f_101a29d0, f_103a5020, f_100e7754, f_100c5050, f_101a2abc, f_110985d8; string literals: grc; onEvent; ../anacapa-1.0/oc/zone/zoneplayer/grc_zpimpl.cxx; %s:%s:%d  process GroupVolumeSetActionEvent (%u,%d); member stores: 0x214,0x1ec,0x8,0x18,0x1c,0x68,0x6c,0x78,0x7c,0x28,0x2c,0x38; immediate compares: 0x0,0x3. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "The incoming GroupVolumeSetActionEvent has {+0 u8, +2 u16, +4 u32, +8 u32}. The log's %u receives the zero-extended halfword from event+2 (lhz at 0x1039fc28); %d receives the zero-extended byte from event+0 (lbz at 0x1039fc20, stored to the stack argument at 0x1039fc34 before the call at 0x1039fc58). The worker builds heap-backed callback wrappers at 0x1039fd14, 0x1039fdcc and 0x1039fe40.",
-    "The wrappers carry manager functions f_1039beb0, f_1039bfb4 and f_1039c26c, respectively. The first wrapper enters f_100efd2c at 0x1039fd80; the other two enter wrapper-transfer helpers at 0x1039fe18 and 0x1039fe8c. The allocations alone do not establish the number of downstream notifications."
+    "Resolved: all three wrappers are enqueued, never invoked locally - the worker only moves/clones their bound data into the posted heap emitter and destroys the stack copies via manager op 3; invocation is deferred to the bounded executor.",
+    "Resolved: dispatch path is f_103a5020(this+0x2a0, emitter) -> f_1099bd70, an atomic slot claim in a global counter array under mutex 0x11096a40; the posted package runs invoker f_103a760c -> f_100efee0 which drains the emitter slots.",
+    "Resolved: wrapper roles bound to consumers - slot0 run f_103a39bc -> f_103a37b0 applies the group volume/mute and fires VliVolumeProcessingCompleteEvent with the apply result; slot2 stopped f_103a1520 and slot4 sched-fail f_103a1634 fire the same completion event with result 0 (guarded by nonnull event+8 vli object).",
+    "Resolved: closure managers f_1039beb0/f_1039bfb4/f_1039c26c implement only lifecycle ops (1=ptr copy, 2=heap clone via f_10809f0c, 3=sized free via f_108094fc, 0x20/0x10/0x10); op-2 calls in the worker are data clones feeding the post, not callback invocations.",
+    "Resolved: adaptor f_100efd2c is not a queue post either - it type-erases closure A into a node carrying generic pair f_100e574c/f_100e4fb4; f_1099b054/f_1099b0e4 are plain move-and-clear of the four-word closure."
    ]
   },
   "0x104164e4": {
@@ -178425,7 +178454,7 @@
    ]
   },
   "0x10552c20": {
-   "description": "Catalog XML start adapter: literal name/attribute recognition, active-state flags, numeric/version gates and processor callback argument mapping. Ratings retain parser+0x14 when Id is absent; see payload_formats.music_service_catalog.input_rules.",
+   "description": "Catalog XML start adapter f_10552c20(parser, name, attrs), registered with end adapter f_10552938 by constructor f_105528ac: it installs thunks f_10554c70/f_10554c64 into the shared SAX engine via f_10c3fcd4 (engine context f_10c3f81c at parser+4), stores the delegate object at parser+8, and clears flag bytes +0xc..+0x13,+0x16 and context halfword +0x14. Recognition is a fixed-order cascade over independent active-state bytes, not a depth stack. With flag +0xd clear only 'Services' is accepted: attributes LastUpdateDevice, Version(strtoul), SchemaVersion(strtoul) and ETag are collected; SchemaVersion>5 leaves parser+0xc (the catalog-valid byte that caller f_10554918 requires for success) cleared and never sets +0xd, so a too-new root silently disables the whole document, while delegate vfunc+8(version, schemaVer, lastUpdate, etag) is still called when installed over stub f_10552734. With +0xd set and +0xe clear, 'Service' collects Id (strtoul, default -1), Name, SecureUri, Version, ContainerType, Capabilities(strtoul) and MService; Name, SecureUri and Version are required, and Version must parse as exactly '1.2' via two-field '%d.%d' sscanf helper f_10552b38; an Id bound check against 0xffffffff is compiled in but can never fire. vfunc+0xc beginService(id, name, versionStr, secureUri, containerType, capabilities) is then called unconditionally: a false result logs 'Skipping service SID %u (%s) because beginService failed (URLs too long?)' on 'msd' level 3 and leaves +0xe clear (children are still parsed but only elements in the +0xe-clear chain are recognized, including a nested 'Service'), while true sets +0xe. With +0xe set: 'Policy' sets +0xf and tail-calls vfunc+0x14(auth, userId, pollInterval) with PollInterval defaulting to 0x1e; 'Presentation' sets +0x10 and calls guarded vfunc+0x18; with +0x10 set, 'Strings' and 'PresentationMap' share one {Uri, Version-required} handler and dispatch on which literal matched: 'Strings' calls unguarded vfunc+0x1c(uri, version) and 'PresentationMap' calls unguarded vfunc+0x20(uri, version), logging 'Failed to load strings %s'/'Failed to load pmap %s (URLs too long?)' on false; with +0x10 clear, 'Manifest' sets +0x11, requires Uri, rejects non-https schemes ('Manifest URL must use HTTPS: %s') unless devmode feature 7 permits them (f_1054bdc8 -> f_1054bd60 sorted-list probe against the devmode.cxx object at 0x11097374 under its +0x568 lock), and calls unguarded vfunc+0x28(version, uri), logging 'Failed to load manifest %s' on false; 'Ratings' sets +0x12 and calls guarded vfunc+0x2c. With +0x12 set and +0x13 clear, 'Rating' sets +0x13, parses Id through u16-saturating f_105527f8 into parser+0x14 (a missing Id retains the previous rating's value), StringId, AutoSkip and OnSuccessStringId, then calls guarded vfunc+0x30(lhz +0x14, stringId, autoSkip, onSuccess). With +0x13 set, 'Icon' collects Controller, LastModified and Uri and calls guarded vfunc+0x34(lhz +0x14, controller, lastModified, uri). 'BuiltInService' requires +0xd set and +0x16 clear (reusing the entry cr4 flag-d test), parses Type through f_105527f8 and Name, requires Type nonnull, sets +0x16 and calls guarded vfunc+0x10(type, name). Guarded slots skip the call when the delegate vtable still holds the corresponding trivial no-op stub (f_10552734, f_1055276c, f_10552778 or f_10552784). Lexical behavior: attributes arrive as {name,value} pointer pairs walked until a NULL name; all names and attribute keys are case-sensitive strcmp; unrecognized attributes are skipped in the chain; numeric attributes use base-10 strtoul and f_105527f8 saturates to 0xffff above 0xfffe with an 'msd' level-3 warning. Malformed/repeated nesting: flags are booleans, so a second same-name element while its flag is set is silently unrecognized (e.g. a nested <Service> while +0xe is set falls through to the Policy-chain), elements outside their parent's active range still match whenever the flag happens to be set, and nothing reports an error to the engine - the adapter always returns void and malformed documents only manifest as unset flags, saturated values or level-3 'msd' logs.",
    "why_external": "Defines which downloaded or stored catalog entries reach descriptor processors.",
    "required_for_behavior": true,
    "role": "music_service_catalog_parser",
@@ -178434,14 +178463,55 @@
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
+     "address": "0x105528ac",
+     "function": "0x105528ac",
+     "notes": "Constructor installs start thunk f_10554c70 -> f_10552c20 and end thunk f_10554c64 -> f_10552938 via shared SAX engine ctor f_10c3fcd4 (ctx f_10c3f81c at parser+4, base vtable 0x10fb1694); stores delegate at +8; clears flags +0xc..+0x13,+0x16 and halfword +0x14. Parser constructed per parse in f_10554918 (delegate = global object at arg2+0x90, doc from fd via f_10c4009c, callers f_100c6068/f_100c6d3c close the fd and gate success on parser+0xc)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
      "address": "0x10552c20",
-     "notes": "Start/end parser instruction audit; see music_service_catalog input_rules and evidence."
+     "notes": "Full cascade audit: flag-ordered strcmp dispatch; Services attrs {LastUpdateDevice, Version, SchemaVersion, ETag} with SchemaVersion>5 -> flag +0xc stays 0 (still calls vfunc+8 at 0x10552d24/0x105535e4 guarded by f_10552734); unreachable Id>0xffffffff check at 0x10553408; beginService vfunc+0xc at 0x10553460 (false -> 'Skipping service SID %u (%s) because beginService failed' at 0x105538ac, +0xe unset)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552e24",
+     "notes": "Policy: flag +0xf set, attrs Auth/UserId/PollInterval (default 0x1e) -> unguarded tail call vfunc+0x14. Presentation at 0x10553218: flag +0x10, vfunc+0x18 guarded by f_10552784. Strings/PresentationMap shared handler: Version required at 0x10552f20; Strings -> vfunc+0x1c ('Failed to load strings %s' at 0x10552f74), PresentationMap -> vfunc+0x20 ('Failed to load pmap %s' at 0x105534f4), both unguarded."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105534fc",
+     "notes": "Manifest: Uri required; devmode-7 probe f_1054bdc8 (devmode.cxx obj 0x11097374, +0x568 lock, sorted-list search f_1054bd60) bypasses the https strncmp; non-https otherwise rejected with 'Manifest URL must use HTTPS: %s' at 0x10553938; unguarded vfunc+0x28(version, uri) at 0x10553550 -> 'Failed to load manifest %s (URLs too long?)'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553714",
+     "notes": "Rating: flag +0x13; Id attr via f_105527f8 stored to parser+0x14 at 0x10553720 (retains prior value when absent); vfunc+0x30(lhz +0x14, StringId, AutoSkip, OnSuccessStringId) at 0x1055376c guarded by f_1055276c. Icon inside Rating: attrs {Controller, LastModified, Uri} -> vfunc+0x34(lhz +0x14, ...) at 0x105537f0 guarded by f_1055276c. Ratings open at 0x10553658: flag +0x12 + vfunc+0x2c guarded by f_10552784. BuiltInService: flag +0x16, Type via f_105527f8 + required nonnull, Name -> vfunc+0x10 at 0x10553838 guarded by f_10552778."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105527f8",
+     "notes": "Shared numeric saturator: strtoul base 10; result >0xfffe clamps to 0xffff and logs 'Value '%s' too large. Setting to USHRT_MAX' on 'msd' level 3 at 0x1055284c-0x10552888."
     }
    ],
-   "todo": "Established: active-state dispatch and Ratings/Icon callbacks are decoded. Remaining: trace all installed processors, return/error handling, malformed/repeated nesting effects and shared XML-engine lexical behavior."
+   "resolved_findings": [
+    "Resolved: complete processor inventory - delegate vfuncs +8 beginCatalog, +0xc beginService(bool, unguarded), +0x10 BuiltInService, +0x14 Policy, +0x18 Presentation, +0x1c loadStrings(bool), +0x20 loadPmap(bool), +0x28 loadManifest(bool, https-enforced modulo devmode flag 7), +0x2c beginRatings, +0x30 Rating, +0x34 RatingIcon; guarded slots skip trivial stubs f_10552734/f_1055276c/f_10552778/f_10552784.",
+    "Resolved: return/error handling - the adapter always returns void to the engine; failures surface only as unset flags (beginService false leaves +0xe clear, SchemaVersion>5 leaves +0xc clear so f_10554918 reports failure), u16 saturation via f_105527f8, or level-3 'msd' logs; the engine's own well-formedness result still gates the caller's success byte.",
+    "Resolved: malformed/repeated nesting - boolean flags make recognition order-dependent rather than structural: repeated elements while a flag is set are silently ignored, stale flags let recognized elements fire outside their parent (e.g. Rating outside a Ratings that never closed), and a rejected Service subtree still recognizes a nested Service element.",
+    "Resolved: shared engine semantics - SAX-style start/end callbacks installed via f_10554c70/f_10554c64 into the f_10c3fcd4 context at parser+4; attributes are {name,value} pairs walked to NULL; case-sensitive strcmp; no character-data callback installed, so element text is never consumed."
+   ]
   },
   "0x10552938": {
-   "description": "The start/end adapter uses active-state bytes, not an element-depth stack. Its constructor clears valid/catalog/Service/Policy/Presentation/Manifest/Ratings/Rating/BuiltInService flags at +0x0c..+0x13 and +0x16. Start recognition uses literal case-sensitive strcmp and current flags. End handler f_10552938 checks active Policy first, then Presentation, Manifest, Rating, Ratings, Service, BuiltInService and Services. Once it finds an active branch it compares only that branch name and returns even if the closing name differs. A matching close clears that flag. Thus this adapter is not an independent strict parent/child grammar validator. Unknown elements do not create a subtree-skip depth in this adapter; recognized descendants can still reach its handlers while the corresponding flags remain active. The underlying XML parser still enforces XML well-formedness.",
+   "description": "Catalog XML end adapter f_10552938(parser, name), registered with start adapter f_10552c20 by constructor f_105528ac (thunk f_10554c64 into the shared SAX engine; delegate at parser+8). It walks the same independent active-state flag bytes as the start adapter in a fixed priority order, not an element-depth stack: flag +0xf Policy, +0x10 Presentation, +0x11 Manifest, +0x13 Rating, then +0x12 Ratings-or-Service, +0x16 BuiltInService and +0xd Services. At the first active flag it compares only that branch's literal name with case-sensitive strcmp: a match clears the flag and, for branches that have one, tail-calls the delegate processor; a mismatch returns immediately, leaving every other flag untouched. There is no mismatch error anywhere: the function always returns void, so an out-of-order or unexpected close name is silently swallowed while the flag stays set, and the engine's own XML well-formedness check is the only hard failure. Processor mapping: Policy close only clears +0xf (no end callback, its attributes were already consumed at start); Presentation close clears +0x10 and calls vfunc+0x24 guarded by stub f_10552784; Manifest close clears +0x11 with no callback (the start-side load request is fire-and-forget); Rating close clears +0x13 and calls vfunc+0x38 guarded by f_10552784; when flag +0x12 is clear an active Service close clears +0xe and calls unguarded vfunc+0x40; when +0x12 is set a 'Ratings' close clears it and calls vfunc+0x3c guarded by f_10552784; BuiltInService close clears +0x16 and calls unguarded vfunc+0x48; Services close clears +0xd and calls unguarded vfunc+0x44. Malformed/repeated nesting consequences, all proven from the flag order: a </Service> that arrives while <Ratings> is still open never reaches the Service branch - the 'Ratings' strcmp fails and the function returns, so flag +0xe remains set, no endService processor runs, and the service formally stays open until a later </Service> can close it; symmetric swallow applies to any close whose flag sits below a still-active higher-priority one (e.g. </Presentation> while Policy is open). Because flags are boolean, repeated or nested same-name elements collapse into one flag, a single inner close clears the outer element's state, and elements keep matching whenever their flag survives, regardless of true parentage - confirming this adapter is not an independent strict parent/child grammar validator; only the shared engine's well-formedness enforcement bounds the input.",
    "why_external": "Determines catalog end-event recognition and processor completion callbacks.",
    "required_for_behavior": true,
    "role": "music_service_catalog_parser",
@@ -178451,10 +178521,37 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x10552938",
-     "notes": "Start/end parser instruction audit; see music_service_catalog input_rules and evidence."
+     "notes": "Full end-adapter audit: fixed flag order Policy(+0xf) > Presentation(+0x10) > Manifest(+0x11) > Rating(+0x13) > Ratings(+0x12)-or-Service(+0xe) > BuiltInService(+0x16) > Services(+0xd); each active branch strcmps only its own literal and returns on mismatch at 0x10552974."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105529b0",
+     "notes": "Processor calls: Presentation -> vfunc+0x24 guarded vs f_10552784 (bctr at 0x105529dc); Rating -> vfunc+0x38 guarded (0x10552a28-0x10552a44); Ratings -> vfunc+0x3c guarded (0x10552aa4-0x10552ac0); Service -> unguarded vfunc+0x40 (0x10552a78-0x10552a8c); BuiltInService -> unguarded vfunc+0x48 (0x10552aec); Services -> unguarded vfunc+0x44 (0x10552b28). Policy and Manifest closes only clear their flags."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552a4c",
+     "notes": "Swallowed-close mechanism: flag +0x12 tested before +0xe at 0x10552a4c-0x10552a54, so </Service> inside an open <Ratings> falls to the 'Ratings' strcmp at 0x10552a94 and returns with +0xe still set - the service never closes and no vfunc+0x40 runs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105528ac",
+     "function": "0x105528ac",
+     "notes": "Registration: thunk f_10554c64 -> f_10552938 and f_10554c70 -> f_10552c20 installed into shared SAX context via f_10c3fcd4 at parser+4; same flag bytes cleared at construction; five constructor sites (f_100c76a4, f_100c7898, f_100cc34c, f_100cc4f4, f_10554918)."
     }
    ],
-   "todo": "Established: active-state dispatch and Ratings/Icon callbacks are decoded. Remaining: trace all installed processors, return/error handling, malformed/repeated nesting effects and shared XML-engine lexical behavior."
+   "resolved_findings": [
+    "Resolved: complete processor inventory for close events - vfunc+0x24 endPresentation, +0x38 endRating, +0x3c endRatings (each skipped when the delegate still holds stub f_10552784), unguarded +0x40 endService, +0x44 endServices/endCatalog, +0x48 endBuiltInService; Policy and Manifest have no end callback.",
+    "Resolved: error handling - the adapter returns void on every path including all name mismatches, so malformed closes are silently swallowed with flags left set; the only failure signal is the shared engine's own XML well-formedness result consumed by f_10554918.",
+    "Resolved: malformed/repeated nesting - fixed flag priority means a close is honored only when it is the highest-priority active branch's literal: </Service> during open <Ratings> is lost entirely (flag +0xe stays set, no processor), boolean flags collapse repeated/nested elements into one state, and any element continues matching while its flag survives regardless of parentage.",
+    "Resolved: lexical behavior - close names arrive as C strings compared with case-sensitive strcmp; no depth counter, no character-data handling, delegate at parser+8 dispatches all processors."
+   ]
   },
   "0x10553994": {
    "description": "f_10553994 packs a non-null input string into a 64-byte descriptor URL field. In order, strncasecmp tests https://www. (12 bytes, marker 1), http://www. (11, marker 2), https:// (8, marker 3) and http:// (7, marker 4). The first matching prefix is removed and replaced by its marker byte; the remaining suffix must have strlen<=62, followed by a terminator. If no prefix matches, strlen<=63 is copied as a plain string. An overlong matched suffix or plain string returns false without writing the destination; it does not try another encoding or truncate. Empty plain input is accepted. These are byte-count limits, not a complete URL syntax validator. Case-insensitive prefix matching followed by expansion through lowercase literals normalizes the prefix case while preserving the suffix.",
@@ -178507,7 +178604,7 @@
    ]
   },
   "0x10553ab0": {
-   "description": "f_10553ab0 takes the packed field, destination and capacity. A first byte in 1..4 expands the corresponding lowercase prefix from table 0x10ee9eb0 and appends the bytes at field+1 through snprintf. Other first-byte values copy the field as a plain string with f_10906304. It returns the destination pointer and ignores formatted-output truncation status. Valid fields made by f_10553994 need at most 75 bytes after expansion, including the terminator; the longest supported prefix is 12 bytes plus a 62-byte suffix. The plain-copy helper checks null destination/zero capacity and clears a nonzero-capacity destination for null input; the formatter branch has its own libc contract.",
+   "description": "Packed-URI expansion helper f_10553ab0(field, dst, cap): reads the tag byte at field+0. Tags 1..4 select the matching prefix from table 0x10ee9eb0 {ptr,len,tag} x4 (1='https://www.' 12B, 2='http://www.' 11B, 3='https://' 8B, 4='http://' 7B) and emit it plus the NUL-terminated suffix at field+1 via __snprintf_chk(dst,cap,1,-1,'%s%s'). Any other tag byte (0,5..255) takes the plain path: the whole field is copied as a C string through f_10906304. The tag table scan compares tag bytes at entry+8 and stops at the NULL-ptr terminator entry. It returns dst unconditionally and ignores the snprintf truncation status. Producer f_10553994 writes fields of at most 64 bytes ({tag,suffix<=62,NUL} when a case-insensitive strncasecmp prefix matches - note the prefix check is case-insensitive so input case is normalized to the lowercase table prefixes on expansion; suffix >62 or unprefixed strings >63 fail the pack), so a well-formed field expands to at most 75 bytes including terminator. Malformed input: a tag byte 1..4 with an unterminated suffix makes the snprintf '%s' read run past the 64-byte field into following descriptor storage until a NUL; a non-1..4 tag with an unterminated field makes f_10906304 copy up to dst cap-1 bytes from the field, again reading past the packed field. Plain-copy helper f_10906304(dst,src,cap) returns NULL for NULL dst or cap==0, writes dst[0]=0 and returns dst for NULL src or cap<=1, otherwise copies bytes until the source NUL or cap-1 written, then calls UTF-8 boundary fixer f_10905728 which truncates at the lead byte of an incomplete trailing multi-byte sequence (or clears dst[0] when the buffer is all continuation bytes), so a truncated copy never ends mid-character. No C++ exceptions on any path. Caller audit over all 26 direct call sites: caps are 0x80 (all but two sites), 0x401 (f_1011c078) and a forwarded argument (f_1011c1ec tail-jump); destinations are struct fields or stack buffers; no caller tests the return or detects truncation, and every well-formed field fits easily since expanded output is <=75 bytes.",
    "why_external": "Reconstructs endpoint and resource URLs from stored music-service descriptors.",
    "required_for_behavior": true,
    "role": "music_service_descriptor_uri",
@@ -178518,12 +178615,56 @@
      "build": "86.10-80260",
      "address": "0x10553ab0",
      "notes": "Instruction trace and raw boundary verification; see payload_formats.music_service_descriptor_uri."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553ae8",
+     "function": "0x10553ab0",
+     "notes": "Tag scan: lbz entry+8 vs field[0] at 0x10553ae8-0x10553af4; table 0x10ee9eb0 has four {ptr,len,tag} entries (1 https://www. 0xc, 2 http://www. 0xb, 3 https:// 8, 4 http:// 7) plus NULL terminator; tag 1 matched early at 0x10553acc-0x10553ad0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553b34",
+     "function": "0x10553ab0",
+     "notes": "Prefix path: __snprintf_chk(dst,cap,1,-1,'%s%s',prefix,field+1) at 0x10553b34-0x10553b50; return value ignored, dst returned at 0x10553b58."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105539fc",
+     "function": "0x10553994",
+     "notes": "Producer bound: strncasecmp match rejects suffix>0x3e at 0x105539fc; tag byte stored at dst+0 and suffix copied with cap 0x3f at 0x10553a70-0x10553a88; unprefixed input >0x3f rejected at 0x10553a30-0x10553a38; field total <=64 bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10906304",
+     "function": "0x10906304",
+     "notes": "Plain-copy contract: NULL dst or cap==0 returns NULL at 0x1090631c-0x109063dc; NULL src or cap<=1 writes dst[0]=0 at 0x109063b8; byte loop to cap-1 then f_10905728 boundary fix at 0x109063f0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10905728",
+     "function": "0x10905728",
+     "notes": "UTF-8 fixer: scans back from end over continuation bytes (rlwinm &0xc0==0x80), table 0x10f33174 gives lead-byte lengths, NUL at lead when the sequence would overrun end at 0x10905780-0x1090578c, clears dst[0] when all bytes are continuations at 0x10905744-0x10905798."
     }
    ],
-   "todo": "Established: f_10553ab0 takes the packed field, destination and capacity. A first byte in 1..4 expands the corresponding lowercase prefix from table 0x10ee9eb0 and appends the bytes at field+1 through snprintf. Other first-byte values copy the field as a plain string with f_10906304. It returns the destination pointer and ignores formatted-output truncation status. Valid fields made by f_10553994 need at most 75 bytes after expansion, including the terminator; the longest supported prefix is 12 bytes plus a 62-byte suffix. The plain-copy helper checks null destination/zero capacity and clears a nonzero-capacity destination for null input; the formatter branch has its own libc contract. Remaining: Audit callers and malformed packed input; verify shared plain-copy exception/truncation behavior."
+   "resolved_findings": [
+    "Resolved via 26-site caller audit: all direct call sites enumerated (capacities 0x80 x24, 0x401, one forwarded); none consume the return as a status or detect truncation, and expanded output <=75 bytes always fits.",
+    "Resolved: malformed packed input behavior bounded - unterminated suffix/field reads past the 64-byte packed field into adjacent storage until NUL or cap, never writing past dst cap.",
+    "Resolved: plain-copy helper fully characterized including NULL/zero-cap early outs and the UTF-8-aware truncation fixer; no exception paths exist."
+   ]
   },
   "0x105543d0": {
-   "description": "f_105543d0 reads descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer, finds the first literal {device} with strstr and replaces only that occurrence with the two bytes zp. For expanded source length L, replacement requires unsigned destination capacity >=L-5, which fits the new L-6 bytes plus terminator. On insufficient capacity it copies the original unexpanded string with strlcpy and may log Service manifest URI truncated; the fallback can therefore leave {device} intact, and the diagnostic does not itself establish actual truncation. Without a {device} token it also uses strlcpy. The function returns the destination pointer and does not report truncation or {device} token substitution as a separate status. Other {device} tokens and subsequent occurrences are unchanged by this helper.",
+   "description": "Manifest-URI materializer f_105543d0(descriptor, dst, cap): expands the packed URI at descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer (expanded length L<=127), finds the first literal '{device}' with strstr and replaces only that occurrence with the two bytes 'zp'. The substitute path requires unsigned cap>=L-5 (the L-6 result plus terminator); it then memcpys the pre-token part, stores 'z','p', and copies the post-token tail. The tail copy is over-long by 15 bytes: it copies L-off+8 bytes from buf+off+8 to dst+off+2, reading up to 15 bytes past the stack buffer end and writing up to dst+L+9, against an intended extent of L-5; the explicit terminator at dst[L-6] makes the produced string correct, but callers with cap in [L-5, L+9] would see a buffer overrun. No {device} token produces a plain strlcpy(dst, buf, cap) of the expanded URI. Insufficient capacity produces a strlcpy of the expanded URI (cap-1 < L, so the output is genuinely truncated and can retain a literal '{device}' when the token survived the cut) plus a 'Service manifest URI truncated: %s' log on channel 'msd' level 3 gated by f_109b6fe4. The function returns dst and reports no status for either truncation or substitution. Call-site audit: the single caller f_100c6c3c at 0x100c6cec passes cap 0x401 with a same-sized stack buffer, so the capacity guard never fails (L<=127<0x401), the fallback and the log are dead code there, and the overcopy overshoot stays inside the buffer. The descriptor is filled by a vcall on the service object, gated by flag bit 0x400000 at sp+0x140 (skips URI construction when set). Downstream consumer: f_100c6c3c hands the URI to f_1011b710 at r31+0x13ad0 together with a halfword id from the descriptor, and f_1011b710 mutex-guards a 10-second-deadline asynchronous manifest download through f_10546520 ('downloading music service manifest from %s' log) and copies the URI into a request record for completion handling.",
    "why_external": "Determines which manifest URI is requested when a descriptor uses the device {device} token.",
    "required_for_behavior": true,
    "role": "music_service_descriptor_uri",
@@ -178534,12 +178675,48 @@
      "build": "86.10-80260",
      "address": "0x105543d0",
      "notes": "Instruction trace and raw boundary verification; see payload_formats.music_service_descriptor_uri."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1055443c",
+     "function": "0x105543d0",
+     "notes": "Capacity gate: substitute only when cap>=L-5 (cmpl/bc at 0x1055443c-0x10554444). Tail copy n=subfic(8-off)+L = L-off+8 at 0x10554478-0x10554480, exceeding the intended L-off-7 by 15 bytes on both source read and destination write; NUL written at dst[L-6] at 0x10554498."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105544d8",
+     "function": "0x105543d0",
+     "notes": "Insufficient-capacity path: strlcpy(dst, expanded buf, cap) then 'Service manifest URI truncated: %s' via f_109b72ac on channel 'msd' level 3 at 0x1055450c; no-token path silently strlcpy's at 0x10554524."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6cec",
+     "function": "0x100c6c3c",
+     "notes": "Sole caller: dst=sp+0x148 with cap 0x401 under flag test andis. 0x40 at 0x100c6cd4-0x100c6cdc; result forwarded to f_1011b710 at 0x100c6d04 with descriptor halfword id."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b810",
+     "function": "0x1011b710",
+     "notes": "Consumer: f_10546520 starts the async fetch of the URI with a 10s deadline (sonosClockGetTime+timevalAddMs 0x2710 at 0x1011b7d0-0x1011b7dc); '%s downloading music service manifest from %s' logged at 0x1011b90c; URI memcpy'd into a request record at 0x1011b948-0x1011b958."
     }
    ],
-   "todo": "Established: f_105543d0 reads descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer, finds the first literal {device} with strstr and replaces only that occurrence with the two bytes zp. For expanded source length L, replacement requires unsigned destination capacity >=L-5, which fits the new L-6 bytes plus terminator. On insufficient capacity it copies the original unexpanded string with strlcpy and may log Service manifest URI truncated; the fallback can therefore leave {device} intact, and the diagnostic does not itself establish actual truncation. Without a {device} token it also uses strlcpy. The function returns the destination pointer and does not report truncation or {device} token substitution as a separate status. Other {device} tokens and subsequent occurrences are unchanged by this helper. Remaining: Audit call-site capacities and actual request/download consumers, including intact-{device} token fallback."
+   "resolved_findings": [
+    "Resolved: single call site audited - cap 0x401 makes the substitute path always reachable, both strlcpy fallbacks and the truncation log are dead code there, and the off-by-15 overcopy cannot overrun the 0x401 buffer (max write 0x89).",
+    "Resolved: the actual consumer is the mutex-guarded async manifest download in f_1011b710, which logs the URI, fetches it with a 10s deadline and stores it in a request record for completion handling.",
+    "Resolved: on the insufficient-capacity path the diagnostic text is accurate - strlcpy truncates whenever cap<L-5 because cap-1<L - and a literal {device} can survive in the truncated output."
+   ]
   },
   "0x1023a214": {
-   "description": "Binder f_1023a214 installs schemaVersion at field index 1 as type 4 (fixed character buffer), target model+0, capacity 17 and flags byte 1. The common field constructor f_109c0eb8 stores that flags byte at descriptor+0x20. Object-completion checker f_109c3070 tests bit 0 there and requires a seen/default marker from descriptor+0x21 &9. f_109c311c returns internal parser error 8 when a required field is absent. Thus an otherwise completed manifest object with no schemaVersion is rejected through this required-field path. Other named manifest fields are bound without this required flag. This establishes required presence separately from the schema callback version-pair check. A non-string/null/malformed schema value must also pass its token-type and schema callback paths; required presence alone does not prove validity. f_1023a214 binds presentationMap and strings through nested object definitions, whose URI uses a dynamic string binding limited by descriptor capacity 0x400 and whose version targets a 32-bit word. Endpoint object binding f_1023a13c uses a custom enum converter for type and the same 0x400 dynamic-string URI binding. apiKey.zp also uses that 0x400 string binding. Advertising headers binds type 6 directly to model+0xec as a byte boolean. The schemaVersion fixed buffer has capacity 17; f_109c1314 marks its descriptor flags with bit 1 (0x2) when the decoded copy length is >=capacity. Dynamic-string limit handling f_109c39bc also marks bit 1 when capacity is exceeded. Binding capacities and per-field truncation flags are proven; aggregate acceptance of oversized values still needs tracing through the enclosing parser and callback checks.",
+   "description": "Binder f_1023a214 installs the root service-manifest object schema through the binder's vfunc+8 'add descriptor' slot: field 1 schemaVersion as type 4 (fixed character buffer) at model+0, capacity 17, flags byte 1 (required); fields 2 and 3 as nested objects via helper f_1023a6f4 into inline subschemas at model+0x178 and model+0x1f4 (targets model+0x14 and model+0x30); fields 5, 6 and 9 as type 7 nested-schema bindings onto factory schema objects at schema+0x270, +0x31c and +0x39c, with endpoint binder f_1023a13c then wiring schema+0x270 against model+0xa4 while model and model+0xa4 are registered at schema+0x314/0x318; field 7 as type 8 at model+0xe8; field 8 as type 9 cap 4 at model+0xd8; a cap-0x400 dynamic string at model+0xc0 via f_1023a64c; and field 10 as type 6 byte boolean at model+0xec. Field constructor f_109c0eb8 lays out each 36-byte descriptor {vptr default f_100d37e8, target +4/+8, handler +0xc, default provider +0x10, sub-elem +0x14, cap u16 +0x18, aux +0x1a/+0x1b, type +0x1c, flags +0x20, state +0x21}; member names live in a parallel 12-byte {name,discriminator,expected-kind} table per schema at +4, and descriptor[0] is the enclosing object's own descriptor rather than a member. The streaming engine resolves each member name in f_109c2658 by strlcpy-ing the pending name into a 33-byte frame buffer (32 usable characters, longer names truncate before lookup) and linear strcmp search in f_109c20f4; every resolution calls f_109c1514 which zeroes desc+0x21 and re-initializes target storage, applying the +0x10 default provider and marking bit 0x8 when one exists. Values dispatch on the expected-kind slot: kind 0 fixed-buffer string copy f_109c1314 (desc types 4/9/10), kind 1 dynamic string f_109c39bc (types 5/14/10), kind 2 paranoid_atod plus numeric coercion f_109c1034 (bad number -> Invalid value), kind 3 bool via f_109c1288 fed by literal true/false (f_109c2c3c) or a case-insensitive quoted 'true'/'false'; successful stores set desc+0x21 bit 0x1 and truncating stores also set bit 0x2. A null literal (f_109c2e64) is delivered as a type-5 value to the field setter only for kinds 0 and 6 and is silently dropped for kinds 1-5; either way the seen bit is not marked, so null on a required field still fails at close. Unknown member names (index -1) consult the object descriptor's +0x20 bit 3: set -> token silently discarded, clear -> token routed through the wildcard vfunc+4 handler; there is no unknown-key error. Duplicate keys are not detected: each re-resolution re-initializes the descriptor so the last occurrence wins, and a duplicate null on a previously satisfied required field revokes it. Per-field setters run as descriptor vfunc+4 when not the default f_100d3728 (endpoint type enum converter installed by f_1023a13c, the schemaVersion version-pair callback); their result maps through f_109bf390: 0 ok, 3-7 -> 'Unexpected token', 8 -> 'Invalid unicode escape', 9/12 -> 'Invalid string character', 10 -> 'Invalid escape', 13-15 -> 'Invalid numeric character', out of range -> 'Unexpected error'. At '}' the object-close hook f_109c311c marks the parent member seen ((+0x21 & ~0x8) | 0x1) and scans descriptors via f_109c3070: the first required (+0x20 bit 0) descriptor whose +0x21 &9 (seen|default) is empty is stored to parser+0x868 and yields code 8 'Missing required value' in parser+0x40. Errors aggregate first-wins: parser+0x868 records the offending member's descriptor only while unset, and feed entry f_109c4b34 returns the pending code (0 done, 10 Incomplete for more input, 12 for empty feed). Error text comes from a 12-entry table (1 'Exceeded max depth' beyond 15 frames, 2 'Invalid unicode escape', 3 'Invalid escape', 4 'Invalid string character', 5 'Invalid numeric character', 6 'Unexpected token', 7 'Sequence too long', 8 'Missing required value', 9 'Invalid value', 10 'Incomplete', 11 'Out Of Memory', 12 'Unexpected error') rendered by f_109c36c0 with the +0x868 descriptor naming the field. Truncation never fails the parse: bit 0x2 of a member descriptor is written by the truncating stores but no engine path re-tests it; only the root slot's bit 0x2 is rechecked by driver f_1011aabc, surfacing as 'Sequence too long' when the completed root value itself overran. Depth is bounded by the +0x64 budget plus the 15-frame ceiling. There are no C++ catch sites anywhere in the engine or the manifest driver: allocation failure inside string growth raises std::bad_alloc (throw_bad_alloc call sites 0x109be7d4, 0x109dc184) that unwinds out through destructor cleanup, so OOM is an exception path, not code 11. Sole driver f_1011aabc, used once by manifest loader f_1011b710 (svcmanifestfile.cxx), reads up to 0x400-byte chunks via stream vfunc+8, feeds f_109c4b34 until done or EOF, maps the outcome to bool, logs 'JSON parse error %d: %s' under tag 'svcmanifest', and on success moves the row out via f_102399a4. The loader downloads the manifest over HTTP under a 10 s deadline, upserts the parsed row under a mutex via f_1011a5d0/f_1011a4bc and keyed insert f_1011be38 ('it %u' logging), or logs 'Failed to load manifests JSON file' on failure; f_1011b710 itself is called once from the service-manifest manager at 0x100c6d04. Required presence is therefore enforced exactly once per closed object at parser level, independently of the schemaVersion setter's own version-pair validation.",
    "why_external": "Defines required fields, target types and capacities for service-manifest JSON.",
    "required_for_behavior": true,
    "role": "music_service_manifest_parser",
@@ -178549,10 +178726,20 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x1023a214",
-     "notes": "Instruction-level binder/collector/stream analysis; see music_service_manifest."
+     "notes": "Full binder audit plus engine-wide aggregation trace: descriptor layout f_109c0eb8, name/kind table, member resolution f_109c2658/f_109c20f4, slot init f_109c1514, stores f_109c1314/f_109c39bc/f_109c1288/f_109c1034, null/bool literal paths f_109c2e64/f_109c2c3c, close hook f_109c311c + required scan f_109c3070, error codes/table f_109c36c0, driver f_1011aabc, consumer f_1011b710."
     }
    ],
-   "todo": "Established: Binder f_1023a214 installs schemaVersion at field index 1 as type 4 (fixed character buffer), target model+0, capacity 17 and flags byte 1. The common field constructor f_109c0eb8 stores that flags byte at descriptor+0x20. Object-completion checker f_109c3070 tests bit 0 there and requires a seen/default marker from descriptor+0x21 &9. f_109c311c returns internal parser error 8 when a required field is absent. Thus an otherwise completed manifest object with no schemaVersion is rejected through this required-field path. Other named manifest fields are bound without this required flag. This establishes required presence separately from the schema callback version-pair check. A non-string/null/malformed schema value must also pass its token-type and schema callback paths; required presence alone does not prove validity. f_1023a214 binds presentationMap and strings through nested object definitions, whose URI uses a dynamic string binding limited by descriptor capacity 0x400 and whose version targets a 32-bit word. Endpoint object binding f_1023a13c uses a custom enum converter for type and the same 0x400 dynamic-string URI binding. apiKey.zp also uses that 0x400 string binding. Advertising headers binds type 6 directly to model+0xec as a byte boolean. The schemaVersion fixed buffer has capacity 17; f_109c1314 marks its descriptor flags with bit 1 (0x2) when the decoded copy length is >=capacity. Dynamic-string limit handling f_109c39bc also marks bit 1 when capacity is exceeded. Binding capacities and per-field truncation flags are proven; aggregate acceptance of oversized values still needs tracing through the enclosing parser and callback checks. Remaining: exhaust shared JSON error/null/type/duplicate/oversized aggregation and concrete consumers, including exception paths."
+   "resolved_findings": [
+    "Resolved: error aggregation - parser+0x40 holds the pending error code written by each stage, parser+0x868 records the first erroring member's descriptor (stored only while unset, so first error wins for detail); f_109c311c stores the missing-required descriptor there and returns code 8 'Missing required value'; feed entry f_109c4b34 returns 0 done, 10 Incomplete, or the latched code, 12 on empty feed; f_109c36c0 renders the 12-entry message table (Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Incomplete, Out Of Memory, Unexpected error) and the driver logs 'JSON parse error %d: %s' under tag 'svcmanifest'.",
+    "Resolved: null tokens - f_109c2e64 resolves the member, then delivers a type-5 null value to the field setter only when the expected-kind slot is 0 or 6; for kinds 1-5 the member is committed with nothing stored; the seen bit (+0x21 &1) is never marked, so null on a required field still trips 'Missing required value' at object close.",
+    "Resolved: token-type handling - per-field expected-kind slot picks the decoder: 0 fixed-buffer string f_109c1314 (desc types 4/9/10), 1 dynamic string f_109c39bc (types 5/14/10), 2 paranoid_atod + numeric coercion f_109c1034, 3 bool f_109c1288 accepting literal true/false or case-insensitive quoted 'true'/'false'; a quoted string for a bool field is lenient, a bool literal for a non-bool field yields 'Invalid value', an unrecognized kind yields 'Invalid value'; setter results map via f_109bf390 (3-7 -> Unexpected token, 8 -> Invalid unicode escape, 9/12 -> Invalid string character, 10 -> Invalid escape, 13-15 -> Invalid numeric character, else Unexpected error).",
+    "Resolved: duplicate keys - no duplicate detection exists; member resolution always re-runs f_109c1514 which zeroes desc+0x21 and re-initializes storage (default provider re-applied when bound), so the last occurrence wins and a duplicate null can revoke a previously satisfied required field.",
+    "Resolved: unknown member names - strcmp lookup returns index -1, then the object descriptor's +0x20 bit 3 governs: set -> the value token is silently discarded, clear -> the token is routed to the wildcard vfunc+4 handler whose result maps to an error code; no standalone unknown-key error exists; member names are truncated to 32 characters by strlcpy into the frame buffer before lookup.",
+    "Resolved: oversized values - truncating string stores set desc+0x21 bit 0x2 and clip at capacity, and no engine path re-tests that bit on member descriptors, so oversized member strings are silently truncated and still count as seen; only the root slot's bit 0x2 is rechecked by the driver, producing 'Sequence too long' when the root value overran.",
+    "Resolved: exception paths - no __cxa_begin_catch/__cxa_end_catch call sites exist in the 0x109c JSON engine or the 0x1011 manifest driver; string growth can throw std::bad_alloc via _ZSt17__throw_bad_allocv (sites 0x109be7d4, 0x109dc184) which unwinds out of the parse, so allocation failure propagates as a C++ exception rather than error 11 'Out Of Memory'.",
+    "Resolved: concrete consumers - sole driver f_1011aabc is called only from manifest loader f_1011b710 (svcmanifestfile.cxx), which downloads the manifest over HTTP under a 10 s deadline, feeds chunks through stream vfunc+8, on success moves the row out with f_102399a4 and upserts it under a mutex via f_1011a5d0/f_1011a4bc plus keyed insert f_1011be38 ('it %u'), and on failure logs 'Failed to load manifests JSON file'; f_1011b710 is itself called once from the service-manifest manager at 0x100c6d04.",
+    "Resolved: depth and nesting - the parser enforces a +0x64 budget plus a hard ceiling of 15 open frames; '{' or '[' past the ceiling produces 'Exceeded max depth'; a completed root token still carrying bit 0x2 at feed end is reported by the driver as 'Sequence too long'."
+   ]
   },
   "0x10238144": {
    "description": "Endpoint collector f_10238144 is the object-end action callback (vptr+4 slot of the endpoints-array binder vtable at 0x10ea5ae8) installed on the binder subobject the manifest parser object builds at parent+0x270; binder+0xa4 is the parsed model pointer and +0xa8 the scratch endpoint {type word@+0, uri string@+4} installed by setter f_10239dac. It fires only on token kind 1 (object end) with a nonzero context word at arg4+8. While the stored endpoint count at model+0xa0 is <=2 it stores the scratch type word at model+0x4c+count*0x1c and string-copies the scratch URI into model+0x50+count*0x1c via assign f_1082deb8, then clears the scratch type to 0 and assigns the URI string empty. The count is incremented before the string copy runs. At count>2 it returns without appending or error, so at most three endpoints are stored no matter how many array elements arrive; it always returns 0. The scratch 'type' word is produced by sibling enum binder f_10238370 mapping endpoint-type names through the {name,len,value} table at 0x10ea5b38 (empty->0, 'radio'->1, 'reporting'->2, 'audiobook'->3, 'browse'->4) and returning 0x10 on match, 3 on no-match; accountTiers uses the twin binder f_10238250 on table 0x10ea5afc ('none'->0, 'free'->1, 'paidLimited'->2, 'paidPremium'->3). The parse driver in f_1011aabc feeds streamed tokens to shared JSON cursor f_109c4b34 (0xa=continue, 0=done, else abort; cursor error word at ctx+0x44) and on clean completion runs model assign f_102399a4, the concrete consumer that copies every collected {type,uri} row into the caller's model.",
@@ -178836,7 +179023,7 @@
    ]
   },
   "0x104c9bd8": {
-   "description": "The direct caller at 0x104c9ccc requests endpoint type 2, binding this resolver to the reporting vocabulary entry. Its enclosing f_104c9bd8 constructs the runtime view and first requires its separate provider gate f_104c9acc to succeed. After the resolver call it destroys the view and returns the original destination pointer from r30, without testing or returning the resolver boolean. If the gate fails it returns null. Therefore a nonnull result from this wrapper is not proof that a reporting endpoint was found or fitted; caller buffer initialization and subsequent request construction still need tracing. Reporting gate f_104c9acc first invokes provider slot +0x1c; a nonnull pointer with nonzero first byte immediately returns true. Otherwise an empty item URI returns false; a nonempty URI must pass f_101477e4 and service-ID extraction f_1071aeb0, after which it constructs a manifest view and queries endpoint type 2 through f_1011c29c. That presence helper compares stored type values without requiring nonempty URI or an output buffer. Consequently this gate is not a universal endpoint-URL validity check. The exact provider-slot string meaning and the full URI predicate/extraction grammar remain to be traced.",
+   "description": "Reporting-endpoint fallback resolver f_104c9bd8(mgr, provider, devrec, dst, cap). Its only caller is tail-call wrapper f_104ca364 at 0x104ca440: that wrapper first queries provider vtable slot +0x1c and, when it returns a nonnull pointer whose first byte is nonzero, strlcpy's provider vtable slot +0xc into dst and returns dst without ever entering this function. With the slot+0x1c override string empty, f_104c9bd8 returns NULL immediately when devrec's first byte is zero; otherwise it loads the item URI through provider vtable slot +8, constructs a runtime manifest view on the stack through catalog-bound constructor f_1011c078 using the catalog object at *(mgr+0x20+0xa86c) and the service ID word at devrec+0x104, and evaluates gate f_104c9acc(item URI, provider, mgr+0x20). The gate retests provider slot +0x1c (early true, unreachable through f_104ca364 which already filtered that case); otherwise it dereferences the item URI without a NULL check and requires it nonempty, accepted by content-URI predicate f_101477e4 (a strncmp battery recognizing x-sonosapi-stream:, x-sonosapi-hls:, x-sonosapi-hls-static: and related Sonos prefixes), carrying a 'sid' query parameter extracted through URI wrapper f_1071a9cc plus query getter f_1071aeb0, and backed by a second manifest view for that sid containing at least one type-2 endpoint row via f_1011c29c. When the gate returns true the wrapper destroys the view model container through f_10239b78 and returns NULL, so the device manifest is only a fallback consulted when the item URI supplies no reporting endpoint of its own. When the gate returns false it invokes resolver f_1011c564 (tail call to f_1011c34c) with endpointType 2, dst and cap; the resolver boolean is discarded and dst is returned unconditionally, so a nonnull result is still not proof that a reporting endpoint was found or fitted. Caller audit: f_104ca364 is itself called only from f_104cbf1c at 0x104cc110 and 0x104cc26c. Both sites first zero the destination buffer at sp+0x8a8 and call with cap 0x401, and the two calls form a retry pair (attempt flag toggles 1 then 0 under a this+0x44 loop guard). The buffer then feeds CQ version checker f_10338a34 at 0x104cc29c, which parses the endpoint URI version into sp+0x3a0, and request builder f_104cb228 at 0x104cc2d8, which receives this, provider, the devrec at sp+0x194, a second record, the endpoint buffer and the version result, binding the resolved endpoint into subsequent reporting request construction.",
    "why_external": "Determines whether reporting callers receive an endpoint destination pointer even when resolution failed.",
    "required_for_behavior": true,
    "role": "music_service_manifest_consumer",
@@ -178846,17 +179033,47 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x104c9bd8",
-     "notes": "Instruction-level endpoint/view/caller trace; see music_service_manifest and svc_manifest.details."
+     "notes": "Full instruction trace: devrec[0]==0 early NULL at 0x104c9c30-0x104c9c38; item URI via provider vtable+8 at 0x104c9c24-0x104c9c2c; view constructed by f_1011c078 at 0x104c9c54 from catalog *(mgr+0x20+0xa86c) and devrec+0x104; gate f_104c9acc at 0x104c9c64; resolver f_1011c564(view,2,dst,cap) at 0x104c9ccc reached only when gate==0 (bc bo=4 at 0x104c9c6c); model container destroyed via f_10239b78 on both paths at 0x104c9c78; return r30 is dst on the resolve path and 0 on the gate path (0x104c9c8c)."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x104c9acc",
-     "notes": "Provider slot+0x1c nonempty-pointer early true at 0x104c9b0c..0x104c9b20; URI parse and endpointType2 presence query at 0x104c9b58..0x104c9bc4. f_1011c29c only checks validity and matching stored type."
+     "notes": "Gate: provider vtable+0x1c nonnull/nonempty early true at 0x104c9b08-0x104c9b20; unconditional item-URI dereference at 0x104c9b58 (NULL item URI would crash); empty URI -> false; f_101477e4 content-URI predicate at 0x104c9b78; f_1071a9cc URI wrapper at 0x104c9b8c and f_1071aeb0 'sid' extraction (literal 0x10f03718, getter f_10c3b830) at 0x104c9b98; second f_1011c078 view for the item sid at 0x104c9bb4; type-2 presence probe f_1011c29c at 0x104c9bc0 is the return value."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104ca3a8",
+     "function": "0x104ca364",
+     "notes": "Sole caller wrapper: provider vtable+0x1c at 0x104ca3a8; nonnull/nonempty selects vtable+0xc string copied by strlcpy(dst,src,cap) at 0x104ca3c8-0x104ca3e0, returns dst; empty flag tail-calls f_104c9bd8 at 0x104ca440 preserving (mgr,provider,devrec,dst,cap)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cc110",
+     "function": "0x104cbf1c",
+     "notes": "Only call sites of f_104ca364: 0x104cc110 and 0x104cc26c, both after zeroing sp+0x8a8 (stw+memset 0x3fd) with cap 0x401. Retry pair: first call under r20=1, second under r20=0 behind this+0x44 loop check at 0x104cc230-0x104cc238; success at either site joins common path at 0x104cc11c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cc29c",
+     "function": "0x104cbf1c",
+     "notes": "Subsequent construction: resolved endpoint buffer feeds CQ version checker f_10338a34(buf, NULL, &ver@sp+0x3a0) at 0x104cc29c, then request builder f_104cb228(this, provider, devrec@sp+0x194, rec2, buf@sp+0x8a8, ver) at 0x104cc2d8."
     }
    ],
-   "todo": "Established: The direct caller at 0x104c9ccc requests endpoint type 2, binding this resolver to the reporting vocabulary entry. Its enclosing f_104c9bd8 constructs the runtime view and first requires its separate provider gate f_104c9acc to succeed. After the resolver call it destroys the view and returns the original destination pointer from r30, without testing or returning the resolver boolean. If the gate fails it returns null. Therefore a nonnull result from this wrapper is not proof that a reporting endpoint was found or fitted; caller buffer initialization and subsequent request construction still need tracing. Remaining: Trace provider gate, destination initialization and subsequent request construction."
+   "resolved_findings": [
+    "Resolved: complete caller chain - f_104ca364 at 0x104ca440 is the sole caller of f_104c9bd8 (tail call, no address formation), and f_104cbf1c at 0x104cc110/0x104cc26c is the sole caller of f_104ca364; both sites pass the same zeroed sp+0x8a8 buffer with cap 0x401 in a retry pair.",
+    "Resolved: provider vtable semantics - slot +0x1c returns an endpoint-override flag string whose nonemptiness short-circuits resolution, slot +0xc returns the configured endpoint URI copied verbatim via strlcpy, and slot +8 returns the item URI used only for gate evaluation.",
+    "Resolved: gate f_104c9acc fully characterized - after the slot+0x1c fast path it requires a nonempty item URI matching the x-sonosapi prefix family (f_101477e4 strncmp battery including x-sonosapi-stream:/x-sonosapi-hls:/x-sonosapi-hls-static:), a 'sid' parameter extracted by f_1071aeb0 through the f_1071a9cc URI wrapper, and a second manifest view for that sid with a type-2 row (f_1011c29c).",
+    "Resolved: destination initialization and consumption - callers always zero the 0x401 buffer first, so a returned pointer is a valid empty string even when the resolver wrote nothing; the buffer then feeds version checker f_10338a34 (version struct at sp+0x3a0) and request builder f_104cb228, binding it into the reporting request.",
+    "Confirmed caveat: the f_1011c564 resolver boolean is discarded and dst is returned regardless, so nonnull still does not prove an endpoint was found or fitted; and the gate dereferences the provider item URI without a NULL check at 0x104c9b58."
+   ]
   },
   "0x1011c864": {
    "description": "CQ URL builder f_1011c864 takes endpoint base, item URI, destination and capacity. The cpcontainer path branch copies at most 256 bytes of the URI path, terminates it, passes identifier classification/validation through f_1071b3dc/f_1071b458 and canonicalizes it with f_1071d5c4/f_1071b5a0 into another 257-byte buffer. The other branch extracts/percent-decodes item path text through f_1071ac00, which recognizes x-sonos prefixes or x-rincon-cpcontainer and requires a nonempty parsed path. For x-sonos-http and x-sonosprog-http that helper strips the final dot/extension before decoding. The builder then percent-encodes the selected item text into a 257-byte scratch buffer with f_10c3a294, appends endpoint base + encoded text + slash using snprintf, and validates the resulting URL version with f_10338a34. Component truncation and formatter return values are ignored here; success is not a lossless-construction guarantee. Full identifier classification and decoder error/embedded-null behavior remain open. Percent-encoder wrapper f_10c3a294 passes the literal allow-list $-_.!*'(), to f_10c3a0f4. That helper copies isalnum bytes or allow-listed bytes and encodes every other byte through format %%%02x, using lowercase hexadecimal. Slash, colon, percent, query and fragment punctuation are therefore encoded unless already removed by earlier item parsing. A raw copied byte needs room for itself plus a terminator; an escape needs room for three bytes plus a terminator. If capacity cannot fit the next unit it stops, null-terminates and returns the number of bytes written, without a separate truncation error. f_1011c864 ignores that returned count. This encoder does not normalize already encoded percent sequences; a percent byte is encoded again. Exhausted outcomes. Identifier classification (f_1071b3dc then f_1071b458, both -> f_10717318 with flag 0) accepts only '0', 'root', 'search' or exactly eight isxdigit characters whose strtoul value clears 0xe0000000 (<0x20000000); the ':0/0', ':0/1', ':0/L' alternatives are skipped in this mode, a NULL or empty tail stores nothing, and shorter strings fail because the hex window always reads eight bytes into the NUL. Rejection logs 'Invalid Id: %s' and returns 0 with the destination untouched. Canonicalization (f_1071d5c4 -> f_1071d460, then f_1071b5a0) builds a record whose kind word is 0 for '0'/'root' (canonical string 'root'), 1 for 'search' or (hexvalue>>16)&0xff for hex identifiers; f_1071b5a0 selects record+0x191, the percent-decoded segment after the identifier's eighth byte, when kind<=1 and record+9, the identifier string itself, when kind>1. Because flag-0 classification admits no suffix text, the +0x191 segment is always empty, so '0'/'root'/'search' and hex identifiers with kind byte <=1 percent-encode the empty string and produce '<base>/'. Decoder branch outcomes (f_1071ac00 on the scheme-gated copy from f_1071a9cc, which only copies URIs starting 'x-sonos' or 'x-rincon-cpcontainer:'): it accepts an 'x-sonos' prefix or (defensively, unreachable here) the cpcontainer prefix, parses the URI with f_10c3a920 and requires a nonzero path span, else returns 0 -> 'Failure parsing URI %s' -> return 0. For 'x-sonos-http:' and 'x-sonosprog-http:' it scans the path backwards for '.', fails outright when none exists, and decodes only up to the last dot, stripping the final extension; a leading-dot path decodes zero bytes and still succeeds. sonosDecodePercentEncoded's own status is ignored, so percent-decoder errors and embedded-NUL behavior pass through unchecked; a non-sonos URI reaches the decoder as an empty scratch string and fails the prefix gate. Truncation/losslessness: the cpcontainer path is min(len,256)-truncated BEFORE classification, so an overlong tail is validated on its truncation; the canonical strlcpy (0x101), the percent-encode f_10c3a294 (src, dst, 0x101) and the final snprintf '%s%s/' all ignore their truncation/return indications. The last-line defense is f_10338a34(dest, 0, &rec): it parses the produced URL and returns 2 only when the path tail extracts to cloud queue version v2, so a mangled or truncated result normally fails there -> 'unsupported CQ REST version: %s' -> return 0, leaving the destination holding the rejected URL. Success returns 1. Caller/fallback audit: the only call site is f_102c3f84 (avt_impl) at 0x102c45a4 with base = freshly resolved endpoint sp+0x23e4, uri = original request URI, dest sp+0x1fe0, cap 0x401; a false result unwinds to code 800, while success stores the CQ URL pointer into request param block +8 (sp+0x4c) alongside the 'sn_%u' token for the subsequent request dispatch via f_1032e270/f_1032e330 and f_10255f64, whose own outcome selects return 0 or 0x320.",
@@ -179015,7 +179232,7 @@
    ]
   },
   "0x10483e28": {
-   "description": "Shared version parser f_10483e28 takes a begin/end text span and an output structure. It requires decimal major, a literal dot and decimal minor, with an optional dot plus decimal patch. f_10483c1c first requires an ASCII digit, then clears errno and calls strtoul(base10) with an end pointer; errno 22 or 34 rejects. Leading zeroes are not rejected. Whitespace/sign prefixes are rejected by the first-byte guard. Patch is written only when present; the caller must initialize it otherwise. After the numeric components, either span end must be reached or a hyphen/pre-release and/or plus/build suffix is processed. Each suffix must start with isalnum, but subsequent bytes are copied without per-byte validation. Pre-release ends at the first plus or span end; build metadata consumes the remaining span. Each stored suffix is truncated to 32 bytes plus terminator while the cursor advances across the full suffix. Success requires cursor==span end. This is the implemented grammar, not complete enforcement of Semantic Versioning 2.0.0. Exact libc locale/overflow ABI and reads at malformed span boundaries still need verification.",
+   "description": "Shared version parser f_10483e28 takes a {begin,end} span pointer (r3) and a caller-initialized output structure (r4: u32 major +0, u32 minor +4, u32 patch +8, char prerelease[0x21] +0xc, char build[0x21] +0x2d). The implemented state machine is MAJ '.' MIN ['.' PATCH] ['-' pre] ['+' build] with an end check that only applies on paths without a '+' suffix. After minor, the current byte dispatches once: '.' runs the patch digit parser, '-' runs the prerelease handler, '+' runs the build handler, anything else falls to the final check cursor==end. After a successful patch only '-', '+' or end are accepted; a second '.' fails. After prerelease only '+' is tested, and the build handler always ends the parse successfully because the end-check compares end to a register already holding end. Digit helper f_10483c1c requires the first byte to be ASCII '0'..'9' (this is what excludes whitespace and sign prefixes), clears errno via __errno_location, calls strtoul(base10,&endp), and rejects only errno 22 (EINVAL) and 34 (ERANGE); strtoul is a 32-bit unsigned long conversion so values above 0xFFFFFFFF fail as ERANGE while leading zeroes are accepted. The end pointer from strtoul is not itself checked against the span end; correctness comes from the final cursor==end test. strtoul and isalnum can read past the span end into following buffer bytes: for extractor-supplied spans the span end always sits on a non-digit URI delimiter or the NUL terminator, and for model-string spans any digits consumed past end are rejected by the end check, so over-read can never produce a false acceptance or a fault on well-formed backing buffers. '-' suffix requires byte cursor+1 to be isalnum, then copies from there up to the first '+' or span end, truncated at 0x20 bytes plus terminator into prerelease; '+' suffix requires byte cursor+1 to be isalnum, then copies the whole remaining span truncated at 0x20 bytes plus terminator into build. Suffix payload bytes are never per-byte validated, so '.', '-', '+' and arbitrary punctuation survive inside a stored suffix. patch, prerelease and build fields are only written on their own paths; absent components keep whatever the caller initialized (every observed caller zero-initializes the structure). An empty span (begin==end) fails the first digit guard and returns 1; the byte read at end always lands on an in-bounds delimiter or NUL. The function returns exactly 0 or 1, which makes the f_10338a34 diagnostic test (parser result==1) unconditionally true on parse failure. isalnum and the regex classes share the configured process locale (setlocale at 0x1080bb38), so bytes >=0x80 could classify differently under non-ASCII locales. No C++ exceptions: the function is a plain C path with only __stack_chk guards; the only libc dependencies are strtoul, isalnum, memchr, memcpy and __errno_location.",
    "why_external": "Parses manifest schema and cloud-queue version strings with observable lexical quirks.",
    "required_for_behavior": true,
    "role": "music_service_version_and_cq",
@@ -179026,12 +179243,65 @@
      "build": "86.10-80260",
      "address": "0x10483e28",
      "notes": "Instruction-level selector/version/encoder trace; see music_service_version_string and svc_manifest details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483ef0",
+     "function": "0x10483e28",
+     "notes": "Post-minor dispatch: '.'->patch at 0x10483fdc, '-'->prerelease at 0x10483f68, '+'->build at 0x10483f1c, else final end check at 0x10483f08. Post-patch re-dispatch starts at 0x10483ef8 skipping the '.' test, so '1.2.3.4' fails."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483f34",
+     "function": "0x10483e28",
+     "notes": "Build handler loads span end into r28 making the final cursor==end check at 0x10483f10 vacuous; '+' suffix terminates the parse with success once its first byte is isalnum."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483fa8",
+     "function": "0x10483e28",
+     "notes": "isel selects memchr('+') result or span end as prerelease boundary; second isel at 0x10483fb8 clamps the memcpy to 0x20 bytes; cursor advances to the '+' or end, not to the truncated length."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483c60",
+     "function": "0x10483c1c",
+     "notes": "Digit guard: (*cursor-0x30)<=9 unsigned required before strtoul; errno cleared at 0x10483cb0; only errno 22/34 rejected at 0x10483cc8-0x10483cd4; endp stored back to the cursor holder without a span-end compare."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10118624",
+     "function": "0x10118580",
+     "notes": "Schema callback parses literal '1.0' span and the manifest string {ptr,len} span; both version outputs fully zero-initialized at 0x10118610-0x10118620 and 0x10118638-0x1011864c including patch and both suffix terminators."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483f70",
+     "function": "0x10483e28",
+     "notes": "isalnum(lbz byte) called on the byte after '-' / '+'; byte at span end is an in-bounds delimiter or NUL for all observed span sources, so the read cannot fault."
     }
    ],
-   "todo": "Established: Shared version parser f_10483e28 takes a begin/end text span and an output structure. It requires decimal major, a literal dot and decimal minor, with an optional dot plus decimal patch. f_10483c1c first requires an ASCII digit, then clears errno and calls strtoul(base10) with an end pointer; errno 22 or 34 rejects. Leading zeroes are not rejected. Whitespace/sign prefixes are rejected by the first-byte guard. Patch is written only when present; the caller must initialize it otherwise. After the numeric components, either span end must be reached or a hyphen/pre-release and/or plus/build suffix is processed. Each suffix must start with isalnum, but subsequent bytes are copied without per-byte validation. Pre-release ends at the first plus or span end; build metadata consumes the remaining span. Each stored suffix is truncated to 32 bytes plus terminator while the cursor advances across the full suffix. Success requires cursor==span end. This is the implemented grammar, not complete enforcement of Semantic Versioning 2.0.0. Exact libc locale/overflow ABI and reads at malformed span boundaries still need verification. Remaining: Verify libc locale/overflow ABI, malformed span boundaries and all caller initialization/exception behavior."
+   "resolved_findings": [
+    "Resolved: exact grammar is MAJ.MIN[.PATCH][-pre][+build]; '.' is only honored immediately after minor, '-' suffix ends at the first '+' or span end, '+' suffix consumes the remainder and ends the parse unconditionally.",
+    "Resolved: strtoul/isalnum over-read past span end is bounded by the backing NUL-terminated buffer and cannot produce false acceptance because success still requires cursor==end; for extractor spans the end always sits on a non-digit delimiter or NUL.",
+    "Resolved: caller initialization audit - f_10118580 zeroes both outputs; all f_10338a34 callers zero the output; patch and suffixes are caller-defaulted when absent.",
+    "Resolved: only return values are 0 and 1, so every parse failure triggers the f_10338a34 SemVer diagnostic path when a diagnostic object is supplied."
+   ]
   },
   "0x10483cf0": {
-   "description": "Cloud-queue version extractor f_10483cf0 lazily compiles the literal regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$) with flags 1, parses the URI into components using f_10c3a920 and runs regexec from the path pointer. It uses the first regex match, starts the selected version span two bytes after the match start (after /v), and normally ends at the URI path end. If the final byte of the match is slash, it ends the span at that slash instead. There is no independent check that this slash is the last path separator. Consequently a matching version segment followed by more path can supply the accepted version, despite the error text saying the path must end with a version. An earlier matching version segment is chosen before a later one. No match returns 1; regex compilation failure returns 2. Candidate suffix syntax is narrower than the shared parser because the regex permits only letters in pre-release and letters/dots in build metadata.",
+   "description": "Cloud-queue version extractor f_10483cf0 takes a NUL-terminated URI and a two-word {begin,end} output span. It lazily compiles the literal regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$) with cflags 1 (REG_EXTENDED only) into the process-global regex_t at 0x110a4230, guarded by the compiled-flag byte at 0x110a422c. The regex buffer is never freed on success and survives for process lifetime; on regcomp failure the buffer is passed to regfree, the flag stays 0 so every later call retries compilation, and the function returns 2. The lazy init has no synchronization: concurrent first calls can both run regcomp into the same buffer (leak and torn regex_t risk); steady-state regexec on a completed buffer is read-only. URI component splitter f_10c3a920 fills a 10-word out struct of {ptr,len} pairs (scheme +0x00, authority +0x08, path +0x10, query +0x18, fragment +0x20), zeroed at entry. regexec runs on the raw path pointer with nmatch 1 and eflags 0, so it scans the C string beyond the path span into any query or fragment. The first (leftmost-longest) match is used: begin = path_ptr + rm_so + 2 (after /v), end = path_ptr + path_len, except when the last matched byte is slash, where end = that slash position. A guard at 0x10483da8 returns 1 when path_end < begin, which is what rejects matches anchored entirely inside a query or fragment. There is no independent check that the ending slash is the last path separator, so a matching version segment followed by more path can supply the accepted version and an earlier matching segment wins over a later one. Missing-path URIs crash: when the URI has a query or fragment but no path characters (first special byte is ? or #, or an authority is followed directly by ?/#, e.g. '?x', '#x', 'scheme://host?x', '//?x'), f_10c3a920 leaves the path slot NULL and regexec is invoked on a NULL string. A NULL URI pointer crashes earlier inside strlen in f_10c3a920. An empty string or an absent path without query/fragment yields a nonnull zero-length path, so regexec runs on an empty string and returns no match. The binary calls setlocale(LC_ALL, configured name) once at 0x1080bb38 inside constructor f_1080ba78, so the pattern's [0-9]/[a-zA-Z] classes execute under the configured process locale; under C/POSIX/UTF-8 locales they match the ASCII sets as written. No match returns 1, success returns 0.",
    "why_external": "Determines which substring supplies a cloud-queue base URL version.",
    "required_for_behavior": true,
    "role": "music_service_version_and_cq",
@@ -179042,12 +179312,65 @@
      "build": "86.10-80260",
      "address": "0x10483cf0",
      "notes": "Instruction-level selector/version/encoder trace; see music_service_version_string and svc_manifest details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483d48",
+     "function": "0x10483cf0",
+     "notes": "regcomp(preg=0x110a4230, pattern=0x10ed4198, cflags=1) behind flag byte 0x110a422c; flag stored only after regcomp returns 0 at 0x10483d54-0x10483d58; regfree only on the failure path at 0x10483e0c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483d84",
+     "function": "0x10483cf0",
+     "notes": "regexec(preg, string=path ptr, nmatch=1, pmatch=sp+0x44, eflags=0); path pointer is not NUL terminated at path end so the scan covers 'path?query#fragment' as one string."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483da8",
+     "function": "0x10483cf0",
+     "notes": "Guard cmpl path_end vs begin at 0x10483da8-0x10483dac returns 1 when a match anchored in the query/fragment pushes begin past path end."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3a9d0",
+     "function": "0x10c3a920",
+     "notes": "Path field out+0x10/+0x14 stored only on the path branches; leading '?'/'#' input or authority followed by '?'/'#' skips the store leaving path NULL, which regexec then dereferences."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3a984",
+     "function": "0x10c3a920",
+     "notes": "strlen called on the URI argument with no NULL check, so a NULL URI faults before any component parsing."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1080bb38",
+     "function": "0x1080ba78",
+     "notes": "setlocale(LC_ALL=6, configured locale string from object member) called once during init object construction; regex classes and isalnum therefore run under the configured locale."
     }
    ],
-   "todo": "Established: Cloud-queue version extractor f_10483cf0 lazily compiles the literal regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$) with flags 1, parses the URI into components using f_10c3a920 and runs regexec from the path pointer. It uses the first regex match, starts the selected version span two bytes after the match start (after /v), and normally ends at the URI path end. If the final byte of the match is slash, it ends the span at that slash instead. There is no independent check that this slash is the last path separator. Consequently a matching version segment followed by more path can supply the accepted version, despite the error text saying the path must end with a version. An earlier matching version segment is chosen before a later one. No match returns 1; regex compilation failure returns 2. Candidate suffix syntax is narrower than the shared parser because the regex permits only letters in pre-release and letters/dots in build metadata. Remaining: Trace malformed URI/null-component behavior and regex lifetime/thread/locale semantics."
+   "resolved_findings": [
+    "Resolved: malformed-URI behavior fully traced through f_10c3a920 - URIs with a query or fragment but no path characters leave the path slot NULL and f_10483cf0 invokes regexec on a NULL string pointer; a NULL URI faults earlier in strlen.",
+    "Resolved: the regex match can legally begin inside the query or fragment since regexec scans the whole remaining C string; the path_end<begin guard at 0x10483da8 is the only thing rejecting such matches, returning 1.",
+    "Resolved: regex lifetime is process-global (regex_t at 0x110a4230, flag byte 0x110a422c), compiled lazily with cflags=1, never freed on success, recompiled on every call after failure, with no synchronization around first-use.",
+    "Resolved: process locale is configurable via setlocale(LC_ALL, ...) at 0x1080bb38; class semantics hold for the ASCII sets under standard locales."
+   ]
   },
   "0x10338a34": {
-   "description": "Cloud-queue version checker f_10338a34 first calls that extractor, then f_10483e28. It returns 2 only when parsing succeeds and the major word equals 2; other outcomes return zero. It does not compare minor or patch against a supported maximum. The optional diagnostic object receives code 0x48 and distinct text for missing version, malformed version or unsupported major when the relevant failure is recognized. Callers including f_1011c864 pass null for that diagnostic object and only test the numeric return as nonzero/zero. Diagnostics are therefore not proof that the stricter grammar described in their text is enforced.",
+   "description": "Cloud-queue version checker f_10338a34 takes a NUL-terminated URI (r3), an optional diagnostic object (r4) and a caller-supplied version output structure (r5). It zero-initializes a two-word span on the stack, calls extractor f_10483cf0 and only invokes shared parser f_10483e28 when the extractor returns 0. It returns 2 only when parsing succeeds and the major word equals 2; every other outcome returns 0. It does not compare minor or patch against a supported maximum. When the extractor returns 1 (no match) the diagnostic object receives code 0x48 at +8 and 'queueBaseUrl path must end with a cloud queue version' text via string-slot setter f_1033a130 at diag+0xc; when the parser fails with code 1 it receives the Semantic Versioning 2.0.0 advisory; when parsing succeeds but major is not 2 it receives a 'v%u is unknown; use v%u' message formatted by __snprintf_chk with a shorter 'v%d' fallback when the result exceeds 0x100 bytes. Extractor result 2 (regex compile failure) and parser results other than 1 produce a silent return 0 with no diagnostic. The diagnostic object's +0xc field is a small-string slot {flag byte, ptr, len, inline[16]} written by f_1033a130. Caller audit (five direct call sites, no indirect references): f_1011c864 at 0x1011c9b4 passes diag=NULL, out=&sp+0x48 and uses the return only to gate an 'unsupported CQ REST version: %s' log, returning 1 either way; f_102d7768 at 0x102d782c constructs a diagnostic object on the stack via f_10a606b8, then on failure destroys it unread and propagates code 0x48 as its own return; f_10345c7c at 0x10345cc4 passes diag=NULL, out=r30+0x1f50 and discards the return entirely; f_1038cba0 calls it twice at 0x1038cc20/0x1038ccb4 with diag=NULL, out=&sp+0x1c - the first site uses the result to gate f_104840f8(version,2,3) which selects 'Bearer ' versus empty scheme in the 'AUTHORIZATION: %s%s\\r\\n' header, the second ignores the return; f_104cbf1c at 0x104cc29c passes diag=NULL, out=&sp+0x3a0, keeps the result in r8 as an argument to request constructor f_104cb228 and separately gates a branch on f_104840f8(version,2,2). Every caller zero-initializes the output structure (including the patch word and both suffix bytes) before the call, matching the parser's caller-initializes convention. The diagnostic text mechanism is therefore effectively dead: the single caller that supplies the object destroys it without reading the text.",
    "why_external": "Determines cloud-queue version compatibility and optional client-facing errors.",
    "required_for_behavior": true,
    "role": "music_service_version_and_cq",
@@ -179058,12 +179381,80 @@
      "build": "86.10-80260",
      "address": "0x10338a34",
      "notes": "Instruction-level selector/version/encoder trace; see music_service_version_string and svc_manifest details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10338ab8",
+     "function": "0x10338a34",
+     "notes": "Parser invoked only when extractor returned 0 (bc bo=12,bi=2 at 0x10338a74); span pair at sp+0x14/0x18 zeroed at 0x10338a64-0x10338a68 before the extractor call."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10338acc",
+     "function": "0x10338a34",
+     "notes": "Return value 2 iff parser success and out+0==2 (cmplwi 0x2 at 0x10338ad4); minor and patch never inspected."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10338b10",
+     "function": "0x10338a34",
+     "notes": "Diagnostic writes 0x48 to diag+8 then f_1033a130 assigns text to string slot at diag+0xc {flag+0,ptr+4,len+8,inline+0xc}; extractor ret 2 and parser ret!=1 give silent 0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c9b4",
+     "function": "0x1011c864",
+     "notes": "Caller passes NULL diagnostic; return only selects 'unsupported CQ REST version: %s' log at 0x1011caa8-0x1011cae4, then returns 1 on both branches."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102d782c",
+     "function": "0x102d7768",
+     "notes": "Only caller supplying a diagnostic object (stack temp built by f_10a606b8 at 0x102d7814); on failure the object is destructed at 0x102d7838-0x102d7884 unread and 0x48 is propagated as return."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10345cc4",
+     "function": "0x10345c7c",
+     "notes": "Caller passes NULL diagnostic, out=this+0x1f50; the return value is never tested, r3 is overwritten at 0x10345cd0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1038cc20",
+     "function": "0x1038cba0",
+     "notes": "First site: result gates f_104840f8(&version,2,3) at 0x104840f8 call 0x1038ccf0 selecting 'Bearer ' (0x10ec1efc) vs empty string scheme in 'AUTHORIZATION: %s%s\\r\\n'. Second site 0x1038ccb4 ignores the return."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cc29c",
+     "function": "0x104cbf1c",
+     "notes": "Caller passes NULL diagnostic, out=&sp+0x3a0; result saved to r8 and forwarded as an argument to request constructor f_104cb228 at 0x104cc2d8; a separate branch runs f_104840f8(&version,2,2) at 0x104cc5ac."
     }
    ],
-   "todo": "Established: Cloud-queue version checker f_10338a34 first calls that extractor, then f_10483e28. It returns 2 only when parsing succeeds and the major word equals 2; other outcomes return zero. It does not compare minor or patch against a supported maximum. The optional diagnostic object receives code 0x48 and distinct text for missing version, malformed version or unsupported major when the relevant failure is recognized. Callers including f_1011c864 pass null for that diagnostic object and only test the numeric return as nonzero/zero. Diagnostics are therefore not proof that the stricter grammar described in their text is enforced. Remaining: Verify all callers, URI/span assumptions and diagnostic object propagation."
+   "resolved_findings": [
+    "Resolved via complete caller audit: all five direct call sites verified; no address formation or indirect references to f_10338a34 exist.",
+    "The diagnostic object's text is never consumed by any caller: f_102d7768 is the only supplier and destroys it unread; every other caller passes NULL and uses only the numeric return.",
+    "Return semantics: 2 iff parse succeeds and major==2; all failure modes return 0; only three failure modes produce diagnostics (extractor no-match, parser code 1, unsupported major); regex compile failure and other parser codes are silent."
+   ]
   },
   "0x10c3a294": {
-   "description": "Percent-encoder wrapper f_10c3a294 passes the literal allow-list $-_.!*'(), to f_10c3a0f4. That helper copies isalnum bytes or allow-listed bytes and encodes every other byte through format %%%02x, using lowercase hexadecimal. Slash, colon, percent, query and fragment punctuation are therefore encoded unless already removed by earlier item parsing. A raw copied byte needs room for itself plus a terminator; an escape needs room for three bytes plus a terminator. If capacity cannot fit the next unit it stops, null-terminates and returns the number of bytes written, without a separate truncation error. f_1011c864 ignores that returned count. This encoder does not normalize already encoded percent sequences; a percent byte is encoded again.",
+   "description": "Percent-encoder wrapper f_10c3a294(src, dst, cap) tail-calls f_10c3a0f4 with the literal allow-list $-_.!*'(), (RFC 2396 mark set) as fourth argument. The helper iterates the NUL-terminated source: isalnum bytes and allow-listed bytes are copied raw, every other byte is written through __snprintf_chk with the literal format '%%%02x' producing a three-character lowercase percent escape. A raw byte is emitted only when cap > off+1 (itself plus terminator); an escape only when off+3 < cap (three bytes plus terminator). On exhaustion the loop stops before the non-fitting unit, unconditionally stores a NUL at dst[off] and returns off, the number of bytes written, with no truncation indicator. Output is therefore always a clean prefix: escapes are never split mid-sequence. Contract edges: cap==0 writes one byte (the terminator) at dst[0] past the logical buffer; a NULL src stores dst[0]=0 and returns 0 without consulting cap; a NULL dst faults on the terminator store; src==dst overlap is unguarded. isalnum is evaluated under the configured process locale (single setlocale(LC_ALL) call at 0x1080bb38), so bytes >=0x80 can be copied raw under non-C locales instead of being escaped. Already-encoded input is encoded again (the percent byte is not special-cased). Caller audit over all 52 direct call sites: capacities are fixed (0x3eb most common; also 0x401, 0x101, 0x301, 0x100, 0xfa, 0x3f, 0x181) or computed remaining space (subf/subfic of 0x400/0x401/0x200 or an end pointer), and the returned count is consumed by only two callers - f_1055097c advances its {ptr,remaining} cursor by the count only when at least 3 more bytes of headroom remain (returns 0 otherwise, leaving the written bytes in place), and f_1058ef94 appends exactly the returned count of the truncated encoded prefix into a '&name=value' query builder - while every other site including f_1011c864 discards the return, so truncation is silent at those sites.",
    "why_external": "Determines percent encoding and truncation of manifest-derived cloud-queue item paths.",
    "required_for_behavior": true,
    "role": "music_service_version_and_cq",
@@ -179074,9 +179465,53 @@
      "build": "86.10-80260",
      "address": "0x10c3a294",
      "notes": "Instruction-level selector/version/encoder trace; see music_service_version_string and svc_manifest details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3a2b8",
+     "function": "0x10c3a294",
+     "notes": "Tail-call loads allow-list pointer from GOT 0x1108dd00 -> 0x10fb1330 '$-_.!*'(),' and branches to f_10c3a0f4 with args (src,dst,cap,allowlist)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3a1a0",
+     "function": "0x10c3a0f4",
+     "notes": "Escape path: requires off+3<cap (cmpl/bc at 0x10c3a1a0-0x10c3a1b8) then __snprintf_chk(dst+off, cap-off, 1, -1, '%%%02x', byte) at 0x10c3a1c8; raw byte path requires cap>off+1 at 0x10c3a158-0x10c3a160; NUL terminator at 0x10c3a1d8 unconditional."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3a214",
+     "function": "0x10c3a0f4",
+     "notes": "NULL src path stores dst[0]=0 and returns 0 without consulting cap; cap==0 produces the same single-byte store past the logical buffer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1055099c",
+     "function": "0x1055097c",
+     "notes": "Cursor caller: encode(src=arg1, dst=cursor.ptr, cap=cursor.remaining); cursor advances by returned count only when count+3<remaining else returns 0 leaving bytes written."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1058efe0",
+     "function": "0x1058ef94",
+     "notes": "Query builder caller keeps the count in r27 and appends exactly that many encoded bytes (cap 0x401 stack buffer) after '&name='; truncation propagates as a clipped parameter value."
     }
    ],
-   "todo": "Established: Percent-encoder wrapper f_10c3a294 passes the literal allow-list $-_.!*'(), to f_10c3a0f4. That helper copies isalnum bytes or allow-listed bytes and encodes every other byte through format %%%02x, using lowercase hexadecimal. Slash, colon, percent, query and fragment punctuation are therefore encoded unless already removed by earlier item parsing. A raw copied byte needs room for itself plus a terminator; an escape needs room for three bytes plus a terminator. If capacity cannot fit the next unit it stops, null-terminates and returns the number of bytes written, without a separate truncation error. f_1011c864 ignores that returned count. This encoder does not normalize already encoded percent sequences; a percent byte is encoded again. Remaining: Audit all callers, libc locale behavior and malformed output-capacity contracts."
+   "resolved_findings": [
+    "Resolved via 52-site caller audit: every call site enumerated by direct branch scan (no indirect references); all use well-formed capacities >=1 of fixed or remaining-space form, and only f_1055097c and f_1058ef94 consume the returned count - all other sites overwrite r3 immediately.",
+    "Resolved: malformed contracts are limited to cap==0 (single byte written at dst[0]) and NULL dst/src cases documented in the description; no caller passes a NULL or zero capacity statically.",
+    "Resolved: isalnum locale dependence documented; under the configured-locale model non-ASCII bytes may pass raw."
+   ]
   },
   "0x1011a650": {
    "description": "Manifest lookup f_1011a650 takes this, service ID and a nonnull output row. It formats service ID with %u and searches the three-entry memory cache by key length plus memcmp under mutex this+0x1f8. A hit refreshes entry+4 with the current clock word, copies the entire row from entry+0x20 through f_10118f64, unlocks and returns true. It does not compare a requested manifest version, cached row version, public SID/version index or cache entry+0 time word before returning a hit. There is no requested-version argument in this lookup. A cache miss unlocks, loads svcmanifests.json into a fresh 34-row scratch table through f_1011a5d0, finds the requested sid by exact word equality and copies it to output. Load failure or absent SID returns false. A successful file load can still update stored source/version/index even when the requested SID is absent. This lookup performs no HTTP download. The memory cache is separate from the 34-row persisted table. Constructor f_10119a2c sets its capacity to three; entries have stride0x51c and contain a time-derived word at +0, last-access word at +4, string key object at +8 and full manifest row at +0x20. f_1011be38 and the miss-fill code inside f_1011a650 replace an existing equal key if found; otherwise they choose the entry with the smallest unsigned last-access word. The comparison uses strict LT, so ties keep the earliest selected entry, initially index zero. There is no separate empty-entry priority beyond zero-valued initial timestamps. Both insertion paths stamp last access with the clock word. Lookup fill stores clock+1 at entry+0; f_1011be38 stores clock+its fourth argument there, and the download worker passes one. The inspected hit path does not consume this word as an expiration gate. Unsigned timestamp ordering has no wrap compensation in these selection loops.",
