@@ -151197,11 +151197,20 @@
     {
      "type": "firmware",
      "address": "0x10ec4f88",
-     "notes": "hls blocks"
+      "notes": "hls blocks"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_103b9328 / f_10804148 / f_103b84a4 / f_103bd098",
+      "address": "0x103b9328",
+      "callsite": "0x103b9410 / 0x103b84f8",
+      "notes": "Start validates context bit 0 via f_10804120, then f_10804148 copies words +0/+4 and the pair +8/+12 into bitrate/stream/segment log arguments. No variant comparison occurs here. The source-switch path tests bytes object+0xff77d and +0xff77c and calls f_103bd098 with r4=0. That helper compares variant count against 1, increments object+0x81de8, compares the unsigned new index against count, and wraps it to zero when out of range (0x103bd0dc-0x103bd0f8, 0x103bd188). This is index traversal, not evidence of bandwidth-tier ranking."
     }
    ],
    "todo": [
-    "Residual: the variant-ranking order among same-codec bandwidth tiers (bitrate-vs-stable estimator inputs) - the ABR predicate is the shared stream_fetcher happy metric; HLS-specific tie-breaking is branch data."
+    "The start callback f_103b9328 copies an already selected bitrate, stream index and segment from a valid context through f_10804148; it does not rank variants. The multiple-codec path f_103b84a4 calls f_103bd098, which advances the stream index and wraps to zero rather than comparing bandwidth. Still unresolved: same-codec bandwidth-tier ordering and its estimator inputs. Trace the writers of the context consumed at 0x103b9410 and the variant-array ordering upstream of f_103bd098; neither the start log nor the source-switch path proves a shared happy-metric predicate."
    ],
    "resolved_findings": [
     "Resolved: forcing a source switch uses the variant-ranking inputs {bitrate ladder, bandwidth estimate, codec compatibility} - the ladder rules under playlist_parsers.",
