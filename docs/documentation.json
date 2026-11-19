@@ -85216,7 +85216,7 @@
    },
    "actions": {
     "Browse": {
-     "description": "Browses metadata or direct children using bound cd_impl, with a preflight and a separate deferred Result executor. The top-level ObjectID resolver recognizes 0, A:, S:, Q:, R:, AI:, SQ: and FV:, not an arbitrary URI. The root enumeration and outer paging/response machinery are traced; detailed per-container enumeration and item serialization remain explicitly scoped below. R/FV node browsing is traced through its concrete SAX callbacks: Filter and SortCriteria are ignored, eligible entries retain stored order and paging does not impose an independent maximum. Q children use queue order and unsigned paging, with no independent request cap or SortCriteria validation; the native 16-bit queue length is a storage bound, not a paging clamp. The local zone-player exact AI: provider is concretely bound to metadata/children stubs returning deferred backend701, not an unconditional early SOAP701. S child enumerations ignore SortCriteria; indexed child UpdateID is1, remote child UpdateID is0. Remote iterator false maps to deferred720 and true to success, as verified from raw isel. SQ root children preserve saved-file playlist order, ignore Filter/SortCriteria, page without an independent request cap, count all parsed playlists and use the saved-queue manager version.",
+     "description": "Browses metadata or direct children using bound cd_impl, with a preflight and a separate deferred Result executor. The top-level ObjectID resolver recognizes 0, A:, S:, Q:, R:, AI:, SQ: and FV:, not an arbitrary URI. The root enumeration and outer paging/response machinery are traced; detailed per-container enumeration and item serialization remain explicitly scoped below. R/FV node browsing is traced through its concrete SAX callbacks: Filter and SortCriteria are ignored, eligible entries retain stored order and paging does not impose an independent maximum. Q children use queue order and unsigned paging, with no independent request cap or SortCriteria validation; the native 16-bit queue length is a storage bound, not a paging clamp. The local zone-player exact AI: provider is concretely bound to metadata/children stubs returning deferred backend701, not an unconditional early SOAP701. S child enumerations ignore SortCriteria; indexed child UpdateID is1, remote child UpdateID is0. Remote iterator false maps to deferred720 and true to success, as verified from raw isel. SQ root children preserve saved-file playlist order, ignore Filter/SortCriteria, page without an independent request cap, count all parsed playlists and use the saved-queue manager version. A root has seven fixed category containers with UpdateID0; its root and concrete attribute-child entry ignore incoming SortCriteria. Attribute children validate under the index lock and also initialize UpdateID0.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10306b3c",
@@ -85377,6 +85377,30 @@
         "function": "0x104789d4",
         "address": "0x10478b64",
         "notes": "Root enumeration reader opens native saved queue file through103d1a28; initializes fallback backend720, uses now+10000ms deadline10478a80 and4096-byte read chunks10478ac0/10478af8. Streamed SAX10c3fc68 drives the concrete root context10ed2f38; EOF/parse/read status controls final return and therefore whether TotalMatches output is copied. Read buffer size is not a request-page cap. Indexed file transaction/mutation1047ee0c is not this Browse reader; no Browse persistence follows merely because its literals are adjacent. Exact native read/parse flag failure conversion10478b4c..64 and playlist/track resource helpers remain explicit residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a203c",
+        "address": "0x102a2188",
+        "notes": "A root enumeration ABI: r5=start,r6=count,r8=writer,r9=UpdateID(optional),r10=TotalMatches. Root writes UpdateID0 (if non-NULL) and initializes TotalMatches0; table10eaded0 has seven fixed IDs in order ARTIST, ALBUMARTIST, ALBUM, GENRE, COMPOSER, TRACKS, PLAYLISTS, formatted A:%s. Unsigned start/returned<count select metadata serializer102a1f18 for each category; all seven increment TotalMatches regardless of page. Root Filter(r4) and SortCriteria(r7) are not consulted. Seven categories is the native root size, not a global paging cap or the number of library tracks. NumberReturned remains DIDL completion count from selected serializers."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3430",
+        "address": "0x102a34e8",
+        "notes": "Concrete attribute children entry preserves this,Filter(r4),start(r5),count(r6),writer(r8),UpdateID(r9),TotalMatches(r10), but does not preserve or use incoming SortCriteria(r7) before10107e20. It locks index, sets node locked-byte+4, validates node through102a1aa0 and returns backend701 with unlock if validation fails. Valid branch shifts writer/update/total to r7/r8/r9 and tail-calls102a32d0 at102a34d4. Thus incoming SOAP SortCriteria is ignored here, not a sort-language validation/fault path.102a32d0 writes UpdateID0 if supplied, inspects node stored selector+0x214 and percent-decodes it with capacity0x65 when nonempty before normalizer109080d4 and worker102a21d8. Stored selector is NOT the incoming SortCriteria. On return it clears locked-byte and unlocks index. Exact selector source/normalizer semantics remain part of graph trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a21d8",
+        "address": "0x102a2be4",
+        "notes": "Attribute child worker receives Filter as r5 from102a32d0: exact strcmp with dc:title,res at102a2270 is saved in frame+0x58 and controls separate resource/metadata builder path at102a2bdc..2c64. This is a concrete exact-match branch, not evidence of general comma-separated property filtering. Worker zeroes supplied total at102a2310 and increments it at102a2648/4c independently of page emission in the first catalog walk; another catalog walk102a2d4c..323c and generated metadata10421024 still require complete case/field accounting before extending one loop behavior to all categories. Container metadata helper102a1f18 validates and tail-calls102a1130;1054b068/10578598/1054b24c perform native DIDL writing. Validation failure remains deferred backend701, not an added early SOAP fault."
        }
       ]
      },
@@ -86100,6 +86124,30 @@
         "function": "0x104789d4",
         "address": "0x10478b64",
         "notes": "Root enumeration reader opens native saved queue file through103d1a28; initializes fallback backend720, uses now+10000ms deadline10478a80 and4096-byte read chunks10478ac0/10478af8. Streamed SAX10c3fc68 drives the concrete root context10ed2f38; EOF/parse/read status controls final return and therefore whether TotalMatches output is copied. Read buffer size is not a request-page cap. Indexed file transaction/mutation1047ee0c is not this Browse reader; no Browse persistence follows merely because its literals are adjacent. Exact native read/parse flag failure conversion10478b4c..64 and playlist/track resource helpers remain explicit residuals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a203c",
+        "address": "0x102a2188",
+        "notes": "A root enumeration ABI: r5=start,r6=count,r8=writer,r9=UpdateID(optional),r10=TotalMatches. Root writes UpdateID0 (if non-NULL) and initializes TotalMatches0; table10eaded0 has seven fixed IDs in order ARTIST, ALBUMARTIST, ALBUM, GENRE, COMPOSER, TRACKS, PLAYLISTS, formatted A:%s. Unsigned start/returned<count select metadata serializer102a1f18 for each category; all seven increment TotalMatches regardless of page. Root Filter(r4) and SortCriteria(r7) are not consulted. Seven categories is the native root size, not a global paging cap or the number of library tracks. NumberReturned remains DIDL completion count from selected serializers."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3430",
+        "address": "0x102a34e8",
+        "notes": "Concrete attribute children entry preserves this,Filter(r4),start(r5),count(r6),writer(r8),UpdateID(r9),TotalMatches(r10), but does not preserve or use incoming SortCriteria(r7) before10107e20. It locks index, sets node locked-byte+4, validates node through102a1aa0 and returns backend701 with unlock if validation fails. Valid branch shifts writer/update/total to r7/r8/r9 and tail-calls102a32d0 at102a34d4. Thus incoming SOAP SortCriteria is ignored here, not a sort-language validation/fault path.102a32d0 writes UpdateID0 if supplied, inspects node stored selector+0x214 and percent-decodes it with capacity0x65 when nonempty before normalizer109080d4 and worker102a21d8. Stored selector is NOT the incoming SortCriteria. On return it clears locked-byte and unlocks index. Exact selector source/normalizer semantics remain part of graph trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a21d8",
+        "address": "0x102a2be4",
+        "notes": "Attribute child worker receives Filter as r5 from102a32d0: exact strcmp with dc:title,res at102a2270 is saved in frame+0x58 and controls separate resource/metadata builder path at102a2bdc..2c64. This is a concrete exact-match branch, not evidence of general comma-separated property filtering. Worker zeroes supplied total at102a2310 and increments it at102a2648/4c independently of page emission in the first catalog walk; another catalog walk102a2d4c..323c and generated metadata10421024 still require complete case/field accounting before extending one loop behavior to all categories. Container metadata helper102a1f18 validates and tail-calls102a1130;1054b068/10578598/1054b24c perform native DIDL writing. Validation failure remains deferred backend701, not an added early SOAP fault."
        }
       ],
       "todo": [
@@ -86160,7 +86208,7 @@
         }
        ],
        "todo": [
-        "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ optional-art/metadata/playlist-track1047b8d4/103483b4/10478618 callbacks (root enumeration accounting traced) and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
+        "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ optional-art/metadata/playlist-track1047b8d4/103483b4/10478618 callbacks (root enumeration accounting traced) and A category-specific walk/generated-metadata102a238c/102a2d4c/10421024 cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
        ]
       }
      ],
@@ -86217,7 +86265,7 @@
        }
       ],
       "todo": [
-       "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ optional-art/metadata/playlist-track1047b8d4/103483b4/10478618 callbacks (root enumeration accounting traced) and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
+       "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ optional-art/metadata/playlist-track1047b8d4/103483b4/10478618 callbacks (root enumeration accounting traced) and A category-specific walk/generated-metadata102a238c/102a2d4c/10421024 cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
       ]
      },
      "state_transitions": {
@@ -86250,7 +86298,7 @@
       ]
      },
      "return_behavior": {
-      "description": "Early errors 402/701 raise SOAP fault through request+0x14. Success registers deferred outputs and invokes request+0x10 at 0x103046f0 (f_10730714 -> f_10730524). Result executes f_10305dd0 -> f_10305a98 before numeric output serialization. Deferred child/metadata return codes are logged at 0x10305d80/0x10305d08, not forwarded through the early fault branch; callback finalizes DIDL and releases object. Do not publish backend literal scans as additional SOAP faults. R/FV deferred backend statuses include 710 for invalid classification, 720 for snapshot-open failure and 701 for missing individual metadata; these are not new early SOAP faults. Q child queue-name mismatch returns deferred backend701 before filling output pointers; exhausted paging emits no children, not a new fault. A present local AI: root returns backend701 only during deferred execution; absent provider returns early SOAP701. Do not conflate these paths. S remote iterator boolean false maps to backend720; true maps to0. Indexed overlong copied path returns backend402. These deferred results do not become early SOAP faults.",
+      "description": "Early errors 402/701 raise SOAP fault through request+0x14. Success registers deferred outputs and invokes request+0x10 at 0x103046f0 (f_10730714 -> f_10730524). Result executes f_10305dd0 -> f_10305a98 before numeric output serialization. Deferred child/metadata return codes are logged at 0x10305d80/0x10305d08, not forwarded through the early fault branch; callback finalizes DIDL and releases object. Do not publish backend literal scans as additional SOAP faults. R/FV deferred backend statuses include 710 for invalid classification, 720 for snapshot-open failure and 701 for missing individual metadata; these are not new early SOAP faults. Q child queue-name mismatch returns deferred backend701 before filling output pointers; exhausted paging emits no children, not a new fault. A present local AI: root returns backend701 only during deferred execution; absent provider returns early SOAP701. Do not conflate these paths. S remote iterator boolean false maps to backend720; true maps to0. Indexed overlong copied path returns backend402. These deferred results do not become early SOAP faults. A attribute-child validation failure returns deferred backend701; it is not a SortCriteria rejection.",
       "evidence": [
        {
         "type": "firmware",
@@ -86323,6 +86371,14 @@
         "function": "0x100fe0e4",
         "address": "0x100fe7b4",
         "notes": "Indexed S child worker copies ObjectID/path into0x401 buffer and returns backend402 when strlen>1023 at100fe178/180. SortCriteria incoming r8 is overwritten by canary load100fe160 without consumption. Exact dc:title,res compared100fe20c. TotalMatches initialized0 at100fe214; enumerates catalog directories10105c18 then entries10105b3c, incrementing TotalMatches regardless of page, while unsigned start/count gates emission100fe298/a8 and100fe3d0/e0. Directory containers serialize dc:title, object.container, x-rincon-playlist resource,1054b24c(close container) at100fe384. NumberReturned is writer count. Successful final100fe7a8..b4 unlocks index, writes literal UpdateID1, returns0. This differs from remote UpdateID0 and is not SystemUpdateID. File metadata/resource optional fields100fe430..790 remain to trace before closing S."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3430",
+        "address": "0x102a34e8",
+        "notes": "Concrete attribute children entry preserves this,Filter(r4),start(r5),count(r6),writer(r8),UpdateID(r9),TotalMatches(r10), but does not preserve or use incoming SortCriteria(r7) before10107e20. It locks index, sets node locked-byte+4, validates node through102a1aa0 and returns backend701 with unlock if validation fails. Valid branch shifts writer/update/total to r7/r8/r9 and tail-calls102a32d0 at102a34d4. Thus incoming SOAP SortCriteria is ignored here, not a sort-language validation/fault path.102a32d0 writes UpdateID0 if supplied, inspects node stored selector+0x214 and percent-decodes it with capacity0x65 when nonempty before normalizer109080d4 and worker102a21d8. Stored selector is NOT the incoming SortCriteria. On return it clears locked-byte and unlocks index. Exact selector source/normalizer semantics remain part of graph trace."
        }
       ]
      },
@@ -86668,12 +86724,36 @@
        "function": "0x104789d4",
        "address": "0x10478b64",
        "notes": "Root enumeration reader opens native saved queue file through103d1a28; initializes fallback backend720, uses now+10000ms deadline10478a80 and4096-byte read chunks10478ac0/10478af8. Streamed SAX10c3fc68 drives the concrete root context10ed2f38; EOF/parse/read status controls final return and therefore whether TotalMatches output is copied. Read buffer size is not a request-page cap. Indexed file transaction/mutation1047ee0c is not this Browse reader; no Browse persistence follows merely because its literals are adjacent. Exact native read/parse flag failure conversion10478b4c..64 and playlist/track resource helpers remain explicit residuals."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a203c",
+       "address": "0x102a2188",
+       "notes": "A root enumeration ABI: r5=start,r6=count,r8=writer,r9=UpdateID(optional),r10=TotalMatches. Root writes UpdateID0 (if non-NULL) and initializes TotalMatches0; table10eaded0 has seven fixed IDs in order ARTIST, ALBUMARTIST, ALBUM, GENRE, COMPOSER, TRACKS, PLAYLISTS, formatted A:%s. Unsigned start/returned<count select metadata serializer102a1f18 for each category; all seven increment TotalMatches regardless of page. Root Filter(r4) and SortCriteria(r7) are not consulted. Seven categories is the native root size, not a global paging cap or the number of library tracks. NumberReturned remains DIDL completion count from selected serializers."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a3430",
+       "address": "0x102a34e8",
+       "notes": "Concrete attribute children entry preserves this,Filter(r4),start(r5),count(r6),writer(r8),UpdateID(r9),TotalMatches(r10), but does not preserve or use incoming SortCriteria(r7) before10107e20. It locks index, sets node locked-byte+4, validates node through102a1aa0 and returns backend701 with unlock if validation fails. Valid branch shifts writer/update/total to r7/r8/r9 and tail-calls102a32d0 at102a34d4. Thus incoming SOAP SortCriteria is ignored here, not a sort-language validation/fault path.102a32d0 writes UpdateID0 if supplied, inspects node stored selector+0x214 and percent-decodes it with capacity0x65 when nonempty before normalizer109080d4 and worker102a21d8. Stored selector is NOT the incoming SortCriteria. On return it clears locked-byte and unlocks index. Exact selector source/normalizer semantics remain part of graph trace."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a21d8",
+       "address": "0x102a2be4",
+       "notes": "Attribute child worker receives Filter as r5 from102a32d0: exact strcmp with dc:title,res at102a2270 is saved in frame+0x58 and controls separate resource/metadata builder path at102a2bdc..2c64. This is a concrete exact-match branch, not evidence of general comma-separated property filtering. Worker zeroes supplied total at102a2310 and increments it at102a2648/4c independently of page emission in the first catalog walk; another catalog walk102a2d4c..323c and generated metadata10421024 still require complete case/field accounting before extending one loop behavior to all categories. Container metadata helper102a1f18 validates and tail-calls102a1130;1054b068/10578598/1054b24c perform native DIDL writing. Validation failure remains deferred backend701, not an added early SOAP fault."
       }
      ],
      "notes": null,
      "implementation_notes": "Preflight is not enumeration. Correct callback/response ordering matters: streamed backend errors are not automatically SOAP faults. Concrete per-container limits/sort/filter/item serialization are still named residuals, not inferred from standard UPnP semantics.",
      "todo": [
-      "Remaining static work: Q complete generated optional-field conditions104202f4 and metadata-only1015036c (child ordering/paging/counters/basic Filter selection now traced); AI secondary media-player constructor1040fffc provider source and live suffix-zone+0x9a4 constructor/vptr binding through10208ff0; local exact-root constructor/vptr/stub chain is traced; S indexed-file optional metadata100fe430..790; full ASX10461e04, M3U10462c80, PLS10463164 ->104611c8, WPL10462f54 ->SAX10ed1770, CIFS-directory10460814 ->103d5250 and saved-queue1047851c receiver invocation/accounting and subordinate cache/publisher calls (adapter, callback counters and indexed directory paging/version now traced); SQ root optional-art eligibility/sample1047b8d4/1047b7b8 and parse/read flag conversion10478b4c..64; root metadata103483b4, playlist10348560 ->10478618 and track103476d8 item/resource callbacks (root children dispatch, page/count/version/order and container serializer now traced); A graph102a3b74/102a3c80 and child worker102a21d8. Finish each backend Filter/SortCriteria, caps, item/container serialization, counter/version sources and subordinate cache/publisher writes. R/FV read workers1037c5e8/1037c1a8, their SAX class selectors, ordering, paging, DIDL and version sources are traced; they are no longer residuals. These remaining paths have been inspected but are unfinished static work, not demonstrated runtime-only boundaries."
+      "Remaining static work: Q complete generated optional-field conditions104202f4 and metadata-only1015036c (child ordering/paging/counters/basic Filter selection now traced); AI secondary media-player constructor1040fffc provider source and live suffix-zone+0x9a4 constructor/vptr binding through10208ff0; local exact-root constructor/vptr/stub chain is traced; S indexed-file optional metadata100fe430..790; full ASX10461e04, M3U10462c80, PLS10463164 ->104611c8, WPL10462f54 ->SAX10ed1770, CIFS-directory10460814 ->103d5250 and saved-queue1047851c receiver invocation/accounting and subordinate cache/publisher calls (adapter, callback counters and indexed directory paging/version now traced); SQ root optional-art eligibility/sample1047b8d4/1047b7b8 and parse/read flag conversion10478b4c..64; root metadata103483b4, playlist10348560 ->10478618 and track103476d8 item/resource callbacks (root children dispatch, page/count/version/order and container serializer now traced); A graph/selector source102a3b74/102a3c80 ->node+0x214 and normalizer109080d4; category-specific walks102a238c..2658 and102a2d4c..323c, exact-basic versus full metadata102a2bdc..2c64 ->10421024 optional fields/cache writes (root seven categories and both root/attribute-child SortCriteria omission, UpdateID0 and validation locking now traced). Finish each backend Filter/SortCriteria, caps, item/container serialization, counter/version sources and subordinate cache/publisher writes. R/FV read workers1037c5e8/1037c1a8, their SAX class selectors, ordering, paging, DIDL and version sources are traced; they are no longer residuals. These remaining paths have been inspected but are unfinished static work, not demonstrated runtime-only boundaries."
      ],
      "resolved_findings": [
       "A: root is fixed seven-entry enumeration, not the complete attribute backend. IDs use A:%s and table10eaded0: ARTIST,ALBUMARTIST,ALBUM,GENRE,COMPOSER,TRACKS,PLAYLISTS. Applies unsigned start/count checks, total counts all seven independently of page, UpdateID zero. DIDL container serializer102a1f18; Filter/Sort not consulted at this root. Attribute node construction/resolution102a3b74/102a3c80 must be followed for deeper library behavior.",
