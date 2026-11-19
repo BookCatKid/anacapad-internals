@@ -159894,28 +159894,49 @@
    ]
   },
   "spec_pair_stream": {
-   "name": "muse spec-pair descriptor stream",
-   "summary": "Spec lists = packed pools of u32 indices into spec_object_table. INDEX SPACE RESOLVED via the idx->name lookup f_109ecb5c (cmplwi 0x146=326; slwi*4; lwzux base 0x10f97094) and name->idx f_109ecb90 (strcmp walk from 'none'): runtime index i resolves to table[3+i] - the 3 leading table slots are fnptrs, semantic idx0='none'. GRAMMAR RESOLVED ({fieldName,typeName} pairs): blob = (field,type)* - a flat sequence of pairs; even positions carry WIRE FIELD names (globalError 561x, ok 175x, upnpResponse 60x, upnpError 60x, groupCoordinatorChanged 53x, playbackError 44x, accountError, sessionError, playerSetError, transitionToShipModeStatus), odd positions carry the field's TYPE (upnpEvent 422x = the universal value/event wrapper, wiredSubStatus 202x, channelMapPair 92x, chirpRequest 79x, bluetoothDevice, deviceInfo, bluetooth, artist...). A repeated field name = the field's type is a UNION of the following types (e.g. globalError:{chirpRequest|accessoryId|none|wiredSubStatus} = five error-variant payloads). idx0 'none' = absent type / optional slot. Message roots: 'ok' leads 170 specs (status/ack field first), 'upnpResponse' 60x (UPnP-bridge envelope), plus object-typed roots (timer, zoneDefinition, alarm, area, groupInfo...). Outbound emitters call idx2name with constant type-ids (addi r3,0x31/0x2f/0x67...) then serialize - index space is an enum baked at build time. NOTE: earlier records decoded blobs against table[i] (off by 3); all route member lists + this grammar re-derived under table[3+i].",
+   "name": "Muse object/status pair metadata",
+   "summary": "The checked alarms pair pool is object/status admissibility metadata, not a flat JSON field/type schema. Concrete operation virtual+0x58 getters supply a pointer and count; f_109daaf0 compares both words and translates a matching status through0x10f94604. Applying the object-name table to the second word produced spurious type names and union/optional interpretations.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10fa51b3",
      "notes": "tag-word blob; format proven, tag semantics partial"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109efe04 -> f_109dbbd8 -> f_109dba70 -> f_109daaf0",
+     "address": "0x109dab2c",
+     "callsite": "0x109dab58 / 0x109dab78 / 0x109dabc8 / 0x109dbb44",
+     "notes": "Actual virtual58 pointer/count consumer compares both words, uses second as status-map index; checked raw status table34=>200,47/48=>400. Neither second-word object naming nor sentinel-walk/body-schema interpretation survives this countercheck."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "alarms virtual58 getters",
+     "address": "0x10ac459c",
+     "callsite": "0x10f9f89c / 0x10f9f91c / 0x10ac4618 / 0x10ac4678",
+     "notes": "Eight returned pointer/count slices exactly cover22 pairs; endpoint10f9fd24 is adjacent sentinel data but not read as loop terminator by the checked consumer. Other pools and unrelated layout decoder remain unjoined."
     }
    ],
    "grammar": {
-    "layout": "(fieldNameIdx, typeNameIdx)*: flat pair sequence, no header",
-    "fields": "even positions = JSON/wire field names (ok, globalError, upnpResponse, upnpError, accountError, sessionError, playbackError, groupCoordinatorChanged...)",
-    "types": "odd positions = type names; upnpEvent = universal value/event wrapper, others are concrete object types",
-    "union": "repeated field name = type union of the listed types (error-variant payloads)",
-    "none": "idx0 = absent/optional slot",
-    "index_space": "semantic idx i -> table[3+i]; lookups f_109ecb5c (idx2name) / f_109ecb90 (name2idx); bound 326"
+    "layout": "For checked alarms metadata: count-bounded eight-byte {object-id, internal-status-code} entries returned by operation virtual+0x58.",
+    "fields": "First word can be named through f_109ecb5c; it is not proof of an individual body field.",
+    "types": "Second word indexes the separate eight-byte status translation table0x10f94604, not the object-name table.",
+    "union": "Repeated object ids enumerate allowed object/status combinations, not demonstrated type unions.",
+    "none": "A zero status word is not evidence that a field is optional. Object-name index0 is none in the unrelated object-id domain.",
+    "index_space": "f_109ecb5c accepts object ids0..326 inclusive at base0x10f97094;327 or above returns the empty string. The table base already addresses semantic index0."
    },
    "todo": [
-    "Residual: the consumer-side semantic mapping - which decode consumer binds each spec pair to a JSON field at runtime is only partially traced (see the muse spec_pair_decode_v2 todo)."
+    "Established: concrete count-bounded object/status consumer, all eight alarms slice getters, translation examples and empty/local-miss/common-miss behavior. Remaining: bind every other claimed spec-pair pool to its actual virtual+0x58 provider and producer object/status values, enumerate status translations and their callers, and distinguish any differently shaped neighboring data. Start with f_109daaf0, f_10ae63a8 and0x10f94604. Do not reuse the old field:type/union/optional grammar or the unrelated f_10927c1c layout decoder without a reachable join. This remains actionable static work, not missing build-time schema data."
    ],
    "resolved_findings": [
-    "Established: the index space and packed-pool layout are resolved, and spec_pair_decode_v2's structure is decoded."
+    "Reachable chain: producer f_109efe04 passes object0x131/status0x34 into f_109dbbd8, which calls f_109dba70 -> f_109daaf0. The latter calls operation virtual+0x58, receives a count in r3 and an array pointer through its output argument, compares both pair words and advances by8 under CTR. It does not scan for ffffffff sentinels or parse adjacent verb strings.",
+    "Alarms getters f_10ac459c/f_10ac45b8/f_10ac45d8/f_10ac45f8/f_10ac4618/f_10ac4638/f_10ac4658/f_10ac4678 return slices of0x10f9fc74 at offsets0/8/0x10/0x18/0x28/0x50/0x78/0x98 with counts1/1/1/2/5/5/4/3, totaling22 rows. Getter cells include0x10f9f89c and0x10f9f91c at their respective vtable+0x58. Thus operation-local slicing is compiled, not recoverable only from neighboring verb order.",
+    "A match indexes status table0x10f94604 with the second word times8 and copies the resulting two words to the result. Status0x34 maps to{0x34,200},0x3f to{0x3f,499},0x42 to{0x42,404},0x47/0x48 to{same-code,400}. The previous upnpEvent/wiredSubStatus/bluetoothDevice/channelMapPair/chirpRequest type labels for those numbers are unrelated object-name lookups, disproved by this actual consumer.",
+    "Empty operation metadata or no local match tries common provider f_10ae63a8. No match there leaves default tuple{0x6b,500}; f_109dba70 treats0x6b as the not-found condition and reaches Error code not found in objectStatusMap. A successful tuple is stored at result-state+0x120/+0x124. The later _objectType JSON marker uses f_109ecb5c on an explicit object id, not the status code."
    ]
   },
   "muse_verb_ns_registry": {
