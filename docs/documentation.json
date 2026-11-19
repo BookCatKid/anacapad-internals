@@ -72642,7 +72642,7 @@
      ]
     },
     "GetRoomCalibrationStatus": {
-     "description": "Builds a 0x34-byte calibration-record (size tag + zeroed fields + caller regs stashed), locks impl+0x938, calls f_100dbb74(rec, arg>>16, ...) - a sonar-calibration query helper - and fills the two outputs from the result.",
+     "description": "Builds a 0x34-byte calibration-record (size tag + zeroed fields + caller regs stashed), locks impl+0x938, calls f_100dbb74(rec, arg & 0xffff, ...) - a sonar-calibration query helper - and fills the two outputs from the result.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073b1ec",
@@ -72724,7 +72724,7 @@
      },
      "outputs": {
       "RoomCalibrationEnabled": {
-       "description": "Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after a >>16 shift on an arg, and fills the record fields that become these outputs.",
+       "description": "Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after masking an argument to its low 16 bits, and fills the record fields that become these outputs.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -72770,7 +72770,7 @@
        ]
       },
       "RoomCalibrationAvailable": {
-       "description": "Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after a >>16 shift on an arg, and fills the record fields that become these outputs.",
+       "description": "Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after masking an argument to its low 16 bits, and fills the record fields that become these outputs.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -72927,7 +72927,7 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl: 0x34-record init at r3-in, lock +0x938, srwi arg>>16, call f_100dbb74",
+       "notes": "f_100dbcd4 initializes the 0x34-byte record and locks +0x938. Raw word 0x5484043e at 0x100dbd6c is rlwinm r4,r4,0,16,31 (clrlwi r4,r4,16): r4 &= 0xffff, not r4 >>= 16. SH=0, MB=16, ME=31, Rc=0. f_100dbb74 is called at 0x100dbd70.",
        "function": "0x100dbcd4"
       }
      ],
