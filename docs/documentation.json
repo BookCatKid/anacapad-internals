@@ -68618,8 +68618,8 @@
         }
        ],
        "todo": [
-        "Established: f_104794d4 returns the f_1047ee0c code verbatim; for SaveAsSonosPlaylist (kind 1) that code is 0, 501, 701, 802, 803, 804, 805, 806, 807, 808, or a code a parse callback stored at ctx+6.",
-        "Residual: the codes the savedqueues XML callbacks (f_1047b66c, f_1047c740 and f_1047d67c, which stores 501) can store at ctx+6, and what sets ctx+0x40, ctx+0x6f and ctx+0x40d0/0x40d1, are not traced; next step is to disassemble those callbacks."
+        "Established: f_104794d4 returns the f_1047ee0c code verbatim; for SaveAsSonosPlaylist (kind 1, mobile-track check on because f_102aa8b4 passes 0 at 0x102aa9c4) that code is 0, 501, 701, 802..808, or the u16 at ctx+6. The ctx+6 writers with literal values store 802 (0x1047d6dc, 0x1047d854, 0x1047f0a0, 0x1047f100), 501 (0x1047d71c, 0x1047d8d4, 0x1047f45c, 0x1047f48c), 1028 (0x1047e9e4) or 402 (0x1047ea10). f_1047d67c stores 802 or 501 when flushing the '.tmp' file fails, picking by byte ctx+0x40d1.",
+        "Residual: three ctx+6 writers store a computed value (r30 at 0x1047dc98, r3 at 0x1047df10 and 0x1047e024). Which of the 1028/402 writers run on the kind-1 path, and what sets ctx+0x40 and ctx+0x40d0/0x40d1, are not traced. Next step is to disassemble the functions holding those stores."
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x10ed2edc emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure.",
