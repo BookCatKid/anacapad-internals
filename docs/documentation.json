@@ -163981,7 +163981,7 @@
    "name": "netstartd (netstart2)",
    "summary": "netstartd (/wifi/netstartd, 'netstart2') is the network bring-up and SonosNet orchestration daemon: it owns the NS2 household-setup protocol (DTLS-encrypted, over-the-air), the anacapad control IPC, the wacd provisioning channel, WEP/WPA key generation for SonosNet, STA/DHCP supervision, and the factory-reset network wipes. Respawned by inittab via /etc/runnetstartd.",
    "todo": [
-    "Trace the remaining setup greeting fields: optional string producers, the meaning of the build discriminator, response capability bits, and client-side verification of the advertised signature.",
+    "Trace remaining setup greeting fields: optional string producers, cross-build discriminator meaning, remaining response capability callbacks and all capability feature/global/flag producer meanings, plus client-side signature verification. Concrete bitmap predicates for0x80,0x10/0x20,0x100,0x400,0x8000/0x10000 and0x20000 are now mapped; a capability is not setup completion.",
     "Trace metadata meanings in other envelope consumers and the remaining envelope caller state transitions. Preserve the already established parsing, decryption, authentication, PIN proof and common-reset contracts.",
     "Finish configured/default PSK reload and reset triggers and cached-credential lifecycle effects beyond daemon-local IPC command23. Main shutdown cancellation of the four-hour expiry callback and in-memory default/cached PSK and registration-secret destruction are established. Do not enter the external request-object/service receiver lane.",
     "Finish DTLS configuration/index paths beyond verified inbound presets0/1, non-FD notification callbacks, HelloVerify flight/fragment/record headers, cookie context restart/error rollback, and library record-counter/replay interpretation.",
@@ -164004,7 +164004,8 @@
     "Runtime files: /var/run/netstart_mode records the active mode; per-attempt setup logs %s/setup.log + %s/setup.dmesg under %s/%s/setup%s dirs; /tmp/netstartd_wac.ipc is the wacd channel; settings are read from netsettings.txt, fresh_hh.txt and localsettings.txt; SonosNet WPA PMK is derived locally ('pmk_in_ascii_len too short', 'Failed to generate PMK', 'Failed to serialize'); DHCP is supervised through /tmp/udhcpc.pid + /tmp/udhcpc_renew_option ('DHCP start/renew signal').",
     "Reset surface: flags --hard-reset, --soft-reset, --qareset, --qareset-lite, --preserve-system (wired to frcheck rc 0/2 in /etc/Configure); log at /opt/log/netstartd.log rotated to /jffs/netstartd_prev.log and /jffs/net/log/netstartd.log.",
     "Resolved: the NS2 opcode map is a {u32 id, name*} table at .data.rel.ro 0x1004f848+: {0=KEEP_ALIVE, 1=ACK, 2=SETUP_CLIENT_HELLO, 3=SETUP_SERVER_HELLO, 4=SETUP_SERVER_HELLO_LEGACY, 5=SETUP_CANCEL, 6=ECHO, 7=SETUP_BEGIN, 8=SETUP_CONTINUE, 9=SETUP_STATUS, 0xa=GET_SCAN_LIST, 0xb=SCAN_LIST, 0xc=SET_NET_SETTINGS, 0xd=GET_PSK, 0xe=PSK, 0xf=UPGRADE, 0x10=START_OPEN_AP, 0x11=COMMIT_SETTINGS, 0x12=SETUP_REAUTHORIZE, 0x13=ENABLE_WIFI, 0x14=START_ISLAND, 0x15=TIMED_OUT, 0x16=LOCK_REGISTRATION, 0x17=REGISTRATION_KEY}; immediately followed by the NS2_SETUP_MODE_* enum {0=NONE,1=NFC,2=CHIRP,3=MANUAL_PIN,4=CLIENT_PIN,5=CHIRP_WITH_BUTTON,6=QR_CODE,7=QR_CODE_WITH_BUTTON,8=QR_CODE_WITH_REMOTE}. The NS2_STATE_* table at 0x1004f4ac is 18 rows x 44 bytes {name*, up-to-5 per-state handler slots, common handler 0x1001c094, extra slot, 0,0} with id = row index: {0=RESET,1=SETUP_STANDBY,2=SETUP_START,3=SETUP_DISCOVERY,4=SETUP_DISCOVERY_INTERACTION,5=SETUP_PIN_EXCHANGED,6=SETUP_WAITING,7=SETUP_ACTIVE,8=SETUP_COMPLETE,9=SETUP_UPDATE,0xa=OPEN_AP_PENDING,0xb=OPEN_AP_STANDBY,0xc=ENABLE_WIFI_PENDING,0xd=DEACTIVATED,0xe=REAUTH_PENDING,0xf=ISLAND_PENDING,0x10=SCANNING,0x11=CHECKING_CREDS}",
-    "Extended: the NS2 id->name table at 0x1004f848 continues past the 24 opcodes into the setup-mode enum at 0x1004f908 {NS2_SETUP_MODE_NONE=0, NFC=1, CHIRP=2, MANUAL_PIN=3, CLIENT_PIN=4, CHIRP_WITH_BUTTON=5, QR_CODE=6, QR_CODE_WITH_BUTTON=7, QR_CODE_WITH_REMOTE=8}. And the WAC/event state vocabulary block at 0x1002f4cc is the FSM event-name table: {CRR_UP,CRR_DN,SNP_UP,SNP_DN,SATUPD,NS_STR,NS_OPN,NS_CFG,NS_IDL,SCN_REQ,SCN_CPL,AP_ASS,AP_DAS,CCRED,CRD_GOOD,CRD_BAD,CRD_UNSP,CRD_NOAP,CRD_CNCL,UFLWIR,SATFM,WF_DIS,WF_ENA,PFOUND,PLOST,DUPIP,WAC_AP_OPEN,WAC_AP_CLOSE,WAC_STA,WAC_DONE,WAC_TMO,WAC_STOP,WAC_ERROR,DUPIP_PERSIST,DUPIP_CLEARED,MODE_SWITCH_WIFI,MODE_SWITCH_BT,PREP_MODE_SWITCH,WIFI_RESET,START_RECOVERY_AP,START_RECOVERY_STA,SAT_CSA,PRIM_SWT_BAND,PRIM_UP,SNT_DIS,SNT_ENA,SCN_PRIM,AP_TIMEOUT}."
+    "Extended: the NS2 id->name table at 0x1004f848 continues past the 24 opcodes into the setup-mode enum at 0x1004f908 {NS2_SETUP_MODE_NONE=0, NFC=1, CHIRP=2, MANUAL_PIN=3, CLIENT_PIN=4, CHIRP_WITH_BUTTON=5, QR_CODE=6, QR_CODE_WITH_BUTTON=7, QR_CODE_WITH_REMOTE=8}. And the WAC/event state vocabulary block at 0x1002f4cc is the FSM event-name table: {CRR_UP,CRR_DN,SNP_UP,SNP_DN,SATUPD,NS_STR,NS_OPN,NS_CFG,NS_IDL,SCN_REQ,SCN_CPL,AP_ASS,AP_DAS,CCRED,CRD_GOOD,CRD_BAD,CRD_UNSP,CRD_NOAP,CRD_CNCL,UFLWIR,SATFM,WF_DIS,WF_ENA,PFOUND,PLOST,DUPIP,WAC_AP_OPEN,WAC_AP_CLOSE,WAC_STA,WAC_DONE,WAC_TMO,WAC_STOP,WAC_ERROR,DUPIP_PERSIST,DUPIP_CLEARED,MODE_SWITCH_WIFI,MODE_SWITCH_BT,PREP_MODE_SWITCH,WIFI_RESET,START_RECOVERY_AP,START_RECOVERY_STA,SAT_CSA,PRIM_SWT_BAND,PRIM_UP,SNT_DIS,SNT_ENA,SCN_PRIM,AP_TIMEOUT}.",
+    "Substantive greeting follow-up: server bitmap predicates are now joined to the actual daemon callbacks, not only enumerated masks. Main configuration+0x48 ->f_1000a6ec ->boolean(global0x1005010c) feeds bit0x100 only when setup mode is not3; configuration+0x4c ->f_1000a6c0 ->f_1000cc30 ->global0x10050bd8 feeds0x400. The builder independently chooses0x10 versus0x20, always includes0x80, and session+0x1a4 bit0 jointly supplies0x8000/0x10000. GNU e500 isel checks disprove treating callback presence or these paired bits as independent success signals. Product-feature meanings and flag/global producers remain open in the existing greeting residual."
    ],
    "control_ipc_command_13": {
     "binary": "wifi/netstartd build86.10-80260 SHA2569654a16c9b5c07c84131b574e216e7ba311be405c4a831e360a59d10ac35de7e. This block concerns local anacapad control IPC, not the separate over-the-air NS2 opcode catalog.",
@@ -166695,6 +166696,30 @@
      "build": "86.10-80260",
      "address": "0x1000b088",
      "notes": "Session finalization attempts local append only after every field succeeds."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "address": "0x1001e654",
+     "notes": "Concrete greeting bitmap selection; GNU isel cross-check at0x1001e66c."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "address": "0x10002ecc",
+     "notes": "Main installs actual callbacks in NS2 config+0x48/+0x4c."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "address": "0x10023ff8",
+     "notes": "Bit0x100 callback gate includes setup-mode3 veto; +0x4c callback joins to global load."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "address": "0x1001e73c",
+     "notes": "One session bit jointly advertises0x8000 and0x10000; byte+0x1ac supplies0x20000."
     }
    ],
    "setup_client_hello_payload": {
@@ -167469,6 +167494,14 @@
     "binding_and_record": "State/report callbacks0x1000ad78/0x1000ae80 both call init_event_ctx(categoryzpSetup,flags9). The local event library chooses persistent /jffs/sys/log/event_reporter_v3 and process-basename filename. Records are NUL-delimited, contain an automatically generated wall-clock timestamp and numericflags9, then caller key/value pairs, then newline. Header timestamp has a different clock domain from session startTime/duration: automatic time() epoch seconds versus monotonic uptime seconds supplied by netstartd. Those fields must not be subtracted or interpreted as interchangeable dates.",
     "builder_failure": "Each init/add/report must return0; netstartd logs Can't report setup event and returns0 on any nonzero result. Successful state/session wrapper returns1. A long category or accumulated strings filling the256-byte record can prevent delivery before report_event. Pair failure may leave a partial key in the local stack context, but these wrappers do not call report_event after detecting that failure. State setter/common reset ignore the wrapper boolean, so transitions/cleanup continue without an appended diagnostic event.",
     "append_failure": "File size cap, missing parent directory condition, open/lock/read/write errors can make report_event fail independently of setup success. Failure can leave a finalized newline in context and partial bytes in the destination; these wrappers do not retry, undo the event append, restore the setup state or queue another record. mkdir requests0777 and file open requests0777 but no later permission change; this is an explicit requested mode, not proof of runtime permission bits after inherited process policy. Downstream upload and remote retention remain separate from successful local append."
+   },
+   "server_greeting_capability_predicates": {
+    "scope": "Concrete reachable SETUP_SERVER_HELLO_LEGACY bitmap assembly in f_1001e4d0. These are native predicates, not product-feature names. Configuration callbacks are joined to daemon-main stores relative to its NS2 configuration base stack+0x1c.",
+    "base_pair": "At0x1001e654-0x1001e66c the builder calls0x10023fa0, which returns setup-context byte0 XOR1. It always sets0x80 and selects0x10 when that return is0 (byte0==1), otherwise0x20. This is a mutually selected pair, not two independent capability gates. GNU e500 decodes the isel at0x1001e66c.",
+    "bit_100": "At0x1001e670-0x1001e684, bit0x100 is added only if f_10023ff8 returns nonzero. That helper requires a nonnull configuration callback+0x48, its nonzero result and setup mode+0x2cc !=3 (0x10024024-0x10024050). Daemon main stores f_1000a6ec in that slot at0x10002ed0. The concrete callback returns boolean(global u32@0x1005010c !=0). Callback presence alone does not advertise this bit; the mode veto still applies.",
+    "bit_400": "At0x1001e6ac-0x1001e6cc the builder calls optional configuration callback+0x4c and adds0x400 on nonzero. Main installs f_1000a6c0 at0x10002edc. It calls f_1000cc30 (load global u32@0x10050bd8), then normalizes nonzero to1. This joins the actual configured callback rather than leaving an unbound generic predicate.",
+    "high_bits": "At0x1001e73c-0x1001e758 session+0x1a4 bit0 adds BOTH0x10000 and0x8000. At0x1001e75c-0x1001e774 session byte+0x1ac !=0 adds0x20000. These conditions are directly before serializer argument assembly; they describe advertised bitmap values, not peer acceptance or completed setup.",
+    "residual": "The native predicates above do not establish names for the advertised capabilities. The two globals, setup/session flags and remaining configuration callbacks still require full producer/meaning traces. Other bitmap arms are not claimed complete."
    }
   },
   "bin_wacd": {
