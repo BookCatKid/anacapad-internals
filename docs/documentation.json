@@ -67146,7 +67146,7 @@
      },
      "side_effects": [
       {
-       "description": "Changes or clears the next URI descriptor. The indexed worker also receives range-adjustment requests independent of the stored descriptor change.",
+       "description": "A successful insert writes the next URI descriptor and inserts the prepared block at the saved position. The action then requests removal of any old entries after the block. Clearing an existing next URI requests removal from the saved position through the end, then clears the descriptor. Neither removal result changes the action result.",
        "evidence": [
         {
          "type": "firmware",
@@ -67163,16 +67163,36 @@
          "address": "0x102ae180",
          "notes": "Successful insertion changes the next URI descriptor and sets the dirty byte; a possible subsequent range request does not govern the result.",
          "function": "0x102adf20"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1014de50",
+         "notes": "The commitAppend worker checks the transaction ID at 0x1014ddc0, grows the queue by the prepared count, can move the appended block to the chosen insertion position, and writes the post-commit total from list+0x26c8 at 0x1014df9c. The action checks that total for nonzero at 0x102ae148.",
+         "function": "0x1014dc98"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1014e9c0",
+         "notes": "Op 14 selects its list and passes one-based first and last positions into f_1014e9a8 (direct calls 0x10266458 and 0x10268534, or current-list variants). The removal worker subtracts one from both positions, bounds-checks both against the list size, and removes the inclusive range.",
+         "function": "0x1014e9a8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ae190",
+         "notes": "After commit, requests the inclusive range from insertion position plus prepared count through post-commit total when that range is nonempty. Clear uses the saved insertion position through the current total instead: f_1025b35c returns position minus one, and f_1025b3e8 returns total minus position plus one. If the position is unset, they return total and zero, so clear submits an empty range. The action ignores trim and clear removal results.",
+         "function": "0x102adf20"
         }
-       ],
-       "todo": [
-        "Established: Changes or clears the next URI descriptor.",
-        "Identify indexed queue entries mutated by the initial insert and range adjustments (0x102ae13c, 0x102ae1d4, 0x102ae020). The descriptor and dirty-bit side effects are verified."
        ]
       }
      ],
      "events_triggered": {
-      "description": "A successful insert or clear of an existing next URI marks both next-URI fields dirty. The next LastChange delta that consumes the flag includes both fields; the SOAP wrapper does not call the sender directly.",
+      "description": "A successful insert or clear of an existing next URI marks both next-URI fields dirty. The next LastChange delta that consumes the flag includes both fields. The dirty write does not directly wake a sender. The indexed workers have separate notification paths when the operation targets their current list.",
       "evidence": [
        {
         "type": "firmware",
@@ -67221,11 +67241,43 @@
         "address": "0x102af320",
         "notes": "The engine wrapper unlocks and returns without calling the sender. The indexed workers complete op 2 and op 14 before their notification checks; the running path tests its change flag and sender before 0x10265a08, and the stopped path calls f_102642d4 only when its change flag is set at 0x10267e04.",
         "function": "0x102af288"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1025606c",
+        "notes": "f_10255f64 posts the request and waits in f_1032e658 until request byte +0xe0 signals completion. The action then sets the descriptor dirty byte: after op 2 and before an optional trim, or after op 14 on clear. The consumer signals completion at 0x10265910 or 0x10267dfc before its explicit notification checks.",
+        "function": "0x10255f64"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1026639c",
+        "notes": "The running op-2 consumer directly commits a non-current list without setting the change flags initialized at 0x1026579c and 0x102657a8. For the current list it calls f_1025a350 and sets stack +0x38 at 0x10266980. The subsequent sender path also requires a live reference and nonnull sender at session+0x2578.",
+        "function": "0x1026571c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1026669c",
+        "notes": "The running op-14 current-list path rejects a zero start or first > last, and leaves its change flags clear if f_10259f38 returns false. On success it sets stack +0x38 at 0x102666cc. The non-current-list path calls f_1014e9a8 without setting that change flag.",
+        "function": "0x1026571c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102689f4",
+        "notes": "For stopped playback op 2 sets stack +0x2c after a current-list commit, but not after a non-current-list commit. The current-list op-14 handler sets the same flag at 0x10268d94 only if f_1014e9a8 returns true. The non-current-list branch does not set it. At 0x10267e04 the consumer requires that flag before entering the notification path.",
+        "function": "0x10267b68"
        }
       ],
       "todo": [
-       "Established: the dirty byte feeds both NextAVTransportURI and NextAVTransportURIMetaData. The wrapper does not trigger a sender directly; indexed workers have separate change-gated scheduling paths.",
-       "Trace op-2 commit and op-14 removal scheduling in each indexed state, including the case where clear discards a rejected removal, to determine whether the dirty descriptor alone wakes a sender."
+       "Established: the action marks both fields dirty without a direct sender call. Indexed op 2 and accepted op 14 set the respective notification flag on the current-list path; the non-current list and rejected removal paths do not set it.",
+       "Follow the queue mutation callbacks and the running/stopped notification delegates to the first AVTransport collector pass. Determine whether an already pending or periodic pass publishes the new descriptor if it misses the dirty write, and whether any alternate path wakes that pass when the explicit indexed notification is skipped."
       ]
      },
      "state_transitions": {
