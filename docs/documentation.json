@@ -93874,7 +93874,7 @@
       }
      ],
      "candidates": [
-      "srwi(*(*(sp-0xf0+0xf8)+0x0))",
+      "(*(*(sp-0xf0+0xf8)+0x0) & 0xff)",
       "0x0",
       "0x0",
       "0x10e98278"
@@ -103876,6 +103876,14 @@
      "build": "86.10-80260",
      "address": "0x1073186c",
      "notes": "service dispatcher"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100df4a4",
+     "function": "0x100df3fc",
+     "notes": "Manager-cell candidate audit: raw word575a063e has SH0,MB24,ME31,Rc0 and is clrlwi r26,r26,24, retaining the low byte, not shifting.100df494 loads r26 with lbz; no intervening assignment changes r26 before100dfa30 stores it with stb at this object+3a8. This byte store is a same-offset candidate from a different object, not a vptr installation. The chosen manager vptr10e98278 remains independently proven by lis/addi at1018dbb8/1018dbc8 and stw at1018dbd0; getter1019dc14 adjusts that secondary base by-3a8. This candidate correction does not change the distinct handler vptr10f110a8 or delegate vptr10ed75c4."
     }
    ],
    "notes": "Impl object is the SAME secondary-base manager subobject (vtable 0x10e98278, manager+0x3a8) used by DeviceProperties; SP and DP actions dispatch onto the same impl functions. GetString and Remove map to a 2-insn null stub (confirmed no-ops). Shares the DeviceProperties impl object (vtable 0x10e98278, mgr+0x3a8 secondary base). Slots +0x08..+0x40 alias with DP actions; +0x0c/+0x10/+0x24 are proven null stubs (GetString/Remove/EditAccountPasswordX are no-ops).",
