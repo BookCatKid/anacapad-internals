@@ -40477,7 +40477,7 @@
        ]
       },
       "CurrentCoordinator": {
-       "description": "UDN of the current group coordinator",
+       "description": "Identifier of the outgoing coordinator. The promotion helper forwards it as CurrentCoordinator in remote ChangeCoordinator calls, paired with the promoting player's local ID as NewCoordinator.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -40517,17 +40517,41 @@
          "address": "0x102de9a0",
          "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
          "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dedc0",
+         "notes": "The coordinator worker passes the materialized CurrentCoordinator string to f_10392d80 through its promotion shim. f_10392d80 saves it at sp+0x20.",
+         "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10392ff0",
+         "notes": "Loads the saved outgoing coordinator identifier into r5 and uses topology+0x210 as r6, the local player identifier. Passes both to f_106efae0 on the per-member ChangeCoordinator arm.",
+         "function": "0x10392d80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106efc14",
+         "notes": "Registers and writes CurrentCoordinator from the incoming r5 value. The next string argument, from r6, is NewCoordinator.",
+         "function": "0x106efae0"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": 25,
        "todo": [
-        "Established: Looks up CurrentCoordinator and installs a type 7 caller-buffer descriptor (25 bytes) at 0x102f9c78.",
-        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentCoordinator; the lazy lookup and destination are established."
+        "Established: the engine materializes a 25-byte destination and forwards the string as CurrentCoordinator on the remote ChangeCoordinator arm, with the promoting local player as NewCoordinator.",
+        "Verify length and missing-value behavior in the request materializer, and trace the remote member's validation of its prior-coordinator value."
        ]
       },
       "CurrentGroupID": {
-       "description": "group UUID of the zone group being handed off",
+       "description": "Group identifier to install during promotion. A nonempty value replaces the topology group's identifier together with the promoting player's local ID. An empty value preserves the existing topology strings at this step.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -40541,7 +40565,7 @@
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_GroupID-domain value",
        "range": "destination buffer: 36 bytes including space for NUL",
-       "special_values": "none identified",
+       "special_values": "Empty leaves the existing group/coordinator strings in place in f_10392d80.",
        "required": true,
        "default": "none",
        "validation": "fetched via request-object slot; impl validates internally",
@@ -40567,13 +40591,37 @@
          "address": "0x102de9a0",
          "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
          "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dedc0",
+         "notes": "Passes the materialized CurrentGroupID as r5 to the topology promotion helper.",
+         "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10392df4",
+         "notes": "Tests the first byte before replacing the topology coordinator and group ID. Empty skips the copies; nonempty copies the local player ID at topology+0x210 into +0x120 and the supplied group ID into +0x139 using strlcpy capacities 25 and 36 at 0x1039316c and 0x1039317c.",
+         "function": "0x10392d80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10392e38",
+         "notes": "Both arms use the resulting coordinator and group strings for f_1039be20, mark the topology event source, and forward the same strings to topology backend slot +0x40.",
+         "function": "0x10392d80"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": 36,
        "todo": [
-        "Established: Looks up CurrentGroupID and installs a type 7 caller-buffer descriptor (36 bytes) at 0x102f9ca0.",
-        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentGroupID; the lazy lookup and destination are established."
+        "Established: after materialization the topology worker tests only for an empty group ID before reusing the current strings or replacing them, and the copy has a 36-byte destination.",
+        "Verify length and missing-value behavior in the request materializer and whether the topology backend applies any additional group-ID validity checks."
        ]
       },
       "OtherMembers": {
