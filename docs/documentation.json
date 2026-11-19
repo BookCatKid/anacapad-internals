@@ -177092,7 +177092,7 @@
    "todo": "Established: Playback endpoint selector f_1011caec selects radio enum 1 for the literal case-sensitive x-sonosapi-radio: prefix through f_10147928 -> f_101478ec; the broader f_101477e4 predicate also recognizes that prefix. For a non-radio URI, f_10148478 requires x-rincon-cpcontainer:, parses its identifier through f_1071b3dc/f_1071d5c4 and returns true only when the parsed kind word equals 0x13. That case selects endpoint enum 3 (audiobook). Other inputs select zero, which f_1011c34c rejects. This wrapper does not choose browse enum 4 merely because an input is a container or another music-service URI. The parser/identifier-kind internals and alternate callers remain separate work. Remaining: Trace complete identifier-kind grammar and all selector callers/fallbacks."
   },
   "0x10483e28": {
-   "description": "Shared version parser f_10483e28 takes a begin/end text span and an output structure. It requires decimal major, a literal dot and decimal minor, with an optional dot plus decimal patch. f_10483c1c first requires an ASCII digit, then clears errno and calls strtoul(base10) with an end pointer; errno 22 or 34 rejects. Leading zeroes are not rejected. Whitespace/sign prefixes are rejected by the first-byte guard. Patch is written only when present; the caller must initialize it otherwise. After the numeric components, either span end must be reached or a hyphen/pre-release and/or plus/build suffix is processed. Each suffix must start with isalnum, but subsequent bytes are copied without per-byte validation. Pre-release ends at the first plus or span end; build metadata consumes the remaining span. Each stored suffix is truncated to 32 bytes plus terminator while the cursor advances across the full suffix. Success requires cursor==span end. This is the implemented grammar, not complete enforcement of Semantic Versioning 2.0.0. Exact libc locale/overflow ABI and reads at malformed span boundaries still need verification.",
+   "description": "Shared version parser f_10483e28 takes a {begin,end} span pointer (r3) and a caller-initialized output structure (r4: u32 major +0, u32 minor +4, u32 patch +8, char prerelease[0x21] +0xc, char build[0x21] +0x2d). The implemented state machine is MAJ '.' MIN ['.' PATCH] ['-' pre] ['+' build] with an end check that only applies on paths without a '+' suffix. After minor, the current byte dispatches once: '.' runs the patch digit parser, '-' runs the prerelease handler, '+' runs the build handler, anything else falls to the final check cursor==end. After a successful patch only '-', '+' or end are accepted; a second '.' fails. After prerelease only '+' is tested, and the build handler always ends the parse successfully because the end-check compares end to a register already holding end. Digit helper f_10483c1c requires the first byte to be ASCII '0'..'9' (this is what excludes whitespace and sign prefixes), clears errno via __errno_location, calls strtoul(base10,&endp), and rejects only errno 22 (EINVAL) and 34 (ERANGE); strtoul is a 32-bit unsigned long conversion so values above 0xFFFFFFFF fail as ERANGE while leading zeroes are accepted. The end pointer from strtoul is not itself checked against the span end; correctness comes from the final cursor==end test. strtoul and isalnum can read past the span end into following buffer bytes: for extractor-supplied spans the span end always sits on a non-digit URI delimiter or the NUL terminator, and for model-string spans any digits consumed past end are rejected by the end check, so over-read can never produce a false acceptance or a fault on well-formed backing buffers. '-' suffix requires byte cursor+1 to be isalnum, then copies from there up to the first '+' or span end, truncated at 0x20 bytes plus terminator into prerelease; '+' suffix requires byte cursor+1 to be isalnum, then copies the whole remaining span truncated at 0x20 bytes plus terminator into build. Suffix payload bytes are never per-byte validated, so '.', '-', '+' and arbitrary punctuation survive inside a stored suffix. patch, prerelease and build fields are only written on their own paths; absent components keep whatever the caller initialized (every observed caller zero-initializes the structure). An empty span (begin==end) fails the first digit guard and returns 1; the byte read at end always lands on an in-bounds delimiter or NUL. The function returns exactly 0 or 1, which makes the f_10338a34 diagnostic test (parser result==1) unconditionally true on parse failure. isalnum and the regex classes share the configured process locale (setlocale at 0x1080bb38), so bytes >=0x80 could classify differently under non-ASCII locales. No C++ exceptions: the function is a plain C path with only __stack_chk guards; the only libc dependencies are strtoul, isalnum, memchr, memcpy and __errno_location.",
    "why_external": "Parses manifest schema and cloud-queue version strings with observable lexical quirks.",
    "required_for_behavior": true,
    "role": "music_service_version_and_cq",
@@ -177103,9 +177103,62 @@
      "build": "86.10-80260",
      "address": "0x10483e28",
      "notes": "Instruction-level selector/version/encoder trace; see music_service_version_string and svc_manifest details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483ef0",
+     "function": "0x10483e28",
+     "notes": "Post-minor dispatch: '.'->patch at 0x10483fdc, '-'->prerelease at 0x10483f68, '+'->build at 0x10483f1c, else final end check at 0x10483f08. Post-patch re-dispatch starts at 0x10483ef8 skipping the '.' test, so '1.2.3.4' fails."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483f34",
+     "function": "0x10483e28",
+     "notes": "Build handler loads span end into r28 making the final cursor==end check at 0x10483f10 vacuous; '+' suffix terminates the parse with success once its first byte is isalnum."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483fa8",
+     "function": "0x10483e28",
+     "notes": "isel selects memchr('+') result or span end as prerelease boundary; second isel at 0x10483fb8 clamps the memcpy to 0x20 bytes; cursor advances to the '+' or end, not to the truncated length."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483c60",
+     "function": "0x10483c1c",
+     "notes": "Digit guard: (*cursor-0x30)<=9 unsigned required before strtoul; errno cleared at 0x10483cb0; only errno 22/34 rejected at 0x10483cc8-0x10483cd4; endp stored back to the cursor holder without a span-end compare."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10118624",
+     "function": "0x10118580",
+     "notes": "Schema callback parses literal '1.0' span and the manifest string {ptr,len} span; both version outputs fully zero-initialized at 0x10118610-0x10118620 and 0x10118638-0x1011864c including patch and both suffix terminators."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483f70",
+     "function": "0x10483e28",
+     "notes": "isalnum(lbz byte) called on the byte after '-' / '+'; byte at span end is an in-bounds delimiter or NUL for all observed span sources, so the read cannot fault."
     }
    ],
-   "todo": "Established: Shared version parser f_10483e28 takes a begin/end text span and an output structure. It requires decimal major, a literal dot and decimal minor, with an optional dot plus decimal patch. f_10483c1c first requires an ASCII digit, then clears errno and calls strtoul(base10) with an end pointer; errno 22 or 34 rejects. Leading zeroes are not rejected. Whitespace/sign prefixes are rejected by the first-byte guard. Patch is written only when present; the caller must initialize it otherwise. After the numeric components, either span end must be reached or a hyphen/pre-release and/or plus/build suffix is processed. Each suffix must start with isalnum, but subsequent bytes are copied without per-byte validation. Pre-release ends at the first plus or span end; build metadata consumes the remaining span. Each stored suffix is truncated to 32 bytes plus terminator while the cursor advances across the full suffix. Success requires cursor==span end. This is the implemented grammar, not complete enforcement of Semantic Versioning 2.0.0. Exact libc locale/overflow ABI and reads at malformed span boundaries still need verification. Remaining: Verify libc locale/overflow ABI, malformed span boundaries and all caller initialization/exception behavior."
+   "resolved_findings": [
+    "Resolved: exact grammar is MAJ.MIN[.PATCH][-pre][+build]; '.' is only honored immediately after minor, '-' suffix ends at the first '+' or span end, '+' suffix consumes the remainder and ends the parse unconditionally.",
+    "Resolved: strtoul/isalnum over-read past span end is bounded by the backing NUL-terminated buffer and cannot produce false acceptance because success still requires cursor==end; for extractor spans the end always sits on a non-digit delimiter or NUL.",
+    "Resolved: caller initialization audit - f_10118580 zeroes both outputs; all f_10338a34 callers zero the output; patch and suffixes are caller-defaulted when absent.",
+    "Resolved: only return values are 0 and 1, so every parse failure triggers the f_10338a34 SemVer diagnostic path when a diagnostic object is supplied."
+   ]
   },
   "0x10483cf0": {
    "description": "Cloud-queue version extractor f_10483cf0 takes a NUL-terminated URI and a two-word {begin,end} output span. It lazily compiles the literal regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$) with cflags 1 (REG_EXTENDED only) into the process-global regex_t at 0x110a4230, guarded by the compiled-flag byte at 0x110a422c. The regex buffer is never freed on success and survives for process lifetime; on regcomp failure the buffer is passed to regfree, the flag stays 0 so every later call retries compilation, and the function returns 2. The lazy init has no synchronization: concurrent first calls can both run regcomp into the same buffer (leak and torn regex_t risk); steady-state regexec on a completed buffer is read-only. URI component splitter f_10c3a920 fills a 10-word out struct of {ptr,len} pairs (scheme +0x00, authority +0x08, path +0x10, query +0x18, fragment +0x20), zeroed at entry. regexec runs on the raw path pointer with nmatch 1 and eflags 0, so it scans the C string beyond the path span into any query or fragment. The first (leftmost-longest) match is used: begin = path_ptr + rm_so + 2 (after /v), end = path_ptr + path_len, except when the last matched byte is slash, where end = that slash position. A guard at 0x10483da8 returns 1 when path_end < begin, which is what rejects matches anchored entirely inside a query or fragment. There is no independent check that the ending slash is the last path separator, so a matching version segment followed by more path can supply the accepted version and an earlier matching segment wins over a later one. Missing-path URIs crash: when the URI has a query or fragment but no path characters (first special byte is ? or #, or an authority is followed directly by ?/#, e.g. '?x', '#x', 'scheme://host?x', '//?x'), f_10c3a920 leaves the path slot NULL and regexec is invoked on a NULL string. A NULL URI pointer crashes earlier inside strlen in f_10c3a920. An empty string or an absent path without query/fragment yields a nonnull zero-length path, so regexec runs on an empty string and returns no match. The binary calls setlocale(LC_ALL, configured name) once at 0x1080bb38 inside constructor f_1080ba78, so the pattern's [0-9]/[a-zA-Z] classes execute under the configured process locale; under C/POSIX/UTF-8 locales they match the ASCII sets as written. No match returns 1, success returns 0.",
