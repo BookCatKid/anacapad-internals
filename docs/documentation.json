@@ -148876,10 +148876,28 @@
      "type": "firmware",
      "address": "0x10f29ab7",
      "notes": "audio_stream/mixing blocks"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x10801408",
+     "address": "0x10801494",
+     "notes": "Source category forwarded to DSP, guarded by null DSP pointer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x10801b3c",
+     "address": "0x10801c20",
+     "notes": "Matching-ID playback-category store and volume/DSP updates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x10d7e1a0",
+     "address": "0x10d7e238",
+     "notes": "TV/TTS/FEEDBACK category-dependent gain-offset branches, not packed sample formats."
     }
-   ],
-   "todo": [
-    "Residual: the per-streamSampleType format-word table (if any) is config/runtime data - no static table exists keyed by the 6-value enum."
    ],
    "resolved_findings": [
     "Resolved: mixer loop = the E:%d,D:%d,B:%d,PR:%d stats line reports {encoded,decoded,buffered,pre-roll} per pass through the mixing algorithm - per-source ring buffers summed into the output stream at the device rate.",
@@ -148888,7 +148906,9 @@
     "Resolved: mixer fade/gain math shares the 8169-entry float gain LUT at 0x10fc0218 (accessor f_10cad098, interpolator f_10cad0b4) - ramp curves index this table rather than computing coefficients inline.",
     "Resolved (streamSampleType vocabulary): f_10d91e74 maps the type id via a 6-entry name table at 0x10feb654 - {0:NONE, 1:MUSIC, 2:TV, 3:FEEDBACK, 4:TTS, 5:CHIRP}, out-of-range prints 'UNKNOWN' (guard cmplwi 5). This is the enum the 'set streamSampleType to %s' / 'changed m_playbackStreamSampleType from %s to %s' logs index and matches the as-*-tv/-ext-voice/-ext-chirp stream-name suffixes - the mixer instantiates per-type DSP chain variants.",
     "Output format constants proven in the audio_stream.cxx write path f_107eca90: samples are 4-byte words (all strides slwi*2=4B, lwzux word loads, integer add mixing); channel-count check accepts {1,2,4} ('attempted to write %zu channels, max %zu channels' with max from stream member +0x1c0); frames are fixed-stride interleaved; no inline rate constant exists - the device rate is a runtime member, so mixer output = {32-bit interleaved samples, channels<=4, rate=device member}.",
-    "Established: mixer output = 32-bit interleaved integer samples, channel counts {1,2,4} (guard at +0x1c0), rate = device member (no literal rate constant in the mixer - runtime field)."
+    "Established: mixer output = 32-bit interleaved integer samples, channel counts {1,2,4} (guard at +0x1c0), rate = device member (no literal rate constant in the mixer - runtime field).",
+    "The streamSampleType format-table premise is resolved by tracing the setters: this enum is a source/playback category, not a packed audio-format word. f_10801408 logs the category name with f_10d91e74, and, only if DSP object +0xa4 is non-null, forwards it to f_10d7e2b8 (0x10801484-0x10801494). That callee compares/stores the category at DSP +0x80 and runs gain-offset update f_10d7e1a0. f_10801b3c handles playback-category changes for the matching stream ID: a mismatched byte ID at +0x9c exits unchanged; a match stores the new category at +0xd8, updates volume through f_108017d8 and forwards it through f_10d7e32c when the DSP exists. f_10d7e32c compares/stores playback category at DSP +0x7c and invokes the same gain-offset update. No packed sample-format lookup occurs in either setter. The six-entry table 0x10feb654 is pointers to category names only, accessed by f_10d91e74, with UNKNOWN for unsigned values above five. Physical sample width, channel stride and rate belong to the audio-stream data path, not that name table. This replaces the earlier unsupported assertion that a missing format-word table must be external configuration.",
+    "Positive category consumer: f_10d7e1a0 tests playback +0x7c for TV=2 at 0x10d7e1b8. Only in that branch does it select source-category-specific gain offsets: TTS=4 and FEEDBACK=3 have byte +0x200-dependent branches using +0x204 and +0x208 respectively; the other TV source categories use +0x20c. Non-TV playback takes the shared identity/default offset path. Each path converges on storing gain offset at +0x210 and refreshing gain through f_10d7d830 and f_10d7dc9c. Thus category-specific policy really exists in compiled branches; lack of a six-row format table is not evidence of missing sample-format data. This finding concerns category/format separation, not a claim that all DSP behavior is controlled by these two setters."
    ]
   },
   "sound_device": {
