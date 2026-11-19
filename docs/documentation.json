@@ -103771,7 +103771,7 @@
      ]
     },
     "CheckForUpdate": {
-     "description": "Checks update availability (UpdateType, CachedOnly, Version) and returns UpdateItem via impl->v[+0x8] on the doubly-indirect member.",
+     "description": "Checks software update metadata through concrete topology slot +8. CachedOnly selects cached Software metadata or a fresh network discovery. The Version input is required but ignored; UpdateType is checked only on the cached branch.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073331c",
@@ -103786,9 +103786,9 @@
       "calls": [
        {
         "site": "0x1073343c",
-        "obj": "*(*(sp-0xcf0+0xce8)+0x4)",
+        "obj": "*(service+4), primary vptr 0x10e8b024",
         "slot": 8,
-        "arg4": "sp+0x5c"
+        "arg4": "UpdateType; r5 CachedOnly; r6 Version (ignored); r7 output; r8 3072"
        },
        {
         "site": "0x10733478",
@@ -103813,7 +103813,7 @@
      },
      "inputs": {
       "UpdateType": {
-       "description": "update-type string; impl strcmp vs literal \"Software\"",
+       "description": "Required text checked against Software only when CachedOnly is true.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -103822,36 +103822,49 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 128 bytes (127 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "\"Software\" is the only accepted value (mismatch -> 402)",
-       "range": "max 127 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "update category string",
+       "format": "bounded text, case-sensitive cached comparison",
+       "unit": "text",
+       "accepted_values": "CachedOnly true: Software; CachedOnly false: any present text",
+       "range": "127 bytes plus NUL",
+       "special_values": "Empty is accepted by parser; cached branch faults 402, online branch ignores it.",
        "required": true,
        "default": "none - required argument",
-       "validation": "impl-level strcmp at 0x10752c80",
+       "validation": "f_10752bf0 strcmp at 0x10752c80 is reached only for CachedOnly nonzero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10752c80",
-         "notes": "strcmp \"Software\""
+         "function": "0x1073331c",
+         "address": "0x107333e8",
+         "callsite": "0x1073343c",
+         "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10752c84",
-         "notes": "402 on mismatch"
+         "function": "0x10560a58",
+         "address": "0x10560b78",
+         "callsite": "0x10560bcc",
+         "notes": "Type-7 input handling bounds and NUL-terminates text, truncating overlong values; present empty strings are accepted. Boolean tag 1 compares case-insensitively with 1, true and yes at 0x10560b90/0x10560ba8/0x10560bc0, stores 1 for these and 0 for all other text including empty. Boolean input text buffer capacity is 24. Missing required records make canonical validator f_10730414 return false, unlike permissive text conversion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752bf0",
+         "address": "0x10752c98",
+         "callsite": "0x10752c20",
+         "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
         }
        ],
        "notes": null,
        "buf_cap": 128
       },
       "CachedOnly": {
-       "description": "flag parsed by request layer, passed to worker f_10752adc",
+       "description": "Required permissive boolean selecting cache-only versus network discovery.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -103860,28 +103873,48 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "not impl-checked",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none observed in this build",
+       "semantic_type": "boolean",
+       "format": "case-insensitive 1/true/yes true; every other string false",
+       "unit": "n/a",
+       "accepted_values": "Present text converted to byte 0 or 1",
+       "range": "0 or 1",
+       "special_values": "Empty or unrecognized text selects online discovery, not a validation fault.",
        "required": true,
        "default": "none - required argument",
-       "validation": "request-layer parse only",
+       "validation": "Type-1 conversion f_10560b78; concrete branch at 0x10752bf8.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10752c20",
-         "notes": "worker call args"
+         "function": "0x1073331c",
+         "address": "0x107333e8",
+         "callsite": "0x1073343c",
+         "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b78",
+         "callsite": "0x10560bcc",
+         "notes": "Type-7 input handling bounds and NUL-terminates text, truncating overlong values; present empty strings are accepted. Boolean tag 1 compares case-insensitively with 1, true and yes at 0x10560b90/0x10560ba8/0x10560bc0, stores 1 for these and 0 for all other text including empty. Boolean input text buffer capacity is 24. Missing required records make canonical validator f_10730414 return false, unlike permissive text conversion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752bf0",
+         "address": "0x10752c98",
+         "callsite": "0x10752c20",
+         "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
         }
        ],
        "notes": null
       },
       "Version": {
-       "description": "version string forwarded to worker f_10752adc",
+       "description": "Required compatibility input copied to a bounded buffer but ignored by the installed concrete worker.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -103890,22 +103923,51 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 65 bytes (64 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "not impl-checked",
-       "range": "max 64 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "opaque ignored text",
+       "format": "text, at most 64 bytes plus NUL",
+       "unit": "text",
+       "accepted_values": "Any present text",
+       "range": "64 bytes plus NUL",
+       "special_values": "Empty and malformed version text are accepted; no filtering against this value.",
        "required": true,
        "default": "none - required argument",
-       "validation": "request-layer parse only",
+       "validation": "No version parse or comparison uses argument r6 in f_10752bf0 or f_10752adc.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10752c20",
-         "notes": "worker call args"
+         "function": "0x1073331c",
+         "address": "0x107333e8",
+         "callsite": "0x1073343c",
+         "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b78",
+         "callsite": "0x10560bcc",
+         "notes": "Type-7 input handling bounds and NUL-terminates text, truncating overlong values; present empty strings are accepted. Boolean tag 1 compares case-insensitively with 1, true and yes at 0x10560b90/0x10560ba8/0x10560bc0, stores 1 for these and 0 for all other text including empty. Boolean input text buffer capacity is 24. Missing required records make canonical validator f_10730414 return false, unlike permissive text conversion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752bf0",
+         "address": "0x10752c98",
+         "callsite": "0x10752c20",
+         "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752adc",
+         "address": "0x10752bbc",
+         "callsite": "0x10752b58",
+         "notes": "Builds temporary update-item collection then calls f_10752420 with collection and zero final option. Nonzero helper return propagates. On success selects type 1 (Software) via f_10574a08; missing item or empty item Version at item+8 returns 801 at 0x10752bbc. Otherwise serializes the freshly fetched item, not cached topology+0x5ec, and returns zero. It never launches installation or uses the caller Version."
         }
        ],
        "notes": null,
@@ -103914,180 +103976,459 @@
      },
      "outputs": {
       "UpdateItem": {
-       "description": "update record emitted on success by the worker path",
+       "description": "Self-closing Software UpdateItem XML from cache or the fresh discovery result.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "populated from impl+0x5ec state",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "empty when no pending update record",
+       "semantic_type": "XML text",
+       "format": "<UpdateItem xmlns=\"urn:schemas-rinconnetworks-com:update-1-0\" Type=\"Software\" Version=\"...\" UpdateURL=\"...\" DownloadSize=\"...\" ManifestURL=\"...\" Swgen=\"...\" LatestSwgen=\"...\" ManifestRevision=\"...\"/>",
+       "unit": "XML",
+       "accepted_values": "Serialized Software metadata with nonempty Version",
+       "range": "3072-byte output buffer including NUL; writer overflow is not faulted",
+       "special_values": "Missing/empty Version faults 801 rather than a successful empty UpdateItem. Output overflow can leave an incomplete XML prefix without changing success.",
        "required": false,
-       "default": "populated from impl+0x5ec pending-update record",
-       "validation": "emitted on success",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10752cc8",
-         "notes": "pending update string at impl+0x5ec"
-        }
-       ],
-       "notes": null
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x1073331c",
-        "notes": "wrapper decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x8]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x1073331c",
-        "notes": "req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x8]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x1073331c",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x8]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "state-mutation delegate: *(r30+4) v[+0x8] (call-derived member-method semantics)",
+       "default": "No default record.",
+       "validation": "Worker nonzero prevents output commit; writer overflow flag is not checked.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x1073331c",
-         "notes": "delegate map ['*(r30+4) v[+0x8]']; notify-family calls []"
+         "address": "0x107333e8",
+         "callsite": "0x1073343c",
+         "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752bf0",
+         "address": "0x10752c98",
+         "callsite": "0x10752c20",
+         "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752adc",
+         "address": "0x10752bbc",
+         "callsite": "0x10752b58",
+         "notes": "Builds temporary update-item collection then calls f_10752420 with collection and zero final option. Nonzero helper return propagates. On success selects type 1 (Software) via f_10574a08; missing item or empty item Version at item+8 returns 801 at 0x10752bbc. Otherwise serializes the freshly fetched item, not cached topology+0x5ec, and returns zero. It never launches installation or uses the caller Version."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105744e4",
+         "address": "0x10eee844",
+         "callsite": "0x105746a4",
+         "notes": "Nonempty item Version at +8 produces self-closing UpdateItem XML through f_10578490/f_105782a0. Attribute list: xmlns=urn:schemas-rinconnetworks-com:update-1-0, Type=Software, Version, UpdateURL (+0x49), DownloadSize (u32 +0x88c, decimal %u), ManifestURL (+0x44a), Swgen (u16 +4, decimal), LatestSwgen (u16 +6, decimal), ManifestRevision (+0x84b). Empty version emits nothing, but action guards reject it with 801. Writer f_10578764 initializes a 3072-byte response buffer. Raw append f_10577ea8 requires room for NUL, sets sticky overflow byte +0x14 and skips failing/subsequent fragments. No caller tests that byte or converts overflow to a SOAP fault. Attribute text uses writer slot +0x0c -> f_10577c40 -> escaping writer."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v[+0x8] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "notes": null
+      }
+     },
+     "validation": {
+      "description": "All three inputs must be present. Text/boolean parsing is permissive. CachedOnly true additionally requires exact Software and a cached nonempty version. Online discovery ignores caller UpdateType and Version; its own returned Software record must have a nonempty Version.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073331c",
+        "address": "0x107333e8",
+        "callsite": "0x1073343c",
+        "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b78",
+        "callsite": "0x10560bcc",
+        "notes": "Type-7 input handling bounds and NUL-terminates text, truncating overlong values; present empty strings are accepted. Boolean tag 1 compares case-insensitively with 1, true and yes at 0x10560b90/0x10560ba8/0x10560bc0, stores 1 for these and 0 for all other text including empty. Boolean input text buffer capacity is 24. Missing required records make canonical validator f_10730414 return false, unlike permissive text conversion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752bf0",
+        "address": "0x10752c98",
+        "callsite": "0x10752c20",
+        "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752adc",
+        "address": "0x10752bbc",
+        "callsite": "0x10752b58",
+        "notes": "Builds temporary update-item collection then calls f_10752420 with collection and zero final option. Nonzero helper return propagates. On success selects type 1 (Software) via f_10574a08; missing item or empty item Version at item+8 returns 801 at 0x10752bbc. Otherwise serializes the freshly fetched item, not cached topology+0x5ec, and returns zero. It never launches installation or uses the caller Version."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required UpdateType, CachedOnly and Version records. No coordinator-only, running-playback or busy-state gate. Cached request needs exact Software and cached version; online request needs a constructible discovery endpoint, successful fetch, usable manifest and a Software version.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073331c",
+        "address": "0x10e8b02c",
+        "callsite": "0x1073343c",
+        "notes": "Init calls concrete topology constructor f_10125b54 at 0x1018e204; it installs primary vptr 0x10e8b024 at 0x10126234. Init passes that object to service constructor f_10733b28 at 0x1018e2cc; constructor stores implementation at service+4 and service vptr 0x10f113b0. Implementation slot +8 at 0x10733434 resolves to f_10752bf0, not f_10752adc directly. Base table 0x10f12274 has the same worker."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073331c",
+        "address": "0x107333e8",
+        "callsite": "0x1073343c",
+        "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752bf0",
+        "address": "0x10752c98",
+        "callsite": "0x10752c20",
+        "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752420",
+        "address": "0x10752604",
+        "callsite": "0x10752544",
+        "notes": "Obtains R_CustomerID through topology+0x58c (missing, empty or exactly 0 becomes empty); controller type 7 instead uses POS. Reads SW generation u16 +0x57c under mutex +0x318, obtains local version via f_105ad854 and constructs update-discovery endpoint through f_10540460 at 0x107524fc. Endpoint-construction false returns 801 at 0x1075274c. Calls f_10751c84 with temporary output collection, empty extra string, zero final option and collected household/version/generation context. On success compares Software item against cached +0x5ec through f_105743a8; only a changed nonempty incoming version causes property-save attempt. Save failure is logged and does not change successful fetch status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10751c84",
+        "address": "0x107521ac",
+        "callsite": "0x10751ec4",
+        "notes": "Snapshots maximum cached player version by walking topology+0x5a8 under mutex +0x318, builds discovery URI with f_10777378, and uses HTTP helper f_10546520 with a monotonic deadline 60000 ms ahead. Handles final redirected URI, Content-Location and X-Sonos-LatestSWGen. Nonzero HTTP-open result maps to 800 at 0x107521ac, not the raw network code. Reads chunks via f_10544040, feeds manifest parser f_10575650 and finalizes f_1057544c. False parser finalization or absent manifest usable-output byte +0x5c maps to 899 at 0x1075210c (UPM Invalid). Success f_10574810 adds Software item. Parser finalization f_10575378 checks error byte +0x964, tag depth +0x954 and signature-seen byte +0x9d8; this evidence does not assert a separate cryptographic verification step. Entire fetch return domain is {0,800,899}."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752adc",
+        "address": "0x10752bbc",
+        "callsite": "0x10752b58",
+        "notes": "Builds temporary update-item collection then calls f_10752420 with collection and zero final option. Nonzero helper return propagates. On success selects type 1 (Software) via f_10574a08; missing item or empty item Version at item+8 returns 801 at 0x10752bbc. Otherwise serializes the freshly fetched item, not cached topology+0x5ec, and returns zero. It never launches installation or uses the caller Version."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Cache-only branch reads Software item +0x5ec under topology mutex +0x318; +0x5f4 is its version byte, not capability state. Online branch reads provider +0x58c, controller type +0xec4, R_CustomerID, local software version, SW generation +0x57c and maximum cached member version from +0x5a8; availability property observer maintains cache and dirty byte +0xe7c.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752bf0",
+        "address": "0x10752c98",
+        "callsite": "0x10752c20",
+        "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752420",
+        "address": "0x10752604",
+        "callsite": "0x10752544",
+        "notes": "Obtains R_CustomerID through topology+0x58c (missing, empty or exactly 0 becomes empty); controller type 7 instead uses POS. Reads SW generation u16 +0x57c under mutex +0x318, obtains local version via f_105ad854 and constructs update-discovery endpoint through f_10540460 at 0x107524fc. Endpoint-construction false returns 801 at 0x1075274c. Calls f_10751c84 with temporary output collection, empty extra string, zero final option and collected household/version/generation context. On success compares Software item against cached +0x5ec through f_105743a8; only a changed nonempty incoming version causes property-save attempt. Save failure is logged and does not change successful fetch status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10751c84",
+        "address": "0x107521ac",
+        "callsite": "0x10751ec4",
+        "notes": "Snapshots maximum cached player version by walking topology+0x5a8 under mutex +0x318, builds discovery URI with f_10777378, and uses HTTP helper f_10546520 with a monotonic deadline 60000 ms ahead. Handles final redirected URI, Content-Location and X-Sonos-LatestSWGen. Nonzero HTTP-open result maps to 800 at 0x107521ac, not the raw network code. Reads chunks via f_10544040, feeds manifest parser f_10575650 and finalizes f_1057544c. False parser finalization or absent manifest usable-output byte +0x5c maps to 899 at 0x1075210c (UPM Invalid). Success f_10574810 adds Software item. Parser finalization f_10575378 checks error byte +0x964, tag depth +0x954 and signature-seen byte +0x9d8; this evidence does not assert a separate cryptographic verification step. Entire fetch return domain is {0,800,899}."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752420",
+        "address": "0x10efec60",
+        "callsite": "0x107526e8",
+        "notes": "Changed Software metadata serializes into separate 2048-byte buffer at 0x10752670..0x10752684. Unlocks topology before property setter. Recognized provider f_10291c64 is inlined through provider+0x164 secondary slot +0x0c at 0x107526e8 with one key/value pair and option 1; alternate provider slot +0x48 called at 0x10752764. Key is R_AvailableSoftwareUpdate. Failed/missing provider logs error saving R_AvailableSoftwareUpdate system property, retains fetch return zero. Does not directly copy new item into cached +0x5ec."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073f8f8",
+        "address": "0x1073fd24",
+        "callsite": "0x1073fd2c",
+        "notes": "Separate system-property observer f_1073f8f8 (adjustor f_1073fd38 subtracts 0x2d8) reads R_AvailableSoftwareUpdate at 0x1073faf8/0x1073fc04, parses through f_105746bc and requires Software type at 0x1073fc30. It locks +0x318, compares old/new item and copies into cache +0x5ec at 0x1073fd0c. When changed and topology+0x5a4 enabled, stores 1 at dirty byte +0xe7c and schedules event source topology+8 via f_1067c6ec at 0x1073fd2c. Missing property resets cached item at 0x1073fb14. Thus notification is conditional on later property-observer processing, not an unconditional direct notify in CheckForUpdate; actual transport delivery is not implied by this scheduling evidence."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Cached branch only locks and formats. Online branch performs HTTP discovery with redirect/header handling, parses temporary manifest state and, for changed nonempty Software metadata, attempts to save R_AvailableSoftwareUpdate. Save failure is diagnostic only. Does not download/install a firmware image, launch updater or change grouping.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752bf0",
+         "address": "0x10752c98",
+         "callsite": "0x10752c20",
+         "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752420",
+         "address": "0x10752604",
+         "callsite": "0x10752544",
+         "notes": "Obtains R_CustomerID through topology+0x58c (missing, empty or exactly 0 becomes empty); controller type 7 instead uses POS. Reads SW generation u16 +0x57c under mutex +0x318, obtains local version via f_105ad854 and constructs update-discovery endpoint through f_10540460 at 0x107524fc. Endpoint-construction false returns 801 at 0x1075274c. Calls f_10751c84 with temporary output collection, empty extra string, zero final option and collected household/version/generation context. On success compares Software item against cached +0x5ec through f_105743a8; only a changed nonempty incoming version causes property-save attempt. Save failure is logged and does not change successful fetch status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10751c84",
+         "address": "0x107521ac",
+         "callsite": "0x10751ec4",
+         "notes": "Snapshots maximum cached player version by walking topology+0x5a8 under mutex +0x318, builds discovery URI with f_10777378, and uses HTTP helper f_10546520 with a monotonic deadline 60000 ms ahead. Handles final redirected URI, Content-Location and X-Sonos-LatestSWGen. Nonzero HTTP-open result maps to 800 at 0x107521ac, not the raw network code. Reads chunks via f_10544040, feeds manifest parser f_10575650 and finalizes f_1057544c. False parser finalization or absent manifest usable-output byte +0x5c maps to 899 at 0x1075210c (UPM Invalid). Success f_10574810 adds Software item. Parser finalization f_10575378 checks error byte +0x964, tag depth +0x954 and signature-seen byte +0x9d8; this evidence does not assert a separate cryptographic verification step. Entire fetch return domain is {0,800,899}."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752420",
+         "address": "0x10efec60",
+         "callsite": "0x107526e8",
+         "notes": "Changed Software metadata serializes into separate 2048-byte buffer at 0x10752670..0x10752684. Unlocks topology before property setter. Recognized provider f_10291c64 is inlined through provider+0x164 secondary slot +0x0c at 0x107526e8 with one key/value pair and option 1; alternate provider slot +0x48 called at 0x10752764. Key is R_AvailableSoftwareUpdate. Failed/missing provider logs error saving R_AvailableSoftwareUpdate system property, retains fetch return zero. Does not directly copy new item into cached +0x5ec."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct event-scheduler call in the action worker. A changed online result attempts a system-property update; when its observer processes changed Software metadata and topology eventing is enabled (+0x5a4), it updates cache, sets +0xe7c and calls f_1067c6ec(topology+8). Cache-only, unchanged records, save failure or disabled observer eventing do not unconditionally schedule an event. This is availability notification, not firmware-install progress.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073331c",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x10752bf0",
+        "address": "0x10752c98",
+        "callsite": "0x10752c20",
+        "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752420",
+        "address": "0x10752604",
+        "callsite": "0x10752544",
+        "notes": "Obtains R_CustomerID through topology+0x58c (missing, empty or exactly 0 becomes empty); controller type 7 instead uses POS. Reads SW generation u16 +0x57c under mutex +0x318, obtains local version via f_105ad854 and constructs update-discovery endpoint through f_10540460 at 0x107524fc. Endpoint-construction false returns 801 at 0x1075274c. Calls f_10751c84 with temporary output collection, empty extra string, zero final option and collected household/version/generation context. On success compares Software item against cached +0x5ec through f_105743a8; only a changed nonempty incoming version causes property-save attempt. Save failure is logged and does not change successful fetch status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752420",
+        "address": "0x10efec60",
+        "callsite": "0x107526e8",
+        "notes": "Changed Software metadata serializes into separate 2048-byte buffer at 0x10752670..0x10752684. Unlocks topology before property setter. Recognized provider f_10291c64 is inlined through provider+0x164 secondary slot +0x0c at 0x107526e8 with one key/value pair and option 1; alternate provider slot +0x48 called at 0x10752764. Key is R_AvailableSoftwareUpdate. Failed/missing provider logs error saving R_AvailableSoftwareUpdate system property, retains fetch return zero. Does not directly copy new item into cached +0x5ec."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073f8f8",
+        "address": "0x1073fd24",
+        "callsite": "0x1073fd2c",
+        "notes": "Separate system-property observer f_1073f8f8 (adjustor f_1073fd38 subtracts 0x2d8) reads R_AvailableSoftwareUpdate at 0x1073faf8/0x1073fc04, parses through f_105746bc and requires Software type at 0x1073fc30. It locks +0x318, compares old/new item and copies into cache +0x5ec at 0x1073fd0c. When changed and topology+0x5a4 enabled, stores 1 at dirty byte +0xe7c and schedules event source topology+8 via f_1067c6ec at 0x1073fd2c. Missing property resets cached item at 0x1073fb14. Thus notification is conditional on later property-observer processing, not an unconditional direct notify in CheckForUpdate; actual transport delivery is not implied by this scheduling evidence."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x8]",
+      "description": "No update-installation state transition. Online success may publish replacement availability metadata through the system-property store, with cached item replacement deferred to observer processing. Cache-only and errors do not start an update; cache absence yields 801, not a feature-disabled state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073331c",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x8]']"
+        "function": "0x10752bf0",
+        "address": "0x10752c98",
+        "callsite": "0x10752c20",
+        "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752adc",
+        "address": "0x10752bbc",
+        "callsite": "0x10752b58",
+        "notes": "Builds temporary update-item collection then calls f_10752420 with collection and zero final option. Nonzero helper return propagates. On success selects type 1 (Software) via f_10574a08; missing item or empty item Version at item+8 returns 801 at 0x10752bbc. Otherwise serializes the freshly fetched item, not cached topology+0x5ec, and returns zero. It never launches installation or uses the caller Version."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752420",
+        "address": "0x10752604",
+        "callsite": "0x10752544",
+        "notes": "Obtains R_CustomerID through topology+0x58c (missing, empty or exactly 0 becomes empty); controller type 7 instead uses POS. Reads SW generation u16 +0x57c under mutex +0x318, obtains local version via f_105ad854 and constructs update-discovery endpoint through f_10540460 at 0x107524fc. Endpoint-construction false returns 801 at 0x1075274c. Calls f_10751c84 with temporary output collection, empty extra string, zero final option and collected household/version/generation context. On success compares Software item against cached +0x5ec through f_105743a8; only a changed nonempty incoming version causes property-save attempt. Save failure is logged and does not change successful fetch status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752420",
+        "address": "0x10efec60",
+        "callsite": "0x107526e8",
+        "notes": "Changed Software metadata serializes into separate 2048-byte buffer at 0x10752670..0x10752684. Unlocks topology before property setter. Recognized provider f_10291c64 is inlined through provider+0x164 secondary slot +0x0c at 0x107526e8 with one key/value pair and option 1; alternate provider slot +0x48 called at 0x10752764. Key is R_AvailableSoftwareUpdate. Failed/missing provider logs error saving R_AvailableSoftwareUpdate system property, retains fetch return zero. Does not directly copy new item into cached +0x5ec."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073f8f8",
+        "address": "0x1073fd24",
+        "callsite": "0x1073fd2c",
+        "notes": "Separate system-property observer f_1073f8f8 (adjustor f_1073fd38 subtracts 0x2d8) reads R_AvailableSoftwareUpdate at 0x1073faf8/0x1073fc04, parses through f_105746bc and requires Software type at 0x1073fc30. It locks +0x318, compares old/new item and copies into cache +0x5ec at 0x1073fd0c. When changed and topology+0x5a4 enabled, stores 1 at dirty byte +0xe7c and schedules event source topology+8 via f_1067c6ec at 0x1073fd2c. Missing property resets cached item at 0x1073fb14. Thus notification is conditional on later property-observer processing, not an unconditional direct notify in CheckForUpdate; actual transport delivery is not implied by this scheduling evidence."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Wrapper faults 402 for missing required records. Cached worker returns {0,402,801}; online path returns {0,800,801,899}. Zero commits UpdateItem; nonzero faults verbatim at 0x107333e8. 800 maps HTTP-open failure; 801 covers endpoint construction or absent/empty Software version; 899 covers unusable manifest. Availability-property save and XML-writer overflow do not replace successful status. No 792 path is reachable.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x1073331c",
-        "notes": "commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "address": "0x107333e8",
+        "callsite": "0x1073343c",
+        "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752bf0",
+        "address": "0x10752c98",
+        "callsite": "0x10752c20",
+        "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752adc",
+        "address": "0x10752bbc",
+        "callsite": "0x10752b58",
+        "notes": "Builds temporary update-item collection then calls f_10752420 with collection and zero final option. Nonzero helper return propagates. On success selects type 1 (Software) via f_10574a08; missing item or empty item Version at item+8 returns 801 at 0x10752bbc. Otherwise serializes the freshly fetched item, not cached topology+0x5ec, and returns zero. It never launches installation or uses the caller Version."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752420",
+        "address": "0x10752604",
+        "callsite": "0x10752544",
+        "notes": "Obtains R_CustomerID through topology+0x58c (missing, empty or exactly 0 becomes empty); controller type 7 instead uses POS. Reads SW generation u16 +0x57c under mutex +0x318, obtains local version via f_105ad854 and constructs update-discovery endpoint through f_10540460 at 0x107524fc. Endpoint-construction false returns 801 at 0x1075274c. Calls f_10751c84 with temporary output collection, empty extra string, zero final option and collected household/version/generation context. On success compares Software item against cached +0x5ec through f_105743a8; only a changed nonempty incoming version causes property-save attempt. Save failure is logged and does not change successful fetch status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10751c84",
+        "address": "0x107521ac",
+        "callsite": "0x10751ec4",
+        "notes": "Snapshots maximum cached player version by walking topology+0x5a8 under mutex +0x318, builds discovery URI with f_10777378, and uses HTTP helper f_10546520 with a monotonic deadline 60000 ms ahead. Handles final redirected URI, Content-Location and X-Sonos-LatestSWGen. Nonzero HTTP-open result maps to 800 at 0x107521ac, not the raw network code. Reads chunks via f_10544040, feeds manifest parser f_10575650 and finalizes f_1057544c. False parser finalization or absent manifest usable-output byte +0x5c maps to 899 at 0x1075210c (UPM Invalid). Success f_10574810 adds Software item. Parser finalization f_10575378 checks error byte +0x964, tag depth +0x954 and signature-seen byte +0x9d8; this evidence does not assert a separate cryptographic verification step. Entire fetch return domain is {0,800,899}."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105744e4",
+        "address": "0x10eee844",
+        "callsite": "0x105746a4",
+        "notes": "Nonempty item Version at +8 produces self-closing UpdateItem XML through f_10578490/f_105782a0. Attribute list: xmlns=urn:schemas-rinconnetworks-com:update-1-0, Type=Software, Version, UpdateURL (+0x49), DownloadSize (u32 +0x88c, decimal %u), ManifestURL (+0x44a), Swgen (u16 +4, decimal), LatestSwgen (u16 +6, decimal), ManifestRevision (+0x84b). Empty version emits nothing, but action guards reject it with 801. Writer f_10578764 initializes a 3072-byte response buffer. Raw append f_10577ea8 requires room for NUL, sets sticky overflow byte +0x14 and skips failing/subsequent fragments. No caller tests that byte or converts overflow to a SOAP fault. Attribute text uses writer slot +0x0c -> f_10577c40 -> escaping writer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10752420",
+        "address": "0x10efec60",
+        "callsite": "0x107526e8",
+        "notes": "Changed Software metadata serializes into separate 2048-byte buffer at 0x10752670..0x10752684. Unlocks topology before property setter. Recognized provider f_10291c64 is inlined through provider+0x164 secondary slot +0x0c at 0x107526e8 with one key/value pair and option 1; alternate provider slot +0x48 called at 0x10752764. Key is R_AvailableSoftwareUpdate. Failed/missing provider logs error saving R_AvailableSoftwareUpdate system property, retains fetch return zero. Does not directly copy new item into cached +0x5ec."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x107333e8",
-       "code": 402,
-       "code_expr": "const"
+       "code": null,
+       "code_expr": "402 on missing required input, otherwise concrete worker nonzero: 402/800/801/899"
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "UpdateType arg != \"Software\" (strcmp in impl) | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "constant or propagated concrete-worker code",
+       "meaning": "Missing required input, or CachedOnly true with UpdateType other than exact Software.",
        "fault_sites": [
         "0x107333e8"
        ],
        "conditions": [
         {
-         "description": "UpdateType arg != \"Software\" (strcmp in impl)",
+         "description": "Wrapper validation false loads 402 at 0x107333cc. Cached type mismatch loads 402 at 0x10752c84. Online ignores UpdateType and caller Version.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10752c84",
-           "notes": "impl return path"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x1073331c",
+           "address": "0x107333e8",
+           "callsite": "0x1073343c",
+           "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073331c",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10560a58",
+           "address": "0x10560b78",
+           "callsite": "0x10560bcc",
+           "notes": "Type-7 input handling bounds and NUL-terminates text, truncating overlong values; present empty strings are accepted. Boolean tag 1 compares case-insensitively with 1, true and yes at 0x10560b90/0x10560ba8/0x10560bc0, stores 1 for these and 0 for all other text including empty. Boolean input text buffer capacity is 24. Missing required records make canonical validator f_10730414 return false, unlike permissive text conversion."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10752bf0",
+           "address": "0x10752c98",
+           "callsite": "0x10752c20",
+           "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
           }
          ]
         }
@@ -104097,87 +104438,68 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10752c84",
-         "notes": "impl return path produces rc 402"
+         "function": "0x1073331c",
+         "address": "0x107333e8",
+         "callsite": "0x1073343c",
+         "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073331c",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "unresolved": {
-        "proven": "topology impl rc surfaced",
-        "unknown": "codes for validation/state failures",
-        "knowledge": "; impl f_10752bf0: {402,801 busy-flag}",
-        "return_path": "thin worker tailing f_100697e4 - caller-domain rc",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_10752bf0": {
-          "lits": [
-           20,
-           28
-          ],
-          "pt": 1
-         }
+         "function": "0x10560a58",
+         "address": "0x10560b78",
+         "callsite": "0x10560bcc",
+         "notes": "Type-7 input handling bounds and NUL-terminates text, truncating overlong values; present empty strings are accepted. Boolean tag 1 compares case-insensitively with 1, true and yes at 0x10560b90/0x10560ba8/0x10560bc0, stores 1 for these and 0 for all other text including empty. Boolean input text buffer capacity is 24. Missing required records make canonical validator f_10730414 return false, unlike permissive text conversion."
         },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
          "function": "0x10752bf0",
-         "lits": [
-          20,
-          28
-         ],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_10752adc": {
-          "lits": [
-           0,
-           16,
-           20,
-           28,
-           40,
-           76,
-           168,
-           1320
-          ],
-          "pt": 1
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "literal_bound": [
-        0,
-        402,
-        792,
-        801
-       ],
-       "resolved_note": "impl 0x10752bf0 -> {402,792,801,worker uVar1}",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x107333e8).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+         "address": "0x10752c98",
+         "callsite": "0x10752c20",
+         "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+        }
        ]
       },
       {
        "code": 801,
-       "code_expr": "const 0x321",
-       "meaning": "Software update requested but capability flag impl+0x5f4 clear (feature-gated)",
+       "code_expr": "constant or propagated concrete-worker code",
+       "meaning": "No usable Software metadata or discovery endpoint, not a capability/busy flag.",
        "fault_sites": [
-        "0x10752c9c"
+        "0x107333e8"
        ],
        "conditions": [
         {
-         "description": "type==\"Software\" and *(impl+0x5f4)==0",
+         "description": "Cached Version byte topology+0x5f4 zero -> 801 at 0x10752c9c. Online endpoint builder false -> 801 at 0x1075274c; absent Software item or empty returned Version -> 801 at 0x10752bbc.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
+           "function": "0x10752bf0",
            "address": "0x10752c98",
-           "notes": "flag byte test"
+           "callsite": "0x10752c20",
+           "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10752adc",
+           "address": "0x10752bbc",
+           "callsite": "0x10752b58",
+           "notes": "Builds temporary update-item collection then calls f_10752420 with collection and zero final option. Nonzero helper return propagates. On success selects type 1 (Software) via f_10574a08; missing item or empty item Version at item+8 returns 801 at 0x10752bbc. Otherwise serializes the freshly fetched item, not cached topology+0x5ec, and returns zero. It never launches installation or uses the caller Version."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10752420",
+           "address": "0x10752604",
+           "callsite": "0x10752544",
+           "notes": "Obtains R_CustomerID through topology+0x58c (missing, empty or exactly 0 becomes empty); controller type 7 instead uses POS. Reads SW generation u16 +0x57c under mutex +0x318, obtains local version via f_105ad854 and constructs update-discovery endpoint through f_10540460 at 0x107524fc. Endpoint-construction false returns 801 at 0x1075274c. Calls f_10751c84 with temporary output collection, empty extra string, zero final option and collected household/version/generation context. On success compares Software item against cached +0x5ec through f_105743a8; only a changed nonempty incoming version causes property-save attempt. Save failure is logged and does not change successful fetch status."
           }
          ]
         }
@@ -104187,8 +104509,134 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10752c9c",
-         "notes": "addi r31,0x321"
+         "function": "0x10752bf0",
+         "address": "0x10752c98",
+         "callsite": "0x10752c20",
+         "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752adc",
+         "address": "0x10752bbc",
+         "callsite": "0x10752b58",
+         "notes": "Builds temporary update-item collection then calls f_10752420 with collection and zero final option. Nonzero helper return propagates. On success selects type 1 (Software) via f_10574a08; missing item or empty item Version at item+8 returns 801 at 0x10752bbc. Otherwise serializes the freshly fetched item, not cached topology+0x5ec, and returns zero. It never launches installation or uses the caller Version."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10752420",
+         "address": "0x10752604",
+         "callsite": "0x10752544",
+         "notes": "Obtains R_CustomerID through topology+0x58c (missing, empty or exactly 0 becomes empty); controller type 7 instead uses POS. Reads SW generation u16 +0x57c under mutex +0x318, obtains local version via f_105ad854 and constructs update-discovery endpoint through f_10540460 at 0x107524fc. Endpoint-construction false returns 801 at 0x1075274c. Calls f_10751c84 with temporary output collection, empty extra string, zero final option and collected household/version/generation context. On success compares Software item against cached +0x5ec through f_105743a8; only a changed nonempty incoming version causes property-save attempt. Save failure is logged and does not change successful fetch status."
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "code_expr": "constant or propagated concrete-worker code",
+       "meaning": "Online update discovery HTTP-open/fetch setup failed.",
+       "fault_sites": [
+        "0x107333e8"
+       ],
+       "conditions": [
+        {
+         "description": "Nonzero f_10546520 result at 0x10751ec4 maps to 800 at 0x107521ac. The raw network return is not propagated.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1073331c",
+           "address": "0x107333e8",
+           "callsite": "0x1073343c",
+           "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10751c84",
+           "address": "0x107521ac",
+           "callsite": "0x10751ec4",
+           "notes": "Snapshots maximum cached player version by walking topology+0x5a8 under mutex +0x318, builds discovery URI with f_10777378, and uses HTTP helper f_10546520 with a monotonic deadline 60000 ms ahead. Handles final redirected URI, Content-Location and X-Sonos-LatestSWGen. Nonzero HTTP-open result maps to 800 at 0x107521ac, not the raw network code. Reads chunks via f_10544040, feeds manifest parser f_10575650 and finalizes f_1057544c. False parser finalization or absent manifest usable-output byte +0x5c maps to 899 at 0x1075210c (UPM Invalid). Success f_10574810 adds Software item. Parser finalization f_10575378 checks error byte +0x964, tag depth +0x954 and signature-seen byte +0x9d8; this evidence does not assert a separate cryptographic verification step. Entire fetch return domain is {0,800,899}."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073331c",
+         "address": "0x107333e8",
+         "callsite": "0x1073343c",
+         "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10751c84",
+         "address": "0x107521ac",
+         "callsite": "0x10751ec4",
+         "notes": "Snapshots maximum cached player version by walking topology+0x5a8 under mutex +0x318, builds discovery URI with f_10777378, and uses HTTP helper f_10546520 with a monotonic deadline 60000 ms ahead. Handles final redirected URI, Content-Location and X-Sonos-LatestSWGen. Nonzero HTTP-open result maps to 800 at 0x107521ac, not the raw network code. Reads chunks via f_10544040, feeds manifest parser f_10575650 and finalizes f_1057544c. False parser finalization or absent manifest usable-output byte +0x5c maps to 899 at 0x1075210c (UPM Invalid). Success f_10574810 adds Software item. Parser finalization f_10575378 checks error byte +0x964, tag depth +0x954 and signature-seen byte +0x9d8; this evidence does not assert a separate cryptographic verification step. Entire fetch return domain is {0,800,899}."
+        }
+       ]
+      },
+      {
+       "code": 899,
+       "code_expr": "constant or propagated concrete-worker code",
+       "meaning": "Online update manifest is unusable.",
+       "fault_sites": [
+        "0x107333e8"
+       ],
+       "conditions": [
+        {
+         "description": "Final parser f_1057544c false at 0x10751fdc or missing manifest usable-output byte at 0x10751ff4 reaches UPM Invalid and 899 at 0x1075210c.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1073331c",
+           "address": "0x107333e8",
+           "callsite": "0x1073343c",
+           "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10751c84",
+           "address": "0x107521ac",
+           "callsite": "0x10751ec4",
+           "notes": "Snapshots maximum cached player version by walking topology+0x5a8 under mutex +0x318, builds discovery URI with f_10777378, and uses HTTP helper f_10546520 with a monotonic deadline 60000 ms ahead. Handles final redirected URI, Content-Location and X-Sonos-LatestSWGen. Nonzero HTTP-open result maps to 800 at 0x107521ac, not the raw network code. Reads chunks via f_10544040, feeds manifest parser f_10575650 and finalizes f_1057544c. False parser finalization or absent manifest usable-output byte +0x5c maps to 899 at 0x1075210c (UPM Invalid). Success f_10574810 adds Software item. Parser finalization f_10575378 checks error byte +0x964, tag depth +0x954 and signature-seen byte +0x9d8; this evidence does not assert a separate cryptographic verification step. Entire fetch return domain is {0,800,899}."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073331c",
+         "address": "0x107333e8",
+         "callsite": "0x1073343c",
+         "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10751c84",
+         "address": "0x107521ac",
+         "callsite": "0x10751ec4",
+         "notes": "Snapshots maximum cached player version by walking topology+0x5a8 under mutex +0x318, builds discovery URI with f_10777378, and uses HTTP helper f_10546520 with a monotonic deadline 60000 ms ahead. Handles final redirected URI, Content-Location and X-Sonos-LatestSWGen. Nonzero HTTP-open result maps to 800 at 0x107521ac, not the raw network code. Reads chunks via f_10544040, feeds manifest parser f_10575650 and finalizes f_1057544c. False parser finalization or absent manifest usable-output byte +0x5c maps to 899 at 0x1075210c (UPM Invalid). Success f_10574810 adds Software item. Parser finalization f_10575378 checks error byte +0x964, tag depth +0x954 and signature-seen byte +0x9d8; this evidence does not assert a separate cryptographic verification step. Entire fetch return domain is {0,800,899}."
         }
        ]
       }
@@ -104200,22 +104648,84 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x1073331c",
-       "address": "0x1073331c",
-       "notes": "action wrapper handler"
+       "address": "0x10e8b02c",
+       "callsite": "0x1073343c",
+       "notes": "Init calls concrete topology constructor f_10125b54 at 0x1018e204; it installs primary vptr 0x10e8b024 at 0x10126234. Init passes that object to service constructor f_10733b28 at 0x1018e2cc; constructor stores implementation at service+4 and service vptr 0x10f113b0. Implementation slot +8 at 0x10733434 resolves to f_10752bf0, not f_10752adc directly. Base table 0x10f12274 has the same worker."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f113e8",
-       "notes": "action dispatch table entry"
+       "function": "0x1073331c",
+       "address": "0x107333e8",
+       "callsite": "0x1073343c",
+       "notes": "Registers required UpdateType text capacity 128 at 0x10733368, CachedOnly tag-1 boolean at 0x1073338c, Version text capacity 65 at 0x107333b4. Validation +8 at 0x107333c8 false loads 402 at 0x107333cc. Worker receives UpdateType r4, CachedOnly byte r5, Version r6, output r7 and capacity 0xc00 r8. Nonzero return faults at sole call 0x107333e8; zero serializes UpdateItem at 0x10733478 and commits at 0x1073348c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10752bf0",
+       "address": "0x10752c98",
+       "callsite": "0x10752c20",
+       "notes": "CachedOnly zero forwards only output pointer/capacity to f_10752adc; it does not compare UpdateType. CachedOnly nonzero locks topology+0x318 and compares UpdateType case-sensitively with Software at 0x10752c80; mismatch returns 402. On match, topology+0x5f4 zero returns 801; this is the first Version byte of cached item at +0x5ec, not a feature/busy flag. Nonempty cached version serializes item and returns zero. Version argument r6 is never consumed on either branch."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10752adc",
+       "address": "0x10752bbc",
+       "callsite": "0x10752b58",
+       "notes": "Builds temporary update-item collection then calls f_10752420 with collection and zero final option. Nonzero helper return propagates. On success selects type 1 (Software) via f_10574a08; missing item or empty item Version at item+8 returns 801 at 0x10752bbc. Otherwise serializes the freshly fetched item, not cached topology+0x5ec, and returns zero. It never launches installation or uses the caller Version."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10752420",
+       "address": "0x10752604",
+       "callsite": "0x10752544",
+       "notes": "Obtains R_CustomerID through topology+0x58c (missing, empty or exactly 0 becomes empty); controller type 7 instead uses POS. Reads SW generation u16 +0x57c under mutex +0x318, obtains local version via f_105ad854 and constructs update-discovery endpoint through f_10540460 at 0x107524fc. Endpoint-construction false returns 801 at 0x1075274c. Calls f_10751c84 with temporary output collection, empty extra string, zero final option and collected household/version/generation context. On success compares Software item against cached +0x5ec through f_105743a8; only a changed nonempty incoming version causes property-save attempt. Save failure is logged and does not change successful fetch status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10751c84",
+       "address": "0x107521ac",
+       "callsite": "0x10751ec4",
+       "notes": "Snapshots maximum cached player version by walking topology+0x5a8 under mutex +0x318, builds discovery URI with f_10777378, and uses HTTP helper f_10546520 with a monotonic deadline 60000 ms ahead. Handles final redirected URI, Content-Location and X-Sonos-LatestSWGen. Nonzero HTTP-open result maps to 800 at 0x107521ac, not the raw network code. Reads chunks via f_10544040, feeds manifest parser f_10575650 and finalizes f_1057544c. False parser finalization or absent manifest usable-output byte +0x5c maps to 899 at 0x1075210c (UPM Invalid). Success f_10574810 adds Software item. Parser finalization f_10575378 checks error byte +0x964, tag depth +0x954 and signature-seen byte +0x9d8; this evidence does not assert a separate cryptographic verification step. Entire fetch return domain is {0,800,899}."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x105744e4",
+       "address": "0x10eee844",
+       "callsite": "0x105746a4",
+       "notes": "Nonempty item Version at +8 produces self-closing UpdateItem XML through f_10578490/f_105782a0. Attribute list: xmlns=urn:schemas-rinconnetworks-com:update-1-0, Type=Software, Version, UpdateURL (+0x49), DownloadSize (u32 +0x88c, decimal %u), ManifestURL (+0x44a), Swgen (u16 +4, decimal), LatestSwgen (u16 +6, decimal), ManifestRevision (+0x84b). Empty version emits nothing, but action guards reject it with 801. Writer f_10578764 initializes a 3072-byte response buffer. Raw append f_10577ea8 requires room for NUL, sets sticky overflow byte +0x14 and skips failing/subsequent fragments. No caller tests that byte or converts overflow to a SOAP fault. Attribute text uses writer slot +0x0c -> f_10577c40 -> escaping writer."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10752420",
+       "address": "0x10efec60",
+       "callsite": "0x107526e8",
+       "notes": "Changed Software metadata serializes into separate 2048-byte buffer at 0x10752670..0x10752684. Unlocks topology before property setter. Recognized provider f_10291c64 is inlined through provider+0x164 secondary slot +0x0c at 0x107526e8 with one key/value pair and option 1; alternate provider slot +0x48 called at 0x10752764. Key is R_AvailableSoftwareUpdate. Failed/missing provider logs error saving R_AvailableSoftwareUpdate system property, retains fetch return zero. Does not directly copy new item into cached +0x5ec."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1073f8f8",
+       "address": "0x1073fd24",
+       "callsite": "0x1073fd2c",
+       "notes": "Separate system-property observer f_1073f8f8 (adjustor f_1073fd38 subtracts 0x2d8) reads R_AvailableSoftwareUpdate at 0x1073faf8/0x1073fc04, parses through f_105746bc and requires Software type at 0x1073fc30. It locks +0x318, compares old/new item and copies into cache +0x5ec at 0x1073fd0c. When changed and topology+0x5a4 enabled, stores 1 at dirty byte +0xe7c and schedules event source topology+8 via f_1067c6ec at 0x1073fd2c. Missing property resets cached item at 0x1073fb14. Thus notification is conditional on later property-observer processing, not an unconditional direct notify in CheckForUpdate; actual transport delivery is not implied by this scheduling evidence."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x1073331c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Caller Version is ignored. CachedOnly false bypasses UpdateType comparison. Earlier feature-flag, 792 and raw subsystem-return claims are not reachable through the installed slot."
     },
     "GetZoneGroupAttributes": {
      "description": "Returns four cached group identity strings for the UUID attached to the internal request server, using concrete topology slot +0x24 -> f_10748dc8. The UUID is not a SOAP input.",
