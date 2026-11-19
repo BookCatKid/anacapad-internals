@@ -11162,7 +11162,7 @@
        "notes": null,
        "buf_cap": 640,
        "resolved_findings": [
-        "Resolved: post-parse handling of `ChannelMapSet` = verbatim forward to impl vfunc +24 (obj r5-in, call site 0x10735ecc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "The SOAP wrapper forwards ChannelMapSet at 0x10735ecc; the shared worker validates it against the local UUID at 0x103549b8 and cannot apply it on this build."
        ]
       }
      },
@@ -11436,7 +11436,7 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": null,
+       "code_expr": "0x192 at 0x103549c4",
        "meaning": "Request or map validation fails, or the HT map is nonempty.",
        "fault_sites": [
         "0x10735ee8"
@@ -11481,7 +11481,7 @@
       },
       {
        "code": 401,
-       "code_expr": null,
+       "code_expr": "0x191 at 0x1035c73c",
        "meaning": "The apply helper unconditionally returns 401 after the preceding validations.",
        "fault_sites": [
         "0x10735ee8"
@@ -11546,11 +11546,12 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1068f8cc",
-       "notes": "impl vtable 0x10e98278 slot +0x18; direct impl body"
+       "address": "0x10735ecc",
+       "function": "0x1035560c",
+       "notes": "Runtime vtable 0x10ebc630 slot +0x18 dispatch"
       }
      ],
-     "notes": "Model-specific behavior: on this Playbar build the no-existing-map path ends in the f_1035c738 stub, so a player with no bonded or channel map cannot create one through this action.",
+     "notes": "On this build, even a valid existing bonded map cannot bypass the constant-401 apply helper at f_1035c738; the nonempty HT-map branch returns 402 before reaching it.",
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 at 0x10351bf4 over the base vtable 0x10ebd214 installed by f_1035e5ac. 0x10ebd214 is the base vtable only; the slots used by the bonding actions are overridden in 0x10ebc630. Slot +0x18 of the base vtable 0x10ebd214 is f_1035a390, a stub returning 401, which is why reading the base vtable makes this action look unimplemented; the runtime object dispatches to f_1035560c instead. f_1035560c passes zero for the worker's fifth to eighth arguments, so the SOAP path never supplies the optional trigger, bond-duration or Muse-API arguments that f_103548f4 also accepts."
     },
     "AddHTSatellite": {
