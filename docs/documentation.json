@@ -11761,7 +11761,7 @@
       ]
      },
      "requirements": {
-      "description": "Primary path (f_1034ec5c): HTSatChanMapSet must parse against the local UUID with more than one entry (else 402). The f_1090ad44 capability word +0xd4 bit 20 must be set (f_10908798, else 401). Every secondary must be found ('secondary device %s not found', else 1034) and compatible ('incompatible secondary device %s', else 1035), and the player must not already be in a bonded zone (impl+0xbb4 nonempty gives 1029). Satellite path (f_1034cf38): the map must parse with more than one entry (else 402). Capability word +0xd8 must have a bit of mask 0x44 set (f_10908858, else 401). The player must not be a home-theater primary with satellites (401, 'unable to become satellite, device has satellites'). The primary must be found (1000, banded to 800) and compatible (1035).",
+      "description": "Primary path (f_1034ec5c): HTSatChanMapSet must parse against the local UUID with more than one entry (else 402). The f_1090ad44 capability word +0xd4 bit 21 (mask 0x00200000) must be set (f_10908798, else 401). Every secondary must be found ('secondary device %s not found', else 1034) and compatible ('incompatible secondary device %s', else 1035), and the player must not already be in a bonded zone (impl+0xbb4 nonempty gives 1029). Satellite path (f_1034cf38): the map must parse with more than one entry (else 402). Capability word +0xd8 must have a bit of mask 0x44 set (f_10908858, else 401). The player must not be a home-theater primary with satellites (401, 'unable to become satellite, device has satellites'). The primary must be found (1000, banded to 800) and compatible (1035).",
       "evidence": [
        {
         "type": "firmware",
@@ -11846,11 +11846,25 @@
         "build": "86.10-80260",
         "address": "0x1034d1c4",
         "notes": "1035"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034ed28",
+        "notes": "Primary calls f_10908798"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x109087a4",
+        "notes": "Rotate left 11 and keep the low bit, extracting source bit 21"
        }
       ]
      },
      "state_dependencies": {
-      "description": "Reads the zone-player context at impl+0x25c; the role implementations work on the topology and group state and on the satellite-side copies of the unpaired LED, button-lock, zone name, icon and configuration settings ('UnpairedLED', 'UnpairedButtonLock', 'UnpairedZoneName', 'UnpairedIcon', 'UnpairedConfiguration'). The primary worker reads the IPC object at impl+0x1a9c, rendering/sonar manager at +0x1a80 and topology monitor at +0x1368. Follow-up reads the pending map at +0x10e0.",
+      "description": "Reads the zone-player context at impl+0x25c; the role implementations work on the topology and group state and on the satellite-side copies of the unpaired LED, button-lock, zone name, icon and configuration settings ('UnpairedLED', 'UnpairedButtonLock', 'UnpairedZoneName', 'UnpairedIcon', 'UnpairedConfiguration'). The primary worker reads the IPC object at impl+0x1a9c, rendering/sonar manager at +0x1a80 and topology monitor at +0x1368. Follow-up reads the pending map at +0x10e0. The primary reads settings receiver +0x960; the first satellite transition reads property receiver +0x950 and settings receiver +0x960.",
       "evidence": [
        {
         "type": "firmware",
@@ -11879,7 +11893,47 @@
         "build": "86.10-80260",
         "address": "0x1034c8a0",
         "notes": "Pending map"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034f038",
+        "notes": "Primary settings receiver"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034f05c",
+        "notes": "Conditional second primary settings call"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034d404",
+        "notes": "Satellite settings receiver"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034d504",
+        "notes": "Satellite property receiver"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034d588",
+        "notes": "Satellite settings receiver"
        }
+      ],
+      "todo": [
+       "Established: The primary uses impl+0x960 and the first satellite transition uses impl+0x950 and +0x960 for settings access.",
+       "Unknown: The concrete receivers and which delegated operations depend on their state.",
+       "Next: Trace the objects stored by the DeviceProperties construction and binding paths, then bind the calls reached from 0x1034f038, 0x1034f05c, 0x1034d404, 0x1034d504 and 0x1034d588."
       ]
      },
      "side_effects": [
@@ -12066,7 +12120,7 @@
       ]
      },
      "return_behavior": {
-      "description": "Primary path: after the checks, f_1034dd80 sends joinZone to each secondary ('sendJoinZoneCmd(%s): %s(%s)'). It returns 402 for a map that does not parse or has at most one entry, and 1034 when this player is not the map's primary or a joinZone send failed (the failed satellite is rolled back through f_1034d858). Otherwise it persists the map and returns 0. Satellite path: after the switch to satellite mode ('Change from ZP to Sat mode') f_1034cf38 loads the map's entry count from sp+0x630 and uses isel at 0x1034d64c to select 1032 when the map has exactly two entries (this satellite is the primary's first) and 0 otherwise. When the result is 0 it calls slot +0x80 itself with (0, 1, 0). When it is 1032 the wrapper performs the equivalent step through slot +0x74, which calls slot +0x80 with (0, 5, 0). f_1034f5b0 passes 1032 and 1035 through and maps 1000..9999 to 800, so 'Primary device %s is not found' (1000) reaches the client as 800. The wrapper commits 0 and 1032, the latter followed by the slot +0x74 step, and raises any other code.",
+      "description": "Primary path: after the checks, f_1034dd80 sends joinZone to each secondary ('sendJoinZoneCmd(%s): %s(%s)'). It returns 402 for a map that does not parse or has at most one entry, and 1034 when this player is not the map's primary or a joinZone send failed (the failed satellite is rolled back through f_1034d858). Otherwise it persists the map and returns 0. Satellite path: after the switch to satellite mode ('Change from ZP to Sat mode') f_1034cf38 loads the map's entry count from sp+0x630 and uses isel at 0x1034d64c to select 1032 when the map has exactly two entries (this satellite is the primary's first) and 0 otherwise. When the result is 0 it calls slot +0x80 itself with (0, 1, 0). When it is 1032 the wrapper performs the equivalent step through slot +0x74, which calls slot +0x80 with (0, 5, 0). f_1034f5b0 passes 1032 and 1035 through and maps 1000..9999 to 800, so worker results 1000 (missing primary), 1034 (secondary lookup or join failure), and 1029 (existing bond) reach the client as 800. The wrapper commits 0 and 1032, the latter followed by the slot +0x74 step, and raises any other code.",
       "evidence": [
        {
         "type": "firmware",
@@ -12260,7 +12314,7 @@
       {
        "code": 800,
        "code_expr": "0x320 selected at 0x1034f620",
-       "meaning": "The role implementation returned a code between 1000 and 9999 other than 1032 or 1035. On this firmware the satellite path's 1000 ('Primary device %s is not found') is the one such code.",
+       "meaning": "The mapper converts worker results 1000 (missing primary), 1034 (secondary lookup or join failure), and 1029 (existing bond) to SOAP fault 800. Results 1032 and 1035 bypass remapping.",
        "fault_sites": [
         "0x10737ef8"
        ],
@@ -12290,6 +12344,89 @@
            "notes": "isel"
           }
          ]
+        },
+        {
+         "description": "secondary lookup fails",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034ee3c",
+           "notes": "log"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034ee4c",
+           "notes": "literal"
+          }
+         ]
+        },
+        {
+         "description": "join failure or not primary",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034de40",
+           "notes": "f_1053c370 primary test"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034e050",
+           "notes": "literal"
+          }
+         ]
+        },
+        {
+         "description": "impl+0xbb4 first byte nonzero",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034ee7c",
+           "notes": "lbz impl+0xbb4"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034ee90",
+           "notes": "literal"
+          }
+         ]
+        },
+        {
+         "description": "Satellite worker cannot find the primary",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034d138",
+           "notes": "Preset 1000"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034f668",
+           "notes": "Call satellite worker"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034f66c",
+           "notes": "Join the common result mapper"
+          }
+         ]
         }
        ],
        "evidence": [
@@ -12299,6 +12436,20 @@
          "build": "86.10-80260",
          "address": "0x1034f61c",
          "notes": "0x320 literal"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034f5fc",
+         "notes": "Primary worker returns into the result mapper"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034f614",
+         "notes": "Keep the low 16 bits of result minus 1000"
         }
        ]
       },
@@ -12337,101 +12488,6 @@
          "build": "86.10-80260",
          "address": "0x1034f608",
          "notes": "cmplwi 0x40b"
-        }
-       ]
-      },
-      {
-       "code": 1034,
-       "code_expr": "0x40a at 0x1034ee4c, 0x1034ee98 and 0x1034e050",
-       "meaning": "Primary path: a secondary in the map was not found, this player is not the map's primary, or sending joinZone to a satellite failed.",
-       "fault_sites": [
-        "0x10737ef8"
-       ],
-       "conditions": [
-        {
-         "description": "secondary lookup fails",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1034ee3c",
-           "notes": "log"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1034ee4c",
-           "notes": "literal"
-          }
-         ]
-        },
-        {
-         "description": "join failure or not primary",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1034de40",
-           "notes": "f_1053c370 primary test"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1034e050",
-           "notes": "literal"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1034e050",
-         "notes": "literal"
-        }
-       ]
-      },
-      {
-       "code": 1029,
-       "code_expr": "0x405 at 0x1034ee90",
-       "meaning": "Primary path: this player is already in a bonded zone (impl+0xbb4 nonempty).",
-       "fault_sites": [
-        "0x10737ef8"
-       ],
-       "conditions": [
-        {
-         "description": "impl+0xbb4 first byte nonzero",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1034ee7c",
-           "notes": "lbz impl+0xbb4"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1034ee90",
-           "notes": "literal"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1034ee90",
-         "notes": "literal"
         }
        ]
       },
