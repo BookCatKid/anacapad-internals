@@ -66963,7 +66963,7 @@
       }
      ],
      "events_triggered": {
-      "description": "Some accepted branches invoke f_1067c6ec, including the indexed +0x7764 to +0x7765 flag change. Failure of an indexed submission does not by itself skip this part of the worker.",
+      "description": "Some accepted branches invoke f_1067c6ec, including the indexed +0x7764 to +0x7765 flag change. Failure of an indexed submission does not by itself skip this part of the worker. Clearing a pending restart on the indexed branch can publish r:RestartPending as false in the LastChange delta.",
       "evidence": [
        {
         "type": "firmware",
@@ -66980,10 +66980,34 @@
         "address": "0x102d2e3c",
         "notes": "When impl+0x7764 is set, clears it, sets +0x7765 to one and invokes f_1067c6ec(impl+0x10). Another f_1067c6ec call at 0x102d2da8 follows a nonzero f_102b05e4 result.",
         "function": "0x102d2bec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c4c8",
+        "notes": "f_1067c6ec calls the shared UPnP event scheduler. The scheduler marks the sender pending and requests its event work through f_10678c50, not a synchronous SOAP response or outbound event body.",
+        "function": "0x1067c46c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e61f8",
+        "notes": "Both engine tables bind +0x200 to 0x102e6048 (table words 0x10eaf4ec and 0x10edfdb8). It locks impl+0x458 and calls f_102e43a0 at 0x102e61d4 and 0x102e61f8 for the two subscriber groups, with r7=1 and r7=0 respectively. The formatter opens LastChange for InstanceID 0 at 0x102e47b0.",
+        "function": "0x102e6048"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b5780",
+        "notes": "Samples +0x7765 into pending byte +0xa09b. A consuming pass clears +0x7765 at 0x102b57b0. Serializer at 0x102e50cc writes r:RestartPending from +0x7764; delta branch tests +0xa09b at 0x102e53c0.",
+        "function": "0x102b5658"
        }
       ],
       "todo": [
-       "Identify the subscribers and LastChange fields for the two f_1067c6ec call sites, including whether they can both run in one stop operation."
+       "Trace the exact transport snapshot fields dirtied by mode-zero stop and the mode-one fallback in addition to the verified indexed restart update."
       ]
      },
      "state_transitions": {
