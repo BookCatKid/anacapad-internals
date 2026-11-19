@@ -12677,7 +12677,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 at 0x10351bf4 over the base vtable 0x10ebd214 installed by f_1035e5ac. 0x10ebd214 is the base vtable only; the slots used by the bonding actions are overridden in 0x10ebc630. In the base vtable 0x10ebd214 slot +0x20 is f_1035b548, which compares its own slot +0x18 against the base stub f_1035a390 and returns 401 when they are equal; the most-derived override 0x10350210 drops that guard and always forwards to slot +0x18. Both routes therefore end at the same bonding code."
     },
     "EnterConfigMode": {
-     "description": "Enters a device config Mode with Options, returning State via impl->v[+0x60].",
+     "description": "Puts the player into a named configuration mode. The wrapper parses Mode (cap 32) and Options (cap 128) and calls slot +0x60 of runtime vtable 0x10ebc630, which the most-derived class overrides with 0x103523fc; that override parses the home-theater map, calls the base worker f_10364848 and, if it succeeds, propagates the call to the satellites. f_10364848 presets its result to 810 and matches Mode case-insensitively (strcasecmp) against 'button-notify', 'speaker-detect' and 'trueroom'; an unmatched Mode returns 810. 'speaker-detect' enters through f_10363450, 'button-notify' through f_1035d0c8 and 'trueroom' enters the room-calibration mode ('room_calibration-calibrate') through f_10364360, each logging 'Entering %s config mode.' and 'completed %s config mode' or 'failed to complete %s config mode (%d)'. The resulting mode state is written into the 1024-byte State output. When the local player is entry 0 of its home-theater map at impl+0xe60 and the map has more than one entry, the override then sends the same action to every other entry over SOAP, after resolving each one's URIs through the topology ('lookup of %s URIs for %s failed' when that fails). If any satellite fails ('failed to call EnterConfigMode on satellite %s (%d)', then 'failed to propagate EnterConfigMode to satellites, aborting (%d)'), the override exits config mode locally through f_103632e0 and returns 1034.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073611c",
@@ -12689,37 +12689,80 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "most-derived DeviceProperties implementation (constructor f_10351904)",
+      "impl_vtable": "0x10ebc630",
+      "override": "0x103523fc",
+      "worker": "0x10364848",
+      "worker_slot": "0x60",
       "calls": [
        {
-        "site": "0x107361d0",
-        "obj": "r5-in",
-        "slot": 96,
-        "arg4": "sp-0x4b4"
+        "site": "0x1073615c",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate Mode input record"
        },
        {
-        "site": "0x10736250",
-        "obj": "vret(*(sp-0x4d0+0x4cc),+0x24)",
-        "slot": 16,
-        "arg4": "sp+0xbc"
+        "site": "0x10736168",
+        "purpose": "parse Mode, capacity 32"
+       },
+       {
+        "site": "0x10736184",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate Options input record"
+       },
+       {
+        "site": "0x10736190",
+        "purpose": "parse Options, capacity 128"
+       },
+       {
+        "site": "0x107361a4",
+        "obj": "TRequest (r4-in)",
+        "slot": 8,
+        "purpose": "validate; 0 leads to 402 at 0x10736220"
+       },
+       {
+        "site": "0x107361d0",
+        "obj": "DeviceProperties impl (r5-in)",
+        "slot": 96,
+        "target": "0x103523fc",
+        "purpose": "enter config mode, State buffer of 1024 bytes"
+       },
+       {
+        "site": "0x103524b0",
+        "purpose": "base worker f_10364848"
+       },
+       {
+        "site": "0x10352530",
+        "purpose": "per-satellite EnterConfigMode SOAP call through f_106e8630"
+       },
+       {
+        "site": "0x10352814",
+        "purpose": "local rollback through f_103632e0 after a satellite failure"
+       },
+       {
+        "site": "0x1073623c",
+        "obj": "TRequest (r4-in)",
+        "slot": 36,
+        "purpose": "allocate State output record"
        },
        {
         "site": "0x10736264",
-        "obj": "*(sp-0x4d0+0x4cc)",
+        "obj": "TRequest (r4-in)",
         "slot": 12,
-        "arg4": "?"
-       }
-      ],
-      "req_vcalls": [
+        "purpose": "commit success"
+       },
        {
-        "site": "0x107361a4",
-        "slot": 8,
-        "purpose": "parse"
+        "site": "0x107361ec",
+        "obj": "TRequest (r4-in)",
+        "slot": 20,
+        "purpose": "fault with rc"
        }
       ]
      },
      "inputs": {
       "Mode": {
-       "description": "Config-mode selector string",
+       "description": "Configuration mode name, matched case-insensitively: 'button-notify', 'speaker-detect' or 'trueroom' (room calibration). Any other value returns 810.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -12731,12 +12774,12 @@
        "semantic_type": "string argument (type-tag-7 record)",
        "format": "utf-8 text, buffer cap 32 bytes (31 chars + NUL)",
        "unit": "none - boolean flag",
-       "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
-       "range": "max 31 chars",
+       "accepted_values": "button-notify, speaker-detect, trueroom (case-insensitive)",
+       "range": "32-byte parse buffer",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "strcasecmp in f_10364848",
        "evidence": [
         {
          "type": "firmware",
@@ -12758,20 +12801,44 @@
          "build": "86.10-80260",
          "function": "0x1012bb4c",
          "notes": "impl returns the mode-context member"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103648e0",
+         "notes": "button-notify"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364908",
+         "notes": "speaker-detect"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364924",
+         "notes": "trueroom"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103648b0",
+         "notes": "810 preset"
         }
        ],
        "notes": null,
        "buf_cap": 32,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Mode` is parsed then forwarded verbatim to r5-in vfunc +96 (site 0x107361d0) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `Mode` = verbatim forward to impl vfunc +96 (obj r5-in, call site 0x107361d0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "Options": {
-       "description": "Config-mode options string",
+       "description": "Mode options string (cap 128) passed unchanged to the mode entry function selected by Mode and forwarded verbatim to satellites.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -12784,11 +12851,11 @@
        "format": "utf-8 text, buffer cap 128 bytes (127 chars + NUL)",
        "unit": "n/a - text",
        "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
-       "range": "max 127 chars",
+       "range": "128-byte parse buffer",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "TRequest parse only at this layer",
        "evidence": [
         {
          "type": "firmware",
@@ -12810,14 +12877,24 @@
          "build": "86.10-80260",
          "function": "0x1012bb4c",
          "notes": "impl path"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10736188",
+         "notes": "capacity 128"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103524a4",
+         "notes": "forwarded to f_10364848"
         }
        ],
        "notes": null,
        "buf_cap": 128,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Options` is parsed then forwarded verbatim to r5-in vfunc +96 (site 0x107361d0) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `Options` = verbatim forward to impl vfunc +96 (obj r5-in, call site 0x107361d0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -12825,7 +12902,7 @@
      },
      "outputs": {
       "State": {
-       "description": "Resulting config-mode state string written to the response",
+       "description": "Mode state text written by the selected mode entry function into a 1024-byte buffer and returned as the State output when the call succeeds.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -12835,7 +12912,7 @@
        "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
        "unit": "none - boolean flag",
        "accepted_values": "config-mode state string produced by the mode-context member",
-       "range": "per the response writer",
+       "range": "up to 1023 characters",
        "special_values": "none identified",
        "required": false,
        "default": "none; written on success",
@@ -12861,13 +12938,23 @@
          "build": "86.10-80260",
          "function": "0x10736228",
          "notes": "response path writes State via req v[+0x24]/v[+0x10]"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107361b8",
+         "notes": "buffer size 0x400"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10736230",
+         "notes": "State output name"
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `State`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       }
      },
      "validation": {
@@ -12883,101 +12970,145 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x60]",
+      "description": "Mode must be one of the three names; on a home-theater primary every satellite must also accept the call.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073611c",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "address": "0x103648b0",
+        "notes": "810 preset"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10352608",
+        "notes": "1034 on satellite failure"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x60].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x60]",
+      "description": "Reads the home-theater map at impl+0xe60 and local UUID at impl+0x25c under the impl+0x268 lock to decide whether to propagate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073611c",
-        "notes": "member vfunc calls: ['r30 v[+0x60]']"
+        "address": "0x10352484",
+        "notes": "impl+0xe60"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10352478",
+        "notes": "impl+0x268 lock"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x60].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x60] (call-derived member-method semantics)",
+       "description": "Enters the selected mode locally and, on a primary, on every satellite; rolls the local mode back when a satellite fails.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1073611c",
-         "notes": "delegate map ['r30 v[+0x60]']; notify-family calls []"
+         "address": "0x10364a10",
+         "notes": "speaker-detect entry"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364adc",
+         "notes": "button-notify entry"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364bec",
+         "notes": "room-calibration entry"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10352814",
+         "notes": "rollback"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x60] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No GENA event and no in-process publisher call appear in the override or base worker; the satellite calls are ordinary SOAP requests.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073611c",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x10364848",
+        "notes": "no publisher call"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103523fc",
+        "notes": "no publisher call"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x60]",
+      "description": "Successful calls move the player (and its satellites) into the named config mode until ExitConfigMode; a satellite failure leaves the player out of the mode.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073611c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x60]']"
+        "address": "0x10364c3c",
+        "notes": "'Entering %s config mode.'"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10352814",
+        "notes": "rollback"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x60].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "0 commits State. 402 is TRequest validation; 810 an unknown Mode; 1034 a satellite propagation failure; other codes from the mode entry functions are forwarded verbatim.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073611c",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "address": "0x10736220",
+        "notes": "402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103648b0",
+        "notes": "810"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10352608",
+        "notes": "1034"
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: mode dispatch, the 810 unknown-mode result, satellite propagation and the 1034 rollback are traced.",
+       "Unknown: the result codes the three mode entry functions f_10363450, f_1035d0c8 and f_10364360 can return, which are forwarded unchanged.",
+       "Close it by tracing each of those functions to its return values and conditions."
       ]
      },
      "fault_sites": [
@@ -12990,33 +13121,21 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x60); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | impl is a returns r3+0x9d04 -> real worker member accessor | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192 at 0x10736220",
+       "meaning": "TRequest validation failed.",
        "fault_sites": [
         "0x107361ec"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "req->v[+0x08] returned 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073611c",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1073611c",
-           "notes": "parse vcalls then fault path"
+           "address": "0x107361ac",
+           "notes": "branch"
           }
          ]
         }
@@ -13026,44 +13145,78 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073611c",
-         "notes": "0x192 fault constant in handler"
-        },
+         "address": "0x107361ec",
+         "notes": "fault emit"
+        }
+       ]
+      },
+      {
+       "code": 810,
+       "code_expr": "0x32a at 0x103648b0",
+       "meaning": "Mode is not button-notify, speaker-detect or trueroom.",
+       "fault_sites": [
+        "0x107361ec"
+       ],
+       "conditions": [
+        {
+         "description": "all three strcasecmp calls are nonzero",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10364924",
+           "notes": "last comparison"
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1012bb4c",
-         "notes": "impl resolves to member accessor (returns r3+0x9d04)"
-        },
+         "address": "0x103648b0",
+         "notes": "preset"
+        }
+       ]
+      },
+      {
+       "code": 1034,
+       "code_expr": "0x40a at 0x10352608",
+       "meaning": "The mode was entered locally but a satellite refused it, so it was rolled back.",
+       "fault_sites": [
+        "0x107361ec"
+       ],
+       "conditions": [
+        {
+         "description": "per-satellite SOAP call fails",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10352534",
+           "notes": "rc test"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1035266c",
+           "notes": "abort log"
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073611c",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10352608",
+         "notes": "literal"
         }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
-         "function": "0x1012bb4c",
-         "lits": [
-          -936,
-          0
-         ],
-         "passthrough_exits": 2
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x60); parse/req-layer; sites: 0x107361ec).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -13093,13 +13246,10 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x1073611c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Base slot +0x60 is f_10364848 itself; the override adds only the satellite propagation and rollback."
     },
     "ExitConfigMode": {
-     "description": "Exits config mode with Options via impl->v[+0x64].",
+     "description": "Leaves the current configuration mode. The wrapper parses Options (cap 128) and calls slot +0x64 of runtime vtable 0x10ebc630, overridden by 0x10351230, which parses the home-theater map, calls f_103632e0 (which takes the impl+0x268 lock and calls f_10363050) and then propagates to satellites. f_10363050 exits the active mode: speaker-detect through f_103625a8, button-notify through f_1035d13c and room calibration through f_10360ea4, logging 'Exiting %s config mode.' and 'failure when exiting %s config mode (%d)'. When the local player is entry 0 of its home-theater map at impl+0xe60 and the map has more than one entry, the override then sends the same action to every other entry over SOAP, after resolving each one's URIs through the topology ('lookup of %s URIs for %s failed' when that fails). A satellite failure is logged ('failed to call ExitConfigMode on satellite %s (%d)') and produces 1034.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10736270",
@@ -13111,31 +13261,56 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "most-derived DeviceProperties implementation (constructor f_10351904)",
+      "impl_vtable": "0x10ebc630",
+      "override": "0x10351230",
+      "worker": "0x103632e0 -> 0x10363050",
+      "worker_slot": "0x64",
       "calls": [
        {
+        "site": "0x107362b0",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate Options input record"
+       },
+       {
+        "site": "0x107362bc",
+        "purpose": "parse Options, capacity 128"
+       },
+       {
+        "site": "0x107362d0",
+        "obj": "TRequest (r4-in)",
+        "slot": 8,
+        "purpose": "validate; 0 leads to 402 at 0x10736340"
+       },
+       {
         "site": "0x107362f0",
-        "obj": "r5-in",
+        "obj": "DeviceProperties impl (r5-in)",
         "slot": 100,
-        "arg4": "sp-0x94"
+        "target": "0x10351230",
+        "purpose": "exit config mode"
+       },
+       {
+        "site": "0x103512cc",
+        "purpose": "local exit through f_103632e0"
        },
        {
         "site": "0x10736354",
-        "obj": "*(sp-0xb0+0xac)",
+        "obj": "TRequest (r4-in)",
         "slot": 12,
-        "arg4": 402
-       }
-      ],
-      "req_vcalls": [
+        "purpose": "commit success"
+       },
        {
-        "site": "0x107362d0",
-        "slot": 8,
-        "purpose": "parse"
+        "site": "0x1073630c",
+        "obj": "TRequest (r4-in)",
+        "slot": 20,
+        "purpose": "fault with rc"
        }
       ]
      },
      "inputs": {
       "Options": {
-       "description": "Exit options string",
+       "description": "Options string (cap 128) passed to the local exit and forwarded to satellites.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -13148,11 +13323,11 @@
        "format": "utf-8 text, buffer cap 128 bytes (127 chars + NUL)",
        "unit": "n/a - text",
        "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
-       "range": "max 127 chars",
+       "range": "128-byte parse buffer",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "TRequest parse only",
        "evidence": [
         {
          "type": "firmware",
@@ -13174,14 +13349,24 @@
          "build": "86.10-80260",
          "function": "0x1019db48",
          "notes": "impl returns the mode member at this+0x5b60"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107362b4",
+         "notes": "capacity 128"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103512c4",
+         "notes": "forwarded to f_103632e0"
         }
        ],
        "notes": null,
        "buf_cap": 128,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Options` is parsed then forwarded verbatim to r5-in vfunc +100 (site 0x107362f0) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `Options` = verbatim forward to impl vfunc +100 (obj r5-in, call site 0x107362f0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -13201,101 +13386,124 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x64]",
+      "description": "No precondition at this layer: the local exit runs whatever mode is active, and satellites are contacted only from a home-theater primary.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10736270",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x103512cc",
+        "notes": "unconditional local exit"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103512e8",
+        "notes": "propagation gate"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x64].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x64]",
+      "description": "Reads impl+0xe60, impl+0x25c and the active-mode state under the impl+0x268 lock.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10736270",
-        "notes": "member vfunc calls: ['r30 v[+0x64]']"
+        "address": "0x103512ac",
+        "notes": "impl+0xe60"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103512a0",
+        "notes": "lock"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x64].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x64] (call-derived member-method semantics)",
+       "description": "Exits the active mode locally and on satellites; failures are logged per mode and per satellite.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10736270",
-         "notes": "delegate map ['r30 v[+0x64]']; notify-family calls []"
+         "address": "0x10363140",
+         "notes": "speaker-detect exit"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10363198",
+         "notes": "button-notify exit"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1036326c",
+         "notes": "room-calibration exit"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x64] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No GENA event and no in-process publisher call in the override or f_10363050.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10736270",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x10363050",
+        "notes": "no publisher call"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10351230",
+        "notes": "no publisher call"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x64]",
+      "description": "The player and its satellites leave config mode.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10736270",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x64]']"
+        "address": "0x103632a8",
+        "notes": "'Exiting %s config mode.'"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x64].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "0 commits. 402 is TRequest validation; 1034 a satellite failure; mode-exit codes (821, 822, 824 on the room-calibration path) are forwarded.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10736270",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x10736340",
+        "notes": "402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035152c",
+        "notes": "1034"
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: wrapper, override, local exit dispatch and satellite propagation with 1034 are traced.",
+       "Unknown: the conditions for 821, 822 and 824 inside f_103619c8 and whether the local exit result reaches the SOAP reply when satellite propagation also runs.",
+       "Close it by tracing f_103619c8 exits and the r29 result flow in 0x10351230 from 0x103512d4 to its return."
       ]
      },
      "fault_sites": [
@@ -13308,33 +13516,21 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x64); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | impl is a returns r3+0x5b60 -> real worker member accessor | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192 at 0x10736340",
+       "meaning": "TRequest validation failed.",
        "fault_sites": [
         "0x1073630c"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "req->v[+0x08] returned 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10736270",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10736270",
-           "notes": "parse vcalls then fault path"
+           "address": "0x107362d8",
+           "notes": "branch"
           }
          ]
         }
@@ -13344,50 +13540,40 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10736270",
-         "notes": "0x192 fault constant in handler"
-        },
+         "address": "0x1073630c",
+         "notes": "fault emit"
+        }
+       ]
+      },
+      {
+       "code": 1034,
+       "code_expr": "0x40a at 0x1035152c",
+       "meaning": "A satellite did not accept ExitConfigMode.",
+       "fault_sites": [
+        "0x1073630c"
+       ],
+       "conditions": [
+        {
+         "description": "per-satellite SOAP call fails",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10351328",
+           "notes": "failure log"
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1019db48",
-         "notes": "impl resolves to member accessor (returns r3+0x5b60)"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10736270",
-         "notes": "wrapper parse + fault path"
+         "address": "0x1035152c",
+         "notes": "literal"
         }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
-         "function": "0x1019db48",
-         "lits": [
-          -1492,
-          -1468,
-          -936,
-          0,
-          19744,
-          22308,
-          22528,
-          23392
-         ],
-         "passthrough_exits": 28
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x64); parse/req-layer; sites: 0x1073630c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -13417,10 +13603,7 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10736270; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Base slot +0x64 is f_103632e0; the override adds the satellite propagation. The room-calibration exit reaches f_103619c8, which holds the 821, 822 and 824 literals."
     },
     "GetAutoplayLinkedZones": {
      "description": "Returns the persisted autoplay 'include linked zones' flag. The wrapper parses the required Source string (cap 5) and passes it to slot +0x2c of the runtime vtable 0x10ebc630, which resolves to f_1035a64c (not overridden by the most-derived class). f_1035a64c ignores Source, locks impl+0x268, copies the single byte at impl+0x1aa1 into the caller's out byte and returns 0. The wrapper formats that byte as IncludeLinkedZones through f_1055fc08 and, as an implementation quirk, also allocates a second output record and echoes the parsed Source text even though the SCPD declares Source input-only.",
@@ -13811,10 +13994,6 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10736c84; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274) whose most-derived vtable is 0x10ebc630. 0x10ebd214 is the vtable of its direct base (constructor f_1035e5ac) and is not the runtime dispatch table. Slot +0x2c is identical in 0x10ebc630 and 0x10ebd214. The worker reads one byte under the impl+0x268 mutex and never consults Source."
     },
     "GetAutoplayRoomUUID": {
@@ -14221,10 +14400,6 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10736750; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274) whose most-derived vtable is 0x10ebc630. 0x10ebd214 is the vtable of its direct base (constructor f_1035e5ac) and is not the runtime dispatch table. The previous error text that attributed this action to worker f_1074c090 was wrong; slot +0x34 is f_1035a5e4. The two evstdd/evldd words at 0x1035a60c/0x1035a614 save and restore r5 (the buffer size) around the mutex call."
     },
     "GetAutoplayVolume": {
@@ -16987,7 +17162,7 @@
      },
      "side_effects": [
       {
-       "description": "Read-only.",
+       "description": "Read-only: f_105b4490 only issues the four backend reads through impl+0x950 vtable +0x24 into local buffers and formats the configuration with %x; it writes no impl state, persists nothing and publishes no event.",
        "evidence": [
         {
          "type": "firmware",
@@ -21173,7 +21348,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274) whose most-derived vtable is 0x10ebc630. 0x10ebd214 is the vtable of its direct base (constructor f_1035e5ac) and is not the runtime dispatch table. Slot +0x28 is not overridden by the most-derived class, so the flag is not forwarded to bonded satellites."
     },
     "SetAutoplayRoomUUID": {
-     "description": "Sets the autoplay RoomUUID (+Source selector) via impl->v[+0x30].",
+     "description": "Sets the room whose playback a line-in source autoplays to. The wrapper parses RoomUUID (cap 26) and Source (cap 5) and calls slot +0x30 of runtime vtable 0x10ebc630, f_10360110 (the base function, not overridden). Under the impl+0x268 lock it maps Source with f_106a335c (RCA 0, TV 1, VLI 2, anything else 3, which is then treated as 0). For TV it looks RoomUUID up in the topology at impl+0x968 through f_1075df68 and returns 402 when a nonempty UUID is not found. f_1035c43c then requires a nonempty RoomUUID to start with 'RINCON_' and be exactly 24 characters (402 otherwise); an empty RoomUUID clears the setting. If the value differs from the stored one it is copied to impl+0x1aa2 (strlcpy, 25), persisted as AutoplayRoomUUID through impl+0x960 vtable +0x14 and logged as '%s autoplay room UUID changed to %s'. For TV the room object is also passed to f_1023d1b4 on impl+0x1560. Finally the autoplay snapshot f_1035c328 is published as AutoPlaySettingsEvent through f_1036679c on impl+0xa84, even when the value did not change.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073660c",
@@ -21185,31 +21360,62 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "most-derived DeviceProperties implementation (constructor f_10351904)",
+      "impl_vtable": "0x10ebc630",
+      "worker": "0x10360110",
+      "worker_slot": "0x30",
+      "validator": "0x1035c43c",
       "calls": [
        {
+        "site": "0x10736658",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate RoomUUID input record"
+       },
+       {
+        "site": "0x10736664",
+        "purpose": "parse RoomUUID, capacity 26"
+       },
+       {
+        "site": "0x10736688",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate Source input record"
+       },
+       {
+        "site": "0x10736698",
+        "purpose": "parse Source, capacity 5"
+       },
+       {
+        "site": "0x107366b4",
+        "obj": "TRequest (r4-in)",
+        "slot": 8,
+        "purpose": "validate; 0 leads to 402 at 0x10736730"
+       },
+       {
         "site": "0x107366d8",
-        "obj": "r5-in",
+        "obj": "DeviceProperties impl (r5-in)",
         "slot": 48,
-        "arg4": "sp-0x30"
+        "target": "0x10360110",
+        "purpose": "set the room UUID"
+       },
+       {
+        "site": "0x107366f4",
+        "obj": "TRequest (r4-in)",
+        "slot": 20,
+        "purpose": "fault with rc or 402"
        },
        {
         "site": "0x10736744",
-        "obj": "*(sp-0x50+0x4c)",
+        "obj": "TRequest (r4-in)",
         "slot": 12,
-        "arg4": 402
-       }
-      ],
-      "req_vcalls": [
-       {
-        "site": "0x107366b4",
-        "slot": 8,
-        "purpose": "parse"
+        "purpose": "commit success"
        }
       ]
      },
      "inputs": {
       "RoomUUID": {
-       "description": "Autoplay source room UUID to store",
+       "description": "Player UUID of the room to autoplay to, or empty to clear it. A nonempty value must begin with 'RINCON_' and be exactly 24 characters; for Source TV it must also be known to the topology.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -21221,12 +21427,12 @@
        "semantic_type": "string argument (type-tag-7 record)",
        "format": "utf-8 text, buffer cap 26 bytes (25 chars + NUL)",
        "unit": "n/a - text",
-       "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
-       "range": "max 25 chars",
-       "special_values": "none identified",
+       "accepted_values": "empty, or 'RINCON_' followed by 17 characters (24 total)",
+       "range": "24 characters",
+       "special_values": "empty string clears the setting",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "f_1035c43c prefix and length checks; f_1075df68 topology lookup for TV",
        "evidence": [
         {
          "type": "firmware",
@@ -21248,20 +21454,37 @@
          "build": "86.10-80260",
          "function": "0x101939a4",
          "notes": "impl member write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035c4a4",
+         "notes": "strncmp 'RINCON_', 7"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035c4f0",
+         "notes": "strlen == 24"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10360284",
+         "notes": "TV topology lookup"
         }
        ],
        "notes": null,
        "buf_cap": 26,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `RoomUUID` is parsed then forwarded verbatim to r5-in vfunc +48 (site 0x107366d8) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `RoomUUID` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x107366d8); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "Source": {
-       "description": "Autoplay source identifier string",
+       "description": "Line-in source the setting applies to, mapped by f_106a335c: 'RCA', 'TV' or 'VLI'. Any other value is treated as RCA. Parse cap 5.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -21273,12 +21496,12 @@
        "semantic_type": "string argument (type-tag-7 record)",
        "format": "utf-8 text, buffer cap 5 bytes (4 chars + NUL)",
        "unit": "n/a - text",
-       "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
+       "accepted_values": "RCA, TV, VLI; other values behave as RCA",
        "range": "max 4 chars",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "f_106a335c mapping; enum 3 normalized to 0 at 0x1036026c",
        "evidence": [
         {
          "type": "firmware",
@@ -21300,14 +21523,31 @@
          "build": "86.10-80260",
          "function": "0x101939a4",
          "notes": "impl worker"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10360158",
+         "notes": "f_106a335c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1036026c",
+         "notes": "enum 3 replaced by 0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073668c",
+         "notes": "capacity 5"
         }
        ],
        "notes": null,
        "buf_cap": 5,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Source` is parsed then forwarded verbatim to r5-in vfunc +48 (site 0x107366d8) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `Source` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x107366d8); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -21327,101 +21567,171 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r29 v[+0x30]",
+      "description": "A nonempty RoomUUID must be 'RINCON_' plus 17 characters, and for Source TV must name a player the topology knows.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073660c",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x1035c4a4",
+        "notes": "prefix check"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035c4f4",
+        "notes": "length check"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360294",
+        "notes": "402 for unknown TV room"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r29 v[+0x30].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r29 v[+0x30]",
+      "description": "Reads the stored value through impl+0x964 (f_1074720c) to skip unchanged writes, and the topology at impl+0x968 for TV.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073660c",
-        "notes": "member vfunc calls: ['r29 v[+0x30]']"
+        "address": "0x1035c510",
+        "notes": "stored-value read"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1036027c",
+        "notes": "impl+0x968"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r29 v[+0x30].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r29 v[+0x30] (call-derived member-method semantics)",
+       "description": "Stores RoomUUID at impl+0x1aa2 and persists it as AutoplayRoomUUID when it changed.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1073660c",
-         "notes": "delegate map ['r29 v[+0x30]']; notify-family calls []"
+         "address": "0x1035c540",
+         "notes": "strlcpy 25"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035c568",
+         "notes": "persist through impl+0x960 vtable +0x14"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035c5a0",
+         "notes": "change log"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r29 v[+0x30] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       ]
+      },
+      {
+       "description": "For TV passes the resolved room object to f_1023d1b4 on impl+0x1560.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103602ac",
+         "notes": "call"
+        }
+       ]
+      },
+      {
+       "description": "Publishes the autoplay snapshot (source, room UUID, volume, use-volume, include-linked) as AutoPlaySettingsEvent.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103601bc",
+         "notes": "f_1035c328"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10360204",
+         "notes": "f_1036679c on impl+0xa84"
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No GENA event (the state variables are sendEvents=no). The in-process AutoPlaySettingsEvent is published on every successful call.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073660c",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x10360204",
+        "notes": "publisher call"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v[+0x30]",
+      "description": "impl+0x1aa2 holds the new UUID, or empty after a clear; an unchanged value causes no write but still publishes the snapshot.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073660c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r29 v[+0x30]']"
+        "address": "0x1035c530",
+        "notes": "equal value skips the write"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035c5b4",
+        "notes": "returns 0"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v[+0x30].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "0 commits. 402 comes from TRequest validation, a malformed nonempty RoomUUID, or an unknown TV room.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073660c",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x10736744",
+        "notes": "commit"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10736730",
+        "notes": "wrapper 402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035c4a0",
+        "notes": "validator 402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360294",
+        "notes": "TV 402"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -21434,33 +21744,59 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x30); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192 at 0x10736730, 0x1035c4a0 and 0x10360294",
+       "meaning": "TRequest validation failed, RoomUUID is nonempty but not 'RINCON_' plus 17 characters, or Source is TV and the topology does not know the room.",
        "fault_sites": [
         "0x107366f4"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "req->v[+0x08] returned 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073660c",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
+           "address": "0x107366bc",
+           "notes": "branch"
           }
          ]
         },
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "prefix or length check fails",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073660c",
-           "notes": "parse vcalls then fault path"
+           "address": "0x1035c4ac",
+           "notes": "prefix"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1035c4f4",
+           "notes": "length"
+          }
+         ]
+        },
+        {
+         "description": "TV lookup returns null for a nonempty UUID",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10360288",
+           "notes": "lookup result"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1036029c",
+           "notes": "402 exit"
           }
          ]
         }
@@ -21470,34 +21806,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073660c",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1073660c",
-         "notes": "wrapper parse + fault path"
+         "address": "0x107366f4",
+         "notes": "fault emit"
         }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
-         "function": "0x101939a4",
-         "lits": [],
-         "passthrough_exits": 0
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x30); parse/req-layer; sites: 0x107366f4).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -21527,10 +21838,7 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x1073660c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Slot +0x30 holds f_10360110 in both the base vtable 0x10ebd214 and the runtime vtable 0x10ebc630."
     },
     "SetAutoplayVolume": {
      "description": "Sets the speaker's single persisted autoplay-volume setting. Volume must be 0..100. Source is required by the SOAP API and is mapped to an internal autoplay-source enum for the follow-up settings event, but it does not select a separate per-source stored volume: every successful call writes the same u16 field at RZPDevicePropertiesStP+0x1abc and persists configuration key 'AutoplayVolume'.",
@@ -25321,8 +25629,9 @@
      }
     ],
     "todo": [
-     "Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `deviceProperties`, `extendedDeviceStatus`, `microphoneSwitchStatus`, `batteryStatus`, `speakerPresenceStatus`.",
-     "Residual: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "Established: the action workers traced in this service publish only in-process events (AutoPlaySettingsEvent through f_1036679c, bondedZoneChange through f_1035c748); none calls a GENA notify path directly.",
+     "Unknown: where the GENA property set for this service is built and sent, so the WSS name attribution is still name-based.",
+     "Close it by xref-tracing the deviceProperties WSS name and the GENA notify builder to their call sites."
     ],
     "resolved_findings": [
      "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
@@ -25360,10 +25669,6 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
       "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x10735cac); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
      ]
@@ -25402,13 +25707,10 @@
    "impl": {
     "desired_attrs": "action params {DesiredIcon,DesiredConfiguration,DesiredTargetRoomName,DesiredButtonLockState,DesiredLEDState,KeepGrouped}; ops {SetZoneAttributes,SetButtonLockState,SetLEDState,AddHTSatellite,RemoveHTSatellite,AddBondedZone,RemoveBondedZones}; VliPropertiesChangedEvent processing"
    },
-   "todo": [
-    "Established: the service object, action dispatcher, and concrete RZPDevicePropertiesStP implementation binding are statically resolved; implementation vtable 0x10ebd214 is proven.",
-    "Residual: finish each remaining action record individually by tracing its wrapper/body to the corresponding RZPDevicePropertiesStP vtable slot and exhausting that worker's state, faults, side effects, and outputs. Do not treat the old runtime-injected-delegate boundary as valid for this service."
-   ],
    "resolved_findings": [
     "DeviceProperties implementation binding is statically proven. The embedded service object is zone-player+0x3fa2c (getter f_1019db60; secondary-base adjustor f_1019db74). The service pointer is stored at media-player-manager+0xbc by f_1040c02c, passed into the media-player object at +0x220 by f_103fa434, and f_103fd65c calls f_104d49e8 with service=r3 and shared_ptr(media-player+0x19b8)=r5. f_104d49e8 copies that shared_ptr into service+0x4/+0x8. The pointed object is constructed by f_10351904 as RZPDevicePropertiesStP, whose final primary vtable is 0x10ebd214. Per-action delegate slots can therefore be resolved statically from that vtable."
-   ]
+   ],
+   "implementation_notes": " Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Every action record cites the runtime slot it reaches."
   },
   "/GroupManagement/Control": {
    "name": "GroupManagement",
