@@ -95920,7 +95920,7 @@
      "implementation_notes": "10732e24 ->delegate+38=104b0c90. Actual vtable+4c getter100c9be8 is recognized/inlined; SystemSettings+24 reader1066c24c.1090b418 caches current numeric tuple,1090c360 performs scanf conversion; conditional1090b078 ->delegate+8 SetString1066aa24 status discarded. Raw isel CR7/CR5 and unsigned branch polarity audited; no runtime-injected-vptr residual. Same-major/minor skip deliberately follows binary rather than inferred full semantic-version ordering."
     },
     "EditAccountMd": {
-     "description": "Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v[+0x30].",
+     "description": "Replaces the metadata payload on an existing live service account. Handler 0x10732310 dispatches via concrete SystemProperties delegate vtable 0x10ed75c4 slot +0x30 to 0x104b06d0, then 0x1028b760. The worker selects by normalized AccountType and exact AccountID, stores a leading ASCII 1 plus the retained NewAccountMd bytes, stamps the household clock, and conditionally persists accounts.xml. Empty input stores MD=\"1\" rather than removing MD. It does not change the password, nickname or OAuth credentials, authenticate a login or create an account. Returns no output arguments.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10732310",
@@ -95938,12 +95938,6 @@
         "obj": "*(r3-in+0x4)",
         "slot": 48,
         "arg4": "*(sp-0x130+0x18)"
-       },
-       {
-        "site": "0x10732448",
-        "obj": "*(sp-0x130+0x12c)",
-        "slot": 12,
-        "arg4": 402
        }
       ],
       "req_vcalls": [
@@ -95956,7 +95950,7 @@
      },
      "inputs": {
       "AccountType": {
-       "description": "music-service account type code",
+       "description": "Requested account type for the metadata target, compared through strict normalized-type lookup.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -95965,49 +95959,48 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "parser-type bounded",
-       "special_values": "none identified",
+       "semantic_type": "unsigned 32-bit account type",
+       "format": "Base-10 prefix conversion of at most 23 retained bytes.",
+       "unit": "account type code",
+       "accepted_values": "Any present text. Leading libc whitespace and optional sign are accepted; a decimal prefix is converted and suffix ignored. Empty or no-digit text converts to zero.",
+       "range": "32-bit conversion result 0..4294967295; in-range negative magnitude wraps modulo 2^32, overflow gives ULONG_MAX.",
+       "special_values": "Lookup compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32 on input and stored type. It does not require an enumerated service type or rewrite the stored type.",
        "required": true,
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "default": "None; absent input faults 402.",
+       "validation": "Required tag 4 materialization. Numeric lexical errors do not cause 402; an unmatched normalized type plus ID causes 806 after snapshot reading.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732350",
-         "notes": "in-arg access site"
+         "address": "0x107323e4",
+         "function": "0x10732310",
+         "notes": "Registers AccountType via 0x105614e0 (tag 4, capacity 24), AccountID and NewAccountMd via 0x1056157c (tag 7, capacity 128 each), all through request +0x1c. Validates at 0x107323bc; false faults 402, otherwise calls delegate +0x30. Nonzero worker status faults at 0x10732400; zero commits at 0x10732448, without outputs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f111dc",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Required named input materialization is checked before delegate dispatch. Tag-4 conversion 0x10560b50 is strtoul(text,NULL,10), no errno/end checks. 0x10560708/0x10560a58 copy and terminate at capacity minus one bytes. Tag 7 accepts present empty text and truncates excess bytes without UTF-8 validation. Descriptors remain nonoptional."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x101953c0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x10570e40",
+         "function": "0x10570e34",
+         "notes": "Strict lookup with r6=1 compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then strcmp on AccountID; empty ID requires an empty stored ID. No fallback selection in strict mode. Raw 0x548907fe retains bit 0; 0x5495066e is wrapping mask SH=0,MB=25,ME=23, clearing 0x80, not a right shift."
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `AccountType` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +48 (site 0x107323e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `AccountType` = verbatim forward to impl vfunc +48 (obj *(r3-in+0x4), call site 0x107323e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete delegate 0x104b06d0 forwards the 32-bit AccountType into strict normalized-type matching in 0x10570e34, not manager secondary method 0x101953c0."
        ]
       },
       "AccountID": {
-       "description": "existing account id",
+       "description": "Existing account ID whose metadata is to be edited.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -96016,50 +96009,49 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 128 bytes (127 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 127 chars",
-       "special_values": "none identified",
+       "semantic_type": "opaque account identifier byte string",
+       "format": "At most 127 retained bytes plus NUL.",
+       "unit": "account identifier",
+       "accepted_values": "Any present text, including empty. Excess bytes truncate to 127; whitespace and case are preserved and UTF-8 is not validated.",
+       "range": "0..127 payload bytes after truncation.",
+       "special_values": "Empty text only matches an empty stored ID; it is not a wildcard. This input is an account ID, not a UDN to be parsed or generated.",
        "required": true,
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "default": "None; absent input faults 402.",
+       "validation": "Required tag 7 string followed by strcmp against live records whose normalized type matches. Missing live record produces 806.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732374",
-         "notes": "in-arg access site"
+         "address": "0x107323e4",
+         "function": "0x10732310",
+         "notes": "Registers AccountType via 0x105614e0 (tag 4, capacity 24), AccountID and NewAccountMd via 0x1056157c (tag 7, capacity 128 each), all through request +0x1c. Validates at 0x107323bc; false faults 402, otherwise calls delegate +0x30. Nonzero worker status faults at 0x10732400; zero commits at 0x10732448, without outputs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eec254",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Required named input materialization is checked before delegate dispatch. Tag-4 conversion 0x10560b50 is strtoul(text,NULL,10), no errno/end checks. 0x10560708/0x10560a58 copy and terminate at capacity minus one bytes. Tag 7 accepts present empty text and truncates excess bytes without UTF-8 validation. Descriptors remain nonoptional."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x101953c0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x10570e40",
+         "function": "0x10570e34",
+         "notes": "Strict lookup with r6=1 compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then strcmp on AccountID; empty ID requires an empty stored ID. No fallback selection in strict mode. Raw 0x548907fe retains bit 0; 0x5495066e is wrapping mask SH=0,MB=25,ME=23, clearing 0x80, not a right shift."
         }
        ],
        "notes": null,
        "buf_cap": 128,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `AccountID` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +48 (site 0x107323e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `AccountID` = verbatim forward to impl vfunc +48 (obj *(r3-in+0x4), call site 0x107323e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "AccountID is consumed by concrete strict lookup, not forwarded to an unresolved runtime-injected delegate."
        ]
       },
       "NewAccountMd": {
-       "description": "new account metadata payload arg",
+       "description": "Opaque replacement metadata payload, stored after a leading ASCII 1 format marker.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -96068,280 +96060,776 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 128 bytes (127 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 127 chars",
-       "special_values": "none identified",
+       "semantic_type": "opaque metadata byte string",
+       "format": "At most 127 retained bytes in the 128-byte request buffer.",
+       "unit": "metadata payload bytes",
+       "accepted_values": "Any present text; no metadata grammar, boolean parsing, whitespace trimming or remote-service validation. Overlong values truncate rather than reject.",
+       "range": "0..127 payload bytes; stored metadata field has 129 bytes for marker, payload and NUL.",
+       "special_values": "Empty input stores the single byte string \"1\" and serializes MD=\"1\". Input already beginning with \"1\" receives another leading marker; the worker does not strip a caller-supplied marker.",
        "required": true,
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "default": "None; absent input faults 402, distinct from present empty metadata.",
+       "validation": "Required tag 7 materialization, then bounded payload copy with capacity 128 at record+0x8a and unconditional marker write at +0x89.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073239c",
-         "notes": "in-arg access site"
+         "address": "0x107323e4",
+         "function": "0x10732310",
+         "notes": "Registers AccountType via 0x105614e0 (tag 4, capacity 24), AccountID and NewAccountMd via 0x1056157c (tag 7, capacity 128 each), all through request +0x1c. Validates at 0x107323bc; false faults 402, otherwise calls delegate +0x30. Nonzero worker status faults at 0x10732400; zero commits at 0x10732448, without outputs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11214",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Required named input materialization is checked before delegate dispatch. Tag-4 conversion 0x10560b50 is strtoul(text,NULL,10), no errno/end checks. 0x10560708/0x10560a58 copy and terminate at capacity minus one bytes. Tag 7 accepts present empty text and truncates excess bytes without UTF-8 validation. Descriptors remain nonoptional."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x101953c0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x104b0708",
+         "function": "0x104b06d0",
+         "notes": "Moves input metadata r6 to r8; loads delegate+0x26c and adds embedded account store +0x118; calls 0x1028b760 with NULL new ID/password/nickname/OADevID/Token/Key and zero flag masks. Returns its status. Does not call 0x101953c0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028b95c",
+         "function": "0x1028b760",
+         "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1050849c",
+         "function": "0x105081bc",
+         "notes": "Live Account serialization writes the full nonempty record+0x89 string as escaped MD attribute, including the leading ASCII 1 marker. Therefore NewAccountMd empty persists MD=\"1\", not absence of MD. 0x105084e0 writes the live and deleted arrays separately and preserves the other live-account credential fields, including PW and Token/Key."
         }
        ],
        "notes": null,
        "buf_cap": 128,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `NewAccountMd` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +48 (site 0x107323e4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `NewAccountMd` = verbatim forward to impl vfunc +48 (obj *(r3-in+0x4), call site 0x107323e4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "The metadata argument reaches record+0x89/+0x8a and the MD XML attribute; it is not a boolean and is not the password field at +0x10a."
        ]
       }
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "All three named inputs use required lookup +0x1c, descriptors and request validation +8. Missing materialization faults 402 before metadata mutation. Present empty strings and malformed decimal text are accepted; overlong values truncate to descriptor capacity minus one. Strict normalized-type/case-sensitive-ID selection happens only after reading the account snapshot.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10732310",
-        "notes": "wrapper family decode"
+        "address": "0x107323e4",
+        "function": "0x10732310",
+        "notes": "Registers AccountType via 0x105614e0 (tag 4, capacity 24), AccountID and NewAccountMd via 0x1056157c (tag 7, capacity 128 each), all through request +0x1c. Validates at 0x107323bc; false faults 402, otherwise calls delegate +0x30. Nonzero worker status faults at 0x10732400; zero commits at 0x10732448, without outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "Required named input materialization is checked before delegate dispatch. Tag-4 conversion 0x10560b50 is strtoul(text,NULL,10), no errno/end checks. 0x10560708/0x10560a58 copy and terminate at capacity minus one bytes. Tag 7 accepts present empty text and truncates excess bytes without UTF-8 validation. Descriptors remain nonoptional."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570e40",
+        "function": "0x10570e34",
+        "notes": "Strict lookup with r6=1 compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then strcmp on AccountID; empty ID requires an empty stored ID. No fallback selection in strict mode. Raw 0x548907fe retains bit 0; 0x5495066e is wrapping mask SH=0,MB=25,ME=23, clearing 0x80, not a right shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b95c",
+        "function": "0x1028b760",
+        "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: *(r30+4) v[+0x30]",
+      "description": "Needs the initialized SystemProperties delegate/account store, an accepted accounts.xml snapshot and an existing live account selected by normalized AccountType plus retained AccountID. All three request arguments are required. No manifest whitelist, enabled-service feature, remote login or metadata-content grammar is required before this metadata mutation. The delegate has no TuneIn visibility special case.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x104b0f94",
+        "function": "0x104b0e84",
+        "notes": "Constructor installs SystemProperties delegate vtable 0x10ed75c4; +0x30=0x104b06d0. Handler 0x10732e94, constructed at 0x1018e594, installs 0x10f110a8 and retains delegate+4. Secondary manager 0x10e98278/+0x30=0x101953c0 is not the delegate for this action."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107323e4",
         "function": "0x10732310",
-        "notes": "req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Registers AccountType via 0x105614e0 (tag 4, capacity 24), AccountID and NewAccountMd via 0x1056157c (tag 7, capacity 128 each), all through request +0x1c. Validates at 0x107323bc; false faults 402, otherwise calls delegate +0x30. Nonzero worker status faults at 0x10732400; zero commits at 0x10732448, without outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "Required named input materialization is checked before delegate dispatch. Tag-4 conversion 0x10560b50 is strtoul(text,NULL,10), no errno/end checks. 0x10560708/0x10560a58 copy and terminate at capacity minus one bytes. Tag 7 accepts present empty text and truncates excess bytes without UTF-8 validation. Descriptors remain nonoptional."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0708",
+        "function": "0x104b06d0",
+        "notes": "Moves input metadata r6 to r8; loads delegate+0x26c and adds embedded account store +0x118; calls 0x1028b760 with NULL new ID/password/nickname/OADevID/Token/Key and zero flag masks. Returns its status. Does not call 0x101953c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570e40",
+        "function": "0x10570e34",
+        "notes": "Strict lookup with r6=1 compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then strcmp on AccountID; empty ID requires an empty stored ID. No fallback selection in strict mode. Raw 0x548907fe retains bit 0; 0x5495066e is wrapping mask SH=0,MB=25,ME=23, clearing 0x80, not a right shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028884c",
+        "function": "0x102887e0",
+        "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b95c",
+        "function": "0x1028b760",
+        "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028bb14",
+        "function": "0x1028b760",
+        "notes": "True array update calls 0x10289258 -> 0x102890b0 -> 0x10508988. False save maps to 809; true save calls store +0x34=0x102850c4 outside the mutex, then returns zero. No manifest acquisition or TuneIn R_HideTuneIn setter is part of this metadata delegate."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: *(r30+4) v[+0x30].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x30]",
+      "description": "Depends on account-manager member delegate+0x26c and its embedded store +0x118 (vtable 0x10eabc6c), mutex +0x20 and parsed live/deleted record arrays. Within a 0x250-byte record the metadata field begins +0x89, payload +0x8a; password +0x10a, nickname +0x14b, OADevID +0x18c, Token/Key +0x1ec/+0x1f0, serial +0, actual type +4, ID +8, flags +0x1f4 and UUID +0x240 are preserved. Household/cloud clocks +0x1fc/+0x220 and store Version/LUD participate in the save. Successful refresh compares cached manager+0x290 with the reread snapshot and also consults topology/TuneIn visibility state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732310",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x30]']"
+        "address": "0x104b0708",
+        "function": "0x104b06d0",
+        "notes": "Moves input metadata r6 to r8; loads delegate+0x26c and adds embedded account store +0x118; calls 0x1028b760 with NULL new ID/password/nickname/OADevID/Token/Key and zero flag masks. Returns its status. Does not call 0x101953c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570e40",
+        "function": "0x10570e34",
+        "notes": "Strict lookup with r6=1 compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then strcmp on AccountID; empty ID requires an empty stored ID. No fallback selection in strict mode. Raw 0x548907fe retains bit 0; 0x5495066e is wrapping mask SH=0,MB=25,ME=23, clearing 0x80, not a right shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028884c",
+        "function": "0x102887e0",
+        "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b95c",
+        "function": "0x1028b760",
+        "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028ba8c",
+        "function": "0x1028b760",
+        "notes": "Builds household vector clock with 0x1056ecb4 from store Version+1/local clock while retaining cloud clock. Calls 0x105709c0 to replace the existing serial record; false returns zero without persistence, true enters 0x10289258. Repeated identical metadata alone does not guarantee a no-write result because clock values are also compared."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570af8",
+        "function": "0x105709c0",
+        "notes": "Record comparison 0x1056efb0 includes actual account data, type, serial, flags, both clocks and UUID; equality returns false without replacing the array entry. Guest-upgrade path needs a flags-bit change, absent for this copied-record edit. Token-identity guard compares type/ID/OADevID, not metadata, so metadata editing cannot introduce new-invalid/old-valid identity. Helper false is not a wire fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102891ec",
+        "function": "0x102890b0",
+        "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and prior read LUD. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285128",
+        "function": "0x102850c4",
+        "notes": "With the zone singleton present, store +0x34 resolves the service-account manager and calls 0x101b8048. That refresh tests local topology designation via 0x1074700c -> 0x10746e74, reads R_HideTuneIn through 0x101b6dbc, rereads accounts through 0x1028903c and compares 0x10570398 with cached array at manager+0x290. Different snapshots replace the cache and call 0x101bb1d0 at 0x101b8290."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b82b8",
+        "function": "0x101b8048",
+        "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x30].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: exact metadata layout, preserved account identity/credentials, persistence state and cache-difference input are recovered.",
+       "Residual: complete selected-account/manifest collection dependencies and delayed account-sync predicate remain incomplete.",
+       "Next step: finish 0x101b6fdc through 0x100c6e20/0x101b6efc and the 0x10285878/0x10290df4 account-sync branch."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: *(r30+4) v[+0x30] (call-derived member-method semantics)",
+       "description": "Writes ASCII 1 plus NewAccountMd into a copied existing record and stamps its household vector clock. Does not clear password, Token, Key, nickname, OAuth device ID or flags. A true array update rewrites escaped Accounts XML at the configured accounts.xml path (default /opt/settings/accounts.xml), with the full marker-prefixed string as MD. Thus empty input persists MD=\"1\" rather than removing metadata. Unchanged comparison can return success without a write; the clock stamp means repeated identical input is not necessarily write-free. Main serialization/close failure can replace the file with a root-only fallback yet return 809; ignored fflush/fsync failures do not independently cause that fault. Save success advertises replication and refreshes account caches; callback-enabled failure can still schedule delayed synchronization work.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10732310",
-         "notes": "delegate map ['*(r30+4) v[+0x30]']; notify-family calls []"
+         "address": "0x104b0708",
+         "function": "0x104b06d0",
+         "notes": "Moves input metadata r6 to r8; loads delegate+0x26c and adds embedded account store +0x118; calls 0x1028b760 with NULL new ID/password/nickname/OADevID/Token/Key and zero flag masks. Returns its status. Does not call 0x101953c0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028b95c",
+         "function": "0x1028b760",
+         "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028ba8c",
+         "function": "0x1028b760",
+         "notes": "Builds household vector clock with 0x1056ecb4 from store Version+1/local clock while retaining cloud clock. Calls 0x105709c0 to replace the existing serial record; false returns zero without persistence, true enters 0x10289258. Repeated identical metadata alone does not guarantee a no-write result because clock values are also compared."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10570af8",
+         "function": "0x105709c0",
+         "notes": "Record comparison 0x1056efb0 includes actual account data, type, serial, flags, both clocks and UUID; equality returns false without replacing the array entry. Guest-upgrade path needs a flags-bit change, absent for this copied-record edit. Token-identity guard compares type/ID/OADevID, not metadata, so metadata editing cannot introduce new-invalid/old-valid identity. Helper false is not a wire fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028884c",
+         "function": "0x102887e0",
+         "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028bb14",
+         "function": "0x1028b760",
+         "notes": "True array update calls 0x10289258 -> 0x102890b0 -> 0x10508988. False save maps to 809; true save calls store +0x34=0x102850c4 outside the mutex, then returns zero. No manifest acquisition or TuneIn R_HideTuneIn setter is part of this metadata delegate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1050849c",
+         "function": "0x105081bc",
+         "notes": "Live Account serialization writes the full nonempty record+0x89 string as escaped MD attribute, including the leading ASCII 1 marker. Therefore NewAccountMd empty persists MD=\"1\", not absence of MD. 0x105084e0 writes the live and deleted arrays separately and preserves the other live-account credential fields, including PW and Token/Key."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10508a54",
+         "function": "0x10508988",
+         "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102891ec",
+         "function": "0x102890b0",
+         "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and prior read LUD. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10285128",
+         "function": "0x102850c4",
+         "notes": "With the zone singleton present, store +0x34 resolves the service-account manager and calls 0x101b8048. That refresh tests local topology designation via 0x1074700c -> 0x10746e74, reads R_HideTuneIn through 0x101b6dbc, rereads accounts through 0x1028903c and compares 0x10570398 with cached array at manager+0x290. Different snapshots replace the cache and call 0x101bb1d0 at 0x101b8290."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101b82b8",
+         "function": "0x101b8048",
+         "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v[+0x30] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: marker/payload write, preservation of other credentials, whole-file rewrite, fallback and callback gates are recovered.",
+        "Residual: transitive selected-account/manifest rebuilding and delayed synchronization effects remain untraced to all leaves.",
+        "Next step: finish 0x101b6fdc and 0x100bbc80, plus 0x100ba320 -> 0x101b6eac -> 0x10290df4."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "A true metadata/clock array update followed by successful persistence invokes store +0x34=0x102850c4 -> 0x101b8048. Only a reread snapshot differing from cached manager+0x290 calls 0x101bb1d0 to queue empty-payload in-process MusicAccountChangedEvent; event source metadata is separate and NewAccountMd is not serialized into it. The no-event-loop branch is diagnostic rather than scheduled delivery. Successful save also calls replication receiver +0x14 with selector 11, LUD, new Version and prior LUD. The wrapper does not call SystemProperties serializer 0x1067c6ec, and this trace does not establish a WSS settingsVersionChanged or MusicServicesChangedEvent payload.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732310",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1028bb14",
+        "function": "0x1028b760",
+        "notes": "True array update calls 0x10289258 -> 0x102890b0 -> 0x10508988. False save maps to 809; true save calls store +0x34=0x102850c4 outside the mutex, then returns zero. No manifest acquisition or TuneIn R_HideTuneIn setter is part of this metadata delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102891ec",
+        "function": "0x102890b0",
+        "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and prior read LUD. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285128",
+        "function": "0x102850c4",
+        "notes": "With the zone singleton present, store +0x34 resolves the service-account manager and calls 0x101b8048. That refresh tests local topology designation via 0x1074700c -> 0x10746e74, reads R_HideTuneIn through 0x101b6dbc, rereads accounts through 0x1028903c and compares 0x10570398 with cached array at manager+0x290. Different snapshots replace the cache and call 0x101bb1d0 at 0x101b8290."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101bb690",
+        "function": "0x101bb1d0",
+        "notes": "0x101bb1d0 queues in-process MusicAccountChangedEvent with empty event payload: incoming r4 is overwritten, empty text is built for payload, and emitter+4/+8 supplies source metadata. Uses 0x10bbca78/0x10bbd280 and queues event-loop callable via 0x100f14ec. No-event-loop branch invokes diagnostic 0x10bbd098 instead. It does not include NewAccountMd in the payload."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b82b8",
+        "function": "0x101b8048",
+        "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: cache-difference gate, empty local MusicAccountChangedEvent and selector-11 advertisement arguments are known.",
+       "Residual: concrete account-store replication receiver setup and extra notifications from selected-account rebuilding/delayed synchronization are incomplete.",
+       "Next step: recover store +0x0c initialization and selector-11 registration, then finish notification leaves below 0x101b6fdc/0x100bbc80 and 0x10290df4."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x30]",
+      "description": "Required-input rejection leaves the store untouched. An accepted snapshot and matching live record produce marker-prefixed metadata plus household-clock replacement. False array update returns zero without save; true update attempts XML replacement. Successful main save advances Version/cached LUD and invokes replication/account-cache refresh, with existing serial, NextSerialNum, PreferredSerialNum, UUID and account credentials retained. Failed save yields 809 without its success-only local metadata advance, but may already have replaced disk state through fallback or scheduled delayed work. No new account, UDN, guest promotion or TuneIn hide/show transition occurs.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x107323e4",
         "function": "0x10732310",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x30]']"
+        "notes": "Registers AccountType via 0x105614e0 (tag 4, capacity 24), AccountID and NewAccountMd via 0x1056157c (tag 7, capacity 128 each), all through request +0x1c. Validates at 0x107323bc; false faults 402, otherwise calls delegate +0x30. Nonzero worker status faults at 0x10732400; zero commits at 0x10732448, without outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "Required named input materialization is checked before delegate dispatch. Tag-4 conversion 0x10560b50 is strtoul(text,NULL,10), no errno/end checks. 0x10560708/0x10560a58 copy and terminate at capacity minus one bytes. Tag 7 accepts present empty text and truncates excess bytes without UTF-8 validation. Descriptors remain nonoptional."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0708",
+        "function": "0x104b06d0",
+        "notes": "Moves input metadata r6 to r8; loads delegate+0x26c and adds embedded account store +0x118; calls 0x1028b760 with NULL new ID/password/nickname/OADevID/Token/Key and zero flag masks. Returns its status. Does not call 0x101953c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570e40",
+        "function": "0x10570e34",
+        "notes": "Strict lookup with r6=1 compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then strcmp on AccountID; empty ID requires an empty stored ID. No fallback selection in strict mode. Raw 0x548907fe retains bit 0; 0x5495066e is wrapping mask SH=0,MB=25,ME=23, clearing 0x80, not a right shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b95c",
+        "function": "0x1028b760",
+        "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028ba8c",
+        "function": "0x1028b760",
+        "notes": "Builds household vector clock with 0x1056ecb4 from store Version+1/local clock while retaining cloud clock. Calls 0x105709c0 to replace the existing serial record; false returns zero without persistence, true enters 0x10289258. Repeated identical metadata alone does not guarantee a no-write result because clock values are also compared."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570af8",
+        "function": "0x105709c0",
+        "notes": "Record comparison 0x1056efb0 includes actual account data, type, serial, flags, both clocks and UUID; equality returns false without replacing the array entry. Guest-upgrade path needs a flags-bit change, absent for this copied-record edit. Token-identity guard compares type/ID/OADevID, not metadata, so metadata editing cannot introduce new-invalid/old-valid identity. Helper false is not a wire fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028bb14",
+        "function": "0x1028b760",
+        "notes": "True array update calls 0x10289258 -> 0x102890b0 -> 0x10508988. False save maps to 809; true save calls store +0x34=0x102850c4 outside the mutex, then returns zero. No manifest acquisition or TuneIn R_HideTuneIn setter is part of this metadata delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10508a54",
+        "function": "0x10508988",
+        "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102891ec",
+        "function": "0x102890b0",
+        "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and prior read LUD. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285128",
+        "function": "0x102850c4",
+        "notes": "With the zone singleton present, store +0x34 resolves the service-account manager and calls 0x101b8048. That refresh tests local topology designation via 0x1074700c -> 0x10746e74, reads R_HideTuneIn through 0x101b6dbc, rereads accounts through 0x1028903c and compares 0x10570398 with cached array at manager+0x290. Different snapshots replace the cache and call 0x101bb1d0 at 0x101b8290."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b82b8",
+        "function": "0x101b8048",
+        "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x30].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: metadata/clock mutation, persistence outcome and serial/credential preservation are recovered.",
+       "Residual: subsequent selected-account/cache and delayed synchronization transitions are incomplete.",
+       "Next step: finish gated 0x101b7620 -> 0x101b6fdc and 0x100ba320 -> 0x10290df4 state changes."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Normal synchronous wire domain: zero success with no output arguments, or faults 402/806/809/810. Missing required materialization gives 402; false snapshot read gives 810; no strict normalized-type/exact-ID live record gives 806. After a true array update, false XML save gives 809; true save invokes refresh and returns zero. False array-update result also returns zero without saving. Metadata content and present empty text do not cause 402. The shared core new-ID collision and duplicate-nickname branches are not reachable with this delegate NULL arguments, so unrelated 802/803 ladders do not apply. Downstream callback statuses do not become SOAP faults.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x107323e4",
         "function": "0x10732310",
-        "notes": "commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Registers AccountType via 0x105614e0 (tag 4, capacity 24), AccountID and NewAccountMd via 0x1056157c (tag 7, capacity 128 each), all through request +0x1c. Validates at 0x107323bc; false faults 402, otherwise calls delegate +0x30. Nonzero worker status faults at 0x10732400; zero commits at 0x10732448, without outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "Required named input materialization is checked before delegate dispatch. Tag-4 conversion 0x10560b50 is strtoul(text,NULL,10), no errno/end checks. 0x10560708/0x10560a58 copy and terminate at capacity minus one bytes. Tag 7 accepts present empty text and truncates excess bytes without UTF-8 validation. Descriptors remain nonoptional."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0708",
+        "function": "0x104b06d0",
+        "notes": "Moves input metadata r6 to r8; loads delegate+0x26c and adds embedded account store +0x118; calls 0x1028b760 with NULL new ID/password/nickname/OADevID/Token/Key and zero flag masks. Returns its status. Does not call 0x101953c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570e40",
+        "function": "0x10570e34",
+        "notes": "Strict lookup with r6=1 compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then strcmp on AccountID; empty ID requires an empty stored ID. No fallback selection in strict mode. Raw 0x548907fe retains bit 0; 0x5495066e is wrapping mask SH=0,MB=25,ME=23, clearing 0x80, not a right shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028884c",
+        "function": "0x102887e0",
+        "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b95c",
+        "function": "0x1028b760",
+        "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028ba8c",
+        "function": "0x1028b760",
+        "notes": "Builds household vector clock with 0x1056ecb4 from store Version+1/local clock while retaining cloud clock. Calls 0x105709c0 to replace the existing serial record; false returns zero without persistence, true enters 0x10289258. Repeated identical metadata alone does not guarantee a no-write result because clock values are also compared."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10570af8",
+        "function": "0x105709c0",
+        "notes": "Record comparison 0x1056efb0 includes actual account data, type, serial, flags, both clocks and UUID; equality returns false without replacing the array entry. Guest-upgrade path needs a flags-bit change, absent for this copied-record edit. Token-identity guard compares type/ID/OADevID, not metadata, so metadata editing cannot introduce new-invalid/old-valid identity. Helper false is not a wire fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028bb14",
+        "function": "0x1028b760",
+        "notes": "True array update calls 0x10289258 -> 0x102890b0 -> 0x10508988. False save maps to 809; true save calls store +0x34=0x102850c4 outside the mutex, then returns zero. No manifest acquisition or TuneIn R_HideTuneIn setter is part of this metadata delegate."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10732400",
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x30)"
+       "code_expr": "402 on request validation failure; otherwise concrete 0x1028b760 result (806,809,810)"
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(*(r3-in+0x4),+0x30); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x10732400"
-       ],
+       "meaning": "Required input did not materialize.",
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "Request validation finds absent/unmaterialized AccountType, AccountID or NewAccountMd before delegate dispatch. Present empty metadata, malformed numeric text and overlong strings are not validation faults.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10732310",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10732310",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10732310",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10732310",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "observable": [
-        {
-         "op": "recorded-impl",
-         "result": "EditAccountMd",
-         "basis": "disassembled impl body + store-vfunc mapping",
-         "provenance": "disas0x10e97e10"
-        }
-       ],
-       "domain_note": "domain fully bounded: impl 0x101953c0 exits=[936]; impl result in r3 -> req v[+0x14] fault code; CR0.eq = success",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x30); parse/req-layer; sites: 0x10732400).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1066a788",
-         "notes": "sp_impl {800,811,812}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1028ef24",
-         "notes": "accountsmgr update {803,806,809,810}"
-        }
-       ],
-       "conditions": [
-        {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1066a788",
-           "notes": "sp_impl {800,811,812}"
+           "address": "0x107323e4",
+           "function": "0x10732310",
+           "notes": "Registers AccountType via 0x105614e0 (tag 4, capacity 24), AccountID and NewAccountMd via 0x1056157c (tag 7, capacity 128 each), all through request +0x1c. Validates at 0x107323bc; false faults 402, otherwise calls delegate +0x30. Nonzero worker status faults at 0x10732400; zero commits at 0x10732448, without outputs."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1028ef24",
-           "notes": "accountsmgr update {803,806,809,810}"
+           "address": "0x10730480",
+           "function": "0x10730414",
+           "notes": "Required named input materialization is checked before delegate dispatch. Tag-4 conversion 0x10560b50 is strtoul(text,NULL,10), no errno/end checks. 0x10560708/0x10560a58 copy and terminate at capacity minus one bytes. Tag 7 accepts present empty text and truncates excess bytes without UTF-8 validation. Descriptors remain nonoptional."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x10732400"
        ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x1028ef24 emits constant set {553, 564, 592, 599, 611, 635, 636, 647, 648, 684, 688, 696, 803, 806, 809, 810} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107323e4",
+         "function": "0x10732310",
+         "notes": "Registers AccountType via 0x105614e0 (tag 4, capacity 24), AccountID and NewAccountMd via 0x1056157c (tag 7, capacity 128 each), all through request +0x1c. Validates at 0x107323bc; false faults 402, otherwise calls delegate +0x30. Nonzero worker status faults at 0x10732400; zero commits at 0x10732448, without outputs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Required named input materialization is checked before delegate dispatch. Tag-4 conversion 0x10560b50 is strtoul(text,NULL,10), no errno/end checks. 0x10560708/0x10560a58 copy and terminate at capacity minus one bytes. Tag 7 accepts present empty text and truncates excess bytes without UTF-8 validation. Descriptors remain nonoptional."
+        }
+       ]
+      },
+      {
+       "code": 806,
+       "meaning": "Metadata target account not found.",
+       "conditions": [
+        {
+         "description": "After a successful snapshot read, strict 0x10570e34 returns NULL for normalized type and retained exact AccountID. Empty ID is not a wildcard.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10570e40",
+           "function": "0x10570e34",
+           "notes": "Strict lookup with r6=1 compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then strcmp on AccountID; empty ID requires an empty stored ID. No fallback selection in strict mode. Raw 0x548907fe retains bit 0; 0x5495066e is wrapping mask SH=0,MB=25,ME=23, clearing 0x80, not a right shift."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028b95c",
+           "function": "0x1028b760",
+           "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [
+        "0x10732400"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028b95c",
+         "function": "0x1028b760",
+         "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+        }
+       ]
+      },
+      {
+       "code": 809,
+       "meaning": "Account XML persistence failed.",
+       "conditions": [
+        {
+         "description": "0x105709c0 returned true but 0x10289258/0x102890b0/0x10508988 returned false: temporary open, serialization, reported fclose or main rename failed. A serialization/close failure can still replace the file with a root-only fallback. fflush/fsync/fallback-rename statuses are ignored rather than separate wire faults.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028bb14",
+           "function": "0x1028b760",
+           "notes": "True array update calls 0x10289258 -> 0x102890b0 -> 0x10508988. False save maps to 809; true save calls store +0x34=0x102850c4 outside the mutex, then returns zero. No manifest acquisition or TuneIn R_HideTuneIn setter is part of this metadata delegate."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10508a54",
+           "function": "0x10508988",
+           "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [
+        "0x10732400"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028bb14",
+         "function": "0x1028b760",
+         "notes": "True array update calls 0x10289258 -> 0x102890b0 -> 0x10508988. False save maps to 809; true save calls store +0x34=0x102850c4 outside the mutex, then returns zero. No manifest acquisition or TuneIn R_HideTuneIn setter is part of this metadata delegate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10508a54",
+         "function": "0x10508988",
+         "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+        }
+       ]
+      },
+      {
+       "code": 810,
+       "meaning": "Account snapshot read failed.",
+       "conditions": [
+        {
+         "description": "0x102887e0 returned false before lookup or metadata mutation, including failed account-file open or rejected XML reader/parser state.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028884c",
+           "function": "0x102887e0",
+           "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1028b95c",
+           "function": "0x1028b760",
+           "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [
+        "0x10732400"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028884c",
+         "function": "0x102887e0",
+         "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028b95c",
+         "function": "0x1028b760",
+         "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+        }
        ]
       }
      ],
@@ -96351,29 +96839,136 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x104b0f94",
+       "function": "0x104b0e84",
+       "notes": "Constructor installs SystemProperties delegate vtable 0x10ed75c4; +0x30=0x104b06d0. Handler 0x10732e94, constructed at 0x1018e594, installs 0x10f110a8 and retains delegate+4. Secondary manager 0x10e98278/+0x30=0x101953c0 is not the delegate for this action."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107323e4",
        "function": "0x10732310",
-       "address": "0x10732310",
-       "notes": "action wrapper handler"
+       "notes": "Registers AccountType via 0x105614e0 (tag 4, capacity 24), AccountID and NewAccountMd via 0x1056157c (tag 7, capacity 128 each), all through request +0x1c. Validates at 0x107323bc; false faults 402, otherwise calls delegate +0x30. Nonzero worker status faults at 0x10732400; zero commits at 0x10732448, without outputs."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11114",
-       "notes": "action dispatch table entry"
+       "address": "0x10730480",
+       "function": "0x10730414",
+       "notes": "Required named input materialization is checked before delegate dispatch. Tag-4 conversion 0x10560b50 is strtoul(text,NULL,10), no errno/end checks. 0x10560708/0x10560a58 copy and terminate at capacity minus one bytes. Tag 7 accepts present empty text and truncates excess bytes without UTF-8 validation. Descriptors remain nonoptional."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x101953c0",
-       "notes": "shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x30"
+       "address": "0x104b0708",
+       "function": "0x104b06d0",
+       "notes": "Moves input metadata r6 to r8; loads delegate+0x26c and adds embedded account store +0x118; calls 0x1028b760 with NULL new ID/password/nickname/OADevID/Token/Key and zero flag masks. Returns its status. Does not call 0x101953c0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10570e40",
+       "function": "0x10570e34",
+       "notes": "Strict lookup with r6=1 compares N(t)=((t & 0xffffff7f)-((t & 1)^1)) modulo 2^32, then strcmp on AccountID; empty ID requires an empty stored ID. No fallback selection in strict mode. Raw 0x548907fe retains bit 0; 0x5495066e is wrapping mask SH=0,MB=25,ME=23, clearing 0x80, not a right shift."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028884c",
+       "function": "0x102887e0",
+       "notes": "Resolves accounts.xml through 0x102856a8/0x1068ab6c, default /opt/settings/accounts.xml with configured roots. Reader 0x10506b0c clears destination arrays, opens the file, streams chunks into XML parser 0x10c3fc68, and returns false for failed open or invalid reader/parser state. Live and deleted record arrays are separate; these edits search live records only."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028b95c",
+       "function": "0x1028b760",
+       "notes": "After mutex lock and accepted account snapshot, strict normalized-type/exact-ID lookup selects a live record or returns 806. Snapshot read failure returns 810. Copies that existing 0x250-byte record. NULL new ID reuses its ID; NULL password skips the password write. Metadata pointer is non-NULL even for empty text: writes ASCII 0x31 at record+0x89 and copies metadata at +0x8a with capacity 128. NULL nickname bypasses duplicate-nickname 802 and sets status zero; other optional update fields and flag masks are zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028ba8c",
+       "function": "0x1028b760",
+       "notes": "Builds household vector clock with 0x1056ecb4 from store Version+1/local clock while retaining cloud clock. Calls 0x105709c0 to replace the existing serial record; false returns zero without persistence, true enters 0x10289258. Repeated identical metadata alone does not guarantee a no-write result because clock values are also compared."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10570af8",
+       "function": "0x105709c0",
+       "notes": "Record comparison 0x1056efb0 includes actual account data, type, serial, flags, both clocks and UUID; equality returns false without replacing the array entry. Guest-upgrade path needs a flags-bit change, absent for this copied-record edit. Token-identity guard compares type/ID/OADevID, not metadata, so metadata editing cannot introduce new-invalid/old-valid identity. Helper false is not a wire fault."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028bb14",
+       "function": "0x1028b760",
+       "notes": "True array update calls 0x10289258 -> 0x102890b0 -> 0x10508988. False save maps to 809; true save calls store +0x34=0x102850c4 outside the mutex, then returns zero. No manifest acquisition or TuneIn R_HideTuneIn setter is part of this metadata delegate."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1050849c",
+       "function": "0x105081bc",
+       "notes": "Live Account serialization writes the full nonempty record+0x89 string as escaped MD attribute, including the leading ASCII 1 marker. Therefore NewAccountMd empty persists MD=\"1\", not absence of MD. 0x105084e0 writes the live and deleted arrays separately and preserves the other live-account credential fields, including PW and Token/Key."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10508a54",
+       "function": "0x10508988",
+       "notes": "Writes escaped Accounts XML to %s.tmp; successful main serialization/close returns rename success. 0x1054f0e8 ignores fflush/fsync results but reports fclose status. Main serialization/close failure can reopen the temporary file, write a root-only fallback with reset metadata, attempt rename with ignored result, and still return false. Temporary open or main rename failure also returns false. An 809 does not guarantee the original file survives."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102891ec",
+       "function": "0x102890b0",
+       "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and prior read LUD. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10285128",
+       "function": "0x102850c4",
+       "notes": "With the zone singleton present, store +0x34 resolves the service-account manager and calls 0x101b8048. That refresh tests local topology designation via 0x1074700c -> 0x10746e74, reads R_HideTuneIn through 0x101b6dbc, rereads accounts through 0x1028903c and compares 0x10570398 with cached array at manager+0x290. Different snapshots replace the cache and call 0x101bb1d0 at 0x101b8290."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101bb690",
+       "function": "0x101bb1d0",
+       "notes": "0x101bb1d0 queues in-process MusicAccountChangedEvent with empty event payload: incoming r4 is overwritten, empty text is built for payload, and emitter+4/+8 supplies source metadata. Uses 0x10bbca78/0x10bbd280 and queues event-loop callable via 0x100f14ec. No-event-loop branch invokes diagnostic 0x10bbd098 instead. It does not include NewAccountMd in the payload."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b82b8",
+       "function": "0x101b8048",
+       "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
       }
      ],
-     "notes": null,
+     "notes": "Static analysis of firmware build 86.10-80260. Metadata is an opaque payload here, not interpreted as a boolean or structured JSON. Actual remote replication, eventual consumers and device persistence have not been observed.",
      "todo": [
-      "Established: virtual dispatch to handler 0x10732310; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: concrete metadata delegate, required input parsing, ASCII 1 marker, normalized lookup, full synchronous return/fault domain and account XML persistence are documented with firmware evidence.",
+      "Residual: shared selected-account/manifest rebuilding, concrete selector-11 replication setup and delayed account synchronization are not fully reversed.",
+      "Next step: finish 0x101b8048 -> 0x101b7620/0x101b6fdc/0x100bbc80, recover store +0x0c receiver and selector-11 registration, then trace 0x10285338 -> 0x100ba320 -> 0x10290df4 to leaves."
      ]
     },
     "EditAccountPasswordX": {
