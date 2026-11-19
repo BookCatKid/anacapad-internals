@@ -69867,7 +69867,7 @@
       }
      ],
      "events_triggered": {
-      "description": "Some accepted branches invoke f_1067c6ec, including the indexed +0x7764 to +0x7765 flag change. Failure of an indexed submission does not by itself skip this part of the worker. Clearing a pending restart on the indexed branch can publish r:RestartPending as false in the LastChange delta.",
+      "description": "Some accepted branches invoke f_1067c6ec, including the indexed +0x7764 to +0x7765 flag change. Failure of an indexed submission does not by itself skip this part of the worker. Clearing a pending restart on the indexed branch can publish r:RestartPending as false in the LastChange delta. The mode-zero sink can publish STOPPED; the mode-one fallback can publish PAUSED_PLAYBACK when it changes the local pause state. These are snapshots of state at serialization, not separate per-call messages.",
       "evidence": [
        {
         "type": "firmware",
@@ -69932,11 +69932,43 @@
         "address": "0x102b06d4",
         "notes": "The common home-theater update f_102b05e4 calls f_10293208 on the current URI. For a recognized source it calls f_1023d324 and writes 1 to impl+0x775c via f_1048811c, setting +0x7760 on change; otherwise it executes URI reconciliation and returns zero. Callers use the update result to decide whether to invoke eventing, not as a new SOAP fault.",
         "function": "0x102b05e4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e46b8",
+        "notes": "The LastChange collector calls f_102b5a1c and promotes its nonzero dirty result to impl+0xa0a2. f_102b5658 promotes that flag to the latched +0x7785 at 0x102b56ac and clears the source flag on a consuming pass at 0x102b57a0. The delta branch at 0x102e47d8 tests +0x7785 before emitting the common TransportState, CurrentPlayMode and CurrentCrossfadeMode block.",
+        "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b5d20",
+        "notes": "In mode 1, the snapshot collector calls f_1048b570 on impl+0x7758. That helper reads +0x775c, writes PAUSED_PLAYBACK for value 1 or PLAYING for zero, returns the dirty byte at +0x7760 and clears it on a consuming snapshot. The helper has separate handling for values other than zero and one.",
+        "function": "0x102b5a1c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b5abc",
+        "notes": "The mode-zero snapshot path calls f_10308d84 on the sink at impl+0x5d4. Sink state 1 maps to STOPPED at 0x10308e38, states selected by mask 0x2a8 map to PLAYING and the others map to TRANSITIONING. f_10308d84 returns +0x28b4 and clears it only on a consuming snapshot.",
+        "function": "0x102b5a1c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1030d4c8",
+        "notes": "The sink constructor stores incoming r5 at sink+0x2b8. The construction call at 0x103fbf2c supplies either zero or an engine-relative +0x10 event sender from the enclosing player's +0x1934 pointer (0x103fbea8, 0x103fbee0). State changes pass that sender to f_1067c6ec at 0x1030efc0.",
+        "function": "0x1030d0f8"
        }
       ],
       "todo": [
-       "Established: a mode-zero sink state change sets sink+0x28b4 and signals its event target; the mode-one fallback dirties impl+0x7760 if it changes the local Pause state record. Indexed restart clearing can publish r:RestartPending=false.",
-       "Identify the sink+0x2b8 event registration and verify which SOAP snapshot readers consume sink+0x28b4 and impl+0x7760, including coalescing with the common update."
+       "Established: a changed mode-zero sink state or mode-one pause record reaches the common LastChange state block. The indexed restart dirty flag can also specifically publish r:RestartPending=false.",
+       "Trace changes to the indexed transport-state dirty flag and URI and alarm fields when Stop clears the active chime, to enumerate any additional LastChange fields on that path."
       ]
      },
      "state_transitions": {
