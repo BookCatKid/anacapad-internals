@@ -176647,7 +176647,7 @@
   "0x1018d27c": {
    "address": "0x1018d27c",
    "role": "service_factory",
-   "description": "Constructor for the zone-player aggregate. It builds zoneImpl at zp+0x3a8 via f_10691e00, installs vptr 0x10e98278, constructs HTControl via f_10242118, and takes the service capability mask in arg8. It initializes embedded members with function tables and copies string spans; f_1018069c is the copy helper, not a verb registrar.",
+   "description": "Constructor for the zone-player aggregate (this = zp, members span roughly 0x5750 bytes). It builds two embedded arrays of polymorphic handler subobjects: 10 elements at zp+0xc stride 0x1c {vptr, std::string} and 20 elements at zp+0x124 stride 0x20 {vptr, std::string, flag byte}. Every element string is seeded from the single literal 'zp' (0x10e735b0) through cstr-to-string helper f_10180794(out, cstr) -> range-assign f_1018069c. Element vptrs are staged three times: per-element leaf descriptor slots first, then contiguous construction-vtable slots 0x10e979e0+i*0x10 (first array) and 0x10e97ae0+i*0x18 (second array) whose {vfn0, vfn1, offset_to_top=-i*stride, 0} records normalize each secondary base to the element-0 base, and after the zoneImpl member at zp+0x3a8 is built via f_10691e00 the final vtables 0x10e97ff8/0x10e98008+i*0x10 (first array) and 0x10e98098+i*0x18 (second array) are installed. First-array final vtables carry only destructor slots (complete-dtor thunk -> f_101921a0, deleting-dtor thunk -> f_10192ff8). Second-array final vtables carry four slots: vfn0 a this-adjusting thunk (addi r3, -(0x124+i*0x20)) into a distinct real member function such as f_10187c18 or f_1017fe94, each of which opens by loading the same 'zp' literal; vfn1 a distinct string-span assigner (f_100e5628 family) that reads caller arg +4 begin and +8 length and forwards begin/begin+len through f_100d698c into the element string; vfn2/vfn3 dtor thunks. The flag byte at element+0x1c is initialized 0. zp+0/+4 receive primary/secondary vptrs 0x10e97d5c/0x10e97fdc, the zp+0x56f8 member string is filled by f_10bb9fb4 from a lazily-initialized static string singleton (f_10564c3c, BSS 0x110a55a8), and the literals 'scopeZP', 'scopeDefault', 'scopeHttpClient', 'healthchecker', 'authservice', 'noncehandler', 'trueplay_zp', 'zp_pre_setup_state' and 'warn_fault' seed other named members. No element or member string carries an AVTransport action name: the stored data is scope names plus function identity, and verb binding is external to the table. It takes the service capability mask in arg8 and is the only call site that instantiates the registered HTControl implementation class via f_10242118.",
    "why_external": "The only call site that instantiates the registered HTControl implementation class.",
    "required_for_behavior": true,
    "used_by": [],
@@ -176672,12 +176672,84 @@
      "build": "86.10-80260",
      "address": "0x10180754",
      "notes": "After computing end-begin, f_1018069c selects inline storage or heap allocation, copies the span with memcpy (single byte handled separately), stores its length, and terminates it. The null/nonempty branch references basic_string::_M_construct null not valid. This is copying, not registering an action."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018d348",
+     "function": "0x1018d27c",
+     "notes": "Literal 'zp' (0x10e735b0) passed to f_10180794; the resulting span is range-assigned by f_1018069c into every string member of the ten {vptr,string} elements at zp+0xc..zp+0x108 stride 0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018d54c",
+     "function": "0x1018d27c",
+     "notes": "Same 'zp' span seeds all twenty {vptr,string,flag} elements at zp+0x124..zp+0x384 stride 0x20; the flag byte at element+0x1c is stored 0 each pass."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e98098",
+     "notes": "Second-array final vtable record for element 0: {vfn0 f_10187d14, vfn1 f_100e5628, vfn2 f_10192f90, vfn3 f_10193148}; 20 records stride 0x18 to 0x10e98260, each followed by offset_to_top stepping -0x20 per element."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10187d14",
+     "notes": "Element-0 vfn0 thunk: addi r3,-0x124 then b f_10187c18 (real member function opening on the 'zp' literal). Element-1 vfn0 f_1017feb8 subtracts 0x144 -> f_1017fe94; handler identity is the code pointer, not a stored verb."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100e5628",
+     "notes": "Second-array vfn1 assigner (the common callback): seeds this+0 = this+8 SSO pointer, reads caller arg+4 begin and arg+8 length, forwards begin/begin+len to f_100d698c. The copied span is dispatch-time caller data."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e98008",
+     "notes": "First-array final vtable for element 1: {f_10192fd8 -> addi -0x28,b f_101921a0; f_10193190 -> addi -0x28,b f_10192ff8}. Ten records (element 0 uses 0x10e97ff8) carry destructor slots only, offset_to_top stepping -0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018e304",
+     "function": "0x1018d27c",
+     "notes": "Span source = zp+0x56f8 member string pointer (non-null guarded); the member was filled by f_10bb9fb4 from f_10564c3c, a lazily-initialized static string singleton in BSS at 0x110a55a8. Runtime content, not a verb literal."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018f7c0",
+     "function": "0x1018d27c",
+     "notes": "'scopeZP' (0x10e9a080) span built here; 'scopeDefault' (0x10e9a088) at 0x1018f854 and 'scopeHttpClient' (0x10e9a0b8) at 0x1018fda4 seed named sub-member strings via f_101a50b0/f_1082e87c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101900a0",
+     "function": "0x1018d27c",
+     "notes": "Two span sites (0x101900a0, 0x101900b8) read pointer 0x10ea6a2c, a binary device-data block {0, 0xadaa3401, 0, 'Mitsubishi WD-65638 & WD-60...'} whose leading NUL produces an empty span feeding the f_10ca**** calls."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e76123",
+     "notes": "'AVTransport' literal exists in .rodata but no lis+low address formation inside f_1018d27c reaches it (xref scan); the same holds for the 'SetAVTransportURI...', 'GetPositionInfo' and 'TransportState' literals, so no AVTransport verb enters the constructed members."
     }
    ],
    "notes": null,
-   "todo": [
-    "Residual: recover the caller data that supplies each ops pair's source span, then prove which members, if any, bear a particular AVTransport verb. The common callback copies a string span; neither the copy nor the table identifies a verb."
-   ],
    "disasm_digest": {
     "insns": 3299,
     "calls": [
@@ -177158,10 +177230,10 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 3299-insn worker; direct calls: f_105d0f7c, f_10180794, f_1018069c, f_10807034, f_10691e00, f_100c5050, f_10564c3c, f_10bb9fb4, f_10809f0c, f_1068aeac, f_109bcfc8, f_1058a574, f_101af8ac, f_10367674, f_102a402c, f_106783f4, f_105877; string literals: zp; on event; primary; eAccountTransactionEvent; onEvent; tf-8\"; ion>; healthchecker; scopeZP; %d; scopeDefault; warn_fault; etting mute state; zp_pre_setup_state; member stores: 0x234,0x1f0,0x208,0x20c,0x210,0x214,0x218,0x21c,0x220,0x224,0x228,0x22c; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "f_1018d27c constructs zoneImpl at zp+0x3a8 via f_10691e00 and the HTControl object via f_10242118. The preceding constructor sweep uses function-pointer tables, not strings or a verb registry.",
-    "The first ten table rows, at zp+0x00c through +0x108 in steps of 0x1c, have slot 0 pointers into .text. For example, 0x1018d360 installs table 0x10e979a0 at +0x00c (slot 0 = f_1019ed6c). The replacement at 0x1018d4f0 installs table 0x10e979e0 at the same offset (slot 0 = f_1019edf0). Both the initial and replacement rows contain executable entries.",
-    "The next 20 distinct rows run from zp+0x124 through +0x384 inclusive in steps of 0x20 (table stores start at 0x1018d564 and end at 0x1018d8a8). Their initial slot 0 is f_10809540; slot 1 is a span-copy constructor. The f_1019f87c family calls f_1018069c, while some rows call equivalent local helpers (for example f_100e5628 calls f_100d698c at 0x100e5654). Table replacements do not count as additional rows. The callbacks and nearby literals do not by themselves identify a verb per row."
+    "Established: every ops pair's source span is recovered. All 30 embedded handler-subobject strings (10 at zp+0xc stride 0x1c, 20 at zp+0x124 stride 0x20) are seeded from the single literal 'zp' at 0x10e735b0; the eight f_10180794 span sites in the whole body draw only from 'zp' (twice), the zp+0x56f8 member string (runtime-filled from static singleton f_10564c3c), 'scopeZP', 'scopeDefault', 'scopeHttpClient', and the binary device-data block at 0x10ea6a2c (leading NUL byte yields an empty span, twice).",
+    "Established: no member bears an AVTransport verb. The constructor's exhaustive literal inventory ('zp', 'scopeZP', 'scopeDefault', 'scopeHttpClient', 'healthchecker', 'authservice', 'noncehandler', 'trueplay_zp', 'zp_pre_setup_state', 'warn_fault', 'br0', 'on event', 'primary', 'diaUrl', 'init minimal node' plus format/log fragments) contains no action name, and the element vtables install function pointers (destructors, this-adjusted handlers, span assigners) rather than verb text. The binary's AVTransport-family literals ('AVTransport' 0x10e76123, 'SetAVTransportURI...' 0x10eb0edc, 'GetPositionInfo' 0x10eb3848, 'TransportState' 0x10e8b78c) have no address formation inside the function body.",
+    "Established: the common callback is a per-element string-span assigner (second-array vfn1, f_100e5628 family): it reads a caller-supplied {begin, length} pair at arg+4/arg+8 and assigns that span into the element's own string via f_100d698c. The span content is therefore dispatch-time caller input, not constructor-bound data; handler identity is carried by distinct code pointers, and the member string holds the scope name 'zp' only.",
+    "Established: the triple-staged vptr writes are construction phases, not conflicting tables: leaf descriptor slots, then contiguous construction vtables with per-index offset_to_top -i*stride (0x10e979e0+i*0x10, 0x10e97ae0+i*0x18), then after zoneImpl member construction the final vtables (first array 0x10e97ff8/0x10e98008+i*0x10, second array 0x10e98098+i*0x18). First-array elements expose only destructors; second-array elements add per-index handler thunks and span assigners, all adjusting to the aggregate base at zp+0."
    ]
   },
   "0x104661fc": {
@@ -177334,7 +177406,7 @@
    "todo": "Established: f_100c6d3c is a descriptor-cache reload, not a catalog-difference comparator. Under the object+0x13a40 mutex it clears the cache, opens the live catalog with f_100c5fd0, parses descriptors using f_10554918 and copies successfully parsed rows to object+0x23c. Its optional output byte is set by f_10554918 only when the parsed count is strictly greater than the caller's original count; it is not a generic changed-document flag. f_100c6e20 copies an already-populated cache, otherwise falls back to this reload with no output byte. Remaining: Trace descriptor parser callbacks, initial-count/capacity initialization f_10554858 and account consumer f_101b7e90 to establish truncation/reconciliation semantics."
   },
   "0x1011b710": {
-   "description": "f_1011b710 takes service ID, requested manifest version and a URI. Under object+0x10 mutex it rejects an already-set active byte +0xc4 with 800; otherwise it sets the byte, releases the mutex, constructs an HTTP GET with a clock-id 1 deadline 10000ms in the future and calls f_10546520. Zero HTTP status leads to streamed JSON parsing f_1011aabc using the same deadline. Failure of HTTP, JSON parsing, cache-row upsert or persistence returns 801. Success returns zero. The active byte is cleared under the mutex on normal completion. Failure to load existing svcmanifests.json logs a warning and continues to upsert and save, rather than aborting immediately.",
+   "description": "f_1011b710(this, sid, requestedVersion, uriField) performs the synchronous manifest download on the caller's thread; there is no queueing. Its only static caller is the descriptor-gated wrapper f_100c6c3c at 0x100c6d04, which itself is reached through the this-adjusting thunk 0x100c7460 and two direct call sites inside the refresh worker f_101b869c; f_101b869c runs under a refcount/guard-byte dispatch wrapper at 0x100bbc90 (guard byte 0x11090020, atomic stwcx counters). The wrapper does the service-descriptor lookup (vfunc+0x20), requires capability bit 0x400000, extracts a 0x401-byte URI field via f_105543d0 and a 16-bit version from ctx+0x138, then calls f_1011b710 on this+0x13ad0; it returns 0x192 when the capability check fails, else the worker's code. Inside f_1011b710: under the obj+0x10 mutex an already-set active byte +0xc4 is rejected with 800 (0x320); otherwise the byte is set and the mutex released, so the byte serializes only this entry point, never the file operations. No validation of sid, version or URI is performed here: sid and the caller-supplied version are stored verbatim at row+0/row+4 and the URI is memcpy'd 1025 bytes verbatim to row+8, so the persisted version is the descriptor-supplied 16-bit value, not anything from the HTTP response. It builds an HTTP GET via f_10545064 + f_10546520 with a clock-id 1 deadline now+10000ms; a nonzero f_10546520 result logs 'Failure ... ret=0x321, lRet=<raw>' and returns 801 (0x321). A zero status leads to streamed JSON parsing f_1011aabc(this, httpobj, deadline, model) with the same deadline; a zero parse result also returns 801. The row assembled on the stack is {sid@+0, version@+4, uri[0x401]@+8, model@+0x40c} matching the 0x4fc table stride; the model is the parsed body copied via f_102399a4. f_1011a5d0 then loads svcmanifests.json under the file mutex; failure only logs 'Failed to load manifests JSON file' and continues, so the upsert f_10119434 then works on whatever the failed parse left in the stack table (empty or a partial prefix) and a successful save rewrites the whole file with just that content, not merely one row. Upsert or save (public wrapper f_1011b65c) failure returns 801; with the saver's false-returning fallback stub, an 801 can still have installed a stub file and fired the kind13 observer. On success the code builds the '%u' sid string and inserts the row into the memory cache via f_1011be38(obj+0x1e0, key, row, 1), which takes the cache-internal +0x18 mutex itself; the file mutex is not held across the load/upsert/save sequence, so a delete or a second writer can commit between this thread's locked load and locked save (last whole-file writer wins), and cache readers can observe the old entry until the post-save insert lands. Return codes: 0 success, 800 busy (active byte already set), 801 any fetch/parse/upsert/save failure; the Failure log prints the mapped 801 as 'ret' and the raw f_10546520 status as 'lRet'. The active byte is cleared under the mutex on every normal exit but there is no RAII guard or catch, so an exception thrown by a callee leaves the byte set and the entry point rejects further runs with 800.",
    "why_external": "Determines observable service-manifest download status, concurrency and cache/file side effects.",
    "required_for_behavior": true,
    "role": "music_service_manifest",
@@ -177345,9 +177417,63 @@
      "build": "86.10-80260",
      "address": "0x1011b710",
      "notes": "Instruction-level trace in the 86.10-80260 binary; see svc_manifest.details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6d04",
+     "function": "0x100c6c3c",
+     "notes": "Sole call site: wrapper does descriptor vfunc+0x20 lookup, tests flags&0x400000, extracts 0x401-byte URI (f_105543d0) and hword version ctx+0x138, calls worker on this+0x13ad0; returns 0x192 when gated."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b810",
+     "function": "0x1011b710",
+     "notes": "f_10546520(httpobj,uri,0,0,&deadline,0); nonzero result -> 'Failure' log then 0x321; zero -> streamed parse f_1011aabc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b944",
+     "function": "0x1011b710",
+     "notes": "Row assembly: sid at sp+0x128, requested version at +0x12c, memcpy(uri,0x401) at +0x130, parsed model copied to +0x534 (row+0x40c) via f_102399a4; no validation of inputs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b970",
+     "function": "0x1011b710",
+     "notes": "Load f_1011a5d0; zero result only logs 'Failed to load manifests JSON file' (0x1011ba74) then continues to upsert f_10119434 and save f_1011b65c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b83c",
+     "function": "0x1011b710",
+     "notes": "Common tail relocks obj+0x10, clears +0xc4, unlocks; every normal exit clears the byte; no catch block in function."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100bbc90",
+     "notes": "Caller-side dispatch wrapper: guard byte 0x11090020, atomic stwcx refcount inc/dec around f_101b869c; all synchronous."
     }
    ],
-   "todo": "Established: f_1011b710 takes service ID, requested manifest version and a URI. Under object+0x10 mutex it rejects an already-set active byte +0xc4 with 800; otherwise it sets the byte, releases the mutex, constructs an HTTP GET with a clock-id 1 deadline 10000ms in the future and calls f_10546520. Zero HTTP status leads to streamed JSON parsing f_1011aabc using the same deadline. Failure of HTTP, JSON parsing, cache-row upsert or persistence returns 801. Success returns zero. The active byte is cleared under the mutex on normal completion. Failure to load existing svcmanifests.json logs a warning and continues to upsert and save, rather than aborting immediately. Remaining: Trace source/version input validation, HTTP/JSON error causes, asynchronous caller propagation and races with cache/file writers; basic cache policy is documented in svc_manifest.details.cache_lookup."
+   "resolved_findings": [
+    "Established: no input validation inside f_1011b710; sid and the descriptor-supplied 16-bit version are stored verbatim, the 0x401-byte URI field is memcpy'd verbatim; the only gates are the wrapper's 0x400000 capability check, HTTP status, JSON parse, the 34-row upsert cap and the save result.",
+    "Established: 801 aggregates f_10546520 HTTP failure, f_1011aabc streamed-parse failure, upsert failure and save failure, including the saver's false-returning fallback that still installs a stub file and fires kind13.",
+    "Established: a failed f_1011a5d0 load only logs a warning; the following upsert+save rewrites the file from the stack table contents (possibly only the new row), so refresh can collapse the persisted set.",
+    "Established: the +0xc4 byte serializes only this function; the load/upsert/save/cache-insert steps are separately locked operations, so interleaving writers can commit between them and a throw leaves the byte stuck set.",
+    "Established: the failure log prints ret=0x321 (the mapped code) and lRet=<raw f_10546520 status>, and the wrapper maps a missing 0x400000 capability to 0x192 before the worker runs.",
+    "Resolved boundary: the concrete HTTP result domain of f_10546520 and the parse-status domain of f_1011aabc belong to their own records; here only the zero/nonzero test is observable."
+   ]
   },
   "0x10119434": {
    "description": "Manifest row upsert f_10119434 replaces an existing row with the same sid. For a new sid it permits append while count<=33, reaching a maximum of 34 rows; a full 34-row table rejects a new sid. Existing rows can still be replaced at capacity. Constructor f_101191c8 initializes exactly 34 row objects at stride 0x4fc.",
@@ -177381,7 +177507,7 @@
    "todo": "Established: The persisted svcmanifests.json root contains numeric version, string lastUpdateDevice and a manifests array. Each row is emitted with numeric sid, numeric version, string uri and object manifest. f_10119034 emits sid from row+0, version from the low halfword at row+6, uri from row+8 and the nested manifest from row+0x40c. f_10119b90 emits store version+1 and the local source, then f_10119720 emits the array. This schema is proven by emitters and distinct static parser-definition tables; it is not the catalog XML descriptor grammar. Remaining: Trace numeric/URI input binders and JSON escaping for complete lexical behavior."
   },
   "0x10239dc0": {
-   "description": "The nested manifest parser table at 0x10ea5bec declares schemaVersion, presentationMap, strings, endpoints, apiKey, accountTiers and advertising. f_10239dc0 emits presentationMap/strings only when their stored URI string length is nonzero; it always emits the endpoints array and apiKey object, conditionally emits accountTiers when its count is nonzero, and emits advertising.headers. The nested field schemaVersion is emitted only when its stored string is nonempty. Unknown or absent fields and required-field policy still require analysis of the JSON framework.",
+   "description": "Top-level music-service manifest emitter f_10239dc0(ctx, model) walks the nested schema table at 0x10ea5bf8 and serializes the parsed model back to JSON. Per-field emit gates: 'schemaVersion' emits via f_109d1924 only when the model string is nonempty; 'presentationMap' and 'strings' each emit only when their stored uri string size (model+0x18/+0x34) is nonzero, as nested {uri,version} objects via shared sub-emitter f_10238ee4 (uri emitted only when nonempty, version always via f_109d1570); 'endpoints' always opens an array through f_109d1408 and emits up to model+0xa0 rows at +0x4c stride 0x1c, skipping each row whose type word or uri length is zero, via endpoint emitter f_1023915c ('type' re-rendered through the enum-name table, 'uri' only when nonempty); 'apiKey' always emits its object through sub-emitter f_10239394, which serializes the single 'zp' string member at model+0xc0 only when nonempty; 'accountTiers' emits its array only when the count at model+0xe8 is nonzero, rendering each 4-byte value through the accountTiers enum-name table; 'advertising' always emits its object with the 'headers' bool from model+0xec. The matching parser bind driver is f_1023a214: it wires the same model into the framework with per-field sub-binders at parent+0x178/+0x1f4 ({uri,version} objects), the endpoints-array binder at +0x270, apiKey 'zp' string at model+0xc0 bounded to 0x400, the accountTiers array at +0xd8 with count +0xe8 capped at 4, and 'headers' bool at +0xec. The schema tables at 0x10ea5b74..0x10ea5c60 are {0,0,4}-headed row lists of {name,0,kind}: {uri,version}, endpoint {type,uri}, apiKey {zp}, advertising {headers}, and the top manifest table.",
    "why_external": "Defines the nested service-manifest JSON projection and omission rules.",
    "required_for_behavior": true,
    "role": "music_service_manifest",
@@ -177392,9 +177518,58 @@
      "build": "86.10-80260",
      "address": "0x10239dc0",
      "notes": "Instruction-level trace in the 86.10-80260 binary; see svc_manifest.details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10239dc0",
+     "function": "0x10239dc0",
+     "notes": "Emit order and gates read straight from the body: schemaVersion when model string nonempty; presentationMap gate lwz model+0x18 (uri size), strings gate lwz model+0x34; endpoints array unconditional with per-row gate row+0 type!=0 and row+8 uri size!=0; apiKey object unconditional; accountTiers gate lwz model+0xe8 count; advertising.headers from lbz model+0xec."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10238ee4",
+     "notes": "Sub-emitter for the {uri,version} objects used by presentationMap and strings: 'uri' via f_109d1924 only when nonempty, 'version' always via f_109d1570; matches schema rows {uri:1, version:2} in table T1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10239394",
+     "notes": "apiKey sub-emitter: emits the sole member 'zp' (0x10e735b0) via f_109d1924 only when the model+0xc0 string is nonempty; the 'apiKey' JSON object is therefore {\"zp\": key}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1023a214",
+     "notes": "Bind driver: vfn8 registrations and f_1023a6f4 nested-object binds for model+0x14 (presentationMap, binder +0x178) and model+0x30 (strings, binder +0x1f4); endpoints binder at +0x270 gets model+0xa4 stored at +0x318; apiKey via f_1023a64c with size arg 0x400 masked to 16 bits; accountTiers generic array binds count+0xe8/values+0xd8 with limit args 4; headers bind model+0xec; all through f_109c0eb8 record builders."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea5b74",
+     "notes": "Nested schema tables are {0,0,4} header then {name,0,kind} rows stride 0xc: T1 {uri:1,version:2} at 0x10ea5b80, endpoint {type:0,uri:1} at 0x10ea5ba4, apiKey {zp:1} at 0x10ea5bc8, advertising {headers:3} at 0x10ea5be0, top manifest at 0x10ea5bf8 with kinds 0/4/4/5/4/5/4 and array element kinds in trailing {0,4}/{0,7} pairs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10239c48",
+     "notes": "Manifest binder aggregate ctor: loops f_109c0e6c over 10 machinery objects at +4..+0x16c stride 0x24, f_10238e4c for {uri,version} sub-binders at +0x178/+0x1f4, f_10239084 endpoint binder at +0x270 with vptr 0x10ea5ae8, f_10239310 at +0x31c, enum-binder vptr 0x10ea5a3c at +0x374, f_102394f8 at +0x39c; meta table base 0x10ea5bec stored at +0x170."
     }
    ],
-   "todo": "Established: The nested manifest parser table at 0x10ea5bec declares schemaVersion, presentationMap, strings, endpoints, apiKey, accountTiers and advertising. f_10239dc0 emits presentationMap/strings only when their stored URI string length is nonzero; it always emits the endpoints array and apiKey object, conditionally emits accountTiers when its count is nonzero, and emits advertising.headers. The nested field schemaVersion is emitted only when its stored string is nonempty. Unknown or absent fields and required-field policy still require analysis of the JSON framework. Remaining: Trace all nested emitters, parser binders and source value limits."
+   "resolved_findings": [
+    "Established: every nested emitter is traced. Top emitter f_10239dc0 calls framework primitives f_109d1474 (member name), f_109d1408 (begin array), f_109d0ad4 (begin object), f_109d0b78/f_109d0bdc (close) plus sub-emitters: f_10238ee4 for the {uri,version} objects presentationMap and strings, f_1023915c for each endpoint {type,uri} element, and f_10239394 for the apiKey object whose only member is 'zp'. Emit gates are byte/word tests on the stored model: nonempty string for schemaVersion, nonzero uri size for presentationMap/strings, nonzero type word AND nonzero uri length per endpoint row, nonzero count for accountTiers; apiKey and advertising objects are unconditional.",
+    "Established: parser binder inventory is complete. Manifest binder ctor f_10239c48 builds the aggregate binder (10 field machinery objects at +4..+0x16c, sub-binders at +0x178/+0x1f4/+0x270/+0x31c/+0x374/+0x39c); bind driver f_1023a214 registers every field with the framework: schemaVersion record kind 1, presentationMap/strings as {uri,version} sub-objects through f_1023a6f4 into model+0x14/+0x30, the endpoints array through the +0x270 binder (endpoint-element binder f_10239d68 with enum-type binder and uri string), apiKey 'zp' through f_1023a64c with a 0x400 length bound at model+0xc0, accountTiers through a generic array record capped at 4 elements of 4 bytes at model+0xd8 count +0xe8, and 'headers' bool at model+0xec.",
+    "Established: the seven binder vtables at 0x10ea5a1c..0x10ea5af8 are {subobject getter, object-end action, field reset, two destructor walkers, data/0, 0}; endpoint 'type' and accountTiers elements use enum-callback binders (f_10238370/f_10238250 over {name,len,value} tables with strnlen name limit 0x21 and return codes 0x10 match / 3 no-match), scalar fields share the no-op action f_100d3728, and the endpoints array substitutes collector f_10238144 which stores at most three rows.",
+    "Established: source value limits are bounded at three layers - endpoint rows capped at 3 by the collector (overflow dropped silently), accountTiers capped at 4 elements by the generic array binding (parsed count stored as min(parsed,4) at model+0xe8), apiKey 'zp' string bounded to 0x400 characters at bind time, and enum names matched only up to 0x20 chars by strnlen; on output the emitter independently re-filters endpoint rows with zero type or empty uri.",
+    "Established: unknown or absent fields do not reject the parse - the binder machinery registers only the declared schema rows, the cursor skips unregistered member names inside generic object walks, and absent fields simply leave their model slots at the cleared defaults (empty strings, zero words, zero count), which on re-emit produces an object missing the same optional members except the unconditional 'endpoints', 'apiKey' and 'advertising' shells."
+   ]
   },
   "0x10118580": {
    "description": "Schema callback f_10118580 processes a string token (token kind 3) when its callback field metadata +8 equals 1. It parses the compiled supported string 1.0 and incoming schema string with f_10483e28; malformed input yields internal parse code 16. f_104840f8 compares the supported major/minor pair against the incoming pair. It accepts an incoming pair no greater than 1.0 under unsigned comparison and returns internal code 16 for a greater pair. These are JSON parser results, not independently established SOAP fault codes. The manifest binder requires schemaVersion; see music_service_manifest.required_fields. Shared lexical grammar is documented in music_service_version_string; libc/span boundaries and null/type/error aggregation remain to be traced.",
@@ -177413,7 +177588,7 @@
    "todo": "Established: Schema callback f_10118580 processes a string token (token kind 3) when its callback field metadata +8 equals 1. It parses the compiled supported string 1.0 and incoming schema string with f_10483e28; malformed input yields internal parse code 16. f_104840f8 compares the supported major/minor pair against the incoming pair. It accepts an incoming pair no greater than 1.0 under unsigned comparison and returns internal code 16 for a greater pair. These are JSON parser results, not independently established SOAP fault codes. The manifest binder requires schemaVersion; see music_service_manifest.required_fields. Shared lexical grammar is documented in music_service_version_string; libc/span boundaries and null/type/error aggregation remain to be traced. Remaining: Verify libc/span boundary assumptions, null/type handling and schema error aggregation; grammar is in music_service_version_string and required presence is established in music_service_manifest.required_fields."
   },
   "0x1011ad40": {
-   "description": "f_1011ad40 creates a .tmp path and opens it using f_1054f088. That helper always uses fopen64(path,\"w\"); its third argument is not consumed. If full cache serialization f_10119b90 succeeds, the installer renames the temporary file while its writer is still open, updates the in-memory version/source and sid/version index, then destroys the writer. If serialization fails, it destroys the first writer, reopens the same path in write mode and attempts a fallback JSON object containing only version=current+1 and lastUpdateDevice. A successful fallback write and rename still increment the version, update the supplied-row index and return true. Thus save success need not mean that the manifests array reached disk. Fallback rename failure unlinks the candidate. Primary rename failure returns false without the same explicit unlink branch. The writer destructor f_1054f15c delegates to f_1054f0e8 when open. That routine calls fflush, fileno, fsync and fclose, ignores fflush/fsync results and returns a boolean derived only from fclose. f_1011ad40 does not test that close result. On the full serialization path rename and metadata/index updates precede destruction; on the fallback success path rename precedes destruction and metadata/index updates follow it. These are static call-order facts, not a runtime durability test.",
+   "description": "f_1011ad40 resolves the svcmanifests.json path through f_10118a1c, appends '.tmp' to the same resolved string and opens it with f_1054f088, which always calls fopen64(path,\"w\") and does not consume its third argument. The underlying write primitive f_1054edf4 is fwrite(ptr,1,len) against the FILE* stored at writer+0x20 and returns only whether the full length was accepted. Full cache serialization f_10119b90 emits {\"version\":<obj+0xc0>+1,\"lastUpdateDevice\":<obj+0xa0> through a 0x400-byte stack JSON buffer, then streams ', \"manifests\": [' through f_10119720, which serializes each 0x4fc-byte row with f_10119034 (fields sid, version, uri, manifest) into a 0x1491-byte stack buffer and fwrites each piece, then ']' and '}'; f_10119b90 returns the final '}' fwrite result. If full serialization succeeds, the installer renames the temporary file while its writer is still open, updates the in-memory version/source and the sid/version index (f_10119dcc stores the count at obj+0xc8 plus up to 34 {sid word, version hword} pairs at obj+0xcc), then destroys the writer. If serialization fails, it destroys the first writer, reopens the same .tmp path in write mode and attempts a fallback JSON object containing only version=current+1 and lastUpdateDevice. A successful fallback write and rename still perform the rename, increment the stored version, update the supplied-row index and write the output revision, but the shared success tail returns the saved serialization result r26, which is zero on the fallback path: a fully successful stub install still returns false. Thus a true return means only that complete serialization succeeded, and a false return does not prove the on-disk file was untouched. Fallback rename failure unlinks the candidate; primary rename failure returns false without the same explicit unlink branch. The writer destructor f_1054f15c delegates to f_1054f0e8 when open, which calls fflush, fileno, fsync and fclose, ignores the fflush/fsync results and returns a boolean derived only from fclose; f_1011ad40 does not test that close result. Because rename runs before the destructor, stdio-buffered bytes can still be in flight at rename time and durability only holds after the destructor's fsync. A crash before rename leaves the old file intact; a crash in the rename-to-fsync window can install a truncated file, which the next load rejects through the streaming parser f_1011991c (nonzero tokenizer status returns false) rather than crashing. The loader f_1011a4bc opens only the resolved svcmanifests.json name via open64 and never references the .tmp file, so a stale temporary file persists until the next save truncates it. The only in-function allocation hazard is the std::string '.tmp' append: when fewer than 4 characters remain before max_size it throws std::length_error('basic_string::append') through f_108b134c, which allocates the exception and resumes unwinding; the function contains no landing pad, so the exception propagates uncaught. The resolved base directory is not statically known: f_1068ab6c reads it from a descriptor at 0x110a950c in .bss that is populated at runtime. The entry call f_10988268(obj+0x10,file,line) is an empty stub in this build, so f_1011ad40 itself takes no lock; the file mutex is the caller's responsibility.",
    "why_external": "Defines what manifest persistence success means and when a successful update can omit the manifest array.",
    "required_for_behavior": true,
    "role": "music_service_manifest",
@@ -177438,9 +177613,74 @@
      "build": "86.10-80260",
      "address": "0x1054f0e8",
      "notes": "Flush/sync/close and result handling."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011aee0",
+     "function": "0x1011ad40",
+     "notes": "Shared success tail 'mr r30,r26'; fallback reaches it with r26=0, so stub write+rename success still returns false after version++/index/out-revision updates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10119b90",
+     "notes": "Writes version+1 and lastUpdateDevice header via 0x400-byte stack JSON buffer, calls f_10119720, writes '}'; return is the '}' fwrite result."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10119720",
+     "notes": "Streams ', \"manifests\": [' plus per-row objects (stride 0x4fc via f_10119034 into 0x1491-byte buffer) and ']'; short fwrite returns 0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054edf4",
+     "notes": "fwrite(ptr,1,len,FILE* at +0x20); returns 1 only when the whole length was accepted."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011afa4",
+     "function": "0x1011ad40",
+     "notes": "'.tmp' append guards 0x7fffffff-size<4 then calls f_108b134c, which allocates a std::length_error('basic_string::append') and calls _Unwind_Resume; no landing pad in f_1011ad40."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10118a1c",
+     "notes": "Resolves 'svcmanifests.json' via f_1068ab6c against base-dir descriptor 0x110a950c (.bss, runtime-populated); .tmp is the same string plus '.tmp'; rename(tmp,real) stays in one directory."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011a4bc",
+     "notes": "Loader opens only resolved svcmanifests.json via open64; .tmp is never referenced; f_1011991c returns 0 on nonzero tokenizer status so a truncated file fails the load."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10988268",
+     "notes": "Empty stub (falls through to blr); the obj+0x10 'lock' calls at svcmanifestfile.cxx line sites are no-ops in this build."
     }
    ],
-   "todo": "Established: both save paths and their observable return/order distinctions are decoded. Remaining: trace underlying writes, memory-allocation exceptions, temporary-file path ABI and interrupted-write/reload behavior."
+   "resolved_findings": [
+    "Established: the fallback path returns false even when the stub write and rename both succeed, because the shared success tail at 0x1011aed4 returns the saved f_10119b90 result in r26 (zero on that path); version, index and output revision are still updated.",
+    "Established: f_10119b90/f_10119720 write {\"version\":N+1,\"lastUpdateDevice\":...,\"manifests\":[...]} entirely through fwrite chunks from 0x400/0x1491-byte stack buffers; the return value is the final '}' fwrite result.",
+    "Established: rename(tmp,real) runs while the tmp FILE* is still open; buffered bytes can be unflushed at rename time and the destructor's fflush/fsync results are ignored, so a true return is not a durability proof.",
+    "Established: a crash before rename preserves the old file, a crash after rename before fsync can leave a truncated file that the streaming loader rejects with a parse error and false return; stale .tmp files are never unlinked and are truncated by the next save.",
+    "Established: the only throwing operation is the '.tmp' std::string append (length_error via 0x1011afa4 -> f_108b134c); it propagates uncaught since f_1011ad40 has no landing pad.",
+    "Resolved boundary: the concrete base directory of svcmanifests.json is read from a runtime-populated .bss descriptor at 0x110a950c via f_1068ab6c, so the absolute tmp path is not statically recoverable; the ABI is resolved-dir + '.tmp'."
+   ]
   },
   "0x10552c20": {
    "description": "Catalog XML start adapter: literal name/attribute recognition, active-state flags, numeric/version gates and processor callback argument mapping. Ratings retain parser+0x14 when Id is absent; see payload_formats.music_service_catalog.input_rules.",
@@ -177573,7 +177813,7 @@
    "todo": "Established: Binder f_1023a214 installs schemaVersion at field index 1 as type 4 (fixed character buffer), target model+0, capacity 17 and flags byte 1. The common field constructor f_109c0eb8 stores that flags byte at descriptor+0x20. Object-completion checker f_109c3070 tests bit 0 there and requires a seen/default marker from descriptor+0x21 &9. f_109c311c returns internal parser error 8 when a required field is absent. Thus an otherwise completed manifest object with no schemaVersion is rejected through this required-field path. Other named manifest fields are bound without this required flag. This establishes required presence separately from the schema callback version-pair check. A non-string/null/malformed schema value must also pass its token-type and schema callback paths; required presence alone does not prove validity. f_1023a214 binds presentationMap and strings through nested object definitions, whose URI uses a dynamic string binding limited by descriptor capacity 0x400 and whose version targets a 32-bit word. Endpoint object binding f_1023a13c uses a custom enum converter for type and the same 0x400 dynamic-string URI binding. apiKey.zp also uses that 0x400 string binding. Advertising headers binds type 6 directly to model+0xec as a byte boolean. The schemaVersion fixed buffer has capacity 17; f_109c1314 marks its descriptor flags with bit 1 (0x2) when the decoded copy length is >=capacity. Dynamic-string limit handling f_109c39bc also marks bit 1 when capacity is exceeded. Binding capacities and per-field truncation flags are proven; aggregate acceptance of oversized values still needs tracing through the enclosing parser and callback checks. Remaining: exhaust shared JSON error/null/type/duplicate/oversized aggregation and concrete consumers, including exception paths."
   },
   "0x10238144": {
-   "description": "Endpoint collector f_10238144 handles object-end callback token kind 1 for field metadata index zero. With its target model installed, it copies the completed scratch endpoint to the next 0x1c-byte slot while count<=2, increments model+0xa0, and clears the scratch endpoint type/URI afterward. At count>2 it returns zero without appending or incrementing; the collector itself supplies no overflow error. This yields at most three stored endpoints even if further object callbacks arrive. accountTiers instead uses a generic array binding: f_1023a214 binds the count at model+0xe8 with maximum four and binds model+0xd8 as four 4-byte custom enum values. The generic array completion stores the smaller of parsed element count and the declared maximum. Exact overall acceptance and side effects for extra elements or repeated arrays still require the shared element cursor/error paths.",
+   "description": "Endpoint collector f_10238144 is the object-end action callback (vptr+4 slot of the endpoints-array binder vtable at 0x10ea5ae8) installed on the binder subobject the manifest parser object builds at parent+0x270; binder+0xa4 is the parsed model pointer and +0xa8 the scratch endpoint {type word@+0, uri string@+4} installed by setter f_10239dac. It fires only on token kind 1 (object end) with a nonzero context word at arg4+8. While the stored endpoint count at model+0xa0 is <=2 it stores the scratch type word at model+0x4c+count*0x1c and string-copies the scratch URI into model+0x50+count*0x1c via assign f_1082deb8, then clears the scratch type to 0 and assigns the URI string empty. The count is incremented before the string copy runs. At count>2 it returns without appending or error, so at most three endpoints are stored no matter how many array elements arrive; it always returns 0. The scratch 'type' word is produced by sibling enum binder f_10238370 mapping endpoint-type names through the {name,len,value} table at 0x10ea5b38 (empty->0, 'radio'->1, 'reporting'->2, 'audiobook'->3, 'browse'->4) and returning 0x10 on match, 3 on no-match; accountTiers uses the twin binder f_10238250 on table 0x10ea5afc ('none'->0, 'free'->1, 'paidLimited'->2, 'paidPremium'->3). The parse driver in f_1011aabc feeds streamed tokens to shared JSON cursor f_109c4b34 (0xa=continue, 0=done, else abort; cursor error word at ctx+0x44) and on clean completion runs model assign f_102399a4, the concrete consumer that copies every collected {type,uri} row into the caller's model.",
    "why_external": "Determines which downloaded endpoint objects enter the stored music-service manifest.",
    "required_for_behavior": true,
    "role": "music_service_manifest_parser",
@@ -177584,9 +177824,82 @@
      "build": "86.10-80260",
      "address": "0x10238144",
      "notes": "Instruction-level binder/collector/stream analysis; see music_service_manifest."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10238144",
+     "function": "0x10238144",
+     "notes": "Object-end commit: kind gate reads token kind word at arg6+0 (must be 1), context gate requires arg4+8 nonzero, count>2 early-out at 0x102381b8; count stored +1 at 0x102381c0 BEFORE the URI copy f_1082deb8 at 0x102381fc; scratch then cleared (type word 0, URI string assigned empty)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea5ae8",
+     "notes": "Endpoints-binder vtable {f_1023a5fc subobject getter (this+0x70), f_10238144 action, f_10237fe8 reset over 3 sub-objects, f_10238c28 and f_10238490 destructor walkers, data 0x10ea6a2c, 0}; the shared generic action is f_100d3728 (return 0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10239d68",
+     "notes": "Endpoint-binder ctor f_10239d68 wraps f_10239084 then installs vptr 0x10ea5ae8 at +0 and zeroes +0xa4/+0xa8; setter f_10239dac stores parsed model into +0xa4 and scratch endpoint into +0xa8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea5b38",
+     "notes": "Endpoint-type enum table consumed by f_10238370, 5 entries stride 0xc {name,len,value}: {'',0,0},{'radio',5,1},{'reporting',9,2},{'audiobook',9,3},{'browse',6,4}; name match by strnlen(0x21)+memcmp, value stored to *out, returns 0x10 match / 3 no-match."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea5afc",
+     "notes": "accountTiers enum table consumed by twin binder f_10238250: {'none',4,0},{'free',4,1},{'paidLimited',0xb,2},{'paidPremium',0xb,3}. Emitter f_1023915c indexes the endpoint-type table backward to render 'type' names."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011ab80",
+     "function": "0x1011aabc",
+     "notes": "Parse driver: streamed token via virtual call on the JSON stream object, then shared cursor f_109c4b34 at 0x1011abb0; r3==0xa loops, r3==0 ends, else abort. Model assign f_102399a4 runs only past the clean-end gates at 0x1011abfc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109c4bd4",
+     "function": "0x109c4b34",
+     "notes": "Cursor error aggregation: ctx+0x44 stores 1 (token object construction failure -> return 0xc) at 0x109c4bd4 and 0x11 (syntax, expected '[' on ctx+0x40 path -> return 6) at 0x109c4c98."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b964",
+     "function": "0x1011b710",
+     "notes": "Download-worker consumer chain: f_1011aabc(stream model at sp+0xafa0) -> on success memcpy of the 0x401-byte URI field then f_102399a4 into the worker's model at 0x1011b964; failure logs 'downloading music service manifest'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102399a4",
+     "notes": "Model assign consumer: byte/word/string copies for fixed fields, then iterates rows at src+0x4c stride 0x1c for src+0xa0 count copying {type@+0, uri@+4} per row with no bound check, then copies +0xa4/+0xa8/+0xc0 strings, the +0xd8..0xe4 tier array with +0xe8 count and +0xec byte."
     }
    ],
-   "todo": "Established: Endpoint collector f_10238144 handles object-end callback token kind 1 for field metadata index zero. With its target model installed, it copies the completed scratch endpoint to the next 0x1c-byte slot while count<=2, increments model+0xa0, and clears the scratch endpoint type/URI afterward. At count>2 it returns zero without appending or incrementing; the collector itself supplies no overflow error. This yields at most three stored endpoints even if further object callbacks arrive. accountTiers instead uses a generic array binding: f_1023a214 binds the count at model+0xe8 with maximum four and binds model+0xd8 as four 4-byte custom enum values. The generic array completion stores the smaller of parsed element count and the declared maximum. Exact overall acceptance and side effects for extra elements or repeated arrays still require the shared element cursor/error paths. Remaining: exhaust shared JSON error/null/type/duplicate/oversized aggregation and concrete consumers, including exception paths."
+   "resolved_findings": [
+    "Established: shared cursor and error aggregation. The manifest loop in f_1011aabc drives generic JSON cursor f_109c4b34 per streamed token: 0xa continues, 0 ends cleanly, anything else aborts before model assign. The cursor keeps its own error word at ctx+0x44 (1 = token object construction failure returning 0xc, 0x11 = syntax such as a missing '[' returning 6); field callbacks return 0 whether they consumed or skipped a token, so the collector's silent drop at count>2 is indistinguishable from success at the cursor level.",
+    "Established: null, type and duplicate outcomes. A JSON null or unrecognized 'type' name leaves the scratch type word at its cleared 0 value (the enum binder only runs on string tokens and writes *out after an initial 0 store; no-match returns 3), and the object-end commit still stores a {0,uri} row when the context gate passes; the runtime resolver f_1011c34c later rejects type 0. Repeated endpoint objects all flow through the same scratch: each object end commits while count<=2 and is silently dropped after the third.",
+    "Established: concrete consumers of collected endpoints are (a) model assign f_102399a4 with seven call sites - post-parse finalize inside f_1011aabc at 0x1011abfc, the download worker at 0x1011b964 after a 0x401-byte URI memcpy, view ctors at 0x1011c188/0x1011c274 and svcmanifestfile paths 0x10118f60/0x10118fb0/0x10119030 - which iterates source count +0xa0 with no bound check while copying each {type,uri} row, and (b) sibling emitter pair f_1023915c/f_10239208 which re-renders 'type' through the same enum-name table and emits 'uri' only when the stored string is nonempty.",
+    "Established: exception paths. The endpoint count is incremented at 0x102381c0 before the URI string assign at 0x102381fc, so a throw inside f_1082deb8 leaves the count ahead of fully-copied rows with the scratch still populated; the collector itself installs no guard. Unwind cleanup belongs to the binder family's destructor walkers (f_10238c28/f_10238490 iterate sub-object slots backward calling each one's vfn0) and the cursor's own token temporaries.",
+    "Established: binder vtable shape. All manifest binders use a 7-slot vtable {subobject getter, object-end action, field reset, destructor walker, destructor walker, data/0, 0}; the endpoints binder at 0x10ea5ae8 substitutes collector f_10238144 for the shared no-op action f_100d3728 (plain `return 0`), while the two enum binders at 0x10ea5a1c/0x10ea5a3c carry their {name,len,value} scan in the +8 slot."
+   ]
   },
   "0x1011aabc": {
    "description": "Download JSON reader f_1011aabc creates a fresh model, schema adapter and streaming parser, binds through f_1011bd2c, then requests chunks of up to 1024 bytes from input slot +8 using the supplied deadline. It feeds the reported byte count to f_109c4b34 without branching on that read call return register. Internal result 10 continues only while the last reported byte count is nonzero; a zero-length read with result 10 falls into the logged failure path. Parser result zero reaches root descriptor status checks: when the root has a seen/default marker, status bit 0x2 produces local internal error 7. Only after these checks does it postprocess a nonempty apiKey.zp and copy the scratch model to the caller with f_102399a4. Parse failure returns false without this final model copy. JSON framework error numbers here are not SOAP fault codes; the outer download worker maps this false result to 801.",
@@ -177653,7 +177966,7 @@
    "todo": "Established: Cache-file binder f_10119fe8 requires root version (numeric target at parser+0x1304) and lastUpdateDevice (fixed character buffer at +0x12e8, capacity 25). It leaves the manifests array optional. Row binder f_10119ec8 requires sid and version numeric fields and uri as a fixed buffer of capacity 1025; the nested manifest object binding has no required flag, although schemaVersion is required when that object is parsed. Required presence is checked separately from empty-text validity and numeric conversion. The row version is parsed into a 32-bit word at row+4, but saved through the halfword at row+6; round-trip emission therefore keeps only its low 16 bits. A syntactically valid header-only object containing version and lastUpdateDevice can pass cache parsing because manifests is optional. f_1011991c returns success when f_1011987c reports zero; the latter checks top-level binding status bit 0x2 but does not require an array. f_1011a4bc then copies source/version and rebuilds the public SID/version index from the supplied row table. If the caller supplied a fresh zero-row table, as the download worker does after f_101191c8 at 0x1011b7c4, the index is empty until later upserts. Parsing a header-only object does not itself clear an arbitrary already-populated supplied table. This closes the missing-array grammar question for the save fallback; it does not establish complete cache freshness/reconciliation behavior. Remaining: exhaust nested null/type/lexical/status and exception behavior, absent-manifest round trips and concrete cache/replication consumers."
   },
   "0x1011c078": {
-   "description": "The runtime manifest view used by f_1011c34c is a separate object from a persisted cache row. Constructor f_1011c034 places a 1025-byte base-URI buffer at +0, the parsed manifest model at +0x404, valid byte at +0x4f4 and service ID word at +0x4f8; it starts invalid with an empty base. Catalog constructor f_1011c078 looks up a descriptor through catalog slot +0x20 and requires descriptor capability 0x400000. It expands descriptor SecureUri from descriptor+0x20 into the view base, not the descriptor Manifest URI. It then retrieves the manifest row by service ID through f_100c6b10 -> f_1011a650, copies row+0x40c model to view+0x404 and marks the view valid only on successful lookup. Failed construction leaves the initialized view invalid. Other constructors f_1011c19c/f_1011c1ec can construct a valid view directly from a model; the former leaves the base empty, while the latter expands a supplied descriptor SecureUri.",
+   "description": "The runtime manifest view consumed by resolver f_1011c34c is a stack-resident snapshot object separate from a persisted cache row. Default ctor f_1011c034 builds the model via f_10239628 at +0x404, leaves the 0x401-byte base buffer at +0 empty, and clears the valid byte +0x4f4 and sid word +0x4f8. Catalog ctor f_1011c078(view, catalog, sid) additionally constructs a descriptor ctx via f_10554350, calls catalog vfunc+0x20 to fetch the descriptor for the supplied sid, and requires ctx flags at +0x130 to carry capability 0x400000; it then expands ctx+0x20 (the descriptor SecureUri) into the view base via f_10553ab0 with cap 0x401. Only after that does it fetch the manifest row through thunk f_100c6b10 -> f_1011a650 using the descriptor's own sid word at ctx+0x134 (not necessarily the ctor argument), and on success copies row+0x40c model to view+0x404 via f_102399a4 and sets the valid byte. Failure asymmetry: a failed descriptor lookup or a missing 0x400000 flag leaves the view invalid with an EMPTY base, while a failed row lookup leaves it invalid with the SecureUri base already FILLED; consumers such as f_1011c34c and the accessor f_1011c570 only test the valid byte, so the stale base is inert. Alternate ctors: f_1011c19c(view, model, sid) marks valid directly from a supplied model with an empty base and no capability check; f_1011c1ec(view, model, descriptor) is dead in this build (zero call sites) but would mark valid from a model, expand descriptor+0x20 SecureUri into the base and take sid from descriptor+0x134; f_1011c24c(view, model, sid) is the assign-flavored variant used to re-stamp an existing view, keeping the empty base. Caller audit: f_1011c034 is called twice inside the refresh worker (0x101b74c4, 0x101b8dfc) to re-init a view before an assign; f_1011c078 has seven sites (0x102b505c, 0x102c437c, 0x1038d1f8, 0x1038e5e8, 0x104c9bb4, 0x104c9c54, 0x104cc364) spanning endpoint URL accessors (f_1011c7b0/f_1011c7e4/f_1011c5f0), endpoint-type membership f_1011c29c and playback selection f_1011caec; f_1011c19c is used at 0x100c5c1c, 0x100c5ce0 and 0x100cc03c where the caller already ran f_1011a650 itself and wants a baseless view; f_1011c24c is used at 0x101b74d4, 0x101b9790 and 0x101b9b20 inside the refresh worker. Races: the view holds no lock; the row fetch shares f_1011a650's internal cache/file locking (which can also fill the cache and write the +0/+4 clock words), but after the ctor returns the snapshot is detached - later cache or file updates never propagate into an existing view, and concurrent views of one sid can hold different-generation models. The descriptor object must outlive the ctor since the base expansion reads ctx+0x20.",
    "why_external": "Determines whether a service has a valid runtime manifest view and which base URI endpoint resolution uses.",
    "required_for_behavior": true,
    "role": "music_service_manifest_consumer",
@@ -177664,12 +177977,55 @@
      "build": "86.10-80260",
      "address": "0x1011c078",
      "notes": "Instruction-level endpoint/view/caller trace; see music_service_manifest and svc_manifest.details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c138",
+     "function": "0x1011c078",
+     "notes": "ctx flags at ctx+0x130 tested for 0x400000 before SecureUri expansion; flag-miss exits invalid with empty base."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c15c",
+     "function": "0x1011c078",
+     "notes": "Row lookup: f_100c6b10(catalog, ctx+0x134 sid, &row) -> thunk -> f_1011a650; zero result leaves view invalid but base already filled."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c1ec",
+     "notes": "model+descriptor ctor: copy model at +0x404, sid from desc+0x134, expand desc+0x20 into base; zero static callers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c5c1c",
+     "function": "0x100c5bb4",
+     "notes": "f_1011c19c(view,row+0x40c model,sid) after caller's own f_1011a650 lookup; constructs valid view with empty base and no capability gate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102b505c",
+     "notes": "Typical consumer chain: catalog ctor view then f_1011caec endpoint selection on the stack-resident view."
     }
    ],
-   "todo": "Established: The runtime manifest view used by f_1011c34c is a separate object from a persisted cache row. Constructor f_1011c034 places a 1025-byte base-URI buffer at +0, the parsed manifest model at +0x404, valid byte at +0x4f4 and service ID word at +0x4f8; it starts invalid with an empty base. Catalog constructor f_1011c078 looks up a descriptor through catalog slot +0x20 and requires descriptor capability 0x400000. It expands descriptor SecureUri from descriptor+0x20 into the view base, not the descriptor Manifest URI. It then retrieves the manifest row by service ID through f_100c6b10 -> f_1011a650, copies row+0x40c model to view+0x404 and marks the view valid only on successful lookup. Failed construction leaves the initialized view invalid. Other constructors f_1011c19c/f_1011c1ec can construct a valid view directly from a model; the former leaves the base empty, while the latter expands a supplied descriptor SecureUri. Remaining: Trace all constructors/callers, all cache/clock writers and races plus missing/invalid descriptor propagation; SID-only lookup policy is documented in svc_manifest.details.cache_lookup."
+   "resolved_findings": [
+    "Established: four view ctors exist; f_1011c1ec (model+descriptor) has zero call sites in this build, f_1011c19c builds a valid baseless view from a pre-fetched model with no capability check, f_1011c24c is the assign variant used by the refresh worker.",
+    "Established: f_1011c078 performs descriptor lookup (catalog vfunc+0x20), gates on ctx+0x130 flag 0x400000, expands ctx+0x20 SecureUri into the base, and fetches the row by the descriptor's own sid at ctx+0x134 via f_1011a650.",
+    "Established: invalid-view asymmetry - descriptor-lookup or capability failure leaves an empty base, row-lookup failure leaves a filled SecureUri base; consumers only test the +0x4f4 valid byte.",
+    "Established: the view is an unsynchronized stack snapshot; the shared lookup can itself fill the memory cache under the RCache/file locks, but post-construction updates never propagate into an existing view."
+   ]
   },
   "0x1011c34c": {
-   "description": "Endpoint resolver f_1011c34c takes (view, endpointType, destination, capacity). It returns false for an invalid view, requested type zero, zero stored endpoint count or no matching row. It scans all stored endpoint rows in order and compares type exactly. If destination is null or capacity is zero, it skips URL writing but still returns true when a matching type is present, even if that row URI is empty. With output enabled it processes every matching row rather than returning at the first; later matches overwrite earlier output unless an earlier relative-join failure has already returned false. No-match/invalid exits do not clear the destination. A true result therefore establishes neither a nonempty URL nor lossless output. For a matching URI whose first byte is slash and a nonempty view base, the resolver copies the entire base with strlcpy and requires capacity>returned source length. It removes exactly one trailing slash from the copied base, then appends the endpoint URI verbatim with strlcat and again requires capacity>attempted length. This joins strings against descriptor SecureUri; it does not resolve a leading slash against just the URI origin or discard an existing base path. For example, base https://host/service and endpoint /report produce https://host/service/report/ after the final slash step. It then appends a trailing slash if the resulting nonempty output lacks one. A leading-slash endpoint with an empty base takes the direct-copy path instead. Non-leading-slash URIs are copied directly without scheme or absolute-URI validation by this resolver. The relative base-copy and endpoint-append length failures return false after possibly writing a truncated or partial destination. In contrast, the direct strlcpy return is ignored. Its output can be truncated and still reach success. The final trailing-slash strlcat result is checked only to decide whether to emit the Added trailing slash diagnostic: capacity>attempted length logs, while insufficient room still continues with success. Empty copied output skips slash insertion and also continues with success. Thus complete relative joining, direct copying and final slash insertion have different success criteria. The resolver makes no network request.",
+   "description": "Endpoint resolver f_1011c34c takes (view, endpointType, destination, capacity). It returns false for an invalid view, requested type zero, zero stored endpoint count or no matching row. It scans all stored endpoint rows in order and compares type exactly. If destination is null or capacity is zero, it skips URL writing but still returns true when a matching type is present, even if that row URI is empty. With output enabled it processes every matching row rather than returning at the first; later matches overwrite earlier output unless an earlier relative-join failure has already returned false. No-match/invalid exits do not clear the destination. A true result therefore establishes neither a nonempty URL nor lossless output. For a matching URI whose first byte is slash and a nonempty view base, the resolver copies the entire base with strlcpy and requires capacity>returned source length. It removes exactly one trailing slash from the copied base, then appends the endpoint URI verbatim with strlcat and again requires capacity>attempted length. This joins strings against descriptor SecureUri; it does not resolve a leading slash against just the URI origin or discard an existing base path. For example, base https://host/service and endpoint /report produce https://host/service/report/ after the final slash step. It then appends a trailing slash if the resulting nonempty output lacks one. A leading-slash endpoint with an empty base takes the direct-copy path instead. Non-leading-slash URIs are copied directly without scheme or absolute-URI validation by this resolver. The relative base-copy and endpoint-append length failures return false after possibly writing a truncated or partial destination. In contrast, the direct strlcpy return is ignored. Its output can be truncated and still reach success. The final trailing-slash strlcat result is checked only to decide whether to emit the Added trailing slash diagnostic: capacity>attempted length logs, while insufficient room still continues with success. Empty copied output skips slash insertion and also continues with success. Thus complete relative joining, direct copying and final slash insertion have different success criteria. The resolver makes no network request. Caller audit (branch and data-pointer scan exhaustive): the only entries are the two tail paths of selector f_1011caec and the lone thunk f_1011c564. f_1011caec supplies types 0/1/3 computed from the URI; its callers are f_102b4f40 at 0x102b5070, which probes with destination null and capacity zero inside an existence check, and f_102c3f84 (avt_impl) at 0x102c4588, which resolves into stack buffer sp+0x23e4 with capacity 0x401 and feeds the result to CQ URL builder f_1011c864. The thunk is reached only from f_104c9bd8 at 0x104c9ccc, which hardcodes type 2 and passes its own (destination, capacity) arguments through; upstream f_104ca364 calls it only when the descriptor vfunc+0x1c string fetch returns empty (a nonempty result is strlcpy-copied directly instead), and its two call sites in f_104cbf1c (0x104cc110 and 0x104cc26c) pass stack buffer sp+0x8a8 with capacity 0x401 that has been pre-zeroed (stw plus memset of 0x3fd). Every real output caller therefore hands the resolver a 0x401-byte stack buffer matching the stored row URI field. Malformed-row audit: the per-row URI pointer at +4 is dereferenced without a null check (lbz of its first byte), so a corrupted row would fault inside the resolver rather than be detected, while an empty URI string is benign and still reports match-present through the direct-copy path. The row count at view+0x4a4 is reloaded on every pass, so the scan bound is a live read of the view, which is itself a stack-resident snapshot holding no lock. The resolver allocates nothing and performs only libc string calls plus the svcmanifest log helpers; it has no exception cleanup of its own, and a fault inside a callee can only leave a partially written destination.",
    "why_external": "Determines selected service endpoint URL text, output truncation behavior and presence-query status.",
    "required_for_behavior": true,
    "role": "music_service_manifest_consumer",
@@ -177680,9 +178036,62 @@
      "build": "86.10-80260",
      "address": "0x1011c34c",
      "notes": "Instruction-level endpoint/view/caller trace; see music_service_manifest and svc_manifest.details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c398",
+     "function": "0x1011c34c",
+     "notes": "isel r8,0,r9,cr30 computes the output-enable byte as (dest!=0 && cap!=0); the cap==0 entry at 0x1011c520 forces r8=0, and cr4_eq on it skips the write path while still counting the match."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c420",
+     "function": "0x1011c34c",
+     "notes": "Matching row URI pointer at row+4 is dereferenced with lbz and no NULL check; count at view+0x4a4 is reloaded into r10 every pass at 0x1011c474 so the loop bound is a live read."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102b5070",
+     "function": "0x102b4f40",
+     "notes": "Probe-mode call f_1011caec(view sp+0x85c, this+0x5dc uri, 0, 0): boolean existence check for a type-1/3 endpoint, gated by f_101477e4(uri)!=0 or f_10147050(uri)!=0; true leads to f_102b377c registration with 'sn_%u'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102c4588",
+     "function": "0x102c3f84",
+     "notes": "avt_impl call f_1011caec(view sp+0xa58, uri r30, sp+0x23e4, 0x401); on true the resolved URL plus original URI go to CQ URL builder f_1011c864 at 0x102c45a4, whose failure returns 800."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c9ccc",
+     "function": "0x104c9bd8",
+     "notes": "Lone thunk f_1011c564 site: f_1011c34c(view sp+0x10, 2, dest r30, cap r26) hardcodes endpoint type 2 with dest/cap passed through from f_104c9bd8 args."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cc110",
+     "function": "0x104cbf1c",
+     "notes": "Upstream capacity for the type-2 path: dest sp+0x8a8 cap 0x401 pre-zeroed by stw+memset(0x3fd); second identical site at 0x104cc26c. Wrapper f_104ca364 diverts to a direct strlcpy when vfunc+0x1c already yields a nonempty string."
     }
    ],
-   "todo": "Established: Endpoint resolver f_1011c34c takes (view, endpointType, destination, capacity). It returns false for an invalid view, requested type zero, zero stored endpoint count or no matching row. It scans all stored endpoint rows in order and compares type exactly. If destination is null or capacity is zero, it skips URL writing but still returns true when a matching type is present, even if that row URI is empty. With output enabled it processes every matching row rather than returning at the first; later matches overwrite earlier output unless an earlier relative-join failure has already returned false. No-match/invalid exits do not clear the destination. A true result therefore establishes neither a nonempty URL nor lossless output. For a matching URI whose first byte is slash and a nonempty view base, the resolver copies the entire base with strlcpy and requires capacity>returned source length. It removes exactly one trailing slash from the copied base, then appends the endpoint URI verbatim with strlcat and again requires capacity>attempted length. This joins strings against descriptor SecureUri; it does not resolve a leading slash against just the URI origin or discard an existing base path. For example, base https://host/service and endpoint /report produce https://host/service/report/ after the final slash step. It then appends a trailing slash if the resulting nonempty output lacks one. A leading-slash endpoint with an empty base takes the direct-copy path instead. Non-leading-slash URIs are copied directly without scheme or absolute-URI validation by this resolver. The relative base-copy and endpoint-append length failures return false after possibly writing a truncated or partial destination. In contrast, the direct strlcpy return is ignored. Its output can be truncated and still reach success. The final trailing-slash strlcat result is checked only to decide whether to emit the Added trailing slash diagnostic: capacity>attempted length logs, while insufficient room still continues with success. Empty copied output skips slash insertion and also continues with success. Thus complete relative joining, direct copying and final slash insertion have different success criteria. The resolver makes no network request. Remaining: Audit all caller capacities/initialization and malformed stored row/string/exception cases."
+   "resolved_findings": [
+    "Established: caller inventory is exhaustive - two tail paths inside selector f_1011caec (endpoint types 0/1/3) plus thunk f_1011c564 called once from f_104c9bd8 with hardcoded type 2; no data or vtable references to the resolver or thunk exist.",
+    "Established: every output-producing caller supplies a 0x401-byte stack buffer matching the stored row URI field (f_102c3f84 sp+0x23e4, f_104cbf1c sp+0x8a8 pre-zeroed); the only other call probes with null/0 for a pure existence check.",
+    "Established: the per-row URI pointer is dereferenced without a null check, so a malformed row would fault inside the resolver; an empty stored URI is benign and still returns match-present via the direct-copy path.",
+    "Established: the scan bound is a live reload of view+0x4a4 each pass over an unsynchronized stack-resident view; the resolver has no locks, no allocation and no exception cleanup, so the only damage a callee fault can do is a partially written destination."
+   ]
   },
   "0x104c9bd8": {
    "description": "The direct caller at 0x104c9ccc requests endpoint type 2, binding this resolver to the reporting vocabulary entry. Its enclosing f_104c9bd8 constructs the runtime view and first requires its separate provider gate f_104c9acc to succeed. After the resolver call it destroys the view and returns the original destination pointer from r30, without testing or returning the resolver boolean. If the gate fails it returns null. Therefore a nonnull result from this wrapper is not proof that a reporting endpoint was found or fitted; caller buffer initialization and subsequent request construction still need tracing. Reporting gate f_104c9acc first invokes provider slot +0x1c; a nonnull pointer with nonzero first byte immediately returns true. Otherwise an empty item URI returns false; a nonempty URI must pass f_101477e4 and service-ID extraction f_1071aeb0, after which it constructs a manifest view and queries endpoint type 2 through f_1011c29c. That presence helper compares stored type values without requiring nonempty URI or an output buffer. Consequently this gate is not a universal endpoint-URL validity check. The exact provider-slot string meaning and the full URI predicate/extraction grammar remain to be traced.",
@@ -177708,7 +178117,7 @@
    "todo": "Established: The direct caller at 0x104c9ccc requests endpoint type 2, binding this resolver to the reporting vocabulary entry. Its enclosing f_104c9bd8 constructs the runtime view and first requires its separate provider gate f_104c9acc to succeed. After the resolver call it destroys the view and returns the original destination pointer from r30, without testing or returning the resolver boolean. If the gate fails it returns null. Therefore a nonnull result from this wrapper is not proof that a reporting endpoint was found or fitted; caller buffer initialization and subsequent request construction still need tracing. Remaining: Trace provider gate, destination initialization and subsequent request construction."
   },
   "0x1011c864": {
-   "description": "CQ URL builder f_1011c864 takes endpoint base, item URI, destination and capacity. The cpcontainer path branch copies at most 256 bytes of the URI path, terminates it, passes identifier classification/validation through f_1071b3dc/f_1071b458 and canonicalizes it with f_1071d5c4/f_1071b5a0 into another 257-byte buffer. The other branch extracts/percent-decodes item path text through f_1071ac00, which recognizes x-sonos prefixes or x-rincon-cpcontainer and requires a nonempty parsed path. For x-sonos-http and x-sonosprog-http that helper strips the final dot/extension before decoding. The builder then percent-encodes the selected item text into a 257-byte scratch buffer with f_10c3a294, appends endpoint base + encoded text + slash using snprintf, and validates the resulting URL version with f_10338a34. Component truncation and formatter return values are ignored here; success is not a lossless-construction guarantee. Full identifier classification and decoder error/embedded-null behavior remain open. Percent-encoder wrapper f_10c3a294 passes the literal allow-list $-_.!*'(), to f_10c3a0f4. That helper copies isalnum bytes or allow-listed bytes and encodes every other byte through format %%%02x, using lowercase hexadecimal. Slash, colon, percent, query and fragment punctuation are therefore encoded unless already removed by earlier item parsing. A raw copied byte needs room for itself plus a terminator; an escape needs room for three bytes plus a terminator. If capacity cannot fit the next unit it stops, null-terminates and returns the number of bytes written, without a separate truncation error. f_1011c864 ignores that returned count. This encoder does not normalize already encoded percent sequences; a percent byte is encoded again.",
+   "description": "CQ URL builder f_1011c864 takes endpoint base, item URI, destination and capacity. The cpcontainer path branch copies at most 256 bytes of the URI path, terminates it, passes identifier classification/validation through f_1071b3dc/f_1071b458 and canonicalizes it with f_1071d5c4/f_1071b5a0 into another 257-byte buffer. The other branch extracts/percent-decodes item path text through f_1071ac00, which recognizes x-sonos prefixes or x-rincon-cpcontainer and requires a nonempty parsed path. For x-sonos-http and x-sonosprog-http that helper strips the final dot/extension before decoding. The builder then percent-encodes the selected item text into a 257-byte scratch buffer with f_10c3a294, appends endpoint base + encoded text + slash using snprintf, and validates the resulting URL version with f_10338a34. Component truncation and formatter return values are ignored here; success is not a lossless-construction guarantee. Full identifier classification and decoder error/embedded-null behavior remain open. Percent-encoder wrapper f_10c3a294 passes the literal allow-list $-_.!*'(), to f_10c3a0f4. That helper copies isalnum bytes or allow-listed bytes and encodes every other byte through format %%%02x, using lowercase hexadecimal. Slash, colon, percent, query and fragment punctuation are therefore encoded unless already removed by earlier item parsing. A raw copied byte needs room for itself plus a terminator; an escape needs room for three bytes plus a terminator. If capacity cannot fit the next unit it stops, null-terminates and returns the number of bytes written, without a separate truncation error. f_1011c864 ignores that returned count. This encoder does not normalize already encoded percent sequences; a percent byte is encoded again. Exhausted outcomes. Identifier classification (f_1071b3dc then f_1071b458, both -> f_10717318 with flag 0) accepts only '0', 'root', 'search' or exactly eight isxdigit characters whose strtoul value clears 0xe0000000 (<0x20000000); the ':0/0', ':0/1', ':0/L' alternatives are skipped in this mode, a NULL or empty tail stores nothing, and shorter strings fail because the hex window always reads eight bytes into the NUL. Rejection logs 'Invalid Id: %s' and returns 0 with the destination untouched. Canonicalization (f_1071d5c4 -> f_1071d460, then f_1071b5a0) builds a record whose kind word is 0 for '0'/'root' (canonical string 'root'), 1 for 'search' or (hexvalue>>16)&0xff for hex identifiers; f_1071b5a0 selects record+0x191, the percent-decoded segment after the identifier's eighth byte, when kind<=1 and record+9, the identifier string itself, when kind>1. Because flag-0 classification admits no suffix text, the +0x191 segment is always empty, so '0'/'root'/'search' and hex identifiers with kind byte <=1 percent-encode the empty string and produce '<base>/'. Decoder branch outcomes (f_1071ac00 on the scheme-gated copy from f_1071a9cc, which only copies URIs starting 'x-sonos' or 'x-rincon-cpcontainer:'): it accepts an 'x-sonos' prefix or (defensively, unreachable here) the cpcontainer prefix, parses the URI with f_10c3a920 and requires a nonzero path span, else returns 0 -> 'Failure parsing URI %s' -> return 0. For 'x-sonos-http:' and 'x-sonosprog-http:' it scans the path backwards for '.', fails outright when none exists, and decodes only up to the last dot, stripping the final extension; a leading-dot path decodes zero bytes and still succeeds. sonosDecodePercentEncoded's own status is ignored, so percent-decoder errors and embedded-NUL behavior pass through unchecked; a non-sonos URI reaches the decoder as an empty scratch string and fails the prefix gate. Truncation/losslessness: the cpcontainer path is min(len,256)-truncated BEFORE classification, so an overlong tail is validated on its truncation; the canonical strlcpy (0x101), the percent-encode f_10c3a294 (src, dst, 0x101) and the final snprintf '%s%s/' all ignore their truncation/return indications. The last-line defense is f_10338a34(dest, 0, &rec): it parses the produced URL and returns 2 only when the path tail extracts to cloud queue version v2, so a mangled or truncated result normally fails there -> 'unsupported CQ REST version: %s' -> return 0, leaving the destination holding the rejected URL. Success returns 1. Caller/fallback audit: the only call site is f_102c3f84 (avt_impl) at 0x102c45a4 with base = freshly resolved endpoint sp+0x23e4, uri = original request URI, dest sp+0x1fe0, cap 0x401; a false result unwinds to code 800, while success stores the CQ URL pointer into request param block +8 (sp+0x4c) alongside the 'sn_%u' token for the subsequent request dispatch via f_1032e270/f_1032e330 and f_10255f64, whose own outcome selects return 0 or 0x320.",
    "why_external": "Determines URL construction acceptance on a music-service cloud-queue playback path.",
    "required_for_behavior": true,
    "role": "music_service_manifest_consumer",
@@ -177733,12 +178142,63 @@
      "build": "86.10-80260",
      "address": "0x10c3a294",
      "notes": "PIC GOT base0x11095ccc, slot base-0x7fcc points to allow-list0x10fb1330. f_10c3a0f4 tests isalnum/strchr and formats escapes with GOT base-0x7fd4 ->0x10fb1318, literal %%%02x. Boundary branches stop before a partial escape."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c8e4",
+     "function": "0x1011c864",
+     "notes": "isel r31,r10,r9,cr29 truncates the cpcontainer path to min(len,0x100) into sp+0x7e8 before any classification; validation then runs on the truncated text."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c920",
+     "function": "0x1011c864",
+     "notes": "f_1071b458(tail,0)==0 rejects with 'Invalid Id: %s'; the earlier f_1071b3dc slot store is what feeds f_1071d5c4 canonicalization."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1071b5a0",
+     "notes": "Canonical text pick: kind word (rec+4) >1 returns rec+9 identifier string, kind<=1 returns rec+0x191 percent-decoded post-identifier segment which is always empty under flag-0 classification."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1071acd8",
+     "function": "0x1071ac00",
+     "notes": "Backward dot-scan over the parsed path for x-sonos-http:/x-sonosprog-http:; no dot returns 0, found dot bounds the percent decode, other accepted schemes decode the full path. Decode status ignored."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10338a34",
+     "notes": "Final gate: parses built URL and requires the path tail to extract to CQ version v2 (returns 2); all other outcomes return 0, with optional error struct fill when arg4 != 0 (unused at 0x1011c9b4)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102c45a4",
+     "function": "0x102c3f84",
+     "notes": "Sole caller: dest sp+0x1fe0 cap 0x401; false maps to return 800, true stores the URL pointer into request param block +0x8 (sp+0x4c) for the downstream f_1032e330 dispatch."
     }
    ],
-   "todo": "Established: CQ URL builder f_1011c864 takes endpoint base, item URI, destination and capacity. The cpcontainer path branch copies at most 256 bytes of the URI path, terminates it, passes identifier classification/validation through f_1071b3dc/f_1071b458 and canonicalizes it with f_1071d5c4/f_1071b5a0 into another 257-byte buffer. The other branch extracts/percent-decodes item path text through f_1071ac00, which recognizes x-sonos prefixes or x-rincon-cpcontainer and requires a nonempty parsed path. For x-sonos-http and x-sonosprog-http that helper strips the final dot/extension before decoding. The builder then percent-encodes the selected item text into a 257-byte scratch buffer with f_10c3a294, appends endpoint base + encoded text + slash using snprintf, and validates the resulting URL version with f_10338a34. Component truncation and formatter return values are ignored here; success is not a lossless-construction guarantee. Full identifier classification and decoder error/embedded-null behavior remain open. Remaining: exhaust classifier/canonicalizer and percent-decoder outcomes, malformed/truncated output behavior, all caller fallbacks and subsequent CQ request execution."
+   "resolved_findings": [
+    "Established: classifier acceptance under flag 0 is exactly '0', 'root', 'search' or eight hex digits with value <0x20000000; canonicalization maps kinds to the identifier string (kind>1) or an always-empty decoded rest segment (kind<=1), so only hex identifiers contribute nonempty CQ item text.",
+    "Established: the decoder branch only ever sees 'x-sonos*' URIs via the f_1071a9cc scheme gate, requires a nonempty parsed path, forces a dot-strip extension removal for x-sonos-http:/x-sonosprog-http: (no dot = failure), and ignores the percent-decoder status entirely.",
+    "Established: every copy/encode/format step ignores truncation and returns; the sole effective output check is the post-snprintf version parse requiring CQ v2, which logs 'unsupported CQ REST version' and fails while leaving the rejected URL in the destination.",
+    "Established: the single caller in avt_impl unwinds a false result to code 800 and on success hands the built URL to the CQ request dispatch through param block +8 together with the 'sn_%u' service token."
+   ]
   },
   "0x1011caec": {
-   "description": "Playback endpoint selector f_1011caec selects radio enum 1 for the literal case-sensitive x-sonosapi-radio: prefix through f_10147928 -> f_101478ec; the broader f_101477e4 predicate also recognizes that prefix. For a non-radio URI, f_10148478 requires x-rincon-cpcontainer:, parses its identifier through f_1071b3dc/f_1071d5c4 and returns true only when the parsed kind word equals 0x13. That case selects endpoint enum 3 (audiobook). Other inputs select zero, which f_1011c34c rejects. This wrapper does not choose browse enum 4 merely because an input is a container or another music-service URI. The parser/identifier-kind internals and alternate callers remain separate work.",
+   "description": "Playback endpoint selector f_1011caec(view, uri, destination, capacity) computes an endpoint type from the URI text and tail-calls resolver f_1011c34c(view, type, destination, capacity). Type 1 (radio) is selected iff the URI carries the literal case-sensitive x-sonosapi-radio: prefix via f_10147928 -> f_101478ec (strncmp 17). A second conjunct f_101477e4(uri)!=0 is evaluated only after the strict prefix matches and is tautologically true there because that prefix is already inside f_101477e4's accepted scheme list (x-sonosapi-stream:, x-sonosapi-hls:, x-sonosapi-hls-static:, x-sonosapi-radio:, x-sonosapi-rtrecent: plus the x-sonos-http/x-sonos-mms and spotify families reached through f_1014722c, f_101472a0 and f_10147770). Type 3 (audiobook container) is selected iff the URI is not radio AND f_10148478(uri) is nonzero. That helper first requires the x-rincon-cpcontainer: prefix (strncmp 21), then classifies the identifier tail through f_1071b3dc -> f_10717318 with flag 0, which accepts only '0', 'root', 'search' or exactly eight isxdigit characters whose strtoul value keeps its top three bits clear (<0x20000000); the ':0/0', ':0/1' and ':0/L' alternatives are skipped in this mode, and shorter strings fail because the scan window always reads eight bytes into the NUL. f_1071d5c4 -> f_1071d460 then builds a parsed record whose kind word at +4 is 0 for '0'/'root' (both canonicalized to the literal string 'root'), 1 for 'search', 0xff when classification failed, or (hexvalue>>16)&0xff for eight-hex-digit identifiers via f_1071d39c. Only kind 0x13 yields type 3; '0', 'root', 'search', unparseable tails and every other kind byte fall to type 0. Before emitting 3 the wrapper re-verifies the x-rincon-cpcontainer: prefix through f_10147050, a dead re-check that cannot fail on that path since the same strncmp already passed. Formally a URI matching both the radio and kind-13 prefixes would select 1, but the prefixes are mutually exclusive. Type 0 makes the resolver report false, so unrecognized URIs produce no endpoint; the wrapper never selects type 2 (that enum is hardcoded only by the f_104c9bd8 thunk site) nor browse enum 4 merely because an input is a container or another music-service URI. Caller audit (exhaustive branch and data-pointer scan): f_102b4f40 calls at 0x102b5070 with destination null and capacity zero as an existence probe, gated by f_101477e4(uri)!=0 or f_10147050(uri)!=0 on the member string at this+0x5dc, and on true registers the service through f_102b377c with an 'sn_%u' token; f_102c3f84 (avt_impl) calls at 0x102c4588 with stack buffer sp+0x23e4 and capacity 0x401 on a freshly built view, and on true hands the resolved URL plus the original URI to CQ URL builder f_1011c864 at 0x102c45a4, whose failure makes the caller return 800. No other callers, fallbacks or data references exist.",
    "why_external": "Chooses which manifest endpoint supplies a music-service playback URL.",
    "required_for_behavior": true,
    "role": "music_service_version_and_cq",
@@ -177749,9 +178209,68 @@
      "build": "86.10-80260",
      "address": "0x1011caec",
      "notes": "Instruction-level selector/version/encoder trace; see music_service_version_string and svc_manifest details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011cb2c",
+     "function": "0x1011caec",
+     "notes": "cr4_eq ends up as 'NOT x-sonosapi-radio:' for both routes: strict match jumps to the f_101477e4 call whose result is always nonzero for that prefix, so the broad predicate is a tautological second conjunct."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011cb70",
+     "function": "0x1011caec",
+     "notes": "isel r4,0,r9,cr30 merges the two reachability paths: entry from the dead f_10147050 re-check gives r3=1 so type 3, entry from the non-radio/kind-miss fall-through gives r3=0 so type 0; type 1 uses the sibling epilogue addi r4,1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10148478",
+     "notes": "Kind-13 gate: strncmp 'x-rincon-cpcontainer:' then f_1071b3dc/f_1071d5c4 parse the tail and xori/cntlzw compares the kind word at +4 against 0x13."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10717318",
+     "notes": "Tail classifier with flag 0 accepts '0', 'root', 'search' or exactly eight isxdigit chars whose strtoul value clears 0xe0000000; ':0/0', ':0/1', ':0/L' alternatives are skipped in this mode."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1071d39c",
+     "function": "0x1071d460",
+     "notes": "Eight-hex-digit tail decoding: strtoul base 16, kind word = (value>>16)&0xff at record +4, low halfword at +0, top bit at +8; '0'/'root' map to kind 0 and 'search' to kind 1 in the caller."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102b5070",
+     "function": "0x102b4f40",
+     "notes": "Probe-mode call (dest 0, cap 0) gated by f_101477e4(uri)!=0 or f_10147050(uri)!=0 on this+0x5dc; a true result leads to f_102b377c registration using an 'sn_%u' token."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102c4588",
+     "function": "0x102c3f84",
+     "notes": "avt_impl resolve call into sp+0x23e4 cap 0x401 on a fresh f_1011c078 view; false exits via cleanup, true feeds resolved URL + original URI to f_1011c864 at 0x102c45a4 and maps its failure to return code 800."
     }
    ],
-   "todo": "Established: Playback endpoint selector f_1011caec selects radio enum 1 for the literal case-sensitive x-sonosapi-radio: prefix through f_10147928 -> f_101478ec; the broader f_101477e4 predicate also recognizes that prefix. For a non-radio URI, f_10148478 requires x-rincon-cpcontainer:, parses its identifier through f_1071b3dc/f_1071d5c4 and returns true only when the parsed kind word equals 0x13. That case selects endpoint enum 3 (audiobook). Other inputs select zero, which f_1011c34c rejects. This wrapper does not choose browse enum 4 merely because an input is a container or another music-service URI. The parser/identifier-kind internals and alternate callers remain separate work. Remaining: Trace complete identifier-kind grammar and all selector callers/fallbacks."
+   "resolved_findings": [
+    "Established: exact selector grammar - type 1 iff literal case-sensitive x-sonosapi-radio: prefix (the f_101477e4 conjunct evaluated behind it is tautologically true); type 3 iff non-radio x-rincon-cpcontainer: whose parsed kind byte equals 0x13; every other input yields type 0, which resolver f_1011c34c rejects.",
+    "Established: the identifier-tail grammar through f_10717318 with flag 0 accepts only '0', 'root', 'search' or exactly eight hex digits with strtoul value <0x20000000; f_1071d460 maps them to kind 0, 0, 1 or (value>>16)&0xff respectively and leaves 0xff for rejected tails.",
+    "Established: the f_10147050 prefix re-check on the kind-13 path is dead code (the same strncmp already passed), and the formal radio+kind13 overlap selects type 1 but is unreachable since the prefixes are mutually exclusive.",
+    "Established: exactly two callers exist - the f_102b4f40 null/0 existence probe gated by sonos-scheme-or-cpcontainer, and the f_102c3f84 avt_impl resolve into sp+0x23e4/0x401 feeding CQ builder f_1011c864; no data or vtable references and no internal fallback path exist."
+   ]
   },
   "0x10483e28": {
    "description": "Shared version parser f_10483e28 takes a begin/end text span and an output structure. It requires decimal major, a literal dot and decimal minor, with an optional dot plus decimal patch. f_10483c1c first requires an ASCII digit, then clears errno and calls strtoul(base10) with an end pointer; errno 22 or 34 rejects. Leading zeroes are not rejected. Whitespace/sign prefixes are rejected by the first-byte guard. Patch is written only when present; the caller must initialize it otherwise. After the numeric components, either span end must be reached or a hyphen/pre-release and/or plus/build suffix is processed. Each suffix must start with isalnum, but subsequent bytes are copied without per-byte validation. Pre-release ends at the first plus or span end; build metadata consumes the remaining span. Each stored suffix is truncated to 32 bytes plus terminator while the cursor advances across the full suffix. Success requires cursor==span end. This is the implemented grammar, not complete enforcement of Semantic Versioning 2.0.0. Exact libc locale/overflow ABI and reads at malformed span boundaries still need verification.",
@@ -177834,7 +178353,7 @@
    "todo": "Established: Manifest lookup f_1011a650 takes this, service ID and a nonnull output row. It formats service ID with %u and searches the three-entry memory cache by key length plus memcmp under mutex this+0x1f8. A hit refreshes entry+4 with the current clock word, copies the entire row from entry+0x20 through f_10118f64, unlocks and returns true. It does not compare a requested manifest version, cached row version, public SID/version index or cache entry+0 time word before returning a hit. There is no requested-version argument in this lookup. A cache miss unlocks, loads svcmanifests.json into a fresh 34-row scratch table through f_1011a5d0, finds the requested sid by exact word equality and copies it to output. Load failure or absent SID returns false. A successful file load can still update stored source/version/index even when the requested SID is absent. This lookup performs no HTTP download. The memory cache is separate from the 34-row persisted table. Constructor f_10119a2c sets its capacity to three; entries have stride0x51c and contain a time-derived word at +0, last-access word at +4, string key object at +8 and full manifest row at +0x20. f_1011be38 and the miss-fill code inside f_1011a650 replace an existing equal key if found; otherwise they choose the entry with the smallest unsigned last-access word. The comparison uses strict LT, so ties keep the earliest selected entry, initially index zero. There is no separate empty-entry priority beyond zero-valued initial timestamps. Both insertion paths stamp last access with the clock word. Lookup fill stores clock+1 at entry+0; f_1011be38 stores clock+its fourth argument there, and the download worker passes one. The inspected hit path does not consume this word as an expiration gate. Unsigned timestamp ordering has no wrap compensation in these selection loops. Remaining: Audit all callers, clock wrap/replacement, file/cache races, malformed/null and exception contracts."
   },
   "0x1011be38": {
-   "description": "The memory cache is separate from the 34-row persisted table. Constructor f_10119a2c sets its capacity to three; entries have stride0x51c and contain a time-derived word at +0, last-access word at +4, string key object at +8 and full manifest row at +0x20. f_1011be38 and the miss-fill code inside f_1011a650 replace an existing equal key if found; otherwise they choose the entry with the smallest unsigned last-access word. The comparison uses strict LT, so ties keep the earliest selected entry, initially index zero. There is no separate empty-entry priority beyond zero-valued initial timestamps. Both insertion paths stamp last access with the clock word. Lookup fill stores clock+1 at entry+0; f_1011be38 stores clock+its fourth argument there, and the download worker passes one. The inspected hit path does not consume this word as an expiration gate. Unsigned timestamp ordering has no wrap compensation in these selection loops.",
+   "description": "f_1011be38(cache, keystr, row, arg4) inserts or replaces one entry in the 3-slot memory cache that is separate from the 34-row persisted table; an empty key (keystr length zero) silently returns without inserting, and the sole caller does not inspect the result. Constructor f_10119a2c heap-allocates the entry array with new(0xf58) for exactly three 0x51c-byte slots at cache+8, fixes the count word at cache+4 to three (the cache never grows or shrinks), builds the named 'RCache' mutex at cache+0x18 and installs an owned clock delegate at cache+0x10 whose vfunc+8 (f_1098b4c0 on vtable 0x11089e3c) returns sonosClockGetTime(1) tv_sec, i.e. whole seconds. Entries hold a time-derived word at +0, last-access word at +4, string key object at +8 and a full 0x4fc manifest row at +0x20. The only static caller of f_1011be38 is the download worker f_1011b710 at 0x1011ba1c, which passes arg4=1 after a successful fetch/upsert/save; the sibling writer is the miss-fill path inside lookup f_1011a650, which is not a caller of this function but shares the same entry ABI. Both paths first reassign the entry key via f_1082deb8 and recopy the row via f_10118f64, then store the raw clock word at entry+4 and clock+arg4 (fill path uses 1) at entry+0. Selection: an equal key (equal length at entry+0xc plus memcmp on the entry+8 pointer) is replaced in place; otherwise isel-driven strict-LT tracking picks the slot with the smallest unsigned +4 word, and ties keep the earliest candidate, initially index zero, so on first insert the zero-timestamped slots fill in order 0,1,2. Audit result: entry+0 is written on every insertion but is never read by any code path in the binary; the LRU comparisons, the hit-refresh (which stores a fresh clock word to +4 only when the out-row pointer is nonnull) and the delete-side invalidation all key off entry+4 or the key fields, so the +0 time word is write-only bookkeeping with no expiration or other consumer. Clock wrap: comparisons are unsigned with no wrap compensation, so ordering inverts once across a u32 wraparound of the seconds value; entry+0 = sec+1 wraps to 0 at 0xffffffff but is never consumed. Exception behavior: the possibly-allocating key assign and row copy run under the +0x18 lock; the function has no catch, so a throw propagates through caller f_1011b710, whose active byte +0xc4 then remains set.",
    "why_external": "Determines memory-cache replacement and timestamps after downloading a service manifest.",
    "required_for_behavior": true,
    "role": "music_service_manifest_cache",
@@ -177845,9 +178364,62 @@
      "build": "86.10-80260",
      "address": "0x1011be38",
      "notes": "Instruction-level cache/receiver/delete analysis; see svc_manifest.details and music_service_manifest_cache."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011ba1c",
+     "function": "0x1011b710",
+     "notes": "Sole call site f_1011be38(obj+0x1e0,keystr,row,1); result untested; runs after successful save."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011bf18",
+     "function": "0x1011be38",
+     "notes": "Clock word = vfunc+8 on cache+0x10 delegate, stored raw at entry+4 (stw at 0x1011bfcc) and clock+arg4 at entry+0 (stwx at 0x1011bfc0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011bf6c",
+     "function": "0x1011be38",
+     "notes": "isel r29,r30,r29,cr28 strict-LT min pick over entry+4; no +0 read anywhere in the selection loop."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011a94c",
+     "function": "0x1011a650",
+     "notes": "Lookup hit refreshes entry+4 with the current clock only when out-row nonnull; entry+0 is untouched on hits."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1098b4c0",
+     "notes": "Clock delegate vfunc+8 implementation: sonosClockGetTime(1) then returns tv_sec; word is seconds."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10119ad4",
+     "function": "0x10119a2c",
+     "notes": "Ctor: new(0xf58) for 3 entries at cache+8, count fixed at 3, 'RCache' mutex at +0x18, delegate vtable 0x11089e3c at +0x1ec back-linked at +0x1f0."
     }
    ],
-   "todo": "Established: The memory cache is separate from the 34-row persisted table. Constructor f_10119a2c sets its capacity to three; entries have stride0x51c and contain a time-derived word at +0, last-access word at +4, string key object at +8 and full manifest row at +0x20. f_1011be38 and the miss-fill code inside f_1011a650 replace an existing equal key if found; otherwise they choose the entry with the smallest unsigned last-access word. The comparison uses strict LT, so ties keep the earliest selected entry, initially index zero. There is no separate empty-entry priority beyond zero-valued initial timestamps. Both insertion paths stamp last access with the clock word. Lookup fill stores clock+1 at entry+0; f_1011be38 stores clock+its fourth argument there, and the download worker passes one. The inspected hit path does not consume this word as an expiration gate. Unsigned timestamp ordering has no wrap compensation in these selection loops. Remaining: Audit every insertion caller and generic time-word purpose outside the inspected lookup, plus clock wrap and exception behavior."
+   "resolved_findings": [
+    "Established: exactly one caller exists (f_1011b710 at 0x1011ba1c, arg4=1); no other static reference to f_1011be38 occurs in the binary.",
+    "Established: the +0 time word is written on every insert (clock+arg4 here, clock+1 in the f_1011a650 fill) but is never read by any path; the hit path refreshes only +4.",
+    "Established: the clock is the owned delegate at cache+0x10 whose vfunc+8 resolves to sonosClockGetTime(1) seconds; ordering is unsigned strict-LT with no wrap compensation.",
+    "Established: an empty key returns early without inserting; the sole caller ignores the return, so the skip is silent.",
+    "Established: allocation-throwing callees (key assign f_1082deb8, row copy f_10118f64) run under the +0x18 lock and any exception propagates uncaught to f_1011b710, leaving +0xc4 set."
+   ]
   },
   "0x1011a204": {
    "description": "Manifest replication worker f_1011a204 holds the file mutex, applies revision comparator f_10660e58 to current stored source/revision and incoming source/revision supplied in r6/r7, opens the incoming path supplied in r8 and parses it into a fresh scratch row table. Failed revision acceptance, open, parse or rename returns false. After rename succeeds it copies the caller-supplied source (capacity25) and revision into object state, rebuilds the SID/version index from parsed rows, clears all three cache keys/time words, invokes observer slot+0x14 with (kind13, stored source, stored revision, zero), and returns true. It does not compare parsed file version/lastUpdateDevice to the caller-supplied source/revision before committing those supplied values. Its post-rename kind13 call has no new-version-nonzero guard, unlike the local save wrapper. The normal parser permits header-only input; no independent manifests-presence guard is added here. Sender binding, fetch transport and observer delivery remain open.",
@@ -177866,7 +178438,7 @@
    "todo": "Established: Manifest replication worker f_1011a204 holds the file mutex, applies revision comparator f_10660e58 to current stored source/revision and incoming source/revision supplied in r6/r7, opens the incoming path supplied in r8 and parses it into a fresh scratch row table. Failed revision acceptance, open, parse or rename returns false. After rename succeeds it copies the caller-supplied source (capacity25) and revision into object state, rebuilds the SID/version index from parsed rows, clears all three cache keys/time words, invokes observer slot+0x14 with (kind13, stored source, stored revision, zero), and returns true. It does not compare parsed file version/lastUpdateDevice to the caller-supplied source/revision before committing those supplied values. Its post-rename kind13 call has no new-version-nonzero guard, unlike the local save wrapper. The normal parser permits header-only input; no independent manifests-presence guard is added here. Sender binding, fetch transport and observer delivery remain open. Remaining: Trace sender/fetch/observer binding and delivery, comparator edges, races and interruption/exception behavior."
   },
   "0x1011b310": {
-   "description": "Local deletion f_1011b310 initializes a fresh table and output revision zero, acquires the file mutex and loads the current file through f_1011a4bc. On load failure it returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; it returns whether any match was removed. No match returns false without saving. A removal calls f_1011ad40; only a true save result leads to matching-key cache invalidation and true return. The save worker header-only fallback is shared here, so true deletion is not proof that all surviving rows were persisted. An observer kind13 call is made only when the output revision is nonzero. Loading can already change stored metadata/index before a later no-match or save-failure false result, and no rollback is performed for those earlier load effects.",
+   "description": "Local deletion f_1011b310 is reached only through the this-adjusting thunk 0x100c6d14, which adds 0x13ad0 to the passed object and tail-branches here; the thunk is called exactly once at 0x1028c5dc inside the accountsmgr.cxx core worker f_1028c3b8 as a devirtualized dispatch (vtable slot +0x130 equal to f_1012ba78 takes the direct thunk, anything else calls the slot virtually). The enclosing flow (the locked worker f_1028c5f4 used by RemoveAccount) invokes the manifest delete only after a service-descriptor lookup for type>>8 succeeds, the descriptor flags carry 0x400000, and a non-strict f_10570e34 account query with NULL ID reports no remaining account; the 'del' publish vfunc then runs unconditionally. Inside, f_1011b310 initializes a fresh table and zero output revision, takes a scoped RAII lock (ctor f_10988564/dtor f_10988990) on the obj+0x10 file mutex and loads the current file through f_1011a4bc; load failure returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; no match returns false without saving. A removal calls f_1011ad40 and only a true save result leads to matching-key cache invalidation and a true return. The save worker's header-only fallback is shared here, so a returned-false deletion can still have installed a stub svcmanifests.json containing version+1 and lastUpdateDevice but no manifests array at all: false does not prove the file was untouched, and true does not prove all surviving rows persisted. The output-revision word at sp+0x14 is written on both of the saver's rename-success paths, including the false-returning fallback, and the observer block gates on that word rather than the save result: when it is nonzero the code calls a virtual observer vfunc at slot +0x14 on the runtime-injected obj+8 pointer (ctor f_10119a2c zeroes it) with arguments (13, &obj+0xa4 source string, 0), still holding the obj+0x10 mutex. So a fallback-stub install fires the kind13 observer despite returning false. Cache invalidation nests a second scoped lock on the obj+0x1f8 mutex (lock order file then cache): it scans obj+0x1e8 entries, count at obj+0x1e4, stride 0x51c, matches on equal key length at entry+0xc plus memcmp on the entry+8 key pointer against the snprintf(\"%u\") SID string, and on a match zeroes entry+4 and replaces the key with the shared empty cstring via f_10831bc0. There is no in-function catch, so exceptions from the load, the save (including the '.tmp' append length_error) or the observer propagate to the accountsmgr caller; the RAII lock objects release on normal exits. Loading already rewrites obj+0xc0 version, obj+0xa4 source and the obj+0xc8/cc sid-version index before a later no-match or save-failure false result, and no rollback is performed.",
    "why_external": "Determines manifest deletion success, persisted survivors and targeted cache invalidation.",
    "required_for_behavior": true,
    "role": "music_service_manifest_cache",
@@ -177877,9 +178449,52 @@
      "build": "86.10-80260",
      "address": "0x1011b310",
      "notes": "Instruction-level cache/receiver/delete analysis; see svc_manifest.details and music_service_manifest_cache."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6d14",
+     "notes": "Sole entry thunk: adds 0x13ad0 to the object and tail-branches to f_1011b310."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028c5b8",
+     "notes": "Devirtualized call site in f_1028c3b8: vtable+0x130==f_1012ba78 uses the thunk at 0x1028c5dc, else bctrl; preceded by type>>8 descriptor lookup, flags&0x400000 test and f_10570e34 remaining-account check."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b3b0",
+     "function": "0x1011b310",
+     "notes": "Observer block reads out-revision at sp+0x14 (written by the saver even on false-returning fallback) and calls obj+8 vfunc+0x14(0xd,&obj+0xa4,0) before the file-mutex unlock at 0x1011b3c8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b580",
+     "function": "0x1011b310",
+     "notes": "Cache invalidation under nested lock obj+0x1f8: scans obj+0x1e8 entries x obj+0x1e4, stride 0x51c; match = equal key len at +0xc and memcmp key at +8; clears entry+4 and key via f_10831bc0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10988564",
+     "notes": "Scoped RAII lock ctor storing mutex ptr+flag; dtor f_10988990 unlocks when flag byte set; obj+0x10 lock spans load, compact, save, invalidate and observer."
     }
    ],
-   "todo": "Established: Local deletion f_1011b310 initializes a fresh table and output revision zero, acquires the file mutex and loads the current file through f_1011a4bc. On load failure it returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; it returns whether any match was removed. No match returns false without saving. A removal calls f_1011ad40; only a true save result leads to matching-key cache invalidation and true return. The save worker header-only fallback is shared here, so true deletion is not proof that all surviving rows were persisted. An observer kind13 call is made only when the output revision is nonzero. Loading can already change stored metadata/index before a later no-match or save-failure false result, and no rollback is performed for those earlier load effects. Remaining: Trace deletion callers and reconciliation scheduling, shared save failures and exception/observer propagation."
+   "resolved_findings": [
+    "Established: the only static entry is the +0x13ad0 this-adjusting thunk 0x100c6d14, called once at 0x1028c5dc (accountsmgr.cxx f_1028c3b8); invocation requires descriptor lookup for type>>8, flags&0x400000 and an empty remaining-account query f_10570e34.",
+    "Established: the kind13 observer call gates on the output-revision word at sp+0x14, which the saver writes on both rename-success paths, so a false-returning fallback-stub install still fires the observer with (13,&source,0).",
+    "Established: a false return after f_1011ad40's fallback can still have installed a stub file holding only version+1 and lastUpdateDevice with zero manifest rows, while the observer has already been notified.",
+    "Established: cache invalidation runs under nested mutexes (file obj+0x10 outer, cache obj+0x1f8 inner), matches keys by length+memcmp and clears entry+4 plus the key string.",
+    "Resolved boundary: the obj+8 observer pointer is runtime-injected (ctor-zeroed) and dispatched virtually at vtable slot +0x14, so no concrete observer implementation is statically bound."
+   ]
   },
   "0x101195ac": {
    "description": "Local deletion f_1011b310 initializes a fresh table and output revision zero, acquires the file mutex and loads the current file through f_1011a4bc. On load failure it returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; it returns whether any match was removed. No match returns false without saving. A removal calls f_1011ad40; only a true save result leads to matching-key cache invalidation and true return. The save worker header-only fallback is shared here, so true deletion is not proof that all surviving rows were persisted. An observer kind13 call is made only when the output revision is nonzero. Loading can already change stored metadata/index before a later no-match or save-failure false result, and no rollback is performed for those earlier load effects.",
