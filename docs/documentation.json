@@ -151027,20 +151027,36 @@
      "type": "firmware",
      "address": "0x10ec3a58",
      "notes": "grc_zpimpl block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1039dd90",
+     "notes": "SPE division recovers the sg ratio source fields."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1039de94",
+     "notes": "clrlwi 16 narrows an efsctuiz result, not a Q16 shift."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1039ded8",
+     "notes": "clrlwi 30 selects the low two bits of the state halfword."
     }
    ],
-   "todo": [
-    "Residual: the object member that supplies sg (EFS load path is opaque to the text decoder; the semantic - current group volume - is proven by the rescale formula)."
-   ],
+   "todo": "Residual: trace writers and semantic units of owner+0xd296/+0xd28e (the sg ratio operands), caller guarantees for valid volume range and nonzero denominator, and semantic names of member+0x68c low flag bits. The floating rescale, integer return narrowing and low-bit eligibility predicates are recovered, not Q16 shifts or top-bit classes.",
    "resolved_findings": [
-    "Resolved: calculateVolume formula = {sg group scale factor, ng new group volume, sv per-member source volume, nv resulting member volume} - group volume distributes as member-relative scaling; snapshot/gvd {t,c,f,m,cv,sv} carry the operands.",
-    "Set-group-volume pipeline decoded (grc_zpimpl.cxx, grc/grcMediaRenderer/scopeGrc tags): a GroupVolumeSetActionEvent runs the async processGroupSetVolEvt task - snapshot members (snapshot %s: %u (was %u), snapshot sum for %u (of %u) zones), compute per-zone target via calculateVolume (log: sg:%.4f ng:%u sv:%u nv:%.4f - scaled gain + group snapshot + source vol -> new vol) with the delta context gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d (total, count, fixed, muted, current vol, set vol), then apply local first (localRC vol:%u mute:%d fixed:%d) and fan out net ops to remote RCs (SetGroupVolume: local:%d netops:%u zones:%u / remoteRC (%s) %s: vol:%d/mute:%d/fixed:%d). Fault taxonomy: {total failure, partial failure, all members use fixed volume, operation in progress, unexpected upnp fault %d}. Member tracking logs addZone/removeZone/transitionValid with c/m/f counts; completion fires VliVolumeProcessingCompleteEvt so VLI sources can react to group volume changes. DesiredVolume/DesiredMute/GroupMute/OutputFixed/GroupVolumeChangeable are the group-var surfaces.",
-    "Partial: calculateVolume (f_1039dda4) loads its bound constants from globals 0x10ec3998 (float 100.0) and 0x10ec399c (float 0.0) - the 0..100 normalization/clamp endpoints selected on the ng halfword test; the result is roundf()'d. Log format 'calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f' confirms {sg=scale, ng=new-group, sv=source-member, nv=new-member} operand roles.",
-    "Resolved: the sg weighting is SPE embedded-float (e500v2 EFS ops decoded manually: opcode-4 family). At 0x1039ddbc the routine computes a linear interpolation nv = ((cap - sg) * (hi - lo)) / (hi - sg) + lo as: efssub r6=r10-r9; efssub r10=r10-r8; efssub r9=r7-r9; efsmul r10=r9*r10; efsdiv r9=r10/r6; efsadd r31=r9+r8; then roundf(r31) and srwi r3,16 (Q16->int). Inputs converted by efscfsi (signed) and efscfui (unsigned); bound constants loaded as ints from rodata 0x10ec3998/0x10ec399c (branch-selected at 0x1039ddd4). Iterates member records at stride 0x694 with u16 field +0x68e; logs 'calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f' under 'grc'.",
-    "Resolved (member-record operands): calculateVolume (f_1039dda4) takes r4 = a member record in the 0x694-stride snapshot array and r5 = the group target volume ng; it reads sv = the u16 at record+0x68e (the snapshot volume - written at snapshot time alongside +0x690 by the 'snapshot %s: %u (was %u)' pass at 0x1039e5f4 and refreshed at 0x1039e9a8, so +0x68e=snapshotVol and +0x690=currentVol/setVol), loads the bound constants 100.0 (0x10ec3998) or 0.0 (0x10ec399c) selected by the +0x68c flag halfword test (fixed-volume members take the 0.0 scale path), then computes nv in e500 SPE float regs, logs 'calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f' with stw r30(ng)@+0x8 and sth sv@+0xc, and returns roundf(nv) >> 16. Member record tail: +0x68c = state/flag halfword (bit0 = update-in-progress, top 2 bits = state class via srwi 2 ==3 check), +0x692/+0x693 = flag bytes.",
-    "Resolved: the calculateVolume clamp endpoints are proven rodata float constants - lo=0.0f (.rodata 0x10ec399c, loaded at 0x1039dddc) and hi=100.0f (0x10ec3998, loaded at 0x1039dea4) bracketing the SPE float sequence; the group volume is clamped to the 0-100 scale. The remaining member feeds (sg scalar gain f32, u16 +0x68e) gate which arm runs - 'calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f' (0x10ec3ac0) names each term: sg=scaled gain, ng=?, sv/nv=old/new volume.",
-    "calculateVolume binding completed (f_1039dda4): sv = member snapshot volume u16 at record+0x68e (0x694-stride snapshot array); ng = the arg5 new group volume; sg = current group scalar loaded via the EFS float path (the rescale denominator); nv = rescaled result roundf'd then returned as >>16 fixed point; lo/hi endpoints swap on a compare before the lhz (0.0f vs 100.0f paths). The record sibling f_1039deb4 shows the paired snapshot field +0x68c (u16, >>2-compared - a flags/zone-count halfword).",
-    "Established: {sv=record+0x68e u16 snapshot vol, ng=arg5 group target, sg=EFS-loaded current group scalar, nv=rescaled out, endpoints {0.0f,100.0f}}; sibling fn shows +0x68c as a paired u16 (shifted/4-compared - count or flag field)."
+    "Native entry f_1039dd7c loads unsigned halfwords from owner+0xd296 and owner+0xd28e, converts both with efscfui and divides the first by the second at 0x1039dd80-0x1039dd90. Call that floating ratio sg. It converts sg to unsigned integer with efsctuiz and retains its low sixteen bits at 0x1039dd94-0x1039dd98 before comparison with target argument r5. Equality returns the member snapshot halfword at record+0x68e unchanged (0x1039deac). Thus the sg load path is no longer an opaque SPE gap, but the producing aggregate fields still need semantic binding.",
+    "For the non-equality path, GNU e500 disassembly establishes nv = sv + (ng-sg)*(cap-sv)/(cap-sg), where sv is unsigned halfword member+0x68e, ng is incoming r5, and sg is the ratio above. The comparison at 0x1039ddc8 selects cap=100.0 from 0x10ec3998 when sg<ng, otherwise cap=0.0 from 0x10ec399c. The arithmetic is efssub/efsmul/efsdiv/efsadd at 0x1039ddf0-0x1039de14. No explicit clamp to 0..100 or denominator-zero guard appears in this local calculation; caller constraints remain to be traced. The previous fixed-volume endpoint-selection and universal clamp assertions are withdrawn.",
+    "Return conversion corrected independently of the audit report: 0x1039de70 calls roundf, 0x1039de78 executes efsctuiz, and 0x1039de94 is clrlwi r3,r3,16. The result is the low sixteen bits of the converted rounded integer, not a Q16 value shifted right sixteen. The direct snapshot return at 0x1039deac is an independent counterexample to the claimed universal fixed-point return convention.",
+    "Member eligibility helper f_1039deb4 addresses records at stride 0x694. It requires a nonzero byte at record+0, then (halfword_at_0x68c & 3)==3 at 0x1039ded4-0x1039dee0 and (halfword & 4)!=0 at 0x1039deec-0x1039def0. This uses the LOW two bits, not the top two bits; no zone count is extracted. It exposes the record through the output pointer, rejects nonzero byte +0x693, otherwise computes and stores the target through f_1039dd7c at 0x1039df1c-0x1039df20. Missing/ineligible members return zero and clear outputs initially. Semantic names for the three low flag bits are not established by this helper.",
+    "The surrounding group-volume path snapshots member state, logs calculateVolume with sg/ng/sv/nv labels, applies local and remote changes and reports total/partial/fixed-volume/in-progress faults. These logs locate integration, but do not make unsupported arithmetic, mandatory range or individual flag-name claims. The source writes for both sg aggregate halfwords and all downstream acceptance conditions remain native tracing work."
    ]
   },
   "group_mgmt": {
