@@ -152902,7 +152902,7 @@
   },
   "json_parser": {
    "name": "embedded JSON parser error enum",
-   "summary": "The firmware contains distinct JSON reader families. A concrete16-byte DOM reader and typed-accessor path now binds the Muse nonce envelope,including NUL termination,required string fields and first-duplicate behavior. The custom-parser and RapidJSON error vocabularies alone do not establish every consuming subsystem's implementation.",
+   "summary": "Distinct JSON reader families coexist. The Muse nonce envelope uses a NUL-terminated 16-byte DOM reader; household settings and diagnostic-initiation responses use the custom incremental reader. The custom reader enforces a 15-level active container stack. Its Sequence too long diagnostic does not yet have a verified emitting predicate.",
    "evidence": [
     {
      "type": "firmware",
@@ -152964,17 +152964,61 @@
      "build": "86.10-80260",
      "address": "0x109ce7a0",
      "notes": "strlen truncates extracted string values at decoded NUL."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109c1c64 / f_109c29c4 / f_109c2a64 / f_109c6abc",
+     "address": "0x109c29ec",
+     "callsite": "0x109c4ebc / 0x109c5188 / 0x109c6df4 / 0x109c6e10",
+     "notes": "The constructor zeros active depth at +0x428 and initializes sixteen stride-0x3c frame slots at +0x68. Both opening helpers compute depth+1, compare it unsigned with 15, and use raw branch 0x409d0028 (ble cr7) to enter successful frame setup; a prospective depth above 15 stores status 1 at +0x40 and returns false. The recursive token routine f_109c6abc has equivalent comparisons for '[' and '{', dispatched at 0x109c6b44/0x109c6b00. These are actual parser paths, not neighboring numeric constants."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109c4910 / f_109c1d64 / f_109c29c4 / f_109c2a64",
+     "address": "0x109c49c4",
+     "callsite": "0x109c4ce0 / 0x109c29cc / 0x109c2a6c",
+     "notes": "On status 10 (Incomplete), f_109c4910 seeds +0x64 from saved active depth at 0x109c49b4-0x109c49c4, builds a synthetic container prefix through f_109c1d64, and adjusts it for pending string/member state through f_109c473c. Opening and scalar handlers decrement a nonzero replay counter rather than adding duplicate frames (0x109c2a54/0x109c2b00/0x109c4234). Thus the +0x64 bypass is not evidence of an unlimited-nesting mode."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109c36c0 / f_109bf390 / f_109c2058",
+     "address": "0x10f93c64",
+     "callsite": "0x109c36fc / 0x109bf3a8 / 0x109c20d8",
+     "notes": "The twelve diagnostic pointers are indexed by error-1: code 7 selects Sequence too long, 10 Incomplete, 11 Out Of Memory and 12 Unexpected error. The earlier vocabulary omitted Incomplete. Callback/token statuses translated by f_109bf390 use table 0x10f93860: [0,12,12,6,6,6,6,6,2,4,3,12,4,5,5,5]; out-of-range input maps to 12. That translation does not emit code 7. Its producing predicate remains unverified, not proven absent, and the diagnostic text alone does not establish an array-size cap."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105c7714 / f_105c73f8 / f_1076ed84 / f_106b5380 / f_1076eca4",
+     "address": "0x105c7490",
+     "callsite": "0x1076ee0c / 0x1076ecb0 / 0x106b5440 / 0x106b5608",
+     "notes": "Household settings constructs the custom reader at object+0x18 through f_109c1c64 and passes strlen(input) to f_109c4b34 at 0x105c7490. Diagnostic initiation constructs f_1076ed84 at 0x106b5608 after HTTP status 200. Its reader at response-object+0x10 is initialized by f_109c1c64 at 0x1076ee0c. f_106b5380 reads chunks of at most 0x800 bytes through virtual read 0x106b53ec and invokes f_1076eca4 at 0x106b5440; the wrapper tail-calls f_109c4b34. Unlike error-string adjacency, these constructor/dispatch chains establish engine reachability."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109c4b34 / f_10447a78",
+     "address": "0x10447a78",
+     "callsite": "0x1011989c / 0x1059982c / 0x109e6d30 / 0x109ecc80 / 0x109d061c",
+     "notes": "Direct PPC branch-target scanning identifies custom-reader calls at 0x1011989c, 0x1059982c, 0x109e6d30 and 0x109ecc80. The concrete nonce DOM reader f_10447a78 has external direct calls at 0x10442e04, 0x104d00d8, 0x1058fc48, 0x106635bc, 0x10663de0, 0x109d061c, 0x109d3120, 0x109f55fc, 0x109f588c and 0x10bde6f8, plus intra-function calls at 0x10447e84 and 0x1044806c. This inventory establishes target entrypoints, not each caller's schema/options or all possible inlined reader implementations."
     }
    ],
    "todo": [
-    "Established: custom and RapidJSON error vocabularies,the previously recorded engine regions,and a concrete Muse nonce16-byte DOM parse/accessor chain at0x109d0588/0x10447a78/0x109ce584. Remaining: bind other subsystem parse callsites to concrete engines/options and recover the custom-parser depth/sequence limits at their actual predicates. Trace each frontend and its producer/consumer/error state;do not infer a universal engine from duplicated error literals."
+    "Established: the nonce 16-byte DOM contract, household-settings and diagnostic-initiation custom-reader bindings, active custom-container depth limit 15, replay-counter behavior, and exact diagnostic numbering including Incomplete=10. Remaining: identify a reachable producer of custom error 7 (Sequence too long), or prove its absence; f_109bf390's translation and the literal are not such a producer. Audit remaining writes to reader+0x40 and typed-descriptor capacity handling at f_109c1314/f_109c2490. Also trace constructor/schema options and error consumption for other frontends: custom-reader calls at 0x1011989c, 0x1059982c, 0x109e6d30 and 0x109ecc80; DOM calls at 0x104d00d8, 0x1058fc48, 0x106635bc, 0x10663de0, 0x109d3120, 0x109f55fc, 0x109f588c and 0x10bde6f8. These are concrete entrypoint bindings, not recovered per-subsystem contracts. Earlier universal custom-parser and zones_storage/common_logger RapidJSON assignments remain withdrawn pending concrete frontend chains."
    ],
    "resolved_findings": [
     "Two JSON reader families are present. Individual consumer binding requires following the parse call and concrete value/error representation;the presence of an error string does not prove that every Muse/cloud consumer uses the same engine.",
-    "Implementation proven: a custom in-house recursive JSON parser (the {Exceeded max depth, Invalid unicode escape, ...} enum). RapidJSON is ALSO statically linked: its verbatim GetParseError_En strings are in the image (Missing a comma or } after an object member / Incorrect hex digit after \\u escape / The surrogate pair in string is invalid / Terminate parsing due to Handler error / Unspecific syntax error), used by zones_storage and common_logger. The error enum is the parser API: {Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Out Of Memory, Unexpected error} - depth and sequence-length caps bound nesting/array size.  The list of possible JSON consumers does not establish their individual engine bindings.",
-    "Correction: two JSON engines coexist - the custom parser (its own error enum) and RapidJSON (header-only, identified by its verbatim GetParseError_En strings: Missing a comma or } after an object member, Incorrect hex digit after \\u escape, The surrogate pair in string is invalid, Missing a closing quotation mark, Invalid encoding in string, Number too big to be stored in double, Miss fraction part in number, Miss exponent in number, Terminate parsing due to Handler error, Unspecific syntax error). RapidJSON consumers: zones_storage (zone definitions) and common_logger (config).",
-    "Per-engine consumer census (via RapidJSON GetParseError_En string xrefs): RapidJSON instantiations concentrate in three code regions - the 0x101c/0x101d cluster (~40 inlined-template funcs, the muse/HTTP JSON surface), locSetUpdMgr (f_105db1f0, settings-update manager), and the share-indexer module (f_103da928, the .sparsebundle/indexing TU). The custom recursive parser serves the remaining consumers; neither engine is wrapped behind a single dispatch so the binding is per-TU at compile time.",
-    "Parse-error enum recovered at 0x10f94248: {NONE, FILE_ERROR, SYNTAX_ERROR, MISSING_VALUE, UNEXPECTED_TYPE} - the json reader's status vocabulary."
+    "The custom reader's active container depth is limited to 15 by unsigned comparisons in opening paths f_109c29c4, f_109c2a64 and f_109c6abc. Its nonzero +0x64 bypass replays synthetic prefixes for incremental input, rather than establishing an unbounded nesting mode.",
+    "The custom diagnostic vocabulary has twelve nonzero entries: Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Incomplete, Out Of Memory, Unexpected error. Sequence too long=7 is recognized by the formatter, but a reachable producer and any associated sequence-length limit remain unresolved.",
+    "Household settings and diagnostic initiation are bound through custom-reader construction and parse dispatch, independently of shared error text. Earlier blanket assignments of all remaining consumers to the custom parser and zones_storage/common_logger to RapidJSON are withdrawn: error-string xrefs alone do not establish those frontend contracts. The other direct entrypoint callers still need constructor/schema and error-path traces."
    ],
    "nonce_frontend_binding": {
     "caller": "Muse nonce envelope0x10b99264 ->0x109d0588 ->16-byte DOM reader0x10447a78;typed string access0x109ce584.",
