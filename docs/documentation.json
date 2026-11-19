@@ -141800,18 +141800,27 @@
      "address": "0x104cdb38",
      "callsite": "0x104cdaec-0x104cdb44",
      "notes": "ES PID bytes are combined before type dispatch. Raw575a04fe: op21 SH0 MB19 ME31 Rc0, mask00001fff; timed-ID3 registration stores that masked value atthis+0x30. Record-form andis.752a0020 provides CR0 for the following beq; masking is not a shift or a new comparison."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104cd500 stream-type registration branches",
+     "address": "0x104cdb20",
+     "callsite": "0x104cd580; 0x104cda10-0x104cda1c; 0x104cdb20-0x104cdb74",
+     "notes": "r16 holds Unsupported stream type format; bne after andi.0x3c18 reaches that diagnostic, disproving the former acceptance-set claim. andis.0x20 selects metadata type21; subsequent andi.0x8000 selects audio type15. PID stores at+0x30/+0x10 are separately gated."
     }
    ],
    "note": "CORRECTED: 'ts' is transport-stream (MPEG-TS), not track-service. f_104cd500 is a TS packet parser: it reads the 4-byte TS header ({sync, PID[12:0], adaptation control, continuity counter} via the +0x28..+0x2b bytes) and dispatches by PID. Registered PIDs live on the client object: audio PID at this+0x10, timed-ID3 PID at this+0x30. Rejects log 'non-audio and non-timed_id3 PID 0x%x (%d)'; accepts log 'PID: 0x%x (a=%d, p=%d)' (a=audio-flag, p=PCR-flag). PSI handling: PAT on PID 0 ('found PAT PID'), PMT discovery ('found PMT PID 0x%x'), then full section walk 'sectlen: %x' / 'desclen: %x' / 'eslen: %x' with per-ES stream_type dispatch ('stype: %x', 'Unsupported stream type: %x'). Adaptation field parsed ('afelen=%x'). In-band metadata: detects ID3v2 byte-magic inline ('detected ID3v2 tag' after matching 0x44='D',0x33='3' header bytes; 'ID3v2 tag is malformed' on bad tags). 'silen: %zu' logs silence/stuffing runs. Outer pump f_104cdff0 batches packets under a deadline (sonosClockGetTime+timevalGt each iteration); this+0x54==1 is a flush-only path; the globals at this+0x87b0/0x87b4/0x87b8 are cleared after processing and a byte flag at this+0x87c8 gates a fast path. Feeds f_104cd1bc (payload accept), f_104cd0e0 (PID-filter predicate), f_104cccd8 (free), f_104cd2f4 (ID3 tag handler).",
    "payload_types": {
     "PID_based": "dispatch is by 13-bit TS PID, not a 0/1 type enum: PAT PID 0, discovered PMT PID, registered audio PID (this+0x10), registered timed-ID3 PID (this+0x30), everything else rejected",
-    "stream_types": "per-ES stream_type byte checked in the PMT walk; accepted values feed stype-specific sinks, others hit 'Unsupported stream type: %x'",
+    "stream_types": "PMT registration recognizes audio stream_type0x0f and timed metadata0x15. The0x3c18 mask is a rejection set for0x03/0x04/0x0a/0x0b/0x0c/0x0d; other types skip registration rather than universally logging unsupported.",
     "id3": "in-band ID3v2 tags detected on 49 44 33 magic inside PES payloads",
     "silence": "'silen: %zu' stuffing/null runs"
    },
    "resolved_findings": [
     "Resolved: tsclient is an MPEG-TS demuxer - 4-byte header parse, PID dispatch (PAT 0 / PMT / audio this+0x10 / timed-ID3 this+0x30), PSI section+descriptor+ES walk, stream_type dispatch, adaptation-field handling, in-band ID3v2, deadline-bounded batch pump.",
-    "Resolved: the ES stream_type acceptance set is a bitmask test @0x104cdb20-0x104cdb44 - stype>0x15 skips; otherwise (1<<stype)&0x3c18 nonzero accepts {0x03 MPEG-1 audio, 0x04 MPEG-2 audio, 0x0a/0x0b/0x0c/0x0d DSM-CC multiprotocol/U-N/stream-descriptors/sections} as the audio PID; the 0x20<<16 bit (stype==0x15, metadata-in-PES) registers the timed-ID3 PID via raw0x575a04fe at0x104cdb38 (rlwinm r26,r26,0,19,31 / clrlwi19), followed by stw r26,+0x30 at0x104cdb40. The stored PID is the ES pid field &0x1fff, not that field shifted right13; the mask leaves CR0 unchanged, so the branch at0x104cdb3c still tests the metadata stream-type bit from andis. at0x104cdb34; all other stypes log \"Unsupported stream type: %x\"."
+    "The PMT stream-type branch has a rejection mask, not an audio acceptance set. At0x104cdb20 types above0x15 skip registration. For smaller types, nonzero (1<<stype)&0x3c18 branches to the Unsupported stream type diagnostic at0x104cdb48 (format held in r16 from0x104cd580): types0x03,0x04,0x0a,0x0b,0x0c,0x0d are rejected here. Otherwise bit0x00200000 selects type0x15 metadata-in-PES and stores its timed-ID3 PID atthis+0x30; bit0x00008000 selects type0x0f AAC/ADTS and stores its audio PID atthis+0x10 via0x104cda10. Other types do not register either PID on this branch. Raw0x575a04fe at0x104cdb38 is rlwinm r26,r26,0,19,31 (clrlwi19): the stored timed-ID3 PID is the low13 bits of the ES PID field, not a right13 shift. Rc=0 leaves the preceding andis. stream-type test in CR0 for the beq at0x104cdb3c."
    ]
   },
   "ibt_engine": {
