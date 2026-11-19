@@ -66476,7 +66476,7 @@
       }
      ],
      "events_triggered": {
-      "description": "A changed indexed crossfade setting can schedule LastChange and supply CurrentCrossfadeMode. A same-value request can succeed without scheduling the crossfade change notification, and the excluded-source disable path never submits it.",
+      "description": "Both indexed consumers complete an unchanged active crossfade value without requesting its change notification. A changed value can schedule LastChange for the current state snapshot, which reads and publishes the new CurrentCrossfadeMode with the other common transport fields. The stopped or paused path records state before scheduling; a SOAP success is not a guarantee of a dedicated event.",
       "evidence": [
        {
         "type": "firmware",
@@ -66557,11 +66557,27 @@
         "address": "0x10260534",
         "notes": "The indexed snapshot reads active track-list flags and writes crossfade from bit 0x8 to the snapshot boolean. f_102e43a0 renders it as CurrentCrossfadeMode.",
         "function": "0x1026021c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1026592c",
+        "notes": "On the running path a changed op-12 result enters the refresh tail at 0x1026592c. f_103410c0 increments the generation at indexed session+0x327f8; a same-bit success does not enter that tail on its own. The consuming state getter f_10341c74 compares that generation with +0x327fc (0x10341cd0), copies the new generation into the baseline at 0x10341cf4 when consuming, and returns its change indication to f_1026021c. The running tail separately tests for a live listener and a nonnull sender before scheduling event work at 0x10265a08.",
+        "function": "0x1026571c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10267e2c",
+        "notes": "After returning request completion, the stopped/paused worker enters f_102642d4 only if its change flag is set; op 11 and op 12 set the flag on helper return 0 rather than on unchanged return 1. The worker records the current queue snapshot through f_103420a4 at 0x1026470c, and can schedule through the indexed sender at 0x102648c4 after checking the listener and sender. f_103420a4 can advance the state generation at 0x10342440 when recording the snapshot.",
+        "function": "0x10267b68"
        }
       ],
       "todo": [
-       "Established: both op-12 consumers apply the same active-list bit test; the playing consumer's change condition can schedule notification, and an unchanged active bit does not raise that condition.",
-       "Trace the stopped/paused consumer's changed-only postlude at 0x10267e00, including f_102642d4 and the queue restart path, to determine its LastChange scheduling behavior."
+       "Established: op 12 compares the active crossfade bit in both consumers. The running path advances the change generation when the bit changes; the stopped or paused path records a snapshot and can schedule the sender only on a changed bit.",
+       "Resolve the stopped or paused snapshot-replacement criteria for all source states passed to f_103420a4 to determine when the scheduled delta has a newly dirty common transport block."
       ]
      },
      "state_transitions": {
@@ -68001,7 +68017,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The indexed queue applies mode changes to the active track list and the LastChange snapshot reads the resulting mode. The playing consumer's same-mode success path does not raise a play-mode change notification.",
+      "description": "The indexed queue applies mode changes to the active track list and the LastChange snapshot reads the resulting mode. The playing consumer's same-mode success path does not raise a play-mode change notification. In stopped or paused playback, a changed mode can schedule the sender after a queue snapshot refresh. The non-indexed streamer branch delegates to the active source rather than emitting LastChange itself.",
       "evidence": [
        {
         "type": "firmware",
@@ -68074,11 +68090,35 @@
         "address": "0x1026050c",
         "notes": "The indexed snapshot obtains the mode name from f_10145f94 on the active track list. The event formatter uses its returned name at 0x102e4828.",
         "function": "0x1026021c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10267e2c",
+        "notes": "After returning request completion, the stopped/paused worker enters f_102642d4 only if its change flag is set; op 11 and op 12 set the flag on helper return 0 rather than on unchanged return 1. The worker records the current queue snapshot through f_103420a4 at 0x1026470c, and can schedule through the indexed sender at 0x102648c4 after checking the listener and sender. f_103420a4 can advance the state generation at 0x10342440 when recording the snapshot.",
+        "function": "0x10267b68"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10265f0c",
+        "notes": "In the running op-11 handler, f_10259db0 returning 0 sets the same generation-refresh flag as changed op 12. If the mode switch invalidates the running track position, f_10259db0 sets its optional position-rebuild byte at 0x10259f14; the worker tests this separately, without undoing the common changed-mode flag.",
+        "function": "0x1026571c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a9f00",
+        "notes": "f_106a9e88 resolves the streamer+0x354 target through its contained object's slot +0x2c. A returned object gets slot +0x34 with the original four arguments; the wrapper ignores that virtual method's return and reports 1. A missing source or null result from +0x2c reports 0 instead.",
+        "function": "0x106a9e88"
        }
       ],
       "todo": [
-       "Established: both indexed op-11 consumers have a success path that does not change mode, and the common LastChange state block uses the indexed mode name.",
-       "Trace the changed-mode postludes (playing f_10259db0 out flag and stopped/paused f_102642d4) and the f_106a9e88 streamer callback to bound notification and coalescing for changed values."
+       "Established: both indexed consumers skip the mode-change work on equality. The running one advances the common change generation; the stopped or paused one can schedule after refreshing the snapshot. The streamer adapter reaches active source slot +0x34 through slot +0x2c.",
+       "Resolve the concrete streamer slot +0x34 bindings and check whether their mode changes schedule LastChange, including same-mode suppression."
       ]
      },
      "state_transitions": {
