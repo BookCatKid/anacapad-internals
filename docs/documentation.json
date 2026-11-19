@@ -38190,7 +38190,7 @@
      ]
     },
     "BackupQueue": {
-     "description": "Persists the current queue to disk. Impl f_102ab62c locks impl+0x458 then reads a u16 queue count at session+0x2ff58: zero count unlocks and returns 0: backing up an empty queue is a silent success no-op. Otherwise it builds the \"trackqueue\"/\"trackqueue.rsq\" path via f_10146e94, prepares the file through f_1068ab6c, calls statvfs64 on the mount, and performs a free-space check before writing the .rsq serialization.",
+     "description": "Synchronously backs up primary queue 0 to the configured settings file trackqueue.rsq, without saving a Sonos playlist or changing live membership. Derived AVTransport slot +0x80 binds f_102ab62c. Empty queue is a success no-op. Nonempty queue is filtered and serialized through f_10146e94 -> f_104794d4 -> f_1047ee0c using a temporary file, compressed writer and rename, then a post-write space check and conditional cleanup registration. No public outputs and no queue-worker request kind.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8db0",
@@ -38208,25 +38208,34 @@
         "obj": "r5-in",
         "slot": 128,
         "arg4": "*(sp-0x30+0x18)"
-       },
-       {
-        "site": "0x102f8e90",
-        "obj": "*(sp-0x30+0x2c)",
-        "slot": 12,
-        "arg4": 402
        }
       ],
       "req_vcalls": [
        {
+        "site": "0x102f8df0",
+        "slot": 28,
+        "purpose": "required-arg fetch"
+       },
+       {
         "site": "0x102f8e0c",
         "slot": 8,
         "purpose": "parse"
+       },
+       {
+        "site": "0x102f8e48",
+        "slot": 20,
+        "purpose": "raise-fault"
+       },
+       {
+        "site": "0x102f8e90",
+        "slot": 12,
+        "purpose": "commit"
        }
       ]
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Required instance selector; only parsed value 0 is accepted. Nonzero returns 718 before file work.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -38236,14 +38245,14 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUintArg",
-       "format": "decimal text",
+       "format": "Decimal text converted by strtoul(buffer,NULL,10)",
        "unit": "none - dimensionless",
        "accepted_values": "0",
        "range": "0 only; nonzero InstanceID rejected by impl +0x80 with 718",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Required descriptor checked before derived +0x80 call; numeric conversion is permissive rather than strict decimal grammar.",
        "evidence": [
         {
          "type": "firmware",
@@ -38258,6 +38267,24 @@
          "build": "86.10-80260",
          "address": "0x10e9aadc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f8db0",
+         "address": "0x102f8df8",
+         "callsite": "0x102f8e90",
+         "notes": "One required InstanceID descriptor uses f_105614e0 at 0x102f8df8, request validation at 0x102f8e0c. Failure loads 402 at 0x102f8e7c and reaches fault slot +0x14 at 0x102f8e48; nonzero impl result shares that fault site. Zero result calls request commit slot +0x0c at 0x102f8e90. No output descriptors or formatting calls. f_10560b40 converts a 24-byte numeric buffer using strtoul(buffer,NULL,10), with no end-pointer or errno check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10511f34",
+         "address": "0x10edfc38",
+         "callsite": "0x102f8e2c",
+         "notes": "Factory 0x103fb5d8 calls derived AVTransport constructor f_10511f34, which calls base f_102c05d8 at 0x1051218c then installs live vtable 0x10edfbb8 at 0x105123c0. Raw +0x80 word 0x10edfc38 is f_102ab62c. Wrapper invokes +0x80 at 0x102f8e2c. Nonzero InstanceID returns 718 at 0x102ab668 before locking or file work."
         }
        ],
        "notes": null
@@ -38265,113 +38292,463 @@
      },
      "outputs": {},
      "validation": {
-      "description": "See inputs/impl notes",
+      "description": "Required request descriptor validation, then InstanceID=0. No version input, queue-mode gate, position check or output formatting. Empty primary queue bypasses serialization and storage checks. Serializer exclusion/write checks precede the post-write statvfs check.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102f8db0",
-        "notes": "wrapper + impl decode"
+        "function": "0x102f8db0",
+        "address": "0x102f8df8",
+        "callsite": "0x102f8e90",
+        "notes": "One required InstanceID descriptor uses f_105614e0 at 0x102f8df8, request validation at 0x102f8e0c. Failure loads 402 at 0x102f8e7c and reaches fault slot +0x14 at 0x102f8e48; nonzero impl result shares that fault site. Zero result calls request commit slot +0x0c at 0x102f8e90. No output descriptors or formatting calls. f_10560b40 converts a 24-byte numeric buffer using strtoul(buffer,NULL,10), with no end-pointer or errno check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10511f34",
+        "address": "0x10edfc38",
+        "callsite": "0x102f8e2c",
+        "notes": "Factory 0x103fb5d8 calls derived AVTransport constructor f_10511f34, which calls base f_102c05d8 at 0x1051218c then installs live vtable 0x10edfbb8 at 0x105123c0. Raw +0x80 word 0x10edfc38 is f_102ab62c. Wrapper invokes +0x80 at 0x102f8e2c. Nonzero InstanceID returns 718 at 0x102ab668 before locking or file work."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab6ac",
+        "callsite": "0x102ab714",
+        "notes": "Locks impl+0x458 through f_10557cac, loads session impl+0x580, reads halfword session+0x2ff58 at 0x102ab6c8. This is primary queue base session+0x2d890 plus count +0x26c8, not whichever queue is active. Zero count unlocks/returns 0 without touching the file or timer. Nonzero count calls f_10146e94 with primary queue, title trackqueue, empty object ID, 64-byte internal output, trackqueue.rsq, limit 0x200000 and final flag 1. It is direct synchronous serialization, not f_10255f64 or a queue request kind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479658",
+        "callsite": "0x1047e344",
+        "notes": "Raw 0x7d40549e at 0x10479658 selects 1 when filename is nonnull, setting serializer+0x58/+0x59. Prepass therefore bypasses the f_10475f00 exclusion rung at 0x10479750; counter serializer+0x40de stays zero. f_1014815c parses URI flags; f_101482c0 extracts bit 12 (rol20,mask31), f_1014829c extracts bit 4 (rol28,mask31). Prepass total excluded +0x40dc counts bit12 or bit4; +0x40e0 counts bit12 only, with bit12 taking precedence. Queue-backed f_1047e16c serializes remaining entries via f_1047d214, skipping bit12/bit4 entries at 0x1047e318/0x1047e328. Final flag 1 at serializer+0x40e2 chooses direct queue order rather than shuffle remapping (0x1047e2a0..0x1047e2e4). Header count is live count minus excluded count."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047eef0",
+        "callsite": "0x1047f2f0",
+        "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab750",
+        "callsite": "0x102ab824",
+        "notes": "Only after serializer code 0: f_1068ab6c with zero extra components resolves settings base for statvfs64 at 0x102ab750. It multiplies statvfs64+0x00 f_bsize by +0x1c low32(f_bavail). Raw 0x7d2a49d6 at 0x102ab778 is mullw r9,r10,r9, so the product wraps to uint32. Unsigned product must be strictly greater than 0x40000 (262144), otherwise or on statvfs error it resolves the filename, attempts unlink at 0x102ab810, ignores unlink status and returns 802 at 0x102ab824. Thus this check follows file replacement, not a pre-write capacity guarantee. Other serializer statuses bypass this check."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x80]",
+      "description": "Required InstanceID parsed as 0. For nonempty queue 0, configured settings path must support temporary compressed file writing and rename under the configured 2 MiB writer limit. Fully bit12-flagged content returns 805; partial bit12 exclusion can return 807 after replacement. Only serializer code 0 proceeds to the post-write statvfs condition uint32(f_bsize*low32(f_bavail))>262144 and attempts cleanup registration.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102f8db0",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f8df8",
+        "callsite": "0x102f8e90",
+        "notes": "One required InstanceID descriptor uses f_105614e0 at 0x102f8df8, request validation at 0x102f8e0c. Failure loads 402 at 0x102f8e7c and reaches fault slot +0x14 at 0x102f8e48; nonzero impl result shares that fault site. Zero result calls request commit slot +0x0c at 0x102f8e90. No output descriptors or formatting calls. f_10560b40 converts a 24-byte numeric buffer using strtoul(buffer,NULL,10), with no end-pointer or errno check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10511f34",
+        "address": "0x10edfc38",
+        "callsite": "0x102f8e2c",
+        "notes": "Factory 0x103fb5d8 calls derived AVTransport constructor f_10511f34, which calls base f_102c05d8 at 0x1051218c then installs live vtable 0x10edfbb8 at 0x105123c0. Raw +0x80 word 0x10edfc38 is f_102ab62c. Wrapper invokes +0x80 at 0x102f8e2c. Nonzero InstanceID returns 718 at 0x102ab668 before locking or file work."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab6ac",
+        "callsite": "0x102ab714",
+        "notes": "Locks impl+0x458 through f_10557cac, loads session impl+0x580, reads halfword session+0x2ff58 at 0x102ab6c8. This is primary queue base session+0x2d890 plus count +0x26c8, not whichever queue is active. Zero count unlocks/returns 0 without touching the file or timer. Nonzero count calls f_10146e94 with primary queue, title trackqueue, empty object ID, 64-byte internal output, trackqueue.rsq, limit 0x200000 and final flag 1. It is direct synchronous serialization, not f_10255f64 or a queue request kind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10146ecc",
+        "callsite": "0x10479794",
+        "notes": "f_10146e94 obtains manager singleton 0x11096770 and forwards to f_104794d4. Empty object ID selects internal ID -1 at 0x10479554, queue-backed mode 0 at 0x104798e0. Explicit filename bypasses default savedqueues.rsq and the manager revision/notification rung 0x10479874..0x1047988c. It takes manager+0x28 lock, constructs serializer vtable 0x10ed2f88, passes the supplied 2 MiB limit to f_103d1aec, and calls f_1047ee0c at 0x10479794. On zero it also copies a serializer bookkeeping byte into manager+0xf0 at 0x10479870. Normal status is returned unchanged at 0x104797d4 after unlock/destruction. No saved-queue add/reorder worker is called here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479658",
+        "callsite": "0x1047e344",
+        "notes": "Raw 0x7d40549e at 0x10479658 selects 1 when filename is nonnull, setting serializer+0x58/+0x59. Prepass therefore bypasses the f_10475f00 exclusion rung at 0x10479750; counter serializer+0x40de stays zero. f_1014815c parses URI flags; f_101482c0 extracts bit 12 (rol20,mask31), f_1014829c extracts bit 4 (rol28,mask31). Prepass total excluded +0x40dc counts bit12 or bit4; +0x40e0 counts bit12 only, with bit12 taking precedence. Queue-backed f_1047e16c serializes remaining entries via f_1047d214, skipping bit12/bit4 entries at 0x1047e318/0x1047e328. Final flag 1 at serializer+0x40e2 chooses direct queue order rather than shuffle remapping (0x1047e2a0..0x1047e2e4). Header count is live count minus excluded count."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047eef0",
+        "callsite": "0x1047f2f0",
+        "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047f2a4",
+        "callsite": "0x1047f52c",
+        "notes": "For this fixed filename-present path, +0x40de=0. Let B12 be prepass count of entries whose parsed URI flags have bit12 set. If B12 equals nonzero live count, 0x1047f464..0x1047f47c returns 805 before rename. If 0<B12<live count and rename succeeds, 0x1047f308..0x1047f314 returns 807; B12=0 gives 0. Bit4-only omissions do not by themselves cause these nonzero statuses. Raw isels 0x7fca4f9e at 0x1047f47c/0x1047f52c and 0x7fc04f9e at 0x1047f314 use CR7 EQ. Codes 803/804/806/808 require the bypassed nonzero +0x40de counter or zero live count; 701 needs nonnegative original object ID instead of -1; mode-specific 810..812 rungs and SQ object-ID error 801 are unreachable here. No add/reorder 600/813/814/850/899 domain propagates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab750",
+        "callsite": "0x102ab824",
+        "notes": "Only after serializer code 0: f_1068ab6c with zero extra components resolves settings base for statvfs64 at 0x102ab750. It multiplies statvfs64+0x00 f_bsize by +0x1c low32(f_bavail). Raw 0x7d2a49d6 at 0x102ab778 is mullw r9,r10,r9, so the product wraps to uint32. Unsigned product must be strictly greater than 0x40000 (262144), otherwise or on statvfs error it resolves the filename, attempts unlink at 0x102ab810, ignores unlink status and returns 802 at 0x102ab824. Thus this check follows file replacement, not a pre-write capacity guarantee. Other serializer statuses bypass this check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab7a0",
+        "callsite": "0x102ab7c4",
+        "notes": "After successful serialization/space check, gets sonosClockGetTime(1) seconds, adds 300 at 0x102ab7b4 and invokes impl+0xad2c virtual +0x0c with callback f_102b3e54, opaque impl, deadline and zero final argument. Registration result is ignored; action unlocks/returns 0. Callback thunk f_102b3e54 -> f_102b3d0c locks impl+0x458, defaults next-deadline output to 0x7fffffff, resolves trackqueue.rsq, calls __xstat64(version3). On stat success it compares clock-id-1 seconds against unsigned(stat word +0x50 +299): greater attempts unlink, otherwise sets next deadline to stat word +0x50 +300. Failed stat or ignored unlink result produces no later SOAP fault. No unconditional five-minute retention/expiry guarantee follows from registration alone."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x80].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x80]",
+      "description": "Uses impl+0x458 serialization lock, impl+0x580 session primary queue at +0x2d890, live count +0x26c8, per-entry URI flags/metadata, configured settings path, filesystem operations and statvfs counters. Uses manager singleton +0x28 lock, private serializer buffers/flags and manager bookkeeping byte +0xf0, but not its saved-queue revision update. Cleanup depends on impl+0xad2c scheduler, clock-id-1 seconds and stat64+0x50 value. No assumption that queue 0 is the actively playing queue.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8db0",
-        "notes": "member vfunc calls: ['r30 v[+0x80]']"
+        "function": "0x102ab62c",
+        "address": "0x102ab6ac",
+        "callsite": "0x102ab714",
+        "notes": "Locks impl+0x458 through f_10557cac, loads session impl+0x580, reads halfword session+0x2ff58 at 0x102ab6c8. This is primary queue base session+0x2d890 plus count +0x26c8, not whichever queue is active. Zero count unlocks/returns 0 without touching the file or timer. Nonzero count calls f_10146e94 with primary queue, title trackqueue, empty object ID, 64-byte internal output, trackqueue.rsq, limit 0x200000 and final flag 1. It is direct synchronous serialization, not f_10255f64 or a queue request kind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10146ecc",
+        "callsite": "0x10479794",
+        "notes": "f_10146e94 obtains manager singleton 0x11096770 and forwards to f_104794d4. Empty object ID selects internal ID -1 at 0x10479554, queue-backed mode 0 at 0x104798e0. Explicit filename bypasses default savedqueues.rsq and the manager revision/notification rung 0x10479874..0x1047988c. It takes manager+0x28 lock, constructs serializer vtable 0x10ed2f88, passes the supplied 2 MiB limit to f_103d1aec, and calls f_1047ee0c at 0x10479794. On zero it also copies a serializer bookkeeping byte into manager+0xf0 at 0x10479870. Normal status is returned unchanged at 0x104797d4 after unlock/destruction. No saved-queue add/reorder worker is called here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479658",
+        "callsite": "0x1047e344",
+        "notes": "Raw 0x7d40549e at 0x10479658 selects 1 when filename is nonnull, setting serializer+0x58/+0x59. Prepass therefore bypasses the f_10475f00 exclusion rung at 0x10479750; counter serializer+0x40de stays zero. f_1014815c parses URI flags; f_101482c0 extracts bit 12 (rol20,mask31), f_1014829c extracts bit 4 (rol28,mask31). Prepass total excluded +0x40dc counts bit12 or bit4; +0x40e0 counts bit12 only, with bit12 taking precedence. Queue-backed f_1047e16c serializes remaining entries via f_1047d214, skipping bit12/bit4 entries at 0x1047e318/0x1047e328. Final flag 1 at serializer+0x40e2 chooses direct queue order rather than shuffle remapping (0x1047e2a0..0x1047e2e4). Header count is live count minus excluded count."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1068ab6c",
+        "address": "0x1068abb8",
+        "callsite": "0x102ab7f4",
+        "notes": "f_1068ab6c is a string/path resolver, not a file-preparation status function. Starts from configured settings component at 0x110a950c+0x18 and resolves relative settings through f_1068a70c using root pointer 0x1109b024; appends provided components. Static initializer 0x100922c0..0x100922cc sets the settings component to settings. The exact configured runtime root is not hardcoded by BackupQueue. File operations use the resolved trackqueue.rsq and trackqueue.rsq.tmp paths."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab750",
+        "callsite": "0x102ab824",
+        "notes": "Only after serializer code 0: f_1068ab6c with zero extra components resolves settings base for statvfs64 at 0x102ab750. It multiplies statvfs64+0x00 f_bsize by +0x1c low32(f_bavail). Raw 0x7d2a49d6 at 0x102ab778 is mullw r9,r10,r9, so the product wraps to uint32. Unsigned product must be strictly greater than 0x40000 (262144), otherwise or on statvfs error it resolves the filename, attempts unlink at 0x102ab810, ignores unlink status and returns 802 at 0x102ab824. Thus this check follows file replacement, not a pre-write capacity guarantee. Other serializer statuses bypass this check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab7a0",
+        "callsite": "0x102ab7c4",
+        "notes": "After successful serialization/space check, gets sonosClockGetTime(1) seconds, adds 300 at 0x102ab7b4 and invokes impl+0xad2c virtual +0x0c with callback f_102b3e54, opaque impl, deadline and zero final argument. Registration result is ignored; action unlocks/returns 0. Callback thunk f_102b3e54 -> f_102b3d0c locks impl+0x458, defaults next-deadline output to 0x7fffffff, resolves trackqueue.rsq, calls __xstat64(version3). On stat success it compares clock-id-1 seconds against unsigned(stat word +0x50 +299): greater attempts unlink, otherwise sets next deadline to stat word +0x50 +300. Failed stat or ignored unlink result produces no later SOAP fault. No unconditional five-minute retention/expiry guarantee follows from registration alone."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b3d0c",
+        "address": "0x102b3e14",
+        "callsite": "0x102b3e48",
+        "notes": "Callback reads the stat64 word at local +0x80, i.e. stat buffer +0x50, matching PPC32 stat64 st_mtime ABI. It compares it with clock-id-1 seconds, not a saved monotonic write timestamp maintained by this action. Supplemental firmware library libsonos-time-c.so.1 sonosClockGetTime at 0x10a0 passes its clock ID directly to clock_gettime at 0x10d4 and copies seconds at 0x10fc. Therefore document the actual numeric comparison without asserting the file time and clock-id-1 domains have been reconciled or that deletion necessarily occurs 300 seconds after writing."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x80].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x80] (call-derived member-method semantics)",
+       "description": "Empty queue leaves any existing backup/timer untouched. Nonempty queue writes filtered queue-order Track URI/MD data into a compressed SavedQueues-format temporary file, then can replace trackqueue.rsq by rename. No live queue membership/count/revision mutation. Post-write space failure attempts to delete the newly replaced file and returns 802; partial exclusion 807 can leave a replacement without the later space check/registration. Normal serializer failures remove the temporary file and can preserve an old backup. Successful writer finalization calls fsync/close but ignores their status. Conditional registered cleanup can later unlink the file.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102f8db0",
-         "notes": "delegate map ['r30 v[+0x80]']; notify-family calls []"
+         "function": "0x102ab62c",
+         "address": "0x102ab6ac",
+         "callsite": "0x102ab714",
+         "notes": "Locks impl+0x458 through f_10557cac, loads session impl+0x580, reads halfword session+0x2ff58 at 0x102ab6c8. This is primary queue base session+0x2d890 plus count +0x26c8, not whichever queue is active. Zero count unlocks/returns 0 without touching the file or timer. Nonzero count calls f_10146e94 with primary queue, title trackqueue, empty object ID, 64-byte internal output, trackqueue.rsq, limit 0x200000 and final flag 1. It is direct synchronous serialization, not f_10255f64 or a queue request kind."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x10479658",
+         "callsite": "0x1047e344",
+         "notes": "Raw 0x7d40549e at 0x10479658 selects 1 when filename is nonnull, setting serializer+0x58/+0x59. Prepass therefore bypasses the f_10475f00 exclusion rung at 0x10479750; counter serializer+0x40de stays zero. f_1014815c parses URI flags; f_101482c0 extracts bit 12 (rol20,mask31), f_1014829c extracts bit 4 (rol28,mask31). Prepass total excluded +0x40dc counts bit12 or bit4; +0x40e0 counts bit12 only, with bit12 taking precedence. Queue-backed f_1047e16c serializes remaining entries via f_1047d214, skipping bit12/bit4 entries at 0x1047e318/0x1047e328. Final flag 1 at serializer+0x40e2 chooses direct queue order rather than shuffle remapping (0x1047e2a0..0x1047e2e4). Header count is live count minus excluded count."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e16c",
+         "address": "0x1047e254",
+         "callsite": "0x1047d2e4",
+         "notes": "Uses the SavedQueues XML serializer: f_1047cb70 writes SavedQueues header, f_1047d408 writes SavedQueue header using ID 0, title trackqueue, filtered NumTracks and queue+0x26e8 as the Curated attribute. f_1047d214 writes Track URI plus nonempty MD through escaping builder f_10577c40; f_1047d738/f_1047d67c feed the compression writer. The .rsq filename does not imply a call to saved-queue add/reorder or modification of savedqueues.rsq."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047eef0",
+         "callsite": "0x1047f2f0",
+         "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a4",
+         "callsite": "0x1047f52c",
+         "notes": "For this fixed filename-present path, +0x40de=0. Let B12 be prepass count of entries whose parsed URI flags have bit12 set. If B12 equals nonzero live count, 0x1047f464..0x1047f47c returns 805 before rename. If 0<B12<live count and rename succeeds, 0x1047f308..0x1047f314 returns 807; B12=0 gives 0. Bit4-only omissions do not by themselves cause these nonzero statuses. Raw isels 0x7fca4f9e at 0x1047f47c/0x1047f52c and 0x7fc04f9e at 0x1047f314 use CR7 EQ. Codes 803/804/806/808 require the bypassed nonzero +0x40de counter or zero live count; 701 needs nonnegative original object ID instead of -1; mode-specific 810..812 rungs and SQ object-ID error 801 are unreachable here. No add/reorder 600/813/814/850/899 domain propagates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102ab62c",
+         "address": "0x102ab750",
+         "callsite": "0x102ab824",
+         "notes": "Only after serializer code 0: f_1068ab6c with zero extra components resolves settings base for statvfs64 at 0x102ab750. It multiplies statvfs64+0x00 f_bsize by +0x1c low32(f_bavail). Raw 0x7d2a49d6 at 0x102ab778 is mullw r9,r10,r9, so the product wraps to uint32. Unsigned product must be strictly greater than 0x40000 (262144), otherwise or on statvfs error it resolves the filename, attempts unlink at 0x102ab810, ignores unlink status and returns 802 at 0x102ab824. Thus this check follows file replacement, not a pre-write capacity guarantee. Other serializer statuses bypass this check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102ab62c",
+         "address": "0x102ab7a0",
+         "callsite": "0x102ab7c4",
+         "notes": "After successful serialization/space check, gets sonosClockGetTime(1) seconds, adds 300 at 0x102ab7b4 and invokes impl+0xad2c virtual +0x0c with callback f_102b3e54, opaque impl, deadline and zero final argument. Registration result is ignored; action unlocks/returns 0. Callback thunk f_102b3e54 -> f_102b3d0c locks impl+0x458, defaults next-deadline output to 0x7fffffff, resolves trackqueue.rsq, calls __xstat64(version3). On stat success it compares clock-id-1 seconds against unsigned(stat word +0x50 +299): greater attempts unlink, otherwise sets next deadline to stat word +0x50 +300. Failed stat or ignored unlink result produces no later SOAP fault. No unconditional five-minute retention/expiry guarantee follows from registration alone."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x80] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No action-generated Queue LastChange, AVTransport LastChange, ContentDirectory SystemUpdateID/ContainerUpdateIDs or saved-queue update notification: it reads queue data and writes a file, without f_1014d738 or live queue mutation. Explicit filename bypasses the shared manager revision/notification branch f_1047cd90. File cleanup likewise only resolves/stats/unlinks the backup under the implementation lock. This does not suppress unrelated concurrent/timed events.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8db0",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x102ab62c",
+        "address": "0x102ab6ac",
+        "callsite": "0x102ab714",
+        "notes": "Locks impl+0x458 through f_10557cac, loads session impl+0x580, reads halfword session+0x2ff58 at 0x102ab6c8. This is primary queue base session+0x2d890 plus count +0x26c8, not whichever queue is active. Zero count unlocks/returns 0 without touching the file or timer. Nonzero count calls f_10146e94 with primary queue, title trackqueue, empty object ID, 64-byte internal output, trackqueue.rsq, limit 0x200000 and final flag 1. It is direct synchronous serialization, not f_10255f64 or a queue request kind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10146ecc",
+        "callsite": "0x10479794",
+        "notes": "f_10146e94 obtains manager singleton 0x11096770 and forwards to f_104794d4. Empty object ID selects internal ID -1 at 0x10479554, queue-backed mode 0 at 0x104798e0. Explicit filename bypasses default savedqueues.rsq and the manager revision/notification rung 0x10479874..0x1047988c. It takes manager+0x28 lock, constructs serializer vtable 0x10ed2f88, passes the supplied 2 MiB limit to f_103d1aec, and calls f_1047ee0c at 0x10479794. On zero it also copies a serializer bookkeeping byte into manager+0xf0 at 0x10479870. Normal status is returned unchanged at 0x104797d4 after unlock/destruction. No saved-queue add/reorder worker is called here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047eef0",
+        "callsite": "0x1047f2f0",
+        "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab7a0",
+        "callsite": "0x102ab7c4",
+        "notes": "After successful serialization/space check, gets sonosClockGetTime(1) seconds, adds 300 at 0x102ab7b4 and invokes impl+0xad2c virtual +0x0c with callback f_102b3e54, opaque impl, deadline and zero final argument. Registration result is ignored; action unlocks/returns 0. Callback thunk f_102b3e54 -> f_102b3d0c locks impl+0x458, defaults next-deadline output to 0x7fffffff, resolves trackqueue.rsq, calls __xstat64(version3). On stat success it compares clock-id-1 seconds against unsigned(stat word +0x50 +299): greater attempts unlink, otherwise sets next deadline to stat word +0x50 +300. Failed stat or ignored unlink result produces no later SOAP fault. No unconditional five-minute retention/expiry guarantee follows from registration alone."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x80]",
+      "description": "No transport source selection, playback start/stop, shuffle rotation or queue worker submission. Direct synchronous serialization leaves active playback and live queue revision unchanged. The only deferred action registered here is file cleanup at clock-id-1 now+300, with a separate stat timestamp comparison and possible rescheduling, not an unconditional PLAYING/STOPPED transition or a guaranteed five-minute file expiry.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8db0",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x80]']"
+        "function": "0x102ab62c",
+        "address": "0x102ab6ac",
+        "callsite": "0x102ab714",
+        "notes": "Locks impl+0x458 through f_10557cac, loads session impl+0x580, reads halfword session+0x2ff58 at 0x102ab6c8. This is primary queue base session+0x2d890 plus count +0x26c8, not whichever queue is active. Zero count unlocks/returns 0 without touching the file or timer. Nonzero count calls f_10146e94 with primary queue, title trackqueue, empty object ID, 64-byte internal output, trackqueue.rsq, limit 0x200000 and final flag 1. It is direct synchronous serialization, not f_10255f64 or a queue request kind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10146ecc",
+        "callsite": "0x10479794",
+        "notes": "f_10146e94 obtains manager singleton 0x11096770 and forwards to f_104794d4. Empty object ID selects internal ID -1 at 0x10479554, queue-backed mode 0 at 0x104798e0. Explicit filename bypasses default savedqueues.rsq and the manager revision/notification rung 0x10479874..0x1047988c. It takes manager+0x28 lock, constructs serializer vtable 0x10ed2f88, passes the supplied 2 MiB limit to f_103d1aec, and calls f_1047ee0c at 0x10479794. On zero it also copies a serializer bookkeeping byte into manager+0xf0 at 0x10479870. Normal status is returned unchanged at 0x104797d4 after unlock/destruction. No saved-queue add/reorder worker is called here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047eef0",
+        "callsite": "0x1047f2f0",
+        "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab7a0",
+        "callsite": "0x102ab7c4",
+        "notes": "After successful serialization/space check, gets sonosClockGetTime(1) seconds, adds 300 at 0x102ab7b4 and invokes impl+0xad2c virtual +0x0c with callback f_102b3e54, opaque impl, deadline and zero final argument. Registration result is ignored; action unlocks/returns 0. Callback thunk f_102b3e54 -> f_102b3d0c locks impl+0x458, defaults next-deadline output to 0x7fffffff, resolves trackqueue.rsq, calls __xstat64(version3). On stat success it compares clock-id-1 seconds against unsigned(stat word +0x50 +299): greater attempts unlink, otherwise sets next deadline to stat word +0x50 +300. Failed stat or ignored unlink result produces no later SOAP fault. No unconditional five-minute retention/expiry guarantee follows from registration alone."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b3d0c",
+        "address": "0x102b3e14",
+        "callsite": "0x102b3e48",
+        "notes": "Callback reads the stat64 word at local +0x80, i.e. stat buffer +0x50, matching PPC32 stat64 st_mtime ABI. It compares it with clock-id-1 seconds, not a saved monotonic write timestamp maintained by this action. Supplemental firmware library libsonos-time-c.so.1 sonosClockGetTime at 0x10a0 passes its clock ID directly to clock_gettime at 0x10d4 and copies seconds at 0x10fc. Therefore document the actual numeric comparison without asserting the file time and clock-id-1 domains have been reconciled or that deletion necessarily occurs 300 seconds after writing."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x80].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "No outputs. Normal completed implementation exits are 0,718,501,802,805,807; missing required argument faults 402. Code 0 includes empty-queue no-op or serializer success followed by passing statvfs check and an attempted cleanup registration. 501 covers temporary-file/open/compression/write/finalization/rename failures without the size-limit flag. 802 covers writer size limit or post-replacement statvfs/space rejection. 805 is all entries excluded by URI bit12 before rename; 807 is partial bit12 exclusion after successful rename. Bit4-only exclusions can still return 0. Neither nonzero status nor code 0 is an all-or-nothing/durability guarantee: 807 may replace a file, space 802 attempts deletion, fsync/close/unlink/registration status is ignored. No saved-queue add/reorder domain is reachable merely because the serializer is shared.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102f8db0",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f8df8",
+        "callsite": "0x102f8e90",
+        "notes": "One required InstanceID descriptor uses f_105614e0 at 0x102f8df8, request validation at 0x102f8e0c. Failure loads 402 at 0x102f8e7c and reaches fault slot +0x14 at 0x102f8e48; nonzero impl result shares that fault site. Zero result calls request commit slot +0x0c at 0x102f8e90. No output descriptors or formatting calls. f_10560b40 converts a 24-byte numeric buffer using strtoul(buffer,NULL,10), with no end-pointer or errno check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10511f34",
+        "address": "0x10edfc38",
+        "callsite": "0x102f8e2c",
+        "notes": "Factory 0x103fb5d8 calls derived AVTransport constructor f_10511f34, which calls base f_102c05d8 at 0x1051218c then installs live vtable 0x10edfbb8 at 0x105123c0. Raw +0x80 word 0x10edfc38 is f_102ab62c. Wrapper invokes +0x80 at 0x102f8e2c. Nonzero InstanceID returns 718 at 0x102ab668 before locking or file work."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab6ac",
+        "callsite": "0x102ab714",
+        "notes": "Locks impl+0x458 through f_10557cac, loads session impl+0x580, reads halfword session+0x2ff58 at 0x102ab6c8. This is primary queue base session+0x2d890 plus count +0x26c8, not whichever queue is active. Zero count unlocks/returns 0 without touching the file or timer. Nonzero count calls f_10146e94 with primary queue, title trackqueue, empty object ID, 64-byte internal output, trackqueue.rsq, limit 0x200000 and final flag 1. It is direct synchronous serialization, not f_10255f64 or a queue request kind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10146ecc",
+        "callsite": "0x10479794",
+        "notes": "f_10146e94 obtains manager singleton 0x11096770 and forwards to f_104794d4. Empty object ID selects internal ID -1 at 0x10479554, queue-backed mode 0 at 0x104798e0. Explicit filename bypasses default savedqueues.rsq and the manager revision/notification rung 0x10479874..0x1047988c. It takes manager+0x28 lock, constructs serializer vtable 0x10ed2f88, passes the supplied 2 MiB limit to f_103d1aec, and calls f_1047ee0c at 0x10479794. On zero it also copies a serializer bookkeeping byte into manager+0xf0 at 0x10479870. Normal status is returned unchanged at 0x104797d4 after unlock/destruction. No saved-queue add/reorder worker is called here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479658",
+        "callsite": "0x1047e344",
+        "notes": "Raw 0x7d40549e at 0x10479658 selects 1 when filename is nonnull, setting serializer+0x58/+0x59. Prepass therefore bypasses the f_10475f00 exclusion rung at 0x10479750; counter serializer+0x40de stays zero. f_1014815c parses URI flags; f_101482c0 extracts bit 12 (rol20,mask31), f_1014829c extracts bit 4 (rol28,mask31). Prepass total excluded +0x40dc counts bit12 or bit4; +0x40e0 counts bit12 only, with bit12 taking precedence. Queue-backed f_1047e16c serializes remaining entries via f_1047d214, skipping bit12/bit4 entries at 0x1047e318/0x1047e328. Final flag 1 at serializer+0x40e2 chooses direct queue order rather than shuffle remapping (0x1047e2a0..0x1047e2e4). Header count is live count minus excluded count."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047eef0",
+        "callsite": "0x1047f2f0",
+        "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047f2a4",
+        "callsite": "0x1047f52c",
+        "notes": "For this fixed filename-present path, +0x40de=0. Let B12 be prepass count of entries whose parsed URI flags have bit12 set. If B12 equals nonzero live count, 0x1047f464..0x1047f47c returns 805 before rename. If 0<B12<live count and rename succeeds, 0x1047f308..0x1047f314 returns 807; B12=0 gives 0. Bit4-only omissions do not by themselves cause these nonzero statuses. Raw isels 0x7fca4f9e at 0x1047f47c/0x1047f52c and 0x7fc04f9e at 0x1047f314 use CR7 EQ. Codes 803/804/806/808 require the bypassed nonzero +0x40de counter or zero live count; 701 needs nonnegative original object ID instead of -1; mode-specific 810..812 rungs and SQ object-ID error 801 are unreachable here. No add/reorder 600/813/814/850/899 domain propagates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab750",
+        "callsite": "0x102ab824",
+        "notes": "Only after serializer code 0: f_1068ab6c with zero extra components resolves settings base for statvfs64 at 0x102ab750. It multiplies statvfs64+0x00 f_bsize by +0x1c low32(f_bavail). Raw 0x7d2a49d6 at 0x102ab778 is mullw r9,r10,r9, so the product wraps to uint32. Unsigned product must be strictly greater than 0x40000 (262144), otherwise or on statvfs error it resolves the filename, attempts unlink at 0x102ab810, ignores unlink status and returns 802 at 0x102ab824. Thus this check follows file replacement, not a pre-write capacity guarantee. Other serializer statuses bypass this check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ab62c",
+        "address": "0x102ab7a0",
+        "callsite": "0x102ab7c4",
+        "notes": "After successful serialization/space check, gets sonosClockGetTime(1) seconds, adds 300 at 0x102ab7b4 and invokes impl+0xad2c virtual +0x0c with callback f_102b3e54, opaque impl, deadline and zero final argument. Registration result is ignored; action unlocks/returns 0. Callback thunk f_102b3e54 -> f_102b3d0c locks impl+0x458, defaults next-deadline output to 0x7fffffff, resolves trackqueue.rsq, calls __xstat64(version3). On stat success it compares clock-id-1 seconds against unsigned(stat word +0x50 +299): greater attempts unlink, otherwise sets next deadline to stat word +0x50 +300. Failed stat or ignored unlink result produces no later SOAP fault. No unconditional five-minute retention/expiry guarantee follows from registration alone."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -38385,20 +38762,22 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x80)",
-       "meaning": "Nonzero InstanceID: impl compares the parsed int against 0 before touching the session.",
+       "meaning": "Nonzero instance rejected.",
        "fault_sites": [
         "0x102f8e48"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument is nonzero",
+         "description": "Parsed InstanceID is not 0; no lock or filesystem work has begun.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102ab62c",
-           "notes": "cmpwi r4,0 -> addi r3,0x2ce at 0x102ab634/0x102ab668"
+           "function": "0x10511f34",
+           "address": "0x10edfc38",
+           "callsite": "0x102f8e2c",
+           "notes": "Factory 0x103fb5d8 calls derived AVTransport constructor f_10511f34, which calls base f_102c05d8 at 0x1051218c then installs live vtable 0x10edfbb8 at 0x105123c0. Raw +0x80 word 0x10edfc38 is f_102ab62c. Wrapper invokes +0x80 at 0x102f8e2c. Nonzero InstanceID returns 718 at 0x102ab668 before locking or file work."
           }
          ]
         }
@@ -38408,33 +38787,76 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102ab62c",
-         "notes": "cmpwi r4,0 -> addi r3,0x2ce at 0x102ab634/0x102ab668"
+         "function": "0x10511f34",
+         "address": "0x10edfc38",
+         "callsite": "0x102f8e2c",
+         "notes": "Factory 0x103fb5d8 calls derived AVTransport constructor f_10511f34, which calls base f_102c05d8 at 0x1051218c then installs live vtable 0x10edfbb8 at 0x105123c0. Raw +0x80 word 0x10edfc38 is f_102ab62c. Wrapper invokes +0x80 at 0x102f8e2c. Nonzero InstanceID returns 718 at 0x102ab668 before locking or file work."
         }
        ]
       },
       {
-       "code": null,
+       "code": 501,
        "code_expr": "vret(r5-in,+0x80)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: path-builder domain {718, 0x322=802}",
-       "fault_sites": [],
+       "meaning": "Backup temporary write or replacement failed.",
+       "fault_sites": [
+        "0x102f8e48"
+       ],
        "conditions": [
         {
-         "description": "file preparation or the statvfs space check returned nonzero",
+         "description": "Temporary open/compression initialization failure; buffered compression/write/finalization failure without the size-limit flag; or rename failure. fsync and close return values are not independently surfaced.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102ab714",
-           "notes": "passthrough path"
+           "function": "0x1047ee0c",
+           "address": "0x1047eef0",
+           "callsite": "0x1047f2f0",
+           "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047eef0",
+         "callsite": "0x1047f2f0",
+         "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
+        }
+       ]
+      },
+      {
+       "code": 802,
+       "code_expr": "vret(r5-in,+0x80)",
+       "meaning": "Configured writer limit or post-write storage check rejected backup.",
+       "fault_sites": [
+        "0x102f8e48"
+       ],
+       "conditions": [
+        {
+         "description": "Compression writer limit flag selects 802 on write/finalization failure; alternatively serializer returned 0 but statvfs failed or wrapped uint32 block-size*available-blocks product was <=262144. The latter attempts unlink after replacement, ignoring its result.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047eef0",
+           "callsite": "0x1047f2f0",
+           "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "function": "0x102ab62c",
-           "notes": "rc site"
+           "address": "0x102ab750",
+           "callsite": "0x102ab824",
+           "notes": "Only after serializer code 0: f_1068ab6c with zero extra components resolves settings base for statvfs64 at 0x102ab750. It multiplies statvfs64+0x00 f_bsize by +0x1c low32(f_bavail). Raw 0x7d2a49d6 at 0x102ab778 is mullw r9,r10,r9, so the product wraps to uint32. Unsigned product must be strictly greater than 0x40000 (262144), otherwise or on statvfs error it resolves the filename, attempts unlink at 0x102ab810, ignores unlink status and returns 802 at 0x102ab824. Thus this check follows file replacement, not a pre-write capacity guarantee. Other serializer statuses bypass this check."
           }
          ]
         }
@@ -38444,43 +38866,50 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f8e48",
-         "notes": "impl vret passthrough site"
+         "function": "0x1047ee0c",
+         "address": "0x1047eef0",
+         "callsite": "0x1047f2f0",
+         "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102ab62c",
-         "notes": "worker rc sites decoded"
+         "address": "0x102ab750",
+         "callsite": "0x102ab824",
+         "notes": "Only after serializer code 0: f_1068ab6c with zero extra components resolves settings base for statvfs64 at 0x102ab750. It multiplies statvfs64+0x00 f_bsize by +0x1c low32(f_bavail). Raw 0x7d2a49d6 at 0x102ab778 is mullw r9,r10,r9, so the product wraps to uint32. Unsigned product must be strictly greater than 0x40000 (262144), otherwise or on statvfs error it resolves the filename, attempts unlink at 0x102ab810, ignores unlink status and returns 802 at 0x102ab824. Thus this check follows file replacement, not a pre-write capacity guarantee. Other serializer statuses bypass this check."
         }
-       ],
-       "domain_note": "domain fully bounded: impl 0x102ab62c exits=[0, 718]; The path-builder/file-prep rc is returned as the impl status. | worker literal bound [718] (worker_err_literals.json)",
-       "literal_bound": [
-        718
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x80); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+       "code": 805,
+       "code_expr": "vret(r5-in,+0x80)",
+       "meaning": "Every live entry excluded by URI flag bit12.",
        "fault_sites": [
         "0x102f8e48"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
+         "description": "For positive queue count, prepass B12 count equals live count. Filename-present flags keep the other exclusion counter at 0, selecting 805 before rename.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102f8db0",
-           "notes": "parse vcall slot +0x8 then fault path"
+           "function": "0x104794d4",
+           "address": "0x10479658",
+           "callsite": "0x1047e344",
+           "notes": "Raw 0x7d40549e at 0x10479658 selects 1 when filename is nonnull, setting serializer+0x58/+0x59. Prepass therefore bypasses the f_10475f00 exclusion rung at 0x10479750; counter serializer+0x40de stays zero. f_1014815c parses URI flags; f_101482c0 extracts bit 12 (rol20,mask31), f_1014829c extracts bit 4 (rol28,mask31). Prepass total excluded +0x40dc counts bit12 or bit4; +0x40e0 counts bit12 only, with bit12 taking precedence. Queue-backed f_1047e16c serializes remaining entries via f_1047d214, skipping bit12/bit4 entries at 0x1047e318/0x1047e328. Final flag 1 at serializer+0x40e2 chooses direct queue order rather than shuffle remapping (0x1047e2a0..0x1047e2e4). Header count is live count minus excluded count."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047f2a4",
+           "callsite": "0x1047f52c",
+           "notes": "For this fixed filename-present path, +0x40de=0. Let B12 be prepass count of entries whose parsed URI flags have bit12 set. If B12 equals nonzero live count, 0x1047f464..0x1047f47c returns 805 before rename. If 0<B12<live count and rename succeeds, 0x1047f308..0x1047f314 returns 807; B12=0 gives 0. Bit4-only omissions do not by themselves cause these nonzero statuses. Raw isels 0x7fca4f9e at 0x1047f47c/0x1047f52c and 0x7fc04f9e at 0x1047f314 use CR7 EQ. Codes 803/804/806/808 require the bypassed nonzero +0x40de counter or zero live count; 701 needs nonnegative original object ID instead of -1; mode-specific 810..812 rungs and SQ object-ID error 801 are unreachable here. No add/reorder 600/813/814/850/899 domain propagates."
           }
          ]
         }
@@ -38490,24 +38919,59 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f8db0",
-         "notes": "wrapper parse + fault path"
+         "function": "0x104794d4",
+         "address": "0x10479658",
+         "callsite": "0x1047e344",
+         "notes": "Raw 0x7d40549e at 0x10479658 selects 1 when filename is nonnull, setting serializer+0x58/+0x59. Prepass therefore bypasses the f_10475f00 exclusion rung at 0x10479750; counter serializer+0x40de stays zero. f_1014815c parses URI flags; f_101482c0 extracts bit 12 (rol20,mask31), f_1014829c extracts bit 4 (rol28,mask31). Prepass total excluded +0x40dc counts bit12 or bit4; +0x40e0 counts bit12 only, with bit12 taking precedence. Queue-backed f_1047e16c serializes remaining entries via f_1047d214, skipping bit12/bit4 entries at 0x1047e318/0x1047e328. Final flag 1 at serializer+0x40e2 chooses direct queue order rather than shuffle remapping (0x1047e2a0..0x1047e2e4). Header count is live count minus excluded count."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a4",
+         "callsite": "0x1047f52c",
+         "notes": "For this fixed filename-present path, +0x40de=0. Let B12 be prepass count of entries whose parsed URI flags have bit12 set. If B12 equals nonzero live count, 0x1047f464..0x1047f47c returns 805 before rename. If 0<B12<live count and rename succeeds, 0x1047f308..0x1047f314 returns 807; B12=0 gives 0. Bit4-only omissions do not by themselves cause these nonzero statuses. Raw isels 0x7fca4f9e at 0x1047f47c/0x1047f52c and 0x7fc04f9e at 0x1047f314 use CR7 EQ. Codes 803/804/806/808 require the bypassed nonzero +0x40de counter or zero live count; 701 needs nonnegative original object ID instead of -1; mode-specific 810..812 rungs and SQ object-ID error 801 are unreachable here. No add/reorder 600/813/814/850/899 domain propagates."
         }
        ]
       },
       {
-       "code": 802,
-       "meaning": "worker-call rejection path",
+       "code": 807,
+       "code_expr": "vret(r5-in,+0x80)",
+       "meaning": "Partial URI bit12 exclusion after file replacement.",
+       "fault_sites": [
+        "0x102f8e48"
+       ],
        "conditions": [
         {
-         "description": "worker call result -> literal",
+         "description": "0<B12<live count and rename succeeded. File can contain remaining entries although the action faults; post-write space check and new cleanup registration are skipped.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102ab824",
-           "notes": "r30/r31 literal"
+           "function": "0x104794d4",
+           "address": "0x10479658",
+           "callsite": "0x1047e344",
+           "notes": "Raw 0x7d40549e at 0x10479658 selects 1 when filename is nonnull, setting serializer+0x58/+0x59. Prepass therefore bypasses the f_10475f00 exclusion rung at 0x10479750; counter serializer+0x40de stays zero. f_1014815c parses URI flags; f_101482c0 extracts bit 12 (rol20,mask31), f_1014829c extracts bit 4 (rol28,mask31). Prepass total excluded +0x40dc counts bit12 or bit4; +0x40e0 counts bit12 only, with bit12 taking precedence. Queue-backed f_1047e16c serializes remaining entries via f_1047d214, skipping bit12/bit4 entries at 0x1047e318/0x1047e328. Final flag 1 at serializer+0x40e2 chooses direct queue order rather than shuffle remapping (0x1047e2a0..0x1047e2e4). Header count is live count minus excluded count."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047f2a4",
+           "callsite": "0x1047f52c",
+           "notes": "For this fixed filename-present path, +0x40de=0. Let B12 be prepass count of entries whose parsed URI flags have bit12 set. If B12 equals nonzero live count, 0x1047f464..0x1047f47c returns 805 before rename. If 0<B12<live count and rename succeeds, 0x1047f308..0x1047f314 returns 807; B12=0 gives 0. Bit4-only omissions do not by themselves cause these nonzero statuses. Raw isels 0x7fca4f9e at 0x1047f47c/0x1047f52c and 0x7fc04f9e at 0x1047f314 use CR7 EQ. Codes 803/804/806/808 require the bypassed nonzero +0x40de counter or zero live count; 701 needs nonnegative original object ID instead of -1; mode-specific 810..812 rungs and SQ object-ID error 801 are unreachable here. No add/reorder 600/813/814/850/899 domain propagates."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102ab62c",
+           "address": "0x102ab6ac",
+           "callsite": "0x102ab714",
+           "notes": "Locks impl+0x458 through f_10557cac, loads session impl+0x580, reads halfword session+0x2ff58 at 0x102ab6c8. This is primary queue base session+0x2d890 plus count +0x26c8, not whichever queue is active. Zero count unlocks/returns 0 without touching the file or timer. Nonzero count calls f_10146e94 with primary queue, title trackqueue, empty object ID, 64-byte internal output, trackqueue.rsq, limit 0x200000 and final flag 1. It is direct synchronous serialization, not f_10255f64 or a queue request kind."
           }
          ]
         }
@@ -38517,106 +38981,64 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102ab824",
-         "notes": "impl literal"
+         "function": "0x104794d4",
+         "address": "0x10479658",
+         "callsite": "0x1047e344",
+         "notes": "Raw 0x7d40549e at 0x10479658 selects 1 when filename is nonnull, setting serializer+0x58/+0x59. Prepass therefore bypasses the f_10475f00 exclusion rung at 0x10479750; counter serializer+0x40de stays zero. f_1014815c parses URI flags; f_101482c0 extracts bit 12 (rol20,mask31), f_1014829c extracts bit 4 (rol28,mask31). Prepass total excluded +0x40dc counts bit12 or bit4; +0x40e0 counts bit12 only, with bit12 taking precedence. Queue-backed f_1047e16c serializes remaining entries via f_1047d214, skipping bit12/bit4 entries at 0x1047e318/0x1047e328. Final flag 1 at serializer+0x40e2 chooses direct queue order rather than shuffle remapping (0x1047e2a0..0x1047e2e4). Header count is live count minus excluded count."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a4",
+         "callsite": "0x1047f52c",
+         "notes": "For this fixed filename-present path, +0x40de=0. Let B12 be prepass count of entries whose parsed URI flags have bit12 set. If B12 equals nonzero live count, 0x1047f464..0x1047f47c returns 805 before rename. If 0<B12<live count and rename succeeds, 0x1047f308..0x1047f314 returns 807; B12=0 gives 0. Bit4-only omissions do not by themselves cause these nonzero statuses. Raw isels 0x7fca4f9e at 0x1047f47c/0x1047f52c and 0x7fc04f9e at 0x1047f314 use CR7 EQ. Codes 803/804/806/808 require the bypassed nonzero +0x40de counter or zero live count; 701 needs nonnegative original object ID instead of -1; mode-specific 810..812 rungs and SQ object-ID error 801 are unreachable here. No add/reorder 600/813/814/850/899 domain propagates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102ab62c",
+         "address": "0x102ab6ac",
+         "callsite": "0x102ab714",
+         "notes": "Locks impl+0x458 through f_10557cac, loads session impl+0x580, reads halfword session+0x2ff58 at 0x102ab6c8. This is primary queue base session+0x2d890 plus count +0x26c8, not whichever queue is active. Zero count unlocks/returns 0 without touching the file or timer. Nonzero count calls f_10146e94 with primary queue, title trackqueue, empty object ID, 64-byte internal output, trackqueue.rsq, limit 0x200000 and final flag 1. It is direct synchronous serialization, not f_10255f64 or a queue request kind."
         }
-       ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 802; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1047ee0c",
-         "notes": "savedqueues.xml save; literal exits {501,701,802-808,810-812}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1047db08",
-         "notes": "add-to-savedqueue worker; {805,814}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10477fe8",
-         "notes": "reorder engine; {600,812,813,850,899}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10476cb4",
-         "notes": "reorder guard returns 899 when positions equal"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10ed2edc",
-         "notes": "savedqueue dirObj vtable block into 0x1047b4xx-0x1047be68"
-        }
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "meaning": "Required argument missing.",
+       "fault_sites": [
+        "0x102f8e48"
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Request descriptor validation returns false before calling derived implementation.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1047ee0c",
-           "notes": "savedqueues.xml save; literal exits {501,701,802-808,810-812}"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1047db08",
-           "notes": "add-to-savedqueue worker; {805,814}"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10477fe8",
-           "notes": "reorder engine; {600,812,813,850,899}"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10476cb4",
-           "notes": "reorder guard returns 899 when positions equal"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10ed2edc",
-           "notes": "savedqueue dirObj vtable block into 0x1047b4xx-0x1047be68"
+           "function": "0x102f8db0",
+           "address": "0x102f8df8",
+           "callsite": "0x102f8e90",
+           "notes": "One required InstanceID descriptor uses f_105614e0 at 0x102f8df8, request validation at 0x102f8e0c. Failure loads 402 at 0x102f8e7c and reaches fault slot +0x14 at 0x102f8e48; nonzero impl result shares that fault site. Zero result calls request commit slot +0x0c at 0x102f8e90. No output descriptors or formatting calls. f_10560b40 converts a 24-byte numeric buffer using strtoul(buffer,NULL,10), with no end-pointer or errno check."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10ed2edc emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f8db0",
+         "address": "0x102f8df8",
+         "callsite": "0x102f8e90",
+         "notes": "One required InstanceID descriptor uses f_105614e0 at 0x102f8df8, request validation at 0x102f8e0c. Failure loads 402 at 0x102f8e7c and reaches fault slot +0x14 at 0x102f8e48; nonzero impl result shares that fault site. Zero result calls request commit slot +0x0c at 0x102f8e90. No output descriptors or formatting calls. f_10560b40 converts a 24-byte numeric buffer using strtoul(buffer,NULL,10), with no end-pointer or errno check."
+        }
        ]
       }
      ],
@@ -38643,13 +39065,117 @@
        "build": "86.10-80260",
        "function": "0x102ab62c",
        "notes": "AVT impl vtable 0x10eaf2ec slot +0x80 entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10511f34",
+       "address": "0x10edfc38",
+       "callsite": "0x102f8e2c",
+       "notes": "Factory 0x103fb5d8 calls derived AVTransport constructor f_10511f34, which calls base f_102c05d8 at 0x1051218c then installs live vtable 0x10edfbb8 at 0x105123c0. Raw +0x80 word 0x10edfc38 is f_102ab62c. Wrapper invokes +0x80 at 0x102f8e2c. Nonzero InstanceID returns 718 at 0x102ab668 before locking or file work."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102f8db0",
+       "address": "0x102f8df8",
+       "callsite": "0x102f8e90",
+       "notes": "One required InstanceID descriptor uses f_105614e0 at 0x102f8df8, request validation at 0x102f8e0c. Failure loads 402 at 0x102f8e7c and reaches fault slot +0x14 at 0x102f8e48; nonzero impl result shares that fault site. Zero result calls request commit slot +0x0c at 0x102f8e90. No output descriptors or formatting calls. f_10560b40 converts a 24-byte numeric buffer using strtoul(buffer,NULL,10), with no end-pointer or errno check."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102ab62c",
+       "address": "0x102ab6ac",
+       "callsite": "0x102ab714",
+       "notes": "Locks impl+0x458 through f_10557cac, loads session impl+0x580, reads halfword session+0x2ff58 at 0x102ab6c8. This is primary queue base session+0x2d890 plus count +0x26c8, not whichever queue is active. Zero count unlocks/returns 0 without touching the file or timer. Nonzero count calls f_10146e94 with primary queue, title trackqueue, empty object ID, 64-byte internal output, trackqueue.rsq, limit 0x200000 and final flag 1. It is direct synchronous serialization, not f_10255f64 or a queue request kind."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104794d4",
+       "address": "0x10146ecc",
+       "callsite": "0x10479794",
+       "notes": "f_10146e94 obtains manager singleton 0x11096770 and forwards to f_104794d4. Empty object ID selects internal ID -1 at 0x10479554, queue-backed mode 0 at 0x104798e0. Explicit filename bypasses default savedqueues.rsq and the manager revision/notification rung 0x10479874..0x1047988c. It takes manager+0x28 lock, constructs serializer vtable 0x10ed2f88, passes the supplied 2 MiB limit to f_103d1aec, and calls f_1047ee0c at 0x10479794. On zero it also copies a serializer bookkeeping byte into manager+0xf0 at 0x10479870. Normal status is returned unchanged at 0x104797d4 after unlock/destruction. No saved-queue add/reorder worker is called here."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104794d4",
+       "address": "0x10479658",
+       "callsite": "0x1047e344",
+       "notes": "Raw 0x7d40549e at 0x10479658 selects 1 when filename is nonnull, setting serializer+0x58/+0x59. Prepass therefore bypasses the f_10475f00 exclusion rung at 0x10479750; counter serializer+0x40de stays zero. f_1014815c parses URI flags; f_101482c0 extracts bit 12 (rol20,mask31), f_1014829c extracts bit 4 (rol28,mask31). Prepass total excluded +0x40dc counts bit12 or bit4; +0x40e0 counts bit12 only, with bit12 taking precedence. Queue-backed f_1047e16c serializes remaining entries via f_1047d214, skipping bit12/bit4 entries at 0x1047e318/0x1047e328. Final flag 1 at serializer+0x40e2 chooses direct queue order rather than shuffle remapping (0x1047e2a0..0x1047e2e4). Header count is live count minus excluded count."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047e16c",
+       "address": "0x1047e254",
+       "callsite": "0x1047d2e4",
+       "notes": "Uses the SavedQueues XML serializer: f_1047cb70 writes SavedQueues header, f_1047d408 writes SavedQueue header using ID 0, title trackqueue, filtered NumTracks and queue+0x26e8 as the Curated attribute. f_1047d214 writes Track URI plus nonempty MD through escaping builder f_10577c40; f_1047d738/f_1047d67c feed the compression writer. The .rsq filename does not imply a call to saved-queue add/reorder or modification of savedqueues.rsq."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047ee0c",
+       "address": "0x1047eef0",
+       "callsite": "0x1047f2f0",
+       "notes": "Resolves configured settings path through f_10475fe8/f_1068ab6c, appends .tmp, opens via f_103d1ca8 with flags 0x241 and permissions 0x180 (0600). f_103d1ca8 initializes deflateInit2_ with windowBits 12; f_103d15c8 writes compressed blocks with a 0x200000 configured limit. f_103d1b24 finishes compression then calls fsync and close at 0x103d1b6c/0x103d1b74 without testing those two return values. Failed prep/write/finish/rename maps to 501 unless the compression writer limit flag selects 802. Temporary file is unlinked on normal failure exits. Rename from .tmp to trackqueue.rsq occurs at 0x1047f2f0 only after writer and all-excluded checks; final status can still be nonzero after that rename."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047ee0c",
+       "address": "0x1047f2a4",
+       "callsite": "0x1047f52c",
+       "notes": "For this fixed filename-present path, +0x40de=0. Let B12 be prepass count of entries whose parsed URI flags have bit12 set. If B12 equals nonzero live count, 0x1047f464..0x1047f47c returns 805 before rename. If 0<B12<live count and rename succeeds, 0x1047f308..0x1047f314 returns 807; B12=0 gives 0. Bit4-only omissions do not by themselves cause these nonzero statuses. Raw isels 0x7fca4f9e at 0x1047f47c/0x1047f52c and 0x7fc04f9e at 0x1047f314 use CR7 EQ. Codes 803/804/806/808 require the bypassed nonzero +0x40de counter or zero live count; 701 needs nonnegative original object ID instead of -1; mode-specific 810..812 rungs and SQ object-ID error 801 are unreachable here. No add/reorder 600/813/814/850/899 domain propagates."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102ab62c",
+       "address": "0x102ab750",
+       "callsite": "0x102ab824",
+       "notes": "Only after serializer code 0: f_1068ab6c with zero extra components resolves settings base for statvfs64 at 0x102ab750. It multiplies statvfs64+0x00 f_bsize by +0x1c low32(f_bavail). Raw 0x7d2a49d6 at 0x102ab778 is mullw r9,r10,r9, so the product wraps to uint32. Unsigned product must be strictly greater than 0x40000 (262144), otherwise or on statvfs error it resolves the filename, attempts unlink at 0x102ab810, ignores unlink status and returns 802 at 0x102ab824. Thus this check follows file replacement, not a pre-write capacity guarantee. Other serializer statuses bypass this check."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1068ab6c",
+       "address": "0x1068abb8",
+       "callsite": "0x102ab7f4",
+       "notes": "f_1068ab6c is a string/path resolver, not a file-preparation status function. Starts from configured settings component at 0x110a950c+0x18 and resolves relative settings through f_1068a70c using root pointer 0x1109b024; appends provided components. Static initializer 0x100922c0..0x100922cc sets the settings component to settings. The exact configured runtime root is not hardcoded by BackupQueue. File operations use the resolved trackqueue.rsq and trackqueue.rsq.tmp paths."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102ab62c",
+       "address": "0x102ab7a0",
+       "callsite": "0x102ab7c4",
+       "notes": "After successful serialization/space check, gets sonosClockGetTime(1) seconds, adds 300 at 0x102ab7b4 and invokes impl+0xad2c virtual +0x0c with callback f_102b3e54, opaque impl, deadline and zero final argument. Registration result is ignored; action unlocks/returns 0. Callback thunk f_102b3e54 -> f_102b3d0c locks impl+0x458, defaults next-deadline output to 0x7fffffff, resolves trackqueue.rsq, calls __xstat64(version3). On stat success it compares clock-id-1 seconds against unsigned(stat word +0x50 +299): greater attempts unlink, otherwise sets next deadline to stat word +0x50 +300. Failed stat or ignored unlink result produces no later SOAP fault. No unconditional five-minute retention/expiry guarantee follows from registration alone."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b3d0c",
+       "address": "0x102b3e14",
+       "callsite": "0x102b3e48",
+       "notes": "Callback reads the stat64 word at local +0x80, i.e. stat buffer +0x50, matching PPC32 stat64 st_mtime ABI. It compares it with clock-id-1 seconds, not a saved monotonic write timestamp maintained by this action. Supplemental firmware library libsonos-time-c.so.1 sonosClockGetTime at 0x10a0 passes its clock ID directly to clock_gettime at 0x10d4 and copies seconds at 0x10fc. Therefore document the actual numeric comparison without asserting the file time and clock-id-1 domains have been reconciled or that deletion necessarily occurs 300 seconds after writing."
       }
      ],
-     "notes": "None The saved-queue store file is \"savedqueues.rsq\" (rodata 0x10ed3104), the same .rsq container trackqueue.rsq uses for the live queue backup.",
-     "todo": [
-      "Established: direct dispatch to handler 0x102f8db0; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "BackupQueue uses the shared SavedQueues XML/compression serializer with its own explicit trackqueue.rsq filename and fixed queue-backed flags. This does not make SaveQueue/CreateSavedQueue/AddURIToSavedQueue/ReorderTracksInSavedQueue error ladders reachable. Cleanup registration is conditional and its callback uses a stat timestamp comparison; do not describe this action as guaranteed permanent persistence or guaranteed deletion exactly five minutes later."
     },
     "BecomeCoordinatorOfStandaloneGroup": {
      "description": "Promotes this player to coordinator of its standalone group. Impl f_102d5524 logs \"avt_impl\" \"BecomeCoordinatorOfStandaloneGroup\", takes impl+0x458, enforces InstanceID==0 (718), then runs the coordinator-promotion path which builds the DelegatedGroupCoordinatorID/NewGroupID outputs. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102d5524) and B (vtable 0x10edfbb8, impl 0x10513244) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.",
