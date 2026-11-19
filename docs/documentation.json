@@ -151409,6 +151409,74 @@
         "slot": 8,
         "purpose": "parse"
        }
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028c3b8",
+        "notes": "Remove core: isShareUDN/service-type helpers 0x1028bf7c/0x1028be18/0x1028a1f4, policy/credential cache clears 0x104b8b70/0x104b8c74/0x104b8d0c/0x104b8d64, settings commit 0x10646ddc, SMAPI 'Deleting account %u' 0x1072a2a4, tombstone delete 0x10570cdc, manifest delete 0x100c6d14 -> 0x1011b310, sendAccountChangedEvent 0x101b8c14, preinstall check 0x101b5498.",
+        "function": "0x1028c3b8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028e5dc",
+        "notes": "Built-in TuneIn migration check: reads R_HideTuneIn, logs 'legacyTuneInReplaced'/'accounts', iterates account records deciding legacy replacement - the R_HideTuneIn consumer.",
+        "function": "0x1028e5dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b6dbc",
+        "notes": "Manager-side TuneIn visibility predicate: reads R_HideTuneIn via settings member, 'true'/'false' strncmp at 0x101b6e88 region, used during account enumeration.",
+        "function": "0x101b6dbc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285338",
+        "notes": "Post-save scheduler: posts callable 0x100ba320 ('Music account replication push'/'MAReplPush' in job table .data 0x11090020) at now+3000ms through timed-job scheduler global 0x11095f8c vfunc+0xc. Pull twin: 0x100ba5dc ('MAReplPull')."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10290df4",
+        "notes": "pushToReplicationService, mid-entry inside f_1028fa98, reached reentrancy-guarded (lwarx/stwcx on mgr 0x11095f88 member +0xaa4c) via thunk 0x101b6eac on embedded store +0x118. POST /music-account/v0/accounts via transport 0x1050702c (application/xml, now+10000ms deadline, HTTP 200 required at obj+0x868c), body stream-parsed by 0x10506c70 (0x1000-byte chunks through expat-style 0x10c3fc68, callbacks 0x105067e8/0x1050649c/0x105065c0), then mergeAccounts 0x10285e18; resave 0x102890b0 and reschedule 0x10285338. Logs 'push'/'Push successful'/'Push rescheduled in %lld'/'Corrupted accounts not updated'/'Failed to read accounts file'. Pull twin 0x10290400 -> GET transport 0x10506e3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285e18",
+        "notes": "mergeAccounts: iterates live+deleted local tables (stride 0x250), validates each cloud record via 0x10285a94 ('missing serial number', 'Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]', op name 'mergeAccounts'), applies via 0x105709c0, deletes via 0x10570cdc, and accumulates outcome counters {retry,applied,conflicted,updated,added,deleted,invalidCloud,invalidCloudSerial,invalidCloudReason,svcCloud} for the 'accountsmgr' 'zpam: %s,%d,%d,%u' report (format at 0x10eabcb4, field names at 0x10eabcc8..0x10eabd38). Called at 0x10290a10 (pull) and 0x10291760 (push)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b8048",
+        "notes": "Post-save cache refresh on mgr 0x11095f88: reloads accounts.xml via 0x1028903c at this+0x118 into a 32-slot array (stride 0x250), diffs vs live array +0x290 via 0x10570398, emits MusicAccountChangedEvent via 0x101bb1d0 on this+0xc, runs selected-account rebuild 0x101b7620 -> 0x101b6fdc, then queues job 0x100bbc80 via scheduler vfunc+0x8; nonzero rebuild memsets +0x9fd8/+0xa060."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b6fdc",
+        "notes": "Selected-account rebuild (second entry into f_101b6efc frame): registers {sid,udn} pairs from service-manifest table +0x5134 (stride 0x138, svc-id at +0x134, cap 500, 0xfe skip) into 256-entry table +0xaa64/+0xaa6c via 0x101b6efc, then walks account array +0x290 (stride 0x250) testing descriptor flags +0x130 bits 0x10/0x40 with stale 'X_#' check 0x1056fd48, manifest-cache ops 0x100c6d28/0x100c6b10/0x10118e90/0x10118fd0, row ops 0x105712e4/0x1057082c and normalized-type lookup 0x10570e34."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b869c",
+        "notes": "'Account Maintenance'/'SvcAccountMaint' worker (job 0x100bbc80 at .data 0x1109003c, enable byte 0x11090020): cache refresh 0x101b8048; reportAllActiveAccounts 0x1028f5a4 -> per account Flags&3==0 calls 0x104b16b4 'Account registration for service %u res %hu' under 'sp_impl' (registration context built by 0x104abd90 into a 0x1600-byte stack object); manifest downloads 0x100c6c3c -> 0x1011b710 ('failed to download manifest file for account sid: %u, sn: %u, res=%u'); last.fm email->username migration; OAuth migration + zpAM 'OAuthMigration' report {rsid,success,getAuthTokenResult,accountToOAuthResult,reauth,forced}; 'needs_reauth' checks; preinstall retries 'Attempting to preinstall SID=%u (attempt %u)' via 0x101b5498 -> 0x1028ad54; 'R_MigratedTuneIn'/'SA_RINCON65031_' built-in migration; 'stale entitlements; scheduling job to refresh' via 0x10572ab0+0x100b944c; 'updating userInfo for account SN: %u'."
+       }
       ]
      },
      "inputs": {
@@ -151737,10 +151805,8 @@
         "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
-      "todo": [
-       "Established: Ordinary branch reads live/deleted arrays, account identity and descriptor classification, clocks, preferred serial, version/LUD and manifest state. TuneIn uses R_HideTuneIn in SystemSettings, not accounts.xml selection.",
-       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects. Conditional manifest-removal persistence/observers at 0x1011b310/0x1011ad40 remain unfinished.",
-       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+      "resolved_findings": [
+       "Resolved: downstream state is mapped: live/deleted arrays + tombstone in accounts.xml; preferred-serial clear; cached credentials/policy maps cleared (0x104b8b70/0x104b8c74/0x104b8d0c/0x104b8d64); manifest store entry removed via 0x100c6d14 -> 0x1011b310 -> 0x1011ad40; R_HideTuneIn consumed later by migration check 0x1028e5dc and visibility predicate 0x101b6dbc; scheduler/maintenance chain for delayed sync."
       ]
      },
      "side_effects": [
@@ -151876,10 +151942,10 @@
          "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
         }
        ],
-       "todo": [
-        "Established: Ordinary removal compacts live records, conditionally retains a bounded deleted tombstone and clears matching preferred serial before saving. Failed persistence does not prove unchanged preferred serial or unchanged file. TuneIn instead writes R_HideTuneIn=true with the recovered settings writer/replication callbacks.",
-        "Residual: Conditional manifest-removal leaves 0x1011b310 -> 0x1011ad40 and shared delayed synchronization remain to be traced.",
-        "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+       "resolved_findings": [
+        "Resolved: delayed account-cloud synchronization is fully traced. Save 0x102890b0 runs predicate 0x10285878 (callback-registry global 0x11097680: registered object's vfunc+0x90 must equal 0x10113df0 and vfunc+0x14() nonzero) then scheduler 0x10285338 posts 'MAReplPush' 0x100ba320 at now+3s. The job runs reentrancy-guarded into 0x101b6eac -> pushToReplicationService 0x10290df4: POST /music-account/v0/accounts via 0x1050702c (application/xml, 10s deadline, HTTP 200 required), body stream-parsed by 0x10506c70 into mergeAccounts 0x10285e18, which validates each cloud record via 0x10285a94 ('Discarding invalid cloud record'), applies via 0x105709c0, deletes via 0x10570cdc, counts outcomes for the 'accountsmgr'/'zpam' report (retry/conflicted/updated/added/deleted/invalidCloud*/svcCloud), resaves via 0x102890b0 and reschedules via 0x10285338. Pull twin: 0x100ba5dc -> 0x101b6ebc -> 0x10290400 -> GET 0x10506e3c, same merge.",
+        "Resolved: selected-account maintenance and queued maintenance are fully traced. Cache refresh 0x101b8048 reloads accounts.xml via 0x1028903c, diffs against the live +0x290 array via 0x10570398, emits MusicAccountChangedEvent via 0x101bb1d0, runs selected-account rebuild 0x101b7620 -> 0x101b6fdc (registers {sid,udn} from the +0x5134 manifest table into the 256-entry +0xaa64 table, then rebuilds per-account manifest/cache state under flag tests +0x130 bits 0x10/0x40), and queues 'Account Maintenance'/'SvcAccountMaint' job 0x100bbc80 (enable byte 0x11090020). Worker 0x101b869c runs re-registration 0x1028f5a4 -> 0x104b16b4 'Account registration for service %u res %hu' (context via 0x104abd90), manifest downloads 0x100c6c3c -> 0x1011b710, last.fm/OAuth migrations with zpAM 'OAuthMigration' report, needs_reauth checks, preinstall retries 'Attempting to preinstall SID=%u (attempt %u)', 'R_MigratedTuneIn'/'SA_RINCON65031_' migration, 'stale entitlements; scheduling job to refresh' and 'updating userInfo for account SN: %u'.",
+        "Resolved: manifest-removal leaves are bound: 0x100c6d14 tail-calls delete 0x1011b310 (svc_manifest documented 0x1011ad40 leaf); the SMAPI 'Deleting account %u' call via 0x1072a2a4 -> 0x106ff03c -> 0x10562e6c is the only provider-facing leaf and its status does not gate the SOAP result."
        ]
       },
       {
@@ -152118,10 +152184,8 @@
         "notes": "Account refresh reads manager snapshot via0x1028903c at0x101b8238; compares with cached table at0x101b8250. Nonzero copies rows then invokes0x101bb1d0 at0x101b8290. Further work is conditional at0x101b8294..0x101b82c0. This does not by itself establish external event delivery."
        }
       ],
-      "todo": [
-       "Established: Ordinary successful save advertises selector-11 version/LUD, publishes operation del, then conditionally refreshes cached accounts and queues MusicAccountChangedEvent. TuneIn uses the SystemSettings write-success path instead; it does not directly publish an account deletion.",
-       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects. Conditional manifest observer/replication consequences remain unfinished.",
-       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+      "resolved_findings": [
+       "Resolved: downstream signals are bound: selector-11 version/LUD advertisement after save; operation 'del' publication; MusicAccountChangedEvent via 0x101bb1d0 from cache refresh; sendAccountChangedEvent 0x101b8c14 inside the remove core; 'accountsmgr' merge counters after replication; TuneIn branch uses the SystemSettings write-success notification path instead."
       ]
      },
      "state_transitions": {
@@ -152256,10 +152320,8 @@
         "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
-      "todo": [
-       "Established: Ordinary selection/mutation precedes save; preferred serial can clear before an eventual 809. Main-save success advances version/LUD without allocating a serial. Nonzero mutation status skips save and post-save callbacks; successful core then refreshes after unlocking. Exact TuneIn changes only settings immediately.",
-       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects.",
-       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+      "resolved_findings": [
+       "Resolved: full ordering is bound: materialize -> TuneIn-65031 settings branch or core 0x1028c3b8 (selection -> cache/policy clears -> settings commit 0x10646ddc -> SMAPI delete call -> tombstone delete 0x10570cdc -> manifest delete -> account-changed event) -> save -> post-save schedule/merge/maintenance chain. Nonzero selection/commit skips save and callbacks."
       ]
      },
      "return_behavior": {
@@ -152697,6 +152759,14 @@
          "build": "86.10-80260",
          "address": "0x102863a8",
          "notes": "Selected-row deletion helper; explicit account-family/username lookup and missing-account806 at0x10286658. Other branch policies remain open."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c3b8",
+         "notes": "Remove-core predicates: selection/tombstone helpers and the settings-commit/save leaves that produce 806/809; no generic directory-store code is reachable here.",
+         "function": "0x1028c3b8"
         }
        ],
        "conditions": [
@@ -152737,7 +152807,9 @@
          ]
         }
        ],
-       "todo": "Established: these TuneIn/settings, table-load, selection and commit failures are decoded. Remaining: finish helper consistency/tombstone branches and underlying save/settings failure causes; do not assign generic directory-store errors."
+       "resolved_findings": [
+        "Resolved: removal failure causes are bound. Ordinary branch: 806 from strict/exact-type selection miss; 809 from snapshot load failure, exact-type removal mutation failure, settings-commit 0x10646ddc failure or save 0x10289258 false; TuneIn branch: settings setter nonzero -> 809. Tombstone predicates: the deleted-table tombstone insert is bounded by the deleted-table capacity (same 0x250-stride array), and the helper-consistency checks (isShareUDN 0x1028bf7c, service-type 0x1028be18/0x1028a1f4) gate whether a share/built-in record is removable rather than producing generic directory-store errors."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -152957,11 +153029,13 @@
       }
      ],
      "notes": "Static trace of build 86.10-80260. Immediate local results are distinct from queued work and remote/subscriber outcomes.",
-     "todo": [
-      "Established: concrete delegate, parsing, immediate mutation, persistence and synchronous fault domain are recovered.",
-      "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects.",
-      "Next step: finish shared selected-account, queued-maintenance and cloud response/merge tracing; also finish any action-specific post-save leaves identified below.",
-      "Remaining: helper consistency/tombstone predicates, TuneIn R_HideTuneIn setting consumers and any provider-side revocation are not fully resolved."
+     "resolved_findings": [
+      "Resolved: delayed account-cloud synchronization is fully traced. Save 0x102890b0 runs predicate 0x10285878 (callback-registry global 0x11097680: registered object's vfunc+0x90 must equal 0x10113df0 and vfunc+0x14() nonzero) then scheduler 0x10285338 posts 'MAReplPush' 0x100ba320 at now+3s. The job runs reentrancy-guarded into 0x101b6eac -> pushToReplicationService 0x10290df4: POST /music-account/v0/accounts via 0x1050702c (application/xml, 10s deadline, HTTP 200 required), body stream-parsed by 0x10506c70 into mergeAccounts 0x10285e18, which validates each cloud record via 0x10285a94 ('Discarding invalid cloud record'), applies via 0x105709c0, deletes via 0x10570cdc, counts outcomes for the 'accountsmgr'/'zpam' report (retry/conflicted/updated/added/deleted/invalidCloud*/svcCloud), resaves via 0x102890b0 and reschedules via 0x10285338. Pull twin: 0x100ba5dc -> 0x101b6ebc -> 0x10290400 -> GET 0x10506e3c, same merge.",
+      "Resolved: selected-account maintenance and queued maintenance are fully traced. Cache refresh 0x101b8048 reloads accounts.xml via 0x1028903c, diffs against the live +0x290 array via 0x10570398, emits MusicAccountChangedEvent via 0x101bb1d0, runs selected-account rebuild 0x101b7620 -> 0x101b6fdc (registers {sid,udn} from the +0x5134 manifest table into the 256-entry +0xaa64 table, then rebuilds per-account manifest/cache state under flag tests +0x130 bits 0x10/0x40), and queues 'Account Maintenance'/'SvcAccountMaint' job 0x100bbc80 (enable byte 0x11090020). Worker 0x101b869c runs re-registration 0x1028f5a4 -> 0x104b16b4 'Account registration for service %u res %hu' (context via 0x104abd90), manifest downloads 0x100c6c3c -> 0x1011b710, last.fm/OAuth migrations with zpAM 'OAuthMigration' report, needs_reauth checks, preinstall retries 'Attempting to preinstall SID=%u (attempt %u)', 'R_MigratedTuneIn'/'SA_RINCON65031_' migration, 'stale entitlements; scheduling job to refresh' and 'updating userInfo for account SN: %u'.",
+      "Resolved: helper consistency/tombstone predicates are bound. Remove core 0x1028c3b8 walks live+deleted tables, decodes isShareUDN/service-type helpers (0x1028bf7c/0x1028be18/0x1028a1f4), clears cached credentials/policy via 0x104b8b70/0x104b8c74/0x104b8d0c/0x104b8d64, commits settings via 0x10646ddc, calls SMAPI 'Deleting account %u' through 0x1072a2a4 -> transport 0x106ff03c -> mapper 0x10562e6c, deletes the row via 0x10570cdc with the deleted-table tombstone retained for replication, deletes the manifest via 0x100c6d14 -> 0x1011b310 -> 0x1011ad40, and emits account-changed via 0x101b8c14.",
+      "Resolved: R_HideTuneIn consumers are bound: built-in TuneIn migration check 0x1028e5dc reads R_HideTuneIn and logs 'legacyTuneInReplaced'/'accounts' while deciding whether to replace the legacy TuneIn record; manager-side visibility predicate 0x101b6dbc reads it when enumerating accounts ('true'/'false' strncmp). Writers: AddAccountX 0x104b088c (false) and RemoveAccount 0x104b09a4 (true) - the only four static R_HideTuneIn sites.",
+      "Resolved: provider-side revocation boundary: the only remote-facing removal leaf is the SMAPI 'Deleting account %u' call via 0x1072a2a4 -> 0x106ff03c -> 0x10562e6c; the binary proves the request is issued and its mapped status, not that the service/provider revoked the credentials.",
+      "Static boundary retained: the remote/cloud side of the push-pull (whether the household cloud accepts and applies the posted account table) is provider-side behavior; the binary proves the local request build, HTTP-200 requirement, response merge and automatic reschedule, not remote completion or subscriber-visible delivery."
      ]
     },
     "ReplaceAccountX": {
@@ -152995,6 +153069,82 @@
         "site": "0x10732c30",
         "slot": 40,
         "purpose": "other"
+       }
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0b04",
+        "notes": "ReplaceAccountX delegate -> 0x1028c08c: SA_RINCON UDN decode -> shared modifier 0x1028b760 -> registration call 0x104b16b4 -> pending-report flag 0x1028bdc0.",
+        "function": "0x104b0b04"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b16b4",
+        "notes": "'Account registration for service %u res %hu' under 'sp_impl': reads R_CustomerID via member+0x164 vfunc+0x24, calls reporting vfunc+0x58 of *(obj+0x274); registration context (0x1600-byte stack object) built by 0x104abd90.",
+        "function": "0x104b16b4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1027cbf8",
+        "notes": "Alarm-store UDN rewrite: mutex +0x170, alarmclock.xml commit 0x10283998 (fault ladder {501,800,801,802}), post-commit 0x10279c0c ('ac_impl'/'updating %s' refresh+notify, LUD +0x7f10/version +0x7f2c bump, selector-5 advert via member+0x7f00 vfunc+0x14).",
+        "function": "0x1027cbf8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1037f5b8",
+        "notes": "Favorites-store UDN rewrite: mutex +0x30, userradio.xml commit 0x10384490 (op6 fault ladder {402,501,701,702,803,805,806,807}), post 0x1037e554(\"2\",0).",
+        "function": "0x1037f5b8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285338",
+        "notes": "Post-save scheduler: posts callable 0x100ba320 ('Music account replication push'/'MAReplPush' in job table .data 0x11090020) at now+3000ms through timed-job scheduler global 0x11095f8c vfunc+0xc. Pull twin: 0x100ba5dc ('MAReplPull')."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10290df4",
+        "notes": "pushToReplicationService, mid-entry inside f_1028fa98, reached reentrancy-guarded (lwarx/stwcx on mgr 0x11095f88 member +0xaa4c) via thunk 0x101b6eac on embedded store +0x118. POST /music-account/v0/accounts via transport 0x1050702c (application/xml, now+10000ms deadline, HTTP 200 required at obj+0x868c), body stream-parsed by 0x10506c70 (0x1000-byte chunks through expat-style 0x10c3fc68, callbacks 0x105067e8/0x1050649c/0x105065c0), then mergeAccounts 0x10285e18; resave 0x102890b0 and reschedule 0x10285338. Logs 'push'/'Push successful'/'Push rescheduled in %lld'/'Corrupted accounts not updated'/'Failed to read accounts file'. Pull twin 0x10290400 -> GET transport 0x10506e3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285e18",
+        "notes": "mergeAccounts: iterates live+deleted local tables (stride 0x250), validates each cloud record via 0x10285a94 ('missing serial number', 'Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]', op name 'mergeAccounts'), applies via 0x105709c0, deletes via 0x10570cdc, and accumulates outcome counters {retry,applied,conflicted,updated,added,deleted,invalidCloud,invalidCloudSerial,invalidCloudReason,svcCloud} for the 'accountsmgr' 'zpam: %s,%d,%d,%u' report (format at 0x10eabcb4, field names at 0x10eabcc8..0x10eabd38). Called at 0x10290a10 (pull) and 0x10291760 (push)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b8048",
+        "notes": "Post-save cache refresh on mgr 0x11095f88: reloads accounts.xml via 0x1028903c at this+0x118 into a 32-slot array (stride 0x250), diffs vs live array +0x290 via 0x10570398, emits MusicAccountChangedEvent via 0x101bb1d0 on this+0xc, runs selected-account rebuild 0x101b7620 -> 0x101b6fdc, then queues job 0x100bbc80 via scheduler vfunc+0x8; nonzero rebuild memsets +0x9fd8/+0xa060."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b6fdc",
+        "notes": "Selected-account rebuild (second entry into f_101b6efc frame): registers {sid,udn} pairs from service-manifest table +0x5134 (stride 0x138, svc-id at +0x134, cap 500, 0xfe skip) into 256-entry table +0xaa64/+0xaa6c via 0x101b6efc, then walks account array +0x290 (stride 0x250) testing descriptor flags +0x130 bits 0x10/0x40 with stale 'X_#' check 0x1056fd48, manifest-cache ops 0x100c6d28/0x100c6b10/0x10118e90/0x10118fd0, row ops 0x105712e4/0x1057082c and normalized-type lookup 0x10570e34."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b869c",
+        "notes": "'Account Maintenance'/'SvcAccountMaint' worker (job 0x100bbc80 at .data 0x1109003c, enable byte 0x11090020): cache refresh 0x101b8048; reportAllActiveAccounts 0x1028f5a4 -> per account Flags&3==0 calls 0x104b16b4 'Account registration for service %u res %hu' under 'sp_impl' (registration context built by 0x104abd90 into a 0x1600-byte stack object); manifest downloads 0x100c6c3c -> 0x1011b710 ('failed to download manifest file for account sid: %u, sn: %u, res=%u'); last.fm email->username migration; OAuth migration + zpAM 'OAuthMigration' report {rsid,success,getAuthTokenResult,accountToOAuthResult,reauth,forced}; 'needs_reauth' checks; preinstall retries 'Attempting to preinstall SID=%u (attempt %u)' via 0x101b5498 -> 0x1028ad54; 'R_MigratedTuneIn'/'SA_RINCON65031_' built-in migration; 'stale entitlements; scheduling job to refresh' via 0x10572ab0+0x100b944c; 'updating userInfo for account SN: %u'."
        }
       ]
      },
@@ -154065,10 +154215,8 @@
         "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
-      "todo": [
-       "Established: Depends on descriptor credential classification, old account snapshot, normalized type lookup, ID collision, copied record state, account XML clocks/version and two subsequent reference stores. Optional missing strings can expose stale stack contents before delegate; they are not a reliable empty default.",
-       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects. Also finish 0x104b16b4 registration/reporting and UDN-reference leaves 0x10283998/0x10279c0c, 0x10384490/0x1037e554 and their concrete receivers.",
-       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+      "resolved_findings": [
+       "Resolved: downstream state is mapped: accounts.xml via save; pending-report Flags bit 1 via 0x1028bdc0; alarm store alarmclock.xml (LUD +0x7f10, version +0x7f2c) via 0x10283998; favorites store userradio.xml via 0x10384490; cache/manifest tables via 0x101b8048/0x101b6fdc; scheduler/maintenance chain; 'accountsmgr' merge counters."
       ]
      },
      "side_effects": [
@@ -154220,10 +154368,10 @@
          "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
         }
        ],
-       "todo": [
-        "Established: ID/password mode changes only ID/PW; OAuth mode changes computed ID, clears PW, updates device ID/token and nonempty key. Preserves serial/nickname/metadata and does not allocate serial. Conditional account save may be followed by ignored-status pending-report save and two independent UDN-reference update attempts. This is not an atomic replacement across stores.",
-        "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects. Also finish 0x104b16b4 registration/reporting and UDN-reference leaves 0x10283998/0x10279c0c, 0x10384490/0x1037e554 and their concrete receivers.",
-        "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+       "resolved_findings": [
+        "Resolved: delayed account-cloud synchronization is fully traced. Save 0x102890b0 runs predicate 0x10285878 (callback-registry global 0x11097680: registered object's vfunc+0x90 must equal 0x10113df0 and vfunc+0x14() nonzero) then scheduler 0x10285338 posts 'MAReplPush' 0x100ba320 at now+3s. The job runs reentrancy-guarded into 0x101b6eac -> pushToReplicationService 0x10290df4: POST /music-account/v0/accounts via 0x1050702c (application/xml, 10s deadline, HTTP 200 required), body stream-parsed by 0x10506c70 into mergeAccounts 0x10285e18, which validates each cloud record via 0x10285a94 ('Discarding invalid cloud record'), applies via 0x105709c0, deletes via 0x10570cdc, counts outcomes for the 'accountsmgr'/'zpam' report (retry/conflicted/updated/added/deleted/invalidCloud*/svcCloud), resaves via 0x102890b0 and reschedules via 0x10285338. Pull twin: 0x100ba5dc -> 0x101b6ebc -> 0x10290400 -> GET 0x10506e3c, same merge.",
+        "Resolved: selected-account maintenance and queued maintenance are fully traced. Cache refresh 0x101b8048 reloads accounts.xml via 0x1028903c, diffs against the live +0x290 array via 0x10570398, emits MusicAccountChangedEvent via 0x101bb1d0, runs selected-account rebuild 0x101b7620 -> 0x101b6fdc (registers {sid,udn} from the +0x5134 manifest table into the 256-entry +0xaa64 table, then rebuilds per-account manifest/cache state under flag tests +0x130 bits 0x10/0x40), and queues 'Account Maintenance'/'SvcAccountMaint' job 0x100bbc80 (enable byte 0x11090020). Worker 0x101b869c runs re-registration 0x1028f5a4 -> 0x104b16b4 'Account registration for service %u res %hu' (context via 0x104abd90), manifest downloads 0x100c6c3c -> 0x1011b710, last.fm/OAuth migrations with zpAM 'OAuthMigration' report, needs_reauth checks, preinstall retries 'Attempting to preinstall SID=%u (attempt %u)', 'R_MigratedTuneIn'/'SA_RINCON65031_' migration, 'stale entitlements; scheduling job to refresh' and 'updating userInfo for account SN: %u'.",
+        "Resolved: reference-store effects are bound: alarmclock.xml rewrite bumps LUD +0x7f10/version +0x7f2c and advertises selector-5 via member+0x7f00 vfunc+0x14 on its own success; userradio.xml rewrite calls 0x1037e554(\"2\",0) on its own success; both statuses are ignored by this action's result."
        ]
       }
      ],
@@ -154375,10 +154523,8 @@
         "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
-      "todo": [
-       "Established: True account saves advertise selector11 version/LUD and can queue local MusicAccountChangedEvent on cache differences; optional pending-report save may repeat this. Reference helperA advertises selector5 after its own successful operation, independently of SOAP result. Reference helperB calls 0x1037e554(\"2\",0) only on its own success. No immediate remote login or transport credential exchange is established.",
-       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects. Also finish 0x104b16b4 registration/reporting and UDN-reference leaves 0x10283998/0x10279c0c, 0x10384490/0x1037e554 and their concrete receivers.",
-       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+      "resolved_findings": [
+       "Resolved: downstream signals are bound: selector-11 version/LUD after save; optional pending-report save can repeat it; MusicAccountChangedEvent via 0x101bb1d0; 'Account registration for service %u res %hu' inside reporting; alarm-store selector-5 advert (member+0x7f00 vfunc+0x14) and favorites 0x1037e554(\"2\",0) on their own successes; 'accountsmgr' merge counters after replication."
       ]
      },
      "state_transitions": {
@@ -154529,10 +154675,8 @@
         "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
-      "todo": [
-       "Established: Validate materialized inputs/lengths, parse old UDN, choose mode, enforce branch prerequisites, look up old record/check new-ID collision, modify and optionally save. After zero: optional pending-report mutation, output construction, then independent reference attempts. Any first modifier nonzero bypasses output and reference attempts; later nested statuses are ignored. Omitted optional strings can instead cause undefined stack reads before this sequence completes.",
-       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects. Also finish 0x104b16b4 registration/reporting and UDN-reference leaves 0x10283998/0x10279c0c, 0x10384490/0x1037e554 and their concrete receivers.",
-       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+      "resolved_findings": [
+       "Resolved: full ordering is bound: materialize -> UDN decode -> mode select -> modifier 0x1028b760 -> save -> pending-report flag 0x1028bdc0 -> output UDN construction -> independent alarm/favorites reference rewrites -> post-save schedule/merge/maintenance chain. First-modifier nonzero bypasses output and reference attempts; later nested statuses ignored."
       ]
      },
      "return_behavior": {
@@ -155001,6 +155145,14 @@
          "build": "86.10-80260",
          "address": "0x107329ac",
          "notes": "Local return-to-fault path; complete delegate error domain remains unresolved."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028c08c",
+         "notes": "Replace core predicates: UDN decode/lookup/collision -> 806; shared modifier -> 802/806; save -> 809; snapshot -> 810.",
+         "function": "0x1028c08c"
         }
        ],
        "conditions": [
@@ -155017,7 +155169,9 @@
          ]
         }
        ],
-       "todo": "Established: nonzero delegate status is surfaced unchanged. Remaining: follow this action-specific delegate slot and document each reachable failure predicate and its numeric result."
+       "resolved_findings": [
+        "Resolved: reachable failure predicates for this slot are enumerated. 0x104b0b04 -> 0x1028c08c: malformed/old-record UDN decode or strict lookup miss -> 806; new-ID collision -> 806; shared modifier 0x1028b760 -> 802 (matching-row strcmp predicate fail) or 806 (normalized-type lookup miss); first save 0x10289258 false -> 809; initial snapshot empty -> 810. Pending-report and reference-store statuses are ignored."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -155197,10 +155351,12 @@
       }
      ],
      "notes": "Static trace of build 86.10-80260. Immediate local results are distinct from queued work and remote/subscriber outcomes.",
-     "todo": [
-      "Established: concrete delegate, parsing, immediate mutation, persistence and synchronous fault domain are recovered.",
-      "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects.",
-      "Next step: finish shared selected-account, queued-maintenance and cloud response/merge tracing; also finish any action-specific post-save leaves identified below."
+     "resolved_findings": [
+      "Resolved: delayed account-cloud synchronization is fully traced. Save 0x102890b0 runs predicate 0x10285878 (callback-registry global 0x11097680: registered object's vfunc+0x90 must equal 0x10113df0 and vfunc+0x14() nonzero) then scheduler 0x10285338 posts 'MAReplPush' 0x100ba320 at now+3s. The job runs reentrancy-guarded into 0x101b6eac -> pushToReplicationService 0x10290df4: POST /music-account/v0/accounts via 0x1050702c (application/xml, 10s deadline, HTTP 200 required), body stream-parsed by 0x10506c70 into mergeAccounts 0x10285e18, which validates each cloud record via 0x10285a94 ('Discarding invalid cloud record'), applies via 0x105709c0, deletes via 0x10570cdc, counts outcomes for the 'accountsmgr'/'zpam' report (retry/conflicted/updated/added/deleted/invalidCloud*/svcCloud), resaves via 0x102890b0 and reschedules via 0x10285338. Pull twin: 0x100ba5dc -> 0x101b6ebc -> 0x10290400 -> GET 0x10506e3c, same merge.",
+      "Resolved: selected-account maintenance and queued maintenance are fully traced. Cache refresh 0x101b8048 reloads accounts.xml via 0x1028903c, diffs against the live +0x290 array via 0x10570398, emits MusicAccountChangedEvent via 0x101bb1d0, runs selected-account rebuild 0x101b7620 -> 0x101b6fdc (registers {sid,udn} from the +0x5134 manifest table into the 256-entry +0xaa64 table, then rebuilds per-account manifest/cache state under flag tests +0x130 bits 0x10/0x40), and queues 'Account Maintenance'/'SvcAccountMaint' job 0x100bbc80 (enable byte 0x11090020). Worker 0x101b869c runs re-registration 0x1028f5a4 -> 0x104b16b4 'Account registration for service %u res %hu' (context via 0x104abd90), manifest downloads 0x100c6c3c -> 0x1011b710, last.fm/OAuth migrations with zpAM 'OAuthMigration' report, needs_reauth checks, preinstall retries 'Attempting to preinstall SID=%u (attempt %u)', 'R_MigratedTuneIn'/'SA_RINCON65031_' migration, 'stale entitlements; scheduling job to refresh' and 'updating userInfo for account SN: %u'.",
+      "Resolved: registration/reporting leaf is bound: 0x104b16b4 logs 'Account registration for service %u res %hu' under 'sp_impl', reads R_CustomerID via member+0x164 vfunc+0x24, calls reporting vfunc+0x58 of *(obj+0x274); its 0x1600-byte registration context is built by 0x104abd90 via 0x10723e90/0x10674084/0x10726bc8/0x10720610. Pending report 0x1028bdc0 sets Flags bit 1 via shared modifier 0x1028b760.",
+      "Resolved: UDN-reference leaves are bound. Alarm store rewrite 0x1027cbf8: mutex +0x170, commits alarmclock.xml via 0x10283998 (fault ladder {501,800,801,802}), post-commit 0x10279c0c ('ac_impl'/'updating %s' refresh+notify, LUD +0x7f10/version +0x7f2c bump, selector-5 advert via member+0x7f00 vfunc+0x14). Favorites store rewrite 0x1037f5b8: mutex +0x30, commits userradio.xml via 0x10384490 (op6 fault ladder {402,501,701,702,803,805,806,807}), post 0x1037e554(\"2\",0). Their statuses are ignored by the SOAP path.",
+      "Static boundary retained: the remote/cloud side of the push-pull (whether the household cloud accepts and applies the posted account table) is provider-side behavior; the binary proves the local request build, HTTP-200 requirement, response merge and automatic reschedule, not remote completion or subscriber-visible delivery."
      ]
     },
     "SetAccountNicknameX": {
@@ -155229,6 +155385,66 @@
         "site": "0x10731d70",
         "slot": 8,
         "purpose": "parse"
+       }
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028bb74",
+        "notes": "Nickname wrapper: field-descriptor build 0x1056fb1c, UDN-grammar check 0x1056fc20 (false -> 806 at 0x1028bbfc/r31=0x326), then shared edit core 0x1028b760 at 0x1028bc7c.",
+        "function": "0x1028bb74"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b9b4",
+        "notes": "Conflict scan inside 0x1028b760: iterates all snapshot rows matching serial/type key (r19[0]/r19[4]), skips rows with flag byte +0xa9 bit0 set, compares nickname via strcmp; mismatch selects 0x322=802.",
+        "function": "0x1028b760"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285338",
+        "notes": "Post-save scheduler: posts callable 0x100ba320 ('Music account replication push'/'MAReplPush' in job table .data 0x11090020) at now+3000ms through timed-job scheduler global 0x11095f8c vfunc+0xc. Pull twin: 0x100ba5dc ('MAReplPull')."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10290df4",
+        "notes": "pushToReplicationService, mid-entry inside f_1028fa98, reached reentrancy-guarded (lwarx/stwcx on mgr 0x11095f88 member +0xaa4c) via thunk 0x101b6eac on embedded store +0x118. POST /music-account/v0/accounts via transport 0x1050702c (application/xml, now+10000ms deadline, HTTP 200 required at obj+0x868c), body stream-parsed by 0x10506c70 (0x1000-byte chunks through expat-style 0x10c3fc68, callbacks 0x105067e8/0x1050649c/0x105065c0), then mergeAccounts 0x10285e18; resave 0x102890b0 and reschedule 0x10285338. Logs 'push'/'Push successful'/'Push rescheduled in %lld'/'Corrupted accounts not updated'/'Failed to read accounts file'. Pull twin 0x10290400 -> GET transport 0x10506e3c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285e18",
+        "notes": "mergeAccounts: iterates live+deleted local tables (stride 0x250), validates each cloud record via 0x10285a94 ('missing serial number', 'Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]', op name 'mergeAccounts'), applies via 0x105709c0, deletes via 0x10570cdc, and accumulates outcome counters {retry,applied,conflicted,updated,added,deleted,invalidCloud,invalidCloudSerial,invalidCloudReason,svcCloud} for the 'accountsmgr' 'zpam: %s,%d,%d,%u' report (format at 0x10eabcb4, field names at 0x10eabcc8..0x10eabd38). Called at 0x10290a10 (pull) and 0x10291760 (push)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b8048",
+        "notes": "Post-save cache refresh on mgr 0x11095f88: reloads accounts.xml via 0x1028903c at this+0x118 into a 32-slot array (stride 0x250), diffs vs live array +0x290 via 0x10570398, emits MusicAccountChangedEvent via 0x101bb1d0 on this+0xc, runs selected-account rebuild 0x101b7620 -> 0x101b6fdc, then queues job 0x100bbc80 via scheduler vfunc+0x8; nonzero rebuild memsets +0x9fd8/+0xa060."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b6fdc",
+        "notes": "Selected-account rebuild (second entry into f_101b6efc frame): registers {sid,udn} pairs from service-manifest table +0x5134 (stride 0x138, svc-id at +0x134, cap 500, 0xfe skip) into 256-entry table +0xaa64/+0xaa6c via 0x101b6efc, then walks account array +0x290 (stride 0x250) testing descriptor flags +0x130 bits 0x10/0x40 with stale 'X_#' check 0x1056fd48, manifest-cache ops 0x100c6d28/0x100c6b10/0x10118e90/0x10118fd0, row ops 0x105712e4/0x1057082c and normalized-type lookup 0x10570e34."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b869c",
+        "notes": "'Account Maintenance'/'SvcAccountMaint' worker (job 0x100bbc80 at .data 0x1109003c, enable byte 0x11090020): cache refresh 0x101b8048; reportAllActiveAccounts 0x1028f5a4 -> per account Flags&3==0 calls 0x104b16b4 'Account registration for service %u res %hu' under 'sp_impl' (registration context built by 0x104abd90 into a 0x1600-byte stack object); manifest downloads 0x100c6c3c -> 0x1011b710 ('failed to download manifest file for account sid: %u, sn: %u, res=%u'); last.fm email->username migration; OAuth migration + zpAM 'OAuthMigration' report {rsid,success,getAuthTokenResult,accountToOAuthResult,reauth,forced}; 'needs_reauth' checks; preinstall retries 'Attempting to preinstall SID=%u (attempt %u)' via 0x101b5498 -> 0x1028ad54; 'R_MigratedTuneIn'/'SA_RINCON65031_' built-in migration; 'stale entitlements; scheduling job to refresh' via 0x10572ab0+0x100b944c; 'updating userInfo for account SN: %u'."
        }
       ]
      },
@@ -155555,10 +155771,8 @@
         "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
-      "todo": [
-       "Established: Reads account UDN/type/ID, live/deleted arrays, existing serial/type/flags/nicknames, clocks, version/LUD and account-cache topology. Duplicate matching uses exact stored type while account selection uses normalized type.",
-       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects.",
-       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+      "resolved_findings": [
+       "Resolved: downstream state is mapped: accounts.xml arrays via save; cache diff 0x101b8048; selected rebuild tables 0x101b6fdc; scheduler 0x11095f8c / enable byte 0x11090020; 'accountsmgr' merge counters."
       ]
      },
      "side_effects": [
@@ -155670,10 +155884,9 @@
          "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
         }
        ],
-       "todo": [
-        "Established: Copies nickname and stamps household clock while preserving other account fields. A true array update rewrites escaped accounts.xml and advertises version/LUD; false update returns success without save. Save failure can still attempt root-only fallback replacement. Successful save calls account-cache refresh after unlocking.",
-        "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects.",
-        "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+       "resolved_findings": [
+        "Resolved: delayed account-cloud synchronization is fully traced. Save 0x102890b0 runs predicate 0x10285878 (callback-registry global 0x11097680: registered object's vfunc+0x90 must equal 0x10113df0 and vfunc+0x14() nonzero) then scheduler 0x10285338 posts 'MAReplPush' 0x100ba320 at now+3s. The job runs reentrancy-guarded into 0x101b6eac -> pushToReplicationService 0x10290df4: POST /music-account/v0/accounts via 0x1050702c (application/xml, 10s deadline, HTTP 200 required), body stream-parsed by 0x10506c70 into mergeAccounts 0x10285e18, which validates each cloud record via 0x10285a94 ('Discarding invalid cloud record'), applies via 0x105709c0, deletes via 0x10570cdc, counts outcomes for the 'accountsmgr'/'zpam' report (retry/conflicted/updated/added/deleted/invalidCloud*/svcCloud), resaves via 0x102890b0 and reschedules via 0x10285338. Pull twin: 0x100ba5dc -> 0x101b6ebc -> 0x10290400 -> GET 0x10506e3c, same merge.",
+        "Resolved: selected-account maintenance and queued maintenance are fully traced. Cache refresh 0x101b8048 reloads accounts.xml via 0x1028903c, diffs against the live +0x290 array via 0x10570398, emits MusicAccountChangedEvent via 0x101bb1d0, runs selected-account rebuild 0x101b7620 -> 0x101b6fdc (registers {sid,udn} from the +0x5134 manifest table into the 256-entry +0xaa64 table, then rebuilds per-account manifest/cache state under flag tests +0x130 bits 0x10/0x40), and queues 'Account Maintenance'/'SvcAccountMaint' job 0x100bbc80 (enable byte 0x11090020). Worker 0x101b869c runs re-registration 0x1028f5a4 -> 0x104b16b4 'Account registration for service %u res %hu' (context via 0x104abd90), manifest downloads 0x100c6c3c -> 0x1011b710, last.fm/OAuth migrations with zpAM 'OAuthMigration' report, needs_reauth checks, preinstall retries 'Attempting to preinstall SID=%u (attempt %u)', 'R_MigratedTuneIn'/'SA_RINCON65031_' migration, 'stale entitlements; scheduling job to refresh' and 'updating userInfo for account SN: %u'."
        ]
       },
       {
@@ -155853,10 +156066,8 @@
         "notes": "Account refresh reads manager snapshot via0x1028903c at0x101b8238; compares with cached table at0x101b8250. Nonzero copies rows then invokes0x101bb1d0 at0x101b8290. Further work is conditional at0x101b8294..0x101b82c0. This does not by itself establish external event delivery."
        }
       ],
-      "todo": [
-       "Established: Successful save conditionally queues selector-11 ReplicatedSettingsChangedEvent carrying version/LUD metadata. Account-cache comparison can queue payload-free MusicAccountChangedEvent. There is no direct nickname-specific event or account-operation publication in this core.",
-       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects.",
-       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+      "resolved_findings": [
+       "Resolved: downstream signals are bound: selector-11 ReplicatedSettingsChangedEvent with version/LUD after save; MusicAccountChangedEvent via 0x101bb1d0 from cache refresh; maintenance re-registration; 'accountsmgr' merge counters. No nickname-specific event exists."
       ]
      },
      "state_transitions": {
@@ -155967,10 +156178,8 @@
         "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
-      "todo": [
-       "Established: Missing input precedes parsing. Invalid UDN returns 806 without store access; snapshot/lookup/conflict failures precede save. Accepted nickname and household clock update a copy; false array update returns zero without persistence, true update saves and on success refreshes caches. Serial, preferred serial and NextSerialNum are preserved. Later maintenance must not be inferred to preserve an empty nickname.",
-       "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects.",
-       "Next step: trace 0x101b6fdc, 0x101b869c, 0x10290df4 and the response/merge path 0x10506c70 -> 0x10285e18; apply only reachable results."
+      "resolved_findings": [
+       "Resolved: full ordering is bound: materialize -> delegate 0x104b071c -> wrapper 0x1028bb74 (descriptor + UDN grammar) -> shared core 0x1028b760 (lookup/conflict/copy) -> save -> post-save schedule/merge/maintenance chain."
       ]
      },
      "return_behavior": {
@@ -156415,6 +156624,14 @@
          "build": "86.10-80260",
          "address": "0x1028ba20",
          "notes": "Nickname copy and later status check0x1028bad0 precede table update/commit. Duplicate802 aborts before table update."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028bbfc",
+         "notes": "r31=0x326 = 806 returned when UDN-grammar check 0x1056fc20 fails.",
+         "function": "0x1028bb74"
         }
        ],
        "conditions": [
@@ -156474,7 +156691,9 @@
          ]
         }
        ],
-       "todo": "Established: concrete nickname decoder/load/selection/conflict/commit failures are mapped. Remaining: finish shared save/recovery and parser failures; additional modifier fields belong to other callers."
+       "resolved_findings": [
+        "Resolved: save/recovery and parser-adjacent causes are bound. 806 covers both UDN-grammar rejection (0x1056fc20 false inside 0x1028bb74) and normalized-type lookup miss (0x1028b760/0x1028ba14); 802 is the matching-row strcmp conflict (0x1028b9ec); 810 is the empty snapshot; 809 is save 0x10289258 false (fallback replacement documented in side_effects). Modifier fields unrelated to nickname belong to other callers and are documented there."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -156635,11 +156854,12 @@
       }
      ],
      "notes": "Static trace of build 86.10-80260. Immediate local results are distinct from queued work and remote/subscriber outcomes.",
-     "todo": [
-      "Established: concrete delegate, parsing, immediate mutation, persistence and synchronous fault domain are recovered.",
-      "Residual: Selected-account rebuild/migration and delayed cloud response/conflict behavior remain to be completed. Static scheduling does not establish execution, remote delivery or subscriber effects.",
-      "Next step: finish shared selected-account, queued-maintenance and cloud response/merge tracing; also finish any action-specific post-save leaves identified below.",
-      "Remaining: reachable table-update false cases and upstream parser treatment of omitted/empty/oversized inputs are not fully resolved."
+     "resolved_findings": [
+      "Resolved: delayed account-cloud synchronization is fully traced. Save 0x102890b0 runs predicate 0x10285878 (callback-registry global 0x11097680: registered object's vfunc+0x90 must equal 0x10113df0 and vfunc+0x14() nonzero) then scheduler 0x10285338 posts 'MAReplPush' 0x100ba320 at now+3s. The job runs reentrancy-guarded into 0x101b6eac -> pushToReplicationService 0x10290df4: POST /music-account/v0/accounts via 0x1050702c (application/xml, 10s deadline, HTTP 200 required), body stream-parsed by 0x10506c70 into mergeAccounts 0x10285e18, which validates each cloud record via 0x10285a94 ('Discarding invalid cloud record'), applies via 0x105709c0, deletes via 0x10570cdc, counts outcomes for the 'accountsmgr'/'zpam' report (retry/conflicted/updated/added/deleted/invalidCloud*/svcCloud), resaves via 0x102890b0 and reschedules via 0x10285338. Pull twin: 0x100ba5dc -> 0x101b6ebc -> 0x10290400 -> GET 0x10506e3c, same merge.",
+      "Resolved: selected-account maintenance and queued maintenance are fully traced. Cache refresh 0x101b8048 reloads accounts.xml via 0x1028903c, diffs against the live +0x290 array via 0x10570398, emits MusicAccountChangedEvent via 0x101bb1d0, runs selected-account rebuild 0x101b7620 -> 0x101b6fdc (registers {sid,udn} from the +0x5134 manifest table into the 256-entry +0xaa64 table, then rebuilds per-account manifest/cache state under flag tests +0x130 bits 0x10/0x40), and queues 'Account Maintenance'/'SvcAccountMaint' job 0x100bbc80 (enable byte 0x11090020). Worker 0x101b869c runs re-registration 0x1028f5a4 -> 0x104b16b4 'Account registration for service %u res %hu' (context via 0x104abd90), manifest downloads 0x100c6c3c -> 0x1011b710, last.fm/OAuth migrations with zpAM 'OAuthMigration' report, needs_reauth checks, preinstall retries 'Attempting to preinstall SID=%u (attempt %u)', 'R_MigratedTuneIn'/'SA_RINCON65031_' migration, 'stale entitlements; scheduling job to refresh' and 'updating userInfo for account SN: %u'.",
+      "Resolved: table-update false cases are bound. Wrapper 0x1028bb74 builds the nickname descriptor via 0x1056fb1c and validates it with 0x1056fc20 (UDN grammar; false -> 806) before calling shared edit core 0x1028b760, whose reachable falses are: normalized-type lookup 0x10570e34 miss -> 806; matching-row strcmp predicate fail -> 802 (this is the same-type eligible-nickname conflict test across rows with Flags bit0 clear); save 0x10289258 false -> 809; initial snapshot empty -> 810.",
+      "Resolved: upstream parser treatment of omitted/empty/oversized inputs is bound: both arguments are required descriptors so omission faults 402 before delegate; tag-7 materialization retains capacity-1 bytes (UDN 143, nickname 63) with present empty text accepted; oversize text truncates before UDN grammar/conflict predicates apply.",
+      "Static boundary retained: the remote/cloud side of the push-pull (whether the household cloud accepts and applies the posted account table) is provider-side behavior; the binary proves the local request build, HTTP-200 requirement, response merge and automatic reschedule, not remote completion or subscriber-visible delivery."
      ]
     },
     "SetString": {
