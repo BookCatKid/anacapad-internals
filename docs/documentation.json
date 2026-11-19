@@ -107877,7 +107877,7 @@
      "implementation_notes": "Primary slot +0x10 resolves f_10121494; prefix comparison routes player and media-server workers. The previous prefix-invalid 402 claim was the branch polarity reversed."
     },
     "SubmitDiagnostics": {
-     "description": "Submits diagnostics (IncludeControllers, Type) returning DiagnosticID via impl->v[+0x18] on the doubly-indirect member.",
+     "description": "Coordinates diagnostic ticket allocation, local/peer collection and optional controller uploads, waits for reported results and returns a numeric DiagnosticID when at least one submission succeeds. Both inputs are optional. It is not an unconditional enqueue-and-return operation.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073365c",
@@ -107892,15 +107892,9 @@
       "calls": [
        {
         "site": "0x1073377c",
-        "obj": "*(*(sp-0x50+0x40)+0x4)",
+        "obj": "*(service+4), primary vptr 0x10e8b024",
         "slot": 24,
-        "arg4": "sp+0x14"
-       },
-       {
-        "site": "0x107337c0",
-        "obj": "*(sp-0x50+0x4c)",
-        "slot": 12,
-        "arg4": "?"
+        "arg4": "&DiagnosticID"
        }
       ],
       "req_vcalls": [
@@ -107913,7 +107907,7 @@
      },
      "inputs": {
       "IncludeControllers": {
-       "description": "flag parsed by request layer, forwarded to diag worker f_105b2d6c",
+       "description": "Optional controller-inclusion flag, default enabled.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -107923,27 +107917,36 @@
         "via_slot": 28
        },
        "semantic_type": "SonosBoolArg",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
+       "format": "permissive boolean text",
        "unit": "none - boolean flag",
-       "accepted_values": "not impl-checked",
+       "accepted_values": "case-insensitive 1/true/yes -> true; other present text -> false",
        "range": "{0,1}",
-       "special_values": "none observed in this build",
-       "required": true,
-       "default": "none - required argument",
-       "validation": "request-layer parse only",
+       "special_values": "Omitted -> true; present empty/unknown -> false.",
+       "required": false,
+       "default": "true",
+       "validation": "Presence optional; no strict lexical rejection.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073e718",
-         "notes": "impl head"
+         "function": "0x1073365c",
+         "address": "0x1073377c",
+         "notes": "Both arguments are OPTIONAL: IncludeControllers byte initialized to 1 at 0x107336a0 and its registration record +0x30 set to 1 at 0x107336c4; Type buffer initialized empty at 0x10733698, capacity 33, registration +0x30 set to 1 at 0x107336f4. f_10730414 at 0x107304b4..0x107304c8 permits absent records when +0x30 != 0. Missing args retain defaults. Present bool uses f_10560a58 tag 1: case-insensitive 1/true/yes -> true, other text including empty -> false. Present Type is bounded tag-7 copy, truncating to 32 bytes plus NUL. Validation false faults 402 at 0x10733728; canonical optional inputs pass. Worker nonzero uses same fault call, zero formats DiagnosticID through f_1055fcbc at 0x107337ac and commits at 0x107337c0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b2d6c",
+         "address": "0x105b2df8",
+         "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
         }
        ],
        "notes": null
       },
       "Type": {
-       "description": "diag type string forwarded to worker",
+       "description": "Optional diagnostic type forwarded in submission context.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -107955,19 +107958,36 @@
        "semantic_type": "SonosStringArg",
        "format": "utf-8 text, buffer cap 33 bytes (32 chars + NUL)",
        "unit": "n/a - text",
-       "accepted_values": "not impl-checked",
+       "accepted_values": "bounded text; no local whitelist",
        "range": "max 32 chars",
-       "special_values": "none observed in this build",
-       "required": true,
-       "default": "none - required argument",
-       "validation": "request-layer parse only",
+       "special_values": "Omitted/empty/ExtraLocal -> User.",
+       "required": false,
+       "default": "User",
+       "validation": "Bounded copy; remote services may reject unsupported types.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073e718",
-         "notes": "impl head"
+         "function": "0x1073365c",
+         "address": "0x1073377c",
+         "notes": "Both arguments are OPTIONAL: IncludeControllers byte initialized to 1 at 0x107336a0 and its registration record +0x30 set to 1 at 0x107336c4; Type buffer initialized empty at 0x10733698, capacity 33, registration +0x30 set to 1 at 0x107336f4. f_10730414 at 0x107304b4..0x107304c8 permits absent records when +0x30 != 0. Missing args retain defaults. Present bool uses f_10560a58 tag 1: case-insensitive 1/true/yes -> true, other text including empty -> false. Present Type is bounded tag-7 copy, truncating to 32 bytes plus NUL. Validation false faults 402 at 0x10733728; canonical optional inputs pass. Worker nonzero uses same fault call, zero formats DiagnosticID through f_1055fcbc at 0x107337ac and commits at 0x107337c0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b2d6c",
+         "address": "0x105b2df8",
+         "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106b5480",
+         "address": "0x106b55c8",
+         "notes": "Initiates remote diagnostic ticket via POST to configured /v2/diags endpoint with application/json; serial_num JSON formatted at 0x106b5548. HTTP transaction f_10546158 and reply parser f_106b5380 must succeed; failure returns false. Numeric ticket is taken from returned text with paranoid_atoui at 0x105b2fa4, not generated from a local counter. Outgoing member collection calls topology endpoint discovery f_1074859c with /support/asyncsubmit at 0x105b2fe8 and progress initialization f_106b78bc. Worker requests local collection through f_105b27a4, sends peer collection through f_106b5838 and controller multipart PUT through f_106b6da0. Controller/local upload builder f_106b6da0 uses /v2/diags/<ID>, product-diagnostics originator and serial_num, collects diagnostic data through f_106b6568, and performs upload through f_1056c670. Network/parser failures fold into diagnostic status, not arbitrary SOAP status propagation."
         }
        ],
        "notes": null,
@@ -107976,7 +107996,7 @@
      },
      "outputs": {
       "DiagnosticID": {
-       "description": "diag ticket ID emitted on success via f_1055fcbc",
+       "description": "Unsigned numeric ticket parsed from remote initiation reply and returned if at least one device submits successfully.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -107984,160 +108004,361 @@
        },
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
-       "unit": "n/a - text",
+       "unit": "diagnostic ticket",
        "accepted_values": "worker-assigned ID",
-       "range": "length-bounded by parse-helper buffer cap",
+       "range": "u32 as parsed by paranoid_atoui",
        "special_values": "none observed",
        "required": false,
-       "default": "worker-assigned diag ticket id",
+       "default": "none on fault",
        "validation": "emitted on success only",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107337ac",
-         "notes": "emit via f_1055fcbc"
+         "function": "0x1073365c",
+         "address": "0x1073377c",
+         "notes": "Both arguments are OPTIONAL: IncludeControllers byte initialized to 1 at 0x107336a0 and its registration record +0x30 set to 1 at 0x107336c4; Type buffer initialized empty at 0x10733698, capacity 33, registration +0x30 set to 1 at 0x107336f4. f_10730414 at 0x107304b4..0x107304c8 permits absent records when +0x30 != 0. Missing args retain defaults. Present bool uses f_10560a58 tag 1: case-insensitive 1/true/yes -> true, other text including empty -> false. Present Type is bounded tag-7 copy, truncating to 32 bytes plus NUL. Validation false faults 402 at 0x10733728; canonical optional inputs pass. Worker nonzero uses same fault call, zero formats DiagnosticID through f_1055fcbc at 0x107337ac and commits at 0x107337c0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b2d6c",
+         "address": "0x105b2df8",
+         "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106b5480",
+         "address": "0x106b55c8",
+         "notes": "Initiates remote diagnostic ticket via POST to configured /v2/diags endpoint with application/json; serial_num JSON formatted at 0x106b5548. HTTP transaction f_10546158 and reply parser f_106b5380 must succeed; failure returns false. Numeric ticket is taken from returned text with paranoid_atoui at 0x105b2fa4, not generated from a local counter. Outgoing member collection calls topology endpoint discovery f_1074859c with /support/asyncsubmit at 0x105b2fe8 and progress initialization f_106b78bc. Worker requests local collection through f_105b27a4, sends peer collection through f_106b5838 and controller multipart PUT through f_106b6da0. Controller/local upload builder f_106b6da0 uses /v2/diags/<ID>, product-diagnostics originator and serial_num, collects diagnostic data through f_106b6568, and performs upload through f_1056c670. Network/parser failures fold into diagnostic status, not arbitrary SOAP status propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b2d6c",
+         "address": "0x105b3254",
+         "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
         }
        ],
        "notes": null
       }
      },
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "Optional boolean and bounded text. No strict bool rejection, Type whitelist, required-input check or cross-field validation. Empty/omitted Type becomes User and ExtraLocal is normalized to User; other values are sent downstream. Remote rejection becomes 1000 via ticket/result processing.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1073365c",
-        "notes": "wrapper decode"
+        "function": "0x1073365c",
+        "address": "0x1073377c",
+        "notes": "Both arguments are OPTIONAL: IncludeControllers byte initialized to 1 at 0x107336a0 and its registration record +0x30 set to 1 at 0x107336c4; Type buffer initialized empty at 0x10733698, capacity 33, registration +0x30 set to 1 at 0x107336f4. f_10730414 at 0x107304b4..0x107304c8 permits absent records when +0x30 != 0. Missing args retain defaults. Present bool uses f_10560a58 tag 1: case-insensitive 1/true/yes -> true, other text including empty -> false. Present Type is bounded tag-7 copy, truncating to 32 bytes plus NUL. Validation false faults 402 at 0x10733728; canonical optional inputs pass. Worker nonzero uses same fault call, zero formats DiagnosticID through f_1055fcbc at 0x107337ac and commits at 0x107337c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b2d6c",
+        "address": "0x105b2df8",
+        "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b5480",
+        "address": "0x106b55c8",
+        "notes": "Initiates remote diagnostic ticket via POST to configured /v2/diags endpoint with application/json; serial_num JSON formatted at 0x106b5548. HTTP transaction f_10546158 and reply parser f_106b5380 must succeed; failure returns false. Numeric ticket is taken from returned text with paranoid_atoui at 0x105b2fa4, not generated from a local counter. Outgoing member collection calls topology endpoint discovery f_1074859c with /support/asyncsubmit at 0x105b2fe8 and progress initialization f_106b78bc. Worker requests local collection through f_105b27a4, sends peer collection through f_106b5838 and controller multipart PUT through f_106b6da0. Controller/local upload builder f_106b6da0 uses /v2/diags/<ID>, product-diagnostics originator and serial_num, collects diagnostic data through f_106b6568, and performs upload through f_1056c670. Network/parser failures fold into diagnostic status, not arbitrary SOAP status propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b2d6c",
+        "address": "0x105b3254",
+        "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: *(r28+4) v[+0x18]",
+      "description": "Diagnostics module must resolve through the zone-player module registry, progress slot must be free, ticket allocation/ID parsing must succeed and at least one device must report successful submission. IncludeControllers defaults true; Type defaults User. No required SOAP inputs.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x1073e718",
+        "address": "0x10e8b03c",
+        "notes": "Primary topology vptr 0x10e8b024 (installed at 0x10126234; service+4 set by f_10733b28 at 0x1018e2cc) slot +0x18 is f_1073e718. It reads global 0x11097680 and topology+0x578, calls global interface +0xcc at 0x1073e758. Null result explicitly returns 1000. Non-null tails directly to f_105b2d6c(outID, IncludeControllers, Type, zero delay, null optional output) at 0x1073e790. Global is zone-player+0x3a8, stored at 0x100c1be0; primary zone-implementation vtable 0x10e98278 +0xcc -> adjustment thunk f_10188db4 -> f_10188d08. That looks up module via f_10180794/f_1040edf4, returns null when absent, otherwise f_103f7e10 returns module+0x2c0, the concrete diagnostic coordinator. No hidden implementation callback follows the module lookup."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x1073365c",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x1073377c",
+        "notes": "Both arguments are OPTIONAL: IncludeControllers byte initialized to 1 at 0x107336a0 and its registration record +0x30 set to 1 at 0x107336c4; Type buffer initialized empty at 0x10733698, capacity 33, registration +0x30 set to 1 at 0x107336f4. f_10730414 at 0x107304b4..0x107304c8 permits absent records when +0x30 != 0. Missing args retain defaults. Present bool uses f_10560a58 tag 1: case-insensitive 1/true/yes -> true, other text including empty -> false. Present Type is bounded tag-7 copy, truncating to 32 bytes plus NUL. Validation false faults 402 at 0x10733728; canonical optional inputs pass. Worker nonzero uses same fault call, zero formats DiagnosticID through f_1055fcbc at 0x107337ac and commits at 0x107337c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b2d6c",
+        "address": "0x105b2df8",
+        "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b2d6c",
+        "address": "0x105b3254",
+        "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: *(r28+4) v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r28+4) v[+0x18]",
+      "description": "Concrete diagnostics coordinator obtained from module+0x2c0; local active state +0x2c5 under lock +0x1a8; progress state at coordinator+0x368 with lock +0xcc0, in-progress byte +0xcb0, deadline, member result lists and condition +0xd50. Uses topology endpoint snapshot and configured network endpoints.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073365c",
-        "notes": "member vfunc calls: ['*(r28+4) v[+0x18]']"
+        "function": "0x1073e718",
+        "address": "0x10e8b03c",
+        "notes": "Primary topology vptr 0x10e8b024 (installed at 0x10126234; service+4 set by f_10733b28 at 0x1018e2cc) slot +0x18 is f_1073e718. It reads global 0x11097680 and topology+0x578, calls global interface +0xcc at 0x1073e758. Null result explicitly returns 1000. Non-null tails directly to f_105b2d6c(outID, IncludeControllers, Type, zero delay, null optional output) at 0x1073e790. Global is zone-player+0x3a8, stored at 0x100c1be0; primary zone-implementation vtable 0x10e98278 +0xcc -> adjustment thunk f_10188db4 -> f_10188d08. That looks up module via f_10180794/f_1040edf4, returns null when absent, otherwise f_103f7e10 returns module+0x2c0, the concrete diagnostic coordinator. No hidden implementation callback follows the module lookup."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b2d6c",
+        "address": "0x105b2df8",
+        "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b27a4",
+        "address": "0x105b2848",
+        "notes": "Coordinator lock +0x1a8 protects local diagnostic-active byte +0x2c5 and copied request +0x2c8. If already active, local request is rejected; otherwise active is set, context copied, and local f_105b2254 runs immediately for locally initiated context or timer f_105b2768 is scheduled through member+0x240 slot +0x0c. Local f_105b2254 uploads through f_106b6da0, tracks per-device status through f_105b1cdc -> f_106b7cb4/f_106b7b58, and queries topology endpoint snapshot via f_1067cccc at 0x105b2540. This is a read/snapshot of the topology source, not f_1067c6ec dirty scheduling. Collection/upload and progress state are distinct from topology grouping or alarm definitions; this action does not set a ZoneGroupTopology property dirty flag."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b5480",
+        "address": "0x106b55c8",
+        "notes": "Initiates remote diagnostic ticket via POST to configured /v2/diags endpoint with application/json; serial_num JSON formatted at 0x106b5548. HTTP transaction f_10546158 and reply parser f_106b5380 must succeed; failure returns false. Numeric ticket is taken from returned text with paranoid_atoui at 0x105b2fa4, not generated from a local counter. Outgoing member collection calls topology endpoint discovery f_1074859c with /support/asyncsubmit at 0x105b2fe8 and progress initialization f_106b78bc. Worker requests local collection through f_105b27a4, sends peer collection through f_106b5838 and controller multipart PUT through f_106b6da0. Controller/local upload builder f_106b6da0 uses /v2/diags/<ID>, product-diagnostics originator and serial_num, collects diagnostic data through f_106b6568, and performs upload through f_1056c670. Network/parser failures fold into diagnostic status, not arbitrary SOAP status propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b2d6c",
+        "address": "0x105b3254",
+        "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r28+4) v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: *(r28+4) v[+0x18] (call-derived member-method semantics)",
+       "description": "Reserves/releases diagnostic progress, obtains remote ID, changes local diagnostic-active/request context, collects and uploads diagnostic data and coordinates peer/controller submissions. May wait for timeout/partial results; records tracking telemetry. No alarm-definition or grouping configuration save is requested.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1073365c",
-         "notes": "delegate map ['*(r28+4) v[+0x18]']; notify-family calls []"
+         "function": "0x105b2d6c",
+         "address": "0x105b2df8",
+         "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106b5480",
+         "address": "0x106b55c8",
+         "notes": "Initiates remote diagnostic ticket via POST to configured /v2/diags endpoint with application/json; serial_num JSON formatted at 0x106b5548. HTTP transaction f_10546158 and reply parser f_106b5380 must succeed; failure returns false. Numeric ticket is taken from returned text with paranoid_atoui at 0x105b2fa4, not generated from a local counter. Outgoing member collection calls topology endpoint discovery f_1074859c with /support/asyncsubmit at 0x105b2fe8 and progress initialization f_106b78bc. Worker requests local collection through f_105b27a4, sends peer collection through f_106b5838 and controller multipart PUT through f_106b6da0. Controller/local upload builder f_106b6da0 uses /v2/diags/<ID>, product-diagnostics originator and serial_num, collects diagnostic data through f_106b6568, and performs upload through f_1056c670. Network/parser failures fold into diagnostic status, not arbitrary SOAP status propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b27a4",
+         "address": "0x105b2848",
+         "notes": "Coordinator lock +0x1a8 protects local diagnostic-active byte +0x2c5 and copied request +0x2c8. If already active, local request is rejected; otherwise active is set, context copied, and local f_105b2254 runs immediately for locally initiated context or timer f_105b2768 is scheduled through member+0x240 slot +0x0c. Local f_105b2254 uploads through f_106b6da0, tracks per-device status through f_105b1cdc -> f_106b7cb4/f_106b7b58, and queries topology endpoint snapshot via f_1067cccc at 0x105b2540. This is a read/snapshot of the topology source, not f_1067c6ec dirty scheduling. Collection/upload and progress state are distinct from topology grouping or alarm definitions; this action does not set a ZoneGroupTopology property dirty flag."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b2d6c",
+         "address": "0x105b3254",
+         "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r28+4) v[+0x18] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Diagnostic HTTP requests, completion/status bookkeeping and zpDiagSubmit tracking telemetry occur; these are not ZoneGroupTopology GENA events. The topology event source is queried for endpoint snapshot through f_1067cccc, not marked dirty through f_1067c6ec. No named topology property-change notification is requested by this action.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073365c",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x105b27a4",
+        "address": "0x105b2848",
+        "notes": "Coordinator lock +0x1a8 protects local diagnostic-active byte +0x2c5 and copied request +0x2c8. If already active, local request is rejected; otherwise active is set, context copied, and local f_105b2254 runs immediately for locally initiated context or timer f_105b2768 is scheduled through member+0x240 slot +0x0c. Local f_105b2254 uploads through f_106b6da0, tracks per-device status through f_105b1cdc -> f_106b7cb4/f_106b7b58, and queries topology endpoint snapshot via f_1067cccc at 0x105b2540. This is a read/snapshot of the topology source, not f_1067c6ec dirty scheduling. Collection/upload and progress state are distinct from topology grouping or alarm definitions; this action does not set a ZoneGroupTopology property dirty flag."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b5480",
+        "address": "0x106b55c8",
+        "notes": "Initiates remote diagnostic ticket via POST to configured /v2/diags endpoint with application/json; serial_num JSON formatted at 0x106b5548. HTTP transaction f_10546158 and reply parser f_106b5380 must succeed; failure returns false. Numeric ticket is taken from returned text with paranoid_atoui at 0x105b2fa4, not generated from a local counter. Outgoing member collection calls topology endpoint discovery f_1074859c with /support/asyncsubmit at 0x105b2fe8 and progress initialization f_106b78bc. Worker requests local collection through f_105b27a4, sends peer collection through f_106b5838 and controller multipart PUT through f_106b6da0. Controller/local upload builder f_106b6da0 uses /v2/diags/<ID>, product-diagnostics originator and serial_num, collects diagnostic data through f_106b6568, and performs upload through f_1056c670. Network/parser failures fold into diagnostic status, not arbitrary SOAP status propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b2d6c",
+        "address": "0x105b3254",
+        "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r28+4) v[+0x18]",
+      "description": "Progress idle -> reserved/in-progress -> per-device collection/reporting -> completion or timeout -> released. Local diagnostic-active context is set when collection starts. A busy reservation is rejected. No player active/vanished or alarm-running transition is performed.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073365c",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r28+4) v[+0x18]']"
+        "function": "0x105b2d6c",
+        "address": "0x105b2df8",
+        "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b27a4",
+        "address": "0x105b2848",
+        "notes": "Coordinator lock +0x1a8 protects local diagnostic-active byte +0x2c5 and copied request +0x2c8. If already active, local request is rejected; otherwise active is set, context copied, and local f_105b2254 runs immediately for locally initiated context or timer f_105b2768 is scheduled through member+0x240 slot +0x0c. Local f_105b2254 uploads through f_106b6da0, tracks per-device status through f_105b1cdc -> f_106b7cb4/f_106b7b58, and queries topology endpoint snapshot via f_1067cccc at 0x105b2540. This is a read/snapshot of the topology source, not f_1067c6ec dirty scheduling. Collection/upload and progress state are distinct from topology grouping or alarm definitions; this action does not set a ZoneGroupTopology property dirty flag."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b2d6c",
+        "address": "0x105b3254",
+        "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r28+4) v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Installed worker returns {0,1000}: nonzero faults, zero emits parsed unsigned DiagnosticID and empty action completion. 1000 includes absent module, busy coordinator, remote ticket or numeric-ID failure, or zero successful submissions. Partial success can return zero. Defensive generic request-validation false selects 402, but omitted optional inputs do not fail validation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x1073e718",
+        "address": "0x10e8b03c",
+        "notes": "Primary topology vptr 0x10e8b024 (installed at 0x10126234; service+4 set by f_10733b28 at 0x1018e2cc) slot +0x18 is f_1073e718. It reads global 0x11097680 and topology+0x578, calls global interface +0xcc at 0x1073e758. Null result explicitly returns 1000. Non-null tails directly to f_105b2d6c(outID, IncludeControllers, Type, zero delay, null optional output) at 0x1073e790. Global is zone-player+0x3a8, stored at 0x100c1be0; primary zone-implementation vtable 0x10e98278 +0xcc -> adjustment thunk f_10188db4 -> f_10188d08. That looks up module via f_10180794/f_1040edf4, returns null when absent, otherwise f_103f7e10 returns module+0x2c0, the concrete diagnostic coordinator. No hidden implementation callback follows the module lookup."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x1073365c",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x1073377c",
+        "notes": "Both arguments are OPTIONAL: IncludeControllers byte initialized to 1 at 0x107336a0 and its registration record +0x30 set to 1 at 0x107336c4; Type buffer initialized empty at 0x10733698, capacity 33, registration +0x30 set to 1 at 0x107336f4. f_10730414 at 0x107304b4..0x107304c8 permits absent records when +0x30 != 0. Missing args retain defaults. Present bool uses f_10560a58 tag 1: case-insensitive 1/true/yes -> true, other text including empty -> false. Present Type is bounded tag-7 copy, truncating to 32 bytes plus NUL. Validation false faults 402 at 0x10733728; canonical optional inputs pass. Worker nonzero uses same fault call, zero formats DiagnosticID through f_1055fcbc at 0x107337ac and commits at 0x107337c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b2d6c",
+        "address": "0x105b2df8",
+        "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b5480",
+        "address": "0x106b55c8",
+        "notes": "Initiates remote diagnostic ticket via POST to configured /v2/diags endpoint with application/json; serial_num JSON formatted at 0x106b5548. HTTP transaction f_10546158 and reply parser f_106b5380 must succeed; failure returns false. Numeric ticket is taken from returned text with paranoid_atoui at 0x105b2fa4, not generated from a local counter. Outgoing member collection calls topology endpoint discovery f_1074859c with /support/asyncsubmit at 0x105b2fe8 and progress initialization f_106b78bc. Worker requests local collection through f_105b27a4, sends peer collection through f_106b5838 and controller multipart PUT through f_106b6da0. Controller/local upload builder f_106b6da0 uses /v2/diags/<ID>, product-diagnostics originator and serial_num, collects diagnostic data through f_106b6568, and performs upload through f_1056c670. Network/parser failures fold into diagnostic status, not arbitrary SOAP status propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b2d6c",
+        "address": "0x105b3254",
+        "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10733728",
-       "code": 402,
-       "code_expr": "const"
+       "code": null,
+       "code_expr": "defensive 402; concrete worker 1000"
       }
      ],
      "errors": [
       {
        "code": 1000,
        "code_expr": "const",
-       "meaning": "diagnostics delegate absent: global->v[+0xcc](*(impl+0x578))==0 -> rc 0x3e8",
+       "meaning": "Diagnostics module absent, coordinator busy, ticket initiation/ID parsing failed, or no device reported successful diagnostic submission.",
        "fault_sites": [
         "0x10733728"
        ],
        "conditions": [
         {
-         "description": "diagnostics delegate absent: global->v[+0xcc](*(impl+0x578))==0 -> rc 0x3e8",
+         "description": "Diagnostics module absent, coordinator busy, ticket initiation/ID parsing failed, or no device reported successful diagnostic submission.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073e798",
-           "notes": "impl return path"
+           "function": "0x1073e718",
+           "address": "0x10e8b03c",
+           "notes": "Primary topology vptr 0x10e8b024 (installed at 0x10126234; service+4 set by f_10733b28 at 0x1018e2cc) slot +0x18 is f_1073e718. It reads global 0x11097680 and topology+0x578, calls global interface +0xcc at 0x1073e758. Null result explicitly returns 1000. Non-null tails directly to f_105b2d6c(outID, IncludeControllers, Type, zero delay, null optional output) at 0x1073e790. Global is zone-player+0x3a8, stored at 0x100c1be0; primary zone-implementation vtable 0x10e98278 +0xcc -> adjustment thunk f_10188db4 -> f_10188d08. That looks up module via f_10180794/f_1040edf4, returns null when absent, otherwise f_103f7e10 returns module+0x2c0, the concrete diagnostic coordinator. No hidden implementation callback follows the module lookup."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x105b2d6c",
+           "address": "0x105b2df8",
+           "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x106b5480",
+           "address": "0x106b55c8",
+           "notes": "Initiates remote diagnostic ticket via POST to configured /v2/diags endpoint with application/json; serial_num JSON formatted at 0x106b5548. HTTP transaction f_10546158 and reply parser f_106b5380 must succeed; failure returns false. Numeric ticket is taken from returned text with paranoid_atoui at 0x105b2fa4, not generated from a local counter. Outgoing member collection calls topology endpoint discovery f_1074859c with /support/asyncsubmit at 0x105b2fe8 and progress initialization f_106b78bc. Worker requests local collection through f_105b27a4, sends peer collection through f_106b5838 and controller multipart PUT through f_106b6da0. Controller/local upload builder f_106b6da0 uses /v2/diags/<ID>, product-diagnostics originator and serial_num, collects diagnostic data through f_106b6568, and performs upload through f_1056c670. Network/parser failures fold into diagnostic status, not arbitrary SOAP status propagation."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x105b2d6c",
+           "address": "0x105b3254",
+           "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
           }
          ]
         }
@@ -108147,33 +108368,54 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073e798",
-         "notes": "impl return path produces rc 1000"
+         "function": "0x1073e718",
+         "address": "0x10e8b03c",
+         "notes": "Primary topology vptr 0x10e8b024 (installed at 0x10126234; service+4 set by f_10733b28 at 0x1018e2cc) slot +0x18 is f_1073e718. It reads global 0x11097680 and topology+0x578, calls global interface +0xcc at 0x1073e758. Null result explicitly returns 1000. Non-null tails directly to f_105b2d6c(outID, IncludeControllers, Type, zero delay, null optional output) at 0x1073e790. Global is zone-player+0x3a8, stored at 0x100c1be0; primary zone-implementation vtable 0x10e98278 +0xcc -> adjustment thunk f_10188db4 -> f_10188d08. That looks up module via f_10180794/f_1040edf4, returns null when absent, otherwise f_103f7e10 returns module+0x2c0, the concrete diagnostic coordinator. No hidden implementation callback follows the module lookup."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b2d6c",
+         "address": "0x105b2df8",
+         "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106b5480",
+         "address": "0x106b55c8",
+         "notes": "Initiates remote diagnostic ticket via POST to configured /v2/diags endpoint with application/json; serial_num JSON formatted at 0x106b5548. HTTP transaction f_10546158 and reply parser f_106b5380 must succeed; failure returns false. Numeric ticket is taken from returned text with paranoid_atoui at 0x105b2fa4, not generated from a local counter. Outgoing member collection calls topology endpoint discovery f_1074859c with /support/asyncsubmit at 0x105b2fe8 and progress initialization f_106b78bc. Worker requests local collection through f_105b27a4, sends peer collection through f_106b5838 and controller multipart PUT through f_106b6da0. Controller/local upload builder f_106b6da0 uses /v2/diags/<ID>, product-diagnostics originator and serial_num, collects diagnostic data through f_106b6568, and performs upload through f_1056c670. Network/parser failures fold into diagnostic status, not arbitrary SOAP status propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105b2d6c",
+         "address": "0x105b3254",
+         "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
         }
-       ],
-       "domain_note": "domain fully bounded: impl 0x1073e718 exits=[0, 20, 24, 1000]; topology impl rc surfaced",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; sites: 0x10733728).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "const",
+       "meaning": "Defensive generic request-validation failure; not absence of optional IncludeControllers or Type.",
        "fault_sites": [
         "0x10733728"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "Defensive generic request-validation failure; not absence of optional IncludeControllers or Type.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073365c",
-           "notes": "parse vcalls then fault path"
+           "function": "0x1073365c",
+           "address": "0x1073377c",
+           "notes": "Both arguments are OPTIONAL: IncludeControllers byte initialized to 1 at 0x107336a0 and its registration record +0x30 set to 1 at 0x107336c4; Type buffer initialized empty at 0x10733698, capacity 33, registration +0x30 set to 1 at 0x107336f4. f_10730414 at 0x107304b4..0x107304c8 permits absent records when +0x30 != 0. Missing args retain defaults. Present bool uses f_10560a58 tag 1: case-insensitive 1/true/yes -> true, other text including empty -> false. Present Type is bounded tag-7 copy, truncating to 32 bytes plus NUL. Validation false faults 402 at 0x10733728; canonical optional inputs pass. Worker nonzero uses same fault call, zero formats DiagnosticID through f_1055fcbc at 0x107337ac and commits at 0x107337c0."
           }
          ]
         }
@@ -108183,8 +108425,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073365c",
-         "notes": "wrapper parse + fault path"
+         "function": "0x1073365c",
+         "address": "0x1073377c",
+         "notes": "Both arguments are OPTIONAL: IncludeControllers byte initialized to 1 at 0x107336a0 and its registration record +0x30 set to 1 at 0x107336c4; Type buffer initialized empty at 0x10733698, capacity 33, registration +0x30 set to 1 at 0x107336f4. f_10730414 at 0x107304b4..0x107304c8 permits absent records when +0x30 != 0. Missing args retain defaults. Present bool uses f_10560a58 tag 1: case-insensitive 1/true/yes -> true, other text including empty -> false. Present Type is bounded tag-7 copy, truncating to 32 bytes plus NUL. Validation false faults 402 at 0x10733728; canonical optional inputs pass. Worker nonzero uses same fault call, zero formats DiagnosticID through f_1055fcbc at 0x107337ac and commits at 0x107337c0."
         }
        ]
       }
@@ -108195,23 +108438,53 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073365c",
-       "address": "0x1073365c",
-       "notes": "action wrapper handler"
+       "function": "0x1073e718",
+       "address": "0x10e8b03c",
+       "notes": "Primary topology vptr 0x10e8b024 (installed at 0x10126234; service+4 set by f_10733b28 at 0x1018e2cc) slot +0x18 is f_1073e718. It reads global 0x11097680 and topology+0x578, calls global interface +0xcc at 0x1073e758. Null result explicitly returns 1000. Non-null tails directly to f_105b2d6c(outID, IncludeControllers, Type, zero delay, null optional output) at 0x1073e790. Global is zone-player+0x3a8, stored at 0x100c1be0; primary zone-implementation vtable 0x10e98278 +0xcc -> adjustment thunk f_10188db4 -> f_10188d08. That looks up module via f_10180794/f_1040edf4, returns null when absent, otherwise f_103f7e10 returns module+0x2c0, the concrete diagnostic coordinator. No hidden implementation callback follows the module lookup."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11430",
-       "notes": "action dispatch table entry"
+       "function": "0x1073365c",
+       "address": "0x1073377c",
+       "notes": "Both arguments are OPTIONAL: IncludeControllers byte initialized to 1 at 0x107336a0 and its registration record +0x30 set to 1 at 0x107336c4; Type buffer initialized empty at 0x10733698, capacity 33, registration +0x30 set to 1 at 0x107336f4. f_10730414 at 0x107304b4..0x107304c8 permits absent records when +0x30 != 0. Missing args retain defaults. Present bool uses f_10560a58 tag 1: case-insensitive 1/true/yes -> true, other text including empty -> false. Present Type is bounded tag-7 copy, truncating to 32 bytes plus NUL. Validation false faults 402 at 0x10733728; canonical optional inputs pass. Worker nonzero uses same fault call, zero formats DiagnosticID through f_1055fcbc at 0x107337ac and commits at 0x107337c0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x105b2d6c",
+       "address": "0x105b2df8",
+       "notes": "Complete worker 0x105b2d6c..0x105b34f4 has normal return domain {0,1000}, common return r31 at 0x105b2ef0. f_106b779c(coordinator+0x368) reserves the submission slot; false clears *outID and returns 1000. That helper locks progress+0xcc0, tests in-progress byte +0xcb0 and sets it plus a clock-ID-1 deadline on success. Type ExtraLocal is mapped to User at 0x105b2e04..0x105b2e20; empty Type also becomes User at 0x105b2e54. Other bounded text is forwarded, with no local whitelist. IncludeControllers is retained in request flags and cr telemetry. f_106b5480 initializes remote ticket; failure or paranoid_atoui(ID,outID)<=0 clears output, releases progress via f_106b7a6c and returns 1000. Thus old 20/24 literal-return claims are operand/offset noise, not status codes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x106b5480",
+       "address": "0x106b55c8",
+       "notes": "Initiates remote diagnostic ticket via POST to configured /v2/diags endpoint with application/json; serial_num JSON formatted at 0x106b5548. HTTP transaction f_10546158 and reply parser f_106b5380 must succeed; failure returns false. Numeric ticket is taken from returned text with paranoid_atoui at 0x105b2fa4, not generated from a local counter. Outgoing member collection calls topology endpoint discovery f_1074859c with /support/asyncsubmit at 0x105b2fe8 and progress initialization f_106b78bc. Worker requests local collection through f_105b27a4, sends peer collection through f_106b5838 and controller multipart PUT through f_106b6da0. Controller/local upload builder f_106b6da0 uses /v2/diags/<ID>, product-diagnostics originator and serial_num, collects diagnostic data through f_106b6568, and performs upload through f_1056c670. Network/parser failures fold into diagnostic status, not arbitrary SOAP status propagation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x105b27a4",
+       "address": "0x105b2848",
+       "notes": "Coordinator lock +0x1a8 protects local diagnostic-active byte +0x2c5 and copied request +0x2c8. If already active, local request is rejected; otherwise active is set, context copied, and local f_105b2254 runs immediately for locally initiated context or timer f_105b2768 is scheduled through member+0x240 slot +0x0c. Local f_105b2254 uploads through f_106b6da0, tracks per-device status through f_105b1cdc -> f_106b7cb4/f_106b7b58, and queries topology endpoint snapshot via f_1067cccc at 0x105b2540. This is a read/snapshot of the topology source, not f_1067c6ec dirty scheduling. Collection/upload and progress state are distinct from topology grouping or alarm definitions; this action does not set a ZoneGroupTopology property dirty flag."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x105b2d6c",
+       "address": "0x105b3254",
+       "notes": "After local/peer/controller requests, waits for progress with f_106b7f50(coordinator+0x368, 60000+1000*requested-player-count). f_106b7f50 checks all statuses, waits on progress condition +0xd50 and returns success count, so partial success is sufficient. Worker gathers statuses with f_106b84f8, reports completion through f_106b62d0 and releases progress f_106b7a6c at 0x105b32ac. If count==0, clears *outID and returns 1000 (0x105b33b0..0x105b33b8); otherwise returns zero at 0x105b3498, preserving parsed ID. Both paths record zpDiagSubmit tracking telemetry including id/guid/type/cr/success. Success is not proof that every player/controller uploaded, and a timeout does not force failure when some submissions succeeded."
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x1073365c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Primary +0x18 -> f_1073e718 -> module registry -> concrete f_105b2d6c. Request +0x0c commits response; it is not another implementation delegate."
     }
    },
    "state_variables": {
