@@ -97513,7 +97513,7 @@
      ]
     },
     "GetWebCode": {
-     "description": "Returns a WebCode for AccountType via impl->v[+0x14].",
+     "description": "Advertised but unsupported web-code request in build 86.10-80260: valid requests always fault with 800 and never emit WebCode.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10731e04",
@@ -97555,7 +97555,7 @@
      },
      "inputs": {
       "AccountType": {
-       "description": "music-service account type code",
+       "description": "Required account-type argument registered as request type tag 4; ignored by the concrete unsupported-operation leaf.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -97564,242 +97564,239 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "parser-type bounded",
-       "special_values": "none identified",
+       "semantic_type": "account type integer",
+       "format": "request type-tag-4 numeric text",
+       "unit": "none",
+       "accepted_values": "Any value accepted by request type tag 4 reaches the same 800 fault.",
+       "range": "Request parser bounds, not a delegate restriction.",
+       "special_values": "none; no account type enables this operation",
        "required": true,
        "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "validation": "Named required lookup, type-tag-4 descriptor registration, then request validation; delegate never reads the parsed integer.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10731e44",
-         "notes": "in-arg access site"
+         "function": "0x10731e04",
+         "notes": "Required AccountType lookup then 0x105614e0 registers destination sp+0x18, type tag 4, 24-byte lexical buffer; request +8 validates at 0x10731e60."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f111dc",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10690b78",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x104b0504",
+         "function": "0x104b0500",
+         "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
         }
        ],
        "notes": null,
        "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `AccountType` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +20 (site 0x10731e88) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `AccountType` = verbatim forward to impl vfunc +20 (obj *(r3-in+0x4), call site 0x10731e88); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Established: required type-tag-4 argument is ignored after request validation; every validated value returns fault 800.",
+        "Residual: exact numeric lexical acceptance and overflow bounds of the shared request type-tag-4 parser are not traced here.",
+        "Next step: trace the request validation implementation consuming the descriptor registered by 0x105614e0."
        ]
       }
      },
      "outputs": {
       "WebCode": {
-       "description": "web-pairing code produced by impl",
+       "description": "Declared web-code output, never emitted by this build because the delegate always returns 800.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "parser-type bounded",
-       "special_values": "none identified",
+       "semantic_type": "unreachable response string",
+       "format": "none; no successful response",
+       "unit": "none",
+       "accepted_values": "none; no value is produced",
+       "range": "n/a; output unreachable",
+       "special_values": "none",
        "required": false,
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "default": "none; no output is written",
+       "validation": "Wrapper emits this field only if the delegate returns zero, which the concrete leaf never does.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10731ef4",
-         "notes": "out-arg access site"
+         "address": "0x104b0504",
+         "function": "0x104b0500",
+         "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f111e8",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10690b78",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x10731e88",
+         "function": "0x10731e04",
+         "notes": "Delegate +0x14 returns 800; nonzero at 0x10731e90 faults via request +0x14 at 0x10731ea4. WebCode writer and commit require zero and are unreachable with this delegate."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `WebCode`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "AccountType is required and registered with request type tag 4. If request +8 validation returns zero, fault 402; otherwise the concrete delegate returns 800.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10731e04",
-        "notes": "wrapper family decode"
+        "address": "0x10731ed4",
+        "function": "0x10731e04",
+        "notes": "Failed request validation loads 0x192 at 0x10731ed8 and branches to fault emitter."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10731e88",
+        "function": "0x10731e04",
+        "notes": "Delegate +0x14 returns 800; nonzero at 0x10731e90 faults via request +0x14 at 0x10731ea4. WebCode writer and commit require zero and are unreachable with this delegate."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x14]",
+      "description": "Required AccountType must pass request validation to reach the delegate. No service account, authentication state, or feature flag is read by the delegate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10731e88",
         "function": "0x10731e04",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "notes": "Delegate +0x14 returns 800; nonzero at 0x10731e90 faults via request +0x14 at 0x10731ea4. WebCode writer and commit require zero and are unreachable with this delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0504",
+        "function": "0x104b0500",
+        "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x14]",
+      "description": "None in the concrete delegate: it reads no object fields or global state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10731e04",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x14]']"
+        "address": "0x104b0504",
+        "function": "0x104b0500",
+        "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x14] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "No service-state mutation or web-code generation. Only the wrapper emits the corresponding fault.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "address": "0x104b0504",
+         "function": "0x104b0500",
+         "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10731e88",
          "function": "0x10731e04",
-         "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x14] -> out-arg (call-derived member-method semantics)"
+         "notes": "Delegate +0x14 returns 800; nonzero at 0x10731e90 faults via request +0x14 at 0x10731ea4. WebCode writer and commit require zero and are unreachable with this delegate."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x14] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None: the entire delegate is a constant-return leaf with no settings write or notification call.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10731e04",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x104b0504",
+        "function": "0x104b0500",
+        "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x14]",
+      "description": "None: no state is read or written by the delegate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10731e04",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x14]']"
+        "address": "0x104b0504",
+        "function": "0x104b0500",
+        "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Failed request validation emits fault 402. Every request reaching the delegate emits fault 800; WebCode output and success commit are unreachable.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10731ed4",
         "function": "0x10731e04",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "notes": "Failed request validation loads 0x192 at 0x10731ed8 and branches to fault emitter."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10731e88",
+        "function": "0x10731e04",
+        "notes": "Delegate +0x14 returns 800; nonzero at 0x10731e90 faults via request +0x14 at 0x10731ea4. WebCode writer and commit require zero and are unreachable with this delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0504",
+        "function": "0x104b0500",
+        "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10731ea4",
-       "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x14)"
+       "code": 402,
+       "code_expr": "request validation failed; literal 0x192 at 0x10731ed8"
+      },
+      {
+       "site": "0x10731ea4",
+       "code": 800,
+       "code_expr": "constant delegate return 0x320 from 0x104b0500"
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(*(r3-in+0x4),+0x14); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x10731ea4"
-       ],
+       "meaning": "Required argument or request validation failed before the delegate.",
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "Request +8 returns zero after AccountType descriptor registration.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10731e04",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10731e04",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10731ed4",
+           "function": "0x10731e04",
+           "notes": "Failed request validation loads 0x192 at 0x10731ed8 and branches to fault emitter."
           }
          ]
         }
@@ -97809,30 +97806,55 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10731e04",
-         "notes": "0x192 fault constant in handler"
+         "address": "0x10731ed4",
+         "function": "0x10731e04",
+         "notes": "Failed request validation loads 0x192 at 0x10731ed8 and branches to fault emitter."
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "meaning": "Web-code generation is unsupported by the concrete delegate in this build.",
+       "conditions": [
+        {
+         "description": "Request validation succeeds and calls 0x104b0500, which unconditionally returns 800 for every AccountType.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104b0504",
+           "function": "0x104b0500",
+           "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10731e88",
+           "function": "0x10731e04",
+           "notes": "Delegate +0x14 returns 800; nonzero at 0x10731e90 faults via request +0x14 at 0x10731ea4. WebCode writer and commit require zero and are unreachable with this delegate."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b0504",
+         "function": "0x104b0500",
+         "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10731e04",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10731e88",
+         "function": "0x10731e04",
+         "notes": "Delegate +0x14 returns 800; nonzero at 0x10731e90 faults via request +0x14 at 0x10731ea4. WebCode writer and commit require zero and are unreachable with this delegate."
         }
-       ],
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "observable": [
-        {
-         "op": "recorded-impl",
-         "result": "GetWebCode",
-         "basis": "disassembled impl body + store-vfunc mapping",
-         "provenance": "disas0x10e97e10"
-        }
-       ],
-       "domain_note": "domain fully bounded: impl 0x10690b78 exits=[28, 264]; impl result in r3 -> req v[+0x14] fault code; CR0.eq = success",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x14); parse/req-layer; sites: 0x10731ea4).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -97842,30 +97864,36 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x10731e88",
        "function": "0x10731e04",
-       "address": "0x10731e04",
-       "notes": "action wrapper handler"
+       "notes": "Delegate +0x14 returns 800; nonzero at 0x10731e90 faults via request +0x14 at 0x10731ea4. WebCode writer and commit require zero and are unreachable with this delegate."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11150",
-       "notes": "action dispatch table entry"
+       "address": "0x104b0504",
+       "function": "0x104b0500",
+       "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10690b78",
-       "notes": "shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x14"
+       "address": "0x104b0f94",
+       "function": "0x104b0e84",
+       "notes": "Constructor installs delegate vptr 0x10ed75c4; word at +0x14 (0x10ed75d8) is 0x104b0500."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1018e594",
+       "function": "0x1018d27c",
+       "notes": "Handler constructor 0x10732e94 receives allocated delegate from Z+0xaa38 and handler Z+0xaa40; stores delegate at handler+4 and vptr 0x10f110a8 at handler+0. Alternate call 0x101905cc has same arguments."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10731e04; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "The concrete delegate is statically recoverable, not a runtime-injected unknown. The success-only WebCode writer remains in the wrapper but cannot execute with the constructed delegate."
     },
     "RefreshAccountCredentialsX": {
      "description": "Refreshes AccountType credentials with AccountToken/AccountKey/AccountUID via impl->v[+0x14].",
