@@ -125499,7 +125499,8 @@
    ]
   },
   "internal_event_bus": {
-   "src": "../anacapa-1.0/oc/zone/common/internalevts.cxx; observer perf bound 'Internal event observer (%s.%s) took too long [%llu ms]'",
+   "src": "../anacapa-1.0/oc/zone/common/internalevts.cxx",
+   "description": "Two distinct mechanisms were previously conflated. The legacy RInternalEventSubscriptionTable/RInternalEventDispatcher in internalevts.cxx accepts six numeric event types (1..6), not seven named Event classes. The separate inprocess-events C++ subject/observer templates carry the named *Event vocabulary below. A diagnostic rendering of those objects is not a common JSON payload schema for the legacy bus.",
    "vocabulary": [
     "AVTBecomeStandaloneEvent",
     "AVTStateChangedEvent",
@@ -125587,8 +125588,9 @@
     "ZonesDefinitionsChangedEvent"
    ],
    "count": 84,
+   "vocabulary_scope": "The84 strings above and the channel-name inventory below are independently present in anacapad. They are a diagnostic census of the separate typed C++ event framework, not enumerators in the table at0x10ef58e8 and not an assertion that all84 share one payload layout or subscription list.",
    "channels": {
-    "note": "init-table registrants (0x11085328) each subscribe named internal events to three observer classes: ie-obs (immediate observers), ie-schd (scheduled dispatch), ie-cache (cached/latest-value subscribers). ~60 *Event names recovered from registrant string refs.",
+    "note": "The strings ie-obs, ie-schd and ie-cache belong to the separate typed subject/observer machinery.0x11085328 is the ELF .init_array, not an event-registration table: its first initializer f_1006a914 initializes application/global objects. Named-event delivery templates such as f_100e7df4 emit the Beginning delivery diagnostic and walk their own typed subject lists. Do not infer six-type bus subscriptions from this string inventory.",
     "classes": [
      "ie-obs",
      "ie-schd",
@@ -125657,16 +125659,148 @@
      "CdNotifyShareIx"
     ]
    },
-   "bus_name": "inprocess-events",
-   "observer_api": "Registering \"%s\" observer \"%s\". Total observers: %zu (events are named *Event objects; observers register by event name; delivery logs \"Queued %s(%u) from \\\"%s\\\": { %s }\" and \"Beginning delivery of %s(%u) event on thread %zu\") each event has a name, numeric id and a {json} payload string.",
-   "todo": [
-    "Established: 7-type dispatch table, per-type observer list array at +0x10+type*4, deferred subscribe/unsubscribe, type-validity + sender-legality guards.",
-    "Residual: per-event payload field layout and which subsystems consume each of the 7 types - type vocabulary proven; payload schemas are per-event record layouts"
+   "enum_table": {
+    "address": "0x10ef58e8",
+    "entries": [
+     "invalid",
+     "deferred_event_sub",
+     "generic_update",
+     "ht_config_update",
+     "sonar_cal_mode_changed",
+     "avt_device_feedback",
+     "entitlements_changed",
+     "max"
+    ],
+    "valid": "1..6 inclusive;0 and7 are sentinels. Invalid context returns2, invalid type or illegal internal sender returns1, queue overflow returns4 and successful send returns0."
+   },
+   "event_layout": "Event+0 is the32-bit type; +4..+0x3b is a zero-initialized56-byte context buffer; +0x3c/+0x40 are enqueue seconds/useconds; +0x44 is the low byte of an atomically incremented event counter. f_105d22a4 rejects context size>0x38, checks type-1 unsigned<=5, optionally copies the supplied range, and passes the resulting fixed-size event to synchronous or asynchronous dispatch. A null context pointer leaves the buffer zero; the supplied size is not stored in the event.",
+   "source_observer_api": "Source constructor f_105d1918 and observer constructor f_105d0f7c keep a nonempty supplied name pointer at+4, otherwise unknown. f_105d24f8 emits an empty context, passing its mode argument through: mode==1 queues asynchronously; other modes dispatch synchronously. The concrete source identity is passed to callbacks separately, in r5; callbacks receive self in r3 and event in r4. The actual callback slot is+8, not+0x10.",
+   "subscriptions": "Lazy singleton f_105d2788 allocates0x80 bytes for the subscription table, initializes seven12-byte list heads/counts, and self-subscribes to type1. Per-type gates are stored at table+0x10+4*type; observer lists are at table+0x2c+12*type, not at the gate-array address. Nodes are0x18 bytes: next+4, prev+8, list owner+c, observer pointer+0x10, active byte+0x14. Immediate subscribe f_105d2510 finds/reuses an observer slot or appends one through f_105d1b9c. Immediate unsubscribe f_105d2d60 marks the matching slot inactive rather than deleting a callback while it is being walked. Contention defers either operation through the internal type1 event. Both deferred paths discard the emitter return and return0 even if enqueue fails: success here does not guarantee that a deferred change was applied. f_105d26d0 is the public observer subscribe wrapper; it refuses type1 unless the observer is the subscription-table singleton itself.",
+   "dispatch": "f_105d1ff8 validates1..6, enters the per-type delivery gate, walks the corresponding list, skips inactive nodes, and calls observer vfunc+8(self,event,source). f_105d1cdc is the subscription-table callback: only source==self+8 and event.type==1 proceed to its fall-through body f_105d1d04, which applies deferred subscribe/unsubscribe. Neither f_105d1b9c nor f_105d1d04 is the general delivery loop claimed by the previous prose.",
+   "async_queue": "f_105d2c60 lazily allocates the0xba8-byte dispatcher and queues through f_105d1478; a null source returns3. It has32 entries of0x50 bytes: each copies the0x45-byte event and stores source/name pointers at entry+0x48/+0x4c relative to the event start. Count at dispatcher+0xa0c and head at+0xa08 are separate. Ordinary events append at(head+count)&31; type1 prepends at(head-1)&31 so deferred subscription operations take priority. A full queue logs reached max queued async events and returns4. f_105d2800 removes/clears the queued entry and advances the head modulo32 before calling f_105d1ff8. Constructors reset the process-local queue to empty; these constructor/destructor paths do not save or load queued events.",
+   "observer_timing": "Asynchronous delivery supplies the profiler object: f_105d1174 stores observer name and samples the start clock, f_105d11f0 samples the end, converts signed64-bit microsecond difference to milliseconds, and warns at>=150ms. It emits performance/internalEventSlowObserver telemetry with evtObs,evtType,evtDurMS. Synchronous f_105d225c supplies a null profiler, so the same notification call has no per-observer timing telemetry there.",
+   "payload_contracts": [
+    {
+     "type": 1,
+     "name": "deferred_event_sub",
+     "context": "Three32-bit words: affected type at context+0, observer pointer+4, operation+8 (1 subscribe,2 unsubscribe). Thus the enclosing event offsets are+4/+8/+0xc. Other operation codes do nothing.",
+     "producer": "f_105d2510 at0x105d2654-0x105d2678 and f_105d2d60 at0x105d2eec-0x105d2f10 queue12 context bytes from table+8 as source.",
+     "consumer": "The subscription table itself, vptr0x10ef58c4 callback f_105d1cdc -> f_105d1d04. Sender equality is checked both when creating and consuming this internal event."
+    },
+    {
+     "type": 2,
+     "name": "generic_update",
+     "context": "Generic notification context: the API permits up to56 opaque bytes, but none of the thirteen concrete non-table observer address points reads a type2 payload. No concrete type2 schema or specific producer is asserted.",
+     "producer": "No constant-type2 call among direct callers of f_105d22a4/f_105d24f8. The unreferenced helper f_10598cd4 accepts a caller-supplied type and emits an empty asynchronous notification; it is not proof of a reachable type2 producer.",
+     "consumer": "None of the concrete callback bodies has an active type2 branch. Empty/lock-only legacy observer callbacks are listed separately."
+    },
+    {
+     "type": 3,
+     "name": "ht_config_update",
+     "context": "Empty notification; consumers re-read the configuration, rather than decoding a configuration struct from context.",
+     "producer": "HT audio configuration f_107c919c increments its version at+0xe0 and emits empty async type3 at0x107c91d8-0x107c91ec.",
+     "consumer": "htaudio vptr0x10ea5ecc callback f_1023d8ec and htsat_tx vptr0x10edc22c callback f_104f1f2c -> f_104f1bf8. Both require event.type==3 and query current configuration through f_107c8ec8; htaudio subscribes at0x1023f9a8-0x1023f9bc."
+    },
+    {
+     "type": 4,
+     "name": "sonar_cal_mode_changed",
+     "context": "Empty notification, not an embedded Sonar-calibration record.",
+     "producer": "Sonar/calibration state-change paths emit empty async type4 from owner+0x11c. Direct sites are0x10360f68,0x1036106c,0x10361a8c,0x10361b60,0x10362188,0x10362228,0x1036245c,0x10362678,0x1036275c,0x103627e4,0x10363048,0x10364678,0x103647d4.",
+     "consumer": "No payload-reading type4 branch in the concrete callback inventory. The two Sonar-family legacy address points share lock-only callback f_1035a43c; their existence does not establish useful type4 delivery."
+    },
+    {
+     "type": 5,
+     "name": "avt_device_feedback",
+     "context": "One big-endian16-bit feedback value at context+0 (event+4); remaining context bytes are zero.",
+     "producer": "AVTransport implementation f_102dbc20 emits type5 from self+0x124 at0x102dc080-0x102dc098, explicitly supplying a two-byte context.",
+     "consumer": "RZonePlayer observer root+4, vptr0x10e97fdc, callback f_10184244 -> f_10184214; requires type5, loads halfword event+4 and calls f_10183c34 with reason6 and flags0/1. Subscription is reached at0x1018d060-0x1018d074."
+    },
+    {
+     "type": 6,
+     "name": "entitlements_changed",
+     "context": "Empty notification; consumers obtain changed entitlement-dependent state from their providers.",
+     "producer": "EntitlementsManager cache-update path f_1037095c emits async type6 from self+0x11c at0x10370a20-0x10370a2c when its update predicate succeeds.",
+     "consumer": "runtime_policy vptr0x10e88ca8 callback f_100f70ac -> f_100f708c -> f_100f6ec8; SettingsManager0x10e88fc0/f_100f940c -> f_100f93ec -> f_1067c6ec; RZPServiceAccounts0x10e9af9c/f_101b7b14 -> f_101b7af4 -> f_101b7998; EntitlementsManager0x10ebf788/f_10371fb4 -> f_10371f94 -> f_10371d5c. Each callback checks type6, not payload fields. Verified subscriptions include runtime_policy0x100f5a38-0x100f5a4c, SettingsManager0x100f9b40-0x100f9b54 and EntitlementsManager0x10373d7c-0x10373d84."
+    }
    ],
-   "dispatch": "internalevts.cxx module f_105d07e8..f_105d1d04+: f_105d1d04 walks a linked observer list (node {+0xc key/type, +0x2c..}), per-node notify via f_105d1b9c which reads the observer object at node->+0xc and calls its vfunc+0x10 with the event payload, matching on a type word. f_105d11f0 wraps each observer call with sonosClockGetTime timing; overruns emit a muse telemetry event {evtObs,evtType,evtDurMS} ('Internal event observer (%s.%s) took too long [%llu ms]').",
+   "inactive_callback_inventory": "All aligned pointers to inherited subscribe f_105d26d0 were enumerated. Besides the abstract base and subscription-table class there are13 concrete observer address points. Six are empty or lock-only:0x10e86c4c -> f_100d4598 -> empty f_100d458c;0x10ebc878 and0x10ebd458 -> f_1035a43c -> lock-only f_1035a3e8;0x10ec6d58 -> f_103c4a98 -> empty f_103c4a8c;0x10ef0f44 -> f_1059001c -> empty f_10590010;0x10ef1504 -> f_10598288 -> lock-only f_1059822c. These do not reveal additional payload fields or justify invented subscriber semantics.",
    "resolved_findings": [
-    "Established: the dispatch loop (f_105d1d04 list walk -> f_105d1b9c per-observer vfunc+0x10 notify, timing guard f_105d11f0 with telemetry overrun event), the module bounds, and the event vocabulary (60+ named events catalogued). Still unknown: the producer/consumer map per event type (which subsystems emit vs observe each named event) - the observer list is runtime-populated by each subsystem's init. Next step: enumerate the observer-registration call sites to build the producer/consumer matrix.",
-    "Resolved: the dispatch table is proven - event type indexes a pointer table @0x10ef58e8 = {0:invalid, 1:deferred_event_sub, 2:generic_update, 3:ht_config_update, 4:sonar_cal_mode_changed, 5:avt_device_feedback, 6:entitlements_changed, 7:max}. The bus object holds a per-type observer list array at bus+0x10+type*4 (subscribe path f_105d2510: lwz r3,0x10(bus+type*4)); subscribe/unsubscribe can defer while an event is in flight (\"Observer %s subscription deferred for event %s\" / \"unsubscription deferred\"). Guards: \"source (%s) attempting to create event with invalid type (%s)\" bounds-checks the type index, and \"(%s) event sent by source (%s) is only legal for the eventing sub-system\" restricts senders (deferred_event_sub log tag, internalevts domain)."
+    "Resolved the actual six-type payload/consumer residual: deferred subscription has three words, AVTransport feedback has one halfword, configuration/calibration/entitlement changes are empty invalidation notifications, and generic_update has only the opaque context API with no payload-reading concrete callback in this image.",
+    "Corrected table/gate offsets, callback slot, general dispatcher, deferred-operation callback, queue priority/capacity and profiler reachability. Kept the separately verified named-event string census explicitly separate from this legacy enum bus."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "legacy event enum and constructors",
+     "address": "0x10ef58e8",
+     "callsite": "0x10ef58e8-0x10ef5904; 0x105d0f7c-0x105d0fc0; 0x105d1918-0x105d195c; 0x105d1970-0x105d19b4; 0x105d2788-0x105d27fc",
+     "notes": "Read all eight string pointers including sentinels; constructors establish label fallback, singleton and list layout."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105d22a4 / f_105d24f8",
+     "address": "0x105d22a4",
+     "callsite": "0x105d22a4-0x105d250c",
+     "notes": "Size/type/source guards, zeroed context, metadata, copied payload and sync/async selection. Raw isel at105d2444 selects null or singleton+8 for the type1 source check; not an unconditional acceptance."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105d2510 / f_105d1b9c / f_105d2d60 / f_105d1cdc",
+     "address": "0x105d2510",
+     "callsite": "0x105d2510-0x105d2784; 0x105d1b9c-0x105d1edc; 0x105d2d60-0x105d2fec",
+     "notes": "Observer-pointer/active-byte nodes, deferred12-byte operations and self-source guard. The code at105d1d04 is reached by fallthrough from105d1cdc after bounds validation, not an independently entered generic walker."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105d1ff8 / f_105d1174 / f_105d11f0",
+     "address": "0x105d1ff8",
+     "callsite": "0x105d1ff8-0x105d22a0; 0x105d1174-0x105d13e0",
+     "notes": "Active-node delivery uses virtual slot8 with event/source args; async profiler starts and finishes each callback, threshold150ms, exact telemetry field strings. Raw57fd103a/57ff2036 at105d208c/105d20e8 give4*type/16*type, hence list stride12; signed multiply/add/subtract and divide1000 checked with raw Capstone listing."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105d1478 / f_105d2800 / f_105d2b2c",
+     "address": "0x105d1478",
+     "callsite": "0x105d1478-0x105d15ec; 0x105d2800-0x105d29d8; 0x105d2b2c-0x105d2cf0",
+     "notes": "Queue entry copy45hex, stride50hex,32-entry capacity, source pointers, priority prepend for type1, dispatcher allocation/lifetime. Raw552906fe at105d14d8/105d2920 and105d15e0 is low-five-bit mask, not a right shift."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "all concrete legacy observer vtables",
+     "address": "0x10e86c4c",
+     "callsite": "0x10e86c4c;0x10e88ca8;0x10e88fc0;0x10e97fdc;0x10e9af9c;0x10ea5ecc;0x10ebc878;0x10ebd458;0x10ebf788;0x10ec6d58;0x10edc22c;0x10ef0f44;0x10ef1504",
+     "notes": "Enumerated every inherited subscribe-method pointer and decoded its slot8 callback and branch target. Thirteen non-table concrete address points yield seven payload/type-sensitive and six empty/lock-only entries, including two entries sharing the Sonar callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "type3/4/5/6 producers and consumers",
+     "address": "0x107c919c",
+     "callsite": "0x107c919c-0x107c91ec;0x10360ea4-0x103647d4;0x102dc080-0x102dc098;0x1037095c-0x10370a30;0x1023d8ec-0x1023d9ac;0x104f1bf8-0x104f1cd0;0x10184214-0x10184248;0x100f708c-0x100f70b0;0x100f93ec-0x100f9410;0x101b7af4-0x101b7b18;0x10371f94-0x10371fb8",
+     "notes": "Direct emitters independently decoded: thirteen empty type4 sites, empty type3/type6, and two-byte type5. Consumer type gates and provider refresh calls establish actual context layouts rather than assuming per-type record structs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "typed framework string inventory and ELF initialization",
+     "address": "0x11085328",
+     "callsite": "0x11085328-0x11085350;0x1006a914-0x1006a9f4;0x100e7df4-0x100e84cc;0x10e86cac;0x10e86dfc;0x10e87a2c",
+     "notes": "Verified all84 vocabulary strings and all60 channel-name inventory strings against anacapad bytes. ELF section is .init_array, and first initializer is not an event registry. Separate typed subject templates emit Beginning delivery diagnostics and walk their own lists; this does not provide a common JSON legacy-bus payload."
+    }
    ]
   },
   "alarm_store_object": {
