@@ -43118,7 +43118,7 @@
        ]
       },
       "CurrentSourceState": {
-       "description": "serialized source state blob",
+       "description": "Carries the previous coordinator's source snapshot. A present value that fails snapshot decoding skips source-state restoration rather than producing a separate SOAP input fault.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -43128,14 +43128,14 @@
         "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
-       "format": "utf-8 text (large blob arg via req slot)",
+       "format": "The retained string must be 164 bytes: a nominal 100-byte fixed-width hexadecimal header followed by a 64-byte text field for a second colon-delimited record. The header uses width-limited scanf conversions, not an exact byte-by-byte hex validator.",
        "unit": "n/a",
-       "accepted_values": "A_ARG_TYPE_SourceState-domain value",
-       "range": "destination buffer: 165 bytes including space for NUL",
-       "special_values": "none identified",
+       "accepted_values": "f_1032d7f8 requires all 15 header conversions and successful parsing of the trimmed 64-byte tail. The nested record starts with flags 00 through 03, followed by a colon and any flag-selected sections.",
+       "range": "165-byte type 7 buffer including NUL; materialization retains up to 164 input bytes.",
+       "special_values": "An absent element fails required-argument materialization (402). An empty or shorter retained snapshot is present but not restored. A decoder failure does not on its own abort the coordinator handoff.",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "The restore decision comes from the decoder, not just from presence. The worker starts with a zeroed source-kind field, and the nested descriptor is cleared if its parse fails.",
        "evidence": [
         {
          "type": "firmware",
@@ -43148,7 +43148,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102fa0c0",
-         "notes": "Looks up CurrentSourceState and installs a type 7 caller-buffer descriptor (165 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "notes": "Registers CurrentSourceState at the request's +0x1c slot and attaches a 165-byte type 7 caller buffer using f_1056157c. The bounded materializer reserves one byte for NUL.",
          "function": "0x102f9e9c"
         },
         {
@@ -43166,13 +43166,53 @@
          "address": "0x102df8a0",
          "notes": "Attempts source-state restoration using f_1032d7f8; the false result can clear the local restore decision. Then f_1025c30c receives the accepted descriptor, current URI and snapshot-related input record.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1032d82c",
+         "notes": "Rejects a retained strlen other than 164. At 0x1032d8dc scans the fixed-width header using %04hX%08X%08X%08X%04hX%02hhX%08X%08X%08X%08X%08X%08X%08X%08X%02X and tests for 15 conversions. At 0x1032d91c copies exactly 64 bytes from input+0x64, NUL-terminates them and trims whitespace before passing the tail to f_1045fbac.",
+         "function": "0x1032d7f8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1032d960",
+         "notes": "The second header value is the source kind stored in the nested descriptor at snapshot+0xf0 (the parser starts at snapshot+0xf0 and writes this value to its +0). Other confirmed destinations include header values 1, 3, 4, 5 and 6 at snapshot+0xea, +0x138, +0x13c, +0x140 and +0x154. The final conversion is passed to the nested descriptor unless it exceeds 0x11, in which case zero is passed.",
+         "function": "0x1032d7f8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10803f7c",
+         "notes": "The nested parser f_10803f38 requires a colon at tail+2 and parses a two-wide hex flag word no greater than 3. Bit 0 selects three conversions %08X:%08X:%016llX: starting at tail+3 (advances the next section to tail+38). Bit 1 selects eight two-wide hex conversions followed by two four-wide hex conversions separated by colons, starting at the current offset. The code tests conversion counts, not complete-string consumption.",
+         "function": "0x10803f38"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1045fc10",
+         "notes": "f_1045fbac installs the source-kind word and auxiliary descriptor values only if the nested tail parser succeeds; failure clears the local nested descriptor and returns zero. f_1032d7f8 returns that result. The handoff worker gates f_1025c30c on it and compares the installed kind with 5 and 8 for the early playback request (0x102df924 to 0x102df934). Kind 5 with no live source byte at +0x518 is changed to kind 1 at 0x102dfdf0 before restoration.",
+         "function": "0x1045fbac"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025c35c",
+         "notes": "Header value 6 at snapshot+0x154 gates a playback-control callback with the word at +0x13c and halfword at +0x140. Values at +0x14c and +0x150 are copied to indexed manager+0x35184 and +0x35188. The helper selects a source handler using CurrentURI, installs the descriptor as the state goal at indexed manager+0x3280c, and treats snapshot+0x138 equal to 1 as true at indexed manager+0x35180.",
+         "function": "0x1025c30c"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "The nested descriptor's leading source-kind word is used by the handoff worker; do not interpret the separate tail-section flags as source kinds.",
        "buf_cap": 165,
        "todo": [
-        "Established: f_1032d7f8 decides whether source-state restoration continues",
-        "Decode the accepted source-state record grammar, numeric kinds and defaults in f_1032d7f8."
+        "Established: traced the 164-byte envelope, all 15 header conversions, both nested tail sections, defaults, the internal restore decision and the worker's kind 1, 5 and 8 branches.",
+        "Identify the producer-side names for the remaining numeric header and tail fields and complete the source-kind mapping. Trace writes to the kind word in the snapshot-producing path and the readers of the restored fields beyond f_1025c30c."
        ]
       },
       "ResumePlayback": {
