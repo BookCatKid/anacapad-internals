@@ -149902,15 +149902,32 @@
      "address": "0x10481f5c",
      "callsite": "0x10481f6c",
      "notes": "Indexed paired load/store uses explicit unsigned index 0x81f8; counter at +0x8200 saturates at four. Earlier +0x40 attribution contradicted by instruction operands."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10481b30",
+     "address": "0x10481be0",
+     "notes": "GNU e500 decoding proves sample scaling/division and weighted estimator arithmetic at 0x10481f78."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10482c1c",
+     "notes": "Caller loads double pair from stack and elapsed input from timevalDiff return."
     }
    ],
    "todo": [
-    "Residual: decode the SPE sample dataflow feeding r28 and the arithmetic at 0x10481f78-0x10481f88, then trace the caller supplying that sample. Bind the achievable-rate quantity to its upstream stream-statistics inputs; the prior +0x40 accumulator attribution is incorrect."
+    "Residual: bind the quantity passed as r5:r6 by caller 0x10482c1c to its originating stream statistic and establish the units of the elapsed timevalDiff result passed as r7. SPE sample formation and the +0x81f8 estimator recurrence are now decoded; do not treat the remaining uncertainty as a disassembler gap."
    ],
    "resolved_findings": [
     "Resolved: DS-selection = the rung switcher emits New bitrate: %d, Old bitrate: %d on a successful switch; on ladder exhaustion it reports Unable to select another DS and either waits to fetch new playlist or fetches now depending on urgency; InitFramerForTrackList failure is a distinct exhaustion path; state is dumped via <ABRState>/<ABREvents numEvents=%u> diagnostics.",
     "DS-selection predicate decoded (literal block 0x10ed3xxx-0x10ed4xxx): each data source is ranked by a happiness test - happy (a > %.2lf): %d %d compares measured fetch rate a against a threshold, with a saturated-buffer override happy (saturated): %d %d; hysteresis via was happy: %d / unhappy: %d counters plus Underruns %u accounting; rate update: a=1 (was %.2lf) resets the estimator. Bitrate switching logs New bitrate: %d, Old bitrate: %d and persists Last estimated bitrate %u (Reset ABR state: start bitrate %u). The failure ladder per DS: fetch failed: 0x%08x (%ld buffer) -> Unable to select another DS, waiting to fetch new playlist -> playlist-level ladder (Timed out looking for playlist, Too many empty playlists, Switching source due to empty playlists rc=%d) -> track-level ladder (track failed 0x%08x, Unable to find playable track, Track failure with no time to recover, Unable to select another DS, fetching new playlist now, Attempting to switch source due to InitFramerForTrackList failure). Prebuffer gate: prebuffering %u bytes within %ld msec; URIs for %g seconds, wake up in %d paces the playlist refresh. Codec filtering uses the mp4a.40. prefix plus a URI version regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$). Status page emits <ABRState Name=\"ABR State\"> with <NodeTXBuffer>%.3lf sec</NodeTXBuffer> and <ProcessRate>%.0lf bps</ProcessRate>.",
-    "Instruction-level correction: f_10481b30 keeps the counter at object+0x8200 (r30=object+0x10000, lwz/stw -0x7e00). It increments the counter at 0x10481bbc, compares signed against 4 at 0x10481bc0, and clamps values greater than 4 to 4 at 0x10481fbc. Thus this is a saturating counter, not evidence of an unbounded cumulative mean. The paired load/store at 0x10481f6c/0x10481f8c uses index r8=0x81f8 into r31=object, not object+0x40. The neighboring path at 0x10481bf0-0x10481bf8 reads the same offset. f_104801f0, called at 0x10481f18, accesses object+0x8204 and checks virtual slot +0x70 against f_10483b8c. These are concrete object offsets; interpreting the incompletely decoded SPE arithmetic as a named upstream statistic remains unresolved."
+    "Instruction-level correction: f_10481b30 keeps the counter at object+0x8200 (r30=object+0x10000, lwz/stw -0x7e00). It increments the counter at 0x10481bbc, compares signed against 4 at 0x10481bc0, and clamps values greater than 4 to 4 at 0x10481fbc. Thus this is a saturating counter, not evidence of an unbounded cumulative mean. The paired load/store at 0x10481f6c/0x10481f8c uses index r8=0x81f8 into r31=object, not object+0x40. The neighboring path at 0x10481bf0-0x10481bf8 reads the same offset. f_104801f0, called at 0x10481f18, accesses object+0x8204 and checks virtual slot +0x70 against f_10483b8c. These are concrete object offsets; interpreting the incompletely decoded SPE arithmetic as a named upstream statistic remains unresolved.",
+    "SPE decoded with GNU powerpc-linux-gnu-objdump -WN -M e500: f_10481b30 merges the incoming r5:r6 words into double r25 with evmergelo at 0x10481b58, converts unsigned r7 to double at 0x10481bd0, loads 1000.0 from 0x10ea2398 and computes sample x = r25*1000.0/unsigned(r7) at 0x10481be0-0x10481be4. The branch with object+0x8630 zero reaches 0x10481f5c, loads old estimate E from +0x81f8 and executes E = ((n-1)*E+x)/n via efdcfsi/efdmul/efdadd/efddiv at 0x10481f78-0x10481f8c. Counter n at +0x8200 increments and saturates at four; after saturation this is a 3/4 old plus 1/4 new update, not a cumulative mean over all observations. No zero-denominator guard occurs in sample formation; caller constraints on elapsed time remain to be established. The nonzero +0x8630 path bypasses this averaging branch, so the equation is not universal for all modes.",
+    "Caller provenance advanced: the direct call at 0x10482c1c supplies r5:r6 from stack+0x28/+0x2c and r7 from r28. r28 is the result of timevalDiff at 0x10482bc8 using the current clock value from sonosClockGetTime(1,...) at 0x10482bbc and the prior stack+0x3c timestamp. The numerator pair is not converted by the callee, so it is already a double representation. That call path establishes an elapsed-time input but does not yet establish its unit or the upstream semantic meaning of the numerator. The previous inability to decode the update arithmetic is resolved; source-statistic binding remains genuinely open."
    ]
   },
   "shoutcast": {
