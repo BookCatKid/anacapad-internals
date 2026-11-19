@@ -19686,7 +19686,7 @@
      },
      "side_effects": [
       {
-       "description": "Tears the bonded zone down, stops the topology monitor ('Stop topology monitor: zone teardown') and logs 'Zone teardown (%u) via %s took %ld ms on %s' with Muse or UPnP as the trigger.",
+       "description": "Applies the validated retained map or clears the local map for dissolution. The worker stops the topology monitor only when the resulting local map is empty. A nonempty retained map skips that stop path. The worker logs the teardown result and timing with Muse or UPnP as the trigger.",
        "evidence": [
         {
          "type": "firmware",
@@ -19701,6 +19701,48 @@
          "build": "86.10-80260",
          "function": "0x10352dd4",
          "notes": "teardown and timing log literals"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103608b4",
+         "notes": "Store a retained map"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10360b1c",
+         "notes": "Clear local map"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10352f64",
+         "notes": "Read the resulting map's first byte"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10352f7c",
+         "notes": "Zero branches to the monitor-stop block at 0x103531d4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103531ec",
+         "notes": "Loads the Stop topology monitor: zone teardown log string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10353204",
+         "notes": "Call with impl+0x1368 in the monitor-stop block"
         }
        ]
       },
@@ -19868,7 +19910,14 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x10352e8c",
-           "notes": "branch to the 401 exit"
+           "notes": "Nonzero parse result continues at 0x10352f0c; zero falls through"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10352e98",
+           "notes": "Return preset 401 after the failed parse"
           }
          ]
         },
