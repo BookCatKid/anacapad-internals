@@ -148660,24 +148660,60 @@
   },
   "media_player_mgr": {
    "name": "mpmgr: MediaPlayer actor registry",
-   "summary": "actor model: target key {uuid,ix,port,ssl,mtls} (overlap check); \"found actor for %s\"/\"found backup for %s\"/\"%s target [%s] for type %d resolved to %s\"/\"no actor available\"; lifecycle register/create/shutdown; per-player config dir + anacapa_logger.toml; /localsettings.txt; Player%s naming",
+   "summary": "MediaPlayer manager owns an in-process registry and constructs concrete local player objects. It validates {uuid,ix,port,ssl,mtls} keys, rejects overlapping registrations, resolves actor targets and backups, prepares per-player configuration, and removes/shuts down registered objects. Remote command encoding is not yet bound to the local objects; a spawned-player-only protocol is not established.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10ecb874",
      "notes": "media_player_mgr.cxx"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1040fffc / f_103fa434",
+     "address": "0x10410240",
+     "callsite": "0x10410270 / 0x10410744 / 0x10410d60 / 0x10410da8",
+     "notes": "Creation allocates 0x1a70 through f_10809f0c at 0x10410270 and calls local ctor f_103fa434 at 0x10410744. Ctor installs vptrs 0x10ecac9c/+0x20 at object+0/+4 at 0x103fa68c/0x103fa694. Manager later calls f_103fd65c and f_103f9010 before MediaPlayer-created diagnostic. This disproves the missing-spawned-binary premise without asserting the absence of later network operations."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1040fffc target validation and overlap",
+     "address": "0x10410060",
+     "callsite": "0x104100bc / 0x10410210 / 0x104117a8",
+     "notes": "Output handle is zeroed at 0x10410060/0x10410064. UUID byte tested at 0x10410068-0x10410074; u16 key+a,+6,+8 tested nonzero at 0x10410078-0x10410140. Equality of key+a and key+6 at 0x10410144/0x10410150 branches to comparison with key+8 at 0x104117a8; only equality there returns to invalid path, so not a pairwise-distinct rule. Diagnostic loads key+a,+8,+6,+4,+0 at 0x104101e4-0x104101fc with format at 0x10ecbaf0. Existing-entry walk begins at manager+a0 and key accessor f_103f7638 at 0x104101b4. Invalid branch calls RabortIfUnlocked at 0x104100bc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1040fc34 / f_1040e944 / f_1040ee78",
+     "address": "0x1040fcb4",
+     "callsite": "0x1040fcc4 / 0x1040fd38 / 0x1040ea60 / 0x1040ea8c / 0x1040ef7c",
+     "notes": "Register: lock at 0x1040fc7c, lookup/insert at 0x1040fcb4, shared handle stores at 0x1040fcc4/0x1040fd38, unlock at 0x1040fd50. Shutdown: lookup at 0x1040e9fc, remove at 0x1040ea60, unlock at 0x1040ea78, local f_103fe5c4 at 0x1040ea8c. Resolution checks filter+b4 at 0x1040ef08/0x1040ef18, bounds type<=10 at 0x1040ef20/0x1040ef24 and dispatches via 0x10ecb7e8; local literal branch invokes filter+8 at 0x1040ef7c. No socket queue or per-op encoding follows solely from this registry."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103fa434 constructor string setup",
+     "address": "0x103fc834",
+     "callsite": "0x103fc848",
+     "notes": "Constant 1.1.0 at 0x10ecb328 is passed to f_103f685c while building a stack string at +0x1ac inside the constructor. This is not an observed wire write; previous protocol-envelope inference and spawned-player-only limitation are withdrawn."
     }
    ],
    "todo": [
-    "Residual: the per-op wire encoding inside the media-player socket protocol - the op names and endpoint tuple are proven; the envelope bytes are defined by the spawned media-player binary, not anacapad"
+    "Established: local manager/player construction, static vtables, key layout and exact validation predicate, registry assignment/removal and shutdown call chain. Still unresolved: bind the concrete player control methods and any outbound request/response serializers to actor resolution and recover their actual operation/envelope fields. Start with primary vtable 0x10ecac9c (methods f_103f8030/f_103f812c), constructor f_103fa434, setup f_103fd65c and startup f_103f9010 (called at 0x10410d60/0x10410da8), then follow request submission and completion paths. Neither the old typed-op queue nor a spawned executable owning an out-of-image protocol is established; the present residual remains actionable static analysis, not a proven missing-binary limitation."
    ],
    "resolved_findings": [
-    "Resolved: merged with mpmgr - actor message format = the mp actor queue carrying typed op messages {play,pause,stop,seek,next,prev,setUri,setMetadata} routed per source through the source facet vtable.",
-    "Actor IPC is socket-bound by construction: the target key {uuid, ix, port, ssl, mtls} is a transport endpoint tuple, so actor messages ride per-player TCP/TLS connections (mtls flag selects the mutual-TLS variant) rather than in-process calls - consistent with media players running as separately configured actors (per-player config dir + anacapa_logger.toml, Player%s naming, /localsettings.txt). Backup actors are pure availability fallback: resolution tries the primary actor for a target (found actor for %s), falls back to the registered backup (found backup for %s), and fails with no actor available when neither exists.",
-    "Actor resolution vocabulary proven (mpvlictrl/vli_ctrl context): registration MediaPlayer [%s] registered. [%zu] / MediaPlayer [%s] created. [%zu]; target-key validation Invalid MediaPlayer target key provided. Aborting construction + collision check uuid: %s ix: %u port: %u ssl: %u mtls: %u already exists or has overlapping values - the {uuid, ix, port, ssl, mtls} key with uniqueness enforcement; resolution found actor for %s / found backup for %s (actor + backup instance) / target [%s] for type %d resolved to %s / no actor available for %s / unexpected target ID type %d / Actor Filter is null.",
-    "Per-player bootstrap proven (media_player_mgr.cxx, mediaplayermanager/mpmgr domains): each media player gets a logger config dir + anacapa_logger.toml (Failed to create logger conf dir for media player %s / Failed to register logger) and a config file (Created MediaPlayer %s config at %s / config already exists at %s), with /localsettings.txt and Player%s naming in the same block.",
-    "Resolved: each media player is a separately-managed endpoint bound to a TCP port - \"Setting up MediaPlayer for port %u\" / \"Setup for MediaPlayer on port %u complete\" (@0x10e74ac8/0x10e74b00) run inside \"Setting up ZonePlayer\"; anacapad-side ops target the {uuid,ix,port,ssl,mtls} tuple, so the on-wire envelope is the spawned media-player protocol, outside this binary.",
-    "Deepened: the anacapad-side request builder at ~f_103fa434 emits path literal '/players/' together with version token '1.1.0' (0x10ecb328) on the media-player socket, so requests carry an explicit proto-version marker; the spawned player binary itself is not present in this rootfs (only anacapad/anacapactl/sonosledmgrd ship), confirming the per-op wire field layout is genuinely out-of-image."
+    "The former actor-queue opcode list and assertion that actor messages must be socket IPC are withdrawn. A target tuple and config filenames do not prove a queue format or process boundary. f_1040fffc allocates a 0x1a70-byte local object at 0x10410240/0x10410270 and directly calls constructor f_103fa434 at 0x10410744. That constructor installs static primary vtable 0x10ecac9c at object+0 and secondary 0x10ecacbc at +4 (0x103fa670-0x103fa694). Thus the manager and concrete player implementation are present in anacapad, regardless of what networking those objects later perform.",
+    "Target-key layout is anchored by the diagnostic argument loads, not inferred from endpoint words: UUID pointer +0, index u8 +4, port u16 +6, ssl u16 +8, mtls u16 +0xa. Construction first zeros its output pair and rejects an empty UUID or any zero endpoint field. The additional predicate at 0x10410144-0x10410150 and 0x104117a8-0x104117b0 rejects when all three endpoint values are equal; it does not require pairwise distinct values. Invalid input logs and calls RabortIfUnlocked, then returns the empty output if that call returns. Existing objects are walked from manager+0xa0, with their key copied through f_103f7638; the overlap diagnostic uses the same five fields. The u16 ssl/mtls fields are not proven Boolean TLS-mode selectors.",
+    "Registry mutation is local: f_1040fc34 locks manager+8, looks up/inserts a UUID-indexed entry through f_104129b4 on manager+0x98, assigns the supplied two-word shared-object handle at entry+0/+4 with reference-count maintenance, unlocks, and performs subsequent player configuration callbacks. Shutdown f_1040e944 looks up the entry under the same lock, copies its player handle, removes it through f_104125bc, unlocks and calls f_103fe5c4 on the retained object. It is not a demonstrated wire shutdown opcode.",
+    "Actor resolution f_1040ee78 checks the configured actor filter at manager+0xb4. When present it dispatches target-ID types 0 through 10 through a branch table at 0x10ecb7e8; other values take a separate path. The local-target branch recognizes the local literal and calls filter virtual +8 at 0x1040ef7c. The found-actor, found-backup, resolved-target and no-actor diagnostics establish multiple resolution outcomes, not a fully recovered remote transport contract for every target type.",
+    "Per-player configuration and logger setup remain separate lifecycle work: f_1040d614 and f_1040dafc are reached before allocation (0x1041022c/0x1041023c), and the manager block contains anacapa_logger.toml, /localsettings.txt and Player%s plus creation/registration failure diagnostics. The configuration of a named player alone is not evidence that a separate executable was spawned.",
+    "The previous request-builder/protocol-version interpretation of f_103fa434 is withdrawn. It is the local constructor reached at 0x10410744. At 0x103fc834-0x103fc848 it constructs a string from 1.1.0 through f_103f685c, alongside other object setup. This does not demonstrate an emitted version field or join that token to /players/ on a socket. Absence of another player executable in opt/bin does not make per-operation encoding unrecoverable from the present implementation."
    ]
   },
   "autoplay": {
