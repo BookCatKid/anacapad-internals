@@ -177108,7 +177108,7 @@
    "todo": "Established: Shared version parser f_10483e28 takes a begin/end text span and an output structure. It requires decimal major, a literal dot and decimal minor, with an optional dot plus decimal patch. f_10483c1c first requires an ASCII digit, then clears errno and calls strtoul(base10) with an end pointer; errno 22 or 34 rejects. Leading zeroes are not rejected. Whitespace/sign prefixes are rejected by the first-byte guard. Patch is written only when present; the caller must initialize it otherwise. After the numeric components, either span end must be reached or a hyphen/pre-release and/or plus/build suffix is processed. Each suffix must start with isalnum, but subsequent bytes are copied without per-byte validation. Pre-release ends at the first plus or span end; build metadata consumes the remaining span. Each stored suffix is truncated to 32 bytes plus terminator while the cursor advances across the full suffix. Success requires cursor==span end. This is the implemented grammar, not complete enforcement of Semantic Versioning 2.0.0. Exact libc locale/overflow ABI and reads at malformed span boundaries still need verification. Remaining: Verify libc locale/overflow ABI, malformed span boundaries and all caller initialization/exception behavior."
   },
   "0x10483cf0": {
-   "description": "Cloud-queue version extractor f_10483cf0 lazily compiles the literal regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$) with flags 1, parses the URI into components using f_10c3a920 and runs regexec from the path pointer. It uses the first regex match, starts the selected version span two bytes after the match start (after /v), and normally ends at the URI path end. If the final byte of the match is slash, it ends the span at that slash instead. There is no independent check that this slash is the last path separator. Consequently a matching version segment followed by more path can supply the accepted version, despite the error text saying the path must end with a version. An earlier matching version segment is chosen before a later one. No match returns 1; regex compilation failure returns 2. Candidate suffix syntax is narrower than the shared parser because the regex permits only letters in pre-release and letters/dots in build metadata.",
+   "description": "Cloud-queue version extractor f_10483cf0 takes a NUL-terminated URI and a two-word {begin,end} output span. It lazily compiles the literal regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$) with cflags 1 (REG_EXTENDED only) into the process-global regex_t at 0x110a4230, guarded by the compiled-flag byte at 0x110a422c. The regex buffer is never freed on success and survives for process lifetime; on regcomp failure the buffer is passed to regfree, the flag stays 0 so every later call retries compilation, and the function returns 2. The lazy init has no synchronization: concurrent first calls can both run regcomp into the same buffer (leak and torn regex_t risk); steady-state regexec on a completed buffer is read-only. URI component splitter f_10c3a920 fills a 10-word out struct of {ptr,len} pairs (scheme +0x00, authority +0x08, path +0x10, query +0x18, fragment +0x20), zeroed at entry. regexec runs on the raw path pointer with nmatch 1 and eflags 0, so it scans the C string beyond the path span into any query or fragment. The first (leftmost-longest) match is used: begin = path_ptr + rm_so + 2 (after /v), end = path_ptr + path_len, except when the last matched byte is slash, where end = that slash position. A guard at 0x10483da8 returns 1 when path_end < begin, which is what rejects matches anchored entirely inside a query or fragment. There is no independent check that the ending slash is the last path separator, so a matching version segment followed by more path can supply the accepted version and an earlier matching segment wins over a later one. Missing-path URIs crash: when the URI has a query or fragment but no path characters (first special byte is ? or #, or an authority is followed directly by ?/#, e.g. '?x', '#x', 'scheme://host?x', '//?x'), f_10c3a920 leaves the path slot NULL and regexec is invoked on a NULL string. A NULL URI pointer crashes earlier inside strlen in f_10c3a920. An empty string or an absent path without query/fragment yields a nonnull zero-length path, so regexec runs on an empty string and returns no match. The binary calls setlocale(LC_ALL, configured name) once at 0x1080bb38 inside constructor f_1080ba78, so the pattern's [0-9]/[a-zA-Z] classes execute under the configured process locale; under C/POSIX/UTF-8 locales they match the ASCII sets as written. No match returns 1, success returns 0.",
    "why_external": "Determines which substring supplies a cloud-queue base URL version.",
    "required_for_behavior": true,
    "role": "music_service_version_and_cq",
@@ -177119,9 +177119,62 @@
      "build": "86.10-80260",
      "address": "0x10483cf0",
      "notes": "Instruction-level selector/version/encoder trace; see music_service_version_string and svc_manifest details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483d48",
+     "function": "0x10483cf0",
+     "notes": "regcomp(preg=0x110a4230, pattern=0x10ed4198, cflags=1) behind flag byte 0x110a422c; flag stored only after regcomp returns 0 at 0x10483d54-0x10483d58; regfree only on the failure path at 0x10483e0c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483d84",
+     "function": "0x10483cf0",
+     "notes": "regexec(preg, string=path ptr, nmatch=1, pmatch=sp+0x44, eflags=0); path pointer is not NUL terminated at path end so the scan covers 'path?query#fragment' as one string."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483da8",
+     "function": "0x10483cf0",
+     "notes": "Guard cmpl path_end vs begin at 0x10483da8-0x10483dac returns 1 when a match anchored in the query/fragment pushes begin past path end."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3a9d0",
+     "function": "0x10c3a920",
+     "notes": "Path field out+0x10/+0x14 stored only on the path branches; leading '?'/'#' input or authority followed by '?'/'#' skips the store leaving path NULL, which regexec then dereferences."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3a984",
+     "function": "0x10c3a920",
+     "notes": "strlen called on the URI argument with no NULL check, so a NULL URI faults before any component parsing."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1080bb38",
+     "function": "0x1080ba78",
+     "notes": "setlocale(LC_ALL=6, configured locale string from object member) called once during init object construction; regex classes and isalnum therefore run under the configured locale."
     }
    ],
-   "todo": "Established: Cloud-queue version extractor f_10483cf0 lazily compiles the literal regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$) with flags 1, parses the URI into components using f_10c3a920 and runs regexec from the path pointer. It uses the first regex match, starts the selected version span two bytes after the match start (after /v), and normally ends at the URI path end. If the final byte of the match is slash, it ends the span at that slash instead. There is no independent check that this slash is the last path separator. Consequently a matching version segment followed by more path can supply the accepted version, despite the error text saying the path must end with a version. An earlier matching version segment is chosen before a later one. No match returns 1; regex compilation failure returns 2. Candidate suffix syntax is narrower than the shared parser because the regex permits only letters in pre-release and letters/dots in build metadata. Remaining: Trace malformed URI/null-component behavior and regex lifetime/thread/locale semantics."
+   "resolved_findings": [
+    "Resolved: malformed-URI behavior fully traced through f_10c3a920 - URIs with a query or fragment but no path characters leave the path slot NULL and f_10483cf0 invokes regexec on a NULL string pointer; a NULL URI faults earlier in strlen.",
+    "Resolved: the regex match can legally begin inside the query or fragment since regexec scans the whole remaining C string; the path_end<begin guard at 0x10483da8 is the only thing rejecting such matches, returning 1.",
+    "Resolved: regex lifetime is process-global (regex_t at 0x110a4230, flag byte 0x110a422c), compiled lazily with cflags=1, never freed on success, recompiled on every call after failure, with no synchronization around first-use.",
+    "Resolved: process locale is configurable via setlocale(LC_ALL, ...) at 0x1080bb38; class semantics hold for the ASCII sets under standard locales."
+   ]
   },
   "0x10338a34": {
    "description": "Cloud-queue version checker f_10338a34 takes a NUL-terminated URI (r3), an optional diagnostic object (r4) and a caller-supplied version output structure (r5). It zero-initializes a two-word span on the stack, calls extractor f_10483cf0 and only invokes shared parser f_10483e28 when the extractor returns 0. It returns 2 only when parsing succeeds and the major word equals 2; every other outcome returns 0. It does not compare minor or patch against a supported maximum. When the extractor returns 1 (no match) the diagnostic object receives code 0x48 at +8 and 'queueBaseUrl path must end with a cloud queue version' text via string-slot setter f_1033a130 at diag+0xc; when the parser fails with code 1 it receives the Semantic Versioning 2.0.0 advisory; when parsing succeeds but major is not 2 it receives a 'v%u is unknown; use v%u' message formatted by __snprintf_chk with a shorter 'v%d' fallback when the result exceeds 0x100 bytes. Extractor result 2 (regex compile failure) and parser results other than 1 produce a silent return 0 with no diagnostic. The diagnostic object's +0xc field is a small-string slot {flag byte, ptr, len, inline[16]} written by f_1033a130. Caller audit (five direct call sites, no indirect references): f_1011c864 at 0x1011c9b4 passes diag=NULL, out=&sp+0x48 and uses the return only to gate an 'unsupported CQ REST version: %s' log, returning 1 either way; f_102d7768 at 0x102d782c constructs a diagnostic object on the stack via f_10a606b8, then on failure destroys it unread and propagates code 0x48 as its own return; f_10345c7c at 0x10345cc4 passes diag=NULL, out=r30+0x1f50 and discards the return entirely; f_1038cba0 calls it twice at 0x1038cc20/0x1038ccb4 with diag=NULL, out=&sp+0x1c - the first site uses the result to gate f_104840f8(version,2,3) which selects 'Bearer ' versus empty scheme in the 'AUTHORIZATION: %s%s\\r\\n' header, the second ignores the return; f_104cbf1c at 0x104cc29c passes diag=NULL, out=&sp+0x3a0, keeps the result in r8 as an argument to request constructor f_104cb228 and separately gates a branch on f_104840f8(version,2,2). Every caller zero-initializes the output structure (including the patch word and both suffix bytes) before the call, matching the parser's caller-initializes convention. The diagnostic text mechanism is therefore effectively dead: the single caller that supplies the object destroys it without reading the text.",
