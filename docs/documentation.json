@@ -155863,15 +155863,41 @@
      "type": "firmware",
      "address": "0x10fd3920",
      "notes": "Sp API"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10cf4f60",
+     "notes": "Start of named facade census, with names formed from a common literal base."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10cf51f8",
+     "notes": "Device-alias facade exists but has no incoming static reference in the inspected build."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102142b4",
+     "notes": "Application directly registers playback callbacks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10cfc134",
+     "notes": "Registration returns explicit initialization/state/argument status codes."
     }
    ],
-   "todo": [
-    "Residual: live-vs-dead split per export (eSDK vendored; dead-linked exports not reachable by xref)."
-   ],
    "resolved_findings": [
-    "Resolved: export->callsite map = {SpRegister{Connection,DeviceAlias,Playback,Stream,Debug}Callbacks, SpFree, SpPlayback{Play,Pause,SkipToNext,...}} bound in spotify_thread/vli_session.",
-    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect.",
-    "Established: the complete Sp* registration/playback API surface of the embedded Spotify eSDK."
+    "Static facade census: the sixty-two named SDK wrappers occupy 0x10cf4f60-0x10cf8558. Their names are formed from SpInit literal base 0x10fd3910 plus per-wrapper offsets, so a literal-only xref search misses most names. Native instruction/address-formation and branch scans, plus aligned rodata/data/sdata pointer scans, distinguish forty-two wrappers with application call instructions from twenty with no incoming static reference. None of these facade addresses has a stored pointer or text address-formation reference in that scan; the application uses direct branches. This is a static build census, not a claim that every application branch executes on every device or session.",
+    "The twenty unreferenced facade entries are SpRegisterDeviceAliasCallbacks=0x10cf51f8, SpPlaybackCycleRepeatMode=0x10cf5dec, SpConnectionLoginBlob=0x10cf5ec8, SpGetCanonicalUsername=0x10cf6288, SpGetLoginUsername=0x10cf6358, SpPlaybackSetAvailableToPlay=0x10cf6428, SpPlaybackSetDeviceControllable=0x10cf65a0, SpSetDeviceAliases=0x10cf6d44, SpSetAdUserAgent=0x10cf6e18, SpZeroConfAnnouncePause=0x10cf6f88, SpZeroConfAnnounceResume=0x10cf7058, SpConnectionLoginZeroConf=0x10cf7128, SpPlayContextUri=0x10cf74e0, SpGetDefaultDnsHALCallbacks=0x10cf78d4, SpRegisterSocketHALCallbacks=0x10cf79ac, SpGetDefaultSocketHALCallbacks=0x10cf7a94, SpPlaybackSetBandwidthLimit=0x10cf7c64, SpLogRegisterTraceObject=0x10cf8374, SpRestrictDrmMediaFormats=0x10cf8478 and SpRestoreDrmMediaFormats=0x10cf8558. Their literal presence does not prove Sonos integration, contrary to the earlier blanket registration claim.",
+    "Positive application bindings include SpInit at 0x102141f4, debug registration at 0x102141e0, connection/playback/stream registration at 0x102142a8/0x102142b4/0x102142c0, volume-step setup at 0x102142c8, pump at 0x102298dc and free at 0x10229b7c. Playback play facade f_10cf5598 has three direct application callers at 0x1021daf0/0x102216a0/0x10225a4c; pause has four at 0x1021d818/0x10225b08/0x10226644/0x102266cc. LoginOauthToken reaches f_10cf5fc0 at 0x10227a10; DNS HAL registration reaches f_10cf77ec at 0x1021a500 and 0x104e8578; TLS registration reaches f_10cf7b7c at 0x104e8d4c. These counterexamples disprove both an all-dead vendored facade and an all-live literal list.",
+    "Facade execution is guarded independently of reference presence. For example f_10cf5598 logs conditionally, forwards to f_10cfc1f0 and pumps pending work through f_10cfbdb0 only on zero status. Playback-registration delegate f_10cfc0f8 returns status 6 when the SDK singleton is absent, 16 when its +0xba4 condition is set, and 4 for null callback input; valid input copies twelve callback bytes and calls f_10d3a638. These guards mean application reference is not unconditional registration success. The code is in the image and was traced; vendor ownership is not a residual."
    ]
   },
   "esdk_internals": {
