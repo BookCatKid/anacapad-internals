@@ -80604,7 +80604,7 @@
    },
    "actions": {
     "Next": {
-     "description": "Next-track in the VLI session via impl->v[+0x1c].",
+     "description": "Requests Next on the selected source action interface through f_106a6cf4. Enforces accepted/matching InstanceID, faults 401 when no interface exists, and ignores the concrete interface call result. Actual provider skip effects remain unresolved.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073ce18",
@@ -80636,7 +80636,10 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x106a6cf4",
+      "impl_vfunc": "static vtable 0x10f045c4 slot +0x1c",
+      "description": "402 on request validation, invalid ID, missing selected descriptor or selected-ID mismatch. 401 on null provider/action interface. Otherwise calls interface+0x18 and returns zero regardless of its result, committing with no outputs. SOAP success is dispatch success, not proven skip completion."
      },
      "inputs": {
       "InstanceID": {
@@ -80652,7 +80655,7 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "accepted_values": "Exactly 1,2,3,6,8 pass f_10687bac and the ID must match manager+0x354. A matching source without a next-action interface returns 401.",
        "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
@@ -80691,101 +80694,231 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x1c]",
+      "description": "Request validation must succeed, InstanceID must be in {1,2,3,6,8}, and selected descriptor +0x354 must exist and match. Missing provider or provider+0x2c returning null rejects with 401. No additional numeric/range gate is applied before calling the interface.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a6df0",
+        "function": "0x106a6cf4",
+        "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10687bc8",
+        "function": "0x10687bac",
+        "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a7748",
+        "function": "0x106a76b8",
+        "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ce94",
         "function": "0x1073ce18",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x1c]",
+      "description": "Depends on selected-source descriptor +0x354, its ID at +0 and provider at +4. Provider slot +0x2c supplies a separate action interface; interface slot +0x18 is invoked under manager mutex +0x150. This is not controller table 0x10ecbe2c slot +0x1c.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a6df0",
+        "function": "0x106a6cf4",
+        "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10687bc8",
+        "function": "0x10687bac",
+        "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a7748",
+        "function": "0x106a76b8",
+        "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ce94",
         "function": "0x1073ce18",
-        "notes": "member vfunc calls: ['r30 v[+0x1c]']"
+        "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: selected record ID/provider offsets, locking and nested interface calls are traced. Residual: resolve provider bindings from f_106a76b8 registrations, then each provider+0x2c getter and returned interface dependencies; a controller numeric-slot match is not evidence."
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x1c] (call-derived member-method semantics)",
+       "description": "After the ID/descriptor/interface gates, calls the selected provider action interface +0x18 at 0x106a6e0c. The manager does not itself update playback/group counters or wait for a controller completion boolean. Concrete provider effects are not yet established.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "address": "0x106a6df0",
+         "function": "0x106a6cf4",
+         "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10687bc8",
+         "function": "0x10687bac",
+         "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a7748",
+         "function": "0x106a76b8",
+         "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073ce94",
          "function": "0x1073ce18",
-         "notes": "delegate map ['r30 v[+0x1c]']; notify-family calls []"
+         "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x1c] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "todo": "Established: interface +0x18 call and ignored return are traced at 0x106a6e0c. Residual: identify providers written at 0x106a7748 and selected at 0x106a8df4, then enumerate concrete returned-interface +0x18 mutations and external forwarding."
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct notify/event call appears in f_106a6cf4 beyond the selected provider action interface +0x18. A notification attributed solely to the previous controller callback is unsupported; provider and downstream event behavior remain to be traced.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a6df0",
+        "function": "0x106a6cf4",
+        "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10687bc8",
+        "function": "0x10687bac",
+        "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a7748",
+        "function": "0x106a76b8",
+        "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ce94",
         "function": "0x1073ce18",
-        "notes": "bl call scan: notify-family sites = []"
+        "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: no direct emission in f_106a6cf4; provider+0x2c/interface+0x18 is the reachable extension path. Residual: trace registered provider getters and their interface workers from 0x106a6df0/0x106a6e0c to actual internal/GENA/WSS emission sites."
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x1c]",
+      "description": "The source manager performs no transition store in Next. It delegates through provider+0x2c -> interface+0x18 without inspecting the callback result; whether that provider changes playback state is unresolved.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a6df0",
+        "function": "0x106a6cf4",
+        "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10687bc8",
+        "function": "0x10687bac",
+        "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a7748",
+        "function": "0x106a76b8",
+        "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ce94",
         "function": "0x1073ce18",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x1c]']"
+        "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x1c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: no manager transition store and callback return ignored. Residual: trace concrete interface+0x18 workers reached through selected providers registered by f_106a76b8, including their completion/failure paths, before claiming a next-track transition."
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "402 on request validation, invalid ID, missing selected descriptor or selected-ID mismatch. 401 on null provider/action interface. Otherwise calls interface+0x18 and returns zero regardless of its result, committing with no outputs. SOAP success is dispatch success, not proven skip completion.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a6df0",
+        "function": "0x106a6cf4",
+        "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10687bc8",
+        "function": "0x10687bac",
+        "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a7748",
+        "function": "0x106a76b8",
+        "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ce94",
         "function": "0x1073ce18",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -80798,33 +80931,46 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x1c); parse/req-layer",
-       "meaning": "request-layer parse/impl gate failure | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "402",
+       "meaning": "Invalid request or source selection.",
        "fault_sites": [
         "0x1073ceb0"
        ],
        "conditions": [
         {
-         "description": "parse or impl arg gate failed",
+         "description": "Wrapper validation fails, ID fails f_10687bac, selected record is null, or selected ID differs.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10412b6c",
-           "notes": "impl/handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "address": "0x106a6df0",
+           "function": "0x106a6cf4",
+           "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073ce18",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10687bc8",
+           "function": "0x10687bac",
+           "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106a7748",
+           "function": "0x106a76b8",
+           "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1073ce94",
+           "function": "0x1073ce18",
+           "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
           }
          ]
         }
@@ -80834,21 +80980,115 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10412b6c",
-         "notes": "402 path"
+         "address": "0x106a6df0",
+         "function": "0x106a6cf4",
+         "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073ce18",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10687bc8",
+         "function": "0x10687bac",
+         "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a7748",
+         "function": "0x106a76b8",
+         "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073ce94",
+         "function": "0x1073ce18",
+         "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
+        }
+       ]
+      },
+      {
+       "code": 401,
+       "code_expr": "401",
+       "meaning": "Selected source has no action interface.",
+       "fault_sites": [
+        "0x1073ceb0"
+       ],
+       "conditions": [
+        {
+         "description": "The matching record has a null provider, or its +0x2c getter returns null.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106a6df0",
+           "function": "0x106a6cf4",
+           "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10687bc8",
+           "function": "0x10687bac",
+           "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106a7748",
+           "function": "0x106a76b8",
+           "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1073ce94",
+           "function": "0x1073ce18",
+           "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
+          }
+         ]
         }
        ],
-       "domain_note": "delegated-rc semantics: impl f_10412b6c is a 3-instruction no-op stub (stwu/addi/blr) returning r3-in unchanged: no rejection path exists in this build; residual = none beyond handler 402 gate",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x1c); parse/req-layer; sites: 0x1073ceb0).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a6df0",
+         "function": "0x106a6cf4",
+         "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10687bc8",
+         "function": "0x10687bac",
+         "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a7748",
+         "function": "0x106a76b8",
+         "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073ce94",
+         "function": "0x1073ce18",
+         "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
+        }
        ]
       }
      ],
@@ -80858,23 +81098,45 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073ce18",
-       "address": "0x1073ce18",
-       "notes": "action wrapper handler"
+       "address": "0x104d4f64",
+       "function": "0x104d49e8",
+       "notes": "The services-block write at block+0x58 is VLI service+4 (zone-player+0x3fa84). Its source is media-player+0x19a0, constructed by f_106aae20 at 0x103fbe30; final primary vptr 0x10f045c4 is installed at 0x106aaf5c. The containing block is retained at media-player+0x220 (0x103fa75c) and loaded by initializer f_103fd65c at 0x103fdd08. This is the source manager, not the controller at media-player+0x1998."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11ee0",
-       "notes": "action dispatch table entry"
+       "address": "0x106a6df0",
+       "function": "0x106a6cf4",
+       "notes": "Bound +0x1c first validates InstanceID with f_10687bac at 0x106a6d64; default result is 402 at 0x106a6d68. Under manager mutex +0x150 it requires nonnull selected record +0x354 with matching ID (raw 0x419e0010 at 0x106a6dc8 branches on equality to 0x106a6dd8). Null provider at record+4 or null interface returned by provider slot +0x2c at 0x106a6df0 selects 401 at 0x106a6e14. Otherwise interface slot +0x18 is called at 0x106a6e0c, but its result is ignored: r31 is set to zero first at 0x106a6e00. Unlock at 0x106a6dd0 preserves that result. There are no output arguments."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10687bc8",
+       "function": "0x10687bac",
+       "notes": "Raw 0x2b830008/0x419d0020 at 0x10687bac/0x10687bb4 reject unsigned values greater than 8. Raw 0x706a014e masks (1 << InstanceID) with 0x14e; raw 0x7c60489e is isel r3,r0,r9,CR0.eq, selecting zero on a zero mask and one otherwise. Accepted IDs are exactly 1,2,3,6,8, not every u32."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106a7748",
+       "function": "0x106a76b8",
+       "notes": "Registration scans nine 12-byte records at manager+0x2e8 for an unused ID, invokes provider slot +8 at 0x106a7738, then stores ID/provider/context at record+0/+4/+8 at 0x106a7744-0x106a774c. f_106a8b08 scans those IDs at 0x106a8cb8-0x106a8ccc and stores the matching record at manager+0x354 at 0x106a8df4; it invokes provider onSelect slot +0x10 at 0x106a8d38, clearing +0x354 on failure (0x106a8e34). This proves the selected-source indirection; it does not identify every registered provider or its next-action interface."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073ce94",
+       "function": "0x1073ce18",
+       "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x1073ce18; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "The controller table 0x10ecbe2c is not this SOAP delegate; controller callback/boolean/event semantics must not be substituted for the proven source-manager slot.",
+     "todo": "Established: f_106a6cf4 ID/descriptor gates, provider+0x2c -> interface+0x18 chain and complete local 402/401/0 result ladder are traced. Residual: map providers registered through f_106a76b8 (stores 0x106a7744-0x106a774c), selected by f_106a8b08, to their concrete +0x2c getters and returned interface +0x18 workers for accepted IDs 1,2,3,6,8. No runtime-only impossibility is claimed."
     },
     "Pause": {
      "description": "Pause is not implemented by this SOAP source manager. Bound 0x106a613c optionally logs \"Pause\" and returns 401, ignoring its inputs. Request validation failure selects 402; no playback or volume operation occurs.",
