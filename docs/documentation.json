@@ -69234,7 +69234,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The indexed queue applies mode changes to the active track list and the LastChange snapshot reads the resulting mode. The playing consumer's same-mode success path does not raise a play-mode change notification. In stopped or paused playback, a changed mode can schedule the sender after a queue snapshot refresh. A changed indexed mode can wake the sender before a queued snapshot becomes current; the wake alone does not dirty the common delta block. For Spotify, the streamer call records a pending mode update and the worker submits shuffle and repeat separately. The SDK's shuffle and repeat update handlers skip their notifications on equality with the respective compared values. If a resulting VLI mode-change event reaches the AVTransport worker, it dirties the common block and schedules the sender. The mode is read from the active streamer when LastChange is collected, not copied from the SOAP request or from the notification.",
+      "description": "The indexed queue applies mode changes to the active track list and LastChange reads the resulting mode. An unchanged indexed mode does not schedule its own notification. A changed mode can wake the sender before a queued snapshot becomes current; the wake alone does not dirty the common delta block. For Spotify, shuffle and repeat requests are sent separately and successful command replies do not notify. Accepted device state can independently publish shuffle and repeat; the SDK skips notifications for values that equal its cache. The VLI notification reaches AVTransport through a registered listener and bounded worker admission. The running mode-change callback dirties the common block and schedules the sender. LastChange reads the active provider's mode, not the requested value or a mode in the event payload.",
       "evidence": [
        {
         "type": "firmware",
@@ -69412,6 +69412,34 @@
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10fdaaec",
+        "notes": "The state descriptor at 0x10fdaac2 uses tag 5 to put a three-byte submessage at state+0x6014. f_10d28550 selects the nested descriptor through the table at 0x10fd9bac and recursively decodes at 0x10d294b0. The nested descriptor at 0x10fdacf2 maps tags 1, 2 and 3 to bytes +0, +1 and +2. In the installed snapshot based at device+0x6cf0, these are +0xcd04 through +0xcd06. The SDK publishes decoded state, not the values from the outgoing setter records."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d1cadc",
+        "notes": "f_10d1caa4 calls the state publisher f_10d1c198. Its call at 0x10d1d38c is from the successful StateConflictResponse path: the decoded entries are tried in order, a state-machine mismatch goes elsewhere, and the accepted final entry reaches this call after f_10d17308 copies scratch+0 to device+0x6c9c at 0x10d17368. The replace_state branch of f_10d1dc24 also calls f_10d1caa4 at 0x10d1e598 after decoding, matching the machine ID and pause byte, and successfully installing state through f_10d17308. f_10d1c198 itself requires a nonnull device+0x2d8 track after its selection/refresh before reaching the two ring submissions."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d1da04",
+        "notes": "The separate successful StateResponse callback f_10d1d48c parses at 0x10d1d6f8 for the active-device branch and checks the state-machine and pause fields before copying decoded state from scratch to device+0x6cf0 at 0x10d1dacc. It installs the selected track at 0x10d1db30 when its index is in bounds. The final device+0x2d8 null check at 0x10d1d9f4 guards the call to f_10d1c198 with argument 1."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d199c0",
+        "notes": "f_10d1dc24 matches observe_state at 0x10d1dd00 and stop_and_observe at 0x10d1dd18. After successful decoding, observe_state calls f_10d19704 with argument 3 at 0x10d1e67c. That publisher returns immediately for argument 3 when device+0xbde is set; the publishing observe_state path first copies decoded state at 0x10d1e5bc. The matching stop_and_observe path copies decoded state at 0x10d1e810 and calls f_10d19704 with argument 4 at 0x10d1e8a8. The publishing branch sends selector 31 then selector 32, independently of the setter acknowledgements."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "address": "0x10cfa620",
         "notes": "The SDK update table at 0x10fd3fd4 sends selector 31 to 0x10cfa620 (shuffle) and 32 to 0x10cfa5d4 (repeat). Shuffle compares the update word to the cached byte at +0xb86; repeat compares to the cached word at +0xb88. Equality takes the zero-result branch without calling the notification helper. Unequal values update those fields and call f_10d3bb08 with IDs 5/6 for shuffle on/off or 7/8 for repeat on/off. The repeat getter f_10cfd29c reads +0xb8b, the low byte of that same big-endian word, so transitions between repeat values 1 and 2 update the getter and request notification ID 7 even though both are nonzero."
        },
@@ -69462,7 +69490,22 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x102bef24",
-        "notes": "The AVTransport VliPropertiesChangedEvent receiver f_102beca8 copies the metadata and mode flags and submits the callback f_102afb40 via f_102eff8c. That submission builds the work record and calls f_102ef534 at 0x102f0360. Its f_1099bd70 test with selector zero atomically increments the count and succeeds only if the previous count was below counter+8; otherwise it rolls back the increment. The accepted path calls executor slot +0x10 at 0x102efdc0. With the mode flag set, the running callback enters f_102afa40, which sets impl+0x4658 and calls f_1067c6ec on the event source at impl+0x10. f_102b5658 tests the flag at 0x102b582c, promotes it to the common LastChange dirty latch at impl+0x7785, and clears the source flag at 0x102b57a4 on a consuming pass."
+        "notes": "The AVTransport VliPropertiesChangedEvent receiver f_102beca8 copies the metadata and mode flags and submits the callback f_102afb40 via f_102eff8c. That submission builds the work record and calls f_102ef534 at 0x102f0360. Its f_1099bd70 test with selector zero atomically increments the count and succeeds only if the previous count was below the limit stored at counter object+8; otherwise it rolls back the increment. The accepted path calls executor slot +0x10 at 0x102efdc0. With the mode flag set, the running callback enters f_102afa40, which sets impl+0x4658 and calls f_1067c6ec on the event source at impl+0x10. f_102b5658 tests the flag at 0x102b582c, promotes it to the common LastChange dirty latch at impl+0x7785, and clears the source flag at 0x102b57a4 on a consuming pass."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100c17b8",
+        "notes": "Startup f_100c1478 saves the f_1099c76c pool at 0x1109bc38. The startup call at 0x100c1af4 passes that pointer at stack+0x18, and f_1018d27c saves it at owner+0x57f8 (0x1018df8c). The constructor calls at 0x1018f114, 0x101b0140, 0x103fb5d8 and 0x1051218c forward it to the base AVTransport constructor, which writes it at impl+0xaa6c (0x102c14fc). f_102beca8 reads that field, then calls pool slot +8 at 0x102bed10 with the result buffer as its first argument. The pool table at 0x10f92b50 binds slot +8 to f_1099c048, which creates the work record's executor through f_109a687c and stores the handle at secondary-record+0x18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102efdc0",
+        "notes": "The scheduler copies the executor from the work record into its stack frame (f_101a473c reads secondary-record+0x18 and writes frame+0xb0). At 0x102efcdc the accepted branch reads the executor vtable, whose +0x10 word at 0x10f9305c is f_109a686c. This thunk enters f_109a6ccc, then f_109a7e1c. That routine moves the callable into a queue node with completion handler f_109a7188; it appends behind existing executor work when busy or marks the executor busy and schedules its first work. The completion handler invokes a nonempty callable at 0x109a7238 on its run path. Here the invoke function f_102e78a4 calls the enclosed work, then tail-calls f_1099bea0 to decrement the admission count. A successful Spotify request is not a guarantee that this separate work runs or delivers a LastChange event.",
+        "function": "0x102ef534"
        },
        {
         "type": "firmware",
@@ -69471,10 +69514,6 @@
         "address": "0x10489e50",
         "notes": "Mode-one collection reaches f_1048b570 at 0x102b5d20. Its metadata snapshot helper f_10489b18 initializes a play-mode halfword to zero and passes it to the provider as r7 through f_106a9f90. Spotify returns audio-input+0x584c in that halfword (0x104de430); the successful snapshot branch stores it and copies the f_10145f50 name into the CurrentPlayMode buffer via snapshot pointers +0x6c/+0x70, which point to the LastChange string at formatter stack+0x60de and its capacity."
        }
-      ],
-      "todo": [
-       "Established: the indexed same-mode path skips its wake. Spotify setter commands submit separate device requests; equal state updates skip notification, but repeat-all and repeat-one compare unequal. The mode event requires the selecting/active Spotify control, a configured event loop and the registered AVTransport listener not marked for removal. The running callback dirties LastChange; collection reads the active provider's current mode, not the request or an event payload mode.",
-       "Trace which incoming device-state cases reach f_10d1c198 or the other selectors 31/32 producer after a mode request. Identify the mode work item's executor implementation behind 0x102efdc0. Spotify type 2 is the only direct call to the registration helper in this build."
       ]
      },
      "state_transitions": {
