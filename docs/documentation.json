@@ -2742,7 +2742,7 @@
      ]
     },
     "GetHouseholdTimeAtStamp": {
-     "description": "Converts TimeStamp to household UTC time via impl->v[+0x2c].",
+     "description": "Advertised timestamp conversion is unsupported in this build: wrapper f_10733fb4 dispatches static engine +0x2c -> f_10272f70, an unconditional 401 stub. Missing TimeStamp faults 402 first; all present timestamp strings, including empty or malformed strings, reach 401. No HouseholdUTCTime value is produced.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10733fb4",
@@ -2780,11 +2780,14 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x10272f70",
+      "impl_vfunc": "static primary vtable 0x10eaa99c slot +0x2c",
+      "description": "Unconditional 401 stub; no clock conversion, output producer or success commit is reachable."
      },
      "inputs": {
       "TimeStamp": {
-       "description": "UTC timestamp to convert",
+       "description": "Required opaque byte string, not decoded as a UTC timestamp by this firmware path. Bounded text parsing precedes unconditional worker rejection.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -2793,238 +2796,341 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string argument",
-       "format": "utf-8 text, buffer cap 64 bytes (63 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "string within the request parse cap; impl-side grammar applies",
-       "range": "max 63 chars",
-       "special_values": "none identified",
+       "semantic_type": "opaque bounded text for unsupported conversion",
+       "format": "text bytes; no enforced timestamp grammar",
+       "unit": "n/a",
+       "accepted_values": "Any present string passes type-tag-7 handling but worker always faults 401.",
+       "range": "first 63 bytes plus NUL retained in 64-byte buffer",
+       "special_values": "Present empty string -> 401; missing argument -> 402.",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10733ff4",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10f98108",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10733e98",
-         "notes": "impl consumes the arg"
-        }
-       ],
-       "notes": null,
-       "buf_cap": 64,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `TimeStamp` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +44 (site 0x1073403c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `TimeStamp` = verbatim forward to impl vfunc +44 (obj *(r3-in+0x4), call site 0x1073403c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
-      }
-     },
-     "outputs": {
-      "HouseholdUTCTime": {
-       "description": "Household-local time at the stamp",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": null
-       },
-       "semantic_type": "response field",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "timestamp string",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x107340a8",
-         "notes": "out-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10f116ac",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10733e98",
-         "notes": "impl writes the field"
-        }
-       ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `HouseholdUTCTime`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10733fb4",
-        "notes": "wrapper family decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x2c]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10733fb4",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x2c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x2c]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10733fb4",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x2c]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x2c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x2c] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "validation": "Required-input presence only; no numeric, date/time or timezone conversion.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10733fb4",
-         "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x2c] -> out-arg (call-derived member-method semantics)"
+         "address": "0x10734058",
+         "callsite": "0x1073403c",
+         "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1056157c",
+         "address": "0x10561588",
+         "callsite": "0x10734000",
+         "notes": "Type tag 7 binds byte buffer/capacity, initializes count and present flag. Canonical f_10730414 looks up the required input and calls f_10560708 copy then f_10560a58 finalize. Copy bounded by capacity; finalize writes NUL at count or capacity-1 (0x10560b1c) and sets present flag +0x31. Tag 7 returns at 0x10560ab8 without conversion. Present empty string passes; missing required input fails. Retains at most 63 bytes, silently truncating longer text; no timestamp grammar/range or end-of-input check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10272f70",
+         "address": "0x10272f74",
+         "callsite": "0x1073403c",
+         "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x2c] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "notes": "Overlong values truncate rather than fault.",
+       "buf_cap": 64
+      }
+     },
+     "outputs": {
+      "HouseholdUTCTime": {
+       "description": "Unreachable advertised text output. The static worker always returns 401 without writing its output buffer; wrapper never allocates or emits HouseholdUTCTime on this path.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "unreachable advertised text output",
+       "format": "no emitted value in this build",
+       "unit": "n/a",
+       "accepted_values": "none reachable",
+       "range": "wrapper supplies a 20-byte output buffer, never written by worker",
+       "special_values": "No empty/zero fallback is returned; action faults instead.",
+       "required": false,
+       "default": "none; never emitted",
+       "validation": "Emission requires worker return 0, impossible for f_10272f70.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10272f70",
+         "address": "0x10272f74",
+         "callsite": "0x1073403c",
+         "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733fb4",
+         "address": "0x10734058",
+         "callsite": "0x1073403c",
+         "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
+        }
+       ],
+       "notes": "No inferred timestamp format is assigned to an output with no producer."
+      }
+     },
+     "validation": {
+      "description": "Missing required TimeStamp faults 402. Present TimeStamp is bounded opaque text, including empty or malformed data, and reaches unconditional 401. No semantic timestamp validation occurs.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1056157c",
+        "address": "0x10561588",
+        "callsite": "0x10734000",
+        "notes": "Type tag 7 binds byte buffer/capacity, initializes count and present flag. Canonical f_10730414 looks up the required input and calls f_10560708 copy then f_10560a58 finalize. Copy bounded by capacity; finalize writes NUL at count or capacity-1 (0x10560b1c) and sets present flag +0x31. Tag 7 returns at 0x10560ab8 without conversion. Present empty string passes; missing required input fails. Retains at most 63 bytes, silently truncating longer text; no timestamp grammar/range or end-of-input check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733fb4",
+        "address": "0x10734058",
+        "callsite": "0x1073403c",
+        "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10272f70",
+        "address": "0x10272f74",
+        "callsite": "0x1073403c",
+        "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "TimeStamp must be present to reach engine dispatch. No time-source, timezone, coordinator or alarm-state prerequisite is checked; fulfilling input presence still faults 401.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1056157c",
+        "address": "0x10561588",
+        "callsite": "0x10734000",
+        "notes": "Type tag 7 binds byte buffer/capacity, initializes count and present flag. Canonical f_10730414 looks up the required input and calls f_10560708 copy then f_10560a58 finalize. Copy bounded by capacity; finalize writes NUL at count or capacity-1 (0x10560b1c) and sets present flag +0x31. Tag 7 returns at 0x10560ab8 without conversion. Present empty string passes; missing required input fails. Retains at most 63 bytes, silently truncating longer text; no timestamp grammar/range or end-of-input check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733fb4",
+        "address": "0x10734058",
+        "callsite": "0x1073403c",
+        "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10272f70",
+        "address": "0x10272f74",
+        "callsite": "0x1073403c",
+        "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Service+4 is used only to dispatch static worker. Worker reads no clock, engine field, generation, timezone data or input contents and acquires no lock.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10276048",
+        "address": "0x10eaa9c8",
+        "callsite": "0x1073403c",
+        "notes": "Primary vptr 0x10eaa99c installed at 0x102761e8; +0x2c entry 0x10eaa9c8 is f_10272f70. Service f_10735460 stores engine at service+4. Wrapper loads engine at 0x10734020 and slot +0x2c at 0x10734034, calls at 0x1073403c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10272f70",
+        "address": "0x10272f74",
+        "callsite": "0x1073403c",
+        "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Request buffer and fault response writes only. No time conversion, clock mutation, settings write, file access, generation increment or scheduling update.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10272f70",
+         "address": "0x10272f74",
+         "callsite": "0x1073403c",
+         "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733fb4",
+         "address": "0x10734058",
+         "callsite": "0x1073403c",
+         "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1056157c",
+         "address": "0x10561588",
+         "callsite": "0x10734000",
+         "notes": "Type tag 7 binds byte buffer/capacity, initializes count and present flag. Canonical f_10730414 looks up the required input and calls f_10560708 copy then f_10560a58 finalize. Copy bounded by capacity; finalize writes NUL at count or capacity-1 (0x10560b1c) and sets present flag +0x31. Tag 7 returns at 0x10560ab8 without conversion. Present empty string passes; missing required input fails. Retains at most 63 bytes, silently truncating longer text; no timestamp grammar/range or end-of-input check."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. Static worker has no call or state write and wrapper faults before success commit.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10272f70",
+        "address": "0x10272f74",
+        "callsite": "0x1073403c",
+        "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10733fb4",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x10734058",
+        "callsite": "0x1073403c",
+        "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x2c]",
+      "description": "None. Missing TimeStamp faults 402; any present string faults 401 without modifying service or clock state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10272f70",
+        "address": "0x10272f74",
+        "callsite": "0x1073403c",
+        "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10733fb4",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x2c]']"
+        "address": "0x10734058",
+        "callsite": "0x1073403c",
+        "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1056157c",
+        "address": "0x10561588",
+        "callsite": "0x10734000",
+        "notes": "Type tag 7 binds byte buffer/capacity, initializes count and present flag. Canonical f_10730414 looks up the required input and calls f_10560708 copy then f_10560a58 finalize. Copy bounded by capacity; finalize writes NUL at count or capacity-1 (0x10560b1c) and sets present flag +0x31. Tag 7 returns at 0x10560ab8 without conversion. Present empty string passes; missing required input fails. Retains at most 63 bytes, silently truncating longer text; no timestamp grammar/range or end-of-input check."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x2c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Worker normal domain {401}; wrapper additionally faults 402 on missing input. No successful response or HouseholdUTCTime output exists for this concrete implementation. Both fault paths use 0x10734058. Stack guard aborts are not SOAP faults.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10272f70",
+        "address": "0x10272f74",
+        "callsite": "0x1073403c",
+        "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10733fb4",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "address": "0x10734058",
+        "callsite": "0x1073403c",
+        "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1056157c",
+        "address": "0x10561588",
+        "callsite": "0x10734000",
+        "notes": "Type tag 7 binds byte buffer/capacity, initializes count and present flag. Canonical f_10730414 looks up the required input and calls f_10560708 copy then f_10560a58 finalize. Copy bounded by capacity; finalize writes NUL at count or capacity-1 (0x10560b1c) and sets present flag +0x31. Tag 7 returns at 0x10560ab8 without conversion. Present empty string passes; missing required input fails. Retains at most 63 bytes, silently truncating longer text; no timestamp grammar/range or end-of-input check."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10734058",
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x2c)"
+       "code_expr": "validation-zero ? 402 : f_10272f70 return (401)"
       }
      ],
      "errors": [
       {
        "code": 401,
-       "code_expr": "li r3,0x191",
-       "meaning": "alarm-store vfunc 0x10272f70 (slot +0x2c) is a 4-insn stub \"li r3,0x191; blr\" - validly parsed calls always fault 401; malformed requests may still fail earlier at wrapper parse",
+       "code_expr": "li r3,0x191 at 0x10272f74",
+       "meaning": "Unsupported conversion: every request passing TimeStamp presence validation reaches literal 401.",
        "fault_sites": [
         "0x10734058"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "Required input was present and validation succeeded; static worker ignores it and returns 401 unconditionally.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10734058",
-           "notes": "impl rc passthrough"
+           "function": "0x10276048",
+           "address": "0x10eaa9c8",
+           "callsite": "0x1073403c",
+           "notes": "Primary vptr 0x10eaa99c installed at 0x102761e8; +0x2c entry 0x10eaa9c8 is f_10272f70. Service f_10735460 stores engine at service+4. Wrapper loads engine at 0x10734020 and slot +0x2c at 0x10734034, calls at 0x1073403c."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x10733e98",
-           "notes": "rc convention site"
+           "function": "0x10272f70",
+           "address": "0x10272f74",
+           "callsite": "0x1073403c",
+           "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10733fb4",
+           "address": "0x10734058",
+           "callsite": "0x1073403c",
+           "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
           }
          ]
         }
@@ -3034,54 +3140,60 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10734058",
-         "notes": "impl rc passthrough site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10733e98",
-         "notes": "impl rc -> r4 -> req v[+0x14]; CR0.eq = success branch"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
+         "function": "0x10276048",
          "address": "0x10eaa9c8",
-         "notes": "store vfunc slot +0x2c -> 0x10272f70; alarm-store object vptr 0x10eaa99c (ctor f_10276048 overwrite at 0x102761e8; obj new(0x8118) via shared_ptr -> svc+0x4)"
+         "callsite": "0x1073403c",
+         "notes": "Primary vptr 0x10eaa99c installed at 0x102761e8; +0x2c entry 0x10eaa9c8 is f_10272f70. Service f_10735460 stores engine at service+4. Wrapper loads engine at 0x10734020 and slot +0x2c at 0x10734034, calls at 0x1073403c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10272f70",
-         "notes": "unconditional return 0x191"
+         "function": "0x10272f70",
+         "address": "0x10272f74",
+         "callsite": "0x1073403c",
+         "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733fb4",
+         "address": "0x10734058",
+         "callsite": "0x1073403c",
+         "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
         }
        ],
-       "domain_note": "delegated-rc semantics: valid calls always fault 401 at store vfunc",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: li r3,0x191; sites: 0x10734058).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "Normal worker domain {401}."
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Required TimeStamp is absent, not a semantic timestamp syntax error.",
        "fault_sites": [
         "0x10734058"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "Missing required record makes canonical validation return zero; wrapper loads 402 at 0x1073408c. Empty/malformed/overlong present text does not cause this presence fault.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10733fb4",
-           "notes": "parse vcalls then fault path"
+           "function": "0x1056157c",
+           "address": "0x10561588",
+           "callsite": "0x10734000",
+           "notes": "Type tag 7 binds byte buffer/capacity, initializes count and present flag. Canonical f_10730414 looks up the required input and calls f_10560708 copy then f_10560a58 finalize. Copy bounded by capacity; finalize writes NUL at count or capacity-1 (0x10560b1c) and sets present flag +0x31. Tag 7 returns at 0x10560ab8 without conversion. Present empty string passes; missing required input fails. Retains at most 63 bytes, silently truncating longer text; no timestamp grammar/range or end-of-input check."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10733fb4",
+           "address": "0x10734058",
+           "callsite": "0x1073403c",
+           "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
           }
          ]
         }
@@ -3091,8 +3203,19 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10733fb4",
-         "notes": "wrapper parse + fault path"
+         "function": "0x1056157c",
+         "address": "0x10561588",
+         "callsite": "0x10734000",
+         "notes": "Type tag 7 binds byte buffer/capacity, initializes count and present flag. Canonical f_10730414 looks up the required input and calls f_10560708 copy then f_10560a58 finalize. Copy bounded by capacity; finalize writes NUL at count or capacity-1 (0x10560b1c) and sets present flag +0x31. Tag 7 returns at 0x10560ab8 without conversion. Present empty string passes; missing required input fails. Retains at most 63 bytes, silently truncating longer text; no timestamp grammar/range or end-of-input check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733fb4",
+         "address": "0x10734058",
+         "callsite": "0x1073403c",
+         "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
         }
        ]
       }
@@ -3103,29 +3226,40 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x10276048",
+       "address": "0x10eaa9c8",
+       "callsite": "0x1073403c",
+       "notes": "Primary vptr 0x10eaa99c installed at 0x102761e8; +0x2c entry 0x10eaa9c8 is f_10272f70. Service f_10735460 stores engine at service+4. Wrapper loads engine at 0x10734020 and slot +0x2c at 0x10734034, calls at 0x1073403c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10272f70",
+       "address": "0x10272f74",
+       "callsite": "0x1073403c",
+       "notes": "Complete worker 0x10272f70..0x10272f7c: stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr. No argument loads, output writes, conditions, object reads, calls or tail branches. Normal return domain exactly {401}; no timestamp conversion or date/time parser is reachable."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "function": "0x10733fb4",
-       "address": "0x10733fb4",
-       "notes": "action wrapper handler"
+       "address": "0x10734058",
+       "callsite": "0x1073403c",
+       "notes": "Registers required TimeStamp at 0x10733ff4; f_1056157c at 0x10734000 binds text buffer capacity 0x40. Validates at 0x10734014; false loads 402 at 0x1073408c. True dispatches engine +0x2c with output capacity 0x14. Nonzero worker code and validation 402 share request fault call 0x10734058. Worker-zero would allocate HouseholdUTCTime at 0x107340a8, bind text at 0x107340bc, commit at 0x107340d0; all unreachable with static 401 worker. Stack guard at 0x107340d8 aborts, not SOAP."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f115b0",
-       "notes": "action dispatch table entry"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "function": "0x10733e98",
-       "notes": "alarm impl = service vtable 0x10f11530 slot +0x2c (ctor stores svc vptr at svc+4)"
+       "function": "0x1056157c",
+       "address": "0x10561588",
+       "callsite": "0x10734000",
+       "notes": "Type tag 7 binds byte buffer/capacity, initializes count and present flag. Canonical f_10730414 looks up the required input and calls f_10560708 copy then f_10560a58 finalize. Copy bounded by capacity; finalize writes NUL at count or capacity-1 (0x10560b1c) and sets present flag +0x31. Tag 7 returns at 0x10560ab8 without conversion. Present empty string passes; missing required input fails. Retains at most 63 bytes, silently truncating longer text; no timestamp grammar/range or end-of-input check."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: handler 0x10733fb4 reads arg TimeStamp (cap 0x40), calls impl->v[+0x2c](ts, out, 0x14) on the alarm-engine member (this+4 shared_ptr delegate), emits result via req vfunc+0x14. Residual: the v[+0x2c] timestamp-to-household-time conversion (delegate internals)."
-     ]
+     "notes": "No timestamp parser is reachable. Wrapper output allocation and success commit exist structurally but are unreachable with the installed static worker."
     },
     "GetTimeNow": {
      "description": "Returns current UTC and local wall-clock timestamps, the effective timezone rule, and the active time-source generation. Static engine slot +0x30 calls f_10273340. Disabled time source faults 800; normal success returns all four fields. This is a read, not a clock synchronization or timezone-table refresh.",
