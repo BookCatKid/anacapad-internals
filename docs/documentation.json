@@ -3128,7 +3128,7 @@
      ]
     },
     "GetTimeNow": {
-     "description": "Returns CurrentUTCTime/CurrentLocalTime/CurrentTimeZone/CurrentTimeGeneration via impl->v[+0x8].",
+     "description": "Returns current UTC and local wall-clock timestamps, the effective timezone rule, and the active time-source generation. Static engine slot +0x30 calls f_10273340. Disabled time source faults 800; normal success returns all four fields. This is a read, not a clock synchronization or timezone-table refresh.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073505c",
@@ -3184,489 +3184,543 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "impl_function": "0x10273340",
+      "impl_vfunc": "static primary vtable 0x10eaa99c slot +0x30",
+      "description": "Wrapper engine dispatch 0x107350cc -> f_10273340; engine+0x240 time-source slot +0x08 supplies UTC FILETIME, engine+0x232 supplies effective timezone, source+4 supplies generation."
      },
      "inputs": {},
      "outputs": {
       "CurrentUTCTime": {
-       "description": "Current UTC timestamp written to the response",
+       "description": "Current system UTC converted from the active time source FILETIME and emitted as a space-separated date/time, without a timezone suffix.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "ISO time string",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "semantic_type": "UTC calendar timestamp text",
+       "format": "YYYY-MM-DD HH:MM:SS (space, no suffix)",
+       "unit": "calendar date and seconds",
+       "accepted_values": "Formatted calendar fields from FileTimeToSystemTime; no getter range validation.",
+       "range": "output buffer 20 bytes including NUL",
+       "special_values": "No sentinel substitution; conversion failure is not surfaced as a fault.",
+       "required": true,
+       "default": "none; emitted on success",
+       "validation": "No input; conversion helper result is ignored.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735138",
-         "notes": "out-arg access site"
+         "function": "0x10273340",
+         "address": "0x102733b4",
+         "callsite": "0x107350cc",
+         "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11768",
-         "notes": "argument name string"
+         "function": "0x10273800",
+         "address": "0x10273824",
+         "callsite": "0x102733cc",
+         "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10733fb4",
-         "notes": "impl writes the field"
+         "function": "0x10c3c88c",
+         "address": "0x10fb1598",
+         "callsite": "0x102734e0",
+         "notes": "Format literal is %04hu-%02hu-%02hu %02hu:%02hu:%02hu, resolved through PIC table 0x11095d9c-0x8000. Reads year/month/day/hour/minute/second at +4/+6/+0xa/+0xc/+0xe/+0x10. Caller capacity 0x14 means at most 19 characters plus NUL, without T, Z, fractional seconds or offset. Year width is a minimum, not a range check. UTC helper f_10c3d4fc calls FileTimeToSystemTime at 0x10c3d53c; local helper f_10c3d9ec builds TIME_ZONE_INFORMATION from signed rule biases/transition fields and calls SystemTimeToTzSpecificLocalTime at 0x10c3dae4. Getter ignores their boolean results and does not map conversion failure to a fault; date objects were zero-initialized."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073505c",
+         "address": "0x107350e8",
+         "callsite": "0x107350cc",
+         "notes": "No inputs registered. Validation-zero loads 402 at 0x1073511c and faults through request slot +0x14 call 0x107350e8; worker nonzero uses same fault call. Success writes CurrentUTCTime, CurrentLocalTime, CurrentTimeZone via text slots at 0x1073514c/0x1073517c/0x107351ac, and generation via f_1055fcbc at 0x107351d0 (%u, literal 0x10f94c94). Commits through request +0x0c at 0x107351e4. Request validator f_10730414 returns 1 immediately at 0x1073051c for zero input records, so 402 is defensive and not reachable on the canonical fresh empty-input request. Wrapper stack guard at 0x107351ec aborts, not SOAP."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentUTCTime`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       },
       "CurrentLocalTime": {
-       "description": "Current local time written to the response",
+       "description": "UTC converted to local calendar time using the effective timezone rule at engine+0x232, including its enabled DST transitions.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "local time string",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "semantic_type": "local calendar timestamp text",
+       "format": "YYYY-MM-DD HH:MM:SS (space, no offset)",
+       "unit": "calendar date and seconds",
+       "accepted_values": "Formatted local calendar fields from SystemTimeToTzSpecificLocalTime.",
+       "range": "output buffer 20 bytes including NUL",
+       "special_values": "Conversion failure is not surfaced as a fault; initialized fields may remain zero.",
+       "required": true,
+       "default": "none; emitted on success",
+       "validation": "No getter range check. Local conversion is after unlock and reads the live effective-rule pointer, not a private rule snapshot.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735168",
-         "notes": "out-arg access site"
+         "function": "0x10273340",
+         "address": "0x102733b4",
+         "callsite": "0x107350cc",
+         "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11778",
-         "notes": "argument name string"
+         "function": "0x10c3c88c",
+         "address": "0x10fb1598",
+         "callsite": "0x102734e0",
+         "notes": "Format literal is %04hu-%02hu-%02hu %02hu:%02hu:%02hu, resolved through PIC table 0x11095d9c-0x8000. Reads year/month/day/hour/minute/second at +4/+6/+0xa/+0xc/+0xe/+0x10. Caller capacity 0x14 means at most 19 characters plus NUL, without T, Z, fractional seconds or offset. Year width is a minimum, not a range check. UTC helper f_10c3d4fc calls FileTimeToSystemTime at 0x10c3d53c; local helper f_10c3d9ec builds TIME_ZONE_INFORMATION from signed rule biases/transition fields and calls SystemTimeToTzSpecificLocalTime at 0x10c3dae4. Getter ignores their boolean results and does not map conversion failure to a fault; date objects were zero-initialized."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10733fb4",
-         "notes": "impl writes the field"
+         "function": "0x10c3ce18",
+         "address": "0x10fb15e0",
+         "callsite": "0x1027346c",
+         "notes": "Formats effective cached rule at engine+0x232, unlike GetTimeZoneAndRule which reads raw cache +0x224. Format %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx yields 28 lowercase hex digits: GMTBias u16; standard Month/DayOfWeek/Day/Hour bytes and Bias u16; daylight equivalent. Biases preserve 16-bit signed representation. f_10c3d094 returns unchanged when AutoAdjustDst is nonzero; when zero it clears transitions with f_10c3ccc8 and restores GMTBias. Cache writers f_10276e80 and f_10279c0c apply that helper only to +0x232. A zero rule renders 28 zeros."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073505c",
+         "address": "0x107350e8",
+         "callsite": "0x107350cc",
+         "notes": "No inputs registered. Validation-zero loads 402 at 0x1073511c and faults through request slot +0x14 call 0x107350e8; worker nonzero uses same fault call. Success writes CurrentUTCTime, CurrentLocalTime, CurrentTimeZone via text slots at 0x1073514c/0x1073517c/0x107351ac, and generation via f_1055fcbc at 0x107351d0 (%u, literal 0x10f94c94). Commits through request +0x0c at 0x107351e4. Request validator f_10730414 returns 1 immediately at 0x1073051c for zero input records, so 402 is defensive and not reachable on the canonical fresh empty-input request. Wrapper stack guard at 0x107351ec aborts, not SOAP."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentLocalTime`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       },
       "CurrentTimeZone": {
-       "description": "Time response field CurrentTimeZone",
+       "description": "Effective timezone rule encoded as 28 lowercase hexadecimal characters, not a name, ID or boolean. Automatic DST disabled clears transition fields in this effective copy, while preserving the base GMTBias.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "active timezone name/index from the timezone record",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "semantic_type": "effective timezone rule",
+       "format": "4+2+2+2+2+4+2+2+2+2+4 hexadecimal digits",
+       "unit": "biases in minutes; calendar transition fields",
+       "accepted_values": "Serialized 14-byte effective rule from engine+0x232.",
+       "range": "28 characters plus NUL in a 29-byte buffer",
+       "special_values": "Zero rule becomes 28 zero characters.",
+       "required": true,
+       "default": "none; emitted on success",
+       "validation": "No table lookup or rule validity check in getter.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735198",
-         "notes": "out-arg access site"
+         "function": "0x10273340",
+         "address": "0x102733b4",
+         "callsite": "0x107350cc",
+         "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f116fc",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10733fb4",
-         "notes": "impl writes the field"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10733fb4",
-         "notes": "impl writes"
+         "function": "0x10c3ce18",
+         "address": "0x10fb15e0",
+         "callsite": "0x1027346c",
+         "notes": "Formats effective cached rule at engine+0x232, unlike GetTimeZoneAndRule which reads raw cache +0x224. Format %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx yields 28 lowercase hex digits: GMTBias u16; standard Month/DayOfWeek/Day/Hour bytes and Bias u16; daylight equivalent. Biases preserve 16-bit signed representation. f_10c3d094 returns unchanged when AutoAdjustDst is nonzero; when zero it clears transitions with f_10c3ccc8 and restores GMTBias. Cache writers f_10276e80 and f_10279c0c apply that helper only to +0x232. A zero rule renders 28 zeros."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentTimeZone`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       },
       "CurrentTimeGeneration": {
-       "description": "Time response field CurrentTimeGeneration",
+       "description": "Unsigned generation word copied from active time-source object+4 after a successful source query, formatted using %u. Not a boolean or elapsed-time value.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
         "fmt": null
        },
-       "semantic_type": "unsigned int32",
+       "semantic_type": "time-source generation uint32",
        "format": "%u decimal",
-       "unit": "none - boolean flag",
-       "accepted_values": "u32 generation counter of the time settings",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "unit": "generation token",
+       "accepted_values": "Stored unsigned 32-bit source+4 word.",
+       "range": "0..4294967295 as formatted; installed source only succeeds when this word is nonzero",
+       "special_values": "Zero disables the installed NTP time source and causes 800 instead of a generation output.",
+       "required": true,
+       "default": "none; emitted on success",
+       "validation": "Source availability is checked before emitting outputs.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107351c8",
-         "notes": "out-arg access site"
+         "function": "0x10273340",
+         "address": "0x102733b4",
+         "callsite": "0x107350cc",
+         "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f1178c",
-         "notes": "argument name string"
+         "function": "0x10273800",
+         "address": "0x10273824",
+         "callsite": "0x102733cc",
+         "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10733fb4",
-         "notes": "impl writes"
+         "function": "0x1073505c",
+         "address": "0x107350e8",
+         "callsite": "0x107350cc",
+         "notes": "No inputs registered. Validation-zero loads 402 at 0x1073511c and faults through request slot +0x14 call 0x107350e8; worker nonzero uses same fault call. Success writes CurrentUTCTime, CurrentLocalTime, CurrentTimeZone via text slots at 0x1073514c/0x1073517c/0x107351ac, and generation via f_1055fcbc at 0x107351d0 (%u, literal 0x10f94c94). Commits through request +0x0c at 0x107351e4. Request validator f_10730414 returns 1 immediately at 0x1073051c for zero input records, so 402 is defensive and not reachable on the canonical fresh empty-input request. Wrapper stack guard at 0x107351ec aborts, not SOAP."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentTimeGeneration`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "No inputs are registered. Canonical empty-input validation succeeds; defensive validation-zero faults 402. Worker faults 800 only when the time-source query returns false.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1073505c",
-        "notes": "wrapper family decode"
+        "function": "0x1073505c",
+        "address": "0x107350e8",
+        "callsite": "0x107350cc",
+        "notes": "No inputs registered. Validation-zero loads 402 at 0x1073511c and faults through request slot +0x14 call 0x107350e8; worker nonzero uses same fault call. Success writes CurrentUTCTime, CurrentLocalTime, CurrentTimeZone via text slots at 0x1073514c/0x1073517c/0x107351ac, and generation via f_1055fcbc at 0x107351d0 (%u, literal 0x10f94c94). Commits through request +0x0c at 0x107351e4. Request validator f_10730414 returns 1 immediately at 0x1073051c for zero input records, so 402 is defensive and not reachable on the canonical fresh empty-input request. Wrapper stack guard at 0x107351ec aborts, not SOAP."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273340",
+        "address": "0x102733b4",
+        "callsite": "0x107350cc",
+        "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273800",
+        "address": "0x10273824",
+        "callsite": "0x102733cc",
+        "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×3, raise-fault×1, out-arg write×4, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+?]",
+      "description": "No action arguments or alarm-running/coordinator prerequisite. Requires a usable time source: installed f_10273800 requires source+4 nonzero; otherwise faults 800.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10276048",
+        "address": "0x10eaa9cc",
+        "callsite": "0x107350cc",
+        "notes": "Constructor installs primary vptr 0x10eaa99c at 0x102761e8; slot +0x30 at 0x10eaa9cc contains f_10273340. Service f_10735460 stores the engine at service+4. Wrapper loads engine slot +0x30 at 0x107350c0; request slot +0x08 at 0x10735094 is validation, not engine dispatch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273340",
+        "address": "0x102733b4",
+        "callsite": "0x107350cc",
+        "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273800",
+        "address": "0x10273824",
+        "callsite": "0x102733cc",
+        "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x1073505c",
-        "notes": "req-vfunc call map: {'0x14': 1, '0x24': 4, '0x10': 3, '0xc': 1}"
+        "address": "0x107350e8",
+        "callsite": "0x107350cc",
+        "notes": "No inputs registered. Validation-zero loads 402 at 0x1073511c and faults through request slot +0x14 call 0x107350e8; worker nonzero uses same fault call. Success writes CurrentUTCTime, CurrentLocalTime, CurrentTimeZone via text slots at 0x1073514c/0x1073517c/0x107351ac, and generation via f_1055fcbc at 0x107351d0 (%u, literal 0x10f94c94). Commits through request +0x0c at 0x107351e4. Request validator f_10730414 returns 1 immediately at 0x1073051c for zero input records, so 402 is defensive and not reachable on the canonical fresh empty-input request. Wrapper stack guard at 0x107351ec aborts, not SOAP."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×3, raise-fault×1, out-arg write×4, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+?]",
+      "description": "Reads engine+0x240 time source, its generation at +4, and effective timezone rule engine+0x232. Source query, generation capture and rule formatting are under engine mutex +0x170. Local conversion after unlock still uses the live rule pointer; identical rule contents across a concurrent timezone update are not guaranteed. No XML/table lookup.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073505c",
-        "notes": "member vfunc calls: ['r4 v[+0x8]', '*(r30+4) v[+?]']"
+        "function": "0x10273340",
+        "address": "0x102733b4",
+        "callsite": "0x107350cc",
+        "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273800",
+        "address": "0x10273824",
+        "callsite": "0x102733cc",
+        "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3c88c",
+        "address": "0x10fb1598",
+        "callsite": "0x102734e0",
+        "notes": "Format literal is %04hu-%02hu-%02hu %02hu:%02hu:%02hu, resolved through PIC table 0x11095d9c-0x8000. Reads year/month/day/hour/minute/second at +4/+6/+0xa/+0xc/+0xe/+0x10. Caller capacity 0x14 means at most 19 characters plus NUL, without T, Z, fractional seconds or offset. Year width is a minimum, not a range check. UTC helper f_10c3d4fc calls FileTimeToSystemTime at 0x10c3d53c; local helper f_10c3d9ec builds TIME_ZONE_INFORMATION from signed rule biases/transition fields and calls SystemTimeToTzSpecificLocalTime at 0x10c3dae4. Getter ignores their boolean results and does not map conversion failure to a fault; date objects were zero-initialized."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3ce18",
+        "address": "0x10fb15e0",
+        "callsite": "0x1027346c",
+        "notes": "Formats effective cached rule at engine+0x232, unlike GetTimeZoneAndRule which reads raw cache +0x224. Format %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx yields 28 lowercase hex digits: GMTBias u16; standard Month/DayOfWeek/Day/Hour bytes and Bias u16; daylight equivalent. Biases preserve 16-bit signed representation. f_10c3d094 returns unchanged when AutoAdjustDst is nonzero; when zero it clears transitions with f_10c3ccc8 and restores GMTBias. Cache writers f_10276e80 and f_10279c0c apply that helper only to +0x232. A zero rule renders 28 zeros."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[...] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Acquires/releases engine mutex, reads system time through the installed source, writes temporary and response buffers, and may log source-disabled diagnostics. Does not set system time, change settings, persist files or increment generation.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10273340",
+         "address": "0x102733b4",
+         "callsite": "0x107350cc",
+         "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10273800",
+         "address": "0x10273824",
+         "callsite": "0x102733cc",
+         "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None. No change observer or event notifier is called by this getter or installed source query.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273340",
+        "address": "0x102733b4",
+        "callsite": "0x107350cc",
+        "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273800",
+        "address": "0x10273824",
+        "callsite": "0x102733cc",
+        "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None. Reads existing source generation and effective rule without changing either; a disabled source remains disabled after 800.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273340",
+        "address": "0x102733b4",
+        "callsite": "0x107350cc",
+        "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273800",
+        "address": "0x10273824",
+        "callsite": "0x102733cc",
+        "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Normal worker domain {0,800}. False time-source query unlocks and returns 800 without copying response outputs. True query converts/formats values, copies all four outputs and returns 0; wrapper commits success. Date conversion helper failures are ignored, not propagated. Stack-guard failures abort rather than return a SOAP fault.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273340",
+        "address": "0x102733b4",
+        "callsite": "0x107350cc",
+        "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273800",
+        "address": "0x10273824",
+        "callsite": "0x102733cc",
+        "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3c88c",
+        "address": "0x10fb1598",
+        "callsite": "0x102734e0",
+        "notes": "Format literal is %04hu-%02hu-%02hu %02hu:%02hu:%02hu, resolved through PIC table 0x11095d9c-0x8000. Reads year/month/day/hour/minute/second at +4/+6/+0xa/+0xc/+0xe/+0x10. Caller capacity 0x14 means at most 19 characters plus NUL, without T, Z, fractional seconds or offset. Year width is a minimum, not a range check. UTC helper f_10c3d4fc calls FileTimeToSystemTime at 0x10c3d53c; local helper f_10c3d9ec builds TIME_ZONE_INFORMATION from signed rule biases/transition fields and calls SystemTimeToTzSpecificLocalTime at 0x10c3dae4. Getter ignores their boolean results and does not map conversion failure to a fault; date objects were zero-initialized."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073505c",
+        "address": "0x107350e8",
+        "callsite": "0x107350cc",
+        "notes": "No inputs registered. Validation-zero loads 402 at 0x1073511c and faults through request slot +0x14 call 0x107350e8; worker nonzero uses same fault call. Success writes CurrentUTCTime, CurrentLocalTime, CurrentTimeZone via text slots at 0x1073514c/0x1073517c/0x107351ac, and generation via f_1055fcbc at 0x107351d0 (%u, literal 0x10f94c94). Commits through request +0x0c at 0x107351e4. Request validator f_10730414 returns 1 immediately at 0x1073051c for zero input records, so 402 is defensive and not reachable on the canonical fresh empty-input request. Wrapper stack guard at 0x107351ec aborts, not SOAP."
+       }
+      ]
+     },
+     "fault_sites": [
+      {
+       "site": "0x107350e8",
+       "code": null,
+       "code_expr": "validation-zero ? 402 : f_10273340 return"
+      }
+     ],
+     "errors": [
+      {
+       "code": 800,
+       "code_expr": "li r3,0x320 at 0x102733f0",
+       "meaning": "Current UTC time is unavailable because the active time-source query returned false; installed NTP source returns false when source+4 is zero.",
+       "fault_sites": [
+        "0x107350e8"
+       ],
+       "conditions": [
+        {
+         "description": "Time-source slot +0x08 returns zero at 0x102733cc; worker unlocks and returns 800. No date conversion result or table error is propagated.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10273340",
+           "address": "0x102733b4",
+           "callsite": "0x107350cc",
+           "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10273800",
+           "address": "0x10273824",
+           "callsite": "0x102733cc",
+           "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10273340",
+         "address": "0x102733b4",
+         "callsite": "0x107350cc",
+         "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10273800",
+         "address": "0x10273824",
+         "callsite": "0x102733cc",
+         "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073505c",
+         "address": "0x107350e8",
+         "callsite": "0x107350cc",
+         "notes": "No inputs registered. Validation-zero loads 402 at 0x1073511c and faults through request slot +0x14 call 0x107350e8; worker nonzero uses same fault call. Success writes CurrentUTCTime, CurrentLocalTime, CurrentTimeZone via text slots at 0x1073514c/0x1073517c/0x107351ac, and generation via f_1055fcbc at 0x107351d0 (%u, literal 0x10f94c94). Commits through request +0x0c at 0x107351e4. Request validator f_10730414 returns 1 immediately at 0x1073051c for zero input records, so 402 is defensive and not reachable on the canonical fresh empty-input request. Wrapper stack guard at 0x107351ec aborts, not SOAP."
+        }
+       ],
+       "literal_bound": [
+        800
+       ],
+       "domain_note": "Concrete worker normal domain {0,800}; no delegated conversion return codes."
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "meaning": "Defensive wrapper validation fault 402; no argument is required by this action.",
+       "fault_sites": [
+        "0x107350e8"
+       ],
+       "conditions": [
+        {
+         "description": "Request validation returns zero, causing 402 at 0x1073511c. Canonical fresh zero-input TRequest returns true and does not reach this branch.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1073505c",
+           "address": "0x107350e8",
+           "callsite": "0x107350cc",
+           "notes": "No inputs registered. Validation-zero loads 402 at 0x1073511c and faults through request slot +0x14 call 0x107350e8; worker nonzero uses same fault call. Success writes CurrentUTCTime, CurrentLocalTime, CurrentTimeZone via text slots at 0x1073514c/0x1073517c/0x107351ac, and generation via f_1055fcbc at 0x107351d0 (%u, literal 0x10f94c94). Commits through request +0x0c at 0x107351e4. Request validator f_10730414 returns 1 immediately at 0x1073051c for zero input records, so 402 is defensive and not reachable on the canonical fresh empty-input request. Wrapper stack guard at 0x107351ec aborts, not SOAP."
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x1073505c",
-         "notes": "impl vfunc delegate path: *(impl+0x4)->v[...] -> out-arg (call-derived member-method semantics)"
-        }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[...] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     ],
-     "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x1073505c",
-        "notes": "bl call scan: notify-family sites = []"
-       }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+?]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x1073505c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', '*(r30+4) v[+?]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x1073505c",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 4, '0x10': 3, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "fault_sites": [],
-     "errors": [
-      {
-       "code": null,
-       "code_expr": "vret",
-       "meaning": "alarm-store vfunc 0x10273340 (slot +0x30) has two literal exits: 800 on the household-time query failure path (li r3,0x320 at 0x102733f0) and 0 on success (0x1027352c); call-derived paths in between remain possible",
-       "fault_sites": [
-        "0x1073505c"
-       ],
-       "conditions": [
-        {
-         "description": "the impl vfunc produced a nonzero code",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1073505c",
-           "notes": "impl rc passthrough"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x10733fb4",
-           "notes": "rc convention site"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1073505c",
-         "notes": "impl rc passthrough site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10733fb4",
-         "notes": "impl rc -> r4 -> req v[+0x14]; CR0.eq = success branch"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eaa9cc",
-         "notes": "store vfunc slot +0x30 -> 0x10273340; alarm-store object vptr 0x10eaa99c (ctor f_10276048 overwrite at 0x102761e8; obj new(0x8118) via shared_ptr -> svc+0x4)"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102733f0",
-         "notes": "li r3,0x320 after early-gate; literal li r3,0 at 0x1027352c"
-        }
-       ],
-       "unresolved": {
-        "proven": "literal exits {800, 0} identified in store vfunc",
-        "unknown": "whether any call-derived exit can produce a third code",
-        "knowledge": "; impl f_10733fb4: 402 added to bounded {0,800}",
-        "return_path": "TimeStamp field worker - time rc",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_10733fb4": {
-          "lits": [],
-          "pt": 4
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x10733fb4",
-         "lits": [],
-         "passthrough_exits": 4
-        },
-        "delegated_sources": {
-         "f_1056157c": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 18
-         },
-         "f_10561514": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 19
-         },
-         "f_10561444": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 22
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "literal_bound": [
-        800
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x1073505c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      },
-      {
-       "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x1073505c"
-       ],
-       "conditions": [
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1073505c",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1073505c",
-         "notes": "wrapper parse + fault path"
+         "address": "0x107350e8",
+         "callsite": "0x107350cc",
+         "notes": "No inputs registered. Validation-zero loads 402 at 0x1073511c and faults through request slot +0x14 call 0x107350e8; worker nonzero uses same fault call. Success writes CurrentUTCTime, CurrentLocalTime, CurrentTimeZone via text slots at 0x1073514c/0x1073517c/0x107351ac, and generation via f_1055fcbc at 0x107351d0 (%u, literal 0x10f94c94). Commits through request +0x0c at 0x107351e4. Request validator f_10730414 returns 1 immediately at 0x1073051c for zero input records, so 402 is defensive and not reachable on the canonical fresh empty-input request. Wrapper stack guard at 0x107351ec aborts, not SOAP."
         }
        ]
       }
@@ -3677,30 +3731,58 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x10276048",
+       "address": "0x10eaa9cc",
+       "callsite": "0x107350cc",
+       "notes": "Constructor installs primary vptr 0x10eaa99c at 0x102761e8; slot +0x30 at 0x10eaa9cc contains f_10273340. Service f_10735460 stores the engine at service+4. Wrapper loads engine slot +0x30 at 0x107350c0; request slot +0x08 at 0x10735094 is validation, not engine dispatch."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10273340",
+       "address": "0x102733b4",
+       "callsite": "0x107350cc",
+       "notes": "Locks engine+0x170. Calls time-source pointer engine+0x240 slot +0x08 at 0x102733cc with FILETIME output. Zero result formats the effective rule, unlocks, returns 800 at 0x102733f0 without copying outputs. Nonzero result saves source+4 generation at 0x10273464, formats effective rule engine+0x232 at 0x1027346c and unlocks at 0x10273478. UTC conversion f_10c3d4fc and local conversion f_10c3d9ec return values are ignored. Formats UTC/local using f_10c3c88c at 0x102734e0/0x102734f4, copies timezone/UTC/local with f_10906304 at 0x10273504/0x10273514/0x10273524, stores generation at 0x10273528, returns 0 at 0x1027352c. No other normal return code, persistence, or notification call. Guard failure at 0x10273534 aborts."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10273800",
+       "address": "0x10273824",
+       "callsite": "0x102733cc",
+       "notes": "Engine constructor stores engine+0x248 at engine+0x240 (0x102762a8), installs time-source vptr 0x10eaa8ac at 0x102762b8, whose +0x08 entry 0x10eaa8b4 is f_10273800. Source+4 is initialized zero at 0x1027632c. f_10273800 tests source+4: zero returns false and may log NTPTimeOffset getUTCTimeNow is disabled (literal 0x10eaad58); nonzero calls gettimeofday at 0x102738a4, converts seconds/useconds to FILETIME and returns true. The gettimeofday status itself is not checked. It does not call a network time server on this read."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10c3c88c",
+       "address": "0x10fb1598",
+       "callsite": "0x102734e0",
+       "notes": "Format literal is %04hu-%02hu-%02hu %02hu:%02hu:%02hu, resolved through PIC table 0x11095d9c-0x8000. Reads year/month/day/hour/minute/second at +4/+6/+0xa/+0xc/+0xe/+0x10. Caller capacity 0x14 means at most 19 characters plus NUL, without T, Z, fractional seconds or offset. Year width is a minimum, not a range check. UTC helper f_10c3d4fc calls FileTimeToSystemTime at 0x10c3d53c; local helper f_10c3d9ec builds TIME_ZONE_INFORMATION from signed rule biases/transition fields and calls SystemTimeToTzSpecificLocalTime at 0x10c3dae4. Getter ignores their boolean results and does not map conversion failure to a fault; date objects were zero-initialized."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10c3ce18",
+       "address": "0x10fb15e0",
+       "callsite": "0x1027346c",
+       "notes": "Formats effective cached rule at engine+0x232, unlike GetTimeZoneAndRule which reads raw cache +0x224. Format %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx yields 28 lowercase hex digits: GMTBias u16; standard Month/DayOfWeek/Day/Hour bytes and Bias u16; daylight equivalent. Biases preserve 16-bit signed representation. f_10c3d094 returns unchanged when AutoAdjustDst is nonzero; when zero it clears transitions with f_10c3ccc8 and restores GMTBias. Cache writers f_10276e80 and f_10279c0c apply that helper only to +0x232. A zero rule renders 28 zeros."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "function": "0x1073505c",
-       "address": "0x1073505c",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x10f115bc",
-       "notes": "action dispatch table entry"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "function": "0x10733fb4",
-       "notes": "alarm impl = service vtable 0x10f11530 slot +0x30 (ctor stores svc vptr at svc+4)"
+       "address": "0x107350e8",
+       "callsite": "0x107350cc",
+       "notes": "No inputs registered. Validation-zero loads 402 at 0x1073511c and faults through request slot +0x14 call 0x107350e8; worker nonzero uses same fault call. Success writes CurrentUTCTime, CurrentLocalTime, CurrentTimeZone via text slots at 0x1073514c/0x1073517c/0x107351ac, and generation via f_1055fcbc at 0x107351d0 (%u, literal 0x10f94c94). Commits through request +0x0c at 0x107351e4. Request validator f_10730414 returns 1 immediately at 0x1073051c for zero input records, so 402 is defensive and not reachable on the canonical fresh empty-input request. Wrapper stack guard at 0x107351ec aborts, not SOAP."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x1073505c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "UTC and local strings use a space separator, not ISO T/Z. CurrentTimeZone is the effective rule at +0x232, unlike GetTimeZoneAndRule raw rule +0x224. Local conversion occurs after engine unlock."
     },
     "GetTimeServer": {
      "description": "Returns the current AlarmClock time-server string through concrete ac_impl slot +0x24 -> f_10273090. The getter locks the engine, loads the settings sub-object pointer at engine+0x240, copies the string at subobject+0x08 into the SOAP output buffer, unlocks, and returns 0.",
