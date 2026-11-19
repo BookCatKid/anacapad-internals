@@ -62892,7 +62892,7 @@
      "todo": "Established: primary/local/session bindings, flags-zero reachability, cache validity and saved-baseline anchor formula, complete GRC error domain and notification gates are traced. Residual: finish stereo worker f_1046e57c and failure cleanup f_1046c148, local physical/property worker f_100d9d40 and conditional VLI interception f_100d8824, final session transport/status effects below f_106ff898, and concrete observer/sender delivery bindings from f_103a59b4/f_1067c6ec. No runtime-only dispatch boundary is asserted."
     },
     "SetRelativeGroupVolume": {
-     "description": "Adjusts group volume by a signed delta and returns the new group volume. impl->v[+0x18](impl, InstanceID, Adjustment, &u16 out); the u16 out feeds NewVolume.",
+     "description": "Calculates a requested group-volume target from the cached current group volume plus signed Adjustment, writes NewVolume, then invokes the same flags-zero saved-baseline worker as SetGroupVolume. Primary GRC vptr 0x10ec3824 +0x18 -> f_103a30a0 -> f_103a2d04 -> f_103a2c4c -> f_103a2430. NewVolume is the clamped requested target, not a reread of achieved member levels.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107392ec",
@@ -62928,7 +62928,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "description": "Parsed u32 InstanceID; f_103a30a0 requires zero.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -62940,12 +62940,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text",
        "unit": "none - dimensionless index",
-       "accepted_values": "decimal uint32",
-       "range": "unbounded u32 in wrapper",
+       "accepted_values": "0",
+       "range": "0 only",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "validation": "Nonzero InstanceID returns 702 before group lookup.",
        "evidence": [
         {
          "type": "firmware",
@@ -62965,14 +62965,14 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x106ff454",
-         "notes": "consumed at impl boundary"
+         "address": "0x103a30a0",
+         "notes": "Concrete +0x18 implementation checks incoming InstanceID r4."
         }
        ],
        "notes": null
       },
       "Adjustment": {
-       "description": "Parsed by f_10561514 - a distinct helper from the u32/u16 parsers, consistent with signed i32 intake; passed as r5. Sign/clamp semantics inside impl unresolved.",
+       "description": "Signed 32-bit group-volume delta configured by f_10561514. f_103a2d04 adds it to the cached current group volume using a 32-bit PPC add and clamps the signed result to 0..100.",
        "direction": "in",
        "primitive": {
         "type_tag": 5,
@@ -62981,15 +62981,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "Parsed by f_10561514 - a distinct helper from the u32/u16 parsers, consistent with signed i32 intake; passed as r5. Sign/clamp semantics inside impl unresolved.",
+       "semantic_type": "signed 32-bit volume adjustment",
        "format": "decimal text",
-       "unit": "percent volume units (signed delta, unproven)",
-       "accepted_values": "signed decimal",
-       "range": "i32-ish width via f_10561514",
-       "special_values": "none observed in this build",
+       "unit": "RenderingControl volume units",
+       "accepted_values": "signed 32-bit value from the request parser",
+       "range": "-2147483648..2147483647; no action-level delta range rejection",
+       "special_values": "0 still enters the shared setter; extreme positive values can wrap signed 32-bit addition before the clamp",
        "required": true,
        "default": "none - required argument",
-       "validation": "Parsed by f_10561514 - a distinct helper from the u32/u16 parsers, consistent with signed i32 intake; passed as r5. Sign/clamp semantics inside impl unresolved.",
+       "validation": "After the request gate, no delta range fault is applied. Instruction 0x103a2d6c adds low 32 bits; signed comparisons at 0x103a2d78/0x103a2d88 select the 100/0 bounds.",
        "evidence": [
         {
          "type": "firmware",
@@ -63009,8 +63009,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x106ff454",
-         "notes": "consumed at impl boundary"
+         "address": "0x103a2d6c",
+         "notes": "Ordinary 32-bit add precedes signed clamp; do not model this as unbounded mathematical addition for extreme inputs."
         }
        ],
        "notes": null
@@ -63018,7 +63018,7 @@
      },
      "outputs": {
       "NewVolume": {
-       "description": "Resulting group volume written as u16 at impl out-arg (sp+0x12); fan-out/aggregation unresolved.",
+       "description": "Requested target written by f_103a2d04 at 0x103a2d98 before f_103a2c4c/f_103a2430 runs. The wrapper formats it only when the implementation status is zero. It is not the eventual average of successful member operations.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
@@ -63026,13 +63026,13 @@
        },
        "semantic_type": "unsigned int16",
        "format": "%u decimal",
-       "unit": "percent volume units (unproven)",
-       "accepted_values": "type width only",
-       "range": "type width only",
-       "special_values": "none observed in this build",
+       "unit": "RenderingControl volume units",
+       "accepted_values": "0..100 on SOAP success",
+       "range": "0..100 inclusive",
+       "special_values": "Empty valid cache can yield a requested target and success without a member operation; downstream faults suppress SOAP output even though the internal out-argument was already written.",
        "required": false,
        "default": "none - impl writes the value",
-       "validation": "impl-written out arg; no client-side validation",
+       "validation": "Internal output is clamped before storage; wrapper formats the u16 at 0x10739404 only after a zero implementation result.",
        "evidence": [
         {
          "type": "firmware",
@@ -63052,8 +63052,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x106ff454",
-         "notes": "produced by impl path"
+         "address": "0x103a2d94",
+         "notes": "Raw SH=0, MB=16, ME=31 mask at 0x103a2d94 preserves low 16 bits; sth writes target at 0x103a2d98 before the shared setter tail at 0x103a2dc0."
         }
        ],
        "notes": null
@@ -63073,98 +63073,80 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x18]",
+      "description": "Requires successful SOAP validation, InstanceID zero (702 otherwise), and a group accessor result (701 otherwise). After writing the target, f_103a2c4c checks the group again before f_103a2430 refreshes and applies fixed-only 804 and busy 801 guards. Public f_103a30a0 passes flags zero at 0x103a3124. Large adjustments are not rejected with an implementation range fault; their 32-bit sum is clamped before the setter.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107392ec",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x103a3108",
+        "notes": "Passes Adjustment, NewVolume pointer and flags zero to f_103a2d04. The worker refresh/fixed-only/busy gates are shared with SetGroupVolume."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x18]",
+      "description": "Reads cache +0x25c under mutex +0x1c8 after f_1039c5f0 refresh. Current group volume is the truncated single-precision currentSum/nonfixedCount average, or 100 for fixed-only valid state, or zero for empty valid state. It adds signed Adjustment and clamps the resulting signed 32-bit value. The shared setter selects nonempty entries with flags&7==7 and fixed==0, then uses saved average A and saved member volume V: preserve V when trunc(A)==T; otherwise roundf(V+(T-A)*(B-V)/(B-A)), with B=0 below the saved average and B=100 above it. Concrete local RC vptr 0x10ed270c supplies +0x1c/+0xa4; remote session vptr 0x10ec3790 supplies request callbacks.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107392ec",
-        "notes": "member vfunc calls: ['r30 v[+0x18]']"
+        "address": "0x103a2d48",
+        "notes": "Average/fallback through 0x103a2ddc, 32-bit addition at 0x103a2d6c and signed clamps/output at 0x103a2d78..0x103a2d98. SH=0 masks are not shifts."
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: current-volume input, signed addition/clamp, output timing and shared saved-baseline target dependencies are traced. Residual: enumerate stereo/backend state below f_1046e57c -> f_100dbe90 -> f_100d9d40 and conditional VLI interception f_100d8824."
      },
      "side_effects": [
       {
-       "description": "Relative adjustment applied through the group-impl object. Impl-object vtable and member iteration details unresolved",
+       "description": "Refreshes local cached rendering information, computes/writes the target, then executes flags-zero f_103a2430. That worker sets busy +0x258, prepares valid nonfixed remote SetVolume operations with InstanceID 0/Master/calculated member targets, skips failed endpoint preparations, waits for the bounded remote batch and applies any selected local target through concrete RC +0xa4/+0x1c. Successful statuses update cache volume/sums via f_1039e958. It does not automatically snapshot or invoke the optional unmute branches. A zero adjustment still follows this path; no universal no-op optimization is proven.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10738c58",
-         "address": "0x10738d5c",
-         "notes": "impl object resolution at dispatch"
+         "address": "0x103a2d98",
+         "notes": "Target storage precedes shared setter at 0x103a2dc0; remote batch/local calls and cache updates are the same reachable f_103a2430 flags-zero path as the absolute action."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - Relative adjustment applied through the group-impl object. Impl-object vtable and member iteration details unresolved.",
-        "Residual: the element this section's own analysis flags as unresolved (see its description) - the delegate or member path it names is not traced (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "todo": "Established: target write, flags-zero fan-out, batch/local ordering and cache updates are traced. Residual: finish member-specific stereo/session effects below f_1046e57c/f_106ff898, failure cleanup f_1046c148, renderer/property mutations below f_100d9d40 and VLI interception f_100d8824."
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The initial refresh can independently request notifications. In the shared volume worker, zero counted failures set dirty +0x259 and request event-source notification through f_1067c6ec at 0x103a27e8 and GroupVolumeChangedEvent work through f_103a6d74 at 0x103a27fc. Nonzero counted failures do not take that worker notification branch; successful members can still have changed before an aggregate fault. Actual in-process work is f_103a5e8c -> f_103a59b4, not cancellation manager f_103a3abc.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107392ec",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x103a27e8",
+        "notes": "Reachability: +0x18 f_103a30a0 supplies flags zero -> f_103a2d04 -> f_103a2c4c -> f_103a2430."
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: relative-action reachability to shared notification gates and work items is traced. Residual: bind concrete observers at 0x103a5de4 and sender delivery behind f_1067c6ec, plus renderer/stereo notification effects, before claiming GENA/WSS delivery."
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x18]",
+      "description": "Writes the requested target before any shared-setter failure. The setter sets/clears busy, changes cached current member volumes on zero member statuses, preserves saved baselines with flags zero and marks dirty only on its zero-counted-failure path. Failed operations do not roll back earlier successful changes. Neither NewVolume nor a zero status certifies every physical member reached the target.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107392ec",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x18]']"
+        "address": "0x103a2d98",
+        "notes": "Output-before-worker ordering; shared busy clear at 0x103a27cc and dirty/event branch at 0x103a27d4."
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: requested-target storage, busy/cache/saved-baseline and failure non-rollback transitions are traced. Residual: finish physical renderer/stereo transitions below f_1046e57c/f_100d9d40 and conditional VLI interception f_100d8824."
      },
      "return_behavior": {
-      "description": "Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').",
+      "description": "Implementation domain is {0,501,701,702,801,802,803,804}; wrapper validation separately adds 402. InstanceID/group failures precede target calculation. Later fixed-only, busy, second group-lookup or shared-worker failures happen after the internal NewVolume write, but the SOAP wrapper emits no output on fault. Shared-worker 501 requires no local target, no prepared remotes and valid total>1; 802 tests failures==preparedRemotes+1, 803 tests nonzero unequal failures, zero counted failures return 0. The +1 is unconditional even without a local target. Fixed-only state computes a 100-based target and then faults 804; empty valid state can return a clamped target with success and no applied operation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10739394",
-        "notes": "impl->v[+0x18](impl,InstanceID,adj,&u16)",
-        "function": "f_107392ec"
+        "address": "0x10739398",
+        "notes": "Nonzero result enters fault call 0x107393b0; zero enters output formatting 0x10739404 and response commit 0x1073941c. f_103a2d04 calls f_103a2c4c directly, bypassing the absolute-input >100 rejection."
        }
       ]
      },
@@ -63178,116 +63160,49 @@
      "errors": [
       {
        "code": 701,
-       "code_expr": "vret(r5-in,+0x18)",
-       "fault_sites": [
-        "0x107393b0"
-       ],
-       "meaning": "nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc}",
+       "meaning": "The group accessor has no bound group object.",
+       "condition": "Initial group lookup or the second lookup in f_103a2c4c returns null.",
        "conditions": [
         {
-         "description": "zone-member list empty/invalid",
+         "description": "Initial group lookup or the second lookup in f_103a2c4c returns null.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103a30a0",
-           "notes": "impl prologue"
+           "address": "0x103a30dc",
+           "notes": "Initial gate selects 701 at 0x103a30e4; second lookup selects it at 0x103a2c88."
           }
          ]
         }
+       ],
+       "fault_sites": [
+        "0x107393b0"
        ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103a30a0",
-         "notes": "addi r3,0x2bd path"
+         "address": "0x103a30dc",
+         "notes": "Initial gate selects 701 at 0x103a30e4; second lookup selects it at 0x103a2c88."
         }
-       ],
-       "unresolved": {
-        "proven": "impl rc propagated to fault vfunc",
-        "unknown": "worker f_103a2d04->f_103a2c4c->f_103a2430 proven literals {801 reentrancy (addi r3,0x321 site), 802 (0x322), 803 (0x323) member-apply accumulator}; success/seed path producer not yet isolated (blr embedded after inline data/jump-table bytes); 701 via group-lookup chain",
-        "knowledge": "; impl 0x103a30a0: r4==0 -> 702; body call-derived",
-        "bounded_domain": [
-         701,
-         702,
-         801
-        ],
-        "bound_evidence": "worker literal-exit scan: f_103a2d04->[701, 702];f_103a2c4c->[701, 702];f_103a2430->[801];f_103a2d04->[701, 702];f_103a2c4c->[701, 702];f_103a2430->[801]",
-        "raw_exit_literals": {
-         "f_103a2d04": {
-          "lits": [
-           24,
-           701,
-           702
-          ],
-          "pt": 1
-         },
-         "f_103a2c4c": {
-          "lits": [
-           24,
-           701,
-           702
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x103a30a0",
-         "lits": [
-          24,
-          701,
-          702
-         ],
-         "passthrough_exits": 1
-        },
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034: vocabulary unresolved",
-       "worker_literal_bound": [
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        501,
-        501,
-        501,
-        701,
-        701,
-        701,
-        701,
-        801,
-        801,
-        801,
-        804,
-        804,
-        804
-       ],
-       "resolved_domain": "{0,701,702,801,member-delegate}",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x18); sites: 0x107393b0).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": "402",
-       "meaning": "SOAP 402 Invalid Args: raised when req->v[+0x08] rejects the request state or the required-arg lookup through req->v[+0x1c] fails",
+       "code": 402,
+       "meaning": "The SOAP request failed argument validation before implementation dispatch.",
+       "condition": "The wrapper request-validation gate is false.",
        "conditions": [
         {
-         "description": "Required argument absent or its lookup through the request-object parse helper fails",
+         "description": "The wrapper request-validation gate is false.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107393b0",
-           "notes": "request fault path invoked by the SetRelativeGroupVolume handler after argument parse failure"
+           "address": "0x107393e4",
+           "notes": "Literal 402 loaded in wrapper; no relative implementation delta-range 402 branch."
           }
          ]
         }
@@ -63300,122 +63215,196 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107393b0",
-         "notes": "fault site in the SetRelativeGroupVolume SOAP handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x106ff454",
-         "notes": "402 gate verified in handler body"
+         "address": "0x107393e4",
+         "notes": "Literal 402 loaded in wrapper; no relative implementation delta-range 402 branch."
         }
-       ],
-       "unresolved": {
-        "proven": "the fault path is reached when the impl call reports failure",
-        "unknown": "worker f_103a2d04->f_103a2c4c->f_103a2430 proven literals {801 reentrancy (addi r3,0x321 site), 802 (0x322), 803 (0x323) member-apply accumulator}; success/seed path producer not yet isolated (blr embedded after inline data/jump-table bytes); 701 via group-lookup chain",
-        "bounded_domain": [
-         701,
-         702,
-         801
-        ],
-        "bound_evidence": "worker literal-exit scan: f_103a2d04->[701, 702];f_103a2c4c->[701, 702];f_103a2430->[801];f_103a2d04->[701, 702];f_103a2c4c->[701, 702];f_103a2430->[801]",
-        "raw_exit_literals": {
-         "f_103a2d04": {
-          "lits": [
-           24,
-           701,
-           702
-          ],
-          "pt": 1
-         },
-         "f_103a2c4c": {
-          "lits": [
-           24,
-           701,
-           702
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x103a30a0",
-         "lits": [
-          24,
-          701,
-          702
-         ],
-         "passthrough_exits": 1
-        },
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])",
-       "worker_literal_bound": [
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        501,
-        501,
-        501,
-        701,
-        701,
-        701,
-        701,
-        801,
-        801,
-        801,
-        804,
-        804,
-        804
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 402; sites: 0x107393b0).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 702,
-       "code_expr": "const 0x2be",
-       "meaning": "nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v[+0x1c] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build",
-       "fault_sites": [
-        "0x103a30a0"
-       ],
+       "meaning": "Only InstanceID zero is supported by this group implementation.",
+       "condition": "InstanceID is nonzero.",
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "InstanceID is nonzero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": null,
-           "notes": "GRC impls all begin cmpwi r4,0 / beq -> body; r4=handler-parsed InstanceID stack word (e.g. GetGroupMute handler 0x10738f0c r4=lwz(sp+0x18)); nonzero -> 0x2be"
+           "address": "0x103a30a8",
+           "notes": "Literal 702 before group lookup."
           }
          ]
         }
+       ],
+       "fault_sites": [
+        "0x107393b0"
        ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103a30a0",
-         "notes": "head"
-        },
+         "address": "0x103a30a8",
+         "notes": "Literal 702 before group lookup."
+        }
+       ]
+      },
+      {
+       "code": 801,
+       "meaning": "Another group rendering operation already owns the busy flag.",
+       "condition": "Not fixed-only, but impl+0x258 is nonzero under +0x1c8.",
+       "conditions": [
+        {
+         "description": "Not fixed-only, but impl+0x258 is nonzero under +0x1c8.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x103a2864",
+           "notes": "Shared volume worker busy guard."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [
+        "0x107393b0"
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10738f0c",
-         "notes": "handler loads parsed InstanceID word into r4 for impl vfunc call (GetGroupMute shape, shared across GRC)"
+         "address": "0x103a2864",
+         "notes": "Shared volume worker busy guard."
+        }
+       ]
+      },
+      {
+       "code": 804,
+       "meaning": "Valid cached rooms are fixed-volume only.",
+       "condition": "Nonfixed count is zero and fixed count is nonzero.",
+       "conditions": [
+        {
+         "description": "Nonfixed count is zero and fixed count is nonzero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x103a24ec",
+           "notes": "Shared volume worker fixed-only guard; target has already been computed internally."
+          }
+         ]
         }
        ],
-       "notes": null
+       "fault_sites": [
+        "0x107393b0"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103a24ec",
+         "notes": "Shared volume worker fixed-only guard; target has already been computed internally."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "No applicable prepared target in a multi-entry valid cache.",
+       "condition": "No local target, prepared remote count zero and valid total>1.",
+       "conditions": [
+        {
+         "description": "No local target, prepared remote count zero and valid total>1.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x103a2774",
+           "notes": "Shared worker literal 501."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [
+        "0x107393b0"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103a2774",
+         "notes": "Shared worker literal 501."
+        }
+       ]
+      },
+      {
+       "code": 802,
+       "meaning": "Failure counter equals prepared remote count plus one.",
+       "condition": "Counted failures equal preparedRemotes+1, even though +1 is included without a selected local target.",
+       "conditions": [
+        {
+         "description": "Counted failures equal preparedRemotes+1, even though +1 is included without a selected local target.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x103a2bd8",
+           "notes": "Shared worker literal 802."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [
+        "0x107393b0"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103a2bd8",
+         "notes": "Shared worker literal 802."
+        }
+       ]
+      },
+      {
+       "code": 803,
+       "meaning": "Counted member failures did not meet the 802 count test.",
+       "condition": "Counted failures are nonzero and differ from preparedRemotes+1.",
+       "conditions": [
+        {
+         "description": "Counted failures are nonzero and differ from preparedRemotes+1.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x103a2a6c",
+           "notes": "Shared worker literal 803; prior successful member changes remain."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [
+        "0x107393b0"
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103a2a6c",
+         "notes": "Shared worker literal 803; prior successful member changes remain."
+        }
+       ]
       }
      ],
      "firmware_differences": [],
@@ -63449,14 +63438,18 @@
        "build": "86.10-80260",
        "address": "0x10f11ad8",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x103a3124",
+       "notes": "Public relative action supplies flags zero; shared-worker snapshot/mute options are not unconditional action effects."
       }
      ],
      "notes": null,
-     "implementation_notes": "Direct impl in the group-volume worker family (f_106ff region). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.",
-     "todo": [
-      "Established: direct dispatch to handler 0x107392ec; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Primary GRC 0x10ec3824 +0x18 -> f_103a30a0 -> f_103a2d04 -> f_103a2c4c -> f_103a2430(flags=0). f_106ff454 and vptr 0x10ec37b4 belong to request-session machinery, not this SOAP delegate. Signed low-32-bit sum is clamped to 0..100 and stored before worker execution. SOAP NewVolume is only emitted on success and denotes the requested target, not measured or recomputed achieved volume.",
+     "todo": "Established: concrete relative/local/session bindings, signed low-32-bit arithmetic/clamp, target-output timing, flags-zero shared worker, exact GRC error domain and event request gates are traced. Residual: finish stereo f_1046e57c/f_1046c148, physical renderer/property f_100d9d40 and conditional VLI f_100d8824, final network/session effects f_106ff898, and concrete observer/sender delivery bindings from f_103a59b4/f_1067c6ec. No runtime-only dispatch boundary is asserted."
     },
     "SnapshotGroupVolume": {
      "description": "Captures the group's current per-member volumes into a snapshot ('snapshot %s: %u (was %u)' bookkeeping seen in the group-mute/volume worker). impl->v[+0x1c](impl, InstanceID) only - no outputs.",
