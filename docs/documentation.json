@@ -132838,13 +132838,15 @@
    "exec_backend": "etc/diagprocessd (generated from configs/arch/limelight.toml): FIFO menu (mkfifo /tmp/diagstdin + /tmp/diagstdout, read loop dispatching numeric commands: 0=date, 1=ls -l debug dirs, 2=df, 3=du jffs top100, 4=free, 5=ifconfig, 6=lsmod, 7=mount, 8=netstat -an, 9=ps, 10=route -n, 11-14=brctl showmacs/showports/showstats/showstp br0, 15=uptime, 16=dmesg -s 32768, 17=/wifi/athconfig scangetresults ath0, 18=chronyc -n sources -v, *=NA. The support-bundle shell_cmds (/df,/free,/ps,/lsmod,/netstat,/ntpsources,/showmacs,...) resolve THROUGH this daemon) anacapad sends the command index over the FIFO rather than exec'ing directly (privilege separation: diagprocessd runs as root)."
   },
   "spotify_esdk": {
-   "description": "Spotify embedded SDK (esdk) linked into anacapad: ~440 esdk/ strings, src path /var/lib/spotify/buildagent/teamcity/.../esdk/",
+   "description": "Statically linked Spotify embedded SDK and its separate Sonos zone-player integration. Embedded eSDK source-path strings identify AP, CDN, stream and statistics components; the Sonos mod_zp.cxx path is not an eSDK module. Startup installs concrete connection, playback and audio-delivery callbacks. The authenticated AP transport uses a three-byte command/length header and four-byte MAC trailer, not a seven-byte Mercury header.",
    "modules": [
-    "mod_ap_conn (AP-link TLV+MAC layer = sp_tlv)",
-    "mod_media_out",
-    "mod_streamer",
+    "AP connection and apio.c",
+    "cdnio.c",
+    "streamio.c",
+    "mod_streamer.c",
+    "stream_stats.c",
     "mod_track_playback",
-    "mod_zp (Sonos zone-player binding)"
+    "mod_media_out"
    ],
    "subsystems": [
     "ap_send",
@@ -132866,8 +132868,8 @@
     "apio": "esdk/src/code/apio.c - access-point IO: the authenticated AP channel carrying login, metadata, and control commands",
     "cdnio": "esdk/src/code/cdnio.c - CDN fetcher: receives the audiofile CDN URL list (Got CDN URL / Could not decode CDN URLs / Did not receive CDN URLS), iterates params->cdn_info->num_urls with failover (switched to a new cdn: cdn_index=%d), downloads chunks (failed to download chunk from cdn), reports stats (Download finished. size:%u cdn_offset:%u total_time:%u avg_bw:%ukbps), URL cap (CDN URL is too long to handle: %d)",
     "streamio": "esdk/src/code/streamio.c - the stream abstraction layered over apio+cdnio (streamio_ctx member), presents the track stream to the esdk core",
-    "local_wrapper": "anacapa-side async_streamio_mgr.cxx (tag asyncstreamiomgr) adapts the eSDK blocking streamio into the anacapad async/event model",
-    "source_paths": "upstream Spotify eSDK sources vendored via teamcity build e48167fe44483028"
+    "local_wrapper": "Sonos async_streamio_mgr.cxx (asyncstreamiomgr) supplies a generic queued stream-read manager; async_buffered_stream.cxx supplies the separate buffered stream. Their existence alone does not establish that all Spotify AP/CDN traffic uses either wrapper.",
+    "source_paths": "Embedded source-path strings identify compiled Spotify eSDK components and TeamCity work directory e48167fe44483028; the source files themselves are not supplied."
    },
    "log_tag_pattern": "sp_<32-hex> per-source-file tags",
    "notification_vocabulary": [
@@ -132900,25 +132902,251 @@
     "/oc/zone/zoneplayer/spotify/spotify_vli.cxx"
    ],
    "ap_packet_layer": {
-    "evidence": [
-     {
-      "type": "firmware",
-      "address": "0x10d0af44",
-      "notes": "AP packet reader"
-     }
-    ],
-    "note": "AP (access point) packet layer: reads TLV headers (\"Failed reading TLV header %d %d/7 oserr %d\": 7-byte header), enforces ap->packet_size <= 16384, validates a MAC on each packet (\"Corrupted packet, invalid MAC\"), skips oversize packets (\"Skipped %s(%d) (%d > %d)\"). Assert domain sp_a5335660d494963ab7b783a270417bb8."
+    "layout": "Decrypted byte 0 is the command/type, bytes 1-2 are the big-endian payload length, payload starts at +3, and a four-byte MAC follows at +3+length. Total consumption is length+7, including a three-byte header and four-byte trailer. These are AP transport frames, not a decoded inner Mercury message format.",
+    "receive": "f_10d0af44 decrypts the header, reconstructs the length, rejects payloads above 16384, decrypts the payload and compares the finalized MAC against the trailer. Partial input is buffered until enough bytes arrive; invalid MAC takes the Corrupted packet, invalid MAC failure path.",
+    "send_and_crypto": "f_10d39890 writes command and BE16 length, encrypts the three-byte header and payload, and appends the finalized four-byte MAC. The sequence/nonce counter is implicit cipher state, not another header field. Static Shannon-compatible key/nonce, encrypt/decrypt and finalization routines are f_10d4682c, f_10d474a0, f_10d48098, f_10d49490 and f_10d4a88c; directional key derivation and algorithm details are documented under native_protocols/sp_tlv."
    },
-   "todo": [
-    "Established: apresolve/ap.spotify.com bootstrap order, memcache key slots, resumable CDN parts + avg_bw accounting, pinned sp_ AP identity table.",
-    "Residual: mod_zp glue into the zone-player pipeline (callback registration data) and the exact Mercury 7-byte header field split (cmd vs seq vs len bytes) - the read path handles it as {type byte, size, MAC-check block}; per-byte layout is in the packet pack/unpack routine."
-   ],
-   "zp_binding": "mod_zp binds esdk through ai_spotify.cxx (0x1022xxxx region, 'spot' log module). The esdk session object is reached through accessor f_10cf6834 (called at the head and tail of every session op). Playback control uses the classic libspotify Sp* surface: SpPlayUriWithOptions (session start), SpPlaybackPlay/Pause, SpPlaybackSetBitrate, SpPlaybackEnableShuffle/EnableRepeat, SpPlaybackIncreaseUnderrunCount, SpGetMetadata, SpConnectionLoginOauthToken/Logout, SpEnableConnect, SpZeroConfGetVars. Inbound metadata flows through f_1022c1b0 (MetadataChanged handler: logs track, track_uri, artist, album, playback_source_uri, bitrate, Next Metadata - the esdk->zoneplayer event pump that feeds the queue's now-playing state).",
+   "zp_binding": {
+    "startup": "Sonos startup f_10213e60 builds callback tables and, only after SpInit succeeds, calls SpRegisterConnectionCallbacks/f_10cf5110 at 0x102142a8, SpRegisterPlaybackCallbacks/f_10cf52e0 at 0x102142b4 and SpRegisterStreamCallbacks/f_10cf53c8 at 0x102142c0. Userdata is an embedded integration context containing the owning object. The wrappers check SDK existence, the +0xba4 busy/reentrancy flag and null tables (errors 6, 16 and 4 respectively). Helpers copy function fields/userdata rather than borrowing these stack tables.",
+    "connection_callbacks": {
+     "on_notify": "f_10218748",
+     "on_new_credentials": "f_10211850",
+     "on_message": "f_102117c0"
+    },
+    "playback_callbacks": {
+     "on_notify": "f_10213a48",
+     "on_seek": null,
+     "on_apply_volume": "f_10218af8"
+    },
+    "stream_callbacks": {
+     "on_start": "f_10213808",
+     "on_data": "f_1021704c",
+     "on_pos": "f_10218e44",
+     "on_seek": "f_1021794c",
+     "on_flush": "f_102190c8",
+     "on_end": "f_10217364"
+    },
+    "storage_and_dispatch": "Global callback state at 0x110bf65c stores playback functions at +0/+4/+8 with userdata +0xc, delivery functions at +0x10..+0x24 with userdata +0x28, and connection functions at +0x2c..+0x34 with userdata +0x38. f_10d3bb08 calls playback notify(event,userdata) only if installed. f_10213a48 searches 17 {event,name} rows at 0x10ea1cd0, labels unmatched values Unknown, packages event plus owner into an owned command and submits it through f_10228bfc. The worker closure f_10218574 calls f_10217d80, whose event-specific paths include current/next metadata retrieval. These are not 17 contiguous event numbers: values 11, 12 and 15 are absent. Connection notify is a different callback, f_10218748; new-credentials/message callbacks here produce diagnostics.",
+    "metadata_accessor": "f_10cf6834 is SpGetMetadata, not a session accessor. It and f_10cff01c clear a 0x7b0-byte output, reject unavailable/uninitialized metadata, check the requested index and return status. Sonos f_10217d80 requests current and next entries with indices 0 and 1 at 0x10218034/0x10218048. f_1022c1b0 retrieves both entries into a 0xf68-byte combined result and logs their metadata.",
+    "metadata_integration": "f_1022c480 takes its lock, clears a local 0xf68-byte buffer and calls f_1022c1b0. Only a successful retrieval passes the buffer to f_104dc0c0 through object+0x180; only its change/acceptance result triggers virtual +0x98 and the peer callback. It then returns to the signaling/unlock path. Thus metadata reaches local player integration conditionally, rather than every notification unconditionally updating the player.",
+    "audio_delivery": "Registered f_1021704c unwraps userdata and tail-calls f_10216ef8 with stream id, data, byte count and offset. That helper selects the active stream interface from object+0x59f8 or embedded +0x5a00, tests its ready predicate, and invokes virtual +0x5c with an output count before updating download accounting through f_104e23cc. If no interface is ready it returns zero. This is byte-stream delivery, not proof that the callback itself delivers decoded 16-bit PCM.",
+    "playback_events": {
+     "0": "Play",
+     "1": "Pause",
+     "2": "TrackChanged",
+     "3": "Next",
+     "4": "Prev",
+     "5": "ShuffleOn",
+     "6": "ShuffleOff",
+     "7": "RepeatOn",
+     "8": "RepeatOff",
+     "9": "BecameActive",
+     "10": "BecameInactive",
+     "13": "AudioDeliveryDone",
+     "14": "ContextChanged",
+     "16": "MetadataChanged",
+     "17": "NetworkRequired",
+     "18": "TrackDownloadStalled",
+     "19": "QueuedTrackAccepted"
+    }
+   },
    "resolved_findings": [
-    "Established: full io-backend semantics - apio=AP channel, cdnio=chunk fetcher with multi-CDN failover + bw stats, streamio=stream abstraction, async_streamio_mgr.cxx=anacapad async adapter; upstream source provenance pinned.",
-    "Resolved: fetch-path internals decoded from embedded eSDK sources (mod_streamer.c/streamio.c/apio.c/cdnio.c). AP channel (apio.c): bootstrap order \"local apresolve\" -> \"fallback\" -> HTTPS GET apresolve.spotify.com -> connect ap.spotify.com (\"Connecting (%s) %s:%d timeout: %d sec\", \"Sending Hello message to AP\", \"Failed to decode ApWelcome\"); pacing watchdog \"SpPumpEvents() is called too slowly: %d ms for 100 calls\"; connectivity churn \"went from one type to another (%d -> %d), populating disconnected sockets array\". Streaming (mod_streamer.c/streamio.c): per-track AES keys cached in a slotted memcache (\"Track key exists in memcache at slot: %zu\", \"Storing key in memcache slot: %u\", \"Track key capped, Playback paused. error_code:%d\"); CDN download is resumable per-file-part (\"will download next missing part of file %s from:%u size:%u\", \"CDN download failed%s\") with bandwidth accounting (\"Download finished. size:%u cdn_offset:%u total_time:%u, avg_bw:%ukbps\"). A compiled-in table of sp_<32hex> entries (0x10fd7ed8+) is the pinned AP identity set.",
-    "Resolved: AP-conn Mercury link layer (mod_ap_conn.c, debug id sp_a5335660d494963ab7b783a270417bb8) - wire frame = 7-byte TLV-style header read in one read() then payload; header byte[0] is the type/cmd byte, bytes[1..2] carry the size used against the 16384 cap (\"Packet from AP is too large! Type: %d / Size: %d\", assert \"ap->packet_size <= 16384\"), and a 4-byte MAC trailer/field is memcmp-verified (\"Corrupted packet, invalid MAC\" on mismatch, error -0xd). Module register vocabulary {APConn, Streamer, TrackPlayback}; connection FSM literals {\"Sending Hello message to AP\" -> ApWelcome decode (\"Failed to decode ApWelcome: %s\" / \"ApWelcome failed\"), \"logging in, type %d sz %d user %s\"}; endpoints ap.spotify.com + apresolve.spotify.com with {local apresolve, apresolve, fallback} order; liveness {\"Too long without response from server\", \"SpPumpEvents() is called too slowly: %d ms for 100 calls\"}.",
-    "Resolved: eSDK socket-manager vocabulary (SOCKET-MANAGER / TLS-INTERNAL tags) - socket opts {kSpSocketReuseAddr, kSpSocketReusePort, kSpSocketMulticastTTL, kSpSocketMulticastLoop, kSpSocketMembership, kSpSocketNonBlocking}; udp listen/bind/create error ladder; disconnected-socket EOF/error semantics; \"Connectivity went from one type to another\" disconnect-socket repopulation."
+    "Separated embedded Spotify component provenance from Sonos mod_zp, async_streamio_mgr and async_buffered_stream implementations.",
+    "Traced actual successful-startup callback tables, copied SDK callback state, queued playback notification processing, current/next metadata retrieval and conditional local player integration. Media data callback delivers byte-stream data, not proven decoded PCM.",
+    "Corrected AP framing, conditional override/local/network/list/fallback selection and the false AP identity-table interpretation; native_protocols contains the recovered static cipher/key contract.",
+    "Recovered two-slot key/material cache layout, zero-identifier empty state and alternating insertion policy; raw low-bit mask is not a shift.",
+    "Separated active ranged CDN transfer/retry/statistics from two constant-zero optional missing-part hooks; avg_bw is the sampled byte/time accumulator converted to kbps, not whole-file size divided by total transfer time.",
+    "Decoded separate generic async manager request-pool/worker/shutdown and buffered-read/completion/deadline-wait contracts without attributing every Spotify transport to them."
+   ],
+   "source_scope": "Paths under /var/lib/spotify/buildagent/teamcity/work/e48167fe44483028/esdk/src/ identify compiled components, not supplied source files. ../anacapa-1.0/oc/zone/zoneplayer/mod_zp.cxx belongs to Sonos code, not an eSDK module. Sonos async_streamio_mgr.cxx implements the generic queued-read manager; async_buffered_stream.cxx implements a separate buffered stream.",
+   "bootstrap": {
+    "selection": "The AP worker f_10d0b3f8 uses connection state byte +7, reconnect delay +0x64b4 and five-attempt retry byte +6. Starting a connection resets the packet buffers. An explicit override (+0xf) selects the existing host directly. Otherwise a zero selector at +5 starts resolution: a configured nonzero local-resolver port at +0x54 selects localhost and that port, while zero selects apresolve.spotify.com:80. Nonzero +5 selects a decoded list entry when +0x684c is below +0x684e and the selector is at most four; otherwise it selects ap.spotify.com. Thus neither an unconditional local-then-network order nor an ap.spotify.com-first order is established.",
+    "resolver_exchange": "Resolver connection state 2 transitions to state 3 after connection completion and calls f_10d3a054. The request at 0x10fe1a34 is GET /?client=TSP_VERSION_PLATFORM:5:0:71780298064396493&time=%llu HTTP/1.0\\r\\nHost: apresolve.spotify.com\\r\\n\\r\\n. f_10d3a254 incrementally receives the response, requires the HTTP success marker and parses quoted host/port candidates into the bounded packed list at +0x66cc. A high-bit suffix flag allows .spotify.com compression. Resolution completion closes that connection, restores state zero and retries host selection. The explicit port-80 branch and plaintext HTTP request do not support the old HTTPS interpretation.",
+    "advancement_and_failure": "f_10d3a0e8 advances +5 modulo eight when nonzero and advances the packed-list offset +0x684c by three plus the low-seven-bit hostname length, wrapping to zero at list end. +5 is an attempt/selection byte, not a ten-entry host ring. Connection/send/receive errors decrement +6 while retries remain, then enter f_10d0a234, which closes/reset state, updates backoff and rotates the port/selector according to the failed phase. Override, resolver, list and fallback choices are distinguishable control-flow paths, not a guaranteed deployment-specific address order.",
+    "false_identity_table": "0x10fd7ed8 contains sp_b3dea506c50a865b11b5eb6ad45642e3; the listener socket-bind diagnostic references it as a logging source tag at 0x10d0cbec/0x10d0cbf4. Neighboring sp_<32hex> strings are not a pinned AP identity table."
+   },
+   "memcache": {
+    "layout": "Streamer-private state has exactly two entries of stride 0x4c. Each entry has a 0x38-byte key/material result at +0x1f98+i*0x4c followed by a 20-byte identifier at +0x1fd0+i*0x4c. f_10d2c494 allocates and clears the whole 0x2120-byte state, including both entries and the insertion selector at +0x2030.",
+    "lookup": "f_10d2b2b8 starts with entry zero, skips an all-zero identifier using f_10d414f4, compares 20 bytes with the track resource identifier at +0x80, and tries entry one before declaring a miss. A hit copies the cached 0x38 bytes into current stream state +4 without changing the insertion selector. A miss enters f_10d2cd48 to obtain the key/material result; failed requests take the error/retry path and do not reach the successful insertion block.",
+    "replacement": "On successful result retrieval (0x10d2baa4), the +0x2030 byte selects the slot. The code copies 0x38 bytes of current result and the 20-byte resource identifier, then stores (selector+1)&1. Raw word 0x552907fe at 0x10d2bbc0 is a low-one-bit mask, not division or a right shift. Replacement therefore alternates slots in insertion order; lookup does not promote a hit. There is no timestamp, age test, ten-slot cache or LRU logic in this two-entry memcache."
+   },
+   "cdn_streaming": {
+    "request_and_resume": "Stream state distinguishes request start/span from current download cursor. f_10d2e6c0 checks whether a requested interval is already covered, otherwise opens a CDN transfer, advances cursor/byte counters and honors available-buffer limits. f_10d304b8 is the HTTP request engine. Its range parameters let retry/failover continue a requested interval; this is not evidence of a persistent on-disk part cache.",
+    "failover_and_errors": "The CDN state switch tracks selected CDN, result and retry state. f_10d2e6c0 bounds candidate URLs, handles a CDN index outside the supplied list, increments retry/failure counters and either changes candidate/restarts or records exhaustion/error. Logs such as multi-CDN, requesting next missing part and fallback are not sufficient by themselves to prove every optional path is enabled.",
+    "disabled_missing_part_hooks": "In this supplied build f_10d31eb0 and f_10d31ec0 are constant-zero stubs. The f_10d2b840 path calls f_10d31ec0 at 0x10d2b8f8; its nonzero next-missing-part branch is therefore not taken. Completion similarly calls f_10d31eb0. The former blanket claim of automatically searching resumable missing parts was too broad; active ranged/cursor transfer and CDN retry are distinct from those disabled hooks.",
+    "statistics": "f_10d3000c returns CDN context+0x5f0 as the stream statistics object, saved by the streamer at +0x20f8. Request, first-byte and completion helpers f_10d4b9f0/f_10d4bb04/f_10d4bbf8 maintain timestamps, CDN/error/count fields and flags. f_10d4bce8 reports elapsed time. The download-finished log at 0x10d2c140 reads its avg_bw from statistics+0x14, not from the whole-file size/time quotient.",
+    "bandwidth": "The separate accumulator f_10d4b410 receives byte counts and elapsed-time samples. It updates byte/time history, does not advance the window for zero latency, and returns zero when accumulated duration is zero; otherwise it constructs the unsigned 64-bit numerator 1000*bytes and divides by accumulated duration. At 0x10d2f164-0x10d2f17c, unsigned high multiplication by 0x10624dd3 and a genuine right shift by three divide the result by 125 before storing statistics+0x14, converting bytes/second to the logged kbps. This accumulator/window result is what avg_bw names; it is not a guarantee of instantaneous network bandwidth."
+   },
+   "async_stream_wrapper": {
+    "scope": "There are two separate generic Sonos objects: f_1029fb58 initializes the asyncstreamiomgr manager (vtable 0x10eadcfc has its two destructors), while f_1029f07c initializes the asyncBufferedStream with primary vptr 0x10ead428 and secondary 0x10ead460. The manager is not itself the buffered-stream class or an eSDK callback table.",
+    "manager": "f_1029f618 takes a request from free list +0x1ac, stores stream/buffer/count/context/completion information, pushes it on work list +0x1b0 and signals the condition unless already busy. Empty free list logs readDataAsync: failed to allocate a work request and returns false. Worker f_1029f938 waits for work or stop +0x1a8, pops work while locked, unlocks around f_1029f8a0, then recycles the request. f_1029f8a0 calls underlying stream virtual +8 with an in/out byte count and optionally invokes completion virtual +8 with the result. Requests use a linked stack, not a proven FIFO queue.",
+    "buffered_read": "Buffered-stream read f_1029ec08 delegates straight to underlying virtual +8 when buffering is disabled (+0x110 zero). Otherwise it copies available buffer bytes, advances position, asks f_1029d660 for the next available block, starts/continues asynchronous or synchronous reads as configured, and stops when the requested count is satisfied or the terminal flag +0x145 is set. Zero requested bytes skip the copy loop. f_1029d84c waits only while work-in-progress +0x146 remains set, uses the supplied deadline for timed condition waits, and stops waiting when the deadline expires; it does not turn every temporarily empty buffer into EOF.",
+    "completion_and_shutdown": "f_1029dd60 is the buffered work-completion callback: it commits returned bytes to buffer bookkeeping, clears the work-in-progress flag, updates position/statistics and handles pending/terminal conditions. Manager destructor f_1029f404 sets stop +0x1a8 under the mutex, signals the condition, joins the worker and destroys thread/condition/mutex state. This is separate from buffered-stream destruction f_1029a90c, which stops active buffering before releasing the underlying stream and allocated buffers.",
+    "relationship_to_spotify": "These generic wrappers are compiled into Sonos code. The concrete Spotify delivery path is the separately registered byte-stream callback. Source-path proximity does not prove every AP/CDN transfer traverses the generic wrapper."
+   },
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10213e60",
+     "address": "0x10213e60",
+     "callsite": "0x10213f28-0x10213fd4/0x102141f4/0x102142a8-0x102142c0",
+     "notes": "Startup builds tables, checks SpInit success and registers callbacks. Connection notify/new_credentials/message are f_10218748/f_10211850/f_102117c0; playback notify/null seek/apply-volume are f_10213a48/null/f_10218af8. Stream table has six concrete functions, with userdata passed from the embedded integration context."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10cf5110/f_10cf52e0/f_10cf53c8",
+     "address": "0x10cf5110",
+     "callsite": "0x10cfc028/0x10cfc0f8/0x10d030ac",
+     "notes": "API wrappers check uninitialized, busy and null-table gates (6/16/4). Playback copies its three fields before calling storage helper; stream registration requires all six fields, otherwise helper clears them. Playback all-null/null helper path removes callbacks."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d3aee8/f_10d3a638/f_10d3a800",
+     "address": "0x10d3a638",
+     "callsite": "0x10d3a6d0-0x10d3a6f4/0x10d3a8e4-0x10d3a978/0x10d3af84-0x10d3aff4",
+     "notes": "SDK stores copied functions/userdata at global 0x110bf65c: playback +0..+0xc, stream +0x10..+0x28, connection +0x2c..+0x38. Null optional playback fields differ from all-six-required delivery registration."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d3bb08/f_10213a48/f_10218574",
+     "address": "0x10d3bb08",
+     "callsite": "0x10d3bb48-0x10d3bb58/0x10213aa4-0x10213ac0/0x10213c54-0x10213c98/0x102185c8",
+     "notes": "SDK invokes installed notify(event,userdata); Sonos searches 17 sparse event-name pairs at 0x10ea1cd0, labels unknown values Unknown and queues a closure through f_10228bfc. Closure invokes f_10217d80. Event-name lookup is not a bounds-checked 0..16 jump table. Raw 0x5529043e at 0x10213abc keeps low 16 bits of loop index."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10cf6834/f_10cff01c",
+     "address": "0x10cf6834",
+     "callsite": "0x10218034/0x10218048/0x1022c1b0",
+     "notes": "SpGetMetadata clears 0x7b0 output bytes and checks initialization/index/availability; Sonos retrieves current/next with indices 0 and 1. This is metadata access, not a session accessor."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_1022c480",
+     "address": "0x1022c480",
+     "callsite": "0x1022c51c-0x1022c56c",
+     "notes": "Locked path retrieves into 0xf68 bytes, only success calls f_104dc0c0 through +0x180, and only its changed result invokes virtual +0x98 and peer +0x30 before signaling/unlock."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_1021704c/f_10216ef8",
+     "address": "0x1021704c",
+     "callsite": "0x10217050-0x1021706c/0x10216f7c-0x10217008",
+     "notes": "Callback unwraps userdata, selects active interface, checks ready and calls virtual +0x5c with data/count/offset plus output count, then updates accounting. No ready sink returns zero. No PCM frame/channel multiplication occurs here."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d0af44/f_10d39890",
+     "address": "0x10d0af44",
+     "callsite": "0x10d0af44-0x10d0b3f8/0x10d39890",
+     "notes": "AP receive/send prove command, BE16 payload length, payload and four-byte MAC trailer; total length+7, 16384 cap and MAC rejection. Key/nonce/encrypt/decrypt/finalize are statically linked at f_10d4682c/f_10d474a0/f_10d48098/f_10d49490/f_10d4a88c, detailed in native_protocols/sp_tlv. Not an inner Mercury header."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d0b3f8/f_10d0a234",
+     "address": "0x10d0b3f8",
+     "callsite": "0x10d0b7c4-0x10d0b824/0x10d0bc98-0x10d0bce4/0x10d0bd10/0x10d0be98/0x10d0bff0-0x10d0c038/0x10d0a2d4-0x10d0a2fc",
+     "notes": "Override skips resolution; configured resolver port chooses localhost, otherwise apresolve.spotify.com:80; selector/list-offset gates list versus ap.spotify.com fallback. Successful resolution closes and returns to state zero. Error handler updates backoff/port and selector after phase-specific failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d3a054/f_10d3a254/f_10d3a0e8/f_10d3a16c",
+     "address": "0x10d3a054",
+     "callsite": "0x10d3a090/0x10d3a0e8-0x10d3a13c/0x10d3a198/0x10d3a4e4-0x10d3a5b8",
+     "notes": "HTTP/1.0 request literal at 0x10fe1a34; response parsing builds bounded packed host/port list, optionally compressing .spotify.com suffix. Raw words 0x5529077e at 0x10d3a0fc, 0x5508067e at 0x10d3a120 and 0x5529043e at 0x10d3a130 are low-3/7/16-bit masks, not shifts. Selector is modulo eight, not a ten-host ring."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d0c984",
+     "address": "0x10fd7ed8",
+     "callsite": "0x10d0cbec/0x10d0cbf4",
+     "notes": "sp_b3dea506c50a865b11b5eb6ad45642e3 and neighboring sp_<32hex> tags are used as logging-source arguments for listener diagnostics, disproving pinned-identity-table attribution."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d2c494/f_10d2b2b8/f_10d414f4",
+     "address": "0x10d2c494",
+     "callsite": "0x10d2c4b8-0x10d2c4f0/0x10d2b7d4-0x10d2b810/0x10d2b98c-0x10d2ba04/0x10d2baa4-0x10d2bbc8",
+     "notes": "0x2120-byte zeroed streamer state; two entries, 0x4c stride, material at +0x1f98 and identifier +0x1fd0. Lookup tests zero ID then compares 20 bytes and copies 0x38 bytes on hit. Successful result stores in selector slot and toggles +0x2030 with raw 0x552907fe (low-one-bit mask); no timestamps/LRU. Miss/error does not enter successful insertion block."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d2e6c0/f_10d304b8",
+     "address": "0x10d2e6c0",
+     "callsite": "0x10d2e770-0x10d2e7c4/0x10d2eaec/0x10d2f040/0x10d2f85c",
+     "notes": "Request start/span and cursor drive transfer through HTTP engine; available-buffer limits bound delivery. Candidate URL limits, num_urls validation, CDN selection/retry and exhaustion/error paths are actual code, not just source-path vocabulary."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d31eb0/f_10d31ec0",
+     "address": "0x10d31eb0",
+     "callsite": "0x10d2b540/0x10d2b8f8",
+     "notes": "Both missing-part hooks return literal zero in this build, so nonzero next-missing-part branches do not prove active automatic part-cache resume."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d3000c/f_10d4b9f0/f_10d4bb04/f_10d4bbf8/f_10d4bce8",
+     "address": "0x10d3000c",
+     "callsite": "0x10d2bc60/0x10d2bc64/0x10d2c11c-0x10d2c160",
+     "notes": "CDN+0x5f0 statistics pointer saved at streamer+0x20f8; logged avg_bw reads stats+0x14. Timing helpers maintain request/first-byte/finish and flags; elapsed-time helper is separate from bandwidth accumulator."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d4b410",
+     "address": "0x10d4b410",
+     "callsite": "0x10d4b5f0-0x10d4b644/0x10d2f160-0x10d2f17c",
+     "notes": "Zero-duration/latency handling and unsigned 64-bit 1000*bytes/duration accumulator. Raw 0x548a103a,0x548817be,0x55472efe,0x55032834,0x54893830,0x54831f7e,0x55081838,0x54841838 verify numerator arithmetic. Raw 0x5469e8fe at 0x10d2f178 is genuine right-three after mulhwu by 0x10624dd3: divide by 125 for logged kbps."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_1029fb58/f_1029f618/f_1029f938/f_1029f8a0/f_1029f404",
+     "address": "0x1029fb58",
+     "callsite": "0x1029f6b0-0x1029f734/0x1029f774-0x1029f7ec/0x1029fa10-0x1029fa70/0x1029f8cc-0x1029f908/0x1029f444-0x1029f47c",
+     "notes": "Generic manager request free/work lists, pool exhaustion false result, unlocked read+optional completion and recycling; destructor sets stop/signals/joins. Vtable 0x10eadcfc contains destructors, not buffered-read methods."
+    },
+    {
+     "type": "firmware",
+     "binary": "reference/public/files/opt/bin/anacapad",
+     "build": "86.10-80260",
+     "function": "f_1029f07c/f_1029ec08/f_1029d84c/f_1029dd60/f_1029a90c",
+     "address": "0x1029f07c",
+     "callsite": "0x1029ec68-0x1029ede8/0x1029d898-0x1029d96c/0x1029ddc0-0x1029de58/0x1029a934-0x1029a984",
+     "notes": "Separate buffered-stream class vptr 0x10ead428/0x10ead460: direct underlying delegation when disabled, buffer copy/count/position updates, zero-count and terminal stop, pending-work deadline wait, completion bookkeeping and destruction. Source strings name async_buffered_stream.cxx versus manager async_streamio_mgr.cxx."
+    }
    ]
   },
   "component_map": {
