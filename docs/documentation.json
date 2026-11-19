@@ -185025,10 +185025,10 @@
   },
   "music_service_descriptor_uri": {
    "name": "Packed music-service descriptor URL",
-   "description": "f_10553994 packs a non-null input string into a 64-byte descriptor URL field. In order, strncasecmp tests https://www. (12 bytes, marker 1), http://www. (11, marker 2), https:// (8, marker 3) and http:// (7, marker 4). The first matching prefix is removed and replaced by its marker byte; the remaining suffix must have strlen<=62, followed by a terminator. If no prefix matches, strlen<=63 is copied as a plain string. An overlong matched suffix or plain string returns false without writing the destination; it does not try another encoding or truncate. Empty plain input is accepted. These are byte-count limits, not a complete URL syntax validator. Case-insensitive prefix matching followed by expansion through lowercase literals normalizes the prefix case while preserving the suffix.",
-   "storage": "Descriptor URL storage is secure URI at +0x20, strings URI at +0x60, presentation-map URI at +0xa0 and manifest URI at +0xe0, each 0x40 bytes. f_10553f1c sets secure URI through the packer. f_105540f4/f_1055410c/f_10554124 first store the supplied version halfword at descriptor+0x124/+0x126/+0x128, respectively, then call the packer for strings/presentation-map/manifest URI and return its boolean. Consequently a failed URI update can leave the new version paired with the previous URI; callers must handle the result. This is independent of the earlier SAX prefix and version gates.",
-   "expansion": "f_10553ab0 takes the packed field, destination and capacity. A first byte in 1..4 expands the corresponding lowercase prefix from table 0x10ee9eb0 and appends the bytes at field+1 through snprintf. Other first-byte values copy the field as a plain string with f_10906304. It returns the destination pointer and ignores formatted-output truncation status. Valid fields made by f_10553994 need at most 75 bytes after expansion, including the terminator; the longest supported prefix is 12 bytes plus a 62-byte suffix. The plain-copy helper checks null destination/zero capacity and clears a nonzero-capacity destination for null input; the formatter branch has its own libc contract.",
-   "manifest_placeholder": "f_105543d0 reads descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer, finds the first literal {device} with strstr and replaces only that occurrence with the two bytes zp. For expanded source length L, replacement requires unsigned destination capacity >=L-5, which fits the new L-6 bytes plus terminator. On insufficient capacity it copies the original unexpanded string with strlcpy and may log Service manifest URI truncated; the fallback can therefore leave {device} intact, and the diagnostic does not itself establish actual truncation. Without a placeholder it also uses strlcpy. The function returns the destination pointer and does not report truncation or placeholder substitution as a separate status. Other placeholders and subsequent occurrences are unchanged by this helper.",
+   "description": "f_10553994 packs a non-null input string into a 64-byte descriptor URL field. In order, strncasecmp tests https://www. (12 bytes, marker 1), http://www. (11, marker 2), https:// (8, marker 3) and http:// (7, marker 4) from the four 12-byte records at 0x10ee9eb0. The first matching prefix is removed and replaced by its marker byte; the remaining suffix must have strlen<=62 and is copied through f_10906304 after the marker. If no prefix matches, strlen<=63 is copied as a plain string. An overlong matched suffix or plain string returns false without writing the destination; it does not try another encoding or truncate. Empty plain input is accepted. These are byte-count limits, not a complete URL syntax validator. Case-insensitive prefix matching followed by expansion through lowercase literals normalizes the prefix case while preserving the suffix.",
+   "storage": "Descriptor URL storage is secure URI at +0x20, strings URI at +0x60, presentation-map URI at +0xa0 and manifest URI at +0xe0, each 0x40 bytes. f_10553f1c sets secure URI through the packer. f_105540f4/f_1055410c/f_10554124 first store the supplied version halfword at descriptor+0x124/+0x126/+0x128, respectively, then call the packer for strings/presentation-map/manifest URI and return its boolean. Consequently a failed URI update can leave the new version paired with the previous URI. In catalog attribute handler f_100c8900 the supplied version text passes through strtol and is truncated to 16 bits before those setters run. A second update surface is descriptor-view vtable 0x10ee9e64: f_10554c7c, f_10554cbc and f_10554cfc occupy slots +0x1c/+0x20/+0x28 for strings/presentation-map/manifest updates. Each guards *(this+0x14c) against +0x144 and returns 0 without writing when the guard fails; they have no direct branch callers in this executable and are reached only through the vtable. f_10554218 initializes a whole descriptor row (name capacity 0x20, sscanf %d.%d version pair at +0x120/+0x122, secure URI argument, container-type enum through f_10554148, +0x130 word, all three resource URIs packed from an empty string, versions -1, +0x12c=1, +0x12a=30); a failed secure-URI pack returns 0 and aborts the rest of the initialization. Its callers are descriptor-view ctor f_10554350 and row-appender f_10554e00. This is independent of the earlier SAX prefix and version gates.",
+   "expansion": "f_10553ab0 takes the packed field, destination and capacity. A first byte of 1 selects 'https://www.' directly; bytes 2..4 walk the record markers and select http://www., https:// or http://. The marker branch calls __snprintf_chk(dest, cap, flag1, slen-1, '%s%s', prefix, field+1): formatted output truncates to cap-1 and its return is ignored, and slen-1 disables fortify abort. Bytes 1..4 therefore always produce their lowercase prefix followed by whatever bytes sit after the marker. Other first-byte values, including 0, copy the entire field as a plain string through f_10906304. Expansion assumes the field came from the packer: for a marker in 1..4 or a plain field with no terminator inside its 64 bytes, the suffix scan runs past the field into adjacent descriptor memory until a NUL, so malformed fields can bleed neighboring bytes into the output up to cap-1. A marker with an empty suffix expands to just the prefix. Valid fields made by f_10553994 need at most 75 bytes after expansion, including the terminator. The function returns the destination pointer in all cases.",
+   "manifest_placeholder": "f_105543d0 reads descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer, finds the first literal {device} with strstr and replaces only that occurrence with the two bytes zp. For expanded source length L, replacement requires unsigned destination capacity >=L-5, which fits the new L-6 bytes plus terminator. On insufficient capacity it copies the original unexpanded string with strlcpy and may log Service manifest URI truncated; the fallback can therefore leave {device} intact, and the diagnostic does not itself establish actual truncation. Without a placeholder it also uses strlcpy. The function returns the destination pointer and does not report truncation or placeholder substitution as a separate status. Other placeholders and subsequent occurrences are unchanged by this helper. Its only caller is manifest fetch trigger f_100c6c3c at 0x100c6cec, which supplies capacity 0x401.",
    "evidence": [
     {
      "type": "firmware",
@@ -185071,9 +185071,66 @@
      "build": "86.10-80260",
      "address": "0x105544d8",
      "notes": "Insufficient-capacity fallback strlcpy copies original URI and optional diagnostic; no-placeholder path at 0x10554524 also uses strlcpy."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553ab0",
+     "notes": "Marker-1 shortcut at 0x10553ad0 plus record-marker walk at 0x10553ae8; snprintf_chk call uses flag1 and slen0xffffffff so expansion truncates without fortify abort. Plain-copy path forwards field/dest/cap unchanged to f_10906304."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10906304",
+     "notes": "Null dest or cap0 returns NULL at 0x109063d8; null src or cap1 writes one zero at 0x109063b8. Byte loop stops at terminator or cap bytes; full-capacity case calls f_10905728 at 0x109063f0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10905728",
+     "notes": "UTF-8 truncation fixer: scans continuation bytes backward via rlwinm mask 0xC0 compare 128, looks up sequence length in 0x10f33174 at 0x10905770, NUL at *r4 on exact boundary at 0x109057ac, else at lead byte 0x1090578c, else empties dest at 0x1090579c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ee9e64",
+     "notes": "Descriptor-view vtable: URI setters f_10554c7c/f_10554cbc/f_10554cfc at slots +0x1c/+0x20/+0x28 guard *(this+0x14c) vs +0x144 and write version halfword then pack; no direct callers, indirect dispatch only."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10554218",
+     "notes": "Descriptor initializer: name cap0x20, sscanf %d.%d pair at +0x120/+0x122, secure-URI pack failure returns0 before resource URIs are packed from empty string; ContainerType enum writer f_10554148 leaves +0x12d unchanged for unrecognized nonempty text."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c8da0",
+     "notes": "SAX handler calls f_10553f1c/f_105540f4/f_1055410c/f_10554124 at 0x100c8da0/0x100c8e54/0x100c8f14/0x100c8ec0; version text arrives through strtol with rlwinm &0xffff. On packer false it logs Unable-to-load diagnostics and continues the attribute loop; no row rejection."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6c3c",
+     "notes": "Manifest fetch: descriptor view via vfunc +0x20, cap 0x400000 test at 0x100c6cd8, f_105543d0 into 0x401 buffer at 0x100c6cec, then f_1011b710(store=this+0x13ad0, sid, uri, lhz version at 0x138(r1))."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10724fb4",
+     "notes": "Representative SMAPI request builder: expands *(this+8)+0x129c into r1+0x3a8 cap0x80 for getSessionId; 19 sites across f_10724f50..f_1072bbb0 share the cap0x80 pattern, f_1072a2a4 expands descriptor+0x20 directly."
     }
    ],
-   "todo": "Established: ordered prefix compression, byte limits, destination-preserving rejection, expansion, version-before-URI writes and first-{device} substitution/fallback are instruction-traced. Remaining: audit every caller capacity and failure response, malformed packed fields and shared string-helper exceptional paths; trace effects on actual catalog, SOAP, presentation-resource and manifest requests."
+   "shared_copy_helper": "Plain copies use f_10906304(dest,src,cap). Null dest or cap0 returns NULL without writing. Null src, or cap1 with any src, writes one zero byte and returns dest. Otherwise it copies src bytes until the terminator or cap bytes; when src occupies the full cap, f_10905728(dest, dest+cap-1) fixes the truncation point at a UTF-8 boundary: it walks backward over continuation bytes (top two bits 10), looks up the lead byte's expected sequence length in table 0x10f33174, writes NUL at dest+cap-1 when a complete sequence ends exactly there, otherwise writes NUL before the partial sequence (or at dest itself when only continuation bytes were seen). Truncated output can therefore be shorter than cap-1 and never splits a multibyte character. The helper returns dest. Callers in this lane never test the return.",
+   "caller_audit": "Every expansion callsite supplies capacity 0x80 except the three manifest-related readers that supply 0x401. Normalized-catalog emitter f_100cc4f4 expands secure/strings/presentation-map/manifest URIs into a shared 128-byte stack buffer (0x100cc818, 0x100ccb24, 0x100ccc00, 0x100cccf4) for SecureUri and the Presentation/Strings/PresentationMap/Manifest Uri attributes; the Manifest element requires descriptor capability 0x400000 at +0x130 and the presentation block is suppressed by parser byte +0x1434. Manifest fetch trigger f_100c6c3c gates on the same capability bit, expands through f_105543d0 into a 1025-byte buffer and calls download worker f_1011b710 with the service ID and stored manifest version; its callers are f_100c7404 and two sites in f_101b869c. Runtime view constructors f_1011c078 and f_1011c1ec expand descriptor+0x20 into the 1025-byte view base used by endpoint joining. Nineteen SMAPI request builders in the 0x10724..0x1072c range expand the packed secure URI embedded at *(this+8)+0x129c into 128-byte stack buffers that form request URLs (getSessionId, credentials and siblings); f_1072a2a4 expands descriptor+0x20 directly. f_1071f644 expands packed URIs at stride 0x138 and tests each with URI-classifier f_1071f35c, which parses components through f_10c3a920 and compares the hostname against sonoscp; callers are f_100bbc80 and f_100c7898. Descriptor strings and presentation-map URIs are expanded only into normalized catalog XML; the player's own resource fetch path reads the manifest model's strings/presentationMap URIs instead. For packer-produced data the largest expansion is 75 bytes, so the 128 and 1025 capacities are never reached. Packer failures are handled three ways: catalog handler f_100c8900 logs 'Unable to load <kind> URI %s' at the musicservices facility and continues parsing, leaving the new version paired with the previous URI; descriptor init f_10554218 returns 0 and aborts; the descriptor-view vfunc setters return the packer boolean to their indirect caller."
   },
   "music_service_version_string": {
    "name": "Music-service version string parsing",
