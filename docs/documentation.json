@@ -215718,7 +215718,7 @@
      "todo": "Established: TuneIn setting special case, normal deletion/commit ordering, missing-account806, manifest cleanup, del diagnostic payload and post-unlock refresh target are decoded. Remaining: finish row-removal consistency/tombstone policy, durable replication/recovery and downstream refresh/event delivery; trace R_HideTuneIn consumers and provider-side removal effects where present."
     },
     "account_file_commit": {
-     "description": "Commit wrapper f_10289258 asserts the account lock and calls f_102890b0 with follow-up flag1. The latter resolves accounts.xml, proposes current revision+1 and serializes the supplied tables and metadata through f_10508988. Only a true writer result copies local source to stored source, updates next-serial/revision state and invokes replication interface slot+0x14 with kind11, source and new revision. A false writer result leaves that manager commit bookkeeping unchanged. With the follow-up flag set, both true and false writer results can still run f_10285878 and, when it returns nonzero, schedule f_10285338. Thus a failed save does not imply no subsequent work is scheduled. The scheduling policy and delivery remain separate from successful persistence.",
+     "description": "Commit wrapper f_10289258 asserts the account lock and calls f_102890b0 with follow-up flag1. The latter resolves accounts.xml, proposes current revision+1 and serializes the supplied tables and metadata through f_10508988. Only a true writer result copies local source to stored source, updates next-serial/revision state and invokes replication interface slot+0x14 with kind11, source and new revision. A false writer result leaves that manager commit bookkeeping unchanged. With the follow-up flag set, both true and false writer results can still run f_10285878 and, when it returns nonzero, schedule f_10285338. Thus a failed save does not imply no subsequent work is scheduled. The scheduling policy and delivery remain separate from successful persistence. The kind11 target is the replication-service interface bound at manager+0xc together with its shared owner at+0x10. Zone initialization f_101b66f4 registers the manager as the kind11 consumer through f_10651bd4 and f_1028ddf4 moves the interface/owner pair into place; that initializer also seeds source text, revision, preferred serial and header metadata from the persisted header parsed by f_10506828/f_105068ec, or runs the 'setup' op through f_10288b00 when the header is absent, and issues the first kind11 advertisement when enabled. Inside the writer, f_105084e0 emits the Accounts root attributes LastUpdateDevice, Version, NextSerialNum, SchemaVersion, PreferredSerialNum, VClockHousehold, VClockCloud and MuseHouseholdID through f_105071e4, then each live-table row whose type and serial are both nonzero with f_105081bc attributes and conditional Token/Key elements, then the deleted table's rows with Deleted=\"1\", then the closing tag. The close helper f_1054f0e8 runs fflush, fileno and fsync with all results discarded, then fclose, whose result alone decides the checked close outcome; a true close renames the temporary file over the live path and unlinks the temporary name, so rename is the only tested durability step. The follow-up predicate f_10285878 consults a virtual call on global0x11097680, obj+0xb50 vfunc+0x14 and mgr+8 vfunc+0xc4, falling back to mgr+0x14d, and nonzero leads f_10285338 to queue f_100ba320 on event loop0x11095f8c about3 seconds out; the job runs refcounted f_101b6eac into pending-sync driver f_10290df4, which re-evaluates f_10285878 before rescheduling. Inbound replication ops reach the manager through f_102876b0 (via this-adjusting thunk f_101b6eec): op1 sets mgr+0x14d and schedules the same job, op2 sets mgr+0x14c and chains f_100ba5dc/f_101b6ebc to f_10290400, and any other op code logs 'Invalid replication operation'. Pull/push merge driver f_1028fa98 commits with flag0 at0x10290ac0 and0x10291784, the only direct f_102890b0 callers, so replication-applied writes do not requeue the deferred sync; it reschedules itself through 'Pull/Push rescheduled in %lld' with a doubling interval capped at0xe10 seconds, guards merges with 'Corrupted accounts not updated' and requires 'Link code required to add guest account' for guest rows.",
      "evidence": [
       {
        "type": "firmware",
@@ -215733,9 +215733,69 @@
        "build": "86.10-80260",
        "address": "0x102890b0",
        "notes": "accounts.xml path, proposed revision+1, writer call, true-only revision/source update and kind11 notification; optional follow-up also reached after false writer result."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b66f4",
+       "notes": "Zone init registers manager as kind11 consumer: f_10651bd4(*arg5 registry,0xb,mgr) at0x101b6744, then f_1028ddf4 moves the {interface,owner} pair into mgr+0xc/+0x10."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028ddf4",
+       "notes": "Manager setup: installs replication pair, strlcpy source into mgr+0xb0/+0xb8, seeds +0xd4 revision/+0xdc preferred/+0xd8/+0xe0 from persisted header via f_10506828/f_105068ec; 'setup' op through f_10288b00 when header absent; first kind11 advertise at0x1028df40."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10285878",
+       "notes": "Follow-up predicate: global0x11097680 vcall, obj+0xb50 vfunc+0x14 and mgr+8 vfunc+0xc4 checks with mgr+0x14d fallback; nonzero result selects scheduling."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10285338",
+       "notes": "Queues f_100ba320 on event loop global0x11095f8c with roughly3 second delay; job runs refcounted f_101b6eac into f_10290df4 which re-evaluates f_10285878."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102876b0",
+       "notes": "Replication-op receiver reached through this-adjusting thunk f_101b6eec (r3+0x118): op1 sets mgr+0x14d and schedules f_100ba320, op2 sets mgr+0x14c chaining f_100ba5dc/f_101b6ebc to f_10290400, other codes log 'Invalid replication operation' at0x1028779c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10290ac0",
+       "notes": "Pull-merge commit calls f_102890b0 with follow-up flag0; push commit repeats at0x10291784. Direct-call census: all other commits tail-call through f_10289258 with flag1."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10290670",
+       "notes": "'Pull rescheduled in %lld' with doubling interval capped at0xe10 seconds; 'Push successful' at0x102917cc, 'Corrupted accounts not updated' at0x10290d5c/0x1029195c, 'Link code required to add guest account' at0x102903c8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105084e0",
+       "notes": "Serialization order inside writer f_10508988: f_105071e4 root attributes, live rows via f_105081bc with conditional Token/Key elements f_10505c78, deleted rows with Deleted=\"1\", closing tag; close helper f_1054f0e8 then rename."
       }
      ],
-     "todo": "Established: accounts.xml writer binding, true-only source/revision/kind11 update and follow-up on either writer result are decoded. Remaining: bind replication kind11 and scheduled job purpose/retry timing, verify full serialization field/table ordering and durability/recovery under interruption, and trace all callers that alter follow-up flags."
+     "resolved_findings": [
+      "Resolved: kind11 is the accounts consumer kind of the replication service; registration f_101b66f4/f_10651bd4 stores the consumer at registry+0x84+kind*4, f_1028ddf4 installs the service interface at mgr+0xc with its shared owner at mgr+0x10, and every successful local commit advertises kind11 with the new revision through vfunc+0x14.",
+      "Resolved: the follow-up job after a flag1 commit is a deferred f_10290df4 pending-sync pass gated by f_10285878 (push-pending flag mgr+0x14d as fallback), scheduled about3 seconds out on the event loop; inbound replication ops (f_102876b0) set mgr+0x14d/0x14c and schedule the same machinery, while pull/push commits in f_1028fa98 deliberately pass flag0 so remote merges do not reschedule it.",
+      "Resolved: writer durability reduces to temporary write, unchecked fflush/fsync, checked fclose, rename over live and temporary unlink; serialization order is root attributes, live rows, deleted rows, close tag, and a failed write triggers the documented root-only fallback that still reports false."
+     ]
     },
     "account_save_fallback": {
      "description": "Writer f_10508988 uses <accounts path>.tmp. It attempts full serialization through f_105084e0 and a close/check helper. If both are true it renames the temporary file to the live path, returns whether rename succeeded and unlinks the temporary name. If full serialization or that close/check fails, it reopens the temporary file for replacement and constructs an Accounts header using f_105071e4. In this fallback parameter block, Version is0, NextSerialNum is1, PreferredSerialNum is0 and a fresh empty vector-clock object replaces the original clock; other copied header fields remain. It writes the closing Accounts tag without any account-row emission, writes/closes this buffer and can rename it over the live file. The fallback rename result is ignored, and the overall writer returns false even when the replacement succeeds. Therefore a public account-edit/removal809 can coexist with a changed live accounts.xml containing no account rows, while the manager did not commit the proposed revision. Initial temporary-open failure returnsfalse without entering this fallback. These are distinct from the service-manifest save fallback, whose own result rules are documented separately.",
