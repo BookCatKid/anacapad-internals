@@ -67290,7 +67290,7 @@
       ]
      },
      "return_behavior": {
-      "description": "The wrapper commits an empty response on zero, returns 402 on materialization failure and propagates other engine failures. Verified engine faults include 718, 701, 714, 402 and 800; f_1014f6dc can also return a nonzero code verbatim. Verified preparation paths can also return 803 or 804.",
+      "description": "The wrapper commits an empty response on zero, returns 402 on materialization failure and propagates other engine failures. Verified engine faults include 718, 701, 714, 402 and 800. Preparation can return 803 at the queue limit or when the entry loader rejects a flagged capacity or allocation failure; it returns 804 when the stored-entry count equals the count of candidates that failed the playability check.",
       "evidence": [
        {
         "type": "firmware",
@@ -67363,11 +67363,35 @@
         "address": "0x1014f7b4",
         "notes": "The compared stack halfwords are descriptor +0x08 and +0x14 (base stack +0x2c). Preparation hands +0x08 to the caller as the count for commitAppend, whose worker adds it to the queue length at 0x1014de50. Equality with +0x14 selects 804; both fields start at zero in f_1014b270.",
         "function": "0x1014f6dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10148e0c",
+        "notes": "The entry callback calls f_10147da8 at 0x10148a60; a false playability result takes the branch at 0x10148a8c to the unplayable-track log and increments descriptor +0x14 before the later LF and append checks. Descriptor +0x08 increments at 0x10148db4 once an entry has been written. The preparation helper compares the counts at 0x1014f7c4, not a direct query for any playable entry.",
+        "function": "0x101489f0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10149180",
+        "notes": "The queue-entry callback checks existing tracks plus descriptor +0x08 against capacity before appending. At capacity it sets descriptor byte +0x12 and returns zero; the entry allocator failure at 0x10149030 also sets that byte.",
+        "function": "0x10149118"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1014b834",
+        "notes": "On the metadata-selected branch (f_1015367c returns nonzero), f_1014b700 invokes f_10153fe0 with the descriptor, its parsed ID, and the callback table at 0x10e93668. A result other than 800 is returned directly by f_1014f48c; 800 is checked against the queue/capacity flag at descriptor +0x12 and may become 803.",
+        "function": "0x1014b700"
        }
       ],
       "todo": [
-       "Established: The wrapper commits an empty response on zero, returns 402 on materialization failure and propagates other engine failures.",
-       "The first 804 operand is the count passed to commitAppend. Trace the writers of descriptor +0x14 and complete the HTTP(S)-reachable loader fault mapping, particularly f_1014b700 and f_10153fe0."
+       "Established: local guards and the 800/803 remapping are traced; 804 is an equality test between the stored-entry and unplayable-candidate counts, not a check that all prepared entries are unplayable.",
+       "Complete the passthrough fault domain by tracing which HTTP(S) metadata IDs can select f_10153fe0 and whether the downstream f_10153a38 and f_10153e98 result paths, including the conditional 802 at 0x10153fc8, are reachable for those IDs."
       ]
      },
      "fault_sites": [
@@ -67418,7 +67442,7 @@
        ],
        "conditions": [
         {
-         "description": "Non-indexed mode returns before the URI checks; in mode 2 request failure or a zero insertion count maps to 800.",
+         "description": "Non-indexed mode returns before the URI checks. In mode 2, a rejected indexed preparation or insert request, or a zero post-commit queue length, maps to 800.",
          "evidence": [
           {
            "type": "firmware",
@@ -67461,7 +67485,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0xc)",
-       "meaning": "The URI worker can emit 701, 714 or 402 locally or propagate the descriptor preparation result, including verified 800, 803 and 804 paths.",
+       "meaning": "The URI worker can emit 701, 714 or 402 locally or propagate a descriptor preparation result, including 800, 803 and 804.",
        "fault_sites": [],
        "conditions": [
         {
@@ -67486,7 +67510,7 @@
          ]
         },
         {
-         "description": "Preparation returns 803 at the queue limit and 804 when the two prepared descriptor halfwords are equal. It also has LF and scheme-loader rejection paths.",
+         "description": "Preparation returns 803 at the queue limit or when the common loader failure branch sees descriptor byte +0x12 set. After a successful loader, equal stored-entry and unplayable-candidate counts return 804.",
          "evidence": [
           {
            "type": "firmware",
@@ -67519,6 +67543,38 @@
            "address": "0x102ae0f8",
            "notes": "Saves the unmodified preparation return and skips insertion if it is nonzero. The cleanup path submits a request but does not substitute its result.",
            "function": "0x102adf20"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10149180",
+           "notes": "The queue-entry callback checks existing tracks plus descriptor +0x08 against capacity before appending. At capacity it sets descriptor byte +0x12 and returns zero; the entry allocator failure at 0x10149030 also sets that byte.",
+           "function": "0x10149118"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10148e0c",
+           "notes": "The entry callback calls f_10147da8 at 0x10148a60; a false playability result takes the branch at 0x10148a8c to the unplayable-track log and increments descriptor +0x14 before the later LF and append checks. Descriptor +0x08 increments at 0x10148db4 once an entry has been written. The preparation helper compares the counts at 0x1014f7c4, not a direct query for any playable entry.",
+           "function": "0x101489f0"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1014f5b4",
+           "notes": "The playlist classifier f_104605cc can accept HTTP(S) URLs from the ASX/WAX/WMX, M3U/M3U8, PLS, WPL and .rsq marker tests. The action chooses f_10146300 at 0x1014f5b4 for these matches. That helper supplies a deadline 15000 ms from the current clock and a callback table at 0x10e93668 to f_104634c4, which selects a loader for the recognized format. A false result maps to 803 if descriptor +0x12 is set and to 800 otherwise.",
+           "function": "0x1014f48c"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1014b834",
+           "notes": "On the metadata-selected branch (f_1015367c returns nonzero), f_1014b700 invokes f_10153fe0 with the descriptor, its parsed ID, and the callback table at 0x10e93668. A result other than 800 is returned directly by f_1014f48c; 800 is checked against the queue/capacity flag at descriptor +0x12 and may become 803.",
+           "function": "0x1014b700"
           }
          ]
         }
@@ -67587,50 +67643,32 @@
          "address": "0x1014f7b4",
          "notes": "The compared stack halfwords are descriptor +0x08 and +0x14 (base stack +0x2c). Preparation hands +0x08 to the caller as the count for commitAppend, whose worker adds it to the queue length at 0x1014de50. Equality with +0x14 selects 804; both fields start at zero in f_1014b270.",
          "function": "0x1014f6dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10148e0c",
+         "notes": "The entry callback calls f_10147da8 at 0x10148a60; a false playability result takes the branch at 0x10148a8c to the unplayable-track log and increments descriptor +0x14 before the later LF and append checks. Descriptor +0x08 increments at 0x10148db4 once an entry has been written. The preparation helper compares the counts at 0x1014f7c4, not a direct query for any playable entry.",
+         "function": "0x101489f0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10149180",
+         "notes": "The queue-entry callback checks existing tracks plus descriptor +0x08 against capacity before appending. At capacity it sets descriptor byte +0x12 and returns zero; the entry allocator failure at 0x10149030 also sets that byte.",
+         "function": "0x10149118"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1014b834",
+         "notes": "On the metadata-selected branch (f_1015367c returns nonzero), f_1014b700 invokes f_10153fe0 with the descriptor, its parsed ID, and the callback table at 0x10e93668. A result other than 800 is returned directly by f_1014f48c; 800 is checked against the queue/capacity flag at descriptor +0x12 and may become 803.",
+         "function": "0x1014b700"
         }
        ],
-       "unresolved": {
-        "proven": "worker f_102af1c8 rc returned",
-        "unknown": "impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102af288 entry); remaining paths call-derived",
-        "bounded_domain": [
-         701,
-         718
-        ],
-        "bound_evidence": "worker literal-exit scan: f_102af1c8->[701, 718];f_102af1c8->[701, 718]",
-        "raw_exit_literals": {
-         "f_102af1c8": {
-          "lits": [
-           24,
-           32,
-           701,
-           718
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x102af288",
-         "lits": [
-          24,
-          32,
-          718
-         ],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_10557848": {
-          "lits": [
-           0,
-           1,
-           80
-          ],
-          "pt": 3
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
        "literal_bound": [
         701
        ],
@@ -67642,8 +67680,8 @@
         701
        ],
        "todo": [
-        "Established: The URI worker can emit 701, 714 or 402 locally or propagate the descriptor preparation result, including verified 800, 803 and 804 paths.",
-        "The first 804 operand is the count passed to commitAppend. Trace the writers of descriptor +0x14 and complete the HTTP(S)-reachable loader fault mapping, particularly f_1014b700 and f_10153fe0."
+        "Established: local guards and the 800/803 remapping are traced; 804 is an equality test between the stored-entry and unplayable-candidate counts, not a check that all prepared entries are unplayable.",
+        "Complete the passthrough fault domain by tracing which HTTP(S) metadata IDs can select f_10153fe0 and whether the downstream f_10153a38 and f_10153e98 result paths, including the conditional 802 at 0x10153fc8, are reachable for those IDs."
        ]
       },
       {
@@ -67764,9 +67802,6 @@
           }
          ]
         }
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
        ]
       }
      ],
@@ -67897,12 +67932,60 @@
        "address": "0x102ae190",
        "notes": "After commit, requests the inclusive range from insertion position plus prepared count through post-commit total when that range is nonempty. Clear uses the saved insertion position through the current total instead: f_1025b35c returns position minus one, and f_1025b3e8 returns total minus position plus one. If the position is unset, they return total and zero, so clear submits an empty range. The action ignores trim and clear removal results.",
        "function": "0x102adf20"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1014b778",
+       "notes": "For a raw HTTP(S) URI that does not match the playlist loader predicates and whose metadata does not select f_10153fe0, f_1014b700 calls f_1014b624 with the original URI. If the parsed ID starts with SQ:, the alternate call at 0x1014b7ec passes the percent-decoded ID suffix after the last colon as an additional argument. A false result takes the 800/803 mapping at 0x1014f604.",
+       "function": "0x1014b700"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1014b450",
+       "notes": "The normal f_1014b3a8 branch hands the URI, descriptor, and metadata argument to slot +0x08 on the queue-entry subobject at list+0x04. Its table entry at 0x10e936b4 binds f_10149118, which tail-calls f_101489f0 after the capacity check. The same worker family binds the +0x14-adjusting entry thunk at 0x10e936cc.",
+       "function": "0x1014b3a8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1014f5b4",
+       "notes": "The playlist classifier f_104605cc can accept HTTP(S) URLs from the ASX/WAX/WMX, M3U/M3U8, PLS, WPL and .rsq marker tests. The action chooses f_10146300 at 0x1014f5b4 for these matches. That helper supplies a deadline 15000 ms from the current clock and a callback table at 0x10e93668 to f_104634c4, which selects a loader for the recognized format. A false result maps to 803 if descriptor +0x12 is set and to 800 otherwise.",
+       "function": "0x1014f48c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1014b834",
+       "notes": "On the metadata-selected branch (f_1015367c returns nonzero), f_1014b700 invokes f_10153fe0 with the descriptor, its parsed ID, and the callback table at 0x10e93668. A result other than 800 is returned directly by f_1014f48c; 800 is checked against the queue/capacity flag at descriptor +0x12 and may become 803.",
+       "function": "0x1014b700"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10149180",
+       "notes": "The queue-entry callback checks existing tracks plus descriptor +0x08 against capacity before appending. At capacity it sets descriptor byte +0x12 and returns zero; the entry allocator failure at 0x10149030 also sets that byte.",
+       "function": "0x10149118"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10148e0c",
+       "notes": "The entry callback calls f_10147da8 at 0x10148a60; a false playability result takes the branch at 0x10148a8c to the unplayable-track log and increments descriptor +0x14 before the later LF and append checks. Descriptor +0x08 increments at 0x10148db4 once an entry has been written. The preparation helper compares the counts at 0x1014f7c4, not a direct query for any playable entry.",
+       "function": "0x101489f0"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: metadata LF becomes a space; indexed op 2 commits the prepared entries at the saved next position, and op 14 removes the old tail after insertion or clear.",
-      "Follow the HTTP(S)-reachable loaders from f_1014f48c to identify how they produce the individual queued entries, including playlist expansion and the second count at descriptor +0x14."
+      "Established: plain HTTP(S) goes through the queue-entry callback, recognized playlist markers select format loaders, and the metadata-selected service branch has its own loader. The counter compared with the stored-entry count for 804 increments when the queue-entry callback's playability check fails.",
+      "Trace each HTTP(S)-reachable parser's entry callback, order, nesting and stop conditions under f_104634c4. For f_10153fe0, identify which parsed metadata IDs produce entries and which reach pagination or service-specific results through f_10153a38."
      ]
     },
     "SetPlayMode": {
