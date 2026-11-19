@@ -21195,7 +21195,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), most-derived vtable 0x10ebc630. 0x10ebd214 is its direct base vtable and holds the same function at this slot. The older note describing this slot as a shared_ptr accessor was wrong. f_1035a760 is a short mapper in front of f_104f6414; f_1035a7ec at the next address is the unrelated button-history formatter and is not part of this path."
     },
     "SeparateStereoPair": {
-     "description": "Separates a stereo pair. The wrapper parses ChannelMapSet (cap 640) and calls slot +0x24 of runtime vtable 0x10ebc630, which the most-derived class overrides with 0x103503a8. That override ignores the submitted map: it parses the player's current bonded map against the local UUID at impl+0x25c and answers 402 when the player is not part of a bonded zone, then calls slot +0x78 (the teardown worker f_10352dd4) with an empty map string, selector 1 and KeepGrouped false, so the whole bond is dissolved rather than selected members.",
+     "description": "Validates the submitted ChannelMapSet against the local UUID at 0x103503f4. Runtime override f_103503a8 then invokes slot +0x78 directly with an empty replacement map, selector 1 and KeepGrouped false. Teardown independently validates the current bond.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073602c",
@@ -21239,7 +21239,7 @@
        },
        {
         "site": "0x103503f4",
-        "purpose": "parse the current bonded map; failure returns 402"
+        "purpose": "validate the submitted map; failure returns 402"
        },
        {
         "site": "0x1035045c",
@@ -21261,7 +21261,7 @@
      },
      "inputs": {
       "ChannelMapSet": {
-       "description": "Accepted and parsed by the request layer (cap 640) for protocol compatibility, but the override never reads it: it dissolves the player's whole bonded set regardless of what the map names. The channel map is parsed by f_1053c234/f_1053e0c4: ';'-separated entries, each a 24-character player UUID, ':' and a channel token (f_1053d8a4), at most 16 entries, duplicates rejected with the 'Duplicate entry: %s at index %zu and %zu' log.",
+       "description": "The override preserves incoming r4 at 0x103503d4/0x103503e0 and validates the submitted map against the local UUID at 0x103503f4. If valid, it passes a separate empty map to teardown.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -21273,12 +21273,12 @@
        "semantic_type": "string argument (type-tag-7 record)",
        "format": "utf-8 text, buffer cap 640 bytes (639 chars + NUL)",
        "unit": "n/a - text",
-       "accepted_values": "any string within the 640-byte parse buffer; the content has no effect",
+       "accepted_values": "Parseable map containing the local UUID",
        "range": "max 639 chars",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "TRequest parse only",
+       "validation": "TRequest validation followed by the local UUID check at 0x103503f4.",
        "evidence": [
         {
          "type": "firmware",
@@ -21298,8 +21298,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10e98278",
-         "notes": "impl vfunc consumes the map string"
+         "address": "0x103503e0",
+         "notes": "Reloads incoming r4"
         },
         {
          "type": "firmware",
@@ -21312,8 +21312,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x103503a8",
-         "notes": "override uses only this, never the r4 map argument"
+         "address": "0x103503f4",
+         "notes": "Checks the submitted map against the local UUID"
         },
         {
          "type": "firmware",
@@ -21326,7 +21326,7 @@
        "notes": null,
        "buf_cap": 640,
        "resolved_findings": [
-        "Resolved: post-parse handling of `ChannelMapSet` = verbatim forward to impl vfunc +36 (obj r5-in, call site 0x107360ac); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "The override validates this input, then passes a separate empty map to teardown."
        ]
       }
      },
@@ -21344,48 +21344,74 @@
       ]
      },
      "requirements": {
-      "description": "The player must currently be part of a bonded zone: the override parses the current map against impl+0x25c and returns 402 when the parse fails.",
+      "description": "The submitted map must validate against the local UUID (402 if not). The current bond is checked separately in teardown and can return 401.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x103503f4",
-        "notes": "f_1053c234 call"
+        "notes": "Submitted map parser"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x103503fc",
-        "notes": "branch to the 402 exit"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x103503b8",
-        "notes": "result preset to 402"
+        "address": "0x10352e84",
+        "notes": "Current map parser"
        }
       ]
      },
      "state_dependencies": {
-      "description": "Reads the local UUID at impl+0x25c and the current bonded map, then the same group and topology state as the teardown worker.",
+      "description": "The override also reads the submitted map at 0x103503f4. Local teardown reads the current map at impl+0xbb4, UUID at +0x25c, trigger byte at +0xe34, rendering/sonar manager at +0x1a80, flag +0xa54, settings backend +0x960, configuration backend +0x950, and transport manager +0x1a88.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x103503dc",
-        "notes": "impl+0x25c"
+        "address": "0x10352e84",
+        "notes": "Current map"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1035044c",
-        "notes": "selector 1 passed to slot +0x78"
+        "address": "0x10360870",
+        "notes": "Rendering/sonar manager"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103608bc",
+        "notes": "Flag"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360910",
+        "notes": "Settings backend"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360bd4",
+        "notes": "Configuration backend"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360d2c",
+        "notes": "Transport manager"
        }
+      ],
+      "todo": [
+       "Established: f_10360784 validates and updates the local map, then uses configuration and playback delegates.",
+       "Unknown: Which concrete delegates supply the remaining teardown state and how their results affect teardown.",
+       "Close it by following the constructor objects at impl+0x960, +0x950 and +0x1a88 into the calls reached from 0x10360910, 0x10360bd4 and 0x10360d2c."
       ]
      },
      "side_effects": [
@@ -21417,45 +21443,59 @@
       }
      ],
      "events_triggered": {
-      "description": "No GENA event; the shared teardown path publishes the in-process bondedZoneChange event.",
+      "description": "Validated local teardown requests GENA processing at 0x103608d4 via f_1067c6ec. f_1067c46c checks for a sender; this does not guarantee a wire NOTIFY. The in-process bondedZoneChange publication is separate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1035c9f4",
-        "notes": "event name"
+        "address": "0x1035303c",
+        "notes": "Topology event"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x103503a8",
-        "notes": "override has no event call"
+        "address": "0x103608d4",
+        "notes": "Dirty event-source request"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c5c8",
+        "notes": "Sender path"
        }
       ]
      },
      "state_transitions": {
-      "description": "On success the pair is dissolved and both players become standalone rooms (KeepGrouped is passed as false). A player that is not bonded is unchanged and answers 402.",
+      "description": "A validated current bond is cleared locally through the empty replacement. KeepGrouped is false, but local success does not guarantee remote application.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10350448",
-        "notes": "KeepGrouped argument 0"
+        "address": "0x103608b4",
+        "notes": "Retained map copy"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10350400",
-        "notes": "not-bonded exit"
+        "address": "0x10360b1c",
+        "notes": "Map clear"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10353210",
+        "notes": "Remote results logged"
        }
       ]
      },
      "return_behavior": {
-      "description": "Returns 402 when this player is not bonded (the override's own check) or when TRequest validation fails, and 0 otherwise: with the empty map f_1035ce14 only marks the bond for dissolution, and the results of forwarding to the other member are logged rather than returned. Result chain: f_10352dd4 returns r30, which holds the result of f_10360784 called at 0x10352f38. The primary's fan-out to the other members rejoins at 0x10352f24 (0x10353210, 0x1035321c) and only logs each remote result ('forwarded %s to %s, rc=%d'). f_10360784 returns the result of the validator f_1035ce14 when it is nonzero, and otherwise performs the teardown and returns 0. f_1035ce14 returns 401 when the current map at impl+0xbb4 does not parse or does not contain the local UUID. With an empty request map it marks the whole bond for dissolution and returns 0. Otherwise it returns 402 when the request map does not parse, when any request entry is not in the current bond, or when the request's first entry is not the current primary, and returns 0 otherwise (marking this player for dissolution when the request does not name it).",
+      "description": "402 is for TRequest or submitted-map validation failure. 401 is for missing or invalid current bonding. A successful local teardown returns zero; forward results are logged, not returned.",
       "evidence": [
        {
         "type": "firmware",
@@ -21468,22 +21508,22 @@
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10350460",
-        "notes": "teardown result"
+        "address": "0x1035045c",
+        "notes": "Direct +0x78 call"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1035cf28",
-        "notes": "empty request returns 0"
+        "address": "0x10352e14",
+        "notes": "401 preset"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x107360fc",
-        "notes": "wrapper 402"
+        "address": "0x10352f3c",
+        "notes": "Local teardown result"
        }
       ]
      },
@@ -21497,40 +21537,21 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "0x192 preset at 0x103503b8 and literal at 0x107360fc",
-       "meaning": "TRequest validation failed, or this player is not part of a bonded zone so there is no pair to separate.",
+       "code_expr": null,
+       "meaning": "TRequest or submitted-map validation fails.",
        "fault_sites": [
         "0x107360c8"
        ],
        "conditions": [
         {
-         "description": "current bonded map does not parse against the local UUID",
+         "description": "TRequest or submitted-map validation fails.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x103503f4",
-           "notes": "f_1053c234"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103503fc",
-           "notes": "branch taken"
-          }
-         ]
-        },
-        {
-         "description": "req->v[+0x08] returned 0",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x107360fc",
-           "notes": "addi r4,0x192"
+           "notes": "Submitted map parser"
           }
          ]
         }
@@ -21541,7 +21562,45 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x107360c8",
-         "notes": "fault emit"
+         "notes": "Wrapper fault dispatch"
+        }
+       ]
+      },
+      {
+       "code": 401,
+       "code_expr": null,
+       "meaning": "The current local bond cannot be validated.",
+       "fault_sites": [
+        "0x107360c8"
+       ],
+       "conditions": [
+        {
+         "description": "The current local bond cannot be validated.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10352e14",
+           "notes": "401 preset"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10352e84",
+           "notes": "Current map parser"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107360c8",
+         "notes": "Wrapper fault dispatch"
         }
        ]
       }
@@ -21579,7 +21638,7 @@
       }
      ],
      "notes": null,
-     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. In the base vtable 0x10ebd214 slot +0x24 is f_1035a3a0, which forwards an empty-string map to its own slot +0x1c; the most-derived override 0x103503a8 adds the bonded-map precondition and calls slot +0x78 directly. The submitted ChannelMapSet is parsed by the TRequest layer but never read by the override."
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. In the base vtable 0x10ebd214 slot +0x24 is f_1035a3a0, which forwards an empty-string map to its own slot +0x1c; the most-derived override 0x103503a8 validates the submitted map and calls slot +0x78 directly. The override validates the submitted map, then passes an empty map to teardown."
     },
     "SetAutoplayLinkedZones": {
      "description": "Sets the global autoplay 'include linked zones' flag. The wrapper parses IncludeLinkedZones as a boolean (f_10561444) and Source (cap 5), then calls slot +0x28 of runtime vtable 0x10ebc630, f_103602bc (inherited unchanged from base 0x10ebd214). Under the impl+0x268 mutex the worker maps Source to an enum, logs 'SetAutoplayLinkedZones include linked zones yes/no' at level 5, stores the flag byte at impl+0x1aa1, persists it through the settings object at impl+0x960 (vtable +0x14) as key AutoplayIncludeLinked with value '1' or '0', publishes an AutoPlaySettingsEvent snapshot through f_1036679c and returns 0.",
