@@ -153968,7 +153968,7 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x1034c484",
-     "notes": "Remote synchronization word stored at per-uuid record+0x1c, with mismatch rejection."
+     "notes": "Store to per-uuid record+0x1c on the matched-UUID path. Unequal strcmp branches away at 0x1034c470; the store itself is not rejection."
     },
     {
      "type": "firmware",
@@ -153983,14 +153983,29 @@
      "build": "86.10-80260",
      "address": "0x1034c730",
      "notes": "Local synchronization word setter at owner+0x1554; caller value provenance remains open."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1034cd9c",
+     "notes": "Four direct calls supply r5 literals: 1 at 0x1034cd9c/0x1034cdb4; 2 at 0x1034cdcc/0x1034cde4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1034c470",
+     "notes": "Nonzero strcmp branches to rejection before the matched-UUID store at 0x1034c484."
     }
    ],
-   "todo": "Residual: trace the callers supplying the local synchronization value to f_1034c6f0 and remote value to f_1034c3c0, including the message encoder/decoder that carries them. The actual field is record+0x1c versus owner+0x1554, not +0x18; no binding to the unrelated PENDING_ADD..DELETE_COMPLETE vocabulary has been established. A phase-writer census based on that enum would target the wrong field.",
+   "todo": "Established: remote record+0x1c writes require matching/vacant UUID; 0x1034cd9c/0x1034cdb4 supply value 1 and 0x1034cdcc/0x1034cde4 supply value 2; local state is owner+0x1554. Unknown: surrounding dispatch/message provenance, semantic names of 1/2 and callers supplying the local state. Next: trace the branches surrounding 0x1034cd9c-0x1034cde4 to incoming event/message decoding and enumerate callers of local setter f_1034c6f0; bind actual encoded fields before assigning a replication lifecycle enum.",
    "resolved_findings": [
     "Channel-role vocabulary retained separately from synchronization values: {NA, CC, SW, LR, RS, LTF, RTF, LTR, RTR, LW, RW, LTM, RTM, AX1, AX2}. The initializer-list truncation and duplicate-entry diagnostics concern channel-map construction, not evidence that the remote-state word is a replication lifecycle enum.",
     "Concrete updater f_1034c3c0 resolves the incoming uuid against the local map through f_1053c234, subtracts one from its returned index, and rejects unsigned index>14 at 0x1034c438-0x1034c440. Records are at owner+0x1374+index*0x20. A vacant uuid slot receives a bounded 0x19-byte string copy at 0x1034c520-0x1034c530. A populated slot requires strcmp equality at 0x1034c460-0x1034c470; a mismatched uuid logs the stored uuid and returns false. Matching/vacant paths store incoming r5 at record+0x1c (0x1034c474-0x1034c484 and 0x1034c534-0x1034c54c). This is not unconditional last-writer-wins replacement of a different uuid.",
     "Read-side binding proved: f_1034c5a4 loops over fifteen records, logs state from record+0x1c and local word owner+0x1554 at 0x1034c63c-0x1034c648, counts nonempty uuid records whose state equals its incoming r4 at 0x1034c64c-0x1034c66c, and returns whether that count equals owner+0x1558. It does not compare record+0x18 to constants one/two. f_1034c6f0 independently updates owner+0x1554 only when different and marks owner+0x94c at 0x1034c720-0x1034c734, then triggers f_1067c6ec. These locate the genuine remote/local value writers and comparison without inventing value names.",
-    "The earlier 1..10 replication-lifecycle binding is withdrawn. Data at 0x10fad520 really contains {name pointer,length,id} rows including PENDING_ADD=1, ADD_IN_PROGRESS=2, ADD_COMPLETE=3, but matching integer constants is not a cross-reference. The separate f_1034c76c reads a different input object+0x18 and invokes virtual +0x80 with 2/3; it is not the chk loop and does not prove the table describes this remote-state field. Its purported reindex/delete phases cannot be treated as reached channel-map states."
+    "The earlier 1..10 replication-lifecycle binding is withdrawn. Data at 0x10fad520 really contains {name pointer,length,id} rows including PENDING_ADD=1, ADD_IN_PROGRESS=2, ADD_COMPLETE=3, but matching integer constants is not a cross-reference. The separate f_1034c76c reads a different input object+0x18 and invokes virtual +0x80 with 2/3; it is not the chk loop and does not prove the table describes this remote-state field. Its purported reindex/delete phases cannot be treated as reached channel-map states.",
+    "Direct remote-updater callers partially settle value provenance: calls to f_1034c3c0 at 0x1034cd9c/0x1034cdb4 pass literal r5=1; calls at 0x1034cdcc/0x1034cde4 pass r5=2. These are caller-level values, not names or proof of a message enum. At 0x1034c470 a nonzero strcmp result branches to rejection; the record+0x1c store at 0x1034c484 executes only on the matched-UUID path (the vacant-slot path has its separate store)."
    ]
   },
   "httpcache": {
