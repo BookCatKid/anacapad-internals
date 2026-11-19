@@ -64057,17 +64057,50 @@
          "function": "0x1014d8c4",
          "address": "0x1014d930",
          "notes": "policy word stored at q+0x26e4 (persisted as key pol by f_1014614c)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10463f34",
+         "address": "0x10463f6c",
+         "notes": "PlaybackPolicy root element"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10463f34",
+         "address": "0x10463fc8",
+         "notes": "child element name chain"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10463df8",
+         "address": "0x10463ea0",
+         "notes": "fullTrackOnly attribute -> +0xb"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10c397cc",
+         "address": "0x10c39824",
+         "notes": "boolean first-character dispatch"
         }
        ],
        "notes": "Empty keeps the default policy flag word 0x0173c02e. Otherwise it is parsed into policy flags, and text that cannot be parsed returns 402.",
        "buf_cap": 1025,
        "todo": [
-        "Established: the flag word default and the bit each parsed boolean controls are decoded.",
-        "Residual: the policy text grammar and the key name of each boolean (sp+0x1c..0x23) live in the parser set up by f_10463c88 (f_10c3fcd4) and f_10464198, which reference no literal strings directly; next step is to trace the key table used by f_10c3fc68's callbacks."
+        "Established: the XML grammar, the element name of each boolean, its byte and its policy-word bit.",
+        "Residual: the boolean parser f_10c397cc loads its literals through the PIC base r30, so the accepted words are inferred from the compare lengths and are not read. The values the 't' branch (0x10c39934) and the below-'f' branch (0x10c39904, possibly digits) store are not decoded. Next step is to resolve the r30-relative literal addresses in f_10c397cc."
        ],
        "resolved_findings": [
         "Resolved: post-parse handling of `QueuePolicy` = verbatim forward to impl vfunc +20 (obj r5-in, call site 0x10464ccc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (flag mapping): an empty policy keeps the default flag word 0x0173c02e (0x102dfff4). A nonempty policy is fed to the parser built by f_10463c88/f_10464198 (f_10c3fc68 at 0x102e008c and a final flush at 0x102e009c); a parse failure or an unset parser-ok byte (sp+0x24) logs 'bad policy input' (0x102e00d4) and returns 402 (0x102e00f0). Otherwise eight parsed booleans at sp+0x1c..0x23 edit the defaults: +0x1c sets 0x1, +0x1d clears 0x2 when false, +0x1e clears 0x20 when false, +0x1f sets 0x40, +0x20 sets 0x100, +0x21 sets 0x200, +0x22 sets or clears 0x80, +0x23 sets or clears 0x10 (isel chain 0x102e0118..0x102e018c). The result is passed as r6 into f_102c3694 and from there into f_1032e56c."
+        "Resolved (flag mapping): an empty policy keeps the default flag word 0x0173c02e (0x102dfff4). A nonempty policy is fed to the parser built by f_10463c88/f_10464198 (f_10c3fc68 at 0x102e008c and a final flush at 0x102e009c); a parse failure or an unset parser-ok byte (sp+0x24) logs 'bad policy input' (0x102e00d4) and returns 402 (0x102e00f0). Otherwise eight parsed booleans at sp+0x1c..0x23 edit the defaults: +0x1c sets 0x1, +0x1d clears 0x2 when false, +0x1e clears 0x20 when false, +0x1f sets 0x40, +0x20 sets 0x100, +0x21 sets 0x200, +0x22 sets or clears 0x80, +0x23 sets or clears 0x10 (isel chain 0x102e0118..0x102e018c). The result is passed as r6 into f_102c3694 and from there into f_1032e56c.",
+        "Established (policy grammar): the parser object built by f_10463c88 (vptr 0x10ed1914) registers the SAX callbacks f_10464168 -> f_10463f34 (start element) and f_10463c68 -> f_10463be8 (end element) with f_10c3fcd4. Both callbacks return at once when the stop byte +0x10 is set. The constructor's defaults are +8 = 0, +9 = 1, +0xa = 1 and +0xb..+0xf = 0. f_10463f34 tracks the element depth. At depth 0 the element must be 'PlaybackPolicy' (strcmp 0x10463f6c, name 0x10ed1920), which sets +0x11. At depth 1, with +0x11 set, the child element name picks a boolean: allowShuffle -> +0x8 (0x104640ec), allowRepeat -> +0x9 (0x104640f8), cacheOnPause -> +0xa (0x104640c8), stopOnError -> +0xc (0x10464104), clearOnEnd -> +0xd (0x10464110), pauseAtEnd -> +0xe (0x10464120), repeatLastTrack -> +0xf (0x104640a0). Any other name, and any deeper element, is ignored (0x10463f80). Each value comes from the element's 'value' attribute (name 0x10f84bc8) through f_10463d2c. cacheOnPause goes through f_10463df8 instead, which also reads a 'fullTrackOnly' attribute (0x10ed1930) into +0xb (0x10463ea0). A value the boolean parser rejects sets the stop byte +0x10 (0x104640bc, 0x104640e0, 0x10464140). The boolean parser f_10c397cc lower-cases the first character and compares the text case-insensitively, as a prefix, against a literal whose length depends on that character: 'f' 5 characters (stores 0, 0x10c3988c), 't' 4, 'y' 3 (stores 1, 0x10c398b4), 'n' 2 (stores 0). A character below 'f' takes a separate path (0x10c39904); any other first character, an empty value or a missing value is rejected. f_10464198 maps the bytes to the policy word: +8 bit 0, +9 bit 1, +0xa bit 5, +0xb bit 6, +0xc bit 8, +0xd bit 9, +0xe bit 7, +0xf bit 4. In plain terms: QueuePolicy is XML such as <PlaybackPolicy><allowShuffle value=\"true\"/><cacheOnPause value=\"false\" fullTrackOnly=\"true\"/></PlaybackPolicy>. The literal words are inferred from the compare lengths (5 for 'false', 4 for 'true', 3 for 'yes', 2 for 'no'), because the literals are loaded through the PIC base and are not shown in the disassembly."
        ]
       }
      },
