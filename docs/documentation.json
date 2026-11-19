@@ -130028,8 +130028,18 @@
      "address": "0x10560adc",
      "callsite": "0x10560adc-0x10560bd0 / 0x10560bd4-0x10560c68 / 0x10561548-0x105615a4",
      "notes": "Unchecked narrow decimal conversions, permissive boolean mapping, signed64 helper and type8/9 interface dispatch are separate branches; capped text does not enforce SCPD enums."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10146db8",
+     "address": "0x10146db8",
+     "callsite": "0x10146ddc-0x10146e54",
+     "notes": "Prefix comparison, one-byte skip, decimal strtol with null endptr, zero/unsigned maximum gates and low16 return. Raw5463043e has SH0 MB16 ME31: maskffff, not divide65536."
     }
-   ]
+   ],
+   "queue_objectid_contrast": "The queue ObjectID parser f_10146db8 is another distinct, permissive numeric consumer, not paranoid_atoui. It compares the configured prefix with strncmp, advances past the prefix plus one unvalidated separator byte, and calls strtol(input+prefix_length+1,NULL,10) at0x10146e38 without checking errno or an end pointer. Zero rejects; an unsigned comparison rejects values above the instance maximum stored as a halfword at this+0x26c8. A successful return keeps the low16 bits (raw0x5463043e at0x10146e54), not a right shift. Thus positive decimal text followed by junk can be accepted within the bound, while empty/nonnumeric/zero and ordinary negative values reject through the numeric gates. The skipped byte is not checked to be a particular delimiter. This is not strict ObjectID syntax validation and does not change the stricter miniutils contract."
   },
   "auth_capability": {
    "model": "capability-based auth: sonos_auth_add_ambient/sonos_auth_become_capable; 'Endpoint switch due to capability change. Current groupcaps: 0x%08x, required: 0x%08x': endpoint selection switches on groupcap change",
