@@ -157850,15 +157850,36 @@
      "type": "firmware",
      "address": "0x10fd80c4",
      "notes": "socket HAL"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d3c0cc / f_10d34968",
+     "address": "0x10d3c0e8",
+     "callsite": "0x10d3c130 / 0x10d349ac / 0x10d34aa8 / 0x10d34b84",
+     "notes": "Wrapper callback54 and context94; seven relative switch words at10fdea9c reconstructed and every target inspected. No timeout arm; callback installer remains an explicit unresolved reachability join. Missing callback=-10002, unsupported=-10003."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d35b64 / UDP setup",
+     "address": "0x10d35b84",
+     "callsite": "0x10d35b8c / 0x10d35b98 / 0x10d0d478",
+     "notes": "F_GETFL3 then OR0x800/F_SETFL4, not time arithmetic. UDP requests nonblocking option0;0/-10003 tolerated, other failures go to cleanup. Raw immediate values checked; no shifts/divisions used to infer deadlines."
     }
    ],
    "todo": [
-    "Residual: per-call timeout values (socket options set via setsockopt; timeouts live in the call-site code)."
+    "Established: callback option wrapper, bounded POSIX0..6 option switch, nonblocking fcntl path, UDP option0 call and explicit unsupported/error behavior. There are no SO_RCVTIMEO/SO_SNDTIMEO arms in this backend; the former per-call-timeouts-live-in-setsockopt premise is withdrawn. Remaining: bind the installer of table0x110bf65c+0x54 to f_10d34968 and enumerate alternative callbacks; trace connect/DNS/read operation deadlines through SDK scheduler and cancellation consumers, including timeout units, defaults and retry resets. Start with f_10d3c0cc, f_10d34968, f_10d347a0 and their callback-registration/pump callers. This remains actionable static work, not a missing literal timeout table."
    ],
    "resolved_findings": [
-    "Resolved: wrapper behavior = per-call error taxonomy {socket_listen/bind/set_option/create ret, DNS callback/hostname/lookup, connect path, cb_socket_connect} - each error path documented.",
+    "The earlier every-error-path-documented assertion is withdrawn: a literal inventory is not complete caller/error propagation. The checked option wrapper and POSIX implementation are bounded below; higher-level timeout policy is separate.",
     "HAL mapping proven: esdk/platform/_os/posix/socket_hal.c - direct BSD sockets, IPv4 only (Creating IPv4 socket (domain %d); Tried to use IPv6 but this platform does not support it; !\"Not supported\" stubs). Call surface: socket create/bind/accept/connect/getsockname with per-call errno reporting (Socket connection error: %d, Socket accept error: %d, Socket bind error: %d, Socket getsockname error: %d, Unable to set option:%d error:%s(%d), Socket close error: %d, recv(%d, %p, %d) = -1 (errno %d: %s)), capacity guard No free sockets available, init gate Network initialization failed. error code: %d. DNS is async via request queue (Failed DNS request for \"%s\", error %d (%s); Successfully enqueued DNS request for \"%s\"; Unable to enqueue DNS request).",
-    "Established: posix socket_hal.c, IPv4-only BSD sockets, async DNS queue, per-call errno reporting."
+    "Established: posix socket_hal.c, IPv4-only BSD sockets, async DNS queue, per-call errno reporting.",
+    "Option wrapper f_10d3c0cc dispatches through callback table0x110bf65c+0x54, passing the option id/value plus table context at+0x94. A null callback returns-10002. Concrete POSIX implementation f_10d34968 bounds option ids to0..6 using table0x10fdea9c. Id0 calls nonblocking helper f_10d35b64;1 sets SOL_SOCKET/SO_REUSEADDR;2 returns unsupported-10003;3/4 set IPv4 multicast TTL/loop as one-byte values;5 sets IPv4 membership using8 bytes;6 sets IPv4 multicast interface using4 bytes. No receive/send timeout option occurs in this seven-arm switch.",
+    "Nonblocking helper f_10d35b64 calls fcntl(fd,3,0), ORs0x800 into the returned flags and calls fcntl(fd,4,flags). It does not use a timeval or a millisecond timeout. The UDP setup at0x10d0d46c-0x10d0d478 invokes option0 with value1 after membership setup. Unsupported-option-10003 is explicitly tolerated by this caller, while other option failures reach close/cleanup. Thus option values1 in this setup must not be misread as one-second deadlines.",
+    "In f_10d34968 a null outer handle or null contained object returns0; an option id>6 returns-10003. POSIX option-call failure stores errno at backend object+0x10 and returns-10002; diagnostic logging does not determine success. These are backend-local outcomes, not the complete SDK retry/deadline contract."
    ]
   },
   "track_pipeline": {
