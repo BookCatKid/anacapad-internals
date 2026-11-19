@@ -61728,7 +61728,7 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x106fd104",
+         "function": "0x107390c4",
          "notes": "402 gate verified in handler body"
         },
         {
@@ -61774,8 +61774,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10738f0c",
-         "notes": "handler loads parsed InstanceID word into r4 for impl vfunc call (GetGroupMute shape, shared across GRC)"
+         "address": "0x10739134",
+         "notes": "GetGroupVolume wrapper loads the parsed InstanceID into r4 before the primary +0x10 call at 0x10739144."
         }
        ],
        "notes": null
@@ -61822,7 +61822,7 @@
       }
      ],
      "notes": null,
-     "implementation_notes": "Direct impl on the impl object: 4-insn predicate: loads global 0x11097910, returns CR-flag on it (group-volume read delegated to the shared group-volume state). Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.",
+     "implementation_notes": "Primary GRC vptr 0x10ec3824 slot +0x10 selects f_1039cbf0, not f_106fd104 or vptr 0x10ec37b4. InstanceID!=0 returns 702; group lookup miss returns 701. After local refresh, mutex +0x1c8 protects cache+0xd28e nonfixed count, +0xd290 fixed count and +0xd294 current volume sum. Unsigned-to-single conversion, division and truncation produce the nonfixed average; zero nonfixed count falls back to 100 if fixed count is nonzero, else zero. Output is a halfword via r5; r4 is InstanceID, not an output pointer.",
      "todo": "Established: primary GRC vptr 0x10ec3824 slot +0x10 -> 0x1039cbf0, complete getter status domain and exact cached aggregation are traced. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise. Residual: bind the renderer/configuration input to f_103a0e28, finish extra snapshot helper f_100daab0, and follow in-process callback f_103a3abc plus the sender/delivery bridge behind f_1067c6ec. Cache refresh can request notifications; no runtime-only dispatch boundary is asserted."
     },
     "SetGroupMute": {
