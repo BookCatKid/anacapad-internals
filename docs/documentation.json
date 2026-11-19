@@ -167962,7 +167962,8 @@
     "Cipher selection is resolved from shipped binaries, not generic AEAD strings. libsonoscrypto table VA0x2004c row1 is {selector1, mbedTLS type5, runtime descriptor, tail-size0}; initializer ZZ0146 at0x36b4 calls mbedtls_cipher_info_from_type and stores descriptors. In shipped libmbedcrypto.so.16 the type5 pair at0x6f008 points to descriptor0x6f168, whose name pointer resolves to AES-128-CBC at0x4cd78 and packed descriptor word is0x84220500. ZZ0029/ZZ0212 extract key length16 and IV length16; ZZ0213 returns the row tail-size0. Relevant rlwinm fields were cross-checked with GNU e500. The current selector is CBC with no per-stream AEAD tag, despite other library cipher modes supporting tags.",
     "The encrypted-stream split is therefore sixteen raw IV bytes followed by CBC ciphertext, with no integer byte order assigned to IV/key/ciphertext bytes. ZZ0050 buffers the first IV-length bytes at object+0x95, calls ZZ0033 with that IV at0x5b60-0x5be0 and advances the input by the consumed IV count. For selector1 the tag reserve is0. ZZ0047 takes its decryption branch at0x5d08-0x5d1c and delegates finish/padding handling to ZZ0147 -> mbedtls_cipher_finish. ZZ0033 selects padding mode0 for the default decryption flags at0x4cf4-0x4d08. Invalid/incomplete state and finish errors clear output and reset through ZZ0044; they are not accepted plaintext. The outer package signature is distinct from this CBC stream and is not an appended per-payload AEAD tag.",
     "Artifact cross-check: the type3 stream begins at absolute file0x249af+16+314. Its first16 bytes are the IV and its remaining1600 bytes are CBC ciphertext; the declared encrypted size is1616. The other encrypted payload records have the same header layout and cipher selector. Certificate bundle/signature records remain separate top-level types0x16/0x11; the established updater verifier rejects unsupported encrypted signatures, missing required sections, duplicate sections and sections after the signature.",
-    "Boundary correction: /bin/upgrade compares payload size r30 with header size r25 at 0x10004734 and bge at 0x10004738 accepts equality. The >7 lower bound remains strict. Equality only passes this precheck: ZZ0053 must consume exactly the header and the parsed encrypted-stream length must equal zero. The loop termination at 0x100048c4 subsequently reaches ZZ0047 at 0x100048dc; passing the precheck is not evidence that empty encrypted input decrypts or finalizes successfully."
+    "Boundary correction: /bin/upgrade compares payload size r30 with header size r25 at 0x10004734 and bge at 0x10004738 accepts equality. The >7 lower bound remains strict. Equality only passes this precheck: ZZ0053 must consume exactly the header and the parsed encrypted-stream length must equal zero. The loop termination at 0x100048c4 subsequently reaches ZZ0047 at 0x100048dc; the zero-stream case rejects as traced below, despite passing the header-size precheck.",
+    "The equality/zero-stream case is fully determined on the shipped updater path. If lookup, unwrap and exact size checks pass, /bin/upgrade calls ZZ0052 at 0x100047d0. In libsonoscrypto.so.3, ZZ0052 supplies r9=0 to ZZ0048 at 0x6adc-0x6af4; ZZ0048 preserves it in r26 at 0x5768, clears the context at 0x57fc and stores state byte +0x94=1 through the zero-input isel at 0x5828-0x5844. Zero encrypted length takes upgrade 0x10004854 -> 0x100048c4 without any ZZ0050 call, so the IV-ready mask 0x02 (normally set at library 0x5bd8-0x5bdc) remains clear, as does mask 0x04. ZZ0047 tests mask 0x02 at 0x5ce4, branches through 0x5cec to 0x5d9c, selects return 4, sees mask 0x04 clear and reaches 0x5d44-0x5d54: writes output length zero, resets through ZZ0044 and returns 4. Upgrade branches on this nonzero finalizer result at 0x100048e4 and sets its return to 49 at 0x10004990. Earlier lookup/unwrap/parser/size failures can reject earlier, but cannot turn the zero-stream path into successful plaintext output. Empty encrypted input never reaches CBC finish as a valid IV-initialized stream on this path."
    ],
    "evidence": [
     {
@@ -168008,9 +168009,29 @@
      "build": "86.10-80260",
      "address": "0x100048c4",
      "notes": "Zero remaining input reaches the ZZ0047 finalizer call at 0x100048dc, not an unconditional decrypt-success return."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x6adc",
+     "notes": "ZZ0052 passes r9=0 to ZZ0048 at 0x6af4; initialization preserves the flag and sets context state +0x94 to 1 at 0x5844."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x5ce4",
+     "notes": "Missing IV-ready mask 0x02 takes 0x5d9c; mask 0x04 is also clear, so return 4, output zero and reset at 0x5d44-0x5d54."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade",
+     "build": "86.10-80260",
+     "address": "0x10004854",
+     "notes": "Zero stream skips ZZ0050; nonzero ZZ0047 result at 0x100048e4 leads to updater return 49 at 0x10004990."
     }
-   ],
-   "todo": "Established: outer/envelope framing, OAEP unwrap and selector-1 CBC/IV/no-tag layout are traced; /bin/upgrade 0x1000472c-0x10004738 accepts 7 < header length <= payload size, with independent exact-consumption and stream-length checks. Unknown: the end-to-end equality case with zero declared encrypted-stream bytes, including lookup/unwrap prerequisites and finalizer state/result. Next: follow the zero-length branch through 0x10004854-0x100048dc into libsonoscrypto.so.3 ZZ0047 at 0x5c8c, joining ZZ0052/ZZ0048 initialization flags and IV state to every finish/reset return; distinguish precheck acceptance from successful plaintext output."
+   ]
   },
   "fmt_device_payload": {
    "name": "device-payload.bin format",
