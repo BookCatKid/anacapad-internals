@@ -107555,29 +107555,46 @@
    ]
   },
   "0x103a3f28": {
-   "description": "Per-member request callback installed in the 0x2740-byte member records built by f_103a1b8c.",
-   "why_external": "The per-member UPnP op completion hook; determines whether member results are awaited inside the SOAP call.",
+   "description": "Non-deleting destructor thunk for a 0x2740-byte session object. It restores the session vptr before transferring control to the base destructor.",
+   "why_external": "Session teardown, not an operation-completion hook. This thunk does not show whether SOAP waits for member results.",
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x103a3f28",
-     "notes": "Per-member request callback installed in the 0x2740-byte member records built by f_103a1b8c."
+     "notes": "0x103a3f34 writes session vptr 0x10e97d30 at this+0; 0x103a3f3c branches to base destructor f_106ff3b8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105123c0",
+     "notes": "f_10511f34 calls base ctor f_102c05d8 at 0x1051218c, materializes 0x10edfbb8 at 0x10512344, and stores it at offset 0 of the derived AVTransport object."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104660c0",
+     "notes": "The AVTransport object constructed at 0x103fb5d8 is saved at zp+0x1934 at 0x103fb680. It is reloaded at 0x103fb6a0 and passed in r5 to f_10465fac at 0x103fb6e8. The queue-manager constructor saves r5 in r27 at 0x10465fd0 and stores it at qm+0x128."
     }
    ],
    "required_for_behavior": true,
    "disasm_digest": {
-    "insns": 1,
-    "calls": [],
+    "insns": 6,
+    "calls": [
+     "0x106ff3b8"
+    ],
     "strings": [],
-    "stores": [],
+    "stores": [
+     "this+0 = 0x10e97d30"
+    ],
     "cmps": []
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: leaf helper; direct calls: none (leaf); string literals: none; member stores: none; immediate compares: none. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "Not a callback body: derived-class destructor for a ~0x2740-byte session object - stores vtable 0x10e97d30 (slot0 f_1019f774) then tail-calls base dtor f_106ff3b8 (base vtable 0x10f0b854, frees +0x272c, destroys +0x1b98/+0x498/+0xc); siblings 0x103a3f40/80/98 are deleting-dtor variants via f_108094fc(this, 0x2740).",
-    "Correction: the callback-body premise is wrong - it is a destructor thunk, and not a leaf (it tail-calls f_106ff3b8)."
+    "The base destructor f_106ff3b8 switches to vptr 0x10f0b854, frees +0x272c and destroys +0x1b98, +0x498 and +0xc. The related entries include deleting variants that pass the 0x2740-byte size to f_108094fc.",
+    "The session vtable 0x10e97d30 is not the queue engine vtable. The store of 0x10e97d30 at 0x10512f70 precedes a call to f_106ff3b8 at 0x10512f78 and advances by 0x2740, consistent with session teardown, not installation on the derived AVTransport object. At slots +0x7c, +0xd8 and +0xdc, 0x10e97d30 has f_1019f510, f_1017fcb8 and f_10180350; the derived AVTransport table 0x10edfbb8 has f_102aa8b4, f_102bd324 and f_102bd4f0."
    ]
   },
   "0x1039d11c": {
