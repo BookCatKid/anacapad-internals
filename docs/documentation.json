@@ -69427,7 +69427,14 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x10218150",
-        "notes": "f_10218574 dispatches the queued notification ID through f_10217d80; IDs 5 through 8 share the 0x10218150 entry. The worker selects the controller at Spotify+0x59f8 when its slot +0x10 test (f_1022ac04, controller byte +0x18c) is nonzero; otherwise it uses the embedded receiver at Spotify+0x5a00. It requires the selected receiver's slot +0x10 test to pass before dispatch. f_1022694c reads the SDK getters, producing shuffle bit 0 only for shuffle value 1, repeat bit 1 for repeat value 1 and repeat bit 2 for repeat value 2. The worker passes this mode to receiver slot +0x44. Controller table word 0x10ea532c selects f_1022d5e4, which stores the mode through f_104dc1e8 at audio-input+0x584c and then sends onVirtualLineInPlayModesChanged. The embedded fallback's +0x44 entry at 0x10ea44a4 is a no-op."
+        "notes": "f_10218574 dispatches the queued notification ID through f_10217d80; IDs 5 through 8 share the 0x10218150 entry. The worker selects the controller at Spotify+0x59f8 when its slot +0x10 test (f_1022ac04, controller byte +0x18c) is nonzero; otherwise it uses the embedded receiver at Spotify+0x5a00. It requires the selected receiver's slot +0x10 test to pass before dispatch. f_1022694c reads the current SDK getters, producing shuffle bit 0 only for shuffle value 1, repeat-all bit 1 for repeat value 1 and repeat-one bit 2 for repeat value 2 (verified against the f_10145f50 name table). The worker passes this mode to receiver slot +0x44. Controller table word 0x10ea532c selects f_1022d5e4, which stores the mode through f_104dc1e8 at audio-input+0x584c and then sends onVirtualLineInPlayModesChanged. The embedded fallback's +0x44 entry at 0x10ea44a4 is a no-op."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022bc88",
+        "notes": "Controller byte +0x18c is read under the controller+0x50 lock. The source selection path sets it before invoking the activation callback through the interface at controller+0x3f4, keeps it set on success at 0x1022bd80, and clears it on callback failure at 0x1022be3c. The RSpotifyVLIControl deactivate path clears it at 0x1022c5f4, and the constructor initializes it to zero at 0x1022d9ac."
        },
        {
         "type": "firmware",
@@ -69440,8 +69447,22 @@
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x1041b134",
+        "notes": "f_1041adb4 takes the event-loop handle under lock and skips enqueueing when it is null (0x1041afb4, with the no-eventloop diagnostic at 0x1041b338). With a loop it assigns a cookie and calls f_100f14ec with the wrapper built by f_10419858. The wrapper's invoke function f_10418d10 reaches f_10418794, which walks the locked registry at 0x110a1948, skips listeners with byte +0x1c nonzero, and calls slot 0 of each enabled listener with the event payload at 0x10418c30."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102c2df0",
+        "notes": "The AVTransport listener setup f_102c1f2c inserts the interface at object+0x258 into the same registry (key at entry+0x10; owning handle at +0x14) if not already present. Slot 0 is f_102bf138 at table word 0x10eaf7b4 (also 0x10ee0080), which subtracts 0x258 and tail-calls f_102beca8. Teardown f_102bfaf0 calls the removal helper f_102f1f4c for this registry at 0x102c040c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "address": "0x102bef24",
-        "notes": "The AVTransport VliPropertiesChangedEvent receiver f_102beca8 copies the metadata and mode flags and submits the callback f_102afb40 via f_102eff8c. With the mode flag set, the callback enters f_102afa40, which sets impl+0x4658 and calls f_1067c6ec on the event source at impl+0x10. f_102b5658 tests the flag at 0x102b582c, promotes it to the common LastChange dirty latch at impl+0x7785, and clears the source flag at 0x102b57a4 on a consuming pass."
+        "notes": "The AVTransport VliPropertiesChangedEvent receiver f_102beca8 copies the metadata and mode flags and submits the callback f_102afb40 via f_102eff8c. That submission builds the work record and calls f_102ef534 at 0x102f0360. Its f_1099bd70 test with selector zero atomically increments the count and succeeds only if the previous count was below counter+8; otherwise it rolls back the increment. The accepted path calls executor slot +0x10 at 0x102efdc0. With the mode flag set, the running callback enters f_102afa40, which sets impl+0x4658 and calls f_1067c6ec on the event source at impl+0x10. f_102b5658 tests the flag at 0x102b582c, promotes it to the common LastChange dirty latch at impl+0x7785, and clears the source flag at 0x102b57a4 on a consuming pass."
        },
        {
         "type": "firmware",
@@ -69452,8 +69473,8 @@
        }
       ],
       "todo": [
-       "Established: the indexed same-mode path skips its wake. Spotify setter commands submit separate device requests; equal state updates skip notification, but repeat 1 and 2 compare unequal. Registered SDK notifications queue work and reach the mode-event producer only when the controller is selected and passes the readiness test. The traced VLI mode-event receiver dirties LastChange; collection reads the active provider's mode.",
-       "Trace which incoming device-state cases reach f_10d1c198 or the other selectors 31/32 producer after a mode request, and when controller +0x18c permits delivery. Bind the actor subscription through f_100f14ec and scheduler acceptance through f_102eff8c to the AVTransport receiver. Spotify type 2 is the only direct call to the registration helper in this build."
+       "Established: the indexed same-mode path skips its wake. Spotify setter commands submit separate device requests; equal state updates skip notification, but repeat-all and repeat-one compare unequal. The mode event requires the selecting/active Spotify control and a configured event loop; it goes through the registered AVTransport listener when enabled. The running callback dirties LastChange; collection reads the active provider's current mode, not the request or an event payload mode.",
+       "Trace which incoming device-state cases reach f_10d1c198 or the other selectors 31/32 producer after a mode request. Identify the mode work item's executor implementation behind 0x102efdc0 and the listener enable/disable writes for byte +0x1c. Spotify type 2 is the only direct call to the registration helper in this build."
       ]
      },
      "state_transitions": {
