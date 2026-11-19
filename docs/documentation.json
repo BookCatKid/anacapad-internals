@@ -77381,7 +77381,7 @@
      }
     },
     "ResetExtEQ": {
-     "description": "Resets an extended-EQ band: locks impl+0x938, calls shared param worker f_100d9d40(this, instID, EQType, val), then conditionally walks impl+0x3c0 -> f_106a9cc4 -> f_10687cbc and logs 'SetVolumeWithoutProxy ch:%s, vol:%u, src:%s'.",
+     "description": "Primary slot +0x14 -> f_10470454 snapshots RC+0xbc8/+0x9c8. Nonzero snapshot byte +0 and zero word +0x288 permit peer forwarding; otherwise it calls the local worker directly. Member indices 1..count-1 use RenderingControl ResetExtEQ sessions with primary vptr 0x10ed2688. f_1046ae70 captures InstanceID and EQType; the member filter returns constant true. Endpoint preparation returning zero skips that member. Prepared requests enter f_106fb998 under a 2000-ms deadline; the last nonzero request status +0x2722 suppresses local work and returns. No aggregate member-error translation or rollback occurs. Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up. Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed. HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073a8dc",
@@ -77417,7 +77417,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric instance selector. Read but unconsumed by the impl (dead compare or never read). ",
+       "description": "Required instance selector forwarded to peers before local validation.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -77429,32 +77429,67 @@
        "semantic_type": "instance selector (integer)",
        "format": "type-tag-4 decimal integer record",
        "unit": "none",
-       "accepted_values": "any parsed integer - forwarded to f_100d9d40",
-       "range": "unconstrained at impl level",
+       "accepted_values": "0 locally",
+       "range": "ui4 parser; local accepted value 0",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "Local nonzero returns 702 after successful proxy processing.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073a91c",
-         "notes": "in-arg access site"
+         "address": "0x10ed2720",
+         "notes": "Bound primary slot +0x14 contains f_10470454."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x10470454",
+         "notes": "Primary slot +0x14 -> f_10470454 snapshots RC+0xbc8/+0x9c8. Nonzero snapshot byte +0 and zero word +0x288 permit peer forwarding; otherwise it calls the local worker directly. Member indices 1..count-1 use RenderingControl ResetExtEQ sessions with primary vptr 0x10ed2688. f_1046ae70 captures InstanceID and EQType; the member filter returns constant true. Endpoint preparation returning zero skips that member. Prepared requests enter f_106fb998 under a 2000-ms deadline; the last nonzero request status +0x2722 suppresses local work and returns. No aggregate member-error translation or rollback occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046ae70",
+         "notes": "Remote request filler formats the captured InstanceID and EQType only."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104707c4",
+         "notes": "Endpoint preparation result zero skips to the next member, rather than returning 1034."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db87c",
+         "notes": "Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8204",
+         "notes": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d82f4",
+         "notes": "HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results."
         }
        ],
-       "notes": null
+       "notes": "No successful nonzero local instance."
       },
       "EQType": {
-       "description": "EQ band selector forwarded to shared worker f_100d9d40.",
+       "description": "Exact case-sensitive reset family name; only the named Sub or HT cache set is reset.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -77466,54 +77501,641 @@
        "semantic_type": "EQ band selector",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none",
-       "accepted_values": "parsed value",
-       "range": "max 1023 chars",
+       "accepted_values": [
+        "Sub",
+        "HT_Dialog",
+        "HT_Surround",
+        "HT_HeightChannel"
+       ],
+       "range": "request buffer capacity 1024; four exact local names",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "Unknown local names return 402; recognized names also return 402 if +0x3ac is null.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073a940",
-         "notes": "in-arg access site"
+         "address": "0x10470454",
+         "notes": "Primary slot +0x14 -> f_10470454 snapshots RC+0xbc8/+0x9c8. Nonzero snapshot byte +0 and zero word +0x288 permit peer forwarding; otherwise it calls the local worker directly. Member indices 1..count-1 use RenderingControl ResetExtEQ sessions with primary vptr 0x10ed2688. f_1046ae70 captures InstanceID and EQType; the member filter returns constant true. Endpoint preparation returning zero skips that member. Prepared requests enter f_106fb998 under a 2000-ms deadline; the last nonzero request status +0x2722 suppresses local work and returns. No aggregate member-error translation or rollback occurs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aae8",
-         "notes": "argument name string"
+         "address": "0x1046ae70",
+         "notes": "Remote request filler formats the captured InstanceID and EQType only."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104707c4",
+         "notes": "Endpoint preparation result zero skips to the next member, rather than returning 1034."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db87c",
+         "notes": "Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8204",
+         "notes": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d82f4",
+         "notes": "HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results."
         }
        ],
-       "notes": null,
+       "notes": "Forwarded unchanged before local comparison; HT_Dialog means AudioDelay reset, not DialogLevel reset.",
        "buf_cap": 1024
       }
      },
      "outputs": {},
-     "validation": "Request-layer parse.",
-     "requirements": "impl mutex; impl+0x3c0 object chain for the notify/apply branch",
-     "state_dependencies": "impl+0x3c0 must be nonnull for the apply branch (0x100dbeec gate)",
+     "validation": {
+      "description": "Request requires numeric InstanceID and EQType string. Successful local reset requires InstanceID zero, one exact selector Sub/HT_Dialog/HT_Surround/HT_HeightChannel and device +0x3ac nonnull. There is no +0x7ff fixed-mode rejection on this local path. Proxy processing can occur before local validation.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2720",
+        "notes": "Bound primary slot +0x14 contains f_10470454."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470454",
+        "notes": "Primary slot +0x14 -> f_10470454 snapshots RC+0xbc8/+0x9c8. Nonzero snapshot byte +0 and zero word +0x288 permit peer forwarding; otherwise it calls the local worker directly. Member indices 1..count-1 use RenderingControl ResetExtEQ sessions with primary vptr 0x10ed2688. f_1046ae70 captures InstanceID and EQType; the member filter returns constant true. Endpoint preparation returning zero skips that member. Prepared requests enter f_106fb998 under a 2000-ms deadline; the last nonzero request status +0x2722 suppresses local work and returns. No aggregate member-error translation or rollback occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046ae70",
+        "notes": "Remote request filler formats the captured InstanceID and EQType only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104707c4",
+        "notes": "Endpoint preparation result zero skips to the next member, rather than returning 1034."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db87c",
+        "notes": "Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8204",
+        "notes": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d82f4",
+        "notes": "HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Request requires numeric InstanceID and EQType string. Successful local reset requires InstanceID zero, one exact selector Sub/HT_Dialog/HT_Surround/HT_HeightChannel and device +0x3ac nonnull. There is no +0x7ff fixed-mode rejection on this local path. Proxy processing can occur before local validation.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2720",
+        "notes": "Bound primary slot +0x14 contains f_10470454."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470454",
+        "notes": "Primary slot +0x14 -> f_10470454 snapshots RC+0xbc8/+0x9c8. Nonzero snapshot byte +0 and zero word +0x288 permit peer forwarding; otherwise it calls the local worker directly. Member indices 1..count-1 use RenderingControl ResetExtEQ sessions with primary vptr 0x10ed2688. f_1046ae70 captures InstanceID and EQType; the member filter returns constant true. Endpoint preparation returning zero skips that member. Prepared requests enter f_106fb998 under a 2000-ms deadline; the last nonzero request status +0x2722 suppresses local work and returns. No aggregate member-error translation or rollback occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046ae70",
+        "notes": "Remote request filler formats the captured InstanceID and EQType only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104707c4",
+        "notes": "Endpoint preparation result zero skips to the next member, rather than returning 1034."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db87c",
+        "notes": "Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8204",
+        "notes": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d82f4",
+        "notes": "HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Topology +0xbc8/+0x9c8, request manager +0x3c4, mutex +0x938, device +0x3ac, port +0x3a8, cached Sub/HT fields and dirty +0x81a/+0x846. Device bridges use device+0x34 -> +0xe0. Gain reaches f_10d8ebf8, storing DSP word +0x320+0x20c*port; polarity reaches f_10d8ecd8, storing byte +0x324+0x20c*port. Both invoke f_10d8e958, dirtying the port and iterating observer slot +0x44, skipping null/default f_104f50b0 entries. Crossover f_107f7d2c has profile/range gates, optional hardware +0xc8/+0xcc slot +0x70, or DSP f_10d8e438. The DSP path stores SpeakerSize +0x30c+0x20c*port, uses f_10d8e374 slot +0x4c to obtain crossover through the caller pointer and copies that halfword to +0x30a+0x20c*port. HT bridges load RC+0x828 -> +0x134 configuration; changed values call f_107c919c, increment config+0xe0 and dispatch internal type 3 through f_105d24f8 -> f_105d22a4, separately from RC notification.",
+      "todo": [
+       "Established: Concrete cache/DSP/HT-config fields, slot numbers and internal type-3 dispatch.",
+       "Unknown: Concrete observer, hardware and HT listener dependencies.",
+       "Next: Bind DSP-manager +0x90..+0xe4 slots +0x44/+0x4c, device +0xc8/+0xcc slot +0x70, and listeners under f_105d22a4 / f_107cb898."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db87c",
+        "notes": "Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8204",
+        "notes": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d82f4",
+        "notes": "HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f62f4",
+        "notes": "Device bridges use device+0x34 -> +0xe0. Gain reaches f_10d8ebf8, storing DSP word +0x320+0x20c*port; polarity reaches f_10d8ecd8, storing byte +0x324+0x20c*port. Both invoke f_10d8e958, dirtying the port and iterating observer slot +0x44, skipping null/default f_104f50b0 entries. Crossover f_107f7d2c has profile/range gates, optional hardware +0xc8/+0xcc slot +0x70, or DSP f_10d8e438. The DSP path stores SpeakerSize +0x30c+0x20c*port, uses f_10d8e374 slot +0x4c to obtain crossover through the caller pointer and copies that halfword to +0x30a+0x20c*port. HT bridges load RC+0x828 -> +0x134 configuration; changed values call f_107c919c, increment config+0xe0 and dispatch internal type 3 through f_105d24f8 -> f_105d22a4, separately from RC notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8284",
+        "notes": "Raw 0x7fc0df9e selects 0 on gain result zero, otherwise 501; raw 0x7fdedf9e at 0x100d82b0 preserves prior result on polarity zero, otherwise 501; raw 0x7fdbf79e at 0x100d82c0 selects 501 on enable boolean zero, otherwise prior result. Concrete gain/polarity always return 0 and enable always returns 1."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8ec38",
+        "notes": "Raw 0x57be063e and 0x579e063e at 0x10d8ed24 are low-byte masks, SH=0 MB=24 ME=31. Raw 0x579a063e at 0x107f7e2c is the same mask before the crossover DSP path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f6484",
+        "notes": "Raw 0x7ca04f9e is isel r5,0,r9,30 with r9=1 after comparing polarity to zero. Reset polarity 0 supplies DSP byte 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c966c",
+        "notes": "Sub-enable setter returns 1 for both changed and unchanged values; on change stores config+0xf5 and calls f_107c919c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c919c",
+        "notes": "Asserts the config lock, increments config+0xe0, and tail-calls f_105d24f8(this,3,true), forwarding to internal f_105d22a4; not proof of external subscriber delivery."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Under mutex +0x938 calls f_100d9d40 then a three-call commit sequence f_106a9cc4 / f_10687cbc / f_100ed34c.",
+       "description": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed. HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results. Device bridges use device+0x34 -> +0xe0. Gain reaches f_10d8ebf8, storing DSP word +0x320+0x20c*port; polarity reaches f_10d8ecd8, storing byte +0x324+0x20c*port. Both invoke f_10d8e958, dirtying the port and iterating observer slot +0x44, skipping null/default f_104f50b0 entries. Crossover f_107f7d2c has profile/range gates, optional hardware +0xc8/+0xcc slot +0x70, or DSP f_10d8e438. The DSP path stores SpeakerSize +0x30c+0x20c*port, uses f_10d8e374 slot +0x4c to obtain crossover through the caller pointer and copies that halfword to +0x30a+0x20c*port. HT bridges load RC+0x828 -> +0x134 configuration; changed values call f_107c919c, increment config+0xe0 and dispatch internal type 3 through f_105d24f8 -> f_105d22a4, separately from RC notification. Successful local reset also requests RC notification and deferred f_100d993c -> f_100d7d6c -> f_100d78a4 settings-save attempt. Earlier peer/cache/backend changes are not rolled back.",
+       "todo": [
+        "Established: Exact reset stores, command attempts, RC notification and internal HT dispatch.",
+        "Unknown: Physical observer/listener effects, deferred durability and session finalization.",
+        "Next: Bind f_10d8e958 +0x44, f_10d8e374 +0x4c, hardware +0x70, f_107cb898 / f_105d22a4, f_106ff898 and storage RC+0x3bc slot +0x14 / f_10167318."
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100dbe90",
-         "address": "0x100dbee4",
-         "notes": "f_100d9d40 then f_106a9cc4/f_10687cbc/f_100ed34c"
+         "address": "0x10ed2720",
+         "notes": "Bound primary slot +0x14 contains f_10470454."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10470454",
+         "notes": "Primary slot +0x14 -> f_10470454 snapshots RC+0xbc8/+0x9c8. Nonzero snapshot byte +0 and zero word +0x288 permit peer forwarding; otherwise it calls the local worker directly. Member indices 1..count-1 use RenderingControl ResetExtEQ sessions with primary vptr 0x10ed2688. f_1046ae70 captures InstanceID and EQType; the member filter returns constant true. Endpoint preparation returning zero skips that member. Prepared requests enter f_106fb998 under a 2000-ms deadline; the last nonzero request status +0x2722 suppresses local work and returns. No aggregate member-error translation or rollback occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046ae70",
+         "notes": "Remote request filler formats the captured InstanceID and EQType only."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104707c4",
+         "notes": "Endpoint preparation result zero skips to the next member, rather than returning 1034."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db87c",
+         "notes": "Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8204",
+         "notes": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d82f4",
+         "notes": "HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107f62f4",
+         "notes": "Device bridges use device+0x34 -> +0xe0. Gain reaches f_10d8ebf8, storing DSP word +0x320+0x20c*port; polarity reaches f_10d8ecd8, storing byte +0x324+0x20c*port. Both invoke f_10d8e958, dirtying the port and iterating observer slot +0x44, skipping null/default f_104f50b0 entries. Crossover f_107f7d2c has profile/range gates, optional hardware +0xc8/+0xcc slot +0x70, or DSP f_10d8e438. The DSP path stores SpeakerSize +0x30c+0x20c*port, uses f_10d8e374 slot +0x4c to obtain crossover through the caller pointer and copies that halfword to +0x30a+0x20c*port. HT bridges load RC+0x828 -> +0x134 configuration; changed values call f_107c919c, increment config+0xe0 and dispatch internal type 3 through f_105d24f8 -> f_105d22a4, separately from RC notification."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8284",
+         "notes": "Raw 0x7fc0df9e selects 0 on gain result zero, otherwise 501; raw 0x7fdedf9e at 0x100d82b0 preserves prior result on polarity zero, otherwise 501; raw 0x7fdbf79e at 0x100d82c0 selects 501 on enable boolean zero, otherwise prior result. Concrete gain/polarity always return 0 and enable always returns 1."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10d8ec38",
+         "notes": "Raw 0x57be063e and 0x579e063e at 0x10d8ed24 are low-byte masks, SH=0 MB=24 ME=31. Raw 0x579a063e at 0x107f7e2c is the same mask before the crossover DSP path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107f6484",
+         "notes": "Raw 0x7ca04f9e is isel r5,0,r9,30 with r9=1 after comparing polarity to zero. Reset polarity 0 supplies DSP byte 0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107c966c",
+         "notes": "Sub-enable setter returns 1 for both changed and unchanged values; on change stores config+0xf5 and calls f_107c919c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107c919c",
+         "notes": "Asserts the config lock, increments config+0xe0, and tail-calls f_105d24f8(this,3,true), forwarding to internal f_105d22a4; not proof of external subscriber delivery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073a98c",
+         "notes": "Wrapper freshly tests status with mr.; nonzero faults at 0x1073a9a0, zero commits an empty response."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1053c388",
+         "notes": "Raw 0x7c6a4f9e makes f_1053c370 true for snapshot+0x288==0, the forwarding case."
         }
        ]
       }
      ],
-     "events_triggered": "log tag says 'SetVolumeWithoutProxy' - the reset shares the volume-apply path",
-     "state_transitions": "EQ field(s) reset",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code.",
+     "events_triggered": {
+      "description": "Local zero status requests f_1067c6ec(this+8) at 0x100db988. Sub dirty byte +0x81a and HT dirty +0x846 are distinct from DSP observer and internal HT type-3 notifications; none proves subscriber delivery.",
+      "todo": [
+       "Established: RC source request, selector dirty flags, DSP slots and changed-value HT dispatch.",
+       "Unknown: RC payload/sender and concrete internal/DSP listener delivery effects.",
+       "Next: Follow RC this+8 metadata callback -> f_1067c6ec -> f_10678c50 worker, plus f_105d22a4 listeners and f_10d8e958 / f_10d8e374 observer slots."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db87c",
+        "notes": "Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8204",
+        "notes": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d82f4",
+        "notes": "HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f62f4",
+        "notes": "Device bridges use device+0x34 -> +0xe0. Gain reaches f_10d8ebf8, storing DSP word +0x320+0x20c*port; polarity reaches f_10d8ecd8, storing byte +0x324+0x20c*port. Both invoke f_10d8e958, dirtying the port and iterating observer slot +0x44, skipping null/default f_104f50b0 entries. Crossover f_107f7d2c has profile/range gates, optional hardware +0xc8/+0xcc slot +0x70, or DSP f_10d8e438. The DSP path stores SpeakerSize +0x30c+0x20c*port, uses f_10d8e374 slot +0x4c to obtain crossover through the caller pointer and copies that halfword to +0x30a+0x20c*port. HT bridges load RC+0x828 -> +0x134 configuration; changed values call f_107c919c, increment config+0xe0 and dispatch internal type 3 through f_105d24f8 -> f_105d22a4, separately from RC notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8284",
+        "notes": "Raw 0x7fc0df9e selects 0 on gain result zero, otherwise 501; raw 0x7fdedf9e at 0x100d82b0 preserves prior result on polarity zero, otherwise 501; raw 0x7fdbf79e at 0x100d82c0 selects 501 on enable boolean zero, otherwise prior result. Concrete gain/polarity always return 0 and enable always returns 1."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8ec38",
+        "notes": "Raw 0x57be063e and 0x579e063e at 0x10d8ed24 are low-byte masks, SH=0 MB=24 ME=31. Raw 0x579a063e at 0x107f7e2c is the same mask before the crossover DSP path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f6484",
+        "notes": "Raw 0x7ca04f9e is isel r5,0,r9,30 with r9=1 after comparing polarity to zero. Reset polarity 0 supplies DSP byte 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c966c",
+        "notes": "Sub-enable setter returns 1 for both changed and unchanged values; on change stores config+0xf5 and calls f_107c919c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c919c",
+        "notes": "Asserts the config lock, increments config+0xe0, and tail-calls f_105d24f8(this,3,true), forwarding to internal f_105d22a4; not proof of external subscriber delivery."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Changes only the documented selector-specific cache set. Crossover may remain unchanged if its backend rejects; that status is discarded. Peer failures can prevent local reset after earlier peer work. Same-value resets still dirty RC state and request follow-up.",
+      "todo": [
+       "Established: Selector-specific cache defaults, preserved fields and proxy/local ordering.",
+       "Unknown: Achieved audio configuration and final durable save.",
+       "Next: Resolve concrete DSP/hardware/HT listeners and storage RC+0x3bc slot +0x14 / f_10167318 before claiming completed application or persistence."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470454",
+        "notes": "Primary slot +0x14 -> f_10470454 snapshots RC+0xbc8/+0x9c8. Nonzero snapshot byte +0 and zero word +0x288 permit peer forwarding; otherwise it calls the local worker directly. Member indices 1..count-1 use RenderingControl ResetExtEQ sessions with primary vptr 0x10ed2688. f_1046ae70 captures InstanceID and EQType; the member filter returns constant true. Endpoint preparation returning zero skips that member. Prepared requests enter f_106fb998 under a 2000-ms deadline; the last nonzero request status +0x2722 suppresses local work and returns. No aggregate member-error translation or rollback occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046ae70",
+        "notes": "Remote request filler formats the captured InstanceID and EQType only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104707c4",
+        "notes": "Endpoint preparation result zero skips to the next member, rather than returning 1034."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db87c",
+        "notes": "Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8204",
+        "notes": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d82f4",
+        "notes": "HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f62f4",
+        "notes": "Device bridges use device+0x34 -> +0xe0. Gain reaches f_10d8ebf8, storing DSP word +0x320+0x20c*port; polarity reaches f_10d8ecd8, storing byte +0x324+0x20c*port. Both invoke f_10d8e958, dirtying the port and iterating observer slot +0x44, skipping null/default f_104f50b0 entries. Crossover f_107f7d2c has profile/range gates, optional hardware +0xc8/+0xcc slot +0x70, or DSP f_10d8e438. The DSP path stores SpeakerSize +0x30c+0x20c*port, uses f_10d8e374 slot +0x4c to obtain crossover through the caller pointer and copies that halfword to +0x30a+0x20c*port. HT bridges load RC+0x828 -> +0x134 configuration; changed values call f_107c919c, increment config+0xe0 and dispatch internal type 3 through f_105d24f8 -> f_105d22a4, separately from RC notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8284",
+        "notes": "Raw 0x7fc0df9e selects 0 on gain result zero, otherwise 501; raw 0x7fdedf9e at 0x100d82b0 preserves prior result on polarity zero, otherwise 501; raw 0x7fdbf79e at 0x100d82c0 selects 501 on enable boolean zero, otherwise prior result. Concrete gain/polarity always return 0 and enable always returns 1."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8ec38",
+        "notes": "Raw 0x57be063e and 0x579e063e at 0x10d8ed24 are low-byte masks, SH=0 MB=24 ME=31. Raw 0x579a063e at 0x107f7e2c is the same mask before the crossover DSP path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f6484",
+        "notes": "Raw 0x7ca04f9e is isel r5,0,r9,30 with r9=1 after comparing polarity to zero. Reset polarity 0 supplies DSP byte 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c966c",
+        "notes": "Sub-enable setter returns 1 for both changed and unchanged values; on change stores config+0xf5 and calls f_107c919c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c919c",
+        "notes": "Asserts the config lock, increments config+0xe0, and tail-calls f_105d24f8(this,3,true), forwarding to internal f_105d22a4; not proof of external subscriber delivery."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Nonzero prepared-session status returns before local work. Local nonzero InstanceID returns 702; unknown selector or null device +0x3ac returns 402. Otherwise concrete local helpers return 0: gain/polarity return 0, Sub enable returns 1, crossover status is ignored, and HT backend statuses are ignored. Endpoint preparation can skip peers while preserving success. SOAP commits an empty response only on 0; no successful response establishes hardware or subscriber completion.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2720",
+        "notes": "Bound primary slot +0x14 contains f_10470454."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470454",
+        "notes": "Primary slot +0x14 -> f_10470454 snapshots RC+0xbc8/+0x9c8. Nonzero snapshot byte +0 and zero word +0x288 permit peer forwarding; otherwise it calls the local worker directly. Member indices 1..count-1 use RenderingControl ResetExtEQ sessions with primary vptr 0x10ed2688. f_1046ae70 captures InstanceID and EQType; the member filter returns constant true. Endpoint preparation returning zero skips that member. Prepared requests enter f_106fb998 under a 2000-ms deadline; the last nonzero request status +0x2722 suppresses local work and returns. No aggregate member-error translation or rollback occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046ae70",
+        "notes": "Remote request filler formats the captured InstanceID and EQType only."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104707c4",
+        "notes": "Endpoint preparation result zero skips to the next member, rather than returning 1034."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db87c",
+        "notes": "Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8204",
+        "notes": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d82f4",
+        "notes": "HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f62f4",
+        "notes": "Device bridges use device+0x34 -> +0xe0. Gain reaches f_10d8ebf8, storing DSP word +0x320+0x20c*port; polarity reaches f_10d8ecd8, storing byte +0x324+0x20c*port. Both invoke f_10d8e958, dirtying the port and iterating observer slot +0x44, skipping null/default f_104f50b0 entries. Crossover f_107f7d2c has profile/range gates, optional hardware +0xc8/+0xcc slot +0x70, or DSP f_10d8e438. The DSP path stores SpeakerSize +0x30c+0x20c*port, uses f_10d8e374 slot +0x4c to obtain crossover through the caller pointer and copies that halfword to +0x30a+0x20c*port. HT bridges load RC+0x828 -> +0x134 configuration; changed values call f_107c919c, increment config+0xe0 and dispatch internal type 3 through f_105d24f8 -> f_105d22a4, separately from RC notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8284",
+        "notes": "Raw 0x7fc0df9e selects 0 on gain result zero, otherwise 501; raw 0x7fdedf9e at 0x100d82b0 preserves prior result on polarity zero, otherwise 501; raw 0x7fdbf79e at 0x100d82c0 selects 501 on enable boolean zero, otherwise prior result. Concrete gain/polarity always return 0 and enable always returns 1."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8ec38",
+        "notes": "Raw 0x57be063e and 0x579e063e at 0x10d8ed24 are low-byte masks, SH=0 MB=24 ME=31. Raw 0x579a063e at 0x107f7e2c is the same mask before the crossover DSP path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f6484",
+        "notes": "Raw 0x7ca04f9e is isel r5,0,r9,30 with r9=1 after comparing polarity to zero. Reset polarity 0 supplies DSP byte 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c966c",
+        "notes": "Sub-enable setter returns 1 for both changed and unchanged values; on change stores config+0xf5 and calls f_107c919c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107c919c",
+        "notes": "Asserts the config lock, increments config+0xe0, and tail-calls f_105d24f8(this,3,true), forwarding to internal f_105d22a4; not proof of external subscriber delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073a98c",
+        "notes": "Wrapper freshly tests status with mr.; nonzero faults at 0x1073a9a0, zero commits an empty response."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053c388",
+        "notes": "Raw 0x7c6a4f9e makes f_1053c370 true for snapshot+0x288==0, the forwarding case."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073a9a0",
@@ -77524,21 +78146,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -77548,43 +78169,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
+       "meaning": "Request validation fails, local EQType is unknown, or recognized local selector has null device +0x3ac.",
        "fault_sites": [
-        "0x1073a990",
         "0x1073a9a0"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request validation fails, local EQType is unknown, or recognized local selector has null device +0x3ac.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a990"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073a9a0"
+           "address": "0x100db960",
+           "notes": "Request validation fails, local EQType is unknown, or recognized local selector has null device +0x3ac."
           }
          ]
         }
@@ -77594,19 +78199,71 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a990"
-        },
+         "address": "0x100db960",
+         "notes": "Request validation fails, local EQType is unknown, or recognized local selector has null device +0x3ac."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "Local InstanceID is nonzero.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Local InstanceID is nonzero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100db8b0",
+           "notes": "Local InstanceID is nonzero."
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073a9a0"
+         "address": "0x100db8b0",
+         "notes": "Local InstanceID is nonzero."
+        }
+       ]
+      },
+      {
+       "code": null,
+       "meaning": "Last nonzero prepared-session status propagates before local reset.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Last nonzero prepared-session status propagates before local reset.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10470864",
+           "notes": "Last nonzero prepared-session status propagates before local reset."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10470864",
+         "notes": "Last nonzero prepared-session status propagates before local reset."
+        }
+       ],
+       "todo": [
+        "Established: Last-nonzero status extraction and local-status gates.",
+        "Unknown: Complete producers/meanings of propagated peer statuses.",
+        "Next: Finish f_106ff898 beneath f_106fb998 and concrete ResetExtEQ session finalizers."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -77615,30 +78272,122 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073a8dc",
-       "address": "0x1073a8dc",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2720",
+       "notes": "Bound primary slot +0x14 contains f_10470454."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e30",
-       "notes": "action dispatch table entry"
+       "address": "0x10470454",
+       "notes": "Primary slot +0x14 -> f_10470454 snapshots RC+0xbc8/+0x9c8. Nonzero snapshot byte +0 and zero word +0x288 permit peer forwarding; otherwise it calls the local worker directly. Member indices 1..count-1 use RenderingControl ResetExtEQ sessions with primary vptr 0x10ed2688. f_1046ae70 captures InstanceID and EQType; the member filter returns constant true. Endpoint preparation returning zero skips that member. Prepared requests enter f_106fb998 under a 2000-ms deadline; the last nonzero request status +0x2722 suppresses local work and returns. No aggregate member-error translation or rollback occurs."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl: lock, f_100d9d40, impl+0x3c0 gate, f_106a9cc4/f_10687cbc chain, 'SetVolumeWithoutProxy' log",
-       "function": "0x100dbe90"
+       "address": "0x1046ae70",
+       "notes": "Remote request filler formats the captured InstanceID and EQType only."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104707c4",
+       "notes": "Endpoint preparation result zero skips to the next member, rather than returning 1034."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100db87c",
+       "notes": "Local f_100db87c locks +0x938, rejects nonzero InstanceID with 702, and compares EQType case-sensitively against Sub, HT_Dialog, HT_Surround and HT_HeightChannel; unknown names return 402. It does not test fixed-output guard +0x7ff. All four selectors need nonnull device +0x3ac or return 402 before mutations. A zero helper result requests f_1067c6ec(this+8) and f_100d993c, then returns 0. Repeated resets still dirty the RC state and request this follow-up."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d8204",
+       "notes": "Sub calls f_100d8204: caches SubGain +0x814=0, SubPolarity +0x818=0 and SubEnable +0x802=1. It calls gain f_102a5450, SpeakerSize-to-crossover f_102a53e8 using unchanged +0x810 and output +0x816, polarity f_102a5318, then HT configuration f_1023d154(true), finally dirty +0x81a=1. All operations are attempted. Gain and polarity bridges return constant 0 through f_107f62f4/f_107f6438; enable f_107c966c returns constant 1 after conditional cache/notification work. Thus the compiled gain/polarity/enable 501 selections are not reachable on these concrete callees. The crossover status is discarded, so its rejection does not fault the action or guarantee that +0x816 changed."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d82f4",
+       "notes": "HT_Dialog calls f_100d82f4 and resets cached AudioDelay +0x83a=0 through f_1023d104(0); it does not reset DialogLevel or SpeechEnhanceEnabled. HT_Surround resets +0x834/+0x836/+0x840=0 and +0x838=1, then calls f_1023d144(true), f_1023d1a4(mode 0), f_1023d204(level 0), f_1023d1f4(music level 0). HT_HeightChannel sets +0x844=0 and calls f_1023d264(0). HT paths set dirty +0x846=1 and return 0 without inspecting those backend results."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107f62f4",
+       "notes": "Device bridges use device+0x34 -> +0xe0. Gain reaches f_10d8ebf8, storing DSP word +0x320+0x20c*port; polarity reaches f_10d8ecd8, storing byte +0x324+0x20c*port. Both invoke f_10d8e958, dirtying the port and iterating observer slot +0x44, skipping null/default f_104f50b0 entries. Crossover f_107f7d2c has profile/range gates, optional hardware +0xc8/+0xcc slot +0x70, or DSP f_10d8e438. The DSP path stores SpeakerSize +0x30c+0x20c*port, uses f_10d8e374 slot +0x4c to obtain crossover through the caller pointer and copies that halfword to +0x30a+0x20c*port. HT bridges load RC+0x828 -> +0x134 configuration; changed values call f_107c919c, increment config+0xe0 and dispatch internal type 3 through f_105d24f8 -> f_105d22a4, separately from RC notification."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d8284",
+       "notes": "Raw 0x7fc0df9e selects 0 on gain result zero, otherwise 501; raw 0x7fdedf9e at 0x100d82b0 preserves prior result on polarity zero, otherwise 501; raw 0x7fdbf79e at 0x100d82c0 selects 501 on enable boolean zero, otherwise prior result. Concrete gain/polarity always return 0 and enable always returns 1."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10d8ec38",
+       "notes": "Raw 0x57be063e and 0x579e063e at 0x10d8ed24 are low-byte masks, SH=0 MB=24 ME=31. Raw 0x579a063e at 0x107f7e2c is the same mask before the crossover DSP path."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107f6484",
+       "notes": "Raw 0x7ca04f9e is isel r5,0,r9,30 with r9=1 after comparing polarity to zero. Reset polarity 0 supplies DSP byte 0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107c966c",
+       "notes": "Sub-enable setter returns 1 for both changed and unchanged values; on change stores config+0xf5 and calls f_107c919c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107c919c",
+       "notes": "Asserts the config lock, increments config+0xe0, and tail-calls f_105d24f8(this,3,true), forwarding to internal f_105d22a4; not proof of external subscriber delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073a98c",
+       "notes": "Wrapper freshly tests status with mr.; nonzero faults at 0x1073a9a0, zero commits an empty response."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1053c388",
+       "notes": "Raw 0x7c6a4f9e makes f_1053c370 true for snapshot+0x288==0, the forwarding case."
       }
      ],
-     "notes": "The 'SetVolumeWithoutProxy' tag inside ResetExtEQ confirms f_100d9d40/f_100d99b0-style workers are shared scalar-apply machinery reused across EQ and volume actions.",
+     "notes": "This does not reset all EQ fields. HT_Dialog resets AudioDelay, and no branch resets basic bass/treble, local loudness, Master volume or mute caches.",
      "todo": [
-      "Established: dispatch and handler 0x1073a8dc are resolved; argument parsing, fault ladder, and request-layer behavior are documented.",
-      "Residual: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+      "Established: Primary binding, forwarding/status order, exact four selectors/default fields and concrete local return behavior.",
+      "Unknown: Actual DSP/hardware/HT listener effects, deferred durability, peer finalization and subscriber delivery.",
+      "Next: Bind DSP observers +0x44/+0x4c and hardware objects +0xc8/+0xcc slot +0x70; HT f_107cb898 and f_105d22a4 listeners; f_106ff898; storage RC+0x3bc slot +0x14 / f_10167318; RC sender worker."
+     ],
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x14",
+      "function": "0x10470454",
+      "local_worker": "0x100db87c",
+      "sub_reset": "0x100d8204",
+      "ht_reset": "0x100d82f4"
+     }
     },
     "RestoreVolumePriorToRamp": {
      "description": "CLASS-A implemented, class-B absent: vtable A slot +0x70 = f_100dee74 (real function) while vtable B shows 0xfffffff8 terminator. The mirror image of RampToVolume's gating - restoring volume is base-class behavior while ramping is derived-class.",
