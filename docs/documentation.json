@@ -12878,7 +12878,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 at 0x10351bf4 over the base vtable 0x10ebd214 installed by f_1035e5ac. 0x10ebd214 is the base vtable only; the slots used by the bonding actions are overridden in 0x10ebc630. In the base vtable 0x10ebd214 slot +0x20 is f_1035b548, which compares its own slot +0x18 against the base stub f_1035a390 and returns 401 when they are equal; the most-derived override 0x10350210 drops that guard and always forwards to slot +0x18. Both routes therefore end at the same bonding code."
     },
     "EnterConfigMode": {
-     "description": "Puts the player into a named configuration mode. The wrapper parses Mode (cap 32) and Options (cap 128) and calls slot +0x60 of runtime vtable 0x10ebc630, which the most-derived class overrides with 0x103523fc; that override parses the home-theater map, calls the base worker f_10364848 and, if it succeeds, propagates the call to the satellites. f_10364848 presets its result to 810 and matches Mode case-insensitively (strcasecmp) against 'button-notify', 'speaker-detect' and 'trueroom'; an unmatched Mode returns 810. 'speaker-detect' enters through f_10363450, 'button-notify' through f_1035d0c8 and 'trueroom' enters the room-calibration mode ('room_calibration-calibrate') through f_10364360, each logging 'Entering %s config mode.' and 'completed %s config mode' or 'failed to complete %s config mode (%d)'. The resulting mode state is written into the 1024-byte State output. When the local player is entry 0 of its home-theater map at impl+0xe60 and the map has more than one entry, the override then sends the same action to every other entry over SOAP, after resolving each one's URIs through the topology ('lookup of %s URIs for %s failed' when that fails). If any satellite fails ('failed to call EnterConfigMode on satellite %s (%d)', then 'failed to propagate EnterConfigMode to satellites, aborting (%d)'), the override exits config mode locally through f_103632e0 and returns 1034. Mode state is kept at impl+0x1570: 1 room_calibration-calibrate (f_10364360), 2 button-notify (f_1035d0c8, always returns 0), 3 speaker-detect (f_10363450), 4 trueroom (f_10362190). Entering the mode that is already active logs with the prefix 're-'.",
+     "description": "The SOAP wrapper invokes runtime +0x60, f_103523fc, which calls the local worker f_10364848. The case-insensitive mode names are button-notify (2), speaker-detect (3), trueroom (4) and room_calibration-calibrate (1). The default for an unrecognized mode is 401 when idle and 810 when another mode is active. When the local entry is primary in its HT map, local success can propagate entry to the satellites. A satellite failure triggers remote exit attempts and local rollback before returning its mapped result.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073611c",
@@ -12963,7 +12963,7 @@
      },
      "inputs": {
       "Mode": {
-       "description": "Configuration mode name, matched case-insensitively: 'button-notify', 'speaker-detect' or 'trueroom' (room calibration). Any other value returns 810.",
+       "description": "The case-insensitive mode names are button-notify (2), speaker-detect (3), trueroom (4) and room_calibration-calibrate (1). The default for an unrecognized mode is 401 when idle and 810 when another mode is active.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -13030,16 +13030,51 @@
          "build": "86.10-80260",
          "address": "0x103648b0",
          "notes": "810 preset"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103648a4",
+         "notes": "Active state"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103648b4",
+         "notes": "401/810 default"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364a68",
+         "notes": "Calibration name"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364bec",
+         "notes": "Calibration worker"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364c64",
+         "notes": "Trueroom worker"
         }
        ],
        "notes": null,
        "buf_cap": 32,
        "resolved_findings": [
-        "Resolved: post-parse handling of `Mode` = verbatim forward to impl vfunc +96 (obj r5-in, call site 0x107361d0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "The wrapper forwards the parsed Mode to runtime slot +0x60 at 0x107361d0. The base worker dispatches case-insensitively; trueroom goes to f_10362190 at 0x10364c64, and room_calibration-calibrate goes to f_10364360 at 0x10364bec."
        ]
       },
       "Options": {
-       "description": "Mode options string (cap 128), forwarded unchanged to the selected mode entry and to satellites. For Mode 'room_calibration-calibrate' the entry f_10364360 parses it as a structured object (f_10c3b6c4). The string field 'mode' must be 'spectral' or 'plug-in spectral'. 'ver' and 'tone' are validated by f_10364284 through f_1035b170, which accepts only a nonempty string other than '..' made of letters, digits and '-', '_' or '.'; anything else fails with 402 and the log 'invalid input parameters v:%s t:%s'. They are then used as path parts by f_103639d0, which loads tone files from https://sonar.ws.sonos.com as '%s/%s/%s/%s-%s' and keeps their eTags. 'force' removes the cached Trueplay asset directory through f_1035d8bc and reloads the tones ('force ' in the eTag reload log). The integer fields 'polarity', 'volume' (clipped, 'Sonar cal volume - using clipped volume %d instead of requested %d') and 'tone_duration' configure the calibration tone, which is played as x-rincon-configmode:sonar-calibrate-tone. Mode 'trueroom' validates its own options in f_10362190 and returns 800 when they are missing or invalid. button-notify and speaker-detect do not read Options. Value handling: 'volume' defaults to 50 when absent and is clamped to 35..70 (isel at 0x103646e0 and 0x103646f0, logged when clipped). 'polarity' is true only when it equals 1; that boolean goes to the impl+0x1a8c audio object through f_102a5124 -> f_107f6c24 -> f_10d8e348, and internal event 4 is then posted to impl+0x11c through f_105d24f8. 'tone_duration' is in seconds and defaults to 90 when absent or 0. f_1035d7e8 first selects x-rincon-configmode:sonar-calibrate-tone through the AVTransport object's slot +0x08, then passes the duration unchanged to f_102b4638, then starts playback through slot +0x44 and sets mode 'NORMAL' through slot +0x40. f_102b4638 stores the duration at AVTransport+0xaa74. The URI-specific reader at 0x102cfd34 uses f_10c3d118 to break the unsigned value into hour, minute and second bytes. When AVTransport+0x4654 is neither 1 nor 2, f_102b4c1c converts those bytes back to seconds and adds the result to the seconds word returned by sonosClockGetTime to set the sleep timer deadline. The parser path has no explicit range check; the conversion stores only the low byte of the computed hour count.",
+       "description": "Mode options string (cap 128), forwarded unchanged to the selected mode entry and to satellites. For Mode 'room_calibration-calibrate' the entry f_10364360 parses it as a structured object (f_10c3b6c4). The string field 'mode' must be 'spectral' or 'plug-in spectral'. 'ver' and 'tone' are validated by f_10364284 through f_1035b170, which accepts only a nonempty string other than '..' made of letters, digits and '-', '_' or '.'; anything else fails with 402 and the log 'invalid input parameters v:%s t:%s'. They are then used as path parts by f_103639d0, which loads tone files from https://sonar.ws.sonos.com as '%s/%s/%s/%s-%s' and keeps their eTags. 'force' removes the cached Trueplay asset directory through f_1035d8bc and reloads the tones ('force ' in the eTag reload log). The integer fields 'polarity', 'volume' (clipped, 'Sonar cal volume - using clipped volume %d instead of requested %d') and 'tone_duration' configure the calibration tone, which is played as x-rincon-configmode:sonar-calibrate-tone. Mode 'trueroom' uses f_10362190 instead: it parses at 0x10362204/0x1036229c, reads volume, tone and force at 0x103622b4/0x103622d4/0x103622f0, and can return 800 for invalid options. button-notify and speaker-detect do not read Options. Value handling: 'volume' defaults to 50 when absent and is clamped to 35..70 (isel at 0x103646e0 and 0x103646f0, logged when clipped). 'polarity' is true only when it equals 1; that boolean goes to the impl+0x1a8c audio object through f_102a5124 -> f_107f6c24 -> f_10d8e348, and internal event 4 is then posted to impl+0x11c through f_105d24f8. 'tone_duration' is in seconds and defaults to 90 when absent or 0. f_1035d7e8 first selects x-rincon-configmode:sonar-calibrate-tone through the AVTransport object's slot +0x08, then passes the duration unchanged to f_102b4638, then starts playback through slot +0x44 and sets mode 'NORMAL' through slot +0x40. f_102b4638 stores the duration at AVTransport+0xaa74. The URI-specific reader at 0x102cfd34 uses f_10c3d118 to break the unsigned value into hour, minute and second bytes. When AVTransport+0x4654 is neither 1 nor 2, f_102b4c1c converts those bytes back to seconds and adds the result to the seconds word returned by sonosClockGetTime to set the sleep timer deadline. The parser path has no explicit range check; the conversion stores only the low byte of the computed hour count.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -13323,18 +13358,39 @@
          "build": "86.10-80260",
          "function": "0x102b4c1c",
          "notes": "Reconstructs hours * 3600 + minutes * 60 + seconds; sonosClockGetTime at 0x102b4cdc, adds seconds at 0x102b4cec and stores deadline at 0x102b4cf8. Timer callback f_102b462c tail-calls f_102b4210, which compares that deadline with the clock at 0x102b431c..0x102b432c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364c64",
+         "notes": "Trueroom dispatch"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1036229c",
+         "notes": "Trueroom option parser"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364bec",
+         "notes": "Separate room calibration dispatch"
         }
        ],
        "notes": null,
        "buf_cap": 128,
        "resolved_findings": [
-        "Resolved: post-parse handling of `Options` = verbatim forward to impl vfunc +96 (obj r5-in, call site 0x107361d0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "The wrapper forwards the parsed Options at 0x107361d0. The selected mode handler, not the wrapper, interprets the option contents."
        ]
       }
      },
      "outputs": {
       "State": {
-       "description": "Mode state text written by the selected mode entry function into a 1024-byte buffer and returned as the State output when the call succeeds.",
+       "description": "The local worker initializes State to empty. Successful button-notify returns that empty string: its entry worker sets the mode-specific flag and clears the counter, not the output buffer.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -13384,9 +13440,42 @@
          "build": "86.10-80260",
          "address": "0x10736230",
          "notes": "State output name"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1036489c",
+         "notes": "Initial empty State"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035d104",
+         "notes": "Button-notify flag"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035d114",
+         "notes": "Button-notify counter"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10736250",
+         "notes": "Success serialization"
         }
        ],
-       "notes": null
+       "notes": null,
+       "todo": [
+        "Established: State starts empty and button-notify leaves it empty.",
+        "Unknown: The exact reachable State contents for successful speaker-detect, trueroom and room_calibration-calibrate.",
+        "Next: Follow the output pointer from f_10364848 into f_10363450, f_10362190 and f_10364360 and trace writes that reach 0x10736250."
+       ]
       }
      },
      "validation": {
@@ -13402,118 +13491,221 @@
       ]
      },
      "requirements": {
-      "description": "Mode must be one of the three names; on a home-theater primary every satellite must also accept the call.",
+      "description": "The case-insensitive mode names are button-notify (2), speaker-detect (3), trueroom (4) and room_calibration-calibrate (1). Recognizing a mode does not guarantee entry: the active mode, calibration object and mode-specific capability checks participate in the local decision.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x103648b0",
-        "notes": "810 preset"
+        "address": "0x103648a4",
+        "notes": "Active state"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10352608",
-        "notes": "1034 on satellite failure"
+        "address": "0x103648b4",
+        "notes": "401/810 default"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10364a68",
+        "notes": "Calibration name"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10364bec",
+        "notes": "Calibration worker"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10364c64",
+        "notes": "Trueroom worker"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103648b8",
+        "notes": "Calibration query"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10364978",
+        "notes": "Topology capability query"
        }
+      ],
+      "todo": [
+       "Established: Four mode names are recognized and the worker checks both current mode and mode-specific object state.",
+       "Unknown: The remaining concrete topology and calibration conditions that prevent entering each mode.",
+       "Next: Trace the return gates after 0x103648b8 and 0x10364978 into the four mode branches, binding the impl+0x1a8c and +0x968 receivers."
       ]
      },
      "state_dependencies": {
-      "description": "Reads the home-theater map at impl+0xe60 and local UUID at impl+0x25c under the impl+0x268 lock to decide whether to propagate.",
+      "description": "Reads the home-theater map at impl+0xe60 and local UUID at impl+0x25c under the impl+0x268 lock to decide whether to propagate. Local branches also depend on active mode at +0x1570, calibration member +0x1a8c, topology/capability member +0x968, rendering/sonar manager +0x1a80 and transport +0x1a88.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10352484",
-        "notes": "impl+0xe60"
+        "address": "0x103648a4",
+        "notes": "Active mode"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10352478",
-        "notes": "impl+0x268 lock"
+        "address": "0x103648a8",
+        "notes": "Calibration member"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10364974",
+        "notes": "Topology member"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103634d0",
+        "notes": "Rendering manager"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10364a3c",
+        "notes": "Transport member"
        }
       ]
      },
      "side_effects": [
       {
-       "description": "Enters the selected mode locally and, on a primary, on every satellite; rolls the local mode back when a satellite fails.",
+       "description": "On a successful local entry the primary attempts remote entry. If a satellite entry fails, the rollback loop resolves satellites and tries ExitConfigMode with empty Options before running local exit through f_103632e0. Remote rollback attempts do not prove remote exit.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10364a10",
-         "notes": "speaker-detect entry"
+         "address": "0x10352680",
+         "notes": "Remote rollback loop"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10364adc",
-         "notes": "button-notify entry"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10364bec",
-         "notes": "room-calibration entry"
+         "address": "0x103526c4",
+         "notes": "Remote ExitConfigMode request"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10352814",
-         "notes": "rollback"
+         "notes": "Local exit"
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "No GENA event and no in-process publisher call appear in the override or base worker; the satellite calls are ordinary SOAP requests.",
+      "description": "Successful local entry stores the mode and dirty flag and requests GENA processing via f_1067c6ec. A configured sender is required for the sender path; this does not establish wire delivery.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10364848",
-        "notes": "no publisher call"
+        "address": "0x10364cec",
+        "notes": "Active mode"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x103523fc",
-        "notes": "no publisher call"
+        "address": "0x10364cf0",
+        "notes": "Dirty flag"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10364cfc",
+        "notes": "Event-source request"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c5c8",
+        "notes": "Sender path"
        }
       ]
      },
      "state_transitions": {
-      "description": "Successful calls move the player (and its satellites) into the named config mode until ExitConfigMode; a satellite failure leaves the player out of the mode.",
+      "description": "Successful local entry sets active mode and sets the countdown to 5 or 10. The tick worker f_1036333c can decrement it to zero and call f_10363050 directly, without the ExitConfigMode SOAP action. A satellite failure attempts remote and local exit; this does not prove each satellite left its mode.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10364c3c",
-        "notes": "'Entering %s config mode.'"
+        "address": "0x10364a34",
+        "notes": "Countdown store"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10364c10",
+        "notes": "Countdown store"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10364c88",
+        "notes": "Countdown store"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10364ca8",
+        "notes": "Countdown store"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10363408",
+        "notes": "Decremented countdown"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10363444",
+        "notes": "Direct exit"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x10352814",
-        "notes": "rollback"
+        "notes": "Local rollback"
        }
       ]
      },
      "return_behavior": {
-      "description": "0 commits State. 402 is TRequest validation and 810 an unrecognised Mode. trueroom (f_10362190) returns 800 when its options are invalid ('One or more Trueroom options...', 'Missing or invalid volume', 'Failed to delete old Trueroom...') and 824 when f_1035d318 fails. room_calibration-calibrate (f_10364360) returns 825 from the Options 'mode' check at 0x10364410 and 824 when f_1035d318 fails. On a home-theater primary a satellite refusal, or a local result of 1024, becomes 1034 after the local mode is rolled back. speaker-detect (f_10363450) returns 0 when the topology check f_1075d770 or f_1075c4d0 says there is nothing to do. Otherwise it returns 823 when the impl+0x1a88 audio object's slot +0x28 call fails (f_1035d318), 821 when the home-theater level and delay restore in f_1035d42c fails, and 822 when starting x-rincon-configmode:speaker-detect through slot +0x08 of the same object fails (f_1035d7e8). After a failure at the 821 or 822 step it calls the speaker-detect exit f_103625a8 to roll back.",
+      "description": "0 commits State. 402 is TRequest validation. The default for an unrecognized mode is 401 when idle and 810 when another mode is active. trueroom (f_10362190) returns 800 when its options are invalid ('One or more Trueroom options...', 'Missing or invalid volume', 'Failed to delete old Trueroom...') and 824 when f_1035d318 fails. room_calibration-calibrate (f_10364360) returns 825 from the Options 'mode' check at 0x10364410 and 824 when f_1035d318 fails. A satellite failure triggers rollback on the primary. Results 1001, 1002 and 1024 map to 1034; other results are not changed by this mapping. speaker-detect (f_10363450) returns 0 when the topology check f_1075d770 or f_1075c4d0 says there is nothing to do. Otherwise it returns 823 when the impl+0x1a88 audio object's slot +0x28 call fails (f_1035d318), 821 when the home-theater level and delay restore in f_1035d42c fails, and 822 when starting x-rincon-configmode:speaker-detect through slot +0x08 of the same object fails (f_1035d7e8). After a failure at the 821 or 822 step it calls the speaker-detect exit f_103625a8 to roll back.",
       "evidence": [
        {
         "type": "firmware",
@@ -13605,6 +13797,27 @@
         "build": "86.10-80260",
         "address": "0x10363540",
         "notes": "rollback through f_103625a8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103648b4",
+        "notes": "Default 401/810"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103527fc",
+        "notes": "Subtract 1001 for mapping"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10352830",
+        "notes": "Remap 1024 to 1034"
        }
       ]
      },
@@ -13650,7 +13863,7 @@
       {
        "code": 810,
        "code_expr": "0x32a at 0x103648b0",
-       "meaning": "Mode is not button-notify, speaker-detect or trueroom.",
+       "meaning": "Default failure for an unrecognized mode when a mode is already active; the idle default is 401.",
        "fault_sites": [
         "0x107361ec"
        ],
@@ -13681,7 +13894,7 @@
       {
        "code": 1034,
        "code_expr": "0x40a at 0x10352608",
-       "meaning": "The mode was entered locally but a satellite refused it, so it was rolled back.",
+       "meaning": "The override translates results 1001, 1002 and 1024 to 1034. It does not translate every satellite failure.",
        "fault_sites": [
         "0x107361ec"
        ],
