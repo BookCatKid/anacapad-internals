@@ -628652,66 +628652,65 @@
   }
  },
  "cert_layer": {
-  "keycert_ids": {
-   "0": "R_CLIENT_KEYCERT_ID_SONOS",
-   "1": "R_CLIENT_KEYCERT_ID_SONOS_DEVICE_ACCEPT_LEGACY",
-   "2": "R_CLIENT_KEYCERT_ID_SONOS_DEVICE",
-   "3": "R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE"
-  },
-  "selector": "f_1057ac60: flag bits at cert-ctx+0x0c (bit0,bit2) + predicate -> id 0-3; logs id name",
-  "id_to_object": "f_1057ade8 -> f_1056c738: parallel per-id tables - lock table at 0x110a5670[id] (f_10989fbc guard) and cert-object pointer table at 0x110a56d8[id] (sonosRefCntInc'd). Object wrapper built by f_1056c7d0: {+0 = flag 0x1000000, +4 = malloc(0xb0) mbedtls_ssl_config (mbedtls_ssl_config_init), +8/+0xc = 0}. id in 0..3 per keycert_ids.",
-  "devicecertinfo_page": {
-   "route": "/regcert -> f_105eb984 -> service-locator 0x11097680 module@+2260 -> f_105a699c (in f_105a6984); renderer f_105a711c emits the XML",
-   "schema": "<DeviceCertInfo>{CertName,Denylisted,HaveCert,CertSerial,ExpiresUtc,ExpiresIn,JobAllowed,JobForceAllowed,JobScheduled,JobLastRun,ETag,HouseholdID,SonosID,IDType(urn:sonos:idtype),<Cert>PEM %.64s lines</Cert>}</DeviceCertInfo>",
-   "refresh_scheduler": "f_105a6984 logs tag \"dcm\": \"refresh check in %ld seconds\",\"utc time not set\",\"certificate expired\"; muse Registration event fields: haveCert,refreshTJ,eventType,refreshed,certType,deviceCert,secureReg"
-  },
-  "root_cert_bundles_page": "/root_cert_bundles -> f_105eb9a0 -> f_1055e63c (in f_1055e59c): hex-dumps loaded CA bundle with %02X%s... formatting; bundle fetched via verify-registry 0x11095f88 vfunc+108/+40",
-  "registration_page": "/registration -> f_105eb17c: <Registration><RegState>%d</RegState><CustomerID>%s</CustomerID></Registration>",
-  "bundle_download": "logs: \"Downloaded new cert bundle (ETag: %s)\",\"Local cert bundle unchanged (ETag: %s)\",\"Failed to load newly downloaded cert bundle\": ETag-change-detected refresh; mbedTLS loads CA list + client cert; \"JWT cert validation finished: %s\"; sources devicecertmanager.cxx,regdevicecert.cxx,certmanager.cxx",
-  "unresolved": "the concrete endpoint VALUES behind the O_* URL keys (runtime settings, env-dependent via O_SONOS_CLOUD_API_TEST_ENV) and the deeper fields inside the 0xb0-byte mbedtls_ssl_config (mbedTLS library structure)",
-  "download_flow": {
-   "provenance": "devicecertmanager.cxx unit f_105a6984-f_105a8724 (source-path literal proven)",
-   "orchestrator": "f_105a7dac: issues JSON request via inner builder f_105a75dc; finish logger f_105a7868 logs \"Cert download attempt finished (download %s)\" succeeded/failed",
-   "request": "application/json; headers X-Sonos-UserId (f_105a75dc) + X-Sonos-Muse-Household-Id (f_105a7dac); also retrieves \"manufacturing data: %s\"",
-   "response_fields": [
-    "requestTimeMS",
-    "downloadStatusCode",
-    "httpResultCode",
-    "newETag",
-    "previousETag",
-    "download (cert payload)",
-    "downloaded/unchanged eventType values"
-   ],
-   "staging": "downloads written to *.tmp files (\"file %s [%s]\" log) then installed; state+etag persisted as settings keys (state, etag literals in scope)",
-   "events": "muse Registration event emitted with eventType=downloaded, certType=deviceCert, secureReg fields; refresh scheduler f_105a6984 wakes via Job* fields and re-arms \"refresh check in %ld seconds\"; expiry path logs \"certificate expired\"",
-   "driver": "f_1064556c (regdevicecert.cxx cluster, \"regcert\" literal former) drives refresh check",
-   "note": "no PKCS#10/CSR on device: enrolment is a JSON cert-download API, not key-gen+CSR"
-  },
-  "todo": [
-   "Bounded: request-body JSON key names are not statically nameable - the body is built via generic JSON-object calls (no format literal, no key-string table); recovered key names would require the cloud-side schema. The +0x10.. tail of the per-ID cert object (beyond the +0x0c selector bits already mapped) remains partially unmapped - the object is walked by generic cert-store accessors, field names not statically anchored."
-  ],
-  "local_store": {
-   "layout": "<JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt} - constructed by f_106b268c via imported constructJFFSRootPath(buf, mgr->+0x10a4) then strlcat '/' + env + '/' + filename",
-   "files": {
-    "cert.xml": "certificate payload/store (read via flag=0 variant f_106b2be8, staged via flag=1 variant f_106b2ba0)",
-    "metadata.txt": "cert metadata companion (flag=0 f_106b2c00, flag=1 f_106b2bd0)"
+   "keycert_ids": {
+    "0": "R_CLIENT_KEYCERT_ID_SONOS",
+    "1": "R_CLIENT_KEYCERT_ID_SONOS_DEVICE_ACCEPT_LEGACY",
+    "2": "R_CLIENT_KEYCERT_ID_SONOS_DEVICE",
+    "3": "R_CLIENT_KEYCERT_ID_SONOS_REGISTERED_DEVICE"
    },
-   "env_source": "urn:sonos:environment config key (f_106b2c30+); falls back to 'prod' via f_10556e10(0x25,'prod') + strlcpy",
-   "subdir_source": "ctor arg stored at mgr+0x10a4 (certmanager ctor f_106b20bc; regcert+regdevicecert managers init from f_10645c24)",
-   "atomicity": "flag=1 variants produce the staging path; install is tmp-file + rename (matches download_flow *.tmp staging)"
-  },
-  "endpoint_source": "request URL is a settings value, not a compiled-in constant: regdevicecert manager (f_1064556c regdevicecert.cxx) reads section 'cert' -> key 'uri' via the settings API (f_1055847c) at 0x10645938-0x10645950; the value is populated by household settings sync at runtime. TLS mode/errors reported via vfunc with 'mutualssl'/'sslError' literals. O_* keys are the same class of settings key-name constants (e.g. O_CUSTREG_URL) resolved through the same settings store.",
-  "resolved_findings": [
-   "Resolved (boundary): residual unknown - the concrete URL value in cert.uri and the request body keys are runtime-data boundaries (settings/store contents, not in the image).",
-   "Established: keycert id vocabulary, selector flag-bit mapping, per-id cert-object tables (0x110a5670 locks / 0x110a56d8 refcounted objects holding a malloc(0xb0) mbedtls_ssl_config), /regcert + /root_cert_bundles + /registration routes, the download flow, the local store layout <JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt}, and the endpoint provenance (settings key cert.uri).",
-   "candidate correction: f_105a75dc is NOT the cert request-body serializer - it is the device-event/metrics JSON emitter (key literals {method, eventType, reason, set, get, entType, playSeconds, succeeded, locationId, dcm}) invoked from inside the cert flow for telemetry. f_105a7dac is the real cert download/persist orchestrator (devicecertmanager.cxx source literal): builds the staging path (strlcat + sonosMkDirRecursive), times the fetch with dual clock_gettime, and calls the metrics emitter; the request body itself is assembled through the generic JSON writer family (f_1057xxxx), so its key names are not present as addressable literals."
-  ],
-  "endpoints": {
-   "registry": "the O_* settings-key vocabulary is fully enumerated in rodata at 0x10eea650..0x10eead00 (~67 keys); URL-class keys include O_MUSIC_SERVICE_URL, O_CUSTREG_URL, O_UPDATE_MSG_URL, O_CLOUD_API_BASE_URL, O_DC_DESCRIPTOR_BASE_URL, O_SETUP_SERVER_URL, O_UPDATE_SERVER_URL, O_SERVICE_OUTAGE_SERVER_URL, O_HRMETRICS_URL, O_TRACKPLAYBASE_URL, O_UNIVERSAL_SEARCH_URL, O_TIMEZONE_URL plus non-URL keys (intervals, sids, flags). Key VALUES are runtime settings populated from provisioning/environment config - the O_SONOS_CLOUD_API_TEST_ENV key selects the environment.",
-   "download_path": "concrete server path literal: '/certbundles/v4/trusted_roots.rcb' (0x10eeb82c) - the root-cert-bundle fetch target under the API base URL",
-   "request_headers": "application/json; X-Sonos-UserId (f_105a75dc), X-Sonos-Muse-Household-Id (0x10ef22e4), X-Sonos-Denylisted (0x10ef241c)"
-  },
-  "reject_reasons": "cert validation reject codes emitted as strings: BAD_FILE, BAD_KEY, BAD_CERT, BAD_ISSUE_DATE, MISMATCH_ENV, MISMATCH_ISSUER, MISMATCH_HHID, MISMATCH_USER, not_present (0x10ef2430-0x10ef24b4)",
-  "storage": "persistence/staging: 'cert.xml' (0x10f051f4, certmanager.cxx), 'ssl_server_certs' (0x10eff9ac), '/run/rcb' + 'rootcerts_download' staging file (0x10eeb7a8), '*.tmp' download staging suffix (0x10eeb864); 'new cert updating mDNS service [%s]' (0x10ea24dc) shows cert install triggers mDNS re-announce"
+   "selector": "f_1057ac60: flag bits at cert-ctx+0x0c (bit0,bit2) + predicate -> id 0-3; logs id name",
+   "id_to_object": "f_1057ade8 -> f_1056c738: parallel per-id tables - lock table at 0x110a5670[id] (f_10989fbc guard) and cert-object pointer table at 0x110a56d8[id] (sonosRefCntInc'd). Object wrapper built by f_1056c7d0: {+0 = flag 0x1000000, +4 = malloc(0xb0) mbedtls_ssl_config (mbedtls_ssl_config_init), +8/+0xc = 0}. id in 0..3 per keycert_ids.",
+   "devicecertinfo_page": {
+    "route": "/regcert -> f_105eb984 -> service-locator 0x11097680 module@+2260 -> f_105a699c (in f_105a6984); renderer f_105a711c emits the XML",
+    "schema": "<DeviceCertInfo>{CertName,Denylisted,HaveCert,CertSerial,ExpiresUtc,ExpiresIn,JobAllowed,JobForceAllowed,JobScheduled,JobLastRun,ETag,HouseholdID,SonosID,IDType(urn:sonos:idtype),<Cert>PEM %.64s lines</Cert>}</DeviceCertInfo>",
+    "refresh_scheduler": "f_105a6984 logs tag \"dcm\": \"refresh check in %ld seconds\",\"utc time not set\",\"certificate expired\"; muse Registration event fields: haveCert,refreshTJ,eventType,refreshed,certType,deviceCert,secureReg"
+   },
+   "root_cert_bundles_page": "/root_cert_bundles -> f_105eb9a0 -> f_1055e63c (in f_1055e59c): hex-dumps loaded CA bundle with %02X%s... formatting; bundle fetched via verify-registry 0x11095f88 vfunc+108/+40",
+   "registration_page": "/registration -> f_105eb17c: <Registration><RegState>%d</RegState><CustomerID>%s</CustomerID></Registration>",
+   "bundle_download": "logs: \"Downloaded new cert bundle (ETag: %s)\",\"Local cert bundle unchanged (ETag: %s)\",\"Failed to load newly downloaded cert bundle\": ETag-change-detected refresh; mbedTLS loads CA list + client cert; \"JWT cert validation finished: %s\"; sources devicecertmanager.cxx,regdevicecert.cxx,certmanager.cxx",
+   "unresolved": "the concrete endpoint VALUES behind the O_* URL keys (runtime settings, env-dependent via O_SONOS_CLOUD_API_TEST_ENV) and the deeper fields inside the 0xb0-byte mbedtls_ssl_config (mbedTLS library structure)",
+   "download_flow": {
+    "provenance": "devicecertmanager.cxx unit f_105a6984-f_105a8724 (source-path literal proven)",
+    "orchestrator": "f_105a7dac prepares the staging path and calls fetch helper f_1055030c at 0x105a8274. The later f_105a7868 call logs the download outcome; f_105a75dc is a separate metrics path.",
+    "request": "The URL comes from cert.uri. The user/household and manufacturing-data strings are not by themselves proof of the outgoing request-body key set.",
+    "staging": "downloads written to *.tmp files (\"file %s [%s]\" log) then installed; state+etag persisted as settings keys (state, etag literals in scope)",
+    "events": "muse Registration event emitted with eventType=downloaded, certType=deviceCert, secureReg fields; refresh scheduler f_105a6984 wakes via Job* fields and re-arms \"refresh check in %ld seconds\"; expiry path logs \"certificate expired\"",
+    "driver": "f_1064556c (regdevicecert.cxx cluster, \"regcert\" literal former) drives refresh check",
+    "note": "no PKCS#10/CSR on device: enrolment is a JSON cert-download API, not key-gen+CSR",
+    "telemetry_fields": [
+     "requestTimeMS",
+     "downloadStatusCode",
+     "httpResultCode",
+     "newETag",
+     "previousETag",
+     "eventType=download on this path"
+    ]
+   },
+   "todo": [
+    "Residual: reconstruct the exact HTTP body and headers by tracking inputs to the fetch helper, and attribute any deeper wrapper fields beyond the stores proven by f_1056c7d0. Neither the post-fetch event object nor the selector context proves that schema or layout. The deployed cert.uri value comes from settings."
+   ],
+   "local_store": {
+    "layout": "<JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt} - constructed by f_106b268c via imported constructJFFSRootPath(buf, mgr->+0x10a4) then strlcat '/' + env + '/' + filename",
+    "files": {
+     "cert.xml": "certificate payload/store (read via flag=0 variant f_106b2be8, staged via flag=1 variant f_106b2ba0)",
+     "metadata.txt": "cert metadata companion (flag=0 f_106b2c00, flag=1 f_106b2bd0)"
+    },
+    "env_source": "urn:sonos:environment config key (f_106b2c30+); falls back to 'prod' via f_10556e10(0x25,'prod') + strlcpy",
+    "subdir_source": "ctor arg stored at mgr+0x10a4 (certmanager ctor f_106b20bc; regcert+regdevicecert managers init from f_10645c24)",
+    "atomicity": "flag=1 variants produce the staging path; install is tmp-file + rename (matches download_flow *.tmp staging)"
+   },
+   "endpoint_source": "request URL is a settings value, not a compiled-in constant: regdevicecert manager (f_1064556c regdevicecert.cxx) reads section 'cert' -> key 'uri' via the settings API (f_1055847c) at 0x10645938-0x10645950; the value is populated by household settings sync at runtime. TLS mode/errors reported via vfunc with 'mutualssl'/'sslError' literals. O_* keys are the same class of settings key-name constants (e.g. O_CUSTREG_URL) resolved through the same settings store.",
+   "resolved_findings": [
+    "The concrete URL value in cert.uri comes from runtime settings.",
+    "Established: keycert id vocabulary, selector flag-bit mapping, per-id cert-object tables (0x110a5670 locks / 0x110a56d8 refcounted objects holding a malloc(0xb0) mbedtls_ssl_config), /regcert + /root_cert_bundles + /registration routes, the download flow, the local store layout <JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt}, and the endpoint provenance (settings key cert.uri).",
+    "In build 86.10-80260, f_105a7dac calls f_1055030c at 0x105a8274 between clock_gettime calls (0x105a8214 and 0x105a829c). Only afterward does it populate the object at sp+0xb4 (0x105a8300 onward); 0x105a8388 sets eventType to the literal download and 0x105a83b4 hands the object to f_10559024. Those fields do not describe the HTTP response."
+   ],
+   "endpoints": {
+    "registry": "the O_* settings-key vocabulary is fully enumerated in rodata at 0x10eea650..0x10eead00 (~67 keys); URL-class keys include O_MUSIC_SERVICE_URL, O_CUSTREG_URL, O_UPDATE_MSG_URL, O_CLOUD_API_BASE_URL, O_DC_DESCRIPTOR_BASE_URL, O_SETUP_SERVER_URL, O_UPDATE_SERVER_URL, O_SERVICE_OUTAGE_SERVER_URL, O_HRMETRICS_URL, O_TRACKPLAYBASE_URL, O_UNIVERSAL_SEARCH_URL, O_TIMEZONE_URL plus non-URL keys (intervals, sids, flags). Key VALUES are runtime settings populated from provisioning/environment config - the O_SONOS_CLOUD_API_TEST_ENV key selects the environment.",
+    "download_path": "concrete server path literal: '/certbundles/v4/trusted_roots.rcb' (0x10eeb82c) - the root-cert-bundle fetch target under the API base URL",
+    "request_headers": "application/json; X-Sonos-UserId (f_105a75dc), X-Sonos-Muse-Household-Id (0x10ef22e4), X-Sonos-Denylisted (0x10ef241c)"
+   },
+   "reject_reasons": "cert validation reject codes emitted as strings: BAD_FILE, BAD_KEY, BAD_CERT, BAD_ISSUE_DATE, MISMATCH_ENV, MISMATCH_ISSUER, MISMATCH_HHID, MISMATCH_USER, not_present (0x10ef2430-0x10ef24b4)",
+   "storage": "persistence/staging: 'cert.xml' (0x10f051f4, certmanager.cxx), 'ssl_server_certs' (0x10eff9ac), '/run/rcb' + 'rootcerts_download' staging file (0x10eeb7a8), '*.tmp' download staging suffix (0x10eeb864); 'new cert updating mDNS service [%s]' (0x10ea24dc) shows cert install triggers mDNS re-announce"
  }
 }
