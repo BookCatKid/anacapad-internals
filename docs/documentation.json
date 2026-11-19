@@ -86218,7 +86218,7 @@
      }
     },
     "SetRoomCalibrationStatus": {
-     "description": "ABSENT IN CLASS A: vtable A's slot +0x68 is 0xfffffff8 (vtable terminator - the base interface ends at +0x64). Only derived class B implements it at 0x1046cacc (unexplored). In class-A deployments the SOAP call dispatches to a non-function slot - behavior undefined/likely dispatch failure.",
+     "description": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back. f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request. f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults. f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement. f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073b6cc",
@@ -86254,7 +86254,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric instance selector. Read but unconsumed by the impl (dead compare or never read). ",
+       "description": "Unsigned32 selector sent unchanged to peers and checked locally.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -86266,32 +86266,83 @@
        "semantic_type": "instance selector (integer)",
        "format": "type-tag-4 decimal integer record",
        "unit": "none",
-       "accepted_values": "any parsed integer",
-       "range": "unconstrained at impl level",
-       "special_values": "none",
+       "accepted_values": "Parsed unsigned32; only zero mutates the local instance.",
+       "range": "ui4 parser result",
+       "special_values": {
+        "0": "Local rendering instance."
+       },
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Nonzero skips local mutation but returns local success; remote results can still fault.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b70c",
-         "notes": "in-arg access site"
+         "address": "0x10ed2774",
+         "notes": "Bound primary RC slot +0x68 contains 0x10471e10."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x10471e10",
+         "notes": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106f6fac",
+         "notes": "f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e32f4",
+         "notes": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1fec",
+         "notes": "f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d911c",
+         "notes": "f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e3388",
+         "notes": "XOR literal 1 derives the rear-delay values from the stored enabled boolean."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10d8ba3c",
+         "notes": "Raw 0x57e4063e has SH=0 MB=24 ME=31, a low-byte mask, not a right shift; corresponding f_10d8d600 port mask at 0x10d8d638 is raw 0x5789063e with the same fields."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b778",
+         "notes": "Fresh mr. tests returned numeric status; nonzero faults through request+0x14 at 0x1073b78c; zero emits empty success via request+0x0c."
         }
        ],
        "notes": null
       },
       "RoomCalibrationEnabled": {
-       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "description": "Parsed boolean requested as the local calibration-enabled setting and forwarded unchanged to peers.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -86300,71 +86351,582 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "calibration flag",
+       "semantic_type": "calibration enabled boolean",
        "format": "integer/bool",
        "unit": "none",
-       "accepted_values": "parsed value",
-       "range": "unconstrained",
+       "accepted_values": "Parsed boolean",
+       "range": "boolean",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "For local InstanceID zero, equality skips the update path; a changed value also refreshes consistency/application and rear-delay state.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b730",
-         "notes": "in-arg access site"
+         "address": "0x10ed2774",
+         "notes": "Bound primary RC slot +0x68 contains 0x10471e10."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0af5c",
-         "notes": "argument name string"
+         "address": "0x10471e10",
+         "notes": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1046cacc",
-         "address": "0x1046cb28",
-         "notes": "event-record field reads at impl entry"
+         "address": "0x106f6fac",
+         "notes": "f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e32f4",
+         "notes": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1fec",
+         "notes": "f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d911c",
+         "notes": "f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e3388",
+         "notes": "XOR literal 1 derives the rear-delay values from the stored enabled boolean."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10d8ba3c",
+         "notes": "Raw 0x57e4063e has SH=0 MB=24 ME=31, a low-byte mask, not a right shift; corresponding f_10d8d600 port mask at 0x10d8d638 is raw 0x5789063e with the same fields."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b778",
+         "notes": "Fresh mr. tests returned numeric status; nonzero faults through request+0x14 at 0x1073b78c; zero emits empty success via request+0x0c."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `RoomCalibrationEnabled` is parsed then forwarded verbatim to r5-in vfunc +104 (site 0x1073b770) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `RoomCalibrationEnabled` = verbatim forward to impl vfunc +104 (obj r5-in, call site 0x1073b770); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       }
      },
      "outputs": {},
-     "validation": "Request-layer parse.",
-     "requirements": "impl class B installed (vtable 0x10ed279c or subclass)",
-     "state_dependencies": "call-derived: reads RCS member object via impl->+OFF->v[slot] delegate",
+     "validation": {
+      "description": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back. f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2774",
+        "notes": "Bound primary RC slot +0x68 contains 0x10471e10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10471e10",
+        "notes": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106f6fac",
+        "notes": "f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e32f4",
+        "notes": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1fec",
+        "notes": "f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d911c",
+        "notes": "f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e3388",
+        "notes": "XOR literal 1 derives the rear-delay values from the stored enabled boolean."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8ba3c",
+        "notes": "Raw 0x57e4063e has SH=0 MB=24 ME=31, a low-byte mask, not a right shift; corresponding f_10d8d600 port mask at 0x10d8d638 is raw 0x5789063e with the same fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b778",
+        "notes": "Fresh mr. tests returned numeric status; nonzero faults through request+0x14 at 0x1073b78c; zero emits empty success via request+0x0c."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required unsigned32 InstanceID and parsed enabled boolean. Forwarding precedes local instance/equality checks. Only local InstanceID zero mutates state; a nonzero local instance is nevertheless acknowledged successfully if forwarding did not fail.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2774",
+        "notes": "Bound primary RC slot +0x68 contains 0x10471e10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10471e10",
+        "notes": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106f6fac",
+        "notes": "f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e32f4",
+        "notes": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1fec",
+        "notes": "f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d911c",
+        "notes": "f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e3388",
+        "notes": "XOR literal 1 derives the rear-delay values from the stored enabled boolean."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8ba3c",
+        "notes": "Raw 0x57e4063e has SH=0 MB=24 ME=31, a low-byte mask, not a right shift; corresponding f_10d8d600 port mask at 0x10d8d638 is raw 0x5789063e with the same fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b778",
+        "notes": "Fresh mr. tests returned numeric status; nonzero faults through request+0x14 at 0x1073b78c; zero emits empty success via request+0x0c."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Topology +0x3c4/UUID +0x9c8; mutex +0x938; enabled +0x847, available +0x849, identifier +0x84b, cached polarity +0x818, rear delays +0x83c/+0x83e and device +0x3ac.",
+      "todo": [
+       "Established: Direct fields, forwarding guards and equality behavior.",
+       "Unknown: Full consistency and listener-dependent conditions.",
+       "Next: Finish f_10122b7c/f_10122a34 consistency predicates and descriptor changes; bind f_10d8d600 listeners slot +0x2c, TrueplayStateEvent consumers scheduled at 0x100e24f0 and f_10559024 receiver +0x1c (trueplay/sonarInfo). Trace rear-delay HT observers below f_1023d114 -> f_107c919c and f_106ff03c request completion/status producers."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2774",
+        "notes": "Bound primary RC slot +0x68 contains 0x10471e10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10471e10",
+        "notes": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106f6fac",
+        "notes": "f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e32f4",
+        "notes": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1fec",
+        "notes": "f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d911c",
+        "notes": "f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e3388",
+        "notes": "XOR literal 1 derives the rear-delay values from the stored enabled boolean."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8ba3c",
+        "notes": "Raw 0x57e4063e has SH=0 MB=24 ME=31, a low-byte mask, not a right shift; corresponding f_10d8d600 port mask at 0x10d8d638 is raw 0x5789063e with the same fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b778",
+        "notes": "Fresh mr. tests returned numeric status; nonzero faults through request+0x14 at 0x1073b78c; zero emits empty success via request+0x0c."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Derived-class-only impl f_1046cacc: an rc_impl_stp.cxx event consumer - parses a RenderingControlSetEqActionEvent record ('%s:%u' log) and processes it through the state-machine onEvent path. No base-class impl exists.",
+       "description": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults. f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement. f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application.",
+       "todo": [
+        "Established: Enabled/available/dirty/rear-delay changes, remote requests, DSP cached flag, listener calls, topology and internal property/event requests.",
+        "Unknown: Final consumer/device effects and durable saving.",
+        "Next: Finish f_10122b7c/f_10122a34 consistency predicates and descriptor changes; bind f_10d8d600 listeners slot +0x2c, TrueplayStateEvent consumers scheduled at 0x100e24f0 and f_10559024 receiver +0x1c (trueplay/sonarInfo). Trace rear-delay HT observers below f_1023d114 -> f_107c919c and f_106ff03c request completion/status producers. Finish deferred storage provider +0x3bc slot +0x14 and f_10167318."
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "",
-         "address": "0x1046cb28",
-         "notes": "log 'process RenderingControlSetEqActionEvent %s:%u' at 0x1046cb20"
+         "address": "0x10ed2774",
+         "notes": "Bound primary RC slot +0x68 contains 0x10471e10."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10471e10",
+         "notes": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106f6fac",
+         "notes": "f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e32f4",
+         "notes": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e1fec",
+         "notes": "f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d911c",
+         "notes": "f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100e3388",
+         "notes": "XOR literal 1 derives the rear-delay values from the stored enabled boolean."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10d8ba3c",
+         "notes": "Raw 0x57e4063e has SH=0 MB=24 ME=31, a low-byte mask, not a right shift; corresponding f_10d8d600 port mask at 0x10d8d638 is raw 0x5789063e with the same fields."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b778",
+         "notes": "Fresh mr. tests returned numeric status; nonzero faults through request+0x14 at 0x1073b78c; zero emits empty success via request+0x0c."
         }
        ]
       }
      ],
-     "events_triggered": "LastChange via RCS writer f_100e27b0 carrying RoomCalibrationState (mechanism proven; exact var emission per runtime change)",
-     "state_transitions": "persists RoomCalibrationState into the RCS settings member; notify->dirty->event pipeline (call-derived, slot-bounded)",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code. Class-B impl behavior unexplored.",
+     "events_triggered": {
+      "description": "Changed local state requests the RC source/timer. Availability changes can add a request; TrueplayStateEvent scheduling and trueplay/sonarInfo receiver invocation are distinct internal effects. Equality/nonzero local instance does not run those local changes.",
+      "todo": [
+       "Established: Conditional request sites and internal event/property names.",
+       "Unknown: Concrete consumers and subscriber delivery.",
+       "Next: Bind the TrueplayStateEvent capture at f_100ea704/f_100e5f94 and scheduler f_100f14ec, property receiver f_10559024 +0x1c, and RC f_1067c6ec -> f_1067c46c -> f_10678c50 sender."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2774",
+        "notes": "Bound primary RC slot +0x68 contains 0x10471e10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10471e10",
+        "notes": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106f6fac",
+        "notes": "f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e32f4",
+        "notes": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1fec",
+        "notes": "f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d911c",
+        "notes": "f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e3388",
+        "notes": "XOR literal 1 derives the rear-delay values from the stored enabled boolean."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8ba3c",
+        "notes": "Raw 0x57e4063e has SH=0 MB=24 ME=31, a low-byte mask, not a right shift; corresponding f_10d8d600 port mask at 0x10d8d638 is raw 0x5789063e with the same fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b778",
+        "notes": "Fresh mr. tests returned numeric status; nonzero faults through request+0x14 at 0x1073b78c; zero emits empty success via request+0x0c."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Remote work can precede an abort. Local enabled state changes before consistency/application calls; no rollback is performed on their discarded results. Local zero acknowledges this work rather than completed calibration application.",
+      "todo": [
+       "Established: Local update/no-op cases and ordering relative to remote forwarding.",
+       "Unknown: Device completion, final asynchronous consumer states and saved configuration.",
+       "Next: Finish f_10122b7c/f_10122a34 consistency predicates and descriptor changes; bind f_10d8d600 listeners slot +0x2c, TrueplayStateEvent consumers scheduled at 0x100e24f0 and f_10559024 receiver +0x1c (trueplay/sonarInfo). Trace rear-delay HT observers below f_1023d114 -> f_107c919c and f_106ff03c request completion/status producers."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2774",
+        "notes": "Bound primary RC slot +0x68 contains 0x10471e10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10471e10",
+        "notes": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106f6fac",
+        "notes": "f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e32f4",
+        "notes": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1fec",
+        "notes": "f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d911c",
+        "notes": "f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e3388",
+        "notes": "XOR literal 1 derives the rear-delay values from the stored enabled boolean."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8ba3c",
+        "notes": "Raw 0x57e4063e has SH=0 MB=24 ME=31, a low-byte mask, not a right shift; corresponding f_10d8d600 port mask at 0x10d8d638 is raw 0x5789063e with the same fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b778",
+        "notes": "Fresh mr. tests returned numeric status; nonzero faults through request+0x14 at 0x1073b78c; zero emits empty success via request+0x0c."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "No outputs. Local f_100e32f4 always returns zero, including diagnostic 702 for nonzero InstanceID. Public implementation instead propagates the first nonzero remote request result before local work. Dispatcher rejection gives 401, request parse failure 402. No completed measurement, hardware change, durable saving or subscriber delivery follows solely from zero.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2774",
+        "notes": "Bound primary RC slot +0x68 contains 0x10471e10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10471e10",
+        "notes": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106f6fac",
+        "notes": "f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e32f4",
+        "notes": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e1fec",
+        "notes": "f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d911c",
+        "notes": "f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100e3388",
+        "notes": "XOR literal 1 derives the rear-delay values from the stored enabled boolean."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d8ba3c",
+        "notes": "Raw 0x57e4063e has SH=0 MB=24 ME=31, a low-byte mask, not a right shift; corresponding f_10d8d600 port mask at 0x10d8d638 is raw 0x5789063e with the same fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b778",
+        "notes": "Fresh mr. tests returned numeric status; nonzero faults through request+0x14 at 0x1073b78c; zero emits empty success via request+0x0c."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073b78c",
@@ -86375,21 +86937,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -86399,43 +86960,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
+       "meaning": "Required request argument parsing/validation fails before implementation.",
        "fault_sites": [
-        "0x1073b770",
         "0x1073b78c"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Required request argument parsing/validation fails before implementation.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073b770"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073b78c"
+           "address": "0x1073b7bc",
+           "notes": "Required request argument parsing/validation fails before implementation."
           }
          ]
         }
@@ -86445,19 +86990,43 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073b770"
-        },
+         "address": "0x1073b7bc",
+         "notes": "Required request argument parsing/validation fails before implementation."
+        }
+       ]
+      },
+      {
+       "code": null,
+       "meaning": "First nonzero f_106f6fac request result propagates before local application.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "First nonzero f_106f6fac request result propagates before local application.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10471f38",
+           "notes": "First nonzero f_106f6fac request result propagates before local application."
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073b78c"
+         "address": "0x10471f38",
+         "notes": "First nonzero f_106f6fac request result propagates before local application."
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "todo": [
+        "Established: Remote first-error propagation; local diagnostic 702 is not returned.",
+        "Unknown: Complete status inventory below the remote request engine.",
+        "Next: Trace f_106ff03c and its completion/status producers for requests built at f_106f6fac."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -86466,41 +87035,79 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073b6cc",
-       "address": "0x1073b6cc",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2774",
+       "notes": "Bound primary RC slot +0x68 contains 0x10471e10."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e9c",
-       "notes": "action dispatch table entry"
+       "address": "0x10471e10",
+       "notes": "Primary +0x68 -> f_10471e10 is installed in the proven RC object; there is no missing-slot class gate. It reads the local bonded topology through f_101229ac/f_1053c234. A valid record, owner/index word zero and member count >1 permit forwarding to entries 1 onward before local work. Each available client receives f_106f6fac with the original InstanceID and enabled boolean. Missing clients are logged and skipped, including surround-role diagnostics. First nonzero remote result aborts the loop and skips local application; earlier remote work is not rolled back."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "vtable A ends at +0x64; slot +0x68 = 0xfffffff8",
-       "address": "0x10e872f0"
+       "address": "0x106f6fac",
+       "notes": "f_106f6fac constructs RenderingControl SetRoomCalibrationStatus with InstanceID via f_1055fcbc and RoomCalibrationEnabled via f_1055fc08, invokes f_106ff03c at 0x106f70d8 and returns that retained status at 0x106f7170. This is not a call to the session destructor f_106fbf80; that later call only cleans the temporary client/session after a successful request."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "vtable B slot +0x68 = 0x1046cacc",
-       "address": "0x10ed279c"
+       "address": "0x100e32f4",
+       "notes": "f_100e32f4 locks +0x938. Nonzero InstanceID skips mutation with diagnostic 702, but f_100e3404 returns literal zero after logging/unlock: 702 is not propagated to SOAP. For InstanceID zero, equality with enabled byte +0x847 is a successful no-op. A change stores +0x847 and dirty +0x848, snapshots calibration through f_10118278/f_1011fdd0 and calls f_100e1fec. Then the rear-delay cache +0x83c/+0x83e is made equal to enabled XOR 1 using f_1023d114 indices 4/5 when needed, and +0x846 is marked. The changed path always requests f_1067c6ec(this+8) and f_100d993c even when those delays already match. Helper results do not become SOAP faults."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100e1fec",
+       "notes": "f_100e1fec calls topology consistency helper f_10122b7c, updates available byte +0x849 and marks +0x848/request notification if availability changes. It informs topology through f_1011f890, conditionally submits TrueplayStateEvent through f_100f14ec at 0x100e24f0, and invokes f_100d911c with available when enabled, otherwise zero. It builds sonar information through f_100db04c and submits trueplay/sonarInfo to f_10559024 receiver slot +0x1c at 0x100e25d0. These are consistency/application and internal notification paths, not evidence that this action performs a new room measurement."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d911c",
+       "notes": "f_100d911c reads the active-device calibration flag through f_102a503c -> f_107f6b8c -> f_10d8ba08, a locked per-port cached byte at DSP manager +0x31d + port*0x20c. Enabling with a nonempty saved calibration identifier +0x84b calls f_102a5070(true) and f_102a5318(0); disabling an active flag calls f_102a5070(false) and restores cached polarity +0x818. f_102a5070 -> f_107f6b08 -> f_10d8d694 writes that per-port byte then f_10d8d600 fans out to nonnull listeners in +0x90..+0xe4, virtual +0x2c. Neither these discarded callback results nor the SOAP zero establish completed hardware application."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100e3388",
+       "notes": "XOR literal 1 derives the rear-delay values from the stored enabled boolean."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10d8ba3c",
+       "notes": "Raw 0x57e4063e has SH=0 MB=24 ME=31, a low-byte mask, not a right shift; corresponding f_10d8d600 port mask at 0x10d8d638 is raw 0x5789063e with the same fields."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073b778",
+       "notes": "Fresh mr. tests returned numeric status; nonzero faults through request+0x14 at 0x1073b78c; zero emits empty success via request+0x0c."
       }
      ],
-     "notes": "One of three actions missing from the base vtable (with RampToVolume and RestoreVolumePriorToRamp) - feature-gated by impl class.",
+     "notes": "Replaces the obsolete feature-gated/state-machine-record attribution. Remote request failure and local diagnostic status are distinct; local nonzero InstanceID is not a SOAP 702 fault.",
      "todo": [
-      "Established: dispatch to handler 0x1073b6cc; one of three actions missing from the base vtable - feature-gated by impl class (with RampToVolume, RestoreVolumePriorToRamp).",
-      "Residual: which impl classes expose it and what the gating predicate is. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: Concrete binding, topology forwarding, local equality/nonzero-instance behavior, enabled/available/rear-delay cache changes and internal application/notification requests.",
+      "Unknown: Remaining consistency details, concrete device/event consumers, completion and saving.",
+      "Next: Finish f_10122b7c/f_10122a34 consistency predicates and descriptor changes; bind f_10d8d600 listeners slot +0x2c, TrueplayStateEvent consumers scheduled at 0x100e24f0 and f_10559024 receiver +0x1c (trueplay/sonarInfo). Trace rear-delay HT observers below f_1023d114 -> f_107c919c and f_106ff03c request completion/status producers. Finish deferred provider +0x3bc slot +0x14 / f_10167318 and RC sender delivery."
      ],
-     "resolved_findings": [
-      "Resolved: class gate = the secondary-vtable slot on the RC impl (slot 108 region); predicate = calibration-capable channel check.",
-      "Resolved: class gate = the secondary-vtable slot on the RC impl (slot 108 region); predicate = calibration-capable channel check."
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x68",
+      "function": "0x10471e10",
+      "local": "0x100e32f4",
+      "reapply": "0x100e1fec"
+     }
     },
     "SetTreble": {
      "description": "Primary slot 0x3c -> 0x10470bd0 performs topology forwarding through 0x1046efc4 before local treble application through 0x100dc204. 0x1046efc4 snapshots topology through f_10759984 using RC+0xbc8/+0x9c8. No forwarding occurs if snapshot byte +0 is zero, its word +0x288 is nonzero, or f_1053cad8 returns true. The latter requires count>1 and every member descriptor pair to be (0,1) or (1,0). Otherwise the public flags r6=1,r7=0 select all entries at indices 1..count-1 via a constant-true filter and prepare RenderingControl SetTreble sessions with original InstanceID and signed DesiredTreble, before local validation or clamping. Endpoint setup failure stops new preparations with 1034. Already prepared requests still enter f_106fb998 with a 2000-ms deadline; the last nonzero session halfword +0x2722 replaces the returned status. Zero proxy status permits local work, including when forwarding is skipped or there are no remote entries. 0x100dc204 locks mutex +0x938, rejects nonzero InstanceID with 702, then rejects nonzero byte +0x7ff with 501. Otherwise it clamps the signed input to -10..10, stores halfword 0x7fa, calls 0x102a5534 with port byte +0x3a8 and device pointer +0x3ac, sets dirty byte 0x7fc=1, requests notification through f_1067c6ec(this+8), and schedules follow-up through f_100d993c. Backend results are ignored; repeated values still perform these operations. After optional diagnostic logging the mutex is released and 0 returned.",
