@@ -148712,13 +148712,32 @@
   "audio_in": {
    "ai_impl": "group model {addGroup coord,demoMode; \"no room available for coordinator\"; StopTransmissionToGroup by coord; \"number of groups %zu remote %zu\"}; URI x-rincon-stream:; encoding modes {UNCOMPRESSED,COMPRESSED,v-spdif} + \"Running demo mode forcing uncompressed\"; artfetch thread",
    "todo": [
-    "Residual: the ADC/capture-side DSP chain below ai_impl_base (the hardware capture driver interface) and the per-encoding bitrate parameters - group/encoding model proven, hardware-side constants are driver data."
+    "Residual: identify the concrete capture-side driver/DSP implementation below ai_impl_base and trace the selected encoder configuration to its bitrate parameters. Encoding selection is proven, but neither the hardware-side chain nor the claim that its constants are external driver data is established."
    ],
    "resolved_findings": [
     "Resolved: ai_impl contents = group model {addGroup coord, demoMode, no room available for coordinator, StopTransmissionToGroup by coord, number of groups %zu remote %zu}; line-in activation enters vli_transport through the source-manager group hooks.",
-    "Session model decoded (ai_impl_base.cxx literals 0x10eacdxx): the input session is a transmission group registry keyed by coordinator - Adding group with coord %s demoMode %d / addGroup: coordinator %s already added / addGroup: no room available for coordinator %s / added %s number of groups %zu remote %zu / removed %s remaining number of groups %zu remote %zu / Removing group with coord %s / StopTransmissionToGroup: couldn't find coordinator %s. Each group receives the input as an x-rincon-stream: URI (the member-side stream scheme); encoding modes proven {WAV,UNCOMPRESSED,COMPRESSED,WMA,v-spdif} where Running demo mode forcing uncompressed overrides for demo playback and v-spdif marks the SPDIF-sourced virtual input. A test mode literal exists for self-test streaming."
+    "Session model decoded (ai_impl_base.cxx literals 0x10eacdxx): the input session is a transmission group registry keyed by coordinator - Adding group with coord %s demoMode %d / addGroup: coordinator %s already added / addGroup: no room available for coordinator %s / added %s number of groups %zu remote %zu / removed %s remaining number of groups %zu remote %zu / Removing group with coord %s / StopTransmissionToGroup: couldn't find coordinator %s. Each group receives the input as an x-rincon-stream: URI (the member-side stream scheme); encoding modes proven {WAV,UNCOMPRESSED,COMPRESSED,WMA,v-spdif} where Running demo mode forcing uncompressed overrides for demo playback and v-spdif marks the SPDIF-sourced virtual input. A test mode literal exists for self-test streaming.",
+    "Encoding selection traced in f_102934f4: a null or empty encoding argument queries R_AudioInEncodeType through object +0x1e0 vtable +0x4c (including its specialized fast path) at 0x10293608-0x1029368c. Failed lookup falls back to the default path for a null argument; a non-null argument returns to string parsing. AUTO, WAV and unrecognized strings reach vtable +0x38 with r4=0,r5=1 at 0x102935b4; UNCOMPRESSED reaches that call with r4=0,r5=0; COMPRESSED and WMA reach it with r4=1,r5=0 at 0x10293690. These are selection operands, not bitrate literals. f_102933b4 asks f_100b7910 on object +0x1dc; result 3 overrides selection by clearing +0x838 and +0x834, with the demo-mode log. Otherwise it stores r5 into +0x838 and stores r4 into +0x834 only when r5 is zero. Thus AUTO/WAV/default preserve the previous +0x834 value rather than explicitly selecting a codec. The source URI and encoding vocabulary do not establish a capture driver, sample rate, bitrate, or ADC DSP chain. The earlier assertion that hardware-side constants are driver data is withdrawn pending that trace."
    ],
-   "summary": "line-in/audio-input pipeline (ai_impl_base.cxx, ai_impl/audioin tags): the capture player maintains a bounded per-coordinator group table (addGroup with demoMode, no room available for coordinator, StopTransmissionToGroup) and transmits the input to each group as an x-rincon-stream: source; encoding modes {WAV/UNCOMPRESSED, COMPRESSED, WMA, v-spdif} with a demo-mode override forcing uncompressed; a parallel artfetch thread supplies album art"
+   "summary": "line-in/audio-input pipeline (ai_impl_base.cxx, ai_impl/audioin tags): the capture player maintains a bounded per-coordinator group table (addGroup with demoMode, no room available for coordinator, StopTransmissionToGroup) and transmits the input to each group as an x-rincon-stream: source; encoding modes {WAV/UNCOMPRESSED, COMPRESSED, WMA, v-spdif} with a demo-mode override forcing uncompressed; a parallel artfetch thread supplies album art",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102934f4",
+     "address": "0x10293608",
+     "notes": "Encoding setting lookup, string-to-selection operands and fallback branches."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102933b4",
+     "address": "0x10293448",
+     "notes": "Demo override clears stored selector and automatic-selection flag; non-demo path conditionally preserves selector."
+    }
+   ]
   },
   "areas": {
    "name": "Areas manager",
