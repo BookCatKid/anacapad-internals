@@ -94571,7 +94571,66 @@
       ]
      },
      "fault_sites": [
-      "0x10732030"
+      {
+       "site": "0x10732030",
+       "codes": [
+        402,
+        802,
+        803,
+        809,
+        810
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10731fe4",
+         "function": "0x10731f28",
+         "notes": "AccountType uses tag 4/capacity 24 at 0x10731f80. AccountID and AccountPassword use tag 7/capacities 128 and 64 at 0x10731fa8/0x10731fd0. Both request +0x20 and +0x1c register required materialization. Failed validation faults 402 at 0x10732064. Otherwise delegate +0x18 is called at 0x10732014; nonzero status is faulted through request +0x14, zero emits AccountUDN from the 144-byte output buffer and commits at 0x107320a8."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b0824",
+         "function": "0x104b07f0",
+         "notes": "Only exact parsed type 0xfe07 (65031) branches to 0x104b0870. It writes R_HideTuneIn=\"false\" via SystemSettings secondary +0xc at 0x104b08b4. Nonzero setter result maps to 802 at 0x104b08d0. Success calls 0x1056f254 with NULL ID and returns zero, without entering the account store; supplied ID/password are ignored after required parsing. All other types call 0x10289d48 at 0x104b0830."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10289dc0",
+         "function": "0x10289d48",
+         "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. 0x10287238 is then called for every ordinary type, before the store lock. It invokes service-manager 0x100c7404(type>>8); any nonzero result maps to 802. 0x100c7404 checks descriptor existence via 0x100c6b38, then 0x100c6c3c; absent descriptor gives 402 internally, a descriptor without flag 0x00400000 requires no manifest fetch, otherwise 0x1011b710 acquires its manifest. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10289ee8",
+         "function": "0x10289d48",
+         "notes": "Strict lookup 0x10570e34(live,type,ID,1) compares case-sensitive ID and normalized type N(t)=(t & 0xffffff7f)-((t & 1)^1), with 32-bit arithmetic. Match reuses its nonzero serial, UUID and cloud-clock lineage; if new NN is empty it first copies prior NN. No match, or matched serial zero, takes NextSerialNum and supplies NextSerialNum+1 to save. If no exact match and multi-account permission is false, a non-strict same-family lookup with NULL ID finds an existing account and returns 803. Record is rebuilt, not a field-preserving password edit: OAuth credentials and other fresh-record defaults can replace old fields."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a018",
+         "function": "0x10289d48",
+         "notes": "0x1057082c first replaces an exact stored Type/Id match. Otherwise an unflagged incoming record is limited to 30 unflagged records except service ID 303; array capacity is 34. At total count 34 it can reuse the smallest-serial entry with Flags bit 0 set, otherwise fails; counts above 34 fail. Failure maps to 802. Flags bit 0 is a separate record flag, not the deleted-array designation. Raw predicates are at 0x10570940..0x105709bc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a140",
+         "function": "0x10289d48",
+         "notes": "0x10289258 -> 0x102890b0 -> 0x10508988 saves live/deleted arrays and NextSerialNum to accounts.xml, default /opt/settings/accounts.xml under configured roots. False snapshot read at 0x10289eac gives 810; false save gives 809 at 0x1028a14c. Writer uses escaped XML and temporary-file replacement; fflush/fsync results are ignored. A failed serialization can perform a root-only fallback rewrite and still return false, so 809 does not guarantee unchanged storage. Successful save updates cached local LUD/version/counter, retains PreferredSerialNum and advertises selector 11 through receiver 0x10652074 with false flag. The callback-enabled writer can schedule delayed push even on failure when 0x10285878 is true."
+        }
+       ]
+      }
      ],
      "errors": [
       {
