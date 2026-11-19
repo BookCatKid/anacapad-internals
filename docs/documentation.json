@@ -220220,7 +220220,7 @@
      ]
     },
     "account_deletion_trigger": {
-     "description": "Account-manager worker f_1028c3b8 reaches manifest removal after preceding account operations succeed. At0x1028c540 it derives SID by shifting the supplied account type right8. It looks up that SID descriptor through manager slot+0x2c and requires capability0x400000. It then calls f_10570e34 on the table at stack+0x39c with the original account type, null username and selector zero. Only a null result enters the manifest removal branch. The manager obtains its catalog through zone slot+0x130, with a direct field+0x11a4 fast path when the getter equals f_1012ba78. At0x1028c5dc it calls f_100c6d14 with the derived SID; that wrapper adjusts this to catalog+0x13ad0 and tail-calls f_1011b310. The boolean manifest-deletion result is discarded. Both that branch and the skip branch continue through manager slot+0x28 with literal del and the account record. This establishes a conditional account-removal caller; the lookup predicate must be fully decoded before describing it as an unconditional last-account rule. For this null-username/zero-selector call, f_10570e34 returns a record when a normalized-type-family match with flags&1 clear supplies either its special candidate or its smallest-serial candidate. The smallest-serial scan starts at0xffffffff and requires strict unsigned less-than, so a row with serial0xffffffff supplies no fallback candidate by itself. That sentinel edge prevents equating this call with a universal count-of-remaining-accounts test. Normalization clears bit0x80 and subtracts one from even values, so the caller tests a broader account-type family rather than exact account-type equality.",
+     "description": "Account-manager worker f_1028c3b8 reaches manifest removal after preceding account operations succeed. At0x1028c540 it derives SID by shifting the supplied account type right8. It looks up that SID descriptor through manager slot+0x2c and requires capability0x400000. It then calls f_10570e34 on the table at stack+0x39c with the original account type, null username and selector zero. Only a null result enters the manifest removal branch. The manager obtains its catalog through zone slot+0x130, with a direct field+0x11a4 fast path when the getter equals f_1012ba78. At0x1028c5dc it calls f_100c6d14 with the derived SID; that wrapper adjusts this to catalog+0x13ad0 and tail-calls f_1011b310. The boolean manifest-deletion result is discarded. Both that branch and the skip branch continue through manager slot+0x28 with literal del and the account record. This establishes a conditional account-removal caller; the lookup predicate must be fully decoded before describing it as an unconditional last-account rule. For this null-username/zero-selector call, f_10570e34 returns a record when a normalized-type-family match with flags&1 clear supplies either its special candidate or its smallest-serial candidate. The smallest-serial scan starts at0xffffffff and requires strict unsigned less-than, so a row with serial0xffffffff supplies no fallback candidate by itself. That sentinel edge prevents equating this call with a universal count-of-remaining-accounts test. Normalization clears bit0x80 and subtracts one from even values, so the caller tests a broader account-type family rather than exact account-type equality. The post-operation table, caller census and ordering are now complete. The scan is f_10570e34 over the account table passed at stack+0x39c (count at +0, entries at +0xc stride 0x250): each candidate's type is normalized the same way (clear bit 0x80, subtract 1-(type&1) so even types map to the odd sibling below) and compared to the caller's normalized key; an optional username strcmp applies only when a nonnull name is passed, and a candidate requires entry flag +0x1ec bit 0x1 clear. Selection prefers a special predicate match (f_1056fd48 plus f_1056fe5c) over the smallest-serial fallback, so null result here means no live account shares the service family rather than no accounts at all. f_1028c3b8's only callers are the four account-removal paths: corrupted/normal removal f_1028c5f4 and f_1028c680 ('corruptedAccountRemoval'/'maintenance'), duplicate removal f_1028ca40 and multi-account removal f_1028ce44 ('Removed account multiple'). Ordering: the manifest deletion runs before the unconditional 'del' notice at manager vfunc+0x28, its boolean result is discarded, and flag writers on the account table are outside this record; the +0x1ec test is a read-only filter here.",
      "evidence": [
       {
        "type": "firmware",
@@ -220249,9 +220249,49 @@
        "build": "86.10-80260",
        "address": "0x100c6d14",
        "notes": "Embedded-object adjustment and tail call to manifest deletion worker."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10570e34",
+       "notes": "Family-normalized account scan: (type&~0x80) - (1-(type&1)) key, optional username strcmp, flag +0x1ec&1 filter, special-predicate over smallest-serial selection."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c5b8",
+       "notes": "Catalog fetch via sub-object+8 vfunc+0x130==f_1012ba78 with inlined lwz+0x11a4 fast path."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c5dc",
+       "notes": "Manifest deletion call f_100c6d14; boolean result discarded before 'del' vfunc+0x28."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028ca40",
+       "notes": "Duplicate-removal caller logging 'removing duplicate account with SID = \"%u\" accountUID = \"%u\" success = \"%s\"'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028ce44",
+       "notes": "Multi-removal caller logging 'Removed account multiple. SN=%d, SID=%u, UID=%u'."
       }
      ],
-     "todo": "Established: account-manager deletion call condition, shared family normalization/flag filter, SID extraction and ignored manifest-deletion result are decoded. Remaining: determine the exact post-operation table reaching this branch, trace preceding mutation/persistence ordering and del observer effects, audit flag writers and all indirect deletion callers."
+     "resolved_findings": [
+      "Established: f_10570e34 normalizes account type by clearing bit 0x80 and subtracting 1-(type&1), so type pairs share a family keyed by the odd sibling; entry flag +0x1ec bit0x1 must be clear to count as a remaining user.",
+      "Established: the four deletion callers are f_1028c5f4, f_1028c680, f_1028ca40 and f_1028ce44, all account-removal paths in 'accountsmgr'.",
+      "Established: manifest deletion result is discarded and the 'del' observer call through manager vfunc+0x28 fires unconditionally afterward.",
+      "Established: the catalog object is fetched through manager sub-object at +8 whose vfunc+0x130 is f_1012ba78 (trivial lwz +0x11a4 getter); the caller inlines that fast path and calls deletion thunk f_100c6d14."
+     ]
     }
    }
   },
