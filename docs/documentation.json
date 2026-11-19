@@ -129978,7 +129978,58 @@
    ]
   },
   "config_parsers": {
-   "toml": "tomlc99-style parser linked (toml_parse_file/toml_table_in/toml_string_in/toml_int_in/toml_bool_in/toml_array_in/toml_key_in/toml_free); consumer: conf/anacapa_logger.toml (logger config)"
+   "toml": "anacapad imports toml_parse_file, toml_table_in, toml_string_in, toml_int_in, toml_bool_in, toml_array_in, toml_key_in and toml_free from the shipped TOML parser. Logger path f_100b72d0 selects conf/anacapa_logger.toml at0x100b72f8 and invokes f_109b4d28. This is a separate file-config path, not the SOAP input parser.",
+   "scope": "TOML configuration parsing and the separate shared SOAP typed-argument parser. Neither is a universal enum/schema validator.",
+   "soap_name_binding": "TRequest constructor f_107310c8 installs vptr0x10f10f20; slot+8=f_10730414 validates registered inputs. Registration f_1073017c allocates sequential0x38-byte records, but DOES pass the supplied argument-name pointer through the record setter. Record setters include f_1055eb4c (store at+0x34) and f_1055f074 (owned name copy); getter f_1055eb5c returns that name. Validation passes it to input backend virtual+8 before feeding bytes to f_10560708 and finalizing with f_10560a58. Sequential registration does not mean argument names are ignored.",
+   "soap_value_types": "The f_10560a58 jump table maps type1 to boolean,2 to unsigned16,3 to signed16,4 to unsigned32,5 to signed32,6 to checked signed64,7 to bounded text. Type0 has no scalar conversion. Types8/9 instead delegate to object/stream interfaces and must not be described as unsigned64 conversion. Ordinary scalar bytes accumulate up to capacity and finalization ensures NUL termination, replacing the final byte when capacity is exhausted. Type7 has no enum-membership check here; caller-side semantic validation is separate.",
+   "soap_conversion_errors": "The16/32-bit branches call decimal strtol/strtoul with null end pointer, store the narrowed result and do not check errno or trailing text. Boolean accepts case-insensitive1/true/yes as true and maps other strings to false, without a parser rejection for unknown text. Type6 tail-calls paranoid_strtoll, but the request validator does not test its return. Finalization marks the input seen before conversion. The validator rejects a missing required input using record flags+0x30/+0x31; this presence check is not proof of strict lexical/range/enum validation. Empty present text is therefore different from an absent required argument.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "logger TOML consumer",
+     "address": "0x100b72d0",
+     "callsite": "0x100b72f8 / 0x100b7334 / dynamic imports toml_parse_file,toml_int_in,toml_bool_in,toml_string_in",
+     "notes": "Verified config literal and reachable logger config call; TOML imports are distinct from SOAP conversion."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "TRequest construction / registration",
+     "address": "0x107310c8",
+     "callsite": "0x10731144-0x1073114c / 0x1073017c-0x107301c8 / 0x1055eb4c-0x1055eb68 / 0x1055f074-0x1055f0bc",
+     "notes": "Concrete vptr and registration forwarding; named record allocation is sequential but name pointer is consumed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10730414",
+     "address": "0x10730414",
+     "callsite": "0x10730460-0x107304d0",
+     "notes": "Getter result feeds input backend lookup, then byte accumulation/finalization. Finalizer return is not checked; missing-required flags govern failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10560708 / f_10560a58",
+     "address": "0x10560a58",
+     "callsite": "0x10560708-0x10560784 / 0x10560a74-0x10560b20 / 0x10eebbdc-0x10eebbf4",
+     "notes": "Bounded accumulation and terminating-NUL handling; decoded jump-table entries establish scalar types and type7 no-op conversion."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "scalar and delegate finalizers",
+     "address": "0x10560adc",
+     "callsite": "0x10560adc-0x10560bd0 / 0x10560bd4-0x10560c68 / 0x10561548-0x105615a4",
+     "notes": "Unchecked narrow decimal conversions, permissive boolean mapping, signed64 helper and type8/9 interface dispatch are separate branches; capped text does not enforce SCPD enums."
+    }
+   ]
   },
   "auth_capability": {
    "model": "capability-based auth: sonos_auth_add_ambient/sonos_auth_become_capable; 'Endpoint switch due to capability change. Current groupcaps: 0x%08x, required: 0x%08x': endpoint selection switches on groupcap change",
