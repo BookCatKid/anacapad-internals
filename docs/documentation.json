@@ -153075,6 +153075,13 @@
      "function": "0x1028a224",
      "address": "0x1028a64c",
      "notes": "Existing account flags bit test, guest reauth rejection and 803 assignment at 0x1028a6bc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028a650",
+     "notes": "andi. immediate 1 selects bit 0, not bit 1."
     }
    ],
    "todo": [
@@ -153086,7 +153093,8 @@
     "Resolved (AddOAuthAccountX impl @0x107324xx): the handler reads args in order {AccountToken, AccountKey, OAuthDeviceID, AuthorizationCode, RedirectURI, UserIdHashCode, AccountTier}, enforces per-arg strlen caps {0x800, 0x40, 0x400, 0x2000, 0x18} (in arg order: Token<=0x800, Key<=0x40, DeviceID<=0x400, Code<=0x2000? - exact per-arg pairing follows the read order; the smallest 0x18 bound is a short id field), then branches on arg presence (null-check at 0x10732624) to select the OAuth variant - token path re-reads {AccountUDN, AccountNickname, AccountType, AccountToken, AccountKey, AccountUID} (@0x10732814+); a second arm reads {AccountUDN, NewAccountID, NewAccountPassword, AccountToken, AccountKey, OAuthDeviceID} (@0x107329f8+).",
     "AddAccountX/AddOAuthAccountX handler proven to do NO presence-based routing itself: it parses {AccountType, AccountToken, AccountKey, OAuthDeviceID, AuthorizationCode, RedirectURI, UserIdHashCode, AccountTier, AccountUDN, AccountNickname, AccountUID} with strlen caps {0x800,0x40,0x400,0x2000,0x18} then forwards the entire set in one delegate call v[+0x1c] on the accounts object *(handler+4). The Token-vs-Code-vs-DirectControl select lives inside that vfunc impl, not in the action layer.",
     "Account-tier enum at 0x10ea5b08: {none=1, free=2, paidLimited=3, paidPremium=4}; service-type enum at 0x10ea5b44 {radio=1, reporting=2, audiobook=3, browse=4}.",
-    "Correction to the previous OAuthDevID gate attribution: f_1028a224 preserves incoming r6 as r20 and incoming r8 as r24 (0x1028a258/0x1028a260). After f_102887e0 succeeds, 0x1028a400-0x1028a410 requires r24 to be non-null and non-empty, then 0x1028a518-0x1028a528 independently requires r20 to be non-null and non-empty. Failure of either check reaches the same missing required Token or OAuthDevID log and sets 802 (0x322). These instructions implement two required operands on this path, not a demonstrated Token-OR-DeviceID route. 0x1028a460 instead tests r25, an incoming stack argument, before copying the returned UDN through f_1056f254. Following UID extraction f_1056ffb0, f_105714c8 looks up an existing account; when its flags at +0x1f4 include bit 1 and f_105714d8 returns nonzero, the path logs guest upgrade not allowed via reauth and returns 803 (0x323). Operand names and complete route coverage require the concrete caller trace; no OAuth subclass assignment is inferred from this alone."
+    "Correction to the previous OAuthDevID gate attribution: f_1028a224 preserves incoming r6 as r20 and incoming r8 as r24 (0x1028a258/0x1028a260). After f_102887e0 succeeds, 0x1028a400-0x1028a410 requires r24 to be non-null and non-empty, then 0x1028a518-0x1028a528 independently requires r20 to be non-null and non-empty. Failure of either check reaches the same missing required Token or OAuthDevID log and sets 802 (0x322). These instructions implement two required operands on this path, not a demonstrated Token-OR-DeviceID route. 0x1028a460 instead tests r25, an incoming stack argument, before copying the returned UDN through f_1056f254. Following UID extraction f_1056ffb0, f_105714c8 looks up an existing account; when its flags at +0x1f4 have bit 0 set (mask 0x1) and f_105714d8 returns nonzero, the path logs guest upgrade not allowed via reauth and returns 803 (0x323). Operand names and complete route coverage require the concrete caller trace; no OAuth subclass assignment is inferred from this alone.",
+    "Bit-index audit with GNU e500 and the fixed repository listing: 0x1028a64c loads account+0x1f4 and 0x1028a650 executes andi. r10,r9,1, followed by the zero branch at 0x1028a654. The guard is mask 0x1, conventional zero-based bit 0, not bit 1/mask 0x2. Only the set branch reaches the additional f_105714d8 test and the guest-reauthentication error path. This corrects the bit label without changing the independently recovered two-required-operand gate."
    ]
   },
   "zgt_errors": {
