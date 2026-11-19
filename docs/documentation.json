@@ -136376,7 +136376,7 @@
    ]
   },
   "system_property_keys": {
-   "provenance": "28 NUL-bounded standalone R_* literals; 27 have live code consumers found by addis/addi computed-address scan (R_AvailableSvcTypes only via .data ptr table). f_104b1e48 is the onSettingChanged dispatcher: strcmp(key) chain -> per-key side-effect (e.g. R_TrialZPSerial->f_10121518, R_RadioLocation->f_1037e40c). R_PLAY_OP_ERROR excluded: enum-name log literal, not a settings key",
+   "provenance": "Named R_* settings observed in this build, with consumer-context labels and the concrete SystemProperties change dispatcher f_104b1e48. This is not an exhaustive vocabulary or proof of a value grammar for every key; literal presence and a consumer name alone do not establish writable policy. R_PLAY_OP_ERROR is an enum/log label, not evidence of a setting.",
    "kind": "settings key vocabulary",
    "keys": {
     "R_AccountTransferMode": "f_1066a788,f_1066bff8",
@@ -136409,10 +136409,10 @@
     "R_VolNormMode": "f_103f9010,f_104b1e48"
    },
    "side_effect_dispatcher": "f_104b1e48 (strcmp chain on changed key name)",
-   "note": "key namespace names live in literal form; values are get/set through SystemProperties; this list is the build's complete visible R_* key vocabulary: other SystemProperties keys may exist under different prefixes",
+   "note": "SystemProperties names are not uniformly boolean or mutable. GetString, SetString, Remove and post-change notification use different checks; generic named storage also prevents treating a static literal inventory as a whitelist. See sp_store_object, settings_xml and paranoid_atoui for the concrete delegate, persistence and strict-parser contracts.",
    "key_semantics": {
-    "R_AccountTransferMode": "account-transfer mode flag, read by the household/account ingest (f_1066a788) beside ThirdPartyCredentials",
-    "R_AirplayIncludeLinked": "bool - include linked devices in AirPlay target list; synced into playback config by f_103f9010 and watched by the settings dispatcher",
+    "R_AccountTransferMode": "SetString validator f_1066a788 rejects this exact name with811 at0x1066a838, rather than reading a generic account-transfer flag.",
+    "R_AirplayIncludeLinked": "Mutation validation at0x1066a9d4 accepts textual booleans through f_10c397cc, but change notification at0x104b1ff4 uses paranoid_atoui and emits its local Airplay event only on strict unsigned conversion success. Stored textual booleans are not canonicalized for this callback.",
     "R_AudioInEncodeType": "audio-in (line-in) encoding format selector",
     "R_AutoUpdatePolicy": "auto-update policy string; values include 'forced'; read with R_CheckUpdateInterval in f_102a9764",
     "R_AutoUpdateWindowStart": "update-window start time (HH:MM), feeds the <Window> grammar in auto_update_scheduler",
@@ -136421,10 +136421,10 @@
     "R_AvailableSvcTypes": "available service-type vocabulary; consumed through a .data ptr table entry",
     "R_BrowseByFolderSort": "folder-browse sort mode flag for ContentDirectory",
     "R_CheckUpdateInterval": "update-check interval in seconds, drives 'Next check for update in %us'",
-    "R_ContentFiltering": "content-filtering policy flag in the account ingest set",
+    "R_ContentFiltering": "SetString conversion at0x1066a888 uses signed paranoid_atoi, then unsigned-compares its result<=1. Only accepted0/1 values reach the update path; negative, nonnumeric and out-of-range values reject.",
     "R_CrossfadeDuration": "crossfade duration seconds, synced into trackqueue.rsq playback config",
     "R_CustomerID": "customer id; ingest guards 'prevented customer ID from being overwritten'; factory-seeded 0",
-    "R_ForceReIndex": "bool trigger - forces a media index rescan when set",
+    "R_ForceReIndex": "Special GetString version fallback, not a proven boolean rescan trigger. f_104b1d90 compares the exact name and calls f_10107aa0. Only result4 takes normal named-property lookup f_10669db4; every other result returns synthetic string1.0-00000 at0x10ed77f0.",
     "R_HideTuneIn": "bool - hide TuneIn service (factory-seeded true in the settings seed)",
     "R_HouseholdLocationID": "household location id used by location-settings sync",
     "R_MigratedTuneIn": "bool - TuneIn->SonosRadio migration completed flag",
@@ -136435,15 +136435,43 @@
     "R_ShowNSSServers": "bool - show NSS (NAS) servers in browse, read with R_ShowRhapUPnP in the visibility getter f_10121518",
     "R_ShowRhapUPnP": "bool - show Rhapsody UPnP server in browse",
     "R_SvcAccounts": "service-accounts blob consumed by f_102897d8",
-    "R_ThirdPartyCredentials": "third-party credential store flag in the account ingest set",
-    "R_TrialZPSerial": "trial-ZP serial; heavily read (5 sites) and watched by the dispatcher -> f_10121518 side-effect",
+    "R_ThirdPartyCredentials": "SetString validator f_1066a788 rejects this exact name with501; the matching literal is not proof of a writable boolean credential-store flag.",
+    "R_TrialZPSerial": "Changed-key handling reaches visibility/configuration helper f_10121518 at0x104b1ed4. Its later branch also calls f_10719e24 at0x104b2288 to update the trial-serial cache; these are distinct side effects.",
     "R_UseSonosContentDirNS": "bool - use the sonos ContentDirectory namespace variant (see device_description_variants)",
     "R_VolNormMode": "volume-normalization mode, synced into trackqueue.rsq playback config"
    },
    "resolved_findings": [
-    "Established: per-key semantics assigned for all 28 keys from consumer context; value grammars recovered where visible (ServiceBitrate {ulow,low,high}, AutoUpdatePolicy 'forced', bool toggles elsewhere).",
-    "Established: the 28 standalone R_* key literals with live code consumers and the side-effect dispatcher f_104b1e48 are catalogued.",
-    "Established: all 28 keys assigned per-key semantics + value grammar from consumer context."
+    "The property inventory is descriptive, not a complete static whitelist or uniform bool grammar. R_ForceReIndex is a traced GetString special case, and its absent-file, exact-read and failed-read branches are documented. Mutation validation and notification policy are separate from consumer-context labels."
+   ],
+   "force_reindex_format_reader": "f_10107aa0 constructs shadow/.format relative to the configured persistent-store root through f_1068a70c. Open failure returns4, allowing the normal getter. After a successful open it reads exactly four bytes into a native big-endian word; a short/error read substitutes0xffffffff, closes the descriptor and returns that word. A stored4 allows normal lookup; a different word or failed read selects the synthetic version. This getter does not itself set a reindex request or prove that an indexing job executes.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b1d90 / f_10107aa0",
+     "address": "0x104b1d90",
+     "callsite": "0x104b1de0-0x104b1e44; 0x10107aa0-0x10107be4",
+     "notes": "Exact R_ForceReIndex match, format-reader result==4 delegates to ordinary storage; other results copy synthetic1.0-00000. Four-byte read, close, failed-read sentinel and open-failure4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1068a70c",
+     "address": "0x1068a70c",
+     "callsite": "0x10107b04-0x10107b54; 0x1068a70c-0x1068a778",
+     "notes": "Configured root path join followed by read-only open of shadow/.format. No rescan setter is established."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1066a788 / f_104b1e48",
+     "address": "0x1066a788",
+     "callsite": "0x1066a788-0x1066a96c; 0x1066a9d4; 0x104b1ed4; 0x104b1ff4-0x104b2058; 0x104b2284-0x104b228c",
+     "notes": "Key-specific SetString refusals, signed content-filter validation, Airplay validator/notifier mismatch and two distinct trial-serial side effects."
+    }
    ]
   },
   "smapi_capability_vocabulary": {
