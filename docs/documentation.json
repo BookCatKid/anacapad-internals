@@ -166474,9 +166474,6 @@
   "bin_wpa_supplicant": {
    "name": "wpa_supplicant (Sonos build)",
    "summary": "wpa_supplicant v2.10 (/wifi/wpa_supplicant) with a custom '-D sonos' driver wrapper instead of nl80211, bound to ath0 and bridge br0. Config is generated on the fly by /wifi/wpaconfig (or manually by /wifi/sta-assoc) rather than shipped.",
-   "todo": [
-    "Residual: the arg-struct field map inside the SIOCDEVPRIVATE block beyond field0=subcmd, and the nl_event message layouts for the PMKSA/get_capa ops."
-   ],
    "artifacts": [
     "wifi/wpa_supplicant",
     "wifi/wpaconfig",
@@ -166492,9 +166489,42 @@
     "Debug knobs: /jffs/debug/wpa_proto, /jffs/debug/wpa_ptk, /jffs/debug/wpa_gtk inject proto=/pairwise=/group= overrides into generated configs.",
     "Build surface: strings show the standard v2.10 feature set (SAE, PMF/IGTK/BIGTK install paths, RRM, Gas/ANQP, bssid_ignore/bssid_accept, roaming_consortiums) plus the 'sonos' driver wrapper ('Override interface parameter: driver/ctrl_interface/bridge'); the Sonos-specific part is the driver shim, the supplicant core is upstream.",
     "Resolved: the '-D sonos' driver ops surface is fully enumerable in rodata (0x1004c2d4-0x1004c460): wpa_driver_ops 'sonos' desc 'SONOS Station Mode Driver' binds {sonos_driver_init, deinit, get_capa, get_mac, get_state, get_bssid, get_ssid, get_scan_results, associate, deauthenticate, set_countermeasures, set_key, flush_pmkid, remove_pmkid, add_pmkid} plus the event channel {sonos_nl_event, sonos_nl_event_receive} and the raw dispatcher sonos_ioctl. Failure text 'IOCTL %ld failed r: %d m: %s' logs every private-ioctl return inside the wrapper at ~0x10037d54.",
-    "Full ioctl vocabulary of wpa_supplicant decoded from the 5 raw ioctl() call sites: request codes {0x8927 SIOCGIFHWADDR (x2, on a PF_PACKET socket at 0x10037420 and af-inet path 0x100388c8), 0x8933 SIOCGIFINDEX (0x100387bc), 0x8915 SIOCGIFADDR (0x10038b00), 0x89f0 SIOCDEVPRIVATE (0x10037d1c, inside the single sonos_ioctl wrapper f_10037cb0 which logs '%s: IOCTL %ld failed r: %d m: %s')}. The private channel passes an ifreq whose union carries a caller-built arg block {cmd, buf, len, ...} at stack+0x18; three sonos_ioctl callers prove subcommand literals {0x12e (302) in the sonos_get_state op, 0x130 (304) in sonos_driver_flush_pmkid, 0x132 (306) in sonos_driver_set_key} - the IEEE80211/ATH vendor subcommand range.",
-    "Driver ops table fully bound (wpa_driver_ops 'sonos'/'SONOS Station Mode Driver' at rodata 0x1004c480, custom slot order): slot2=get_bssid(0x1003818c), 3=get_ssid(0x10038238), 4=set_key(0x10037f80), 5=init(0x100374f8), 6=deinit(0x100371dc), slot7 NULL, 8=set_countermeasures(0x10037f18), 9=deauthenticate(0x10037eb0), 10=associate(0x10037e2c), 11=add_pmkid(0x10037148), 12=remove_pmkid(0x10037108), 13=flush_pmkid(0x100370cc), 14=get_capa(0x10037188), slot18=get_mac(0x10037380), slot24=get_scan_results(0x100382c8), slot31=scan(0x10037da4, logs 'scan requested'). All 15 named ops are live handlers, none stubbed.",
-    "Per-handler transport split: {scan=0x130, associate=0x131, set_key=0x132, get_state=0x12e (queried inside set_key and the query helper), set_countermeasures=0x138, deauthenticate=0x139} ride the SIOCDEVPRIVATE sonos_ioctl wrapper f_10037cb0 - the earlier '0x130=flush_pmkid' binding was wrong (0x130 is scan). The PMKSA family {add_pmkid, remove_pmkid, flush_pmkid} and get_capa instead ride the nl_event socket channel (send helper f_10014268 / recv f_1001410c, socket+close per op). get_mac uses raw socket+SIOCGIFHWADDR; get_bssid/get_ssid/go via query helper f_100380d0 (get_state subcmd, '%s: null BSSID' check); get_scan_results pulls through f_100380d0 + parse f_100138cc."
+    "Driver ops table fully bound (wpa_driver_ops 'sonos'/'SONOS Station Mode Driver' at rodata 0x1004c480, custom slot order): slot2=get_bssid(0x1003818c), 3=get_ssid(0x10038238), 4=set_key(0x10037f80), 5=init(0x100374f8), 6=deinit(0x100371dc), slot7 NULL, 8=set_countermeasures(0x10037f18), 9=deauthenticate(0x10037eb0), 10=associate(0x10037e2c), 11=add_pmkid(0x10037148), 12=remove_pmkid(0x10037108), 13=flush_pmkid(0x100370cc), 14=get_capa(0x10037188), slot18=get_mac(0x10037380), slot24=get_scan_results(0x100382c8), slot31=scan(0x10037da4, logs 'scan requested'). Handler presence alone does not prove a transport operation; the PMKSA slots are logging/no-op stubs as established below.",
+    "Private ioctl argument map closed in f_10037cb0: the ifreq at stack+0x2c contains the interface name copied with a 16-byte bound and explicitly terminated at byte 15; ifreq+0x10 points to the five-word block at stack+0x18. Stores at 0x10037cd4-0x10037cec bind block offsets {0:r4 subcommand,4:r5 operand or buffer pointer,8:r6 length/secondary operand,0xc:r7,0x10:r8}. All examined command callers explicitly zero the last two operands. The wrapper issues ioctl(fd stored at driver+0x24,0x89f0,&ifreq) at 0x10037d1c and preserves the ioctl result, logging and returning -1 on negative results. errno 11 additionally invokes f_10037304 before return; this is not a retry of the ioctl within the wrapper.",
+    "Concrete per-command bindings, including scalar rather than pointer operands: scan f_10037da4 passes {0x130,0,0,0,0}. Associate f_10037e2c passes {0x131,params[+0x4c],params[+0x50],0,0}. Deauthenticate f_10037eb0 passes {0x139,incoming reason r5,0,0,0}; countermeasures f_10037f18 passes {0x138,incoming enable r4,0,0,0}. Query f_100380d0 passes {0x12e,stack-buffer,1076,0,0}, rejects a zero BSSID checked at buffer+0x35, and copies the buffer to driver+0x2c only on success. Thus the old universal {cmd,buf,len} description is incomplete: command-specific scalar operands share the same words.",
+    "Set-key f_10037f80 has two concrete layouts: when key-params+4 is zero it sends {0x133,params+0xc value,params+8 value,0,0} (0x10038004-0x10038018). Otherwise it zeroes a 56-byte payload, copies optional six-byte peer address to payload+0, key bytes from params+0x1c into payload+6 with length params+0x20, stores that length at payload+0x28, params+0xc at payload+0x30 and params+0x10 at payload+0x34, then sends {0x132,payload,56,0,0}. The fortified key copy has remaining bound 50 (0x10038034-0x10038040), not an invented wire length. A null peer pointer leaves the zeroed address intact. These offsets describe the binary ABI without assigning unproven names to every source-structure field.",
+    "The alleged PMKSA/get_capa nl_event residual is false. The registered handlers at 0x100370cc (flush), 0x10037108 (remove) and 0x10037148 (add) each log and return zero without a socket, ioctl or send call. get_capa at 0x10037188 copies exactly 168 bytes from driver+0x460 to the supplied output and returns zero at 0x100371c0-0x100371d8. Independent check of the claimed transport helper addresses: f_1001411c allocates a timeout-list record, adds seconds/microseconds, normalizes at 1000000 and stores a callback; f_10014268 matches/removes such list entries. They implement timer registration/cancellation, not nl_event message send/receive. The scan path uses them to cancel/register f_10037304 after an ioctl. Therefore no PMKSA/get_capa event-message layout exists on these registered operation paths. This does not assert that the separate real driver event receiver has no payload."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "wifi/wpa_supplicant",
+     "build": "86.10-80260",
+     "function": "0x10037cb0",
+     "address": "0x10037cd4",
+     "notes": "Five-word ioctl ABI built directly from r4-r8 and referenced by ifreq+0x10."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/wpa_supplicant",
+     "build": "86.10-80260",
+     "address": "0x10038080",
+     "notes": "Set-key payload length, index/flags source offsets and command selection."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/wpa_supplicant",
+     "build": "86.10-80260",
+     "address": "0x100370cc",
+     "notes": "PMKSA handlers log and return zero; get_capa copies cached 168-byte record at 0x100371c0."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/wpa_supplicant",
+     "build": "86.10-80260",
+     "address": "0x1001411c",
+     "notes": "Previously claimed event-send helper is timer-list registration; 0x10014268 cancels timers."
+    }
    ]
   },
   "bin_athconfig": {
