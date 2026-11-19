@@ -94018,7 +94018,7 @@
          "build": "86.10-80260",
          "address": "0x10289dc0",
          "function": "0x10289d48",
-         "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. 0x10287238 is then called for every ordinary type, before the store lock. It invokes service-manager 0x100c7404(type>>8); any nonzero result maps to 802. 0x100c7404 checks descriptor existence via 0x100c6b38, then 0x100c6c3c; absent descriptor gives 402 internally, a descriptor without flag 0x00400000 requires no manifest fetch, otherwise 0x1011b710 acquires its manifest. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+         "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. Every ordinary type then calls 0x10287238 before the store lock; it invokes service-manager 0x100c7404(type>>8), mapping any nonzero result to 802. 0x100c7404 first asks 0x100c6b38 whether a manifest is needed: missing descriptor, absent descriptor flag 0x00400000, or a matching version already found by 0x10119c80 returns false and succeeds without fetching. Only true reaches 0x100c6c3c, whose second descriptor lookup can fail with internal 402, otherwise 0x1011b710 acquires its manifest. Thus this is not a service-type whitelist. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
         }
        ],
        "notes": "Byte limits are not character-count guarantees.",
@@ -94221,12 +94221,12 @@
         "build": "86.10-80260",
         "address": "0x10289dc0",
         "function": "0x10289d48",
-        "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. 0x10287238 is then called for every ordinary type, before the store lock. It invokes service-manager 0x100c7404(type>>8); any nonzero result maps to 802. 0x100c7404 checks descriptor existence via 0x100c6b38, then 0x100c6c3c; absent descriptor gives 402 internally, a descriptor without flag 0x00400000 requires no manifest fetch, otherwise 0x1011b710 acquires its manifest. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+        "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. Every ordinary type then calls 0x10287238 before the store lock; it invokes service-manager 0x100c7404(type>>8), mapping any nonzero result to 802. 0x100c7404 first asks 0x100c6b38 whether a manifest is needed: missing descriptor, absent descriptor flag 0x00400000, or a matching version already found by 0x10119c80 returns false and succeeds without fetching. Only true reaches 0x100c6c3c, whose second descriptor lookup can fail with internal 402, otherwise 0x1011b710 acquires its manifest. Thus this is not a service-type whitelist. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
        }
       ]
      },
      "requirements": {
-      "description": "Requires all three arguments even for TuneIn. TuneIn needs a successful R_HideTuneIn write. Ordinary accounts need initialized manager/store, successful descriptor/manifest acquisition, an accepted accounts.xml snapshot, family-policy permission and insertion capacity. A missing exact match is not an error by itself.",
+      "description": "Requires all three arguments even for TuneIn. TuneIn needs a successful R_HideTuneIn write. Ordinary accounts need initialized manager/store, a zero result from the required-manifest helper, an accepted accounts.xml snapshot, family-policy permission and insertion capacity. Missing service descriptors skip manifest acquisition rather than imposing a whitelist. A missing exact account match is not an error by itself.",
       "evidence": [
        {
         "type": "firmware",
@@ -94258,7 +94258,7 @@
         "build": "86.10-80260",
         "address": "0x10289dc0",
         "function": "0x10289d48",
-        "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. 0x10287238 is then called for every ordinary type, before the store lock. It invokes service-manager 0x100c7404(type>>8); any nonzero result maps to 802. 0x100c7404 checks descriptor existence via 0x100c6b38, then 0x100c6c3c; absent descriptor gives 402 internally, a descriptor without flag 0x00400000 requires no manifest fetch, otherwise 0x1011b710 acquires its manifest. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+        "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. Every ordinary type then calls 0x10287238 before the store lock; it invokes service-manager 0x100c7404(type>>8), mapping any nonzero result to 802. 0x100c7404 first asks 0x100c6b38 whether a manifest is needed: missing descriptor, absent descriptor flag 0x00400000, or a matching version already found by 0x10119c80 returns false and succeeds without fetching. Only true reaches 0x100c6c3c, whose second descriptor lookup can fail with internal 402, otherwise 0x1011b710 acquires its manifest. Thus this is not a service-type whitelist. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
        },
        {
         "type": "firmware",
@@ -94534,7 +94534,7 @@
         "build": "86.10-80260",
         "address": "0x10289dc0",
         "function": "0x10289d48",
-        "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. 0x10287238 is then called for every ordinary type, before the store lock. It invokes service-manager 0x100c7404(type>>8); any nonzero result maps to 802. 0x100c7404 checks descriptor existence via 0x100c6b38, then 0x100c6c3c; absent descriptor gives 402 internally, a descriptor without flag 0x00400000 requires no manifest fetch, otherwise 0x1011b710 acquires its manifest. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+        "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. Every ordinary type then calls 0x10287238 before the store lock; it invokes service-manager 0x100c7404(type>>8), mapping any nonzero result to 802. 0x100c7404 first asks 0x100c6b38 whether a manifest is needed: missing descriptor, absent descriptor flag 0x00400000, or a matching version already found by 0x10119c80 returns false and succeeds without fetching. Only true reaches 0x100c6c3c, whose second descriptor lookup can fail with internal 402, otherwise 0x1011b710 acquires its manifest. Thus this is not a service-type whitelist. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
        },
        {
         "type": "firmware",
@@ -94603,7 +94603,7 @@
          "build": "86.10-80260",
          "address": "0x10289dc0",
          "function": "0x10289d48",
-         "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. 0x10287238 is then called for every ordinary type, before the store lock. It invokes service-manager 0x100c7404(type>>8); any nonzero result maps to 802. 0x100c7404 checks descriptor existence via 0x100c6b38, then 0x100c6c3c; absent descriptor gives 402 internally, a descriptor without flag 0x00400000 requires no manifest fetch, otherwise 0x1011b710 acquires its manifest. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+         "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. Every ordinary type then calls 0x10287238 before the store lock; it invokes service-manager 0x100c7404(type>>8), mapping any nonzero result to 802. 0x100c7404 first asks 0x100c6b38 whether a manifest is needed: missing descriptor, absent descriptor flag 0x00400000, or a matching version already found by 0x10119c80 returns false and succeeds without fetching. Only true reaches 0x100c6c3c, whose second descriptor lookup can fail with internal 402, otherwise 0x1011b710 acquires its manifest. Thus this is not a service-type whitelist. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
         },
         {
          "type": "firmware",
@@ -94702,7 +94702,7 @@
            "build": "86.10-80260",
            "address": "0x10289dc0",
            "function": "0x10289d48",
-           "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. 0x10287238 is then called for every ordinary type, before the store lock. It invokes service-manager 0x100c7404(type>>8); any nonzero result maps to 802. 0x100c7404 checks descriptor existence via 0x100c6b38, then 0x100c6c3c; absent descriptor gives 402 internally, a descriptor without flag 0x00400000 requires no manifest fetch, otherwise 0x1011b710 acquires its manifest. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+           "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. Every ordinary type then calls 0x10287238 before the store lock; it invokes service-manager 0x100c7404(type>>8), mapping any nonzero result to 802. 0x100c7404 first asks 0x100c6b38 whether a manifest is needed: missing descriptor, absent descriptor flag 0x00400000, or a matching version already found by 0x10119c80 returns false and succeeds without fetching. Only true reaches 0x100c6c3c, whose second descriptor lookup can fail with internal 402, otherwise 0x1011b710 acquires its manifest. Thus this is not a service-type whitelist. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
           },
           {
            "type": "firmware",
@@ -94733,7 +94733,7 @@
          "build": "86.10-80260",
          "address": "0x10289dc0",
          "function": "0x10289d48",
-         "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. 0x10287238 is then called for every ordinary type, before the store lock. It invokes service-manager 0x100c7404(type>>8); any nonzero result maps to 802. 0x100c7404 checks descriptor existence via 0x100c6b38, then 0x100c6c3c; absent descriptor gives 402 internally, a descriptor without flag 0x00400000 requires no manifest fetch, otherwise 0x1011b710 acquires its manifest. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+         "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. Every ordinary type then calls 0x10287238 before the store lock; it invokes service-manager 0x100c7404(type>>8), mapping any nonzero result to 802. 0x100c7404 first asks 0x100c6b38 whether a manifest is needed: missing descriptor, absent descriptor flag 0x00400000, or a matching version already found by 0x10119c80 returns false and succeeds without fetching. Only true reaches 0x100c6c3c, whose second descriptor lookup can fail with internal 402, otherwise 0x1011b710 acquires its manifest. Thus this is not a service-type whitelist. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
         },
         {
          "type": "firmware",
@@ -94882,7 +94882,7 @@
        "build": "86.10-80260",
        "address": "0x10289dc0",
        "function": "0x10289d48",
-       "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. 0x10287238 is then called for every ordinary type, before the store lock. It invokes service-manager 0x100c7404(type>>8); any nonzero result maps to 802. 0x100c7404 checks descriptor existence via 0x100c6b38, then 0x100c6c3c; absent descriptor gives 402 internally, a descriptor without flag 0x00400000 requires no manifest fetch, otherwise 0x1011b710 acquires its manifest. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+       "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. Every ordinary type then calls 0x10287238 before the store lock; it invokes service-manager 0x100c7404(type>>8), mapping any nonzero result to 802. 0x100c7404 first asks 0x100c6b38 whether a manifest is needed: missing descriptor, absent descriptor flag 0x00400000, or a matching version already found by 0x10119c80 returns false and succeeds without fetching. Only true reaches 0x100c6c3c, whose second descriptor lookup can fail with internal 402, otherwise 0x1011b710 acquires its manifest. Thus this is not a service-type whitelist. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
       },
       {
        "type": "firmware",
