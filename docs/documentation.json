@@ -60990,7 +60990,7 @@
        "notes": null
       },
       "UpdateID": {
-       "description": "Optimistic-concurrency token for the queue; 0 typically skips the check (family convention), nonzero must match.",
+       "description": "Optimistic-concurrency token for the queue. 0 skips the check; a nonzero value must equal the queue's current UpdateID, otherwise the action fails with 1028.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -61029,9 +61029,28 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "engine worker checks"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b674c",
+         "address": "0x102b6824",
+         "notes": "f_10149b24 current UpdateID read"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b674c",
+         "address": "0x102b6938",
+         "notes": "UpdateID compare, 1028 on mismatch"
         }
        ],
-       "notes": null
+       "notes": null,
+       "resolved_findings": [
+        "Established: the handler reads UpdateID into sp+0x2c (name 0x10f14438, fetched through request vtable +0x1c and converted by the following call) and passes it as r5 to Queue-manager slot +0x08 at 0x104646b8. f_10465a44 only replaces r3 with qm+0x128 and branches to f_102b6948, which keeps it in r25 (0x102b6984) and passes it as r5 to f_102b674c (0x102b6a54), where it lives in r28 (0x102b6798). f_102b674c reads the queue's current UpdateID with f_10149b24(q, &cur, &len, 0) at 0x102b6824. When r28 is 0 it goes straight on (0x102b682c). Otherwise it loads 1028 (0x404) at 0x102b6934 and returns it when r28 differs from cur (cmp at 0x102b6938, branch at 0x102b693c). An unknown QueueID returns 718 (0x2ce, 0x102b68d4) before this check. In plain terms: send 0 to add without a concurrency check, or the UpdateID last seen to have the add rejected with 1028 if the queue changed in between."
+       ]
       },
       "EnqueuedURI": {
        "description": "Track URI, parsed into a 0x401-byte buffer.",
