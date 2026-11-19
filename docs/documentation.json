@@ -185077,10 +185077,10 @@
   },
   "music_service_version_string": {
    "name": "Music-service version string parsing",
-   "description": "Shared version parser f_10483e28 takes a begin/end text span and an output structure. It requires decimal major, a literal dot and decimal minor, with an optional dot plus decimal patch. f_10483c1c first requires an ASCII digit, then clears errno and calls strtoul(base10) with an end pointer; errno 22 or 34 rejects. Leading zeroes are not rejected. Whitespace/sign prefixes are rejected by the first-byte guard. Patch is written only when present; the caller must initialize it otherwise. After the numeric components, either span end must be reached or a hyphen/pre-release and/or plus/build suffix is processed. Each suffix must start with isalnum, but subsequent bytes are copied without per-byte validation. Pre-release ends at the first plus or span end; build metadata consumes the remaining span. Each stored suffix is truncated to 32 bytes plus terminator while the cursor advances across the full suffix. Success requires cursor==span end. This is the implemented grammar, not complete enforcement of Semantic Versioning 2.0.0. Exact libc locale/overflow ABI and reads at malformed span boundaries still need verification.",
+   "description": "Shared version parser f_10483e28 takes a begin/end span pair and an output structure. It requires decimal major, a literal dot and decimal minor, with an optional dot plus decimal patch. Numeric helper f_10483c1c first requires an ASCII digit, then clears errno and calls strtoul(base10) with an end pointer; errno 22 or 34 rejects. Leading zeroes are not rejected. Whitespace/sign prefixes are unreachable because the first-byte digit guard runs before strtoul. Patch is written only when present; the caller must initialize it otherwise. After the numeric components, either span end must be reached or a hyphen/pre-release and/or plus/build suffix is processed. Each suffix must start with isalnum, but subsequent bytes are copied without per-byte validation. Pre-release ends at the first plus or span end; build metadata consumes the remaining span. Each stored suffix is truncated to 32 bytes plus terminator while the cursor advances across the full suffix. Success requires cursor==span end. This is the implemented grammar, not complete enforcement of Semantic Versioning 2.0.0.",
    "manifest_schema_gate": "Manifest schema callback f_10118580 uses the shared version-string parser, then compares only unsigned major/minor through f_104840f8 against supported 1.0. Patch and suffix data are not part of that comparison. Thus a lexical value accepted by f_10483e28 can carry a patch or suffix without affecting the supported-pair decision. This is distinct from catalog XML versions, which use sscanf(%d.%d), and from the cloud-queue path regex, which restricts candidate version substrings before calling the shared parser.",
    "cloud_queue_path_extraction": "Cloud-queue version extractor f_10483cf0 lazily compiles the literal regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$) with flags 1, parses the URI into components using f_10c3a920 and runs regexec from the path pointer. It uses the first regex match, starts the selected version span two bytes after the match start (after /v), and normally ends at the URI path end. If the final byte of the match is slash, it ends the span at that slash instead. There is no independent check that this slash is the last path separator. Consequently a matching version segment followed by more path can supply the accepted version, despite the error text saying the path must end with a version. An earlier matching version segment is chosen before a later one. No match returns 1; regex compilation failure returns 2. Candidate suffix syntax is narrower than the shared parser because the regex permits only letters in pre-release and letters/dots in build metadata.",
-   "cloud_queue_major_gate": "Cloud-queue version checker f_10338a34 first calls that extractor, then f_10483e28. It returns 2 only when parsing succeeds and the major word equals 2; other outcomes return zero. It does not compare minor or patch against a supported maximum. The optional diagnostic object receives code 0x48 and distinct text for missing version, malformed version or unsupported major when the relevant failure is recognized. Callers including f_1011c864 pass null for that diagnostic object and only test the numeric return as nonzero/zero. Diagnostics are therefore not proof that the stricter grammar described in their text is enforced.",
+   "cloud_queue_major_gate": "Cloud-queue version checker f_10338a34 first calls the regex extractor, then f_10483e28 into a caller-supplied version object in r5. It returns 2 only when parsing succeeds and the major word equals 2; other outcomes return zero. It does not compare minor or patch against a supported maximum. The optional diagnostic object in r4 receives code 0x48 at +8 plus message text at +0xc for three recognized failures: no regex match (\"'queueBaseUrl' path must end with a cloud queue version.\"), parse failure (\"Specify cloud queue version in 'queueBaseUrl' according to Semantic Versioning 2.0.0.\") and unsupported major (\"Cloud Queue API 'v%u' is unknown; use v%u with this player.\" with the parsed major and constant 2; an overlong snprintf result rewrites the shorter text \"This cloud queue API version is unknown; use v%d with this player.\" with constant 2). Regex compilation failure (extractor return2) returns0 with no diagnostic written even when a diagnostic object is supplied. Six callsites in five functions exist: f_1011c864, f_1038cba0 (two sites) and f_104cbf1c pass a null diagnostic and only test the return; f_10345c7c passes null, discards the return and uses the call to populate the version object at this+0x1f50; f_102d7768 is the only caller that supplies a diagnostic object, pre-seeds its +8 code with 0x34, then destroys the stack diagnostic object and returns 0x48 on rejection. The diagnostic text therefore never escapes the producing stack frame, and the diagnostic code word is write-only in this chain. Diagnostics are not proof that the stricter grammar described in their text is enforced.",
    "evidence": [
     {
      "type": "firmware",
@@ -185116,10 +185116,61 @@
      "build": "86.10-80260",
      "address": "0x10483e28",
      "notes": "Per-component writes through f_10483c1c, optional patch branch0x10483fdc and conditional suffix copies; no whole-output clear/rollback. CQ initialization at0x1011c98c..0x1011c9b0 and f_10338a34 caller storage."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483e80",
+     "notes": "Post-numeric *cursor byte tests at 0x10483e80/0x10483eec/0x10483ffc dereference the strtoul endptr without a cursor<end check; isalnum reads at 0x10483f24/0x10483f70 hit cursor+1 when '-'/ '+' is the last span byte."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10483fd4",
+     "notes": "lbzx 0x7d3bf8ae loads the byte at the end of the pre-release span (plus byte or span end); if a prior numeric overshot end and the out-of-span byte is '-', memchr length end-(cursor+1) underflows."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1080bb38",
+     "notes": "Sole setlocale call sits in exported std::locale::global (_ZNSt6locale6globalERKS_) which has no static caller in this executable; isalnum/strtoul therefore run in the C locale."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10338a80",
+     "notes": "Extractor return2 (regex compile failure) takes the silent return0 path; only return1 writes the 'path must end' diagnostic. Parse failures other than return1 are unreachable (parser returns 0/1 only)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10338b58",
+     "notes": "Diagnostic object layout: +8 code word 0x48, +0xc message via f_1033a130; three distinct messages for no-match/parse/major, plus a shorter fallback format when the first snprintf exceeds 0xff at 0x10338b78."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102d782c",
+     "notes": "f_102d7768 is the only callsite supplying a diagnostic (stack object at 0x38(r1), code pre-seeded 0x34 at 0x40(r1)); on rejection it destroys the object and returns 0x48. The five other callsites pass r4=0; f_10345c7c discards the return and uses the call only to fill this+0x1f50."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104840f8",
+     "notes": "Unsigned pair comparator: returns1 when *(pair) >= {r4,r5}. Schema callback tests supported{1,0}>=incoming; six other callsites test stored cloud-queue versions against {2,1}/{2,2}/{2,3} constants."
     }
    ],
-   "todo": "Established: numeric/suffix cursor grammar, suffix storage truncation, manifest pair comparison and cloud-queue candidate/major gates are decoded. Remaining: verify libc locale/strtoul ABI and malformed bounded-span reads, all version-parser callers and diagnostic propagation; do not substitute strict SemVer rules for these instruction paths.",
-   "output_state": "The parser writes numeric components and suffixes as it reaches them and does not restore the prior output on failure. Absent patch or suffixes leave those output fields untouched; callers must initialize or reset them when fresh defaults are required. The f_1011c864 caller explicitly initializes its version object before passing it to the cloud-queue checker. The manifest pair comparison does not consume patch or suffix fields."
+   "output_state": "The parser writes numeric components and suffixes as it reaches them and does not restore the prior output on failure. Absent patch or suffixes leave those output fields untouched; callers must initialize or reset them when fresh defaults are required. The f_1011c864 caller explicitly zeroes its stack version object (words at +0,+4,+8 and the first byte of each suffix buffer) before passing it to the cloud-queue checker, as do the f_1038cba0 and f_104cbf1c callsites. f_10345c7c deliberately harvests whatever parse state lands in this+0x1f50 while ignoring the return. The manifest pair comparison does not consume patch or suffix fields.",
+   "span_boundary_reads": "The end pointer bounds acceptance, not reads. f_10483c1c dereferences the cursor before any bound check, and strtoul scans until a non-digit byte without knowing the span end, so a digit run reaching a non-terminated span end reads past it. After each numeric parse the parser reads *cursor for dot/hyphen/plus tests without comparing cursor to end (0x10483e80, 0x10483eec, 0x10483ffc). A hyphen or plus consumed as the last in-span byte is followed by an isalnum test on the byte at end (0x10483f70, 0x10483f24). The pre-release tail byte is loaded with lbzx at 0x10483fd4, which reads the byte at the selected end position (plus byte or span end). If strtoul overshoots end and the out-of-span byte is a hyphen, the memchr length end-(cursor+1) goes negative and the plus scan is effectively unbounded. Acceptance still fails in these cases because the final cursor!=end, but the intermediate reads assume readable slack past the declared end. Known callers pass JSON-decoded buffers or std::string spans where that slack exists.",
+   "libc_contract": "isalnum and strtoul here resolve to the process C locale: the only setlocale instruction in the executable sits inside the exported std::locale::global at 0x1080bb38, which has no static caller, so no code path in this binary installs a non-C locale before parsing. strtoul overflow saturates to ULONG_MAX with errno34 and is rejected; errno22 is checked but not producible by base10 conversion of a leading-digit string in this libc, making that branch defensive rather than a distinct accepted range. The endptr store writes strtoul's stop position unmodified; the helper does not clamp it to the span end.",
+   "callers": "Complete direct-call census. f_10483c1c is called only inside f_10483e28 (three sites). f_10483e28 is called at 0x10118624 and 0x10118658 inside manifest schema callback f_10118580 (incoming schema string and the compiled '1.0' supported literal) and at 0x10338ac0 inside f_10338a34. Regex extractor f_10483cf0 is called only at 0x10338a6c. f_10338a34 is called at 0x1011c9b4 (f_1011c864), 0x102d782c (f_102d7768), 0x10345cc4 (f_10345c7c), 0x1038cc20 and 0x1038ccb4 (f_1038cba0) and 0x104cc29c (f_104cbf1c). Pair comparator f_104840f8 is a generic unsigned {major,minor}>= helper: it returns 1 when the pointed pair is >= the argument pair, and besides the schema callback's {1,0} test at 0x101186b0 it is used at 0x103357ec, 0x10339b08, 0x10339b24, 0x1038ccfc, 0x104cb544 and 0x104cc5ac against constants {2,1}, {2,2} or {2,3}, all version-pair thresholds in cloud-queue version checks. Version-to-string formatter f_10484008 (writes '%u.%u.%u' plus optional '-%s'/'+%s' suffixes) is called once at 0x103320d0."
   },
   "music_service_account_uid": {
    "name": "Music-service account UID suffix extraction",
