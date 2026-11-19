@@ -55471,7 +55471,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The shared fallback can invoke f_1067c6ec after updating local transport state; the fast path delegates to the streamer.",
+      "description": "The shared fallback can invoke f_1067c6ec after updating local transport state; the fast path delegates to the streamer. An eligible local mode-one update from state 0 to 1 makes PAUSED_PLAYBACK eligible for LastChange along with the other fields in the common transport-state block.",
       "evidence": [
        {
         "type": "firmware",
@@ -55512,11 +55512,35 @@
         "address": "0x102b06d4",
         "notes": "The common home-theater update f_102b05e4 calls f_10293208 on the current URI. For a recognized source it calls f_1023d324 and writes 1 to impl+0x775c via f_1048811c, setting +0x7760 on change; otherwise it executes URI reconciliation and returns zero. Callers use the update result to decide whether to invoke eventing, not as a new SOAP fault.",
         "function": "0x102b05e4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e46b8",
+        "notes": "The LastChange collector calls f_102b5a1c and promotes its nonzero dirty result to impl+0xa0a2. f_102b5658 promotes that flag to the latched +0x7785 at 0x102b56ac and clears the source flag on a consuming pass at 0x102b57a0. The delta branch at 0x102e47d8 tests +0x7785 before emitting the common TransportState, CurrentPlayMode and CurrentCrossfadeMode block.",
+        "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b5d20",
+        "notes": "In mode 1, the snapshot collector calls f_1048b570 on impl+0x7758. That helper reads +0x775c, writes PAUSED_PLAYBACK for value 1 or PLAYING for zero, returns the dirty byte at +0x7760 and clears it on a consuming snapshot. The helper has separate handling for values other than zero and one.",
+        "function": "0x102b5a1c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a78e8",
+        "notes": "The streamer pause path locks the streamer, calls +0x2c on its active source object and invokes +0x0c on the object returned by that call. If no active object is available it returns zero; this route does not itself call f_1067c6ec.",
+        "function": "0x106a7880"
        }
       ],
       "todo": [
-       "Established: the local mode-1 fallback can dirty the Pause state record and call f_1067c6ec; the shared home-theater update can independently dirty that record on a state change.",
-       "Trace the subscriber-side readers of impl+0x7760 and the event callback reached from the streamer and indexed pause paths; map the exact fields and suppression conditions."
+       "Established: the mode-one fallback dirties the Pause state record; the consuming collector clears +0x7760 and uses that state to publish TransportState. The fast route invokes the active source's pause callback indirectly.",
+       "Resolve the streamer +0x2c selector and returned pause implementations, and trace when an indexed PAUSED or STOPPED transition marks the common LastChange block dirty."
       ]
      },
      "state_transitions": {
