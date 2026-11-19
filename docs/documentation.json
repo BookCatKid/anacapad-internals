@@ -131444,17 +131444,77 @@
    ]
   },
   "vli_transport_detail": {
-   "events": "VliTransportActionEvent ('firing VliTransportAction %s','processing VliTransportActionEvent action: %s'): VLI has its own event channel",
-   "sntp": "vli src tx settings carries 'sntp port: %u': the source publishes its SNTP timebase port to sinks",
-   "impl": "vli_source_manager.cxx/vli_sink.cxx/vli_playback_tracker.cxx",
-   "todo": [
-    "Established: the VLI event channel and SNTP timebase field are identified."
-   ],
-   "actions": "VliTransportActionEvent carries a named action string dispatched by the inprocess-events consumer f_1013f0f4 ('Queued %s(%u) from \"%s\" : { %s }'; fire literal '%s:%d firing VliTransportAction %s'; process literal '(%s) processing VliTransportActionEvent action: %s'). Action names: AHA_END_VLI_SESSION, AHA_SUSPEND_VLI_SESSION, AHA_PAUSE_VLI_SESSION, JOIN_GROUP_BASED_ON_VLI_STATE, BECOME_STANDALONE_BASED_ON_VLI_STATE, int_updateCurrentVLISource, vliCommand. Sibling events: $VliSessionEndedEvt, VliSessionEndedProcessingCompleteEvt, VliPropertiesChangedEvt. Payload shape = {action string + event args} queued through the inprocess-events channel to the VLI controller.",
-   "action_enum": "index-ordered name table at 0x10f0403c: [0]=AHA_STOP, [1]=AHA_RESTORE, [2]=AHA_END_VLI_SESSION, [3]=AHA_SUSPEND_VLI_SESSION, [4]=AHA_PAUSE_VLI_SESSION - the AHA_* actions are enum ordinals, not arbitrary strings; sibling type table at 0x10f04020 {RCA,TV,VLI} = the source-type enum",
-   "resolved_findings": [
-    "Established: AHA_* action ordinals proven via the index-ordered name table (0x10f0403c); source-type enum {RCA,TV,VLI} adjacent; the processing-log string is unreferenced by lis/addi or .got2 - the consumer reaches it via computed/relocated indirection.",
-    "Resolved: VLI = virtual line-in transport family (media_player_vli_ctrl.cxx) with vliType names {AirPlay, bluetooth, tvproxy (TV Proxy)} and protocolInfo 'x-sonos-vli:*:audio:*'. VliTransportActionEvent carries named actions processed at '(%s) processing VliTransportActionEvent action: %s'. Event vocabulary fired by the controller: {VliTransportAction, AvtHaltActionEvent (with completion-signal wait 'completion signal timed out %#x'), AvtVliActionEvent, VolumeSetActionEvent(vol,mute,from_sonos,vligrouping), GroupVolumeSetActionEvent, VliPropertiesChangedEvent(name)}. Session ops: StartSession (rejects unusable/unknown type), StopTransmission on TXS change, endVLISession deactivate, ChangeCoordinator using local VLI txs, BecomeGroupCoordinator can consume a VLI State Snapshot ('VLISS') except unsupported vliType. AHA ops {AHA_END_VLI_SESSION, AHA_SUSPEND_VLI_SESSION, AHA_PAUSE_VLI_SESSION}; group ops {JOIN_GROUP_BASED_ON_VLI_STATE, BECOME_STANDALONE_BASED_ON_VLI_STATE}; VLI group constraint 'Count of off box members for VLISrcMgr [%u] must be <= CHSRC [%u]'."
+   "impl": "Virtual line-in control and source/sink transport integration: media_player_vli_ctrl.cxx, avt_impl.cxx and vli_source_manager.cxx. The local VLI action channel is distinct from an HLS status endpoint and from the AvtHaltAction channel.",
+   "event_payload": "VliTransportActionEvent is an in-process typed event, not an arbitrary action-name string plus unconstrained arguments. Its copied payload is two 32-bit words: VLI type at +0 and action ordinal at +4. f_1013f0f4 is the producer/queueing wrapper, not the consuming VLI controller: it copies these words into the queued closure, chooses the current event-loop subscriber set and returns whether work was queued. No subscriber/usable loop can return false. Its Queued log names the event; names in logs are obtained from the numeric enum.",
+   "action_enum": "f_106a5fd4 uses the bounded table at 0x10f044bc: 0 START_SESSION, 1 END_SESSION, 2 SUSPEND_SESSION, 3 JOIN_GROUP_BASED_ON_VLI_STATE, 4 START_AUDIO_STREAMING, 5 PAUSE_AUDIO_STREAMING, 6 BECOME_STANDALONE_BASED_ON_VLI_STATE, 7 UNKNOWN. Out-of-range values also format as UNKNOWN. The table at 0x10f0403c instead formats the separate AvtHaltAction enum: AHA_STOP, AHA_RESTORE, AHA_END_VLI_SESSION, AHA_SUSPEND_VLI_SESSION and AHA_PAUSE_VLI_SESSION; f_106a3420 bounds it at 4 and otherwise returns AHA_NOT_VALID. The neighboring RCA/TV/VLI table is not the VLI type enum. Neither int_updateCurrentVLISource nor vliCommand is an additional VliTransportAction ordinal.",
+   "dispatch_and_completion": "The actual AVTransport consumer is f_102be7e4, referenced by event-interface/vtable entries at 0x10eaf3ac and 0x10edfc78. It logs action through f_106a5fd4, copies both words and schedules asynchronous work through f_102eff8c. It installs completion callback f_102dd020 and distinct stopped/scheduler-failed callbacks f_102aac00/f_102aac68. Completion dispatch treats ordinal 3 as group-join follow-up (f_102dceac), 6 as standalone follow-up (f_102d56b8) and 4 as conditional streaming startup (f_102d0280), then publishes type, action and success through f_102f44dc. A queued event is therefore not proof of completed streaming or successful grouping.",
+   "controller_paths": "f_10415854 handles a StartSession request using the concrete VLI type, with a bounded type dispatch and an unusable/unknown-type diagnostic leading to RabortIfUnlocked. On its event-driven grouping path it emits ordinal 3, not START_SESSION solely because the entrypoint is named StartSession. f_1041616c emits ordinal 4 for audio streaming on its corresponding branch. Topology and group-update callers also emit ordinal 3 with explicit type/action words. f_102b2118 deactivates the local VLI session through state-dependent branches and returns success/failure. Completion waits in f_10413184 use pending flags and a signal wait with a timeout diagnostic; event submission alone does not guarantee completion.",
+   "sntp_and_settings": "VLI transmission settings carry a 16-bit SNTP port at structure offset +0xa. The local source-settings accessor f_106aa13c delegates to its transport provider virtual slot +0x64. ChangeCoordinator f_102af490 copies returned settings and reads that exact halfword for the sntp port diagnostic. The settings formatter f_1066e5e0 returns an empty string when the validity/name byte at +0x1c is zero; otherwise it passes address, port and auxiliary fields, including +0xa, to f_1066e57c. That formatter renders %d.%d.%d.%d:%d,%s:%d:%d:%d,%s, with SNTP as the last colon-separated number before the final comma. The field is transport metadata, not evidence that this event channel sends SNTP packets or that synchronization succeeded.",
+   "group_constraints": "The BecomeGroupCoordinator path f_102ce068 can obtain local VLI settings and propagates them through group setup. It compares the low-16-bit off-box-member count from f_106aa688 with the CHSRC capacity from f_1066eea8. A count above capacity reaches the diagnostic and RabortIfUnlocked at 0x102ceafc-0x102ceb30; equality is allowed. State and local/remote-source branches make this conditional, not a universal fixed group-size limit.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1013f0f4",
+     "address": "0x1013f0f4",
+     "callsite": "0x1013f0f4-0x1013f6c4; 0x1013f428-0x1013f45c; 0x1013f5fc-0x1013f618",
+     "notes": "Event-loop/subscriber lookup, queue log, exact two-word payload copy, queued-work closure and boolean return. Corrects prior misidentification of producer as consumer and string payload."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_106a5fd4 / f_106a3420",
+     "address": "0x106a5fd4",
+     "callsite": "0x106a5fd4-0x106a6008; 0x10f044bc-0x10f044dc; 0x106a3420-0x106a3454; 0x10f04020-0x10f040b8",
+     "notes": "Direct unsigned bounds checks and indexed name loads distinguish eight VLI ordinal names from five halt actions and the separate RCA/TV/VLI table. No AHA names or command strings occur in the actual VLI action table."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102be7e4 / f_102dd020 / f_102eff8c",
+     "address": "0x102be7e4",
+     "callsite": "0x102be7e4-0x102bea60; 0x102dd020-0x102dd1c0; 0x102eff8c-0x102f05ac; 0x102aac00-0x102aaccc",
+     "notes": "Reachable consumer copies type/action into async callback context, installs stopped/failed handlers and schedules the operation. Completion switches on ordinals 3/6/4 and reports action/success. Consumer pointers at 0x10eaf3ac and 0x10edfc78."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10415854 / f_1041616c / f_10413184",
+     "address": "0x10415854",
+     "callsite": "0x10415854-0x10415c58; 0x1041616c-0x104164b0; 0x10413184-0x1041328c; 0x10128074-0x10128090; 0x1034dccc-0x1034dce8",
+     "notes": "Concrete producer calls f_1013f0f4 with type and action=3 or 4, distinct from entrypoint names; invalid-type gate and RabortIfUnlocked, pending completion wait and timeout. Other topology/group producers also use ordinal 3."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102b2118 / f_102f44dc",
+     "address": "0x102b2118",
+     "callsite": "0x102b2118-0x102b22a0; 0x102f44dc-0x102f48a0",
+     "notes": "State-dependent local deactivation with returned success, and completion event queueing with type/action/result; diagnostic and queued event do not guarantee remote completion."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_106aa13c / f_102af490 / f_1066e5e0 / f_1066e57c",
+     "address": "0x106aa13c",
+     "callsite": "0x106aa13c-0x106aa1bc; 0x102af710-0x102af7c4; 0x1066e57c-0x1066e6a8",
+     "notes": "Local transport-provider accessor, copied tx settings and SNTP halfword at +0xa. Empty-setting gate and concrete formatter argument flow establish the port in serialized settings rather than inferring it from a log string."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102ce068",
+     "address": "0x102ce068",
+     "callsite": "0x102ce5fc-0x102ce67c; 0x102ce77c-0x102ce7a8; 0x102ceafc-0x102ceb34",
+     "notes": "Local VLI transport-settings branch, masked unsigned member/capacity comparison and over-capacity error/abort path; equality is not rejected."
+    }
    ]
   },
   "usage_data_sharing": {
