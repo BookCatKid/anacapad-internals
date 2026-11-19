@@ -7908,7 +7908,7 @@
      ]
     },
     "SetTimeZone": {
-     "description": "Sets timezone Index/AutoAdjustDst via impl->v[+0x10].",
+     "description": "Persists configured timezone ID and automatic DST flag through static engine +0x10 -> f_1027cf5c, reloads caches and updates change/version observers on success. Rejects negative parsed Index with 402, but does not require that a nonnegative ID exists in the timezone table. Missing entries can therefore be configured and produce zero cached rules.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107342f0",
@@ -7940,11 +7940,14 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x1027cf5c",
+      "impl_vfunc": "static primary vtable 0x10eaa99c slot +0x10",
+      "description": "f_1027cf5c -> f_10283998 TimeZone save -> f_10279c0c reload -> version/type-5 observer. Uses engine mutex +0x170."
      },
      "inputs": {
       "Index": {
-       "description": "Timezone-table index to activate",
+       "description": "Required configured timezone ID. Parsed with permissive decimal strtol; the concrete setter rejects only negative resulting values, not unknown nonnegative IDs.",
        "direction": "in",
        "primitive": {
         "type_tag": 5,
@@ -7953,49 +7956,48 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "numeric argument (24-byte record)",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "table index",
-       "range": "u32 index",
-       "special_values": "none identified",
+       "semantic_type": "signed int32 timezone ID",
+       "format": "decimal text with permissive numeric prefix conversion",
+       "unit": "timezone ID",
+       "accepted_values": "Nonnegative resulting signed 32-bit values; no compiled maximum or table-membership gate.",
+       "range": "0..2147483647 after conversion; negative results fault 402",
+       "special_values": "Present empty/nonnumeric text becomes ID 0. Missing input faults 402. Unknown nonnegative ID is saved; lookup supplies zero rule.",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "strtol(text,NULL,10), no errno/end-pointer/range check; worker signed comparison with zero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10734330",
-         "notes": "in-arg access site"
+         "function": "0x107342f0",
+         "address": "0x10734338",
+         "callsite": "0x10734370",
+         "notes": "Required Index registration f_10561514 type tag 5 at 0x10734338; required AutoAdjustDst f_10561444 type tag 1 at 0x1073435c. Canonical validator f_10730414 fetches and finalizes records; missing required records return false. f_10560a58 bounds/NUL-terminates 24-byte numeric text buffers, truncating to 23 bytes. Tag 5 uses strtol(text,NULL,10) at 0x10560b34 and stores 32 bits; no errno, end-pointer or range test. Tag 1 at 0x10560b78..0x10560bcc compares case-insensitively with 1, true, yes -> byte 1; every other value -> 0. Present empty/nonnumeric Index becomes 0; present empty/unknown flag becomes false. Worker rejects only negative resulting Index, not missing table entries."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f27ab4",
-         "notes": "argument name string"
+         "function": "0x1027cf5c",
+         "address": "0x1027cf64",
+         "callsite": "0x10734394",
+         "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10734f28",
-         "notes": "impl consumes the arg"
+         "function": "0x10279c0c",
+         "address": "0x1027a07c",
+         "callsite": "0x1027d078",
+         "notes": "If loaded Index or flag changed (comparison 0x1027a088 and 0x1027a3b4), writes engine+0x218 and +0x21c; f_10281dc0 updates timezone state; f_1015a6dc looks up ID from engine+0x7f0c, returning zero rule for missing/unusable entries. Copies raw rule to +0x224 and effective rule to +0x232, applies flag only to effective copy with f_10c3d094 at 0x1027a11c. Recomputes schedules with f_10276d7c and queues callbacks f_1027ca44/f_10276ba4 via f_10571cf8; marks +0x21d. Changed reload state invokes f_1067c6ec(engine+8) at 0x1027a2e8. Same pair skips timezone-cache recomputation, but outer setter still saves and increments its shared version."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561514) and declared constraints are documented.",
-        "Residual: `Index` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +16 (site 0x10734394) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `Index` = verbatim forward to impl vfunc +16 (obj *(r3-in+0x4), call site 0x10734394); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "Numeric text is bounded to 23 bytes before conversion. Overflow behavior belongs to strtol; no action-level check."
       },
       "AutoAdjustDst": {
-       "description": "DST auto-adjust flag",
+       "description": "Required boolean text controlling the effective timezone rule. Case-insensitive 1, true or yes means enabled; every other present text means disabled.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -8004,191 +8006,301 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "boolean/numeric flag",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "0/1 flag",
-       "range": "0/1",
-       "special_values": "none identified",
+       "semantic_type": "boolean",
+       "format": "case-insensitive truth spellings; all other text false",
+       "unit": "n/a",
+       "accepted_values": "1/true/yes -> 1; every other present string -> 0",
+       "range": "stored byte 0 or 1",
+       "special_values": "Present empty or unrecognized value -> false; missing input -> 402.",
        "required": true,
        "default": "none; required input",
-       "validation": "stored in the timezone record",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10734354",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eaae6c",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10734f28",
-         "notes": "impl consumes"
-        }
-       ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `AutoAdjustDst` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +16 (site 0x10734394) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `AutoAdjustDst` = verbatim forward to impl vfunc +16 (obj *(r3-in+0x4), call site 0x10734394); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
-      }
-     },
-     "outputs": {},
-     "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x107342f0",
-        "notes": "wrapper family decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v[+0x10]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x107342f0",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x10]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x107342f0",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x10]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "state-mutation delegate: *(r30+4) v[+0x10] (call-derived member-method semantics)",
+       "validation": "No strict boolean rejection; flag is stored in TimeZone XML and applied to the effective rule only.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x107342f0",
-         "notes": "delegate map ['*(r30+4) v[+0x10]']; notify-family calls []"
+         "address": "0x10734338",
+         "callsite": "0x10734370",
+         "notes": "Required Index registration f_10561514 type tag 5 at 0x10734338; required AutoAdjustDst f_10561444 type tag 1 at 0x1073435c. Canonical validator f_10730414 fetches and finalizes records; missing required records return false. f_10560a58 bounds/NUL-terminates 24-byte numeric text buffers, truncating to 23 bytes. Tag 5 uses strtol(text,NULL,10) at 0x10560b34 and stores 32 bits; no errno, end-pointer or range test. Tag 1 at 0x10560b78..0x10560bcc compares case-insensitively with 1, true, yes -> byte 1; every other value -> 0. Present empty/nonnumeric Index becomes 0; present empty/unknown flag becomes false. Worker rejects only negative resulting Index, not missing table entries."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10279c0c",
+         "address": "0x1027a07c",
+         "callsite": "0x1027d078",
+         "notes": "If loaded Index or flag changed (comparison 0x1027a088 and 0x1027a3b4), writes engine+0x218 and +0x21c; f_10281dc0 updates timezone state; f_1015a6dc looks up ID from engine+0x7f0c, returning zero rule for missing/unusable entries. Copies raw rule to +0x224 and effective rule to +0x232, applies flag only to effective copy with f_10c3d094 at 0x1027a11c. Recomputes schedules with f_10276d7c and queues callbacks f_1027ca44/f_10276ba4 via f_10571cf8; marks +0x21d. Changed reload state invokes f_1067c6ec(engine+8) at 0x1027a2e8. Same pair skips timezone-cache recomputation, but outer setter still saves and increments its shared version."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v[+0x10] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "notes": "Raw cached timezone rule is retained when automatic DST is disabled."
+      }
+     },
+     "outputs": {},
+     "validation": {
+      "description": "Required input presence is checked by the request validator. Numeric/boolean conversion is permissive; negative resulting Index faults 402 in worker. Nonnegative ID need not exist in table. Other failures come from persistence, not table-range validation.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107342f0",
+        "address": "0x10734338",
+        "callsite": "0x10734370",
+        "notes": "Required Index registration f_10561514 type tag 5 at 0x10734338; required AutoAdjustDst f_10561444 type tag 1 at 0x1073435c. Canonical validator f_10730414 fetches and finalizes records; missing required records return false. f_10560a58 bounds/NUL-terminates 24-byte numeric text buffers, truncating to 23 bytes. Tag 5 uses strtol(text,NULL,10) at 0x10560b34 and stores 32 bits; no errno, end-pointer or range test. Tag 1 at 0x10560b78..0x10560bcc compares case-insensitively with 1, true, yes -> byte 1; every other value -> 0. Present empty/nonnumeric Index becomes 0; present empty/unknown flag becomes false. Worker rejects only negative resulting Index, not missing table entries."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1027cf5c",
+        "address": "0x1027cf64",
+        "callsite": "0x10734394",
+        "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10283998",
+        "address": "0x10283d3c",
+        "callsite": "0x1027d054",
+        "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107342f0",
+        "address": "0x107343b0",
+        "callsite": "0x10734394",
+        "notes": "Request validation-zero loads 402 at 0x107343e4; engine nonzero is forwarded verbatim. Both use one request fault slot +0x14 call 0x107343b0. Zero worker result reaches output-free success commit request+0x0c at 0x107343f8. Stack-guard failure at 0x10734400 aborts, not SOAP."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Both inputs must be present and resulting Index nonnegative. Requires readable existing alarmclock.xml and writable temporary/rename path for success. No coordinator, running-alarm or timezone membership check.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107342f0",
+        "address": "0x10734338",
+        "callsite": "0x10734370",
+        "notes": "Required Index registration f_10561514 type tag 5 at 0x10734338; required AutoAdjustDst f_10561444 type tag 1 at 0x1073435c. Canonical validator f_10730414 fetches and finalizes records; missing required records return false. f_10560a58 bounds/NUL-terminates 24-byte numeric text buffers, truncating to 23 bytes. Tag 5 uses strtol(text,NULL,10) at 0x10560b34 and stores 32 bits; no errno, end-pointer or range test. Tag 1 at 0x10560b78..0x10560bcc compares case-insensitively with 1, true, yes -> byte 1; every other value -> 0. Present empty/nonnumeric Index becomes 0; present empty/unknown flag becomes false. Worker rejects only negative resulting Index, not missing table entries."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1027cf5c",
+        "address": "0x1027cf64",
+        "callsite": "0x10734394",
+        "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10283998",
+        "address": "0x10283d3c",
+        "callsite": "0x1027d054",
+        "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Engine mutex +0x170 protects persistence and reload. Uses directory +0x214, identity +0x7f08, shared version +0x7f2c, observer +0x7f00 and timezone table +0x7f0c. Reload updates configured pair +0x218/+0x21c and raw/effective rule caches +0x224/+0x232.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1027cf5c",
+        "address": "0x1027cf64",
+        "callsite": "0x10734394",
+        "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10283998",
+        "address": "0x10283d3c",
+        "callsite": "0x1027d054",
+        "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10279c0c",
+        "address": "0x1027a07c",
+        "callsite": "0x1027d078",
+        "notes": "If loaded Index or flag changed (comparison 0x1027a088 and 0x1027a3b4), writes engine+0x218 and +0x21c; f_10281dc0 updates timezone state; f_1015a6dc looks up ID from engine+0x7f0c, returning zero rule for missing/unusable entries. Copies raw rule to +0x224 and effective rule to +0x232, applies flag only to effective copy with f_10c3d094 at 0x1027a11c. Recomputes schedules with f_10276d7c and queues callbacks f_1027ca44/f_10276ba4 via f_10571cf8; marks +0x21d. Changed reload state invokes f_1067c6ec(engine+8) at 0x1027a2e8. Same pair skips timezone-cache recomputation, but outer setter still saves and increments its shared version."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Rewrites alarmclock.xml through .tmp and rename, preserving unrelated settings; reloads configuration after successful save. Changed timezone/flag updates caches and scheduling state and queues callbacks; successful setter always advances shared change version and invokes type-5 observer even for an unchanged pair. Does not directly set the system UTC clock.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1027cf5c",
+         "address": "0x1027cf64",
+         "callsite": "0x10734394",
+         "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10283998",
+         "address": "0x10283d3c",
+         "callsite": "0x1027d054",
+         "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10279c0c",
+         "address": "0x1027a07c",
+         "callsite": "0x1027d078",
+         "notes": "If loaded Index or flag changed (comparison 0x1027a088 and 0x1027a3b4), writes engine+0x218 and +0x21c; f_10281dc0 updates timezone state; f_1015a6dc looks up ID from engine+0x7f0c, returning zero rule for missing/unusable entries. Copies raw rule to +0x224 and effective rule to +0x232, applies flag only to effective copy with f_10c3d094 at 0x1027a11c. Recomputes schedules with f_10276d7c and queues callbacks f_1027ca44/f_10276ba4 via f_10571cf8; marks +0x21d. Changed reload state invokes f_1067c6ec(engine+8) at 0x1027a2e8. Same pair skips timezone-cache recomputation, but outer setter still saves and increments its shared version."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Changed reload state calls f_1067c6ec(engine+8). Successful setter invokes observer at engine+0x7f00 slot +0x14 with type 5, identity and incremented shared version. Timezone-change callbacks are queued only when pair changed. These are notification/scheduling requests, not proof of immediate network delivery.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107342f0",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1027cf5c",
+        "address": "0x1027cf64",
+        "callsite": "0x10734394",
+        "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10279c0c",
+        "address": "0x1027a07c",
+        "callsite": "0x1027d078",
+        "notes": "If loaded Index or flag changed (comparison 0x1027a088 and 0x1027a3b4), writes engine+0x218 and +0x21c; f_10281dc0 updates timezone state; f_1015a6dc looks up ID from engine+0x7f0c, returning zero rule for missing/unusable entries. Copies raw rule to +0x224 and effective rule to +0x232, applies flag only to effective copy with f_10c3d094 at 0x1027a11c. Recomputes schedules with f_10276d7c and queues callbacks f_1027ca44/f_10276ba4 via f_10571cf8; marks +0x21d. Changed reload state invokes f_1067c6ec(engine+8) at 0x1027a2e8. Same pair skips timezone-cache recomputation, but outer setter still saves and increments its shared version."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x10]",
+      "description": "Negative Index or failed save returns without timezone reload or version-observer update. Successful save reloads configured pair; if changed, recomputes raw/effective rules and schedules. Missing table ID yields zero rule, not a rejection. Same pair still persists and advances outer version. Reload failure is not tested or converted into a distinct setter fault.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107342f0",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x10]']"
+        "function": "0x1027cf5c",
+        "address": "0x1027cf64",
+        "callsite": "0x10734394",
+        "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10279c0c",
+        "address": "0x1027a07c",
+        "callsite": "0x1027d078",
+        "notes": "If loaded Index or flag changed (comparison 0x1027a088 and 0x1027a3b4), writes engine+0x218 and +0x21c; f_10281dc0 updates timezone state; f_1015a6dc looks up ID from engine+0x7f0c, returning zero rule for missing/unusable entries. Copies raw rule to +0x224 and effective rule to +0x232, applies flag only to effective copy with f_10c3d094 at 0x1027a11c. Recomputes schedules with f_10276d7c and queues callbacks f_1027ca44/f_10276ba4 via f_10571cf8; marks +0x21d. Changed reload state invokes f_1067c6ec(engine+8) at 0x1027a2e8. Same pair skips timezone-cache recomputation, but outer setter still saves and increments its shared version."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10283998",
+        "address": "0x10283d3c",
+        "callsite": "0x1027d054",
+        "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Worker normal return domain {0,402,501,802}. Negative Index returns 402. Save failures 501 or size-limit 802 propagate unchanged; no success output. Save zero triggers reload and observer updates, unlocks and returns zero, then wrapper commits. Stack guards abort rather than SOAP-fault.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x1027cf5c",
+        "address": "0x1027cf64",
+        "callsite": "0x10734394",
+        "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10283998",
+        "address": "0x10283d3c",
+        "callsite": "0x1027d054",
+        "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x107342f0",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x107343b0",
+        "callsite": "0x10734394",
+        "notes": "Request validation-zero loads 402 at 0x107343e4; engine nonzero is forwarded verbatim. Both use one request fault slot +0x14 call 0x107343b0. Zero worker result reaches output-free success commit request+0x0c at 0x107343f8. Stack-guard failure at 0x10734400 aborts, not SOAP."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x107343b0",
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x10)"
+       "code_expr": "validation-zero ? 402 : f_1027cf5c return"
       }
      ],
      "errors": [
       {
-       "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x10)",
-       "meaning": "alarm-store vfunc 0x1027cf5c (slot +0x10) domain: literal 402 (li r3,0x192 at 0x1027cf88) plus call-derived accumulator paths (r29/r30 from call results)",
+       "code": 501,
+       "code_expr": "f_10283998 returns 501",
+       "meaning": "Persistence I/O failure before successful installation of the replacement alarmclock.xml.",
        "fault_sites": [
         "0x107343b0"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "Existing XML open or temporary-file open failed, a serialization/ftell/flush/fsync/close error set the shared failure flag, or rename failed. Worker propagates 501 without reload/version update.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107343b0",
-           "notes": "impl rc passthrough"
+           "function": "0x10283998",
+           "address": "0x10283d3c",
+           "callsite": "0x1027d054",
+           "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x10734f28",
-           "notes": "rc convention site"
+           "function": "0x1027cf5c",
+           "address": "0x1027cf64",
+           "callsite": "0x10734394",
+           "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
           }
          ]
         }
@@ -8198,65 +8310,69 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "function": "0x10283998",
+         "address": "0x10283d3c",
+         "callsite": "0x1027d054",
+         "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1027cf5c",
+         "address": "0x1027cf64",
+         "callsite": "0x10734394",
+         "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107342f0",
          "address": "0x107343b0",
-         "notes": "impl rc passthrough site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10734f28",
-         "notes": "impl rc -> r4 -> req v[+0x14]; CR0.eq = success branch"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eaa9ac",
-         "notes": "store vfunc slot +0x10 -> 0x1027cf5c; alarm-store object vptr 0x10eaa99c (ctor f_10276048 overwrite at 0x102761e8; obj new(0x8118) via shared_ptr -> svc+0x4)"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1027cf88",
-         "notes": "li r3,0x192 literal exit"
+         "callsite": "0x10734394",
+         "notes": "Request validation-zero loads 402 at 0x107343e4; engine nonzero is forwarded verbatim. Both use one request fault slot +0x14 call 0x107343b0. Zero worker result reaches output-free success commit request+0x0c at 0x107343f8. Stack-guard failure at 0x10734400 aborts, not SOAP."
         }
        ],
-       "unresolved": {
-        "proven": "literal 402 exit + derived paths",
-        "unknown": "call-derived rc values from lookup/strlcpy chain",
-        "impl_exit_literals": {
-         "function": "0x10734f28",
-         "lits": [],
-         "passthrough_exits": 3
-        }
-       },
-       "literal_bound": [
-        402
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x10); sites: 0x107343b0).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "Shared I/O failure flag maps these failures to 501, not distinct 800-series rungs."
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Required-input validation failed, or parsed signed Index is negative.",
        "fault_sites": [
         "0x107343b0"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "Missing Index or AutoAdjustDst returns false from request validation and loads wrapper 402 at 0x107343e4. Independently, worker signed Index <0 returns 402 at 0x1027cf88 before locking. Present numeric/boolean syntax is parsed permissively; no timezone membership test.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107342f0",
-           "notes": "parse vcalls then fault path"
+           "function": "0x107342f0",
+           "address": "0x10734338",
+           "callsite": "0x10734370",
+           "notes": "Required Index registration f_10561514 type tag 5 at 0x10734338; required AutoAdjustDst f_10561444 type tag 1 at 0x1073435c. Canonical validator f_10730414 fetches and finalizes records; missing required records return false. f_10560a58 bounds/NUL-terminates 24-byte numeric text buffers, truncating to 23 bytes. Tag 5 uses strtol(text,NULL,10) at 0x10560b34 and stores 32 bits; no errno, end-pointer or range test. Tag 1 at 0x10560b78..0x10560bcc compares case-insensitively with 1, true, yes -> byte 1; every other value -> 0. Present empty/nonnumeric Index becomes 0; present empty/unknown flag becomes false. Worker rejects only negative resulting Index, not missing table entries."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1027cf5c",
+           "address": "0x1027cf64",
+           "callsite": "0x10734394",
+           "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x107342f0",
+           "address": "0x107343b0",
+           "callsite": "0x10734394",
+           "notes": "Request validation-zero loads 402 at 0x107343e4; engine nonzero is forwarded verbatim. Both use one request fault slot +0x14 call 0x107343b0. Zero worker result reaches output-free success commit request+0x0c at 0x107343f8. Stack-guard failure at 0x10734400 aborts, not SOAP."
           }
          ]
         }
@@ -8266,46 +8382,93 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107342f0",
-         "notes": "wrapper parse + fault path"
+         "function": "0x107342f0",
+         "address": "0x10734338",
+         "callsite": "0x10734370",
+         "notes": "Required Index registration f_10561514 type tag 5 at 0x10734338; required AutoAdjustDst f_10561444 type tag 1 at 0x1073435c. Canonical validator f_10730414 fetches and finalizes records; missing required records return false. f_10560a58 bounds/NUL-terminates 24-byte numeric text buffers, truncating to 23 bytes. Tag 5 uses strtol(text,NULL,10) at 0x10560b34 and stores 32 bits; no errno, end-pointer or range test. Tag 1 at 0x10560b78..0x10560bcc compares case-insensitively with 1, true, yes -> byte 1; every other value -> 0. Present empty/nonnumeric Index becomes 0; present empty/unknown flag becomes false. Worker rejects only negative resulting Index, not missing table entries."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1027cf5c",
+         "address": "0x1027cf64",
+         "callsite": "0x10734394",
+         "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107342f0",
+         "address": "0x107343b0",
+         "callsite": "0x10734394",
+         "notes": "Request validation-zero loads 402 at 0x107343e4; engine nonzero is forwarded verbatim. Both use one request fault slot +0x14 call 0x107343b0. Zero worker result reaches output-free success commit request+0x0c at 0x107343f8. Stack-guard failure at 0x10734400 aborts, not SOAP."
         }
        ]
       },
       {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}",
-       "fault_sites": [],
+       "code": 802,
+       "code_expr": "li r28,0x322 at 0x10283f0c",
+       "meaning": "Serialized replacement alarmclock.xml exceeds the 32768-byte size limit.",
+       "fault_sites": [
+        "0x107343b0"
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10283998",
-         "notes": "alarmclock.xml atomic save {501,800,801,802}"
+         "function": "0x10283998",
+         "address": "0x10283d3c",
+         "callsite": "0x1027d054",
+         "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1027cf5c",
+         "address": "0x1027cf64",
+         "callsite": "0x10734394",
+         "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107342f0",
+         "address": "0x107343b0",
+         "callsite": "0x10734394",
+         "notes": "Request validation-zero loads 402 at 0x107343e4; engine nonzero is forwarded verbatim. Both use one request fault slot +0x14 call 0x107343b0. Zero worker result reaches output-free success commit request+0x0c at 0x107343f8. Stack-guard failure at 0x10734400 aborts, not SOAP."
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "SetTimeZone passes null alarm argument, selecting limit 0x8000. Successful ftell reports size greater than that limit, setting return 802 and discarding the temporary file. This is not a rename or flush error.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10283998",
-           "notes": "alarmclock.xml atomic save {501,800,801,802}"
+           "function": "0x10283998",
+           "address": "0x10283d3c",
+           "callsite": "0x1027d054",
+           "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1027cf5c",
+           "address": "0x1027cf64",
+           "callsite": "0x10734394",
+           "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10283998 emits constant set {501, 560, 800, 801, 802} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
-       ]
+       "domain_note": "Alarm-argument-specific 800/801 branches cannot execute for SetTimeZone."
       }
      ],
      "firmware_differences": [],
@@ -8314,30 +8477,58 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x10276048",
+       "address": "0x10eaa9ac",
+       "callsite": "0x10734394",
+       "notes": "Constructor primary vptr 0x10eaa99c (store 0x102761e8), slot +0x10 at 0x10eaa9ac -> f_1027cf5c. Service constructor f_10735460 stores engine at service+4. Wrapper f_107342f0 dispatches engine slot +0x10 at 0x10734394."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1027cf5c",
+       "address": "0x1027cf64",
+       "callsite": "0x10734394",
+       "notes": "Signed Index <0 returns 402 at 0x1027cf88 before locking. Nonnegative Index and byte flag are stored in stack TimeZone pair at +0x18/+0x1c. Locks engine+0x170, creates writer context vptr 0x10eaa93c with engine+0x214 directory, engine+0x7f08 identity and next version engine+0x7f2c+1. Calls f_10283998 at 0x1027d054 with only TimeZone argument r4 nonnull (alarm argument r6 is null). Nonzero save result unlocks and returns unchanged. Success calls f_10279c0c(engine,0) at 0x1027d078, copies identity to +0x7f10, increments +0x7f2c at 0x1027d0b0 and calls observer *(engine+0x7f00)->v[+0x14] with type 5, identity, version, zero at 0x1027d0b8, then unlocks and returns saved zero result."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "function": "0x107342f0",
-       "address": "0x107342f0",
-       "notes": "action wrapper handler"
+       "address": "0x10734338",
+       "callsite": "0x10734370",
+       "notes": "Required Index registration f_10561514 type tag 5 at 0x10734338; required AutoAdjustDst f_10561444 type tag 1 at 0x1073435c. Canonical validator f_10730414 fetches and finalizes records; missing required records return false. f_10560a58 bounds/NUL-terminates 24-byte numeric text buffers, truncating to 23 bytes. Tag 5 uses strtol(text,NULL,10) at 0x10560b34 and stores 32 bits; no errno, end-pointer or range test. Tag 1 at 0x10560b78..0x10560bcc compares case-insensitively with 1, true, yes -> byte 1; every other value -> 0. Present empty/nonnumeric Index becomes 0; present empty/unknown flag becomes false. Worker rejects only negative resulting Index, not missing table entries."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11634",
-       "notes": "action dispatch table entry"
+       "function": "0x10283998",
+       "address": "0x10283d3c",
+       "callsite": "0x1027d054",
+       "notes": "Opens existing alarmclock.xml read-only at 0x10283a74; negative fd returns 501. Opens .tmp with fopen64(w) at 0x10283b80; failure closes/unlinks and returns 501. XML copy callbacks preserve unrelated settings; nonnull TimeZone pair is emitted by f_1028379c at 0x10283d48 as TimeZone with signed-decimal Index and 0/1 AutoAdjustDst. Short fwrite sets context+0x38 (0x102838c4). Serialization/ftell/fflush/fsync/fclose failures set this shared flag and cause temp removal and 501 at 0x10283ddc. Size >32768 yields 802 at 0x10283f0c (alarm argument null selects default 0x8000 at 0x10284078). Rename at 0x10283fbc failure also maps to 501. Return 0 after successful rename. 800/801/other 802 branches at 0x10283f20..0x10283f84 require nonnull alarm argument context+0x18; SetTimeZone passes null so those predicates are unreachable here. No generic flush=801 or rename=802 mapping."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10734f28",
-       "notes": "alarm impl = service vtable 0x10f11530 slot +0x10 (ctor stores svc vptr at svc+4)"
+       "function": "0x10279c0c",
+       "address": "0x1027a07c",
+       "callsite": "0x1027d078",
+       "notes": "If loaded Index or flag changed (comparison 0x1027a088 and 0x1027a3b4), writes engine+0x218 and +0x21c; f_10281dc0 updates timezone state; f_1015a6dc looks up ID from engine+0x7f0c, returning zero rule for missing/unusable entries. Copies raw rule to +0x224 and effective rule to +0x232, applies flag only to effective copy with f_10c3d094 at 0x1027a11c. Recomputes schedules with f_10276d7c and queues callbacks f_1027ca44/f_10276ba4 via f_10571cf8; marks +0x21d. Changed reload state invokes f_1067c6ec(engine+8) at 0x1027a2e8. Same pair skips timezone-cache recomputation, but outer setter still saves and increments its shared version."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x107342f0",
+       "address": "0x107343b0",
+       "callsite": "0x10734394",
+       "notes": "Request validation-zero loads 402 at 0x107343e4; engine nonzero is forwarded verbatim. Both use one request fault slot +0x14 call 0x107343b0. Zero worker result reaches output-free success commit request+0x0c at 0x107343f8. Stack-guard failure at 0x10734400 aborts, not SOAP."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x107342f0; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Unknown nonnegative IDs are not rejected. Error codes are contextual: save worker 800/801 branches require a nonnull alarm argument absent from this setter."
     },
     "UpdateAlarm": {
      "description": "Updates an existing alarm by ID. Wrapper f_107346ac parses ID plus the ten alarm fields and dispatches the concrete ac_impl engine slot +0x38 -> f_1027ac80. The engine validates StartLocalTime, optional Duration, and Recurrence, builds an update-mode alarm record (record+0x114=1), and commits it through f_1027a8f8 -> f_1027a7a8 -> f_10283998. The writer replaces the record whose ID matches and preserves all other alarms.",
