@@ -50641,7 +50641,7 @@
      "notes": null
     },
     "Next": {
-     "description": "Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: lock impl+0x458, log 'upnp'/'next', call f_102b60b0. The worker reads mode impl+0x4654: mode!=2 -> f_102b0140 (submit op-0x19 via f_102aff9c then streamer next vfunc f_106a7a34(*(impl+0x5a0)) - returns streamer result, nonzero=ok); mode==2 -> indexed path: f_102b5ddc, build a request record (f_1032e270 + f_1032e494 against impl+0x5dc), submit via f_10255f64(impl+0x580) with rc map {2->800, 3->701, else->711}; a deeper 'next-source' path calls f_102b1c5c + f_102b4b48/f_10256a84(op 5). Success clears impl+0x6ed8 and returns 0.",
+     "description": "Skips forward. Non-indexed mode calls the streamer helper and maps its boolean to success or 701. Indexed mode sends op 6, interprets the secondary response halfword, and may require a second op-5 submission.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8674",
@@ -50750,15 +50750,31 @@
       ]
      },
      "state_dependencies": {
-      "description": "mode impl+0x4654==2 selects indexed queue advance; otherwise streamer session path via impl+0x5a0.",
+      "description": "Mode 2 uses the indexed request and its secondary result; other modes use the op-0x19 plus streamer path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x102b60dc",
-        "notes": "cmplwi mode,2",
-        "function": "f_102b60b0"
+        "notes": "Modes other than 2 call f_102b0140, which sends op 0x19 and invokes f_106a7a34 on success; a false result is mapped to 701.",
+        "function": "0x102b60b0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b6150",
+        "notes": "Mode 2 submits op 6, whose builder 0x1032e494 writes +0xe4=6, +0xec and +0x114. The secondary halfword at sp+0x16 selects follow-up or fault mapping. A false result maps halfword 2 to 800, 3 to 701 (isel at 0x102b6198), and all other halfwords to 711.",
+        "function": "0x102b60b0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b61ac",
+        "notes": "When op 6 returns true and halfword is 1, calls f_102b1c5c. A nonzero rc is returned unchanged after f_102b4b48. Otherwise tries f_10256a84 op 5 at 0x102b61f8 with player state arguments; its false result yields 701, true clears impl+0x6ed8 and succeeds.",
+        "function": "0x102b60b0"
        }
       ]
      },
@@ -50778,19 +50794,35 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The wrapper does not publish a playback event. Indexed submission signals a session request and waits for its result; the streamer path invokes its session method.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8674",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102b60dc",
+        "notes": "Modes other than 2 call f_102b0140, which sends op 0x19 and invokes f_106a7a34 on success; a false result is mapped to 701.",
+        "function": "0x102b60b0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b6150",
+        "notes": "Mode 2 submits op 6, whose builder 0x1032e494 writes +0xe4=6, +0xec and +0x114. The secondary halfword at sp+0x16 selects follow-up or fault mapping. A false result maps halfword 2 to 800, 3 to 701 (isel at 0x102b6198), and all other halfwords to 711.",
+        "function": "0x102b60b0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b61ac",
+        "notes": "When op 6 returns true and halfword is 1, calls f_102b1c5c. A nonzero rc is returned unchanged after f_102b4b48. Otherwise tries f_10256a84 op 5 at 0x102b61f8 with player state arguments; its false result yields 701, true clears impl+0x6ed8 and succeeds.",
+        "function": "0x102b60b0"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace what the indexed skip-op consumer and the streamer skip method publish after success. Identify LastChange fields and their suppression conditions; successful request completion alone does not establish delivery."
       ]
      },
      "state_transitions": {
@@ -50807,15 +50839,39 @@
       ]
      },
      "return_behavior": {
-      "description": "Indexed submit rc {2->800,3->701,else->711}; stream path: streamer vfunc nonzero -> 0 else 701.",
+      "description": "Nonzero InstanceID returns 718. Non-indexed failure yields 701. The indexed path can produce 701, 711 or 800 from its result mapping, or forward the nonzero f_102b1c5c result in the halfword-1 continuation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b6184",
-        "notes": "rc->800/711/701 isel map",
-        "function": "f_102b60b0"
+        "address": "0x102b98b4",
+        "notes": "Nonzero parsed InstanceID returns 718 before the worker call at 0x102b9908.",
+        "function": "0x102b9874"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b60dc",
+        "notes": "Modes other than 2 call f_102b0140, which sends op 0x19 and invokes f_106a7a34 on success; a false result is mapped to 701.",
+        "function": "0x102b60b0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b6150",
+        "notes": "Mode 2 submits op 6, whose builder 0x1032e494 writes +0xe4=6, +0xec and +0x114. The secondary halfword at sp+0x16 selects follow-up or fault mapping. A false result maps halfword 2 to 800, 3 to 701 (isel at 0x102b6198), and all other halfwords to 711.",
+        "function": "0x102b60b0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b61ac",
+        "notes": "When op 6 returns true and halfword is 1, calls f_102b1c5c. A nonzero rc is returned unchanged after f_102b4b48. Otherwise tries f_10256a84 op 5 at 0x102b61f8 with player state arguments; its false result yields 701, true clears impl+0x6ed8 and succeeds.",
+        "function": "0x102b60b0"
        }
       ]
      },
@@ -50830,34 +50886,21 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x38)",
-       "meaning": "apply worker f_102b60b0 exit accumulator r30: literal {701 x2, 0, 800} plus call-derived; impl-side 718 on InstanceID!=0 stands; rc forwarded verbatim",
+       "meaning": "Parsed InstanceID was nonzero.",
        "fault_sites": [
         "0x102f8728"
        ],
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "The engine rejects the parsed ID before entering the skip worker.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b98b4",
-           "notes": "li 0x2ce",
-           "function": "f_102b9874"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x102b9874",
-           "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
+           "notes": "Nonzero parsed InstanceID returns 718 before the worker call at 0x102b9908.",
+           "function": "0x102b9874"
           }
          ]
         }
@@ -50868,42 +50911,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b98b4",
-         "notes": "li 0x2ce",
-         "function": "f_102b9874"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102b9874",
-         "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102b60e8",
-         "notes": "li r30,0x2bd"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102b6184",
-         "notes": "li r30,0x320"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102b6178",
-         "notes": "li r30,0"
+         "notes": "Nonzero parsed InstanceID returns 718 before the worker call at 0x102b9908.",
+         "function": "0x102b9874"
         }
        ],
        "unresolved": {
@@ -50953,11 +50962,7 @@
         0,
         718
        ],
-       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x38); sites: 0x102f8728).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker."
       },
       {
        "code": 701,
@@ -51128,34 +51133,51 @@
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "meaning": "Indexed Next can propagate the nonzero f_102b1c5c result only on successful op 6 with secondary halfword 1.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102b6150",
+         "notes": "Mode 2 submits op 6, whose builder 0x1032e494 writes +0xe4=6, +0xec and +0x114. The secondary halfword at sp+0x16 selects follow-up or fault mapping. A false result maps halfword 2 to 800, 3 to 701 (isel at 0x102b6198), and all other halfwords to 711.",
+         "function": "0x102b60b0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b61ac",
+         "notes": "When op 6 returns true and halfword is 1, calls f_102b1c5c. A nonzero rc is returned unchanged after f_102b4b48. Otherwise tries f_10256a84 op 5 at 0x102b61f8 with player state arguments; its false result yields 701, true clears impl+0x6ed8 and succeeds.",
+         "function": "0x102b60b0"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "The indexed success continuation calls f_102b1c5c, whose f_1025ed54=false branch tail-calls f_102ac030.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102b6150",
+           "notes": "Mode 2 submits op 6, whose builder 0x1032e494 writes +0xe4=6, +0xec and +0x114. The secondary halfword at sp+0x16 selects follow-up or fault mapping. A false result maps halfword 2 to 800, 3 to 701 (isel at 0x102b6198), and all other halfwords to 711.",
+           "function": "0x102b60b0"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b61ac",
+           "notes": "When op 6 returns true and halfword is 1, calls f_102b1c5c. A nonzero rc is returned unchanged after f_102b4b48. Otherwise tries f_10256a84 op 5 at 0x102b61f8 with player state arguments; its false result yields 701, true clears impl+0x6ed8 and succeeds.",
+           "function": "0x102b60b0"
           }
          ]
         }
        ],
        "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Identify all ordinary nonzero return codes of f_102ac030 and predicates reachable from f_102b1c5c at 0x102b1cac. Streamer failures and indexed op-6/5 boolean failures are translated locally, not forwarded."
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
@@ -51201,12 +51223,43 @@
        "build": "86.10-80260",
        "address": "0x10eb3120",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b98b4",
+       "notes": "Nonzero parsed InstanceID returns 718 before the worker call at 0x102b9908.",
+       "function": "0x102b9874"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b60dc",
+       "notes": "Modes other than 2 call f_102b0140, which sends op 0x19 and invokes f_106a7a34 on success; a false result is mapped to 701.",
+       "function": "0x102b60b0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b6150",
+       "notes": "Mode 2 submits op 6, whose builder 0x1032e494 writes +0xe4=6, +0xec and +0x114. The secondary halfword at sp+0x16 selects follow-up or fault mapping. A false result maps halfword 2 to 800, 3 to 701 (isel at 0x102b6198), and all other halfwords to 711.",
+       "function": "0x102b60b0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b61ac",
+       "notes": "When op 6 returns true and halfword is 1, calls f_102b1c5c. A nonzero rc is returned unchanged after f_102b4b48. Otherwise tries f_10256a84 op 5 at 0x102b61f8 with player state arguments; its false result yields 701, true clears impl+0x6ed8 and succeeds.",
+       "function": "0x102b60b0"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: direct dispatch to handler 0x102f8674; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Trace the consumer that writes Next's secondary halfword (sp+0x16 in f_102b60b0) and the condition under which f_102ac030 returns nonzero through the halfword-1 continuation. The mode branches and mapping are verified."
      ]
     },
     "NotifyDeletedURI": {
