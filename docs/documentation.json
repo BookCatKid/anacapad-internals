@@ -85216,7 +85216,7 @@
    },
    "actions": {
     "Browse": {
-     "description": "Browses metadata or direct children using bound cd_impl, with a preflight and a separate deferred Result executor. The top-level ObjectID resolver recognizes 0, A:, S:, Q:, R:, AI:, SQ: and FV:, not an arbitrary URI. The root enumeration and outer paging/response machinery are traced; detailed per-container enumeration and item serialization remain explicitly scoped below. R/FV node browsing is traced through its concrete SAX callbacks: Filter and SortCriteria are ignored, eligible entries retain stored order and paging does not impose an independent maximum. Q children use queue order and unsigned paging, with no independent request cap or SortCriteria validation; the native 16-bit queue length is a storage bound, not a paging clamp. The local zone-player exact AI: provider is concretely bound to metadata/children stubs returning deferred backend701, not an unconditional early SOAP701. S child enumerations ignore SortCriteria; indexed child UpdateID is1, remote child UpdateID is0. Remote iterator false maps to deferred720 and true to success, as verified from raw isel.",
+     "description": "Browses metadata or direct children using bound cd_impl, with a preflight and a separate deferred Result executor. The top-level ObjectID resolver recognizes 0, A:, S:, Q:, R:, AI:, SQ: and FV:, not an arbitrary URI. The root enumeration and outer paging/response machinery are traced; detailed per-container enumeration and item serialization remain explicitly scoped below. R/FV node browsing is traced through its concrete SAX callbacks: Filter and SortCriteria are ignored, eligible entries retain stored order and paging does not impose an independent maximum. Q children use queue order and unsigned paging, with no independent request cap or SortCriteria validation; the native 16-bit queue length is a storage bound, not a paging clamp. The local zone-player exact AI: provider is concretely bound to metadata/children stubs returning deferred backend701, not an unconditional early SOAP701. S child enumerations ignore SortCriteria; indexed child UpdateID is1, remote child UpdateID is0. Remote iterator false maps to deferred720 and true to success, as verified from raw isel. SQ root children preserve saved-file playlist order, ignore Filter/SortCriteria, page without an independent request cap, count all parsed playlists and use the saved-queue manager version.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10306b3c",
@@ -85353,6 +85353,30 @@
         "function": "0x100fe0e4",
         "address": "0x100fe7b4",
         "notes": "Indexed S child worker copies ObjectID/path into0x401 buffer and returns backend402 when strlen>1023 at100fe178/180. SortCriteria incoming r8 is overwritten by canary load100fe160 without consumption. Exact dc:title,res compared100fe20c. TotalMatches initialized0 at100fe214; enumerates catalog directories10105c18 then entries10105b3c, incrementing TotalMatches regardless of page, while unsigned start/count gates emission100fe298/a8 and100fe3d0/e0. Directory containers serialize dc:title, object.container, x-rincon-playlist resource,1054b24c(close container) at100fe384. NumberReturned is writer count. Successful final100fe7a8..b4 unlocks index, writes literal UpdateID1, returns0. This differs from remote UpdateID0 and is not SystemUpdateID. File metadata/resource optional fields100fe430..790 remain to trace before closing S."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10348244",
+        "address": "0x1034827c",
+        "notes": "SQ root concrete vptr10ebb7f4 has children+0xc=10348244. Adapter drops incoming Filter and SortCriteria: r4=start(r5),r5=count(r6),r6=writer(r8),r7=UpdateID(r9),r8=TotalMatches(r10), and acquires global manager11096770 before10478e04. Worker holds manager+0x28 mutex, initializes SAX context with10ed2f38, snapshots manager+0xcc into UpdateID at10478e98/a8 before reading, then calls104789d4. Only status0 copies context+0x10 into TotalMatches10478ec0/d0. This version is the saved-queue manager version, not SystemUpdateID. Adapter root metadata103483b4 and playlist/track routes remain separate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047c8d0",
+        "address": "0x1047cb68",
+        "notes": "Saved-queue root callback context+4=NULL selects root enumeration. For each playlist header,1047cad8 compares unsigned ordinal(context+0x10) to start(+8), tests remaining count(+0xc); selected headers call1047c74c at1047cb54 and decrement remaining, then every header increments ordinal1047caf4/f8 including those outside page. Thus TotalMatches is all parsed saved playlists independently of page, and order is persisted parser order, not a sort. No independent root request-count clamp. Selected serializer1047c74c sets open-container flag+0x24 and emits SQ:%s IDs with parent SQ:, dc:title, upnp:class object.container.playlistContainer and file:*:audio/mpegurl:* resource pointing to savedqueues.rsq plus #playlistID. End callback1047b9ac ->1047ba50/58 closes selected container with1054b24c and clears flag, supplying NumberReturned through DIDL completion count. Track-count mismatch is logged1047ba18/34; callback alone does not manufacture another SOAP fault. Optional album-art sample/eligibility callbacks remain to trace before claiming complete Filter/art semantics."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104789d4",
+        "address": "0x10478b64",
+        "notes": "Root enumeration reader opens native saved queue file through103d1a28; initializes fallback backend720, uses now+10000ms deadline10478a80 and4096-byte read chunks10478ac0/10478af8. Streamed SAX10c3fc68 drives the concrete root context10ed2f38; EOF/parse/read status controls final return and therefore whether TotalMatches output is copied. Read buffer size is not a request-page cap. Indexed file transaction/mutation1047ee0c is not this Browse reader; no Browse persistence follows merely because its literals are adjacent. Exact native read/parse flag failure conversion10478b4c..64 and playlist/track resource helpers remain explicit residuals."
        }
       ]
      },
@@ -85907,7 +85931,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Directory graph rooted at impl+0x168; root count +0x374 and children array +0x358, queue directory +0x354, favorites +0x34c. Root UpdateID is global cd_impl counter; other node version sources are container-specific. R/FV reads userradio.xml with 4096-byte reads and a 10-second deadline; its provider version is not the global SystemUpdateID. Malformed stored XML can yield partial output because the existing-file SAX status is ignored. Q read holds wait for mutation flag+0x26b4 and increment reader count+0x26b0 under mutex+0x25d0; release signals when the last reader exits. Optional u16 remap+0x26c4 selected by+0x26dc bit0 changes resource lookup, not visible position/ID ordering. Local AI provider is either absent or the object constructed by10208dcc; its exact-root read stubs leave output words unchanged. Indexed S child enumeration reads directory/file catalog under share-index locking and returns literal version1; remote receiver starts version0 and reports announced total length or callback rows seen. Format workers can replace the initial deadline (WPL15seconds).",
+      "description": "Directory graph rooted at impl+0x168; root count +0x374 and children array +0x358, queue directory +0x354, favorites +0x34c. Root UpdateID is global cd_impl counter; other node version sources are container-specific. R/FV reads userradio.xml with 4096-byte reads and a 10-second deadline; its provider version is not the global SystemUpdateID. Malformed stored XML can yield partial output because the existing-file SAX status is ignored. Q read holds wait for mutation flag+0x26b4 and increment reader count+0x26b0 under mutex+0x25d0; release signals when the last reader exits. Optional u16 remap+0x26c4 selected by+0x26dc bit0 changes resource lookup, not visible position/ID ordering. Local AI provider is either absent or the object constructed by10208dcc; its exact-root read stubs leave output words unchanged. Indexed S child enumeration reads directory/file catalog under share-index locking and returns literal version1; remote receiver starts version0 and reports announced total length or callback rows seen. Format workers can replace the initial deadline (WPL15seconds). SQ root snapshots manager+0xcc under manager+0x28 mutex; only successful file parse copies total playlist-header count to TotalMatches. Selected saved-playlist containers count through DIDL completion, independently of all-header TotalMatches.",
       "evidence": [
        {
         "type": "firmware",
@@ -86052,6 +86076,30 @@
         "function": "0x100fe0e4",
         "address": "0x100fe7b4",
         "notes": "Indexed S child worker copies ObjectID/path into0x401 buffer and returns backend402 when strlen>1023 at100fe178/180. SortCriteria incoming r8 is overwritten by canary load100fe160 without consumption. Exact dc:title,res compared100fe20c. TotalMatches initialized0 at100fe214; enumerates catalog directories10105c18 then entries10105b3c, incrementing TotalMatches regardless of page, while unsigned start/count gates emission100fe298/a8 and100fe3d0/e0. Directory containers serialize dc:title, object.container, x-rincon-playlist resource,1054b24c(close container) at100fe384. NumberReturned is writer count. Successful final100fe7a8..b4 unlocks index, writes literal UpdateID1, returns0. This differs from remote UpdateID0 and is not SystemUpdateID. File metadata/resource optional fields100fe430..790 remain to trace before closing S."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10348244",
+        "address": "0x1034827c",
+        "notes": "SQ root concrete vptr10ebb7f4 has children+0xc=10348244. Adapter drops incoming Filter and SortCriteria: r4=start(r5),r5=count(r6),r6=writer(r8),r7=UpdateID(r9),r8=TotalMatches(r10), and acquires global manager11096770 before10478e04. Worker holds manager+0x28 mutex, initializes SAX context with10ed2f38, snapshots manager+0xcc into UpdateID at10478e98/a8 before reading, then calls104789d4. Only status0 copies context+0x10 into TotalMatches10478ec0/d0. This version is the saved-queue manager version, not SystemUpdateID. Adapter root metadata103483b4 and playlist/track routes remain separate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047c8d0",
+        "address": "0x1047cb68",
+        "notes": "Saved-queue root callback context+4=NULL selects root enumeration. For each playlist header,1047cad8 compares unsigned ordinal(context+0x10) to start(+8), tests remaining count(+0xc); selected headers call1047c74c at1047cb54 and decrement remaining, then every header increments ordinal1047caf4/f8 including those outside page. Thus TotalMatches is all parsed saved playlists independently of page, and order is persisted parser order, not a sort. No independent root request-count clamp. Selected serializer1047c74c sets open-container flag+0x24 and emits SQ:%s IDs with parent SQ:, dc:title, upnp:class object.container.playlistContainer and file:*:audio/mpegurl:* resource pointing to savedqueues.rsq plus #playlistID. End callback1047b9ac ->1047ba50/58 closes selected container with1054b24c and clears flag, supplying NumberReturned through DIDL completion count. Track-count mismatch is logged1047ba18/34; callback alone does not manufacture another SOAP fault. Optional album-art sample/eligibility callbacks remain to trace before claiming complete Filter/art semantics."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104789d4",
+        "address": "0x10478b64",
+        "notes": "Root enumeration reader opens native saved queue file through103d1a28; initializes fallback backend720, uses now+10000ms deadline10478a80 and4096-byte read chunks10478ac0/10478af8. Streamed SAX10c3fc68 drives the concrete root context10ed2f38; EOF/parse/read status controls final return and therefore whether TotalMatches output is copied. Read buffer size is not a request-page cap. Indexed file transaction/mutation1047ee0c is not this Browse reader; no Browse persistence follows merely because its literals are adjacent. Exact native read/parse flag failure conversion10478b4c..64 and playlist/track resource helpers remain explicit residuals."
        }
       ],
       "todo": [
@@ -86112,7 +86160,7 @@
         }
        ],
        "todo": [
-        "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ10478e04/10478618 callbacks and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
+        "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ optional-art/metadata/playlist-track1047b8d4/103483b4/10478618 callbacks (root enumeration accounting traced) and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
        ]
       }
      ],
@@ -86169,7 +86217,7 @@
        }
       ],
       "todo": [
-       "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ10478e04/10478618 callbacks and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
+       "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ optional-art/metadata/playlist-track1047b8d4/103483b4/10478618 callbacks (root enumeration accounting traced) and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
       ]
      },
      "state_transitions": {
@@ -86596,12 +86644,36 @@
        "function": "0x100fe0e4",
        "address": "0x100fe7b4",
        "notes": "Indexed S child worker copies ObjectID/path into0x401 buffer and returns backend402 when strlen>1023 at100fe178/180. SortCriteria incoming r8 is overwritten by canary load100fe160 without consumption. Exact dc:title,res compared100fe20c. TotalMatches initialized0 at100fe214; enumerates catalog directories10105c18 then entries10105b3c, incrementing TotalMatches regardless of page, while unsigned start/count gates emission100fe298/a8 and100fe3d0/e0. Directory containers serialize dc:title, object.container, x-rincon-playlist resource,1054b24c(close container) at100fe384. NumberReturned is writer count. Successful final100fe7a8..b4 unlocks index, writes literal UpdateID1, returns0. This differs from remote UpdateID0 and is not SystemUpdateID. File metadata/resource optional fields100fe430..790 remain to trace before closing S."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10348244",
+       "address": "0x1034827c",
+       "notes": "SQ root concrete vptr10ebb7f4 has children+0xc=10348244. Adapter drops incoming Filter and SortCriteria: r4=start(r5),r5=count(r6),r6=writer(r8),r7=UpdateID(r9),r8=TotalMatches(r10), and acquires global manager11096770 before10478e04. Worker holds manager+0x28 mutex, initializes SAX context with10ed2f38, snapshots manager+0xcc into UpdateID at10478e98/a8 before reading, then calls104789d4. Only status0 copies context+0x10 into TotalMatches10478ec0/d0. This version is the saved-queue manager version, not SystemUpdateID. Adapter root metadata103483b4 and playlist/track routes remain separate."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047c8d0",
+       "address": "0x1047cb68",
+       "notes": "Saved-queue root callback context+4=NULL selects root enumeration. For each playlist header,1047cad8 compares unsigned ordinal(context+0x10) to start(+8), tests remaining count(+0xc); selected headers call1047c74c at1047cb54 and decrement remaining, then every header increments ordinal1047caf4/f8 including those outside page. Thus TotalMatches is all parsed saved playlists independently of page, and order is persisted parser order, not a sort. No independent root request-count clamp. Selected serializer1047c74c sets open-container flag+0x24 and emits SQ:%s IDs with parent SQ:, dc:title, upnp:class object.container.playlistContainer and file:*:audio/mpegurl:* resource pointing to savedqueues.rsq plus #playlistID. End callback1047b9ac ->1047ba50/58 closes selected container with1054b24c and clears flag, supplying NumberReturned through DIDL completion count. Track-count mismatch is logged1047ba18/34; callback alone does not manufacture another SOAP fault. Optional album-art sample/eligibility callbacks remain to trace before claiming complete Filter/art semantics."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104789d4",
+       "address": "0x10478b64",
+       "notes": "Root enumeration reader opens native saved queue file through103d1a28; initializes fallback backend720, uses now+10000ms deadline10478a80 and4096-byte read chunks10478ac0/10478af8. Streamed SAX10c3fc68 drives the concrete root context10ed2f38; EOF/parse/read status controls final return and therefore whether TotalMatches output is copied. Read buffer size is not a request-page cap. Indexed file transaction/mutation1047ee0c is not this Browse reader; no Browse persistence follows merely because its literals are adjacent. Exact native read/parse flag failure conversion10478b4c..64 and playlist/track resource helpers remain explicit residuals."
       }
      ],
      "notes": null,
      "implementation_notes": "Preflight is not enumeration. Correct callback/response ordering matters: streamed backend errors are not automatically SOAP faults. Concrete per-container limits/sort/filter/item serialization are still named residuals, not inferred from standard UPnP semantics.",
      "todo": [
-      "Remaining static work: Q complete generated optional-field conditions104202f4 and metadata-only1015036c (child ordering/paging/counters/basic Filter selection now traced); AI secondary media-player constructor1040fffc provider source and live suffix-zone+0x9a4 constructor/vptr binding through10208ff0; local exact-root constructor/vptr/stub chain is traced; S indexed-file optional metadata100fe430..790; full ASX10461e04, M3U10462c80, PLS10463164 ->104611c8, WPL10462f54 ->SAX10ed1770, CIFS-directory10460814 ->103d5250 and saved-queue1047851c receiver invocation/accounting and subordinate cache/publisher calls (adapter, callback counters and indexed directory paging/version now traced); SQ root10478e04, playlist10348560 ->10478618 and track103476d8 callbacks; A graph102a3b74/102a3c80 and child worker102a21d8. Finish each backend Filter/SortCriteria, caps, item/container serialization, counter/version sources and subordinate cache/publisher writes. R/FV read workers1037c5e8/1037c1a8, their SAX class selectors, ordering, paging, DIDL and version sources are traced; they are no longer residuals. These remaining paths have been inspected but are unfinished static work, not demonstrated runtime-only boundaries."
+      "Remaining static work: Q complete generated optional-field conditions104202f4 and metadata-only1015036c (child ordering/paging/counters/basic Filter selection now traced); AI secondary media-player constructor1040fffc provider source and live suffix-zone+0x9a4 constructor/vptr binding through10208ff0; local exact-root constructor/vptr/stub chain is traced; S indexed-file optional metadata100fe430..790; full ASX10461e04, M3U10462c80, PLS10463164 ->104611c8, WPL10462f54 ->SAX10ed1770, CIFS-directory10460814 ->103d5250 and saved-queue1047851c receiver invocation/accounting and subordinate cache/publisher calls (adapter, callback counters and indexed directory paging/version now traced); SQ root optional-art eligibility/sample1047b8d4/1047b7b8 and parse/read flag conversion10478b4c..64; root metadata103483b4, playlist10348560 ->10478618 and track103476d8 item/resource callbacks (root children dispatch, page/count/version/order and container serializer now traced); A graph102a3b74/102a3c80 and child worker102a21d8. Finish each backend Filter/SortCriteria, caps, item/container serialization, counter/version sources and subordinate cache/publisher writes. R/FV read workers1037c5e8/1037c1a8, their SAX class selectors, ordering, paging, DIDL and version sources are traced; they are no longer residuals. These remaining paths have been inspected but are unfinished static work, not demonstrated runtime-only boundaries."
      ],
      "resolved_findings": [
       "A: root is fixed seven-entry enumeration, not the complete attribute backend. IDs use A:%s and table10eaded0: ARTIST,ALBUMARTIST,ALBUM,GENRE,COMPOSER,TRACKS,PLAYLISTS. Applies unsigned start/count checks, total counts all seven independently of page, UpdateID zero. DIDL container serializer102a1f18; Filter/Sort not consulted at this root. Attribute node construction/resolution102a3b74/102a3c80 must be followed for deeper library behavior.",
