@@ -40303,7 +40303,7 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x1051332c",
-       "notes": "Derived +0x54 runs f_102d5524 directly if the global predicate succeeds. Otherwise a positive local topology predicate returns 1023, while a zero predicate toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure toggles back on.",
+       "notes": "Derived +0x54 with a positive local secondary predicate runs f_102d5524 directly if the product code is allowlisted, or returns 1023 otherwise. With a zero local secondary predicate the override toggles f_102e1dac off, runs the base action, and on success forwards the group URI through f_102e0fb0; on failure it toggles back on.",
        "function": "0x10513244"
       },
       {
@@ -40377,20 +40377,43 @@
        "address": "0x102d524c",
        "notes": "On the nonzero source-operation result branch, clears the current URI, metadata and auxiliary string and marks +0x4251. If a next URI was present it clears the next URI and metadata and marks +0x4252, then schedules event processing. The later common tail also clears the active sleep generation if set and clears a set RestartPending byte, marking and scheduling each change.",
        "function": "0x102d4e80"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10513288",
+       "function": "0x10513244",
+       "notes": "Standalone setup checks the local secondary predicate first. If it is 1, the hardware allowlist selects a direct tail call to f_102d5524 at 0x105133e0 or fault 1023 at 0x105132b4. If it is 0, the override takes the setup toggle and forwarding path starting at 0x10513308, without reading the product code."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x109089f4",
+       "function": "0x109089f0",
+       "notes": "f_1090ad44 returns the local product information at 0x110c8150. f_109089f0 reads product code +0xcc. The 0x04020041 mask applies to codes 29 through 55 and selects 29, 35, 46 and 55; the separate comparison accepts 59. The model tables at 0x10f7c1f4 and 0x10f7c2f0 identify those codes as S27/Roam, S35/Roam SL, S44/Move 2, S54/Roam 2 and S58/Mojave. This is a hardware test, not a membership query."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1075c5c8",
+       "function": "0x1075c4d0",
+       "notes": "The fallback acquires the live topology holder from impl+0x44c and looks up the local ID passed from impl+0x3dc. f_10765a00 requires record+0x10 to match the ID by strcmp and device state (*(record+0x2568))+0x710 to equal 1. f_10762df8 additionally requires record bytes +0x1f18 and +0x1f4b to be nonzero. It then uses the roster at record+0x1c88: f_1053ce34 reads its first byte and f_1053c370 returns whether its word +0x288 is zero. The fallback returns 1 only when the first byte is nonzero and that word is nonzero, the active secondary case. Missing or expired topology, no matching valid record, an inactive roster or a zero roster word returns 0."
       }
      ],
-     "notes": "None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x10513244 - grouped gate: topology singleton + state predicate + f_1075c4d0 precondition on impl+0x44c; error path uses 0x3ff (1023). Ungrouped zones get identical behavior to the standalone engine for the Become* actions.",
+     "notes": "The group-capable engine (vtable 0x10edfbb8) checks local secondary status before choosing direct or wrapped standalone setup.",
      "todo": [
       "Established: Runs standalone coordinator setup and can return the delegated coordinator ID of the old group and the new local group ID. The group-aware engine can reject it before standalone setup.",
       "Resolve the remaining topology and source conditions deciding when NewGroupID is written and which playback state the restore or VLI branches publish."
      ],
      "resolved_findings": [
-      "Resolved: f_1075c4d0 is the precondition checker - gates on current coordinator state and transport-busy flag before the standalone-coordinator claim proceeds.",
-      "Resolved: f_1075c4d0 is the precondition checker - gates on current coordinator state and transport-busy flag before the standalone-coordinator claim proceeds."
+      "The 1023 precondition is the conjunction of active local secondary status and a hardware code outside the allowlist. It is not a generic transport-busy check."
      ]
     },
     "BecomeGroupCoordinator": {
-     "description": "Imports coordinator state through a lazy request adapter. The engine can refuse a nonmember transition unless the clone header is present; the group-aware override can also decline it before the base action runs.",
+     "description": "Imports coordinator state through a lazy request adapter. The group-aware override can reject an active secondary before reading the SOAP fields, even with the clone header. The base import requires engine mode zero or the clone header.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fc8b0",
@@ -42148,22 +42171,36 @@
        "address": "0x102deb2c",
        "notes": "Member continuation calls f_10292f78, copies a transport record and decodes an incoming setting through f_1066e2dc.",
        "function": "0x102de740"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x109089f4",
+       "function": "0x109089f0",
+       "notes": "f_1090ad44 returns the local product information at 0x110c8150. f_109089f0 reads product code +0xcc. The 0x04020041 mask applies to codes 29 through 55 and selects 29, 35, 46 and 55; the separate comparison accepts 59. The model tables at 0x10f7c1f4 and 0x10f7c2f0 identify those codes as S27/Roam, S35/Roam SL, S44/Move 2, S54/Roam 2 and S58/Mojave. This is a hardware test, not a membership query."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1075c5c8",
+       "function": "0x1075c4d0",
+       "notes": "The fallback acquires the live topology holder from impl+0x44c and looks up the local ID passed from impl+0x3dc. f_10765a00 requires record+0x10 to match the ID by strcmp and device state (*(record+0x2568))+0x710 to equal 1. f_10762df8 additionally requires record bytes +0x1f18 and +0x1f4b to be nonzero. It then uses the roster at record+0x1c88: f_1053ce34 reads its first byte and f_1053c370 returns whether its word +0x288 is zero. The fallback returns 1 only when the first byte is nonzero and that word is nonzero, the active secondary case. Missing or expired topology, no matching valid record, an inactive roster or a zero roster word returns 0."
       }
      ],
-     "notes": "None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x105133e4 - delegates verbatim to class-A impl 0x102de740 when the zone is ungrouped; group path otherwise. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.",
-     "args_verified_empty": true,
-     "implementation_notes": " Handler 0x102fc8b0 contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).",
+     "notes": "The group-capable engine dispatches to 0x105133e4. Its only two exits are the 1023 secondary rejection and the unchanged base call at 0x1051343c (f_102de740).",
+     "implementation_notes": "The SOAP wrapper does not parse the body eagerly. The adapter at f_102f9c00 materializes it inside the engine call.",
      "todo": [
       "Established: the adapter resolves the two required queue arguments by exact name and does not use CurrentQueueTrackList as an alias. The base action has separate parse, OtherMembers, source URI, VLI and synchronization 402 paths.",
       "Finish the serialized argument consumers and the URI category and synchronization predicates that select the late failure paths."
      ],
      "resolved_findings": [
-      "Resolved: the grouped branch of 0x105133e4 clones the group transport state into the new coordinator via the delegation path; state cloning = queue + position + playmode transfer.",
-      "Resolved: the grouped branch of 0x105133e4 clones the group transport state into the new coordinator via the delegation path; state cloning = queue + position + playmode transfer."
+      "The override checks the local hardware product code at 0x1051340c. Only codes outside the allowlist call the secondary predicate at 0x10513448. Its nonzero result gives 1023 at 0x1051348c."
      ]
     },
     "BecomeGroupCoordinatorAndSource": {
-     "description": "Imports coordinator state through a lazy request adapter. The engine can refuse a nonmember transition unless the clone header is present; the group-aware override can also decline it before the base action runs.",
+     "description": "Imports coordinator state through a lazy request adapter. The group-aware override can reject an active secondary before reading the SOAP fields, even with the clone header. The base import requires engine mode zero or the clone header.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fc3a0",
@@ -43774,7 +43811,7 @@
       ]
      },
      "return_behavior": {
-      "description": "The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers. When the late failure path invokes standalone setup, its result is discarded.",
+      "description": "The group-aware override returns 1023 before reading the SOAP arguments only when the hardware code does not bypass the check and the local topology marks the player as an active secondary. The base engine returns 800 for nonzero engine mode without x-sonos-clone-gc, 718 for nonzero parsed InstanceID, and 402 for missing required arguments or invalid OtherMembers framing. Faults pass through the wrapper unchanged, including when standalone setup runs as a fallback.",
       "evidence": [
        {
         "type": "firmware",
@@ -43855,11 +43892,31 @@
         "address": "0x102df740",
         "notes": "The base worker returns r25. The adapter status enters r25 at 0x102df684, and the only action-local 402 assignment to it is the OtherMembers failure at 0x102df848. Standalone fallback at 0x102df6f4 does not overwrite it; neither source-state decode nor indexed resume submits a later SOAP 402.",
         "function": "0x102df410"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10513560",
+        "function": "0x105134a8",
+        "notes": "The +0xd4 override bypasses the secondary check on a nonzero f_109089f0 result. Otherwise it calls f_1075c4d0 at 0x1051351c and maps only its nonzero return to 1023. Both permitted paths branch to f_102df410 with the original arguments at 0x10513510."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x109089f4",
+        "function": "0x109089f0",
+        "notes": "f_1090ad44 returns the local product information at 0x110c8150. f_109089f0 reads product code +0xcc. The 0x04020041 mask applies to codes 29 through 55 and selects 29, 35, 46 and 55; the separate comparison accepts 59. The model tables at 0x10f7c1f4 and 0x10f7c2f0 identify those codes as S27/Roam, S35/Roam SL, S44/Move 2, S54/Roam 2 and S58/Mojave. This is a hardware test, not a membership query."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1075c5c8",
+        "function": "0x1075c4d0",
+        "notes": "The fallback acquires the live topology holder from impl+0x44c and looks up the local ID passed from impl+0x3dc. f_10765a00 requires record+0x10 to match the ID by strcmp and device state (*(record+0x2568))+0x710 to equal 1. f_10762df8 additionally requires record bytes +0x1f18 and +0x1f4b to be nonzero. It then uses the roster at record+0x1c88: f_1053ce34 reads its first byte and f_1053c370 returns whether its word +0x288 is zero. The fallback returns 1 only when the first byte is nonzero and that word is nonzero, the active secondary case. Missing or expired topology, no matching valid record, an inactive roster or a zero roster word returns 0."
        }
-      ],
-      "todo": [
-       "Established: The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers.",
-       "Trace the derived topology guard from f_109089f0 and the f_1075c4d0 fallback to the local topology and hardware data that permits promotion."
       ]
      },
      "fault_sites": [
@@ -43873,13 +43930,13 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0xd4)",
-       "meaning": "The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers.",
+       "meaning": "The group-aware override returns 1023 before reading the SOAP arguments only when the hardware code does not bypass the check and the local topology marks the player as an active secondary. The base engine returns 800 for nonzero engine mode without x-sonos-clone-gc, 718 for nonzero parsed InstanceID, and 402 for missing required arguments or invalid OtherMembers framing. The SOAP wrapper forwards the nonzero result unchanged.",
        "fault_sites": [
         "0x102fc464"
        ],
        "conditions": [
         {
-         "description": "The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers.",
+         "description": "The group-aware override returns 1023 before reading the SOAP arguments only when the hardware code does not bypass the check and the local topology marks the player as an active secondary. The base engine returns 800 for nonzero engine mode without x-sonos-clone-gc, 718 for nonzero parsed InstanceID, and 402 for missing required arguments or invalid OtherMembers framing. The SOAP wrapper forwards the nonzero result unchanged.",
          "evidence": [
           {
            "type": "firmware",
@@ -43918,6 +43975,30 @@
            "address": "0x102df6f4",
            "notes": "The post-materialization failure tail calls f_102d4e80 with no candidate or output buffers, discards its result, cleans up under the worker lock, and returns the original error from r25.",
            "function": "0x102df410"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10513560",
+           "function": "0x105134a8",
+           "notes": "The +0xd4 override bypasses the secondary check on a nonzero f_109089f0 result. Otherwise it calls f_1075c4d0 at 0x1051351c and maps only its nonzero return to 1023. Both permitted paths branch to f_102df410 with the original arguments at 0x10513510."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x109089f4",
+           "function": "0x109089f0",
+           "notes": "f_1090ad44 returns the local product information at 0x110c8150. f_109089f0 reads product code +0xcc. The 0x04020041 mask applies to codes 29 through 55 and selects 29, 35, 46 and 55; the separate comparison accepts 59. The model tables at 0x10f7c1f4 and 0x10f7c2f0 identify those codes as S27/Roam, S35/Roam SL, S44/Move 2, S54/Roam 2 and S58/Mojave. This is a hardware test, not a membership query."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1075c5c8",
+           "function": "0x1075c4d0",
+           "notes": "The fallback acquires the live topology holder from impl+0x44c and looks up the local ID passed from impl+0x3dc. f_10765a00 requires record+0x10 to match the ID by strcmp and device state (*(record+0x2568))+0x710 to equal 1. f_10762df8 additionally requires record bytes +0x1f18 and +0x1f4b to be nonzero. It then uses the roster at record+0x1c88: f_1053ce34 reads its first byte and f_1053c370 returns whether its word +0x288 is zero. The fallback returns 1 only when the first byte is nonzero and that word is nonzero, the active secondary case. Missing or expired topology, no matching valid record, an inactive roster or a zero roster word returns 0."
           }
          ]
         }
@@ -43992,20 +44073,38 @@
          "address": "0x102df740",
          "notes": "The base worker returns r25. The adapter status enters r25 at 0x102df684, and the only action-local 402 assignment to it is the OtherMembers failure at 0x102df848. Standalone fallback at 0x102df6f4 does not overwrite it; neither source-state decode nor indexed resume submits a later SOAP 402.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10513560",
+         "function": "0x105134a8",
+         "notes": "The +0xd4 override bypasses the secondary check on a nonzero f_109089f0 result. Otherwise it calls f_1075c4d0 at 0x1051351c and maps only its nonzero return to 1023. Both permitted paths branch to f_102df410 with the original arguments at 0x10513510."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x109089f4",
+         "function": "0x109089f0",
+         "notes": "f_1090ad44 returns the local product information at 0x110c8150. f_109089f0 reads product code +0xcc. The 0x04020041 mask applies to codes 29 through 55 and selects 29, 35, 46 and 55; the separate comparison accepts 59. The model tables at 0x10f7c1f4 and 0x10f7c2f0 identify those codes as S27/Roam, S35/Roam SL, S44/Move 2, S54/Roam 2 and S58/Mojave. This is a hardware test, not a membership query."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1075c5c8",
+         "function": "0x1075c4d0",
+         "notes": "The fallback acquires the live topology holder from impl+0x44c and looks up the local ID passed from impl+0x3dc. f_10765a00 requires record+0x10 to match the ID by strcmp and device state (*(record+0x2568))+0x710 to equal 1. f_10762df8 additionally requires record bytes +0x1f18 and +0x1f4b to be nonzero. It then uses the roster at record+0x1c88: f_1053ce34 reads its first byte and f_1053c370 returns whether its word +0x288 is zero. The fallback returns 1 only when the first byte is nonzero and that word is nonzero, the active secondary case. Missing or expired topology, no matching valid record, an inactive roster or a zero roster word returns 0."
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x102df410 exits=[232]; promotion worker rc surfaced | worker literal bound [165, 1025, 1640, 4096, 4097, 5489] (ASCII-fragment constants filtered) (worker_err_literals.json)",
+       "domain_note": "The group-aware precheck adds 1023; the base import produces 402, 718 and 800 on its failure paths. The fallback result is discarded.",
        "literal_bound": [
-        165,
-        1025,
-        1640,
-        4096,
-        4097,
-        5489
-       ],
-       "todo": [
-        "Established: The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers.",
-        "Trace the derived topology guard from f_109089f0 and the f_1075c4d0 fallback to the local topology and hardware data that permits promotion."
+        402,
+        718,
+        800,
+        1023
        ]
       },
       {
@@ -44184,18 +44283,32 @@
        "address": "0x102df6f4",
        "notes": "Source continuation calls standalone setup helper f_102d4e80 after constructing imported transport/group state.",
        "function": "0x102df410"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x109089f4",
+       "function": "0x109089f0",
+       "notes": "f_1090ad44 returns the local product information at 0x110c8150. f_109089f0 reads product code +0xcc. The 0x04020041 mask applies to codes 29 through 55 and selects 29, 35, 46 and 55; the separate comparison accepts 59. The model tables at 0x10f7c1f4 and 0x10f7c2f0 identify those codes as S27/Roam, S35/Roam SL, S44/Move 2, S54/Roam 2 and S58/Mojave. This is a hardware test, not a membership query."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1075c5c8",
+       "function": "0x1075c4d0",
+       "notes": "The fallback acquires the live topology holder from impl+0x44c and looks up the local ID passed from impl+0x3dc. f_10765a00 requires record+0x10 to match the ID by strcmp and device state (*(record+0x2568))+0x710 to equal 1. f_10762df8 additionally requires record bytes +0x1f18 and +0x1f4b to be nonzero. It then uses the roster at record+0x1c88: f_1053ce34 reads its first byte and f_1053c370 returns whether its word +0x288 is zero. The fallback returns 1 only when the first byte is nonzero and that word is nonzero, the active secondary case. Missing or expired topology, no matching valid record, an inactive roster or a zero roster word returns 0."
       }
      ],
-     "notes": "None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x105134a8 - delegates verbatim to class-A impl 0x102df410 when the zone is ungrouped; group path otherwise. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.",
-     "args_verified_empty": true,
-     "implementation_notes": " Handler 0x102fc3a0 contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).",
+     "notes": "The group-capable engine dispatches to 0x105134a8. Its only two exits are the 1023 secondary rejection and the unchanged base call at 0x10513510 (f_102df410).",
+     "implementation_notes": "The SOAP wrapper does not parse the body eagerly. The adapter at f_102f9e9c materializes it inside the engine call.",
      "todo": [
       "Established: the adapter resolves the two required queue arguments by exact name and does not use CurrentQueueTrackList as an alias. Materialization and OtherMembers are the two 402 sources; failure can attempt standalone setup without replacing the fault.",
-      "Finish the derived topology guard and the serialized input consumers, including the async resume decision and source-specific queue, sink and notification effects."
+      "Trace the remaining serialized input consumers and the source-specific queue, sink and notification effects, including the downstream indexed resume transition."
      ],
      "resolved_findings": [
-      "Resolved: the grouped branch of 0x105133e4 clones the group transport state into the new coordinator via the delegation path; state cloning = queue + position + playmode transfer.",
-      "Resolved: the grouped branch of 0x105133e4 clones the group transport state into the new coordinator via the delegation path; state cloning = queue + position + playmode transfer."
+      "The override checks the local hardware product code at 0x105134d8. Only codes outside the allowlist call the secondary predicate at 0x1051351c. Its nonzero result gives 1023 at 0x10513560."
      ]
     },
     "ChangeCoordinator": {
