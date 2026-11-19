@@ -13047,7 +13047,7 @@
        ]
       },
       "Options": {
-       "description": "Mode options string (cap 128), forwarded unchanged to the selected mode entry and to satellites. For Mode 'room_calibration-calibrate' the entry f_10364360 parses it as a structured object (f_10c3b6c4). The string field 'mode' must be 'spectral' or 'plug-in spectral'. 'ver' and 'tone' are validated by f_10364284 through f_1035b170, which accepts only a nonempty string other than '..' made of letters, digits and '-', '_' or '.'; anything else fails with 402 and the log 'invalid input parameters v:%s t:%s'. They are then used as path parts by f_103639d0, which loads tone files from https://sonar.ws.sonos.com as '%s/%s/%s/%s-%s' and keeps their eTags. 'force' removes the cached Trueplay asset directory through f_1035d8bc and reloads the tones ('force ' in the eTag reload log). The integer fields 'polarity', 'volume' (clipped, 'Sonar cal volume - using clipped volume %d instead of requested %d') and 'tone_duration' configure the calibration tone, which is played as x-rincon-configmode:sonar-calibrate-tone. Mode 'trueroom' validates its own options in f_10362190 and returns 800 when they are missing or invalid. button-notify and speaker-detect do not read Options. Value handling: 'volume' defaults to 50 when absent and is clamped to 35..70 (isel at 0x103646e0 and 0x103646f0, logged when clipped). 'polarity' is true only when it equals 1; that boolean goes to the impl+0x1a8c audio object through f_102a5124 -> f_107f6c24 -> f_10d8e348, and internal event 4 is then posted to impl+0x11c through f_105d24f8. 'tone_duration' defaults to 90 when absent or 0 and is passed to f_102b4638 on the impl+0x1a88 audio object, before f_1035d7e8 starts x-rincon-configmode:sonar-calibrate-tone through that object's slot +0x08 and sets mode 'NORMAL' through slot +0x40.",
+       "description": "Mode options string (cap 128), forwarded unchanged to the selected mode entry and to satellites. For Mode 'room_calibration-calibrate' the entry f_10364360 parses it as a structured object (f_10c3b6c4). The string field 'mode' must be 'spectral' or 'plug-in spectral'. 'ver' and 'tone' are validated by f_10364284 through f_1035b170, which accepts only a nonempty string other than '..' made of letters, digits and '-', '_' or '.'; anything else fails with 402 and the log 'invalid input parameters v:%s t:%s'. They are then used as path parts by f_103639d0, which loads tone files from https://sonar.ws.sonos.com as '%s/%s/%s/%s-%s' and keeps their eTags. 'force' removes the cached Trueplay asset directory through f_1035d8bc and reloads the tones ('force ' in the eTag reload log). The integer fields 'polarity', 'volume' (clipped, 'Sonar cal volume - using clipped volume %d instead of requested %d') and 'tone_duration' configure the calibration tone, which is played as x-rincon-configmode:sonar-calibrate-tone. Mode 'trueroom' validates its own options in f_10362190 and returns 800 when they are missing or invalid. button-notify and speaker-detect do not read Options. Value handling: 'volume' defaults to 50 when absent and is clamped to 35..70 (isel at 0x103646e0 and 0x103646f0, logged when clipped). 'polarity' is true only when it equals 1; that boolean goes to the impl+0x1a8c audio object through f_102a5124 -> f_107f6c24 -> f_10d8e348, and internal event 4 is then posted to impl+0x11c through f_105d24f8. 'tone_duration' is in seconds and defaults to 90 when absent or 0. f_1035d7e8 first selects x-rincon-configmode:sonar-calibrate-tone through the AVTransport object's slot +0x08, then passes the duration unchanged to f_102b4638, then starts playback through slot +0x44 and sets mode 'NORMAL' through slot +0x40. f_102b4638 stores the duration at AVTransport+0xaa74. The URI-specific reader at 0x102cfd34 uses f_10c3d118 to break the unsigned value into hour, minute and second bytes. When AVTransport+0x4654 is neither 1 nor 2, f_102b4c1c converts those bytes back to seconds and adds the result to the seconds word returned by sonosClockGetTime to set the sleep timer deadline. The parser path has no explicit range check; the conversion stores only the low byte of the computed hour count.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -13303,17 +13303,40 @@
          "build": "86.10-80260",
          "address": "0x1035d854",
          "notes": "f_102b4638 receives the duration"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b46ec",
+         "notes": "Stores the duration unchanged at AVTransport+0xaa74"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102cfd24",
+         "notes": "Calibration URI comparison, duration load at 0x102cfd34, conversion at 0x102d0174 and sleep timer setup at 0x102d01a0 when AVTransport+0x4654 is neither 1 nor 2"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10c3d118",
+         "notes": "Unsigned division by 3600 and then remainder division by 60; hour, minute and second stored with stb at 0x10c3d134, 0x10c3d158 and 0x10c3d160"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b4c1c",
+         "notes": "Reconstructs hours * 3600 + minutes * 60 + seconds; sonosClockGetTime at 0x102b4cdc, adds seconds at 0x102b4cec and stores deadline at 0x102b4cf8. Timer callback f_102b462c tail-calls f_102b4210, which compares that deadline with the clock at 0x102b431c..0x102b432c."
         }
        ],
        "notes": null,
        "buf_cap": 128,
        "resolved_findings": [
         "Resolved: post-parse handling of `Options` = verbatim forward to impl vfunc +96 (obj r5-in, call site 0x107361d0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ],
-       "todo": [
-        "Established: every Options key, its default, the clamp and boolean rules, and the consumer of each value are traced.",
-        "Unknown: the unit of tone_duration, which the binary does not name; f_102b4638 stores it on the audio object at impl+0x1a88 for the tone player.",
-        "Close it by tracing the field f_102b4638 writes into the tone player's timing code."
        ]
       }
      },
