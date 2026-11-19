@@ -131708,12 +131708,49 @@
    "impl": "timedjob.cxx -> timedjobmgr{,_ac,_btn} channels",
    "semantics": "ReportSvcTimedJob + checkSonosNetDisableTestTimedJob + modZPShutdown_deleteTimedJobManager: scheduled job timers for AC/button/SonosNet-disable-test",
    "todo": [
-    "Established: the timedjob manager channels and named jobs are identified."
+    "Established: manager channels, endpoint-bound add/remove queues, absolute boot/monotonic scheduling and conditional network deferral are verified. Remaining: prove the complete rescheduling contract (job callback next-time output, schedule-later override, sentinel handling and wake-up calculation) and audit persistence rather than infer its absence from strings. Disassemble f_1057318c through 0x10573734 including its indirect callback, f_105721a8/f_10573104 and manager construction/destruction; trace callers and owner re-registration/save-load paths before asserting reboot behavior."
    ],
-   "scheduling": "Job model decoded (timedjob.cxx, tag 'timedjobmanager', channels {timedjobmgr, timedjobmgr_ac, timedjobmgr_btn}): each job carries an absolute next-fire time m_tmNext ('scheduleJobLater: job: \"%s\" m_tmNext: %ld(%c) is in %ld seconds') and binds to a registered endpoint ('cannot schedule job %p:%p; ep not in list' - the %p:%p pair is {job,endpoint}). Lifecycle: add -> scheduled ('%s job \"%s\" scheduled flag on but time not set' validator) -> remove queued ('job %p:%p remove queued [%d]') -> done waiting ('job %p:%p done waiting' / 'removed (done waiting)') with cancel paths 'removed (add cancelled)', 'job %p:%p not found'. Per-job logging '%s svc:%s td:%ld'. No file/store strings exist in the module - jobs are in-memory only; nothing persists across reboot, registration repeats each boot.",
+   "scheduling": "timedjob.cxx uses the timedjobmanager tag and channels timedjobmgr, timedjobmgr_ac and timedjobmgr_btn. Jobs bind to registered endpoints; f_105726a8 rejects a missing endpoint. f_10571fac stores absolute next-fire time at job +0, marks scheduling with flag 0x4 at +0x14 and wakes the manager. It distinguishes boot and monotonic time (log markers B/M), converting monotonic to boot time for the default conversion implementation when the job's 0x2 flag is set. Removal cancels pending additions or queues removal and may wait on a condition variable for outstanding work. In f_1057318c, IP deferral applies only to jobs with flag 0x20 when manager +0x1c4 is zero; recovery-AP deferral compares the state helper result with job flag 0x200. Thus these are conditional eligibility checks, not a universal retry policy. In-memory containers are visible, but absence of persistence strings alone does not prove reboot behavior.",
    "resolved_findings": [
-    "Established: absolute m_tmNext scheduling, endpoint binding, remove-queued/done-waiting lifecycle, in-memory only (no persistence path exists in the module).",
-    "Resolved: timedjob.cxx scheduler semantics - jobs register per-subsystem ({timedjobmgr, timedjobmgr_ac alarmclock, timedjobmgr_btn buttons, ReportSvcTimedJob, timed job play, checkSonosNetDisableTestTimedJob} instances). Scheduling: m_tmNext next-run time, 'scheduleJobLater ... is in %ld seconds'; start log shows {s:%ld n:%ld b:%ld} (scheduled/next/backoff). Retry/defer policy: jobs defer on 'no IP address' and 'recovery AP connection state'; a consecutive-slow-run counter exists ('job took %lds. %zu consecutive' / 'ran normally after %zu consecutive slow runs'). Add/remove are queued ('remove queued', 'add cancelled', 'done waiting'). Persistence: no job-state save/load strings exist - jobs are in-memory registrations; durable state lives in each owner subsystem (e.g. alarm DB), so nothing job-manager-internal survives reboot."
+    "The slow-run path compares elapsed seconds with the byte threshold at queue-entry +0x1c and increments +0x28; the normal path can reset this counter. The starting-job log's s/n/b labels are not sufficient evidence that b means backoff."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10571fac",
+     "address": "0x10571fac",
+     "callsite": "0x10572038, 0x1057205c, 0x10572074, 0x105720d8",
+     "notes": "Disassembly: monotonic-to-boot conversion, next-time store, scheduled flag and manager wake; m_tmNext log at 0x10eedda4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10572358 / f_105726a8",
+     "address": "0x10572358",
+     "callsite": "0x10572474, 0x1057252c, 0x10572558, 0x105727fc",
+     "notes": "Pending-add cancellation, wait/signal and removal flag 0x40; scheduling rejects an endpoint absent from the container. Lifecycle strings at 0x10eeddf8-0x10eedee8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1057318c",
+     "address": "0x1057318c",
+     "callsite": "0x105733ec-0x1057347c, 0x105735d0-0x105736b8",
+     "notes": "Conditional IP and recovery-AP deferrals; elapsed-time threshold and consecutive-slow-run counter. rlwinm at 0x1057343c extracts flag 0x200, not all job flags."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c1478 / f_10276048 / f_103c4e64",
+     "address": "0x10e745b0",
+     "callsite": "0x100c19b4, 0x10276384, 0x103c503c",
+     "notes": "Channel-string references: timedjobmgr, timedjobmgr_ac (0x10eab020), timedjobmgr_btn (0x10ec6dc8)."
+    }
    ]
   },
   "devmode": {
