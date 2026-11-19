@@ -132481,16 +132481,78 @@
    "semantics": "'RDM Config watchdog triggering'; 'Eventloop shutdown. Cancelling watchdog'; Creating watchdog/not started/already created"
   },
   "ir_remote": {
-   "impl": "irdecoder.cxx",
-   "demo": "'Remote learning' configures remotes for retail demo mode; per-button-code lookup in a remote DB ('one button code not found in DB'); RemoteConfigured/IsRemoteConfigured state",
-   "semantics": "IR remote decode + demo-mode remote learning",
-   "todo": [
-    "Established: the decoder module and demo remote-learning path are identified."
-   ],
-   "decoder": "Full pipeline decoded from irdecoder.cxx strings (0x10ea7000-0x10ea7a3c). CAPTURE: raw pulses -> histogram decode ('Histogram contains no peaks at all', 'avgA: %f avgB: %f', 'threshold = %f') supporting biphase, pulse-width and pulse-distance coding ('biphase pulse too long %d', 'pulse width coding with threshold of [%f]', 'pulse distance coding with threshold of [%f]') -> 'recognized %d'/code + length ('ir: %d length: %d'). LEARN: 'First capture'/'new capture %d'/'repeat.......' repeat-detection, two-pass long-code learning ('First long code learn for pass %d... this might be a repeat style code', 'Successful long code learn', 'Over ten codes received... not a repeat style code'), length cap ('Ignoring excessively long code during learn'), timeout ('Timeout during IR code learn for target %s'), DB-miss error UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND. BUTTON MAP: exactly three learnable groups persisted as settings lists ':vol_up_codes:', ':vol_down_codes:', ':vol_mute_codes:' plus a fixed input code - actions fire 'IR Volume Up', 'IR Volume Down', 'IR Mute', 'IR Input' events ('handling raw volume up/down/mute/input code'). DEBOUNCE: 'debouncer: recent becomes true'/'bIsRepeat = true' wraps each event ('handling debounced mute/input/volume up/volume Down'); the input action is play-state aware ('currently playing' / 'currently not playing' / 'will try auto play'). CLOUD DB: learned codes are submitted to http://ir.ws.sonos.com/IRCode/ via POST application/xml '<IRCode><code/><value/><guid/></IRCode>' ('ir code submitted with guid %s'), and remote codes are requested via GET ('Requesting: %s', 'Requested code not found in IR database') - the local DB is checked first ('trying db...', 'Code found for remote id [%s]!', 'db code length [%d] exceeds buffer'). READER: a select-thread polls the IR device fd ('selthrd.RIRDecoder.reset/data/except/timeout', 'IR Event read: %zd, msgcount: %u').",
-   "resolved_findings": [
-    "Resolved: decoder = histogram->biphase/pulse-width/pulse-distance; 4 actions {vol_up,vol_down,vol_mute,input} persisted as :vol_*_codes: lists; input is play-state aware (autoplay); remote DB = ir.ws.sonos.com/IRCode REST (GET request, POST <IRCode><code><value><guid> submit) behind a local DB cache.",
-    "Resolved: DB contents + button map decoded (irdecoder.cxx, domain 'irdecode'/'irDecoder'). Storage: factory /opt/ir/irconfig.txt + learned overlay /jffs/irconfig.txt (write failure logged 'Could not write ir configuration!'). Built-in DB embeds TV-brand code tables (LC-32B56, SuperSonic SC-240/491, ViewSonic VT4210LED/VT3205LED, Loewe visible in rodata). Button map = 5 bounded code lists: {repeat, volup, voldown, input, volmute} - each 'Cannot add X code: list full.' at 0x10248008-0x10248454. Targets keyed by state strings {DesiredConfiguration, DesiredButtonLockState, UnpairedButtonLock, UnpairedConfiguration}. Learn flow: multi-pass 'Pass %d length %d learn count: %d' - pass1 short code + pass2 long, verified pass1==pass3 size ('Learn failed! first and third passes have different sizes!'); codes logged as \\x%02X hex. Learned codes POSTed as <IRCode> XML to http://ir.ws.sonos.com/IRCode/ (override key O_IR_DB_WS_IRCODE_URL) returning guid. SOAP actions {CommitLearnedIRCodes, IdentifyIRRemote, LearnIRCode}; errors UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND / 'Requested code not found in IR database' / unknown-target/unknown-pattern rejects."
+   "impl": "irdecoder.cxx: RIRDecoder capture, decode, learn, code matching and local controls, with HTTP database support. IR learning is not restricted to retail demo mode.",
+   "reader_and_decode": "The select-thread data callback f_1024dee0 reaches f_1024dd38, which calls hal_ir_read with a bounded capture buffer. HAL errors, zero/oversized data and captures of two bytes or fewer do not enter the decoder. Accepted captures call f_1024cd1c. That routine checks capture size, derives pulse histograms/thresholds and has separate biphase, pulse-width and pulse-distance decoding branches. Missing peaks, a missing required second peak, an excessive biphase pulse or too many raw bits reach rejection paths. Successful decoded captures feed matching/learning; the diagnostic recognized count alone is not a universal successful button action.",
+   "code_lists": "There are five independently bounded installed lists: repeat, volume up, volume down, input and mute, not three volume lists plus a fixed input code. The insertion routines at f_10247f28 through f_1024836c refuse a list already containing 10 entries. Installation also rejects null codes, excessive code length, unknown target and unknown pattern. The repeat list is decoding/repeat metadata, not a fifth user action. Factory initialization supplies brand-specific remotes and example code bytes; these are defaults, not a remotely fetched complete model catalog.",
+   "persistence": "f_102451a4 chooses the factory file /opt/ir/irconfig.txt when its factory-mode argument is set; otherwise it obtains irconfig.txt through the configuration-store interface. It parses repeat_codes, vol_up_codes, vol_down_codes, vol_mute_codes and input_codes sections. The writer around 0x102457ac obtains the configured filename, opens it for writing and emits all five sections, with an explicit open/write failure diagnostic. The three volume lists are additionally serialized for settings/reporting by f_1024a108. The local reader/writer does not itself hard-code /jffs/irconfig.txt, so that previously asserted physical overlay path is not a portable storage guarantee.",
+   "learning": "f_1024b714 handles capture/repeat learning with state and timeout checks, rejects overly long captures, compares repeated captures, tracks short/long alternatives and can fall back to a non-repeat classification after its bounded capture count. f_1024967c summarizes multiple passes: it compares the first and third short-code lengths and bytes, checks repeat/alternate redundancy, and distinguishes repeating, alternating and non-repeating results. This is not a universal two-pass algorithm. One-button recognition f_1024b464 first compares local candidate hashes, lengths and bytes, then tries the local database lookup f_1024b3d8 when needed. A timeout or database miss reaches explicit failure handling in f_10249cb4; ordinary learned codes are not required to have a successful cloud lookup before local use.",
+   "actions_and_debounce": "f_1024bd80 uses current/previous action, repeat state and timestamps to debounce local controls. The recent comparison uses a 350-ms increment and volume repeat accounting uses 100-ms steps; mute and input have separate conditions from repeated volume steps. The local-control interface receives volume/mute calls, and input processing uses play state and autoplay paths. The IR Volume Up/Down/Mute/Input strings in f_1024c810 are testpoint press-action labels, not proof that every physical capture publishes an in-process event with those names. A rejected, disabled, repeated or unrecognized capture need not produce a control action.",
+   "database_http": "The default URL is http://ir.ws.sonos.com/IRCode/, obtained through override selector 0x1d (O_IR_DB_WS_IRCODE_URL). f_1024a700 renders GET requests; f_1024a8b0 renders POST with Content-Type application/xml. f_1024aae0 submits IRCode containing code, value and guid. The GUID is generated locally from a 16-byte /dev/urandom read by f_1024a584 and formatted before submission, not returned by the server. Submission f_1024a3dc accepts HTTP 201; lookup f_1024b048 uses a 5000-ms deadline and handles 200, 404, transport errors and response parsing separately. Commit f_1024ae38 installs/saves learned state and schedules the submission path, with a completion-timeout branch; local learning and remote database population are distinct operations. These binaries cannot establish current server availability or the contents of its live model database.",
+   "soap_vocabulary": "The DeviceProperties action-name table includes CommitLearnedIRCodes, IdentifyIRRemote, IsRemoteConfigured and LearnIRCode. The local learn implementation has a specific one-button-code-not-found result as well as timeout, unknown target and unknown pattern failures; remote learning is not equivalent to accepting any raw capture.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1024dd38 / f_1024dee0 / f_1024cd1c",
+     "address": "0x1024dd38",
+     "callsite": "0x1024dd38-0x1024def0, 0x1024cd1c-0x1024dd38",
+     "notes": "HAL read return/size gating and reachable decoder call at 0x1024ded4; decoder histogram and separate coding branches, peak/pulse/raw-bit rejection paths. Does not infer an action from a recognized log alone."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "IR list insertion / factory initialization / installer",
+     "address": "0x10247f78",
+     "callsite": "0x10247f28-0x10248474, 0x10245fcc-0x10246ec0, 0x10248474-0x102489b0",
+     "notes": "Five list counters and capacity-10 comparisons; input is mutable like the volume lists. Brand defaults and concrete code installation have size/null/target/pattern gates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102451a4 / configuration writer / f_1024a108",
+     "address": "0x102451a4",
+     "callsite": "0x102451a4-0x102455c0, 0x102457ac-0x10245a8c, 0x1024a108-0x1024a3dc",
+     "notes": "Factory-mode path versus configuration-store filename; five parsed/written sections, fopen failure, and volume-list serialization. Corrects unsupported unconditional /jffs physical-path claim."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1024b714 / f_1024967c / f_1024b464 / f_10249cb4",
+     "address": "0x1024b714",
+     "callsite": "0x1024b714-0x1024bc54, 0x1024967c-0x10249cac, 0x1024b464-0x1024b714, 0x10249cb4-0x10249ff4",
+     "notes": "Capture/state/time limits; long/repeat learning, first/third-pass memcmp and redundancy checks; local hash/length/byte comparisons and database fallback, miss/timeout results. Refutes universal two-pass learning and mandatory cloud matching."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1024bd80 / testpoint handler",
+     "address": "0x1024bd80",
+     "callsite": "0x1024bd80-0x1024c378, 0x1024c810-0x1024ca48",
+     "notes": "350-ms timestamp increment, repeat and 100-ms volume step accounting, distinct mute/input dispatch, local-control virtual calls. Named IR action strings belong to the testpoint handler."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "IR HTTP client / commit",
+     "address": "0x1024a700",
+     "callsite": "0x1024a584-0x1024a654, 0x1024a700-0x1024aae0, 0x1024aae0-0x1024b2ec, 0x1024ae38-0x1024b048",
+     "notes": "GET/POST templates, XML fields, locally generated GUID, URL override selector, submission 201 and lookup 200/404 handling, 5000-ms lookup deadline; commit install/save and asynchronous submission with timeout."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "DeviceProperties action table",
+     "address": "0x10f11b90",
+     "callsite": "0x10f11b90-0x10f11c48",
+     "notes": "Action-name/id table points to CommitLearnedIRCodes, IdentifyIRRemote, IsRemoteConfigured and LearnIRCode; names establish SOAP vocabulary, not an unrestricted raw-code acceptance contract."
+    }
    ]
   },
   "migrationmanager": {
