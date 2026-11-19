@@ -156185,14 +156185,40 @@
      "type": "firmware",
      "address": "0x10fe4a38",
      "notes": "httpio"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d2eaec",
+     "notes": "CDN fiber waits for one HTTP transaction before handling its response."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d30718",
+     "notes": "Request write continuation, followed by header processing."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d30618",
+     "notes": "Response header read uses the same socket subcontext."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d30898",
+     "notes": "Single request-format call in the request fiber."
     }
    ],
-   "todo": [
-    "Residual: numeric pipeline depth (range-request strategy proven; parallelism is sequential per context)."
-   ],
    "resolved_findings": [
-    "Resolved: range-request logic = {req_hostname,req_path, transfer-Encoding handling, CDN content-encoding, Redirect, invalid content-range} paths.",
-    "Established: the eSDK/httpio version, the request formatting, the response/header guards, the socketio errors, and DNS handling."
+    "Numeric HTTP pipeline depth is one outstanding transaction per httpio context. CDN fiber f_10d2e6c0 calls f_10d304b8 at 0x10d2eaec and waits on its continuation before examining response status. Only completion reaches 0x10d2ee74, obtains response metadata through f_10d31710 and accepts status 200/206 at 0x10d2ee98-0x10d2eea4. It does not issue another request while that call is suspended. This is a per-context bound, not a global bound on simultaneous SDK sockets or contexts.",
+    "The request fiber owns one socketio subcontext at context+0x10 and one continuation at +0x190. Its request formatting call f_10d4e9f8 is at 0x10d30898; it writes the request through f_10d4fa54 at 0x10d30718, suspending with continuation 0x5a while socketio+0xac is nonzero (context+0xbc). The response-header operation f_10d4fdac at 0x10d30618 similarly suspends with continuation 0x79; header extraction f_10d4f438 follows at 0x10d307e4. The same request buffer/state is reused, not a ring of pending requests. Error exits set the result at context+0 and clear +0x190 at 0x10d306a4-0x10d306b4; completion also clears it at 0x10d306f4-0x10d306fc.",
+    "Request formatter f_10d4e9f8 builds HTTP/1.1 requests with Host, identity encoding, SDK user-agent and keep-alive headers, adding bounded or open-ended Range headers according to offsets. Keep-alive preserves a connection; it does not imply HTTP pipelining. The independent serialized request/write/header-read continuations disprove interpreting the keep-alive literal as multiple outstanding requests. The response parser retains explicit unsupported transfer/content-encoding, redirect and invalid content-range error paths. Multiple independently allocated contexts are not excluded by this result."
    ]
   },
   "watchdog": {
