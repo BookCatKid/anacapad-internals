@@ -152351,20 +152351,59 @@
   },
   "psk_hierarchy": {
    "name": "4-PSK household crypto hierarchy + rotation",
-   "summary": "PSKs {HhPsk (DTLS HH),ControlPsk,RoomEncPsk (room-name encrypt),LanSwapPsk} each +Backup mirror id; rotation {\"Unable to generate new HH/control/room name encrypt/lan swap PSK\",\"Unable to update settings with new PSKs\",\"PSK rotation successful (HH: %s, Control: %s, RoomEnc: %s, LanSwap: %s)\",\"Bumping netsettings version\",\"not rotated\"}; encoding {\"Encoding SonosNet key failed\",\"Encoding DTLS HH PSK failed\"}; \"Pending netsettings.json update discarded after replicating\"; \"Settings Replication changed SN Disable from %d to %d (source: %s)\"; SSID protection {\"SSID missing from known networks list\",\"Registering for next topology update to protect SSID\",\"Current SSID protected/already protected/not protected, could not get current SSID/missing from networks list\",\"Not connected to a WiFi network, skipping SSID protection\"}; \"Received netsettings update from netstartd\"/\"netsettings changed\"; app/run/nettestresult.txt; PSK rotation: 'Unable to generate new {HH,control,room name encrypt,lan swap} PSK','Unable to update settings with new PSKs','PSK rotation successful (HH: %s, Control: %s, RoomEnc: %s, LanSwap: %s)','Encoding DTLS HH PSK failed'; key fields {controlPsk,roomEncPsk,lanSwapPsk}",
+   "summary": "Household-related PSKs are concrete0xb0-byte records containing an identifier,32 raw random key bytes and generation metadata, with current/backup pairs. Identifiers use sonos.<purpose>.1.<context>.<random suffix>. Diagnostic XML emits IDs, but the local netsettings.json writer also emits a transformed key field. The former opaque-keystore and IDs-only-everywhere claims are withdrawn; replication and inverse-loading joins remain unfinished.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10efadb8",
      "notes": "netsettings block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10626df8 / f_10627da8",
+     "address": "0x10626df8",
+     "callsite": "0x10626e40 / 0x10626e88 / 0x10626f18",
+     "notes": "Alphabet-based8-character suffix;32-byte RNG destination record+81; genVersion+a4/+a8 and genTime+ac. snprintf operands purpose,1,context,suffix. Context owner+fd is copied from constructor arg r10 at0x10627e78, supplied via stack+154 at startup0x10199150. Purpose-specific calls and0xb0 record spacing at0x106280e8 onward. No context semantic label claimed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "shipped lib/libsonoscrypto.so.3 ZZ0071 / ZZ0154",
+     "address": "0x75c0 / 0x7780",
+     "callsite": "0x75ec / 0x7804 / 0x76b8",
+     "notes": "ELF exported symbol bounds plus PPC objdump: ZZ0071 invokes mbedtls_ctr_drbg_random; ZZ0154 invokes alphabet-index helper ZZ0153, which requests RNG through ZZ0071. Existing anacapad imports at0x11098980/0x11098ee8 bind these symbols. This is direct random generation, not proof of derivation from another PSK."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10627b14 / f_10630580 / f_1062e668",
+     "address": "0x10627c5c",
+     "callsite": "0x10630c10 / 0x1062e700 / 0x1062e7fc",
+     "notes": "Persistence reaches conditional current/backup record writer. It reads raw key+81 length20hex, Base64-encodes, invokes ZZ0197 at0x1062e798 with netsettings/key labels, formats version, then writes id,key,genVersion,genTime. Failure returns false before object emission. Diagnostic XML at0x1062a2a4 instead formats only identifier. Material transformation details and replication join remain explicitly unproven."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062d948 HH preparation / f_1062c2cc rotation",
+     "address": "0x1062dd60",
+     "callsite": "0x1062dd64 / 0x1062c47c",
+     "notes": "HH Base64 source owner+921 = record8a0+81; length20hex and error diagnostic at0x1062dd90. Rotation invokes generator for purpose control into temporary record at0x1062c47c, with separate failure/update handling. These paths contradict key-bytes-never-leave-record assertions but do not alone certify full replicated wire format."
     }
    ],
    "todo": [
-    "Residual: the PSK id namespace (how ids name generated keys and where material is held - the key store is the crypto/libsonos boundary; ids replicating instead of bytes is proven)."
+    "Established: exact generated identifier format, four purpose strings, in-process key/metadata layout, RNG boundary, ID-only diagnostic XML versus material-bearing local JSON, and concrete HH material encoding. Remaining: bind identifier context owner+0xfd back through constructor r10/startup0x10199150 to its semantic source; trace inverse key loading and ZZ0197/its decode counterpart, then join replication/netstartd serializers and receiving consumers for each current/backup pair. Start with f_1062e668, f_10630580, f_1062d948 and settings replication callbacks. Do not infer IDs-only replication or an opaque external key store from diagnostic XML. This is actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: key generation = the household-PSK derivation chain; consumers = {secure-reg signing, dev-disc signing, settings replication auth}.",
-    "Storage and consumer map proven: PSKs live in replicated netsettings.json as the <ReplicatedNetSettings LastUpdateDevice=\"%s\" Version=\"%d\" FileSchemaVersion=\"%d\"> document - elements <SonosNet Disable/Frequency>, <Network SSID/Flags>, and the four PSK pairs each carried as KEY IDS not material: <HhPsk id>/<BackupHhPsk id>, <ControlPsk id>/<BackupControlPsk id>, <RoomEncPsk id>/<BackupRoomEncPsk id>, <LanSwapPsk id>/<BackupLanSwapPsk id> - key bytes never replicate, only the identifier of the locally-generated key. Delivery to the radio stack is via netstartd: Pushed PSK update to netstartd / Pushed netsettings update / Pushed SonosNet channel change to %u for %u ms from now / Error decoding SSID cannot notify netstartd. Consumers per key: HhPsk = DTLS household encryption, ControlPsk = control channel, RoomEncPsk = room-name encryption, LanSwapPsk = LAN swap/handoff; Encoding %s PSK failed is the per-key encode guard. SonosNet disable runs as a scheduled TEST MODE with auto-revert (Entering SonosNet disable test mode, automatic revert in %d seconds / Still in test mode revert to Enabled / revert failure / No longer in test mode); muse-facing Invalid/Unknown Muse SonosNet enabled state %d gates cloud-initiated disable. Replication interplay: Pending netsettings.json update discarded after replicating (remote wins while a local pending edit exists), Settings Replication changed SN Disable from %d to %d (source: %s)."
+    "Generator f_10626df8 builds sonos.%s.%d.%s.%s from purpose r3, literal1, context r4 and an8-character random hexadecimal suffix. It requests8 characters from alphabet0123456789abcdef through ZZ0154 and32 random key bytes through ZZ0071 into record+0x81. Record+0 holds the identifier (bounded0x81-byte destination),+0xa4/+0xa8 hold generation-version words from f_1090b418 and+0xac holds generation time. A zero result from either random call or invalid generation-version state returns failure. Time uses time() with a lower bound0x6a8f3ce0; this is generation metadata, not evidence of expiration or periodic rotation.",
+    "Purpose literals are hh/control/roomenc/lanswap at calls0x106280f8/0x10628120/0x10628148/0x10628170. Current records are at netsettings-owner+0x8a0/+0xa00/+0xb60/+0xcc0, backups at the next0xb0-byte record. Context in this path is owner+0xfd, copied with bound0x21 from constructor f_10627da8 argument r10 at0x10627e78. Startup caller0x10199170 loads that argument from stack+0x154. Its earlier producer and semantic identity are not yet bound; it must not be guessed to be a household ID or a key-store handle.",
+    "Raw material is held in anacapad memory, not only behind a crypto key-store boundary. In the shipped libsonoscrypto.so.3, ZZ0071 at0x75c0 calls mbedtls_ctr_drbg_random at0x75ec; ZZ0154 at0x7780 calls ZZ0153, which also reaches ZZ0071. The four purpose strings select independent generator invocations, not a proven derivation chain from a registration-signing key. The earlier secure-registration/device-discovery/settings-auth consumer map is withdrawn; the registration JWT key has its separately traced lifecycle.",
+    "The identifiers-only claim conflated different outputs. Diagnostic XML f_1062a030 formats <HhPsk id=\"%s\"/> and backup counterparts using record starts. In contrast persistence f_10627b14 calls JSON writer f_10630580 at0x10627c5c; its conditional PSK arms invoke f_1062e668. That helper reads32 bytes at record+0x81, Base64-encodes them, passes the result through ZZ0197 with netsettings/key context labels, then emits an object with id,key,genVersion,genTime. The key value is transformed material, not merely another identifier. The outer file path uses temporary-file writing and rename; transformation/Base64/version failures return failure rather than emitting a completed PSK object.",
+    "Concrete consumer preparation f_1062d948 separately Base64-encodes the HH key from owner+0x921 (=current HH record+0x81) at0x1062dd64 and has the Encoding DTLS HH PSK failed guard. This disproves an IDs-only handoff assumption, but the transport serializer and receivers still require a full join before claiming exactly which bytes replicate. Rotation f_1062c2cc invokes the same generator into temporary records and reports generation/settings-update failure paths; no fixed periodic rotation interval follows from these strings."
    ]
   },
   "unlock": {
