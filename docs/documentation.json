@@ -6897,7 +6897,7 @@
      ]
     },
     "SetTimeNow": {
-     "description": "Sets the household clock: DesiredTime + TimeZoneForDesiredTime via impl->v[+0x28].",
+     "description": "Unsupported clock-setting action in this firmware build. Wrapper f_10733e98 registers DesiredTime and TimeZoneForDesiredTime as required bounded text, then calls static engine slot +0x28 -> f_10272f60, which unconditionally returns 401 without reading either string. Missing required inputs fault 402 first. No clock, configuration or persistent state is changed.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10733e98",
@@ -6929,11 +6929,14 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x10272f60",
+      "impl_vfunc": "static primary vtable 0x10eaa99c slot +0x28",
+      "description": "Unconditional 401 stub. The wrapper success-commit branch is unreachable; no persistence or notify chain exists for this action in build 86.10-80260."
      },
      "inputs": {
       "DesiredTime": {
-       "description": "UTC time to set",
+       "description": "Required opaque string copied into a 20-byte buffer. Despite its name, no date/time parsing or semantic validation occurs: the concrete worker does not read the buffer and always faults 401.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -6942,50 +6945,49 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string argument",
-       "format": "utf-8 text, buffer cap 20 bytes (19 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "string within the request parse cap; impl-side grammar applies",
-       "range": "max 19 chars",
-       "special_values": "none identified",
+       "semantic_type": "opaque bounded text (unsupported setter)",
+       "format": "text bytes; no enforced timestamp grammar",
+       "unit": "n/a",
+       "accepted_values": "Any present string, including empty or malformed date text; reaching the worker still faults 401.",
+       "range": "first 19 bytes retained plus NUL; excess bytes are discarded",
+       "special_values": "Present empty string is accepted by request validation; absent argument faults 402.",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
+       "validation": "Type tag 7 copies/NUL-terminates only. No calendar, hour/minute/second, timezone or end-of-input checks.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10733ed8",
-         "notes": "in-arg access site"
+         "function": "0x10733e98",
+         "address": "0x10733f60",
+         "callsite": "0x10733f44",
+         "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11688",
-         "notes": "argument name string"
+         "function": "0x1056157c",
+         "address": "0x10561588",
+         "callsite": "0x10733ee4",
+         "notes": "Helper registers type tag 7, destination at record+8/+0xc, capacity at +0x10, zero bytes-written count +0x14 and present flag +0x31. Canonical validator f_10730414 looks up each registered input at 0x10730490; if found, calls f_10560708 to copy bytes and f_10560a58 to finalize. f_10560708 copies only while count < capacity (0x10560728..0x10560764); f_10560a58 marks present at 0x10560a74 and NUL-terminates at count if below capacity (0x10560aac), otherwise at capacity-1 (0x10560b1c). Type tag 7 returns directly at 0x10560ab8, without a number/date/time/rule parser. Thus long values are truncated, not rejected, and present empty strings pass. Missing required record remains absent and f_10730414 returns false at 0x107304d0 unless optional flag +0x30 is set; these required records have that flag clear."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10734c1c",
-         "notes": "impl consumes the arg"
+         "function": "0x10272f60",
+         "address": "0x10272f64",
+         "callsite": "0x10733f44",
+         "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
         }
        ],
-       "notes": null,
-       "buf_cap": 20,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `DesiredTime` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +40 (site 0x10733f44) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `DesiredTime` = verbatim forward to impl vfunc +40 (obj *(r3-in+0x4), call site 0x10733f44); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "Byte capacity, not a Unicode character limit. No supported timestamp can make the worker succeed.",
+       "buf_cap": 20
       },
       "TimeZoneForDesiredTime": {
-       "description": "Timezone applying to DesiredTime",
+       "description": "Required opaque string copied into a 29-byte buffer. It is not looked up as a timezone ID/name, decoded as a hexadecimal rule, or applied to DesiredTime; the concrete worker ignores it.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -6994,192 +6996,329 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string argument",
-       "format": "utf-8 text, buffer cap 29 bytes (28 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "string within the request parse cap; impl-side grammar applies",
-       "range": "max 28 chars",
-       "special_values": "none identified",
+       "semantic_type": "opaque bounded text (unsupported setter)",
+       "format": "text bytes; no enforced timezone grammar",
+       "unit": "n/a",
+       "accepted_values": "Any present string, including empty or malformed timezone text; reaching the worker still faults 401.",
+       "range": "first 28 bytes retained plus NUL; excess bytes are discarded",
+       "special_values": "Present empty string passes request validation; absent argument faults 402.",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by impl vfunc on the service vtable",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10733f00",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10f11694",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10734c1c",
-         "notes": "impl consumes the arg"
-        }
-       ],
-       "notes": null,
-       "buf_cap": 29,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `TimeZoneForDesiredTime` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +40 (site 0x10733f44) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `TimeZoneForDesiredTime` = verbatim forward to impl vfunc +40 (obj *(r3-in+0x4), call site 0x10733f44); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
-      }
-     },
-     "outputs": {},
-     "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10733e98",
-        "notes": "wrapper family decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v[+0x28]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10733e98",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v[+0x28].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x28]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10733e98",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x28]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x28].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "state-mutation delegate: *(r30+4) v[+0x28] (call-derived member-method semantics)",
+       "validation": "Type tag 7 bounded byte copy and NUL termination only; worker performs no timezone or cross-field validation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10733e98",
-         "notes": "delegate map ['*(r30+4) v[+0x28]']; notify-family calls []"
+         "address": "0x10733f60",
+         "callsite": "0x10733f44",
+         "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1056157c",
+         "address": "0x10561588",
+         "callsite": "0x10733ee4",
+         "notes": "Helper registers type tag 7, destination at record+8/+0xc, capacity at +0x10, zero bytes-written count +0x14 and present flag +0x31. Canonical validator f_10730414 looks up each registered input at 0x10730490; if found, calls f_10560708 to copy bytes and f_10560a58 to finalize. f_10560708 copies only while count < capacity (0x10560728..0x10560764); f_10560a58 marks present at 0x10560a74 and NUL-terminates at count if below capacity (0x10560aac), otherwise at capacity-1 (0x10560b1c). Type tag 7 returns directly at 0x10560ab8, without a number/date/time/rule parser. Thus long values are truncated, not rejected, and present empty strings pass. Missing required record remains absent and f_10730414 returns false at 0x107304d0 unless optional flag +0x30 is set; these required records have that flag clear."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10272f60",
+         "address": "0x10272f64",
+         "callsite": "0x10733f44",
+         "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v[+0x28] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "notes": "No relationship to DesiredTime is checked. Buffer capacity does not imply a required 28-digit rule.",
+       "buf_cap": 29
+      }
+     },
+     "outputs": {},
+     "validation": {
+      "description": "Both named inputs must be present. Type tag 7 only copies bounded text and NUL-terminates; overlong text is truncated rather than rejected. Empty strings and malformed date/timezone text are not semantically rejected, but the unconditional worker still returns 401. Missing required input faults 402.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733e98",
+        "address": "0x10733f60",
+        "callsite": "0x10733f44",
+        "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1056157c",
+        "address": "0x10561588",
+        "callsite": "0x10733ee4",
+        "notes": "Helper registers type tag 7, destination at record+8/+0xc, capacity at +0x10, zero bytes-written count +0x14 and present flag +0x31. Canonical validator f_10730414 looks up each registered input at 0x10730490; if found, calls f_10560708 to copy bytes and f_10560a58 to finalize. f_10560708 copies only while count < capacity (0x10560728..0x10560764); f_10560a58 marks present at 0x10560a74 and NUL-terminates at count if below capacity (0x10560aac), otherwise at capacity-1 (0x10560b1c). Type tag 7 returns directly at 0x10560ab8, without a number/date/time/rule parser. Thus long values are truncated, not rejected, and present empty strings pass. Missing required record remains absent and f_10730414 returns false at 0x107304d0 unless optional flag +0x30 is set; these required records have that flag clear."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10272f60",
+        "address": "0x10272f64",
+        "callsite": "0x10733f44",
+        "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "DesiredTime and TimeZoneForDesiredTime must materialize as required input records to reach the engine. No alarm state, coordinator state, source availability or timezone-table condition is checked. Meeting the input-presence requirements does not enable the operation: the worker always returns 401.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733e98",
+        "address": "0x10733f60",
+        "callsite": "0x10733f44",
+        "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1056157c",
+        "address": "0x10561588",
+        "callsite": "0x10733ee4",
+        "notes": "Helper registers type tag 7, destination at record+8/+0xc, capacity at +0x10, zero bytes-written count +0x14 and present flag +0x31. Canonical validator f_10730414 looks up each registered input at 0x10730490; if found, calls f_10560708 to copy bytes and f_10560a58 to finalize. f_10560708 copies only while count < capacity (0x10560728..0x10560764); f_10560a58 marks present at 0x10560a74 and NUL-terminates at count if below capacity (0x10560aac), otherwise at capacity-1 (0x10560b1c). Type tag 7 returns directly at 0x10560ab8, without a number/date/time/rule parser. Thus long values are truncated, not rejected, and present empty strings pass. Missing required record remains absent and f_10730414 returns false at 0x107304d0 unless optional flag +0x30 is set; these required records have that flag clear."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10272f60",
+        "address": "0x10272f64",
+        "callsite": "0x10733f44",
+        "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Loads the statically bound engine pointer from service+4 solely for dispatch. Worker f_10272f60 reads no engine field, time-source generation, timezone rule, settings, file or input buffer. No engine mutex or persistence context is acquired.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10276048",
+        "address": "0x10eaa9c4",
+        "callsite": "0x10733f44",
+        "notes": "Primary engine vptr 0x10eaa99c installed at 0x102761e8; entry +0x28 at 0x10eaa9c4 contains 0x10272f60. f_10735460 stores the engine pointer at service+4. Wrapper f_10733e98 loads service+4 at 0x10733f2c, slot +0x28 at 0x10733f3c and calls it at 0x10733f44. This is engine dispatch, not service vtable 0x10f11530."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10272f60",
+        "address": "0x10272f64",
+        "callsite": "0x10733f44",
+        "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733e98",
+        "address": "0x10733f60",
+        "callsite": "0x10733f44",
+        "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Only request argument buffers and fault response are written. No system/household clock write, engine-state mutation, generation increment, alarm reschedule or alarmclock.xml save occurs; static worker contains no calls or object stores.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10272f60",
+         "address": "0x10272f64",
+         "callsite": "0x10733f44",
+         "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733e98",
+         "address": "0x10733f60",
+         "callsite": "0x10733f44",
+         "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733e98",
+         "address": "0x10733fa8",
+         "callsite": "0x10733f44",
+         "notes": "The only wrapper success commit is gated on worker return zero at 0x10733f54. Static worker f_10272f60 always returns 401. Therefore neither success commit nor any backing-store save is reached. The prior association with alarmclock.xml writer f_10283998 and codes 501/800/801/802 was not a reachable SetTimeNow call chain; those codes are not this action fault surface."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. No notification, observer or event serializer is reached; worker always faults before the wrapper success commit.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10272f60",
+        "address": "0x10272f64",
+        "callsite": "0x10733f44",
+        "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10733e98",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x10733f60",
+        "callsite": "0x10733f44",
+        "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733e98",
+        "address": "0x10733fa8",
+        "callsite": "0x10733f44",
+        "notes": "The only wrapper success commit is gated on worker return zero at 0x10733f54. Static worker f_10272f60 always returns 401. Therefore neither success commit nor any backing-store save is reached. The prior association with alarmclock.xml writer f_10283998 and codes 501/800/801/802 was not a reachable SetTimeNow call chain; those codes are not this action fault surface."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x28]",
+      "description": "None. Missing required inputs yield 402; present inputs yield 401. Both paths leave clock, timezone, generation and persisted settings unchanged.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10272f60",
+        "address": "0x10272f64",
+        "callsite": "0x10733f44",
+        "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10733e98",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x28]']"
+        "address": "0x10733f60",
+        "callsite": "0x10733f44",
+        "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1056157c",
+        "address": "0x10561588",
+        "callsite": "0x10733ee4",
+        "notes": "Helper registers type tag 7, destination at record+8/+0xc, capacity at +0x10, zero bytes-written count +0x14 and present flag +0x31. Canonical validator f_10730414 looks up each registered input at 0x10730490; if found, calls f_10560708 to copy bytes and f_10560a58 to finalize. f_10560708 copies only while count < capacity (0x10560728..0x10560764); f_10560a58 marks present at 0x10560a74 and NUL-terminates at count if below capacity (0x10560aac), otherwise at capacity-1 (0x10560b1c). Type tag 7 returns directly at 0x10560ab8, without a number/date/time/rule parser. Thus long values are truncated, not rejected, and present empty strings pass. Missing required record remains absent and f_10730414 returns false at 0x107304d0 unless optional flag +0x30 is set; these required records have that flag clear."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x28].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "No normal success path with the installed worker. Wrapper validation failure faults 402 at 0x10733f60. Otherwise f_10272f60 returns 401 and wrapper faults at the same callsite. Worker domain is {401}; request +0x0c success commit is unreachable. Stack-guard failure aborts, not a SOAP fault.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10276048",
+        "address": "0x10eaa9c4",
+        "callsite": "0x10733f44",
+        "notes": "Primary engine vptr 0x10eaa99c installed at 0x102761e8; entry +0x28 at 0x10eaa9c4 contains 0x10272f60. f_10735460 stores the engine pointer at service+4. Wrapper f_10733e98 loads service+4 at 0x10733f2c, slot +0x28 at 0x10733f3c and calls it at 0x10733f44. This is engine dispatch, not service vtable 0x10f11530."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10272f60",
+        "address": "0x10272f64",
+        "callsite": "0x10733f44",
+        "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10733e98",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x10733f60",
+        "callsite": "0x10733f44",
+        "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733e98",
+        "address": "0x10733fa8",
+        "callsite": "0x10733f44",
+        "notes": "The only wrapper success commit is gated on worker return zero at 0x10733f54. Static worker f_10272f60 always returns 401. Therefore neither success commit nor any backing-store save is reached. The prior association with alarmclock.xml writer f_10283998 and codes 501/800/801/802 was not a reachable SetTimeNow call chain; those codes are not this action fault surface."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10733f60",
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x28)"
+       "code_expr": "validation-zero ? 402 : f_10272f60 return (401)"
       }
      ],
      "errors": [
       {
        "code": 401,
-       "code_expr": "li r3,0x191",
-       "meaning": "alarm-store vfunc 0x10272f60 (slot +0x28) is a 4-insn stub \"li r3,0x191; blr\" - validly parsed calls always fault 401; malformed requests may still fail earlier at wrapper parse",
+       "code_expr": "li r3,0x191 at 0x10272f64",
+       "meaning": "Unsupported action: every call that passes required-input validation reaches an unconditional 401 return.",
        "fault_sites": [
         "0x10733f60"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "Both required strings were present and request validation succeeded; static worker returns literal 401 without inspecting their contents or any engine state.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10733f60",
-           "notes": "impl rc passthrough"
+           "function": "0x10276048",
+           "address": "0x10eaa9c4",
+           "callsite": "0x10733f44",
+           "notes": "Primary engine vptr 0x10eaa99c installed at 0x102761e8; entry +0x28 at 0x10eaa9c4 contains 0x10272f60. f_10735460 stores the engine pointer at service+4. Wrapper f_10733e98 loads service+4 at 0x10733f2c, slot +0x28 at 0x10733f3c and calls it at 0x10733f44. This is engine dispatch, not service vtable 0x10f11530."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x10734c1c",
-           "notes": "rc convention site"
+           "function": "0x10272f60",
+           "address": "0x10272f64",
+           "callsite": "0x10733f44",
+           "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10733e98",
+           "address": "0x10733f60",
+           "callsite": "0x10733f44",
+           "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
           }
          ]
         }
@@ -7189,54 +7328,60 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10733f60",
-         "notes": "impl rc passthrough site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10734c1c",
-         "notes": "impl rc -> r4 -> req v[+0x14]; CR0.eq = success branch"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
+         "function": "0x10276048",
          "address": "0x10eaa9c4",
-         "notes": "store vfunc slot +0x28 -> 0x10272f60; alarm-store object vptr 0x10eaa99c (ctor f_10276048 overwrite at 0x102761e8; obj new(0x8118) via shared_ptr -> svc+0x4)"
+         "callsite": "0x10733f44",
+         "notes": "Primary engine vptr 0x10eaa99c installed at 0x102761e8; entry +0x28 at 0x10eaa9c4 contains 0x10272f60. f_10735460 stores the engine pointer at service+4. Wrapper f_10733e98 loads service+4 at 0x10733f2c, slot +0x28 at 0x10733f3c and calls it at 0x10733f44. This is engine dispatch, not service vtable 0x10f11530."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10272f60",
-         "notes": "unconditional return 0x191"
+         "function": "0x10272f60",
+         "address": "0x10272f64",
+         "callsite": "0x10733f44",
+         "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733e98",
+         "address": "0x10733f60",
+         "callsite": "0x10733f44",
+         "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
         }
        ],
-       "domain_note": "delegated-rc semantics: valid calls always fault 401 at store vfunc",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: li r3,0x191; sites: 0x10733f60).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "Concrete worker normal return domain {401}; no success or delegated save result."
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Required-input presence validation failed before worker dispatch; not a date/time or timezone syntax error.",
        "fault_sites": [
         "0x10733f60"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "At least one required named input is absent, leaving record present flag false; f_10730414 returns zero and wrapper loads 402 at 0x10733f94. Present empty, malformed or truncated strings do not fail this type-tag-7 validation.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10733e98",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10733e98",
+           "address": "0x10733f60",
+           "callsite": "0x10733f44",
+           "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1056157c",
+           "address": "0x10561588",
+           "callsite": "0x10733ee4",
+           "notes": "Helper registers type tag 7, destination at record+8/+0xc, capacity at +0x10, zero bytes-written count +0x14 and present flag +0x31. Canonical validator f_10730414 looks up each registered input at 0x10730490; if found, calls f_10560708 to copy bytes and f_10560a58 to finalize. f_10560708 copies only while count < capacity (0x10560728..0x10560764); f_10560a58 marks present at 0x10560a74 and NUL-terminates at count if below capacity (0x10560aac), otherwise at capacity-1 (0x10560b1c). Type tag 7 returns directly at 0x10560ab8, without a number/date/time/rule parser. Thus long values are truncated, not rejected, and present empty strings pass. Missing required record remains absent and f_10730414 returns false at 0x107304d0 unless optional flag +0x30 is set; these required records have that flag clear."
           }
          ]
         }
@@ -7246,46 +7391,82 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10733e98",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10733e98",
+         "address": "0x10733f60",
+         "callsite": "0x10733f44",
+         "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1056157c",
+         "address": "0x10561588",
+         "callsite": "0x10733ee4",
+         "notes": "Helper registers type tag 7, destination at record+8/+0xc, capacity at +0x10, zero bytes-written count +0x14 and present flag +0x31. Canonical validator f_10730414 looks up each registered input at 0x10730490; if found, calls f_10560708 to copy bytes and f_10560a58 to finalize. f_10560708 copies only while count < capacity (0x10560728..0x10560764); f_10560a58 marks present at 0x10560a74 and NUL-terminates at count if below capacity (0x10560aac), otherwise at capacity-1 (0x10560b1c). Type tag 7 returns directly at 0x10560ab8, without a number/date/time/rule parser. Thus long values are truncated, not rejected, and present empty strings pass. Missing required record remains absent and f_10730414 returns false at 0x107304d0 unless optional flag +0x30 is set; these required records have that flag clear."
         }
        ]
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "alarmclock.xml store-commit layer (f_10283998 .tmp+rename save): {501,800,801,802}",
+       "code_expr": "unreachable backing-store error association",
+       "meaning": "No backing-store error is reachable from SetTimeNow in this build. The prior association with alarmclock.xml save codes was spurious.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10283998",
-         "notes": "alarmclock.xml atomic save {501,800,801,802}"
+         "function": "0x10272f60",
+         "address": "0x10272f64",
+         "callsite": "0x10733f44",
+         "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733e98",
+         "address": "0x10733f60",
+         "callsite": "0x10733f44",
+         "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733e98",
+         "address": "0x10733fa8",
+         "callsite": "0x10733f44",
+         "notes": "The only wrapper success commit is gated on worker return zero at 0x10733f54. Static worker f_10272f60 always returns 401. Therefore neither success commit nor any backing-store save is reached. The prior association with alarmclock.xml writer f_10283998 and codes 501/800/801/802 was not a reachable SetTimeNow call chain; those codes are not this action fault surface."
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "No reachable condition. The unconditional 401 worker never calls a store writer, and prevents the wrapper success commit from executing. Codes from f_10283998 therefore are not propagated by this action.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10283998",
-           "notes": "alarmclock.xml atomic save {501,800,801,802}"
+           "function": "0x10272f60",
+           "address": "0x10272f64",
+           "callsite": "0x10733f44",
+           "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10733e98",
+           "address": "0x10733fa8",
+           "callsite": "0x10733f44",
+           "notes": "The only wrapper success commit is gated on worker return zero at 0x10733f54. Static worker f_10272f60 always returns 401. Therefore neither success commit nor any backing-store save is reached. The prior association with alarmclock.xml writer f_10283998 and codes 501/800/801/802 was not a reachable SetTimeNow call chain; those codes are not this action fault surface."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10283998 emits constant set {501, 560, 800, 801, 802} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
-       ]
+       "domain_note": "Reachable SOAP fault surface is {401,402}, not {501,800,801,802}."
       }
      ],
      "firmware_differences": [],
@@ -7294,30 +7475,49 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x10276048",
+       "address": "0x10eaa9c4",
+       "callsite": "0x10733f44",
+       "notes": "Primary engine vptr 0x10eaa99c installed at 0x102761e8; entry +0x28 at 0x10eaa9c4 contains 0x10272f60. f_10735460 stores the engine pointer at service+4. Wrapper f_10733e98 loads service+4 at 0x10733f2c, slot +0x28 at 0x10733f3c and calls it at 0x10733f44. This is engine dispatch, not service vtable 0x10f11530."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10272f60",
+       "address": "0x10272f64",
+       "callsite": "0x10733f44",
+       "notes": "Entire worker is stwu r1,-0x10(r1); li r3,0x191; addi r1,r1,0x10; blr at 0x10272f60..0x10272f6c. No argument read, condition, call, tail branch, object store, clock write, persistence or notifier. Normal domain is exactly {401}. It never calls f_10283998 or f_10c3d2c4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "function": "0x10733e98",
-       "address": "0x10733e98",
-       "notes": "action wrapper handler"
+       "address": "0x10733f60",
+       "callsite": "0x10733f44",
+       "notes": "Registers DesiredTime by required lookup request+0x1c at 0x10733ed8, then f_1056157c at 0x10733ee4 with capacity 0x14; TimeZoneForDesiredTime at 0x10733f00, then helper at 0x10733f0c with capacity 0x1d. Request validation call 0x10733f20 returns zero -> literal 402 at 0x10733f94 -> shared fault call 0x10733f60. Nonzero validation dispatches static worker at 0x10733f44; nonzero return is forwarded to the same fault call. Worker-zero branch to request commit at 0x10733fa8 cannot execute with this worker. No outputs or other direct calls except stack guard abort 0x10733fb0."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f1161c",
-       "notes": "action dispatch table entry"
+       "function": "0x1056157c",
+       "address": "0x10561588",
+       "callsite": "0x10733ee4",
+       "notes": "Helper registers type tag 7, destination at record+8/+0xc, capacity at +0x10, zero bytes-written count +0x14 and present flag +0x31. Canonical validator f_10730414 looks up each registered input at 0x10730490; if found, calls f_10560708 to copy bytes and f_10560a58 to finalize. f_10560708 copies only while count < capacity (0x10560728..0x10560764); f_10560a58 marks present at 0x10560a74 and NUL-terminates at count if below capacity (0x10560aac), otherwise at capacity-1 (0x10560b1c). Type tag 7 returns directly at 0x10560ab8, without a number/date/time/rule parser. Thus long values are truncated, not rejected, and present empty strings pass. Missing required record remains absent and f_10730414 returns false at 0x107304d0 unless optional flag +0x30 is set; these required records have that flag clear."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10734c1c",
-       "notes": "alarm impl = service vtable 0x10f11530 slot +0x28 (ctor stores svc vptr at svc+4)"
+       "function": "0x10733e98",
+       "address": "0x10733fa8",
+       "callsite": "0x10733f44",
+       "notes": "The only wrapper success commit is gated on worker return zero at 0x10733f54. Static worker f_10272f60 always returns 401. Therefore neither success commit nor any backing-store save is reached. The prior association with alarmclock.xml writer f_10283998 and codes 501/800/801/802 was not a reachable SetTimeNow call chain; those codes are not this action fault surface."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10733e98; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "This build exposes the action but does not implement clock setting. No date/time parser, including f_10c3d2c4, is reachable through the installed engine target."
     },
     "SetTimeServer": {
      "description": "Sets the AlarmClock time-server string through concrete ac_impl slot +0x20 -> f_1027a64c. The engine performs no lexical validation of the string: it is passed as the dedicated TimeServer argument to f_10283998, persisted in alarmclock.xml, reloaded into the time-server sub-object at engine+0x240, and then the AlarmClock change/version observer path runs.",
