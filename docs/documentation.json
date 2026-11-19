@@ -76179,7 +76179,7 @@
      ]
     },
     "ResetBasicEQ": {
-     "description": "Resets the basic EQ set: locks impl+0x938, calls worker f_100d9d40(this, instID, chan, val) and, on a cr0 flag, additionally calls the SetMute worker f_100d99b0 - then logs 'ch:%s, vol:%u, on:%d' and returns per-channel results (Bass, Treble, Loudness, LeftVolume, RightVolume).",
+     "description": "Primary slot +0x10 -> f_1046ff10 snapshots RC+0xbc8/+0x9c8. When snapshot byte +0 is nonzero and word +0x288 is zero, it prepares RenderingControl ResetBasicEQ sessions for member indices 1..count-1, with up to 32 allocated entries. Constant-true f_10472530 filters no members; f_1046ae30 sends only the original InstanceID. Endpoint preparation failure skips that member rather than selecting 1034. Prepared requests wait through f_106fb998 under a 2000-ms deadline. The last nonzero request-status halfword +0x2722 is returned; only zero proceeds to local reset. Invalid/empty/nonforwarding topology falls through to local reset. Remote response outputs are not copied into the SOAP output pointers. f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure. f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073bf30",
@@ -76233,15 +76233,50 @@
        "accepted": "impl-side grammar applies",
        "required": true,
        "parse_helper": "req->v[+0x1c] (required-arg parser)",
-       "description": "engine instance index; impl returns 718 when nonzero",
+       "description": "Required instance selector, forwarded unchanged before the local zero check.",
        "unit": "none - dimensionless",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073bf64",
-         "notes": "in-arg name load + req->v[+0x1c] parse call"
+         "address": "0x10ed271c",
+         "notes": "Bound primary slot +0x10 contains f_1046ff10."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046ff10",
+         "notes": "Primary slot +0x10 -> f_1046ff10 snapshots RC+0xbc8/+0x9c8. When snapshot byte +0 is nonzero and word +0x288 is zero, it prepares RenderingControl ResetBasicEQ sessions for member indices 1..count-1, with up to 32 allocated entries. Constant-true f_10472530 filters no members; f_1046ae30 sends only the original InstanceID. Endpoint preparation failure skips that member rather than selecting 1034. Prepared requests wait through f_106fb998 under a 2000-ms deadline. The last nonzero request-status halfword +0x2722 is returned; only zero proceeds to local reset. Invalid/empty/nonforwarding topology falls through to local reset. Remote response outputs are not copied into the SOAP output pointers."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046ae30",
+         "notes": "Remote request filler serializes only captured InstanceID; no local output pointer is captured."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104702ac",
+         "notes": "Zero endpoint-preparation result branches to the next member; no 1034 assignment on this path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10470364",
+         "notes": "Status scan reads request+0x2722; final nonzero status suppresses local reset."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db6b0",
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         }
        ],
        "primitive": {
@@ -76252,285 +76287,849 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUintArg",
-       "range": "0 only; nonzero InstanceID rejected by impl guard with 718",
-       "special_values": "none identified",
-       "default": "none - required argument",
-       "validation": "impl guard cmpwi r4,0: nonzero parsed value -> 718",
-       "accepted_values": "0"
+       "range": "ui4 parse; local accepted value 0",
+       "special_values": "none",
+       "default": "none: required argument",
+       "validation": "Local nonzero selects 702 after successful proxy processing.",
+       "accepted_values": "0 locally",
+       "notes": "No channel selector; resets both LF/RF volume caches while preserving cached Master volume."
       }
      },
      "outputs": {
       "Bass": {
-       "description": "Post-reset value emitted from the impl's record/context after the reset sequence.",
+       "description": "On success, returns 0 copied into local cached 0x7f6 during reset. This is not a live backend measurement or a peer aggregate.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
         "fmt": null
        },
-       "semantic_type": "signed int16",
-       "format": "%d decimal",
-       "unit": "none",
+       "semantic_type": "signed 16-bit",
+       "format": "decimal signed 16-bit",
+       "unit": "none: stored setting value",
        "accepted_values": "impl-produced",
-       "range": "unconstrained",
+       "range": "0",
        "special_values": "none",
        "required": true,
-       "default": "none",
+       "default": "none: response value",
        "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c02c",
-         "notes": "out-arg access site"
+         "address": "0x100db6b0",
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10fea14c",
-         "notes": "argument name string"
+         "address": "0x100db280",
+         "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100db5bc",
-         "address": "0x100db5bc",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x100d92dc",
+         "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10908d74",
+         "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db864",
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073bfc8",
+         "notes": "SOAP freshly tests numeric status with mr.; fault suppresses all five outputs even after local output-pointer writes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c030",
+         "notes": "Successful wrapper serializes Bass/Treble with signed 16-bit helpers, Loudness as boolean, LeftVolume/RightVolume as unsigned 16-bit values."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `Bass`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "Suppressed on any fault even when the local worker already wrote the output pointer."
       },
       "Treble": {
-       "description": "Post-reset value emitted from the impl's record/context after the reset sequence.",
+       "description": "On success, returns 0 copied into local cached 0x7fa during reset. This is not a live backend measurement or a peer aggregate.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
         "fmt": null
        },
-       "semantic_type": "signed int16",
-       "format": "%d decimal",
-       "unit": "none",
+       "semantic_type": "signed 16-bit",
+       "format": "decimal signed 16-bit",
+       "unit": "none: stored setting value",
        "accepted_values": "impl-produced",
-       "range": "unconstrained",
+       "range": "0",
        "special_values": "none",
        "required": true,
-       "default": "none",
+       "default": "none: response value",
        "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c050",
-         "notes": "out-arg access site"
+         "address": "0x100db6b0",
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0b060",
-         "notes": "argument name string"
+         "address": "0x100db280",
+         "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100db5bc",
-         "address": "0x100db5bc",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x100d92dc",
+         "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10908d74",
+         "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db864",
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073bfc8",
+         "notes": "SOAP freshly tests numeric status with mr.; fault suppresses all five outputs even after local output-pointer writes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c030",
+         "notes": "Successful wrapper serializes Bass/Treble with signed 16-bit helpers, Loudness as boolean, LeftVolume/RightVolume as unsigned 16-bit values."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `Treble`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "Suppressed on any fault even when the local worker already wrote the output pointer."
       },
       "Loudness": {
-       "description": "Post-reset value emitted from the impl's record/context after the reset sequence.",
+       "description": "On success, returns profile/topology default 0 or 1 copied into local cached 0x7fd during reset. This is not a live backend measurement or a peer aggregate.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": "boolean ('0'/'1')",
-       "format": "'0'/'1' literal",
-       "unit": "none",
+       "semantic_type": "boolean",
+       "format": "boolean 0/1",
+       "unit": "none: stored setting value",
        "accepted_values": "impl-produced",
-       "range": "unconstrained",
+       "range": "0..1",
        "special_values": "none",
        "required": true,
-       "default": "none",
+       "default": "none: response value",
        "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c074",
-         "notes": "out-arg access site"
+         "address": "0x100db6b0",
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0b068",
-         "notes": "argument name string"
+         "address": "0x100db280",
+         "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100db5bc",
-         "address": "0x100db5bc",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x100d92dc",
+         "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10908d74",
+         "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db864",
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073bfc8",
+         "notes": "SOAP freshly tests numeric status with mr.; fault suppresses all five outputs even after local output-pointer writes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c030",
+         "notes": "Successful wrapper serializes Bass/Treble with signed 16-bit helpers, Loudness as boolean, LeftVolume/RightVolume as unsigned 16-bit values."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `Loudness`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "Suppressed on any fault even when the local worker already wrote the output pointer."
       },
       "LeftVolume": {
-       "description": "Post-reset value emitted from the impl's record/context after the reset sequence.",
+       "description": "On success, returns 100 copied into local cached 0x7dc during reset. This is not a live backend measurement or a peer aggregate.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
         "fmt": null
        },
-       "semantic_type": "unsigned int16",
-       "format": "%u decimal",
-       "unit": "none",
+       "semantic_type": "unsigned 16-bit",
+       "format": "decimal unsigned 16-bit",
+       "unit": "none: stored setting value",
        "accepted_values": "impl-produced",
-       "range": "unconstrained",
+       "range": "100",
        "special_values": "none",
        "required": true,
-       "default": "none",
+       "default": "none: response value",
        "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c098",
-         "notes": "out-arg access site"
+         "address": "0x100db6b0",
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0b074",
-         "notes": "argument name string"
+         "address": "0x100db280",
+         "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100db5bc",
-         "address": "0x100db5bc",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x100d92dc",
+         "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10908d74",
+         "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db864",
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073bfc8",
+         "notes": "SOAP freshly tests numeric status with mr.; fault suppresses all five outputs even after local output-pointer writes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c030",
+         "notes": "Successful wrapper serializes Bass/Treble with signed 16-bit helpers, Loudness as boolean, LeftVolume/RightVolume as unsigned 16-bit values."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `LeftVolume`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "Suppressed on any fault even when the local worker already wrote the output pointer."
       },
       "RightVolume": {
-       "description": "Post-reset value emitted from the impl's record/context after the reset sequence.",
+       "description": "On success, returns 100 copied into local cached 0x7de during reset. This is not a live backend measurement or a peer aggregate.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
         "fmt": null
        },
-       "semantic_type": "unsigned int16",
-       "format": "%u decimal",
-       "unit": "none",
+       "semantic_type": "unsigned 16-bit",
+       "format": "decimal unsigned 16-bit",
+       "unit": "none: stored setting value",
        "accepted_values": "impl-produced",
-       "range": "unconstrained",
+       "range": "100",
        "special_values": "none",
        "required": true,
-       "default": "none",
+       "default": "none: response value",
        "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c0bc",
-         "notes": "out-arg access site"
+         "address": "0x100db6b0",
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0b080",
-         "notes": "argument name string"
+         "address": "0x100db280",
+         "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100db5bc",
-         "address": "0x100db5bc",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x100d92dc",
+         "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10908d74",
+         "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db864",
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073bfc8",
+         "notes": "SOAP freshly tests numeric status with mr.; fault suppresses all five outputs even after local output-pointer writes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c030",
+         "notes": "Successful wrapper serializes Bass/Treble with signed 16-bit helpers, Loudness as boolean, LeftVolume/RightVolume as unsigned 16-bit values."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `RightVolume`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "Suppressed on any fault even when the local worker already wrote the output pointer."
       }
      },
-     "validation": "Request-layer parse.",
-     "requirements": "impl mutex",
-     "state_dependencies": "shares the SetMute worker's state writes on one branch",
+     "validation": {
+      "description": "Required InstanceID must parse before dispatch; local reset requires zero and guard byte +0x7ff zero. Remote requests occur before these local guards and can be skipped on endpoint setup failure. Local outputs are emitted only if both proxy and local statuses are zero.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed271c",
+        "notes": "Bound primary slot +0x10 contains f_1046ff10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046ff10",
+        "notes": "Primary slot +0x10 -> f_1046ff10 snapshots RC+0xbc8/+0x9c8. When snapshot byte +0 is nonzero and word +0x288 is zero, it prepares RenderingControl ResetBasicEQ sessions for member indices 1..count-1, with up to 32 allocated entries. Constant-true f_10472530 filters no members; f_1046ae30 sends only the original InstanceID. Endpoint preparation failure skips that member rather than selecting 1034. Prepared requests wait through f_106fb998 under a 2000-ms deadline. The last nonzero request-status halfword +0x2722 is returned; only zero proceeds to local reset. Invalid/empty/nonforwarding topology falls through to local reset. Remote response outputs are not copied into the SOAP output pointers."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046ae30",
+        "notes": "Remote request filler serializes only captured InstanceID; no local output pointer is captured."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104702ac",
+        "notes": "Zero endpoint-preparation result branches to the next member; no 1034 assignment on this path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470364",
+        "notes": "Status scan reads request+0x2722; final nonzero status suppresses local reset."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db6b0",
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required InstanceID must parse before dispatch; local reset requires zero and guard byte +0x7ff zero. Remote requests occur before these local guards and can be skipped on endpoint setup failure. Local outputs are emitted only if both proxy and local statuses are zero.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed271c",
+        "notes": "Bound primary slot +0x10 contains f_1046ff10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046ff10",
+        "notes": "Primary slot +0x10 -> f_1046ff10 snapshots RC+0xbc8/+0x9c8. When snapshot byte +0 is nonzero and word +0x288 is zero, it prepares RenderingControl ResetBasicEQ sessions for member indices 1..count-1, with up to 32 allocated entries. Constant-true f_10472530 filters no members; f_1046ae30 sends only the original InstanceID. Endpoint preparation failure skips that member rather than selecting 1034. Prepared requests wait through f_106fb998 under a 2000-ms deadline. The last nonzero request-status halfword +0x2722 is returned; only zero proceeds to local reset. Invalid/empty/nonforwarding topology falls through to local reset. Remote response outputs are not copied into the SOAP output pointers."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046ae30",
+        "notes": "Remote request filler serializes only captured InstanceID; no local output pointer is captured."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104702ac",
+        "notes": "Zero endpoint-preparation result branches to the next member; no 1034 assignment on this path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470364",
+        "notes": "Status scan reads request+0x2722; final nonzero status suppresses local reset."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db6b0",
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Uses topology +0xbc8/+0x9c8, request manager +0x3c4, mutex +0x938, guard +0x7ff, profile +0xcc/+0xd0 and optional primary-member profile, bass/treble/loudness caches and dirty flags, channel volumes and dirty +0x7f0. Existing Master volume/mutes feed f_100d7f34; this action does not assign new Master volume/mute values.",
+      "todo": [
+       "Established: Cached reset fields and the complete local/primary profile selection.",
+       "Unknown: Concrete backend observer and volume implementation dependencies.",
+       "Next: Bind DSP-manager +0x90..+0xe4 observer slots +0x30/+0x34/+0x38 and +0x3ac/+0x3b4 dependencies below f_100d7f34."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db6b0",
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db280",
+        "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d92dc",
+        "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10908d74",
+        "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db864",
+        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Under mutex +0x938 calls EQ-reset worker f_100d9d40 then the shared commit worker f_100d99b0 (same worker SetMute uses for channel commit+notify).",
+       "description": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure. Deferred f_100d993c -> f_100d7d6c -> f_100d78a4 snapshots settings and attempts an EQ-key write through RC+0x3bc slot +0x14 before f_10167318; this is separate from SOAP completion.",
+       "todo": [
+        "Established: Peer requests, local/output cache writes, backend calls, dirty flags, event request and deferred save attempt.",
+        "Unknown: Concrete observer effects and final volume, session and durable save outcomes.",
+        "Next: Finish f_100d7f34 device/observer implementations, f_106ff898, and storage RC+0x3bc slot +0x14 / f_10167318."
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100db5bc",
-         "address": "0x100db61c",
-         "notes": "f_100d9d40 at 0x100db61c; f_100d99b0 at 0x100db638"
+         "address": "0x1046ff10",
+         "notes": "Primary slot +0x10 -> f_1046ff10 snapshots RC+0xbc8/+0x9c8. When snapshot byte +0 is nonzero and word +0x288 is zero, it prepares RenderingControl ResetBasicEQ sessions for member indices 1..count-1, with up to 32 allocated entries. Constant-true f_10472530 filters no members; f_1046ae30 sends only the original InstanceID. Endpoint preparation failure skips that member rather than selecting 1034. Prepared requests wait through f_106fb998 under a 2000-ms deadline. The last nonzero request-status halfword +0x2722 is returned; only zero proceeds to local reset. Invalid/empty/nonforwarding topology falls through to local reset. Remote response outputs are not copied into the SOAP output pointers."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046ae30",
+         "notes": "Remote request filler serializes only captured InstanceID; no local output pointer is captured."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104702ac",
+         "notes": "Zero endpoint-preparation result branches to the next member; no 1034 assignment on this path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10470364",
+         "notes": "Status scan reads request+0x2722; final nonzero status suppresses local reset."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db6b0",
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db280",
+         "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d92dc",
+         "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10908d74",
+         "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db864",
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
         }
        ]
       }
      ],
-     "events_triggered": "same notify machinery as SetMute where shared",
-     "state_transitions": "EQ fields reset",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code. Returns the post-reset values as outputs.",
+     "events_triggered": {
+      "description": "After local guard success, f_1067c6ec(this+8) at 0x100db868 is requested even when the volume-application boolean is false and status 501 will follow. Dirty bytes +0x7f8/+0x7fc/+0x7fe/+0x7f0 are set.",
+      "todo": [
+       "Established: Dirty fields and notification-request ordering, including failure-after-mutation.",
+       "Unknown: Payload, sender binding and eventual subscriber delivery.",
+       "Next: Trace RC this+8 metadata callback then f_1067c6ec -> f_1067c46c -> f_10678c50 concrete sender worker, separately from DSP observer emitters."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db6b0",
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db280",
+        "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d92dc",
+        "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10908d74",
+        "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db864",
+        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Sets cached Bass/Treble=0, LeftVolume/RightVolume=100 and profile-derived Loudness, preserving cached Master volume/mutes. A later 501 does not undo those writes, dirty state, notifications or peer work.",
+      "todo": [
+       "Established: Exact synchronous cache/output transitions and partial-failure ordering.",
+       "Unknown: Achieved audio state and completed durable save.",
+       "Next: Bind DSP and volume backends below f_100d7f34 plus storage RC+0x3bc slot +0x14 / f_10167318."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db6b0",
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db280",
+        "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d92dc",
+        "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10908d74",
+        "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db864",
+        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Nonzero proxy status returns before local reset. Local preconditions return 702 or 501 without outputs. Otherwise the final local status is 0 for a nonzero f_100d7f34 boolean, 501 for zero, after cache/output/dirty/event/timer changes. SOAP serializes all five local reset outputs only on 0, not on fault. Endpoint setup can skip peers without making the action fail.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed271c",
+        "notes": "Bound primary slot +0x10 contains f_1046ff10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046ff10",
+        "notes": "Primary slot +0x10 -> f_1046ff10 snapshots RC+0xbc8/+0x9c8. When snapshot byte +0 is nonzero and word +0x288 is zero, it prepares RenderingControl ResetBasicEQ sessions for member indices 1..count-1, with up to 32 allocated entries. Constant-true f_10472530 filters no members; f_1046ae30 sends only the original InstanceID. Endpoint preparation failure skips that member rather than selecting 1034. Prepared requests wait through f_106fb998 under a 2000-ms deadline. The last nonzero request-status halfword +0x2722 is returned; only zero proceeds to local reset. Invalid/empty/nonforwarding topology falls through to local reset. Remote response outputs are not copied into the SOAP output pointers."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046ae30",
+        "notes": "Remote request filler serializes only captured InstanceID; no local output pointer is captured."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104702ac",
+        "notes": "Zero endpoint-preparation result branches to the next member; no 1034 assignment on this path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470364",
+        "notes": "Status scan reads request+0x2722; final nonzero status suppresses local reset."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db6b0",
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db280",
+        "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d92dc",
+        "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10908d74",
+        "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100db864",
+        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073bfc8",
+        "notes": "SOAP freshly tests numeric status with mr.; fault suppresses all five outputs even after local output-pointer writes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c030",
+        "notes": "Successful wrapper serializes Bass/Treble with signed 16-bit helpers, Loudness as boolean, LeftVolume/RightVolume as unsigned 16-bit values."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1053c388",
+        "notes": "Raw 0x7c6a4f9e selects true when snapshot word +0x288 is zero, not nonzero."
+       }
+      ]
+     },
      "fault_sites": [],
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -76540,30 +77139,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call.",
+       "meaning": "Required request argument validation fails.",
        "fault_sites": [
-        "0x1073c024"
+        "0x1073bfdc"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Required request argument validation fails.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073c024"
+           "address": "0x1073c010",
+           "notes": "Required request argument validation fails."
           }
          ]
         }
@@ -76573,12 +77169,99 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073c024"
+         "address": "0x1073c010",
+         "notes": "Required request argument validation fails."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "Local guard +0x7ff rejects reset, or final f_100d7f34 application boolean is zero after mutation.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Local guard +0x7ff rejects reset, or final f_100d7f34 application boolean is zero after mutation.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100db864",
+           "notes": "Local guard +0x7ff rejects reset, or final f_100d7f34 application boolean is zero after mutation."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db864",
+         "notes": "Local guard +0x7ff rejects reset, or final f_100d7f34 application boolean is zero after mutation."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "Local InstanceID is nonzero.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Local InstanceID is nonzero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100db714",
+           "notes": "Local InstanceID is nonzero."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100db714",
+         "notes": "Local InstanceID is nonzero."
+        }
+       ]
+      },
+      {
+       "code": null,
+       "meaning": "Last nonzero prepared-session status propagates without local reset.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Last nonzero prepared-session status propagates without local reset.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10470364",
+           "notes": "Last nonzero prepared-session status propagates without local reset."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10470364",
+         "notes": "Last nonzero prepared-session status propagates without local reset."
+        }
+       ],
+       "todo": [
+        "Established: Session status extraction and proxy/local ordering.",
+        "Unknown: Complete producers/meanings of propagated session statuses.",
+        "Next: Finish f_106ff898 under f_106fb998 and ResetBasicEQ concrete session finalizers."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -76587,34 +77270,115 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073bf30",
-       "address": "0x1073bf30",
-       "notes": "action wrapper handler"
+       "address": "0x10ed271c",
+       "notes": "Bound primary slot +0x10 contains f_1046ff10."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e24",
-       "notes": "action dispatch table entry"
+       "address": "0x1046ff10",
+       "notes": "Primary slot +0x10 -> f_1046ff10 snapshots RC+0xbc8/+0x9c8. When snapshot byte +0 is nonzero and word +0x288 is zero, it prepares RenderingControl ResetBasicEQ sessions for member indices 1..count-1, with up to 32 allocated entries. Constant-true f_10472530 filters no members; f_1046ae30 sends only the original InstanceID. Endpoint preparation failure skips that member rather than selecting 1034. Prepared requests wait through f_106fb998 under a 2000-ms deadline. The last nonzero request-status halfword +0x2722 is returned; only zero proceeds to local reset. Invalid/empty/nonforwarding topology falls through to local reset. Remote response outputs are not copied into the SOAP output pointers."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl: lock, f_100d9d40 call, conditional f_100d99b0 (SetMute worker), 'ch:%s, vol:%u, on:%d' log",
-       "function": "0x100db5bc"
+       "address": "0x1046ae30",
+       "notes": "Remote request filler serializes only captured InstanceID; no local output pointer is captured."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104702ac",
+       "notes": "Zero endpoint-preparation result branches to the next member; no 1034 assignment on this path."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10470364",
+       "notes": "Status scan reads request+0x2722; final nonzero status suppresses local reset."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100db6b0",
+       "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100db280",
+       "notes": "Writes halfwords 0,0,100,100 at reset record +2,+4,+6,+8; caller copies these to Bass, Treble, LeftVolume, RightVolume and their RC fields. The record byte at +0 is not the SOAP Loudness output source."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d92dc",
+       "notes": "f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10908d74",
+       "notes": "Raw 0x752a0001 is andis. with immediate 1, testing profile+0xd0 & 0x10000. Raw 0x7c604f9e at 0x10908d8c is isel r3,0,r9,30 with r9=1 after comparing profile+0xcc to 3; equality selects 0. Raw 0x5463063e at 0x10908d90 is a low-byte mask, SH=0 MB=24 ME=31, not a shift."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100db864",
+       "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7f34",
+       "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073bfc8",
+       "notes": "SOAP freshly tests numeric status with mr.; fault suppresses all five outputs even after local output-pointer writes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073c030",
+       "notes": "Successful wrapper serializes Bass/Treble with signed 16-bit helpers, Loudness as boolean, LeftVolume/RightVolume as unsigned 16-bit values."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1053c388",
+       "notes": "Raw 0x7c6a4f9e selects true when snapshot word +0x288 is zero, not nonzero."
       }
      ],
-     "notes": "f_100d9d40 is a shared per-channel parameter worker also used by ResetExtEQ.",
+     "notes": "The proven primary slot is not the shared per-channel worker f_100d9d40. Outputs describe local reset values, not an aggregation of peer responses or a post-application hardware read.",
      "todo": [
-      "Established: dispatch to handler 0x1073bf30; f_100d9d40 is a shared per-channel parameter worker also used by ResetExtEQ.",
-      "Residual: which channels the worker covers and the reset values written. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: Reset values, profile loudness decision, request/local ordering, output serialization and failure-after-mutation behavior.",
+      "Unknown: Concrete DSP/volume observers, deferred durability, final session producers and subscriber delivery.",
+      "Next: Bind DSP-manager observer +0x30/+0x34/+0x38; device bridges below f_100d7f34, optional RC+0x3b4 slot +0x0c; f_106ff898; storage RC+0x3bc slot +0x14 / f_10167318; RC event serializer and sender."
      ],
-     "resolved_findings": [
-      "Resolved: resets {bass,treble,loudness} to 0 across the Master channel set.",
-      "Resolved: resets {bass,treble,loudness} to 0 across the Master channel set."
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x10",
+      "function": "0x1046ff10",
+      "local_worker": "0x100db6b0",
+      "defaults": "0x100db280",
+      "loudness_default": "0x100d92dc"
+     }
     },
     "ResetExtEQ": {
      "description": "Resets an extended-EQ band: locks impl+0x938, calls shared param worker f_100d9d40(this, instID, EQType, val), then conditionally walks impl+0x3c0 -> f_106a9cc4 -> f_10687cbc and logs 'SetVolumeWithoutProxy ch:%s, vol:%u, src:%s'.",
