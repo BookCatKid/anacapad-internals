@@ -175985,7 +175985,7 @@
   "0x1018d27c": {
    "address": "0x1018d27c",
    "role": "service_factory",
-   "description": "Constructor for the zone-player aggregate. It builds zoneImpl at zp+0x3a8 via f_10691e00, installs vptr 0x10e98278, constructs HTControl via f_10242118, and takes the service capability mask in arg8. It initializes embedded members with function tables and copies string spans; f_1018069c is the copy helper, not a verb registrar.",
+   "description": "Constructor for the zone-player aggregate (this = zp, members span roughly 0x5750 bytes). It builds two embedded arrays of polymorphic handler subobjects: 10 elements at zp+0xc stride 0x1c {vptr, std::string} and 20 elements at zp+0x124 stride 0x20 {vptr, std::string, flag byte}. Every element string is seeded from the single literal 'zp' (0x10e735b0) through cstr-to-string helper f_10180794(out, cstr) -> range-assign f_1018069c. Element vptrs are staged three times: per-element leaf descriptor slots first, then contiguous construction-vtable slots 0x10e979e0+i*0x10 (first array) and 0x10e97ae0+i*0x18 (second array) whose {vfn0, vfn1, offset_to_top=-i*stride, 0} records normalize each secondary base to the element-0 base, and after the zoneImpl member at zp+0x3a8 is built via f_10691e00 the final vtables 0x10e97ff8/0x10e98008+i*0x10 (first array) and 0x10e98098+i*0x18 (second array) are installed. First-array final vtables carry only destructor slots (complete-dtor thunk -> f_101921a0, deleting-dtor thunk -> f_10192ff8). Second-array final vtables carry four slots: vfn0 a this-adjusting thunk (addi r3, -(0x124+i*0x20)) into a distinct real member function such as f_10187c18 or f_1017fe94, each of which opens by loading the same 'zp' literal; vfn1 a distinct string-span assigner (f_100e5628 family) that reads caller arg +4 begin and +8 length and forwards begin/begin+len through f_100d698c into the element string; vfn2/vfn3 dtor thunks. The flag byte at element+0x1c is initialized 0. zp+0/+4 receive primary/secondary vptrs 0x10e97d5c/0x10e97fdc, the zp+0x56f8 member string is filled by f_10bb9fb4 from a lazily-initialized static string singleton (f_10564c3c, BSS 0x110a55a8), and the literals 'scopeZP', 'scopeDefault', 'scopeHttpClient', 'healthchecker', 'authservice', 'noncehandler', 'trueplay_zp', 'zp_pre_setup_state' and 'warn_fault' seed other named members. No element or member string carries an AVTransport action name: the stored data is scope names plus function identity, and verb binding is external to the table. It takes the service capability mask in arg8 and is the only call site that instantiates the registered HTControl implementation class via f_10242118.",
    "why_external": "The only call site that instantiates the registered HTControl implementation class.",
    "required_for_behavior": true,
    "used_by": [],
@@ -176010,12 +176010,84 @@
      "build": "86.10-80260",
      "address": "0x10180754",
      "notes": "After computing end-begin, f_1018069c selects inline storage or heap allocation, copies the span with memcpy (single byte handled separately), stores its length, and terminates it. The null/nonempty branch references basic_string::_M_construct null not valid. This is copying, not registering an action."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018d348",
+     "function": "0x1018d27c",
+     "notes": "Literal 'zp' (0x10e735b0) passed to f_10180794; the resulting span is range-assigned by f_1018069c into every string member of the ten {vptr,string} elements at zp+0xc..zp+0x108 stride 0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018d54c",
+     "function": "0x1018d27c",
+     "notes": "Same 'zp' span seeds all twenty {vptr,string,flag} elements at zp+0x124..zp+0x384 stride 0x20; the flag byte at element+0x1c is stored 0 each pass."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e98098",
+     "notes": "Second-array final vtable record for element 0: {vfn0 f_10187d14, vfn1 f_100e5628, vfn2 f_10192f90, vfn3 f_10193148}; 20 records stride 0x18 to 0x10e98260, each followed by offset_to_top stepping -0x20 per element."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10187d14",
+     "notes": "Element-0 vfn0 thunk: addi r3,-0x124 then b f_10187c18 (real member function opening on the 'zp' literal). Element-1 vfn0 f_1017feb8 subtracts 0x144 -> f_1017fe94; handler identity is the code pointer, not a stored verb."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100e5628",
+     "notes": "Second-array vfn1 assigner (the common callback): seeds this+0 = this+8 SSO pointer, reads caller arg+4 begin and arg+8 length, forwards begin/begin+len to f_100d698c. The copied span is dispatch-time caller data."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e98008",
+     "notes": "First-array final vtable for element 1: {f_10192fd8 -> addi -0x28,b f_101921a0; f_10193190 -> addi -0x28,b f_10192ff8}. Ten records (element 0 uses 0x10e97ff8) carry destructor slots only, offset_to_top stepping -0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018e304",
+     "function": "0x1018d27c",
+     "notes": "Span source = zp+0x56f8 member string pointer (non-null guarded); the member was filled by f_10bb9fb4 from f_10564c3c, a lazily-initialized static string singleton in BSS at 0x110a55a8. Runtime content, not a verb literal."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018f7c0",
+     "function": "0x1018d27c",
+     "notes": "'scopeZP' (0x10e9a080) span built here; 'scopeDefault' (0x10e9a088) at 0x1018f854 and 'scopeHttpClient' (0x10e9a0b8) at 0x1018fda4 seed named sub-member strings via f_101a50b0/f_1082e87c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101900a0",
+     "function": "0x1018d27c",
+     "notes": "Two span sites (0x101900a0, 0x101900b8) read pointer 0x10ea6a2c, a binary device-data block {0, 0xadaa3401, 0, 'Mitsubishi WD-65638 & WD-60...'} whose leading NUL produces an empty span feeding the f_10ca**** calls."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e76123",
+     "notes": "'AVTransport' literal exists in .rodata but no lis+low address formation inside f_1018d27c reaches it (xref scan); the same holds for the 'SetAVTransportURI...', 'GetPositionInfo' and 'TransportState' literals, so no AVTransport verb enters the constructed members."
     }
    ],
    "notes": null,
-   "todo": [
-    "Residual: recover the caller data that supplies each ops pair's source span, then prove which members, if any, bear a particular AVTransport verb. The common callback copies a string span; neither the copy nor the table identifies a verb."
-   ],
    "disasm_digest": {
     "insns": 3299,
     "calls": [
@@ -176496,10 +176568,10 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 3299-insn worker; direct calls: f_105d0f7c, f_10180794, f_1018069c, f_10807034, f_10691e00, f_100c5050, f_10564c3c, f_10bb9fb4, f_10809f0c, f_1068aeac, f_109bcfc8, f_1058a574, f_101af8ac, f_10367674, f_102a402c, f_106783f4, f_105877; string literals: zp; on event; primary; eAccountTransactionEvent; onEvent; tf-8\"; ion>; healthchecker; scopeZP; %d; scopeDefault; warn_fault; etting mute state; zp_pre_setup_state; member stores: 0x234,0x1f0,0x208,0x20c,0x210,0x214,0x218,0x21c,0x220,0x224,0x228,0x22c; immediate compares: 0x0. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "f_1018d27c constructs zoneImpl at zp+0x3a8 via f_10691e00 and the HTControl object via f_10242118. The preceding constructor sweep uses function-pointer tables, not strings or a verb registry.",
-    "The first ten table rows, at zp+0x00c through +0x108 in steps of 0x1c, have slot 0 pointers into .text. For example, 0x1018d360 installs table 0x10e979a0 at +0x00c (slot 0 = f_1019ed6c). The replacement at 0x1018d4f0 installs table 0x10e979e0 at the same offset (slot 0 = f_1019edf0). Both the initial and replacement rows contain executable entries.",
-    "The next 20 distinct rows run from zp+0x124 through +0x384 inclusive in steps of 0x20 (table stores start at 0x1018d564 and end at 0x1018d8a8). Their initial slot 0 is f_10809540; slot 1 is a span-copy constructor. The f_1019f87c family calls f_1018069c, while some rows call equivalent local helpers (for example f_100e5628 calls f_100d698c at 0x100e5654). Table replacements do not count as additional rows. The callbacks and nearby literals do not by themselves identify a verb per row."
+    "Established: every ops pair's source span is recovered. All 30 embedded handler-subobject strings (10 at zp+0xc stride 0x1c, 20 at zp+0x124 stride 0x20) are seeded from the single literal 'zp' at 0x10e735b0; the eight f_10180794 span sites in the whole body draw only from 'zp' (twice), the zp+0x56f8 member string (runtime-filled from static singleton f_10564c3c), 'scopeZP', 'scopeDefault', 'scopeHttpClient', and the binary device-data block at 0x10ea6a2c (leading NUL byte yields an empty span, twice).",
+    "Established: no member bears an AVTransport verb. The constructor's exhaustive literal inventory ('zp', 'scopeZP', 'scopeDefault', 'scopeHttpClient', 'healthchecker', 'authservice', 'noncehandler', 'trueplay_zp', 'zp_pre_setup_state', 'warn_fault', 'br0', 'on event', 'primary', 'diaUrl', 'init minimal node' plus format/log fragments) contains no action name, and the element vtables install function pointers (destructors, this-adjusted handlers, span assigners) rather than verb text. The binary's AVTransport-family literals ('AVTransport' 0x10e76123, 'SetAVTransportURI...' 0x10eb0edc, 'GetPositionInfo' 0x10eb3848, 'TransportState' 0x10e8b78c) have no address formation inside the function body.",
+    "Established: the common callback is a per-element string-span assigner (second-array vfn1, f_100e5628 family): it reads a caller-supplied {begin, length} pair at arg+4/arg+8 and assigns that span into the element's own string via f_100d698c. The span content is therefore dispatch-time caller input, not constructor-bound data; handler identity is carried by distinct code pointers, and the member string holds the scope name 'zp' only.",
+    "Established: the triple-staged vptr writes are construction phases, not conflicting tables: leaf descriptor slots, then contiguous construction vtables with per-index offset_to_top -i*stride (0x10e979e0+i*0x10, 0x10e97ae0+i*0x18), then after zoneImpl member construction the final vtables (first array 0x10e97ff8/0x10e98008+i*0x10, second array 0x10e98098+i*0x18). First-array elements expose only destructors; second-array elements add per-index handler thunks and span assigners, all adjusting to the aggregate base at zp+0."
    ]
   },
   "0x104661fc": {
