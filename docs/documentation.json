@@ -46584,7 +46584,7 @@
      "notes": null
     },
     "GetMediaInfo": {
-     "description": "Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIMetaData, NextURI, NextURIMetaData, PlayMedium, RecordMedium, WriteStatus. Impl f_102adcb4 shares the wide-arg getter boilerplate; fields come from the engine's media descriptor (impl+0x580/session for indexed, streamer otherwise).",
+     "description": "Returns current and next media URI/metadata from the engine under impl+0x458. The source mode determines only the track-count path. Duration, recording medium and write status are fixed NOT_IMPLEMENTED in this build.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fa9e4",
@@ -46714,7 +46714,7 @@
      },
      "outputs": {
       "NrTracks": {
-       "description": "Track count of the current queue/media.",
+       "description": "Indexed session count in mode 2; fixed 1 in all other modes.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -46723,9 +46723,9 @@
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "Unsigned count from the indexed session, or 1 outside indexed mode.",
+       "range": "0 through 65535",
+       "special_values": "Returns 1 outside indexed mode even if the URI is empty.",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -46743,12 +46743,20 @@
          "build": "86.10-80260",
          "address": "0x10eb3468",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ade38",
+         "notes": "Reads mode at impl+0x4654: outside mode 2 NrTracks is 1; in mode 2 f_1025b35c(*(impl+0x580)) returns session halfword +0x326ce minus 1 if nonzero, else halfword +0x26c8 of the record pointed to by session+0x326c8.",
+         "function": "0x102adcb4"
         }
        ],
        "notes": null
       },
       "MediaDuration": {
-       "description": "Total media duration string.",
+       "description": "Fixed NOT_IMPLEMENTED.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46757,9 +46765,9 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "NOT_IMPLEMENTED",
+       "range": "Fixed literal.",
+       "special_values": "NOT_IMPLEMENTED",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -46777,12 +46785,20 @@
          "build": "86.10-80260",
          "address": "0x10eb3474",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ade60",
+         "notes": "Fixed NOT_IMPLEMENTED.",
+         "function": "0x102adcb4"
         }
        ],
        "notes": null
       },
       "CurrentURI": {
-       "description": "URI of current media.",
+       "description": "Direct string copy from impl+0x5dc.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46811,12 +46827,20 @@
          "build": "86.10-80260",
          "address": "0x10eaf990",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ade70",
+         "notes": "Direct string copy from impl+0x5dc.",
+         "function": "0x102adcb4"
         }
        ],
        "notes": null
       },
       "CurrentURIMetaData": {
-       "description": "DIDL metadata for current media.",
+       "description": "Direct string copy from impl+0x9dd.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46845,12 +46869,20 @@
          "build": "86.10-80260",
          "address": "0x10eaf99c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ade80",
+         "notes": "Direct string copy from impl+0x9dd.",
+         "function": "0x102adcb4"
         }
        ],
        "notes": null
       },
       "NextURI": {
-       "description": "URI of the queued next track/stream.",
+       "description": "Direct string copy from impl+0x1a03.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46879,12 +46911,20 @@
          "build": "86.10-80260",
          "address": "0x10eb3450",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ade90",
+         "notes": "Direct string copy from impl+0x1a03.",
+         "function": "0x102adcb4"
         }
        ],
        "notes": null
       },
       "NextURIMetaData": {
-       "description": "Metadata for next media.",
+       "description": "Direct string copy from impl+0x1e04.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46913,12 +46953,20 @@
          "build": "86.10-80260",
          "address": "0x10eb3458",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102adea0",
+         "notes": "Direct string copy from impl+0x1e04.",
+         "function": "0x102adcb4"
         }
        ],
        "notes": null
       },
       "PlayMedium": {
-       "description": "Medium type being played (e.g. TRACK-N/NETWORK family).",
+       "description": "NONE when CurrentURI is empty, NETWORK otherwise.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46927,9 +46975,9 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "NONE, NETWORK",
+       "range": "Two literals; selected by CurrentURI emptiness.",
+       "special_values": "NONE when the URI is empty.",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -46947,12 +46995,20 @@
          "build": "86.10-80260",
          "address": "0x10eb3484",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102adeac",
+         "notes": "NONE when CurrentURI is empty, NETWORK otherwise.",
+         "function": "0x102adcb4"
         }
        ],
        "notes": null
       },
       "RecordMedium": {
-       "description": "Recording medium (NONE typical).",
+       "description": "Fixed NOT_IMPLEMENTED.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46961,9 +47017,9 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "NOT_IMPLEMENTED",
+       "range": "Fixed literal.",
+       "special_values": "NOT_IMPLEMENTED",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -46981,12 +47037,20 @@
          "build": "86.10-80260",
          "address": "0x10eb3490",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102aded0",
+         "notes": "Fixed NOT_IMPLEMENTED.",
+         "function": "0x102adcb4"
         }
        ],
        "notes": null
       },
       "WriteStatus": {
-       "description": "Write-protect status string.",
+       "description": "Fixed NOT_IMPLEMENTED.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46995,9 +47059,9 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "NOT_IMPLEMENTED",
+       "range": "Fixed literal.",
+       "special_values": "NOT_IMPLEMENTED",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -47015,6 +47079,14 @@
          "build": "86.10-80260",
          "address": "0x10eb34a0",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102adee0",
+         "notes": "Fixed NOT_IMPLEMENTED.",
+         "function": "0x102adcb4"
         }
        ],
        "notes": null
@@ -47047,15 +47119,79 @@
       ]
      },
      "state_dependencies": {
-      "description": "Media descriptor fields read from engine session state; per-field provenance unresolved.",
+      "description": "The track count uses the indexed-session helper only in mode 2. All string outputs use the same member fields or literals independent of mode.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102adcb4",
-        "notes": "impl decode",
-        "function": "f_102adcb4"
+        "address": "0x102ade38",
+        "notes": "Reads mode at impl+0x4654: outside mode 2 NrTracks is 1; in mode 2 f_1025b35c(*(impl+0x580)) returns session halfword +0x326ce minus 1 if nonzero, else halfword +0x26c8 of the record pointed to by session+0x326c8.",
+        "function": "0x102adcb4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ade60",
+        "notes": "Fixed NOT_IMPLEMENTED.",
+        "function": "0x102adcb4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ade70",
+        "notes": "Direct string copy from impl+0x5dc.",
+        "function": "0x102adcb4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ade80",
+        "notes": "Direct string copy from impl+0x9dd.",
+        "function": "0x102adcb4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ade90",
+        "notes": "Direct string copy from impl+0x1a03.",
+        "function": "0x102adcb4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102adea0",
+        "notes": "Direct string copy from impl+0x1e04.",
+        "function": "0x102adcb4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102adeac",
+        "notes": "NONE when CurrentURI is empty, NETWORK otherwise.",
+        "function": "0x102adcb4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102aded0",
+        "notes": "Fixed NOT_IMPLEMENTED.",
+        "function": "0x102adcb4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102adee0",
+        "notes": "Fixed NOT_IMPLEMENTED.",
+        "function": "0x102adcb4"
        }
       ]
      },
@@ -47101,15 +47237,31 @@
       ]
      },
      "return_behavior": {
-      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "description": "Commits the nine outputs only on success. The wrapper returns 402 on required argument materialization failure; the engine returns 718 only for a nonzero parsed ID.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102adcb4",
-        "notes": "impl decode",
-        "function": "f_102adcb4"
+        "address": "0x102fab34",
+        "notes": "After InstanceID registration and request +0x08 validation at 0x102faa54, false validation leads to literal 402, passed to request +0x14 at 0x102faaec.",
+        "function": "0x102fa9e4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102faad0",
+        "notes": "Invokes impl slot +0x10; nonzero engine return goes through request +0x14 at 0x102faaec, and success publishes nine outputs then commits at 0x102facec.",
+        "function": "0x102fa9e4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102addb8",
+        "notes": "Engine compares parsed InstanceID with zero under the impl+0x458 scope. Nonzero returns 718; the zero-ID branch fills the outputs and reaches zero return at 0x102adee4.",
+        "function": "0x102adcb4"
        }
       ]
      },
@@ -47117,16 +47269,18 @@
      "errors": [
       {
        "code": 402,
-       "meaning": "request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter",
+       "meaning": "The wrapper could not materialize required InstanceID.",
        "conditions": [
         {
-         "description": "malformed/missing SOAP arg envelope",
+         "description": "The wrapper could not materialize required InstanceID.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "shared request-object parse vfunc; same layer emits 402 in sibling handlers"
+           "address": "0x102fab34",
+           "notes": "After InstanceID registration and request +0x08 validation at 0x102faa54, false validation leads to literal 402, passed to request +0x14 at 0x102faaec.",
+           "function": "0x102fa9e4"
           }
          ]
         }
@@ -47136,27 +47290,37 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "shared request-object arg-parse vfuncs (slot 28 InstanceID read / slot 12 commit); same layer emits 402 Invalid Args in sibling handlers"
+         "address": "0x102fab34",
+         "notes": "After InstanceID registration and request +0x08 validation at 0x102faa54, false validation leads to literal 402, passed to request +0x14 at 0x102faaec.",
+         "function": "0x102fa9e4"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 402; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x102faaec"
        ]
       },
       {
        "code": 718,
-       "meaning": "Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit",
+       "meaning": "Parsed InstanceID was nonzero.",
        "conditions": [
         {
-         "description": "InstanceID parses to nonzero / session object fails to resolve",
+         "description": "Parsed InstanceID was nonzero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "718 emitters concentrated in transport request-object fns (53 fns incl. f_102ad4a4, f_102d2e54); pattern proven on sibling action Stop at 0x102d2e94"
+           "address": "0x102addb8",
+           "notes": "Engine compares parsed InstanceID with zero under the impl+0x458 scope. Nonzero returns 718; the zero-ID branch fills the outputs and reaches zero return at 0x102adee4.",
+           "function": "0x102adcb4"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102faad0",
+           "notes": "Invokes impl slot +0x10; nonzero engine return goes through request +0x14 at 0x102faaec, and success publishes nine outputs then commits at 0x102facec.",
+           "function": "0x102fa9e4"
           }
          ]
         }
@@ -47166,13 +47330,21 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "718=nonzero-InstanceID rejection convention; li 0x2ce emitters in transport request-object layer (f_102a*/f_102d*), proven on sibling actions"
+         "address": "0x102addb8",
+         "notes": "Engine compares parsed InstanceID with zero under the impl+0x458 scope. Nonzero returns 718; the zero-ID branch fills the outputs and reaches zero return at 0x102adee4.",
+         "function": "0x102adcb4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102faad0",
+         "notes": "Invokes impl slot +0x10; nonzero engine return goes through request +0x14 at 0x102faaec, and success publishes nine outputs then commits at 0x102facec.",
+         "function": "0x102fa9e4"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 718; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x102faaec"
        ]
       }
      ],
@@ -47207,13 +47379,33 @@
        "build": "86.10-80260",
        "address": "0x10eb30d8",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102faad0",
+       "notes": "Invokes impl slot +0x10; nonzero engine return goes through request +0x14 at 0x102faaec, and success publishes nine outputs then commits at 0x102facec.",
+       "function": "0x102fa9e4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102addb8",
+       "notes": "Engine compares parsed InstanceID with zero under the impl+0x458 scope. Nonzero returns 718; the zero-ID branch fills the outputs and reaches zero return at 0x102adee4.",
+       "function": "0x102adcb4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ade38",
+       "notes": "Reads mode at impl+0x4654: outside mode 2 NrTracks is 1; in mode 2 f_1025b35c(*(impl+0x580)) returns session halfword +0x326ce minus 1 if nonzero, else halfword +0x26c8 of the record pointed to by session+0x326c8.",
+       "function": "0x102adcb4"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102fa9e4; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetPositionInfo": {
      "description": "Returns position metadata for the current track: Track number, TrackDuration, TrackMetaData, TrackURI, RelTime, AbsTime, RelCount, AbsCount. Impl f_102b1a88 is the widest getter (~10 out pointers in r5-r10+stack); mode impl+0x4654 selects whether position comes from the indexed engine or the streamer session.",
