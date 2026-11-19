@@ -67502,18 +67502,43 @@
          "function": "0x102f7bd0",
          "address": "0x102f7cb4",
          "notes": "402"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7634",
+         "address": "0x102f7778",
+         "notes": "job+0x1464 = single index"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b270",
+         "address": "0x1014b344",
+         "notes": "row+0x780 = &job+0x1468"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1015108c",
+         "address": "0x101510b8",
+         "notes": "*row+0x780 incremented"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: tokens are bounded to 0..inserted count (402 otherwise) and are not passed to the commit.",
-        "Residual: which code writes job+0x1464 and job+0x1468, which switch the check from the token value to their difference, is not traced. Next step is a store scan for offsets 0x1464 and 0x1468 in the f_1014f808 insert path."
+        "Established: tokens are bounded to 0..inserted count (402 otherwise) and are not passed to the commit; job+0x1464 holds a single-value argument and job+0x1468 counts items before it.",
+        "Residual: the container-expansion code that calls f_1015108c (reached through a function pointer, no direct bl caller) is not identified, so which expanded items are counted is not established. Next step is a data-reference scan for 0x1015108c."
        ],
        "resolved_findings": [
         "Resolved: post-parse handling of `NewCurrentTrackIndices` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
         "Resolved (binding): bound as a string by f_1056157c into job+0x1420 (parse site 0x104654bc). f_102f7634 strchr's it for ',' and, when absent, strtol's it into job+0x1464 (0x102f7774); f_102f7798 strtoul's it with errno checking (0x102f77fc) on the first entry; the success path tokenises it with f_10c39f14 and range-checks each value against the inserted count u16 job+0x1478, returning 402 when out of range (0x102f7f08).",
-        "Established (validation, f_102f7bd0 0x102f7ea0..0x102f7f08): f_10c39f14 splits the argument into tokens of up to 0x20 bytes at sp+0x349c. When job+0x1468 is zero each token is converted with strtol(token, NULL, 10) and rejected when it is negative (0x102f7f04) or greater than the inserted count u16 job+0x1478 (0x102f7ec8). When job+0x1468 is nonzero the token text is not converted; the check is applied to job+0x1464 - job+0x1468 instead (0x102f7eac). A rejection makes the action fail with 402 (0x192, 0x102f7cb4). The token buffer is then overwritten with CurrentTrackIndex (0x102f7f38), so no NewCurrentTrackIndices value reaches the queue commit. In plain terms: each listed index must lie between 0 and the number of tracks added, otherwise the action returns 402, and the list is only checked, never applied."
+        "Established (validation, f_102f7bd0 0x102f7ea0..0x102f7f08): f_10c39f14 splits the argument into tokens of up to 0x20 bytes at sp+0x349c. When job+0x1468 is zero each token is converted with strtol(token, NULL, 10) and rejected when it is negative (0x102f7f04) or greater than the inserted count u16 job+0x1478 (0x102f7ec8). When job+0x1468 is nonzero the token text is not converted; the check is applied to job+0x1464 - job+0x1468 instead (0x102f7eac). A rejection makes the action fail with 402 (0x192, 0x102f7cb4). The token buffer is then overwritten with CurrentTrackIndex (0x102f7f38), so no NewCurrentTrackIndices value reaches the queue commit. In plain terms: each listed index must lie between 0 and the number of tracks added, otherwise the action returns 402, and the list is only checked, never applied.",
+        "Established (job+0x1464/0x1468): when the argument has no comma, f_102f7634 stores strtol(text, NULL, 10) at job+0x1464 (strchr ',' at 0x102f775c, store at 0x102f7778). The per-entry callback f_102f7a50 passes job+0x1464 and &job+0x1468 to f_1014f808 (0x102f7a9c..0x102f7abc), which hands them to the row initialiser f_1014b270 (0x1014f964, 0x1014f970). That stores the index at row+0x77c (0x1014b35c) and the pointer at row+0x780 (0x1014b344). f_1015108c, called once per item with a running counter at ctx+8, increments *row+0x780 while the counter is below the index and the index is above the current value (0x10151098..0x101510b8). So job+0x1468 counts expanded items seen before that index, and the check at 0x102f7eac uses the index minus that count."
        ]
       },
       "NumberOfURIs": {
