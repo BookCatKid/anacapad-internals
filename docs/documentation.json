@@ -150261,15 +150261,38 @@
      "type": "firmware",
      "address": "0x10ef0a8c",
      "notes": "boot_seq block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1017fec0",
+     "address": "0x1017ff10",
+     "notes": "Registration callback forwards to concrete boot manager update."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1058aa44",
+     "address": "0x1058ab04",
+     "notes": "Nonzero sequence counter is persisted through BootSeq key; later BootSequenceEvent queued."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1058b138",
+     "notes": "Counter wrap substitutes one, not a stage-list restart."
     }
    ],
    "todo": [
-    "Residual: per-stage component list - no static stage-name array exists in the image (checked); the pass is a re-eval over the boot settings set on each trigger event, component actions dispatched through the registered boot-time consumers"
+    "Residual: trace the BootSequenceEvent subscriber registrations and concrete consumer callbacks, including which settings/actions each consumer applies. The producer is now bound to the boot counter update and event-dispatch path; absence of a static stage table does not establish the consumer list or prove a settings re-evaluation pass."
    ],
    "resolved_findings": [
-    "Resolved: updating boot sequence re-triggers the bootstage recorder; stages = the ordered init milestone set.",
     "boot_sequence_mgr.cxx reads boot-time settings {TargetRoomName, LocalAccountTransferMode, ForceWifiDisable, ForceMeshDisable, SonosNetDisable, WEPKey} and re-triggers on connectivity events (updating boot sequence due to wifi connection event). Separately, bootseq %u is a per-member monotonic counter in the topology layer (Adding member %s with bootseq %u failed - out-of-sync GM; %s ZP %s (bootseq %u); new bootseq) used to reject stale group members, and appears in mdns/topology notify records (bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u}).",
-    "Resolved: the boot sequence is event-driven, not a fixed stage table - literal re-trigger causes {registration event, cert update event, wifi connection event wC:%d} (0x10e98b35/0x10e98d05/0x10e9ac19) confirm the mgr re-runs the pass on event arrival; BootSequenceEvent is the delivered event name. The bootseq counter is logged as bootseq=%u with ports={%u-%u} and mdnssequence={old,new} (0x10f06b4d) - a per-member monotonic sequence guarding out-of-sync GM joins (0x10ec31d2)."
+    "Producer call path recovered, beyond literal re-trigger strings: registration callback f_1017fec0 loads manager pointer from owner+0x5730 and calls f_1058b664 at 0x1017ff10. Wi-Fi callback f_1058b6cc logs its reason then tail-calls the same function at 0x1058b730. f_1058b664 acquires/releases a guard for manager+0x48 around direct invocation of f_1058aa44 at 0x1058b694. Thus those callback paths reach the same manager implementation, rather than proving a separate fixed stage recorder from their log messages alone.",
+    "f_1058aa44 increments the 32-bit word at manager+0xd8 (0x1058aaa4-0x1058aab0); the zero result on wrap is replaced by one at 0x1058b138-0x1058b150. It formats that value as %u and invokes the object at manager+0xdc through virtual slot +0x14 with key BootSeq at 0x1058aacc-0x1058ab04. Later it constructs/queues an event named BootSequenceEvent; the log path at 0x1058aef4-0x1058af40 uses Queued %s(%u) from \"%s\" : { %s }. An independent no-wrap path and explicit wrap fallback show that +0xd8 is a nonzero sequence counter, not a stage-array index. No component-stage table is consumed in this examined producer. Consumer registrations are not established by that observation and still need reverse engineering; the previous ordered-init-milestones interpretation and asserted settings re-evaluation semantics are withdrawn."
    ]
   },
   "cloud": {
