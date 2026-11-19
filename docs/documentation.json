@@ -42176,7 +42176,7 @@
        ]
       },
       "SleepTimerState": {
-       "description": "serialized sleep-timer state blob",
+       "description": "Two comma-separated remaining durations: the active timer and the secondary deadline. Empty positions do not arm a timer. The receiver rebuilds its own deadlines and timer generation.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -42186,14 +42186,14 @@
         "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
-       "format": "utf-8 text (large blob arg via req slot)",
-       "unit": "n/a",
+       "format": "remaining duration,remaining duration; either field can be empty",
+       "unit": "hh:mm:ss",
        "accepted_values": "A_ARG_TYPE_SleepTimerState-domain value",
-       "range": "destination buffer: 18 bytes including space for NUL",
-       "special_values": "none identified",
+       "range": "18-byte destination including NUL; the shared duration parser bounds hours to 23 and minutes and seconds to 59.",
+       "special_values": "An empty field leaves its timer unchanged; 00:00:00 is a valid duration.",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "A bad or empty duration field is skipped without returning a SOAP fault from this helper.",
        "evidence": [
         {
          "type": "firmware",
@@ -42224,17 +42224,53 @@
          "address": "0x102dfa9c",
          "notes": "Calls f_102b0c98, f_102b0e58 and f_102b1214 on the incoming sleep, alarm and restart strings respectively, then calls f_102b0974 and requests local event processing. These helper results are not used as SOAP fault values at these sites.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c39c28",
+         "notes": "The writer inserts commas between fields and prefixes literal comma or backslash bytes within a field with a backslash.",
+         "function": "0x10c39b10"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c39f14",
+         "notes": "The first field is read at the initial cursor. Later reads consume a leading comma if present; a backslash escapes the next byte. An unescaped comma or NUL ends the field. The destination has room for at most capacity minus one bytes and NUL.",
+         "function": "0x10c39f14"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ed6c8",
+         "notes": "Writes two comma-separated durations to an 18-byte buffer. The first reflects active generation +0x5a78 with deadline +0x5a70; the second is present when +0x5a84 is set and uses deadline +0x5a80. Absent entries are empty. f_102ac63c formats max(deadline - current clock seconds, 0) with the shared duration formatter.",
+         "function": "0x102ed69c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b0e08",
+         "notes": "Each duration is extracted into nine bytes and parsed by f_10c3d2c4 if nonempty. A valid first duration sets +0x5a70 to local clock seconds plus remaining seconds, copies the local next generation into +0x5a78, advances +0x5a74 skipping zero, marks +0x5a7c, and registers f_102b462c. Empty or invalid first duration leaves that timer unchanged.",
+         "function": "0x102b0c98"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b0d8c",
+         "notes": "A valid second duration independently sets local deadline +0x5a80 and the +0x5a84 flag, and registers f_102d3578. Empty or invalid second duration does not write those fields. Neither branch imports an absolute timestamp or a peer generation number.",
+         "function": "0x102b0c98"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": 18,
-       "todo": [
-        "Established: the import passes the materialized text to f_102b0c98",
-        "Trace snapshot acceptance, generation and remaining-delay reconstruction in the import helper."
-       ]
+       "buf_cap": 18
       },
       "AlarmState": {
-       "description": "serialized alarm state blob",
+       "description": "An escaped comma-delimited alarm snapshot. Empty input clears the local alarm and snooze flags; nonempty input restores the stored alarm fields and can reconstruct snooze deadlines from remaining durations.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -42282,17 +42318,57 @@
          "address": "0x102dfa9c",
          "notes": "Calls f_102b0c98, f_102b0e58 and f_102b1214 on the incoming sleep, alarm and restart strings respectively, then calls f_102b0974 and requests local event processing. These helper results are not used as SOAP fault values at these sites.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c39c28",
+         "notes": "The writer inserts commas between fields and prefixes literal comma or backslash bytes within a field with a backslash.",
+         "function": "0x10c39b10"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c39f14",
+         "notes": "The first field is read at the initial cursor. Later reads consume a leading comma if present; a backslash escapes the next byte. An unescaped comma or NUL ends the field. The destination has room for at most capacity minus one bytes and NUL.",
+         "function": "0x10c39f14"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b0ec8",
+         "notes": "An empty alarm snapshot clears +0x6ed0 and +0x5a86 without setting their dirty flags here. A nonempty record sets AlarmRunning and its dirty byte, then reads an unsigned decimal ID, a date/time string, an optional duration, URI, metadata, a 32-byte string field, a numeric halfword and up to three duration fields. The reader results are not themselves SOAP faults.",
+         "function": "0x102b0e58"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b1178",
+         "notes": "A valid first trailing duration sets SnoozeRunning, its dirty flag and a deadline computed from the local clock. Following duration slots feed deadlines at +0x6ed4 and +0x6ed8. The first slot being absent or invalid clears the SnoozeRunning value; other defaults depend on the snooze state.",
+         "function": "0x102b0e58"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ed7b4",
+         "notes": "If AlarmRunning is false, writes an empty snapshot. Otherwise emits the record from engine fields using the escaped comma-delimited writer with capacity 5489.",
+         "function": "0x102ed780"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": 5489,
        "todo": [
-        "Established: the import passes the materialized text to f_102b0e58",
-        "Trace serialized alarm acceptance and the exported versus restored alarm fields."
+        "Established: AlarmRunning is derived from whether the snapshot is empty, and a valid first trailing duration restores SnoozeRunning and a local deadline.",
+        "Identify the exact application name of the 32-byte text and numeric halfword and the scheduling meaning of the +0x6ed4 and +0x6ed8 deadlines."
        ]
       },
       "StreamRestartState": {
-       "description": "serialized stream-restart state blob",
+       "description": "A comma-delimited stream restart snapshot: the remaining restart delay, a second remaining delay, delegated area IDs and a trailing serialized state object. The remaining durations are applied against the receiver's clock.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -42340,13 +42416,45 @@
          "address": "0x102dfa9c",
          "notes": "Calls f_102b0c98, f_102b0e58 and f_102b1214 on the incoming sleep, alarm and restart strings respectively, then calls f_102b0974 and requests local event processing. These helper results are not used as SOAP fault values at these sites.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c39f14",
+         "notes": "The first field is read at the initial cursor. Later reads consume a leading comma if present; a backslash escapes the next byte. An unescaped comma or NUL ends the field. The destination has room for at most capacity minus one bytes and NUL.",
+         "function": "0x10c39f14"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102eda30",
+         "notes": "Exports two remaining-duration fields (empty when no corresponding deadline is present), a delegated source area-ID string from f_1039137c, then a comma and the serialized object at impl+0xa0a4. Output capacity is 1640 bytes.",
+         "function": "0x102ed984"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b124c",
+         "notes": "Clears a set +0x7764 RestartPending and marks +0x7765; always clears +0x7766 and +0x776c before the record is read. A valid first duration sets RestartPending and its dirty byte, writes local time plus remaining duration at +0x7768 and registers f_102d06a0. A valid second duration sets +0x776c.",
+         "function": "0x102b1214"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b12d4",
+         "notes": "Reads the next field into a 1221-byte destination, calling f_1039549c to set delegated source area IDs when the reader succeeds or f_10395550 to clear them otherwise. Then invokes f_10a07408 on impl+0xa0a4 with the remainder after the delimiter.",
+         "function": "0x102b1214"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": 1640,
        "todo": [
-        "Established: the import passes the materialized text to f_102b1214",
-        "Trace snapshot parsing and the exact conditions that restore or leave RestartPending clear."
+        "Established: a valid first duration restores RestartPending, a valid second duration supplies another deadline, and the final payloads restore area IDs and a separate serialized object.",
+        "Decode the consumers of the second deadline and the exact serialized grammar and validation in f_10a07408 and f_1039549c."
        ]
       },
       "CurrentAVTTrackList": {
@@ -42732,7 +42840,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The base import has a branch that updates the current URI and marks it dirty, clears and marks a previously stored next URI dirty, then requests local UPnP event work. The resulting LastChange delta can publish the current and next URI and metadata.",
+      "description": "The base import has a branch that updates the current URI and marks it dirty, clears and marks a previously stored next URI dirty, then requests local UPnP event work. The resulting LastChange delta can publish the current and next URI and metadata. Importing the snapshots can also mark SleepTimerGeneration, AlarmRunning, SnoozeRunning and RestartPending for the local LastChange delta.",
       "evidence": [
        {
         "type": "firmware",
@@ -42772,11 +42880,51 @@
         "address": "0x102e4d38",
         "notes": "The delta formatter checks the two pending flags for AVTransportURI/AVTransportURIMetaData and NextAVTransportURI/NextAVTransportURIMetaData.",
         "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b0e08",
+        "notes": "Each duration is extracted into nine bytes and parsed by f_10c3d2c4 if nonempty. A valid first duration sets +0x5a70 to local clock seconds plus remaining seconds, copies the local next generation into +0x5a78, advances +0x5a74 skipping zero, marks +0x5a7c, and registers f_102b462c. Empty or invalid first duration leaves that timer unchanged.",
+        "function": "0x102b0c98"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b0ec8",
+        "notes": "An empty alarm snapshot clears +0x6ed0 and +0x5a86 without setting their dirty flags here. A nonempty record sets AlarmRunning and its dirty byte, then reads an unsigned decimal ID, a date/time string, an optional duration, URI, metadata, a 32-byte string field, a numeric halfword and up to three duration fields. The reader results are not themselves SOAP faults.",
+        "function": "0x102b0e58"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1178",
+        "notes": "A valid first trailing duration sets SnoozeRunning, its dirty flag and a deadline computed from the local clock. Following duration slots feed deadlines at +0x6ed4 and +0x6ed8. The first slot being absent or invalid clears the SnoozeRunning value; other defaults depend on the snooze state.",
+        "function": "0x102b0e58"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b124c",
+        "notes": "Clears a set +0x7764 RestartPending and marks +0x7765; always clears +0x7766 and +0x776c before the record is read. A valid first duration sets RestartPending and its dirty byte, writes local time plus remaining duration at +0x7768 and registers f_102d06a0. A valid second duration sets +0x776c.",
+        "function": "0x102b1214"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b5744",
+        "notes": "Transfers dirty bytes +0x5a7c, +0x5a87, +0x6ed1 and +0x7765 into pending delta bytes +0xa098, +0xa099, +0xa09a and +0xa09b respectively. f_102e43a0 formats these as r:SleepTimerGeneration, r:AlarmRunning, r:SnoozeRunning and r:RestartPending.",
+        "function": "0x102b5658"
        }
       ],
       "todo": [
-       "Established: The base import has a branch that updates the current URI and marks it dirty, clears and marks a previously stored next URI dirty, then requests local UPnP event work.",
-       "Map the other LastChange fields affected by the imported alarm, timer, restart, source and queue state, and the conditions for all notifying branches."
+       "Established: URI and metadata plus the named timer, alarm and restart fields have traced dirty-byte paths into LastChange.",
+       "Trace the queue/source event callbacks outside those snapshot paths and the cases where delivery is coalesced with a later update."
       ]
      },
      "state_transitions": {
