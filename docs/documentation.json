@@ -87167,7 +87167,7 @@
      ]
     },
     "GetAlbumArtistDisplayOption": {
-     "description": "Returns the album-artist display option via impl->v[+0x8].",
+     "description": "Returns the current album-artist mode name. Wrapper 0x10307b70 tail-calls worker 0x10307aa4, which invokes statically bound cd_impl primary slot +0x14 = f_103024c8. The getter maps global u32 0x110953dc: 0=NONE, 1=ITUNES, 2=WMP, 3=BOTH; other values produce empty text, not a fault. It reads the mode only and does not re-sort or change the index. See the service-level binding proof.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10307b70",
@@ -87187,153 +87187,228 @@
         "arg4": "r4-in"
        }
       ],
-      "req_vcalls": []
+      "req_vcalls": [],
+      "impl_function": "0x103024c8",
+      "impl_vfunc": "cd_impl primary vtable 0x10eb3f20 slot +0x14; body worker 0x10307aa4",
+      "description": "The wrapper validates the no-input request and tail-calls the body worker. The body supplies a 0x400-byte string buffer to the mode getter, emits its returned text and commits. The concrete getter always returns zero; it does not pass through Browse/Search engine errors."
      },
      "inputs": {},
      "outputs": {
       "AlbumArtistDisplayOption": {
-       "description": "AlbumArtistDisplayOption capability field emitted by impl 0x10307aa4",
+       "description": "Uppercase mode name selected from the current global mode, or empty string for values outside 0..3.",
        "direction": "out",
        "primitive": {
-        "fmt_helper": null,
+        "fmt_helper": "0x11098ad8",
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "text",
+       "semantic_type": "mode string",
+       "format": "literal text",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the parser/emitter",
-       "special_values": "none identified",
+       "accepted_values": "NONE, ITUNES, WMP, BOTH, or empty string",
+       "range": "0..6 characters; worker buffer 0x400 bytes",
+       "special_values": "0=NONE; 1=ITUNES; 2=WMP; 3=BOTH; all other unsigned values yield empty string.",
        "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string 'out' loaded at 0x10307af8 inside f_10307aa4",
+       "default": "none; reads current mode rather than supplying a getter default",
+       "validation": "Unsigned comparisons choose a static string; strlcpy copies it using the worker-supplied capacity.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10307af8",
-         "notes": "arg-name string load in f_10307aa4"
+         "function": "0x103024c8",
+         "address": "0x103024d0",
+         "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "f_10307aa4",
-         "notes": "worker function"
+         "function": "0x10307aa4",
+         "address": "0x10307ae0",
+         "notes": "Calls cd_impl primary slot +0x14 using 0x400-byte buffer; slot entry 0x10eb3f34 is f_103024c8. Creates AlbumArtistDisplayOption at 0x10307b04, writes text via output +0x10 at 0x10307b18 and commits at 0x10307b2c."
         }
-       ],
-       "notes": null
+       ]
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "No input fetch or parser. Fresh per-SOAP TRequest has zero registered inputs and always validates, so the wrapper 402 branch is dead. Out-of-range global modes are represented as empty output and still succeed.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10307b70",
-        "notes": "wrapper family decode"
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "See ContentDirectory service-level binding and per-SOAP request proof: fresh request with zero registered inputs always validates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10307b70",
+        "address": "0x10307b9c",
+        "notes": "No input registration; validates request then tail-calls f_10307aa4 at 0x10307bc4. Zero-validation branch selects 402 at 0x10307bd4, tail-fault at 0x10307bf0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103024c8",
+        "address": "0x103024d0",
+        "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8]",
+      "description": "No action arguments, index-ready check or mode-range rejection. No-input request validation always succeeds on the proven SOAP path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x103024c8",
+        "address": "0x103024d0",
+        "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10307b70",
-        "notes": "req-vfunc call map: {'0x14': 1}"
+        "address": "0x10307b9c",
+        "notes": "No input registration; validates request then tail-calls f_10307aa4 at 0x10307bc4. Zero-validation branch selects 402 at 0x10307bd4, tail-fault at 0x10307bf0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "See ContentDirectory service-level binding and per-SOAP request proof: fresh request with zero registered inputs always validates."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8]",
+      "description": "Reads only global u32 0x110953dc and the selected static string. It does not inspect per-track metadata or the implementation object. f_1010fc78 writes a loaded value at 0x1010ff70 or literal 2 on the branch at 0x1010ffa8; another mode producer writes at 0x10112738. Getter behavior depends solely on the current word, including unknown values.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10307b70",
-        "notes": "member vfunc calls: ['r4 v[+0x8]']"
+        "function": "0x103024c8",
+        "address": "0x103024d0",
+        "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010fc78",
+        "address": "0x1010ff70",
+        "notes": "One producer stores loaded mode word at global 0x110953dc; alternate branch stores literal 2 at 0x1010ffa8. Another producer stores mode at 0x10112738. The getter reads current global value without changing it."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query delegate: r4 v[+0x8] (call-derived member-method semantics)",
+       "description": "Writes only the supplied string buffer and response records. No mode change, library resort or persistent write.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10307b70",
-         "notes": "delegate map ['r4 v[+0x8]']; notify-family calls []"
+         "function": "0x103024c8",
+         "address": "0x103024d0",
+         "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10307aa4",
+         "address": "0x10307ae0",
+         "notes": "Calls cd_impl primary slot +0x14 using 0x400-byte buffer; slot entry 0x10eb3f34 is f_103024c8. Creates AlbumArtistDisplayOption at 0x10307b04, writes text via output +0x10 at 0x10307b18 and commits at 0x10307b2c."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r4 v[+0x8] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No notifier or GENA event call in the wrapper, worker or getter.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x103024c8",
+        "address": "0x103024d0",
+        "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10307aa4",
+        "address": "0x10307ae0",
+        "notes": "Calls cd_impl primary slot +0x14 using 0x400-byte buffer; slot entry 0x10eb3f34 is f_103024c8. Creates AlbumArtistDisplayOption at 0x10307b04, writes text via output +0x10 at 0x10307b18 and commits at 0x10307b2c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10307b70",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x10307b9c",
+        "notes": "No input registration; validates request then tail-calls f_10307aa4 at 0x10307bc4. Zero-validation branch selects 402 at 0x10307bd4, tail-fault at 0x10307bf0."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8]",
+      "description": "None. Reading the mode leaves the global word and library state unchanged.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10307b70",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]']"
+        "function": "0x103024c8",
+        "address": "0x103024d0",
+        "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "All getter arms return zero after strlcpy, including the fallback empty string. Worker emits AlbumArtistDisplayOption via text slot +0x10 at 0x10307b18 and commits at 0x10307b2c. Generic worker fault at 0x10307b64 and no-input wrapper fault 402 at 0x10307bf0 are unreachable. No 701 or 711 path exists for this getter.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x103024c8",
+        "address": "0x103024d0",
+        "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10307aa4",
+        "address": "0x10307ae0",
+        "notes": "Calls cd_impl primary slot +0x14 using 0x400-byte buffer; slot entry 0x10eb3f34 is f_103024c8. Creates AlbumArtistDisplayOption at 0x10307b04, writes text via output +0x10 at 0x10307b18 and commits at 0x10307b2c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10307b70",
-        "notes": "commit/fault slot usage: {'0x14': 1}"
+        "address": "0x10307b9c",
+        "notes": "No input registration; validates request then tail-calls f_10307aa4 at 0x10307bc4. Zero-validation branch selects 402 at 0x10307bd4, tail-fault at 0x10307bf0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "See ContentDirectory service-level binding and per-SOAP request proof: fresh request with zero registered inputs always validates."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -87346,33 +87421,30 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "impl single-call impl: rc = worker call result verbatim (mr r3 at 0x10307ab8 is the call arg setup; r31 exit is lwz-restored spill - real exit is the call); rc forwarded verbatim via req v[+0x14] | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "unreachable request-validity zero",
+       "meaning": "Dead wrapper literal 402 at 0x10307bd4, tail fault at 0x10307bf0. No inputs are registered and concrete getter always succeeds.",
        "fault_sites": [
         "0x10307bf0"
        ],
        "conditions": [
         {
-         "description": "req or impl gate failed",
+         "description": "No reachable condition on the proven per-SOAP path; out-of-range mode is empty success, not a fault.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10302498",
-           "notes": "impl"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x106960f8",
+           "address": "0x10696404",
+           "notes": "See ContentDirectory service-level binding and per-SOAP request proof: fresh request with zero registered inputs always validates."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10307b70",
-           "notes": "parse vcalls then fault path"
+           "function": "0x103024c8",
+           "address": "0x103024d0",
+           "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
           }
          ]
         }
@@ -87382,43 +87454,26 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10302498",
-         "notes": "rc path"
+         "function": "0x106960f8",
+         "address": "0x10696404",
+         "notes": "See ContentDirectory service-level binding and per-SOAP request proof: fresh request with zero registered inputs always validates."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10307ab8",
-         "notes": "impl delegates to shared getter worker"
+         "function": "0x103024c8",
+         "address": "0x103024d0",
+         "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10307b70",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10307b70",
+         "address": "0x10307b9c",
+         "notes": "No input registration; validates request then tail-calls f_10307aa4 at 0x10307bc4. Zero-validation branch selects 402 at 0x10307bd4, tail-fault at 0x10307bf0."
         }
-       ],
-       "unresolved": {
-        "proven": "literal exit paths bounded by accumulator scan",
-        "unknown": "call-derived rc values from worker/delegate chain",
-        "impl_exit_literals": {
-         "function": "0x10307aa4",
-         "lits": [],
-         "passthrough_exits": 5
-        }
-       },
-       "literal_bound": [
-        0,
-        402,
-        701,
-        711
-       ],
-       "resolved_note": "CD impl: Browse/search -> {402 invalid-args, 701 no-such-content, 711 no-such-object, browse-engine rc}. verified via impl return-scan.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x10307bf0).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -87445,13 +87500,49 @@
        "build": "86.10-80260",
        "address": "0x10307aa4",
        "notes": "tail target of handler"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103024c8",
+       "address": "0x103024d0",
+       "notes": "Loads global u32 at 0x110953dc. Unsigned compare chain maps 0 to NONE at 0x1030255c, 1 to ITUNES at 0x1030257c, 2 to WMP at 0x1030251c, 3 to BOTH at 0x103024fc and all others to empty string at 0x1030253c. Every arm calls strlcpy and returns zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10307aa4",
+       "address": "0x10307ae0",
+       "notes": "Calls cd_impl primary slot +0x14 using 0x400-byte buffer; slot entry 0x10eb3f34 is f_103024c8. Creates AlbumArtistDisplayOption at 0x10307b04, writes text via output +0x10 at 0x10307b18 and commits at 0x10307b2c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10307b70",
+       "address": "0x10307b9c",
+       "notes": "No input registration; validates request then tail-calls f_10307aa4 at 0x10307bc4. Zero-validation branch selects 402 at 0x10307bd4, tail-fault at 0x10307bf0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010fc78",
+       "address": "0x1010ff70",
+       "notes": "One producer stores loaded mode word at global 0x110953dc; alternate branch stores literal 2 at 0x1010ffa8. Another producer stores mode at 0x10112738. The getter reads current global value without changing it."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x106960f8",
+       "address": "0x10696404",
+       "notes": "See ContentDirectory service-level binding and per-SOAP request proof: fresh request with zero registered inputs always validates."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10307b70; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetAllPrefixLocations": {
      "description": "Returns TotalPrefixes/PrefixAndIndexCSV/UpdateID via impl->v[+0x1c].",
