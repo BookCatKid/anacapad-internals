@@ -149382,6 +149382,27 @@
      "build": "86.10-80260",
      "address": "0x107ec2d0",
      "notes": "Unsigned requested-channel bound reads +0x1c4, independently of sample-size member +0x1c0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107ee524",
+     "notes": "Capacity at +0x1c4 stores incoming r9 preserved in r25; +0x1c0 at 0x107ee52c stores incoming width r8 preserved in r24."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10de08e4",
+     "notes": "Literal width 4 reaches initializer call 0x10de08f8; the same literal occurs before calls 0x10de0a2c/0x10de1610. Generic callers 0x107fe268/0x107fe42c forward r18."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107ed16c",
+     "notes": "Vtables 0x10f299e0 and 0x10ff10c8 slot +0x48 select this provider; its empty-state branch clears output+4 and returns 2 at 0x107ed1e8-0x107ed200."
     }
    ],
    "resolved_findings": [
@@ -149393,9 +149414,11 @@
     "Physical write-path correction: f_107eca90 reads sample size from stream+0x1c0 and accepts 2 or 4 at 0x107ecb84-0x107ecb94; other sizes reach the unexpected sample size diagnostic and abort at 0x107ecd54-0x107ecd88. The two-byte arm uses signed halfword loads, efscfsi and efsmul, then four-byte floating-point stores (0x107ecd18-0x107ecd2c). The four-byte arm copies words at 0x107ecbc4-0x107ecbdc; a word copy alone does not establish an integer sample representation or interleaving. The old integer-only and channel-set {1,2,4} claims are withdrawn.",
     "Channel capacity is a different member: the unsigned compare at 0x107ec2d0-0x107ec2d8 reads stream+0x1c4 and accepts requested channels no greater than that runtime maximum. It does not enumerate a compiled {1,2,4} channel set. Category names and the TV/source-category gain branches remain distinct from physical sample format.",
     "The streamSampleType format-table premise is resolved by tracing the setters: this enum is a source/playback category, not a packed audio-format word. f_10801408 logs the category name with f_10d91e74, and, only if DSP object +0xa4 is non-null, forwards it to f_10d7e2b8 (0x10801484-0x10801494). That callee compares/stores the category at DSP +0x80 and runs gain-offset update f_10d7e1a0. f_10801b3c handles playback-category changes for the matching stream ID: a mismatched byte ID at +0x9c exits unchanged; a match stores the new category at +0xd8, updates volume through f_108017d8 and forwards it through f_10d7e32c when the DSP exists. f_10d7e32c compares/stores playback category at DSP +0x7c and invokes the same gain-offset update. No packed sample-format lookup occurs in either setter. The six-entry table 0x10feb654 is pointers to category names only, accessed by f_10d91e74, with UNKNOWN for unsigned values above five. Physical sample width, channel stride and rate belong to the audio-stream data path, not that name table. This replaces the earlier unsupported assertion that a missing format-word table must be external configuration.",
-    "Positive category consumer: f_10d7e1a0 tests playback +0x7c for TV=2 at 0x10d7e1b8. Only in that branch does it select source-category-specific gain offsets: TTS=4 and FEEDBACK=3 have byte +0x200-dependent branches using +0x204 and +0x208 respectively; the other TV source categories use +0x20c. Non-TV playback takes the shared identity/default offset path. Each path converges on storing gain offset at +0x210 and refreshing gain through f_10d7d830 and f_10d7dc9c. Thus category-specific policy really exists in compiled branches; lack of a six-row format table is not evidence of missing sample-format data. This finding concerns category/format separation, not a claim that all DSP behavior is controlled by these two setters."
+    "Positive category consumer: f_10d7e1a0 tests playback +0x7c for TV=2 at 0x10d7e1b8. Only in that branch does it select source-category-specific gain offsets: TTS=4 and FEEDBACK=3 have byte +0x200-dependent branches using +0x204 and +0x208 respectively; the other TV source categories use +0x20c. Non-TV playback takes the shared identity/default offset path. Each path converges on storing gain offset at +0x210 and refreshing gain through f_10d7d830 and f_10d7dc9c. Thus category-specific policy really exists in compiled branches; lack of a six-row format table is not evidence of missing sample-format data. This finding concerns category/format separation, not a claim that all DSP behavior is controlled by these two setters.",
+    "Format/capacity writers are identified, not an open writer search: initializer f_107ee420 preserves incoming r8 in r24 at 0x107ee43c and r9 in r25 at 0x107ee444. It stores r25 to stream+0x1c4 at 0x107ee524 and r24 to stream+0x1c0 at 0x107ee52c. These are constructor arguments, not a compiled set of channel counts. Executable direct-call census finds five sites: 0x107fe268/0x107fe42c forward r18 as r8 and the preceding f_105369b8 return as r9; 0x10de08f8/0x10de0a2c/0x10de1610 instead supply literal r8=4 and the preceding return as r9. The literal width is established on those three paths, not universally. The caller and initializer store chain does not identify the four-byte sample value representation.",
+    "A concrete buffer-provider target is also identifiable: initializer f_107ee420 installs vtable 0x10f299e0, whose slot +0x48 points to f_107ed16c; the derived table 0x10ff10c8 installed after 0x10de08f8 has the same slot. f_107ed16c checks stream+0x1cc/+0x1d0 at 0x107ed1d0-0x107ed1e4 and, when both are zero, clears output+4 and returns 2. This is a reachable empty-provider path, not proof of a full buffer-layout or four-byte format contract; other derived providers and the successful buffer path still require tracing."
    ],
-   "todo": "Established: category setters and gain-offset consumers are traced; f_107eca90 accepts two-byte signed input converted to floating-point storage or four-byte word copies, while 0x107ec2d0 bounds channels by +0x1c4. Unknown: the full physical format contract, including four-byte input interpretation, buffer/channel layout and producers of runtime format/capacity/rate values. Next: trace writers of stream+0x1c0/+0x1c4 and the buffer-provider virtual calls at 0x107ecb70-0x107ecb78 into their implementations; join their buffers and format initialization to the copy/conversion loops at 0x107ecbc4 and 0x107ecd18 before asserting output representation or interleaving."
+   "todo": "Established: width/capacity stores in f_107ee420 at 0x107ee52c/0x107ee524 come from incoming r8/r9; three direct callers supply width 4, while two forward r18. Two-byte input conversion, separate channel bounds and category policy are traced. Unknown: upstream argument semantics/constraints, four-byte sample representation and complete buffer/channel/rate contract across concrete providers. Next: trace r18 and the f_105369b8 capacity source in f_107fe1a4 and the three 0x10de08f8/0x10de0a2c/0x10de1610 caller chains; follow f_107ed16c successful buffer output and derived slot +0x48/+0x4c implementations into the copy/conversion consumers at 0x107ecbc4/0x107ecd18 before assigning a universal format or layout."
   },
   "sound_device": {
    "name": "sounddev: output device + HW health",
