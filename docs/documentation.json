@@ -215686,7 +215686,7 @@
      ]
     },
     "public_account_removal": {
-     "description": "SystemProperties.RemoveAccount uses installed settings delegate f_104b0918. Its full AccountType equality check against65031 (0xFE07, service254/type7) selects a TuneIn-specific path that writes the setting R_HideTuneIn to literal true. It does not invoke the normal account-deletion worker or consult AccountID on that branch, although wrapper request parsing/validation still applies. The settings operation returning zero yields success0; a nonzero result yields809. Other account types enter f_1028c5f4 with the supplied AccountType/AccountID. That locks the account mutex and invokes f_1028c3b8. Failure to load account tables or failure of commit helper f_10289258 maps to809; row-removal helper f_102863a8 can return806 when no matching account is found and its other nonzero statuses propagate. After zero removal result and a successful commit, the core conditionally attempts service-manifest deletion using descriptor capability and remaining-family lookup; it ignores the manifest-deletion result and submits the del diagnostic through manager slot+0x28 (f_10284950). The outer wrapper then unlocks and invokes manager slot+0x34 only when the core returned zero. Callback return does not replace the removal status. This separates a TuneIn visibility-setting operation, normal account deletion, manifest cleanup, diagnostics and local refresh from any provider-side credential revocation, which is not established by these local paths.",
+     "description": "SystemProperties.RemoveAccount uses installed settings delegate f_104b0918. Its full AccountType equality check against65031 (0xFE07, service254/type7) selects a TuneIn-specific path that writes the setting R_HideTuneIn to literal true. It does not invoke the normal account-deletion worker or consult AccountID on that branch, although wrapper request parsing/validation still applies. The settings operation returning zero yields success0; a nonzero result yields809. Other account types enter f_1028c5f4 with the supplied AccountType/AccountID. That locks the account mutex and invokes f_1028c3b8. Failure to load account tables or failure of commit helper f_10289258 maps to809; row-removal helper f_102863a8 can return806 when no matching account is found and its other nonzero statuses propagate. After zero removal result and a successful commit, the core conditionally attempts service-manifest deletion using descriptor capability and remaining-family lookup; it ignores the manifest-deletion result and submits the del diagnostic through manager slot+0x28 (f_10284950). The outer wrapper then unlocks and invokes manager slot+0x34 only when the core returned zero. Callback return does not replace the removal status. This separates a TuneIn visibility-setting operation, normal account deletion, manifest cleanup, diagnostics and local refresh from any provider-side credential revocation, which is not established by these local paths. Row-removal worker f_102863a8 asserts the lock and chooses its lookup through f_105716a0(table,key): when that gate fails it first formats an X_#-style ID from the strtoul-hex suffix of the supplied name (f_1056fe5c/f_1056fdec) and retries the explicit lookup, then falls back to the raw argument; a row found through the second-chance lookup must pass f_1057007c X_# consistency or the result is806. The located row is copied out (f_1056f854 ctor, f_10285818 snapshot fill): if the deleted table holds7 or fewer rows the copy is tombstoned there through f_1057082c after its VClockHousehold and VClockCloud fields are stamped with revision mgr+0xd4+1 by f_1056ecb4; when the deleted table already exceeds7 rows the oldest matching entry is first evicted by f_10570cdc and 'exceeded max deleted accounts' is logged at level4. Live rows matching {type,accountID,flag-mode arg9} are then dropped by f_10570cdc compaction, whose zero result maps to809 even though the tombstone was already inserted. If the removed row's serial equals preferred serial mgr+0xdc the field is cleared to0, and a caller-supplied out pointer receives the removed-row copy via f_1056f738. f_1028c3b8 is shared by the public path (f_1028c5f4 under delegate f_104b0918 and zone caller f_101b6b84) and three internal cleanup callers (f_1028c680 'corruptedAccountRemoval', f_1028ca40 'duplicateAccountRemoval', f_1028ce44), so replication-driven removals reuse the same tombstone/commit/refresh machinery. Manifest cleanup runs only when descriptor flag bit0x400000 is set for the removed account's service and the selector0 family lookup finds no remaining row; it calls the service interface at mgr+8 through vfunc+0x130 (fast path f_100c6d14 on obj+0x11a4 when that slot holds f_1012ba78) and ignores the result before submitting 'del'. No provider or network call exists anywhere in the removal chain, so revocation of the account at the music service is a replication-side effect, not something this path performs. R_HideTuneIn written by the TuneIn branch is consumed by f_101b6dbc during the post-commit refresh (it feeds the household-sync argument) and by migration op f_1028e5dc, which reads it before rewriting it to 'true' and emits the 'legacyTuneInReplaced' diagnostic; the settings registry itself lives outside this subsystem.",
      "evidence": [
       {
        "type": "firmware",
@@ -215750,9 +215750,60 @@
        "build": "86.10-80260",
        "address": "0x101b8048",
        "notes": "Account refresh reads manager snapshot via0x1028903c at0x101b8238; compares with cached table at0x101b8250. Nonzero copies rows then invokes0x101bb1d0 at0x101b8290. Further work is conditional at0x101b8294..0x101b82c0. This does not by itself establish external event delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028644c",
+       "notes": "Explicit lookup with selector1; no match806 at0x10286658; X_# fallback formats via f_1056fe5c/f_1056fdec at0x10286584..0x102865a8 and requires f_1057007c consistency at0x102865dc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10286484",
+       "notes": "Tombstone build: vclock stamp f_1056ecb4(mgr+0xd4+1) into row+0x1fc/+0x220 fields then insert into deleted table via f_1057082c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102865f8",
+       "notes": "Deleted-table cap: when count>7, evict the entry matching first row {type,accountID} via f_10570cdc and log 'exceeded max deleted accounts' level4 before inserting."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028650c",
+       "notes": "Preferred serial mgr+0xdc cleared to0 when it equals the removed row serial (test at0x102864fc, clear at0x1028664c); out-copy to caller arg8 via f_1056f738."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c580",
+       "notes": "Post-commit manifest gate: descriptor flag0x144 bit0x400000 and selector0 family lookup; delete through mgr+8 vfunc+0x130 with fast path f_100c6d14 at0x1028c5dc; result ignored."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c680",
+       "notes": "Internal removal callers share f_1028c3b8: f_1028c680 logs 'corruptedAccountRemoval', f_1028ca40 'duplicateAccountRemoval', f_1028ce44 the same family; public path f_1028c5f4 also called from zone f_101b6b84."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028e5dc",
+       "notes": "Migration op reads R_HideTuneIn via settings vfunc+0x24, emits 'legacyTuneInReplaced' through the diagnostic singleton and writes the setting 'true' via settings vfunc+0xc."
       }
      ],
-     "todo": "Established: TuneIn setting special case, normal deletion/commit ordering, missing-account806, manifest cleanup, del diagnostic payload and post-unlock refresh target are decoded. Remaining: finish row-removal consistency/tombstone policy, durable replication/recovery and downstream refresh/event delivery; trace R_HideTuneIn consumers and provider-side removal effects where present."
+     "resolved_findings": [
+      "Resolved: normal removal is locate(806) -> tombstone into the deleted table (capped at8 with eviction log) -> compact live rows (809 on zero) -> commit (809) -> conditional manifest delete (capability0x400000 and no remaining family row, result ignored) -> 'del' diagnostic -> unlock and refresh; the preferred serial is cleared when the removed row held it, replication-driven removals (corrupted/duplicate) share the same core, the TuneIn branch is a pure settings write that never touches account tables, and no provider-side revocation call exists in this chain."
+     ]
     },
     "account_file_commit": {
      "description": "Commit wrapper f_10289258 asserts the account lock and calls f_102890b0 with follow-up flag1. The latter resolves accounts.xml, proposes current revision+1 and serializes the supplied tables and metadata through f_10508988. Only a true writer result copies local source to stored source, updates next-serial/revision state and invokes replication interface slot+0x14 with kind11, source and new revision. A false writer result leaves that manager commit bookkeeping unchanged. With the follow-up flag set, both true and false writer results can still run f_10285878 and, when it returns nonzero, schedule f_10285338. Thus a failed save does not imply no subsequent work is scheduled. The scheduling policy and delivery remain separate from successful persistence. The kind11 target is the replication-service interface bound at manager+0xc together with its shared owner at+0x10. Zone initialization f_101b66f4 registers the manager as the kind11 consumer through f_10651bd4 and f_1028ddf4 moves the interface/owner pair into place; that initializer also seeds source text, revision, preferred serial and header metadata from the persisted header parsed by f_10506828/f_105068ec, or runs the 'setup' op through f_10288b00 when the header is absent, and issues the first kind11 advertisement when enabled. Inside the writer, f_105084e0 emits the Accounts root attributes LastUpdateDevice, Version, NextSerialNum, SchemaVersion, PreferredSerialNum, VClockHousehold, VClockCloud and MuseHouseholdID through f_105071e4, then each live-table row whose type and serial are both nonzero with f_105081bc attributes and conditional Token/Key elements, then the deleted table's rows with Deleted=\"1\", then the closing tag. The close helper f_1054f0e8 runs fflush, fileno and fsync with all results discarded, then fclose, whose result alone decides the checked close outcome; a true close renames the temporary file over the live path and unlinks the temporary name, so rename is the only tested durability step. The follow-up predicate f_10285878 consults a virtual call on global0x11097680, obj+0xb50 vfunc+0x14 and mgr+8 vfunc+0xc4, falling back to mgr+0x14d, and nonzero leads f_10285338 to queue f_100ba320 on event loop0x11095f8c about3 seconds out; the job runs refcounted f_101b6eac into pending-sync driver f_10290df4, which re-evaluates f_10285878 before rescheduling. Inbound replication ops reach the manager through f_102876b0 (via this-adjusting thunk f_101b6eec): op1 sets mgr+0x14d and schedules the same job, op2 sets mgr+0x14c and chains f_100ba5dc/f_101b6ebc to f_10290400, and any other op code logs 'Invalid replication operation'. Pull/push merge driver f_1028fa98 commits with flag0 at0x10290ac0 and0x10291784, the only direct f_102890b0 callers, so replication-applied writes do not requeue the deferred sync; it reschedules itself through 'Pull/Push rescheduled in %lld' with a doubling interval capped at0xe10 seconds, guards merges with 'Corrupted accounts not updated' and requires 'Link code required to add guest account' for guest rows.",
