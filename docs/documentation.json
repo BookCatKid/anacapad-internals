@@ -42747,7 +42747,7 @@
      ]
     },
     "ConfigureSleepTimer": {
-     "description": "Sets or cancels the sleep timer. Impl f_102b4de8: after the 718-gate it checks the first byte of NewSleepTimerDuration (an empty string skips parsing and passes 0 seconds (cancel semantics). A non-empty value is parsed by shared duration parser f_10c3d2c4 (the same routine SnoozeAlarm uses); parse failure returns 402. The impl locks impl+0x458 and requires engine+0x4654 in {1,2}) any other mode returns 800. On success it calls f_102b4c1c(engine,seconds,1,1,1,0) and returns its rc.",
+     "description": "Arms or cancels the sleep timer in source mode 1 or 2. A nonempty parsed duration sets a clock deadline and a new active generation, even for 00:00:00. Only the empty string takes the cancellation path.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f9878",
@@ -42820,7 +42820,7 @@
        "notes": null
       },
       "NewSleepTimerDuration": {
-       "description": "Duration string parsed by shared parser f_10c3d2c4 (same routine SnoozeAlarm uses); empty string bypasses parsing and cancels the timer.",
+       "description": "Required string. Empty means cancel; every nonempty value uses the firmware duration parser.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -42830,14 +42830,14 @@
         "via_slot": 28
        },
        "semantic_type": "SonosDurationArg",
-       "format": "utf-8 text, buffer cap 64 bytes (63 chars + NUL)",
+       "format": "%02hu:%02hu:%02hu scanner; not a strict whole-string match.",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "Empty string (cancel) or a duration that f_10c3d2c4 parses: non-empty unparseable text faults 402",
-       "range": "max 63 chars",
-       "special_values": "none observed in this build",
+       "accepted_values": "Empty string, or a string from which sscanf %02hu:%02hu:%02hu assigns three in-range components.",
+       "range": "Hours 0 through 23, minutes and seconds 0 through 59.",
+       "special_values": "Empty string cancels. 00:00:00 arms a generation with a deadline of now.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Duration string parsed by shared parser f_10c3d2c4 (same routine SnoozeAlarm uses); empty string bypasses parsing and cancels the timer.",
+       "validation": "TRequest materializes a string using a 64-byte scratch buffer; then the engine distinguishes empty from nonempty and requires three in-range converted halfwords for a nonempty value.",
        "evidence": [
         {
          "type": "firmware",
@@ -42859,14 +42859,50 @@
          "build": "86.10-80260",
          "function": "0x102b4c1c",
          "notes": "timer-set worker parses the duration string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f9920",
+         "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+         "function": "0x102f9878"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b4df0",
+         "notes": "Nonzero InstanceID returns 718 before reading the duration. Empty string passes NULL to the worker; nonempty must parse or returns 402 before the mode check.",
+         "function": "0x102b4de8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c3d318",
+         "notes": "Calls sscanf with %02hu:%02hu:%02hu from 0x10fb1618, requires exactly three assignments and unsigned fields <= 23, 59 and 59. It has no end-of-input check and the conversion widths are maximums, not minimums.",
+         "function": "0x10c3d2c4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b4cf8",
+         "notes": "Adds 3600*h + 60*m + s (including all-zero input) to clock ID 1 seconds and stores the deadline at impl+0x5a70. Copies next generation +0x5a74 to active +0x5a78, advances the next generation avoiding zero, sets +0x5a7c/+0x5a7d/+0x5a7e to 1 and +0x5a7f to 0.",
+         "function": "0x102b4c1c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b4dac",
+         "notes": "NULL duration clears active generation +0x5a78 if nonzero and sets dirty byte +0x5a7c. Already-clear timers skip this write and the initial notify. Cancellation does not overwrite the stored deadline.",
+         "function": "0x102b4c1c"
         }
        ],
        "notes": null,
        "buf_cap": 64,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `NewSleepTimerDuration` is parsed then forwarded verbatim to r5-in vfunc +144 (site 0x102f9920) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `NewSleepTimerDuration` = verbatim forward to impl vfunc +144 (obj r5-in, call site 0x102f9920); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -42886,101 +42922,214 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0x90]",
+      "description": "InstanceID must parse to zero. Duration must be empty or scan successfully; under lock, source mode must then be 1 or 2.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f9878",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f9920",
+        "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+        "function": "0x102f9878"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4df0",
+        "notes": "Nonzero InstanceID returns 718 before reading the duration. Empty string passes NULL to the worker; nonempty must parse or returns 402 before the mode check.",
+        "function": "0x102b4de8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10c3d318",
+        "notes": "Calls sscanf with %02hu:%02hu:%02hu from 0x10fb1618, requires exactly three assignments and unsigned fields <= 23, 59 and 59. It has no end-of-input check and the conversion widths are maximums, not minimums.",
+        "function": "0x10c3d2c4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4e80",
+        "notes": "Holds impl+0x458 and checks unsigned (mode-1) <= 1. Mode 1 or 2 calls f_102b4c1c(impl, duration_or_NULL,1,1,1,0); any other mode returns 800.",
+        "function": "0x102b4de8"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0x90].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x90]",
+      "description": "Uses impl+0x4654 as the mode gate, impl+0x5a74/+0x5a78 for generation state, and clock ID 1 seconds to calculate the deadline on arm.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f9878",
-        "notes": "member vfunc calls: ['r30 v[+0x90]']"
+        "address": "0x102b4e80",
+        "notes": "Holds impl+0x458 and checks unsigned (mode-1) <= 1. Mode 1 or 2 calls f_102b4c1c(impl, duration_or_NULL,1,1,1,0); any other mode returns 800.",
+        "function": "0x102b4de8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4cf8",
+        "notes": "Adds 3600*h + 60*m + s (including all-zero input) to clock ID 1 seconds and stores the deadline at impl+0x5a70. Copies next generation +0x5a74 to active +0x5a78, advances the next generation avoiding zero, sets +0x5a7c/+0x5a7d/+0x5a7e to 1 and +0x5a7f to 0.",
+        "function": "0x102b4c1c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4dac",
+        "notes": "NULL duration clears active generation +0x5a78 if nonzero and sets dirty byte +0x5a7c. Already-clear timers skip this write and the initial notify. Cancellation does not overwrite the stored deadline.",
+        "function": "0x102b4c1c"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x90].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x90] (call-derived member-method semantics)",
+       "description": "Arms and schedules the sleep timer or clears the armed generation, sets dirty flags, and executes the common tail after either branch.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102f9878",
-         "notes": "delegate map ['r30 v[+0x90]']; notify-family calls []"
+         "address": "0x102b4cf8",
+         "notes": "Adds 3600*h + 60*m + s (including all-zero input) to clock ID 1 seconds and stores the deadline at impl+0x5a70. Copies next generation +0x5a74 to active +0x5a78, advances the next generation avoiding zero, sets +0x5a7c/+0x5a7d/+0x5a7e to 1 and +0x5a7f to 0.",
+         "function": "0x102b4c1c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b4dac",
+         "notes": "NULL duration clears active generation +0x5a78 if nonzero and sets dirty byte +0x5a7c. Already-clear timers skip this write and the initial notify. Cancellation does not overwrite the stored deadline.",
+         "function": "0x102b4c1c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b4d18",
+         "notes": "Arm calls f_1067c6ec(impl+0x10); cancel calls the same helper at 0x102b4dc8 only when active generation was nonzero. Both then enter the common tail, including conditional +0x5a84 cleanup and the enabled f_102b4b48(impl,1) member path.",
+         "function": "0x102b4c1c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b4d3c",
+         "notes": "Arm invokes the scheduler vslot +0x08 on *(impl+0xad2c) with f_102b462c and impl, after notify. The cancel branch does not call this scheduling site.",
+         "function": "0x102b4c1c"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x90] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The engine explicitly requests notification on arm and on cancellation of an active generation. Cancellation with active generation zero skips these initial notify sites.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f9878",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102b4d18",
+        "notes": "Arm calls f_1067c6ec(impl+0x10); cancel calls the same helper at 0x102b4dc8 only when active generation was nonzero. Both then enter the common tail, including conditional +0x5a84 cleanup and the enabled f_102b4b48(impl,1) member path.",
+        "function": "0x102b4c1c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4cf8",
+        "notes": "Adds 3600*h + 60*m + s (including all-zero input) to clock ID 1 seconds and stores the deadline at impl+0x5a70. Copies next generation +0x5a74 to active +0x5a78, advances the next generation avoiding zero, sets +0x5a7c/+0x5a7d/+0x5a7e to 1 and +0x5a7f to 0.",
+        "function": "0x102b4c1c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4dac",
+        "notes": "NULL duration clears active generation +0x5a78 if nonzero and sets dirty byte +0x5a7c. Already-clear timers skip this write and the initial notify. Cancellation does not overwrite the stored deadline.",
+        "function": "0x102b4c1c"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Identify the subscriber reached from f_1067c6ec(impl+0x10) and the fields it publishes for +0x5a7c; trace the extra f_102b4b48 path to distinguish a second notification from the timer's primary update."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x90]",
+      "description": "Arm stores a deadline and replaces active generation; cancel clears a nonzero generation, and an already unarmed cancellation skips that state change. No transport state is changed directly by this worker.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f9878",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x90]']"
+        "address": "0x102b4cf8",
+        "notes": "Adds 3600*h + 60*m + s (including all-zero input) to clock ID 1 seconds and stores the deadline at impl+0x5a70. Copies next generation +0x5a74 to active +0x5a78, advances the next generation avoiding zero, sets +0x5a7c/+0x5a7d/+0x5a7e to 1 and +0x5a7f to 0.",
+        "function": "0x102b4c1c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4dac",
+        "notes": "NULL duration clears active generation +0x5a78 if nonzero and sets dirty byte +0x5a7c. Already-clear timers skip this write and the initial notify. Cancellation does not overwrite the stored deadline.",
+        "function": "0x102b4c1c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4d3c",
+        "notes": "Arm invokes the scheduler vslot +0x08 on *(impl+0xad2c) with f_102b462c and impl, after notify. The cancel branch does not call this scheduling site.",
+        "function": "0x102b4c1c"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x90].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Success commits an empty response. Request materialization or duration conversion can return 402; nonzero InstanceID returns 718; mode outside 1/2 returns 800. The worker itself returns zero.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f9878",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f9920",
+        "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+        "function": "0x102f9878"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4df0",
+        "notes": "Nonzero InstanceID returns 718 before reading the duration. Empty string passes NULL to the worker; nonempty must parse or returns 402 before the mode check.",
+        "function": "0x102b4de8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10c3d318",
+        "notes": "Calls sscanf with %02hu:%02hu:%02hu from 0x10fb1618, requires exactly three assignments and unsigned fields <= 23, 59 and 59. It has no end-of-input check and the conversion widths are maximums, not minimums.",
+        "function": "0x10c3d2c4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4e80",
+        "notes": "Holds impl+0x458 and checks unsigned (mode-1) <= 1. Mode 1 or 2 calls f_102b4c1c(impl, duration_or_NULL,1,1,1,0); any other mode returns 800.",
+        "function": "0x102b4de8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4d70",
+        "notes": "All normal exits of the timer worker converge on literal return 0; no delegated return is propagated to the wrapper.",
+        "function": "0x102b4c1c"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -42994,20 +43143,29 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x90)",
-       "meaning": "Nonzero InstanceID: impl gate on the parsed int.",
+       "meaning": "Parsed InstanceID was nonzero.",
        "fault_sites": [
         "0x102f993c"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument is nonzero",
+         "description": "Parsed InstanceID was nonzero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b4de8",
-           "notes": "cmpwi r0,0(r4) -> addi r3,0x2ce at 0x102b4df0"
+           "address": "0x102b4df0",
+           "notes": "Nonzero InstanceID returns 718 before reading the duration. Empty string passes NULL to the worker; nonempty must parse or returns 402 before the mode check.",
+           "function": "0x102b4de8"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102f9920",
+           "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+           "function": "0x102f9878"
           }
          ]
         }
@@ -43017,40 +43175,54 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b4de8",
-         "notes": "cmpwi r0,0(r4) -> addi r3,0x2ce at 0x102b4df0"
+         "address": "0x102b4df0",
+         "notes": "Nonzero InstanceID returns 718 before reading the duration. Empty string passes NULL to the worker; nonempty must parse or returns 402 before the mode check.",
+         "function": "0x102b4de8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f9920",
+         "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+         "function": "0x102f9878"
         }
        ]
       },
       {
        "code": 402,
        "code_expr": "vret(r5-in,+0x90)",
-       "meaning": "Non-empty NewSleepTimerDuration fails the f_10c3d2c4 duration parse.",
+       "meaning": "Missing input or nonempty duration scan failed.",
        "fault_sites": [
         "0x102f993c"
        ],
        "conditions": [
         {
-         "description": "f_10c3d2c4 returns 0 on the duration text",
+         "description": "Missing input or nonempty duration scan failed.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b4de8",
-           "notes": "bc at 0x102b4eb0 -> addi r3,0x192"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
-         "evidence": [
+           "address": "0x102f9920",
+           "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+           "function": "0x102f9878"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102f9878",
-           "notes": "parse vcall slot +0x8 then fault path"
+           "address": "0x102b4df0",
+           "notes": "Nonzero InstanceID returns 718 before reading the duration. Empty string passes NULL to the worker; nonempty must parse or returns 402 before the mode check.",
+           "function": "0x102b4de8"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10c3d318",
+           "notes": "Calls sscanf with %02hu:%02hu:%02hu from 0x10fb1618, requires exactly three assignments and unsigned fields <= 23, 59 and 59. It has no end-of-input check and the conversion widths are maximums, not minimums.",
+           "function": "0x10c3d2c4"
           }
          ]
         }
@@ -43060,35 +43232,54 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b4de8",
-         "notes": "bc at 0x102b4eb0 -> addi r3,0x192"
+         "address": "0x102f9920",
+         "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+         "function": "0x102f9878"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f9878",
-         "notes": "wrapper parse + fault path"
+         "address": "0x102b4df0",
+         "notes": "Nonzero InstanceID returns 718 before reading the duration. Empty string passes NULL to the worker; nonempty must parse or returns 402 before the mode check.",
+         "function": "0x102b4de8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c3d318",
+         "notes": "Calls sscanf with %02hu:%02hu:%02hu from 0x10fb1618, requires exactly three assignments and unsigned fields <= 23, 59 and 59. It has no end-of-input check and the conversion widths are maximums, not minimums.",
+         "function": "0x10c3d2c4"
         }
        ]
       },
       {
        "code": 800,
        "code_expr": "vret(r5-in,+0x90)",
-       "meaning": "engine+0x4654 is neither 1 nor 2: sleep timer requires a non-idle transport mode.",
+       "meaning": "The source mode was not 1 or 2 after argument validation.",
        "fault_sites": [
         "0x102f993c"
        ],
        "conditions": [
         {
-         "description": "(impl+0x4654 - 1) unsigned > 1",
+         "description": "The source mode was not 1 or 2 after argument validation.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b4de8",
-           "notes": "cmplwi 0x1 at 0x102b4e88 -> r31=0x320"
+           "address": "0x102b4e80",
+           "notes": "Holds impl+0x458 and checks unsigned (mode-1) <= 1. Mode 1 or 2 calls f_102b4c1c(impl, duration_or_NULL,1,1,1,0); any other mode returns 800.",
+           "function": "0x102b4de8"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102f9920",
+           "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+           "function": "0x102f9878"
           }
          ]
         }
@@ -43098,33 +43289,44 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b4de8",
-         "notes": "cmplwi 0x1 at 0x102b4e88 -> r31=0x320"
+         "address": "0x102b4e80",
+         "notes": "Holds impl+0x458 and checks unsigned (mode-1) <= 1. Mode 1 or 2 calls f_102b4c1c(impl, duration_or_NULL,1,1,1,0); any other mode returns 800.",
+         "function": "0x102b4de8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f9920",
+         "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+         "function": "0x102f9878"
         }
        ]
       },
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x90)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: timer-set worker f_102b4c1c exit returns 0; internal constants {0x320=800,0x192=402,0x3cc} observed in body (internal fault raising), exit path returns success code",
+       "meaning": "No further propagated timer-worker fault is reachable.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "f_102b4c1c returned nonzero",
+         "description": "No further propagated timer-worker fault is reachable.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b4ed8",
-           "notes": "passthrough path"
+           "address": "0x102b4d70",
+           "notes": "All normal exits of the timer worker converge on literal return 0; no delegated return is propagated to the wrapper.",
+           "function": "0x102b4c1c"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102b4c1c",
-           "notes": "rc site"
+           "address": "0x102f9920",
+           "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+           "function": "0x102f9878"
           }
          ]
         }
@@ -43134,15 +43336,17 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f993c",
-         "notes": "impl vret passthrough site"
+         "address": "0x102b4d70",
+         "notes": "All normal exits of the timer worker converge on literal return 0; no delegated return is propagated to the wrapper.",
+         "function": "0x102b4c1c"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102b4c1c",
-         "notes": "worker rc sites decoded"
+         "address": "0x102f9920",
+         "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+         "function": "0x102f9878"
         }
        ],
        "unresolved": {
@@ -43193,11 +43397,7 @@
         718,
         800
        ],
-       "resolved_note": "RESOLVED via FUN_102b4de8 (vtable+0x90): InstanceID!=0 -> 718; NewSleepTimerDuration via FUN_10c3d2c4 -> 402 on bad HH:MM:SS; *(+0x4654)<2 gate else 800; worker FUN_102b4c1c decodes {H,M,S} -> sec=H*3600+M*60+S, sets *(+0x5a70)=now+sec deadline, returns 0.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x90); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "resolved_note": "RESOLVED via FUN_102b4de8 (vtable+0x90): InstanceID!=0 -> 718; NewSleepTimerDuration via FUN_10c3d2c4 -> 402 on bad HH:MM:SS; *(+0x4654)<2 gate else 800; worker FUN_102b4c1c decodes {H,M,S} -> sec=H*3600+M*60+S, sets *(+0x5a70)=now+sec deadline, returns 0."
       }
      ],
      "firmware_differences": [],
@@ -43223,13 +43423,81 @@
        "build": "86.10-80260",
        "function": "0x102b4de8",
        "notes": "AVT impl vtable 0x10eaf2ec slot +0x90 entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f9920",
+       "notes": "Invokes engine +0x90 (0x102b4de8) after request +0x08 materialization. Request +0x14 at 0x102f993c sends the raw engine rc or wrapper 402; zero commits via request +0x0c at 0x102f9984 without outputs.",
+       "function": "0x102f9878"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10c3d318",
+       "notes": "Calls sscanf with %02hu:%02hu:%02hu from 0x10fb1618, requires exactly three assignments and unsigned fields <= 23, 59 and 59. It has no end-of-input check and the conversion widths are maximums, not minimums.",
+       "function": "0x10c3d2c4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b4df0",
+       "notes": "Nonzero InstanceID returns 718 before reading the duration. Empty string passes NULL to the worker; nonempty must parse or returns 402 before the mode check.",
+       "function": "0x102b4de8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b4e80",
+       "notes": "Holds impl+0x458 and checks unsigned (mode-1) <= 1. Mode 1 or 2 calls f_102b4c1c(impl, duration_or_NULL,1,1,1,0); any other mode returns 800.",
+       "function": "0x102b4de8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b4cf8",
+       "notes": "Adds 3600*h + 60*m + s (including all-zero input) to clock ID 1 seconds and stores the deadline at impl+0x5a70. Copies next generation +0x5a74 to active +0x5a78, advances the next generation avoiding zero, sets +0x5a7c/+0x5a7d/+0x5a7e to 1 and +0x5a7f to 0.",
+       "function": "0x102b4c1c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b4dac",
+       "notes": "NULL duration clears active generation +0x5a78 if nonzero and sets dirty byte +0x5a7c. Already-clear timers skip this write and the initial notify. Cancellation does not overwrite the stored deadline.",
+       "function": "0x102b4c1c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b4d18",
+       "notes": "Arm calls f_1067c6ec(impl+0x10); cancel calls the same helper at 0x102b4dc8 only when active generation was nonzero. Both then enter the common tail, including conditional +0x5a84 cleanup and the enabled f_102b4b48(impl,1) member path.",
+       "function": "0x102b4c1c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b4d3c",
+       "notes": "Arm invokes the scheduler vslot +0x08 on *(impl+0xad2c) with f_102b462c and impl, after notify. The cancel branch does not call this scheduling site.",
+       "function": "0x102b4c1c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b4d70",
+       "notes": "All normal exits of the timer worker converge on literal return 0; no delegated return is propagated to the wrapper.",
+       "function": "0x102b4c1c"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102f9878; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "CreateSavedQueue": {
      "description": "Creates a new saved playlist synchronously in savedqueues.rsq using f_102bd048 -> f_10479bb4, optionally expanding EnqueuedURI into its initial tracks. Does not copy the live queue or alter playback. Empty URI creates an empty saved playlist. Title is passed unchanged, unlike SaveQueue. Returns saved-playlist counts, initial update0 and assigned catalog SQ: ID; a count-header repair can require a second rewrite.",
