@@ -176845,7 +176845,7 @@
    "todo": "Established: The persisted svcmanifests.json root contains numeric version, string lastUpdateDevice and a manifests array. Each row is emitted with numeric sid, numeric version, string uri and object manifest. f_10119034 emits sid from row+0, version from the low halfword at row+6, uri from row+8 and the nested manifest from row+0x40c. f_10119b90 emits store version+1 and the local source, then f_10119720 emits the array. This schema is proven by emitters and distinct static parser-definition tables; it is not the catalog XML descriptor grammar. Remaining: Trace numeric/URI input binders and JSON escaping for complete lexical behavior."
   },
   "0x10239dc0": {
-   "description": "The nested manifest parser table at 0x10ea5bec declares schemaVersion, presentationMap, strings, endpoints, apiKey, accountTiers and advertising. f_10239dc0 emits presentationMap/strings only when their stored URI string length is nonzero; it always emits the endpoints array and apiKey object, conditionally emits accountTiers when its count is nonzero, and emits advertising.headers. The nested field schemaVersion is emitted only when its stored string is nonempty. Unknown or absent fields and required-field policy still require analysis of the JSON framework.",
+   "description": "Top-level music-service manifest emitter f_10239dc0(ctx, model) walks the nested schema table at 0x10ea5bf8 and serializes the parsed model back to JSON. Per-field emit gates: 'schemaVersion' emits via f_109d1924 only when the model string is nonempty; 'presentationMap' and 'strings' each emit only when their stored uri string size (model+0x18/+0x34) is nonzero, as nested {uri,version} objects via shared sub-emitter f_10238ee4 (uri emitted only when nonempty, version always via f_109d1570); 'endpoints' always opens an array through f_109d1408 and emits up to model+0xa0 rows at +0x4c stride 0x1c, skipping each row whose type word or uri length is zero, via endpoint emitter f_1023915c ('type' re-rendered through the enum-name table, 'uri' only when nonempty); 'apiKey' always emits its object through sub-emitter f_10239394, which serializes the single 'zp' string member at model+0xc0 only when nonempty; 'accountTiers' emits its array only when the count at model+0xe8 is nonzero, rendering each 4-byte value through the accountTiers enum-name table; 'advertising' always emits its object with the 'headers' bool from model+0xec. The matching parser bind driver is f_1023a214: it wires the same model into the framework with per-field sub-binders at parent+0x178/+0x1f4 ({uri,version} objects), the endpoints-array binder at +0x270, apiKey 'zp' string at model+0xc0 bounded to 0x400, the accountTiers array at +0xd8 with count +0xe8 capped at 4, and 'headers' bool at +0xec. The schema tables at 0x10ea5b74..0x10ea5c60 are {0,0,4}-headed row lists of {name,0,kind}: {uri,version}, endpoint {type,uri}, apiKey {zp}, advertising {headers}, and the top manifest table.",
    "why_external": "Defines the nested service-manifest JSON projection and omission rules.",
    "required_for_behavior": true,
    "role": "music_service_manifest",
@@ -176856,9 +176856,58 @@
      "build": "86.10-80260",
      "address": "0x10239dc0",
      "notes": "Instruction-level trace in the 86.10-80260 binary; see svc_manifest.details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10239dc0",
+     "function": "0x10239dc0",
+     "notes": "Emit order and gates read straight from the body: schemaVersion when model string nonempty; presentationMap gate lwz model+0x18 (uri size), strings gate lwz model+0x34; endpoints array unconditional with per-row gate row+0 type!=0 and row+8 uri size!=0; apiKey object unconditional; accountTiers gate lwz model+0xe8 count; advertising.headers from lbz model+0xec."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10238ee4",
+     "notes": "Sub-emitter for the {uri,version} objects used by presentationMap and strings: 'uri' via f_109d1924 only when nonempty, 'version' always via f_109d1570; matches schema rows {uri:1, version:2} in table T1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10239394",
+     "notes": "apiKey sub-emitter: emits the sole member 'zp' (0x10e735b0) via f_109d1924 only when the model+0xc0 string is nonempty; the 'apiKey' JSON object is therefore {\"zp\": key}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1023a214",
+     "notes": "Bind driver: vfn8 registrations and f_1023a6f4 nested-object binds for model+0x14 (presentationMap, binder +0x178) and model+0x30 (strings, binder +0x1f4); endpoints binder at +0x270 gets model+0xa4 stored at +0x318; apiKey via f_1023a64c with size arg 0x400 masked to 16 bits; accountTiers generic array binds count+0xe8/values+0xd8 with limit args 4; headers bind model+0xec; all through f_109c0eb8 record builders."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea5b74",
+     "notes": "Nested schema tables are {0,0,4} header then {name,0,kind} rows stride 0xc: T1 {uri:1,version:2} at 0x10ea5b80, endpoint {type:0,uri:1} at 0x10ea5ba4, apiKey {zp:1} at 0x10ea5bc8, advertising {headers:3} at 0x10ea5be0, top manifest at 0x10ea5bf8 with kinds 0/4/4/5/4/5/4 and array element kinds in trailing {0,4}/{0,7} pairs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10239c48",
+     "notes": "Manifest binder aggregate ctor: loops f_109c0e6c over 10 machinery objects at +4..+0x16c stride 0x24, f_10238e4c for {uri,version} sub-binders at +0x178/+0x1f4, f_10239084 endpoint binder at +0x270 with vptr 0x10ea5ae8, f_10239310 at +0x31c, enum-binder vptr 0x10ea5a3c at +0x374, f_102394f8 at +0x39c; meta table base 0x10ea5bec stored at +0x170."
     }
    ],
-   "todo": "Established: The nested manifest parser table at 0x10ea5bec declares schemaVersion, presentationMap, strings, endpoints, apiKey, accountTiers and advertising. f_10239dc0 emits presentationMap/strings only when their stored URI string length is nonzero; it always emits the endpoints array and apiKey object, conditionally emits accountTiers when its count is nonzero, and emits advertising.headers. The nested field schemaVersion is emitted only when its stored string is nonempty. Unknown or absent fields and required-field policy still require analysis of the JSON framework. Remaining: Trace all nested emitters, parser binders and source value limits."
+   "resolved_findings": [
+    "Established: every nested emitter is traced. Top emitter f_10239dc0 calls framework primitives f_109d1474 (member name), f_109d1408 (begin array), f_109d0ad4 (begin object), f_109d0b78/f_109d0bdc (close) plus sub-emitters: f_10238ee4 for the {uri,version} objects presentationMap and strings, f_1023915c for each endpoint {type,uri} element, and f_10239394 for the apiKey object whose only member is 'zp'. Emit gates are byte/word tests on the stored model: nonempty string for schemaVersion, nonzero uri size for presentationMap/strings, nonzero type word AND nonzero uri length per endpoint row, nonzero count for accountTiers; apiKey and advertising objects are unconditional.",
+    "Established: parser binder inventory is complete. Manifest binder ctor f_10239c48 builds the aggregate binder (10 field machinery objects at +4..+0x16c, sub-binders at +0x178/+0x1f4/+0x270/+0x31c/+0x374/+0x39c); bind driver f_1023a214 registers every field with the framework: schemaVersion record kind 1, presentationMap/strings as {uri,version} sub-objects through f_1023a6f4 into model+0x14/+0x30, the endpoints array through the +0x270 binder (endpoint-element binder f_10239d68 with enum-type binder and uri string), apiKey 'zp' through f_1023a64c with a 0x400 length bound at model+0xc0, accountTiers through a generic array record capped at 4 elements of 4 bytes at model+0xd8 count +0xe8, and 'headers' bool at model+0xec.",
+    "Established: the seven binder vtables at 0x10ea5a1c..0x10ea5af8 are {subobject getter, object-end action, field reset, two destructor walkers, data/0, 0}; endpoint 'type' and accountTiers elements use enum-callback binders (f_10238370/f_10238250 over {name,len,value} tables with strnlen name limit 0x21 and return codes 0x10 match / 3 no-match), scalar fields share the no-op action f_100d3728, and the endpoints array substitutes collector f_10238144 which stores at most three rows.",
+    "Established: source value limits are bounded at three layers - endpoint rows capped at 3 by the collector (overflow dropped silently), accountTiers capped at 4 elements by the generic array binding (parsed count stored as min(parsed,4) at model+0xe8), apiKey 'zp' string bounded to 0x400 characters at bind time, and enum names matched only up to 0x20 chars by strnlen; on output the emitter independently re-filters endpoint rows with zero type or empty uri.",
+    "Established: unknown or absent fields do not reject the parse - the binder machinery registers only the declared schema rows, the cursor skips unregistered member names inside generic object walks, and absent fields simply leave their model slots at the cleared defaults (empty strings, zero words, zero count), which on re-emit produces an object missing the same optional members except the unconditional 'endpoints', 'apiKey' and 'advertising' shells."
+   ]
   },
   "0x10118580": {
    "description": "Schema callback f_10118580 processes a string token (token kind 3) when its callback field metadata +8 equals 1. It parses the compiled supported string 1.0 and incoming schema string with f_10483e28; malformed input yields internal parse code 16. f_104840f8 compares the supported major/minor pair against the incoming pair. It accepts an incoming pair no greater than 1.0 under unsigned comparison and returns internal code 16 for a greater pair. These are JSON parser results, not independently established SOAP fault codes. The manifest binder requires schemaVersion; see music_service_manifest.required_fields. Shared lexical grammar is documented in music_service_version_string; libc/span boundaries and null/type/error aggregation remain to be traced.",
