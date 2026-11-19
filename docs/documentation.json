@@ -52599,19 +52599,32 @@
       ]
      },
      "state_dependencies": {
-      "description": "Mode-dependent behavior through f_102d39ac('upnp') and *(impl+0x3dc): a non-muse source triggers a rebuild/log path before play is submitted.",
+      "description": "After ID and speed validation, f_102d39ac determines whether to reconcile the source. A source branch can log non-muse state and restore the stored source before trying to submit play.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10eb145c",
-        "notes": "'Received play for non-muse source'"
+        "address": "0x102d4118",
+        "notes": "Both engine vtables use 0x102d4078 at +0x2c. Before taking the mutex it returns 718 on a nonzero InstanceID and 717 on strcmp(Speed,\"1\") != 0.",
+        "function": "0x102d4078"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d41c0",
+        "notes": "The logged UPnP command calls f_102d39ac. Only a numeric result of 1 enters f_102b2ee4 and the source-reconciliation branches at 0x102d4218; the branches converge at 0x102d41cc.",
+        "function": "0x102d4078"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d41d0",
+        "notes": "f_102b0058 tries op 0x19 and calls f_106a77d0 when submission succeeds. A nonzero path result is converted to success; otherwise Play forwards f_102cfa50 at 0x102d4204.",
+        "function": "0x102d4078"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - Mode-dependent behavior through f_102d39ac('upnp') and *(impl+0x3dc): a non-muse source triggers a rebuild/log path before play is submitted.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
@@ -52630,20 +52643,27 @@
       }
      ],
      "events_triggered": {
-      "description": "f_100caad8 is invoked on the submit path - the shared transport-changed emit used by the getter-scope boilerplate.",
+      "description": "The call that follows submission is mutex-guard cleanup, not transport event delivery. The streaming and fallback workers handle source changes.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102d41e8",
-        "notes": "f_100caad8 call",
-        "function": "f_102d4078"
+        "address": "0x100caaf4",
+        "notes": "The post-submit f_100caad8 call destroys a mutex guard. It tests the acquired byte and tail-calls either f_10557848 or f_105576f8 according to the guard mode. It is not an event emitter.",
+        "function": "0x100caad8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d41d0",
+        "notes": "f_102b0058 tries op 0x19 and calls f_106a77d0 when submission succeeds. A nonzero path result is converted to success; otherwise Play forwards f_102cfa50 at 0x102d4204.",
+        "function": "0x102d4078"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - f_100caad8 is invoked on the submit path - the shared transport-changed emit used by the getter-scope boilerplate.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace the event publishers and changed transport fields reached through f_106a77d0 and each successful f_102cfa50 source mode."
       ]
      },
      "state_transitions": {
@@ -52760,26 +52780,27 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x2c)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 717 (Speed != literal \"1\" - strcmp gate at 0x102d4118), downstream submission rc",
+       "meaning": "The return from f_102cfa50 is forwarded only when the fast submit path returns zero.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "submission helper returned a nonzero engine rc",
+         "description": "The return from f_102cfa50 is forwarded only when the fast submit path returns zero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d4208",
-           "notes": "r31 = f_102cfa50 rc",
-           "function": "f_102d4078"
+           "address": "0x102d41d0",
+           "notes": "f_102b0058 tries op 0x19 and calls f_106a77d0 when submission succeeds. A nonzero path result is converted to success; otherwise Play forwards f_102cfa50 at 0x102d4204.",
+           "function": "0x102d4078"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102d4078",
-           "notes": "rc site"
+           "address": "0x102cfad4",
+           "notes": "The fallback clears impl+0x777c, reads source mode and dispatches into separate branches; modes above 2 return 701 at 0x102cfaf0.",
+           "function": "0x102cfa50"
           }
          ]
         }
@@ -52789,16 +52810,17 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102d4204",
-         "notes": "submit call",
-         "function": "f_102d4078"
+         "address": "0x102d41d0",
+         "notes": "f_102b0058 tries op 0x19 and calls f_106a77d0 when submission succeeds. A nonzero path result is converted to success; otherwise Play forwards f_102cfa50 at 0x102d4204.",
+         "function": "0x102d4078"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102d4078",
-         "notes": "rc producers decoded"
+         "address": "0x102cfad4",
+         "notes": "The fallback clears impl+0x777c, reads source mode and dispatches into separate branches; modes above 2 return 701 at 0x102cfaf0.",
+         "function": "0x102cfa50"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x102d4078 exits=[128, 718]; helper rc returned verbatim as impl status | worker literal bound [718] (worker_err_literals.json)",
@@ -52806,8 +52828,7 @@
         718
        ],
        "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x2c); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Enumerate the result codes in f_102cfa50 for the (-1,-1,0) arguments and each mode; identify which cases are locally remapped before Play receives them."
        ]
       },
       {
@@ -52848,34 +52869,64 @@
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "meaning": "There is no independent store-commit return in the Play wrapper. The only forwarded result at the implementation boundary is f_102cfa50.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102d4118",
+         "notes": "Both engine vtables use 0x102d4078 at +0x2c. Before taking the mutex it returns 718 on a nonzero InstanceID and 717 on strcmp(Speed,\"1\") != 0.",
+         "function": "0x102d4078"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d41d0",
+         "notes": "f_102b0058 tries op 0x19 and calls f_106a77d0 when submission succeeds. A nonzero path result is converted to success; otherwise Play forwards f_102cfa50 at 0x102d4204.",
+         "function": "0x102d4078"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100caaf4",
+         "notes": "The post-submit f_100caad8 call destroys a mutex guard. It tests the acquired byte and tail-calls either f_10557848 or f_105576f8 according to the guard mode. It is not an event emitter.",
+         "function": "0x100caad8"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "There is no independent store-commit return in the Play wrapper. The only forwarded result at the implementation boundary is f_102cfa50.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102d4118",
+           "notes": "Both engine vtables use 0x102d4078 at +0x2c. Before taking the mutex it returns 718 on a nonzero InstanceID and 717 on strcmp(Speed,\"1\") != 0.",
+           "function": "0x102d4078"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102d41d0",
+           "notes": "f_102b0058 tries op 0x19 and calls f_106a77d0 when submission succeeds. A nonzero path result is converted to success; otherwise Play forwards f_102cfa50 at 0x102d4204.",
+           "function": "0x102d4078"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100caaf4",
+           "notes": "The post-submit f_100caad8 call destroys a mutex guard. It tests the acquired byte and tail-calls either f_10557848 or f_105576f8 according to the guard mode. It is not an event emitter.",
+           "function": "0x100caad8"
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
@@ -52913,12 +52964,51 @@
        "build": "86.10-80260",
        "address": "0x10eb3144",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d4118",
+       "notes": "Both engine vtables use 0x102d4078 at +0x2c. Before taking the mutex it returns 718 on a nonzero InstanceID and 717 on strcmp(Speed,\"1\") != 0.",
+       "function": "0x102d4078"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d41c0",
+       "notes": "The logged UPnP command calls f_102d39ac. Only a numeric result of 1 enters f_102b2ee4 and the source-reconciliation branches at 0x102d4218; the branches converge at 0x102d41cc.",
+       "function": "0x102d4078"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d41d0",
+       "notes": "f_102b0058 tries op 0x19 and calls f_106a77d0 when submission succeeds. A nonzero path result is converted to success; otherwise Play forwards f_102cfa50 at 0x102d4204.",
+       "function": "0x102d4078"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100caaf4",
+       "notes": "The post-submit f_100caad8 call destroys a mutex guard. It tests the acquired byte and tail-calls either f_10557848 or f_105576f8 according to the guard mode. It is not an event emitter.",
+       "function": "0x100caad8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102cfad4",
+       "notes": "The fallback clears impl+0x777c, reads source mode and dispatches into separate branches; modes above 2 return 701 at 0x102cfaf0.",
+       "function": "0x102cfa50"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: direct dispatch to handler 0x102f9244; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Finish the source-mode and return matrix in f_102cfa50 and the f_102d39ac == 1 source-reconciliation cases. The speed gate, submit/fallback choice and post-submit guard cleanup are verified."
      ]
     },
     "Previous": {
