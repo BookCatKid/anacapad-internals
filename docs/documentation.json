@@ -155415,22 +155415,52 @@
   },
   "perf_counters": {
    "name": "perfcounter schema",
-   "summary": "headers {counter_historical.h,counter_min_avg_max.h}; fields {thresh,wallClockEndTime='The end of the window as UTC wall clock time',description}; 'average value should be 0'; emit root perf_counter_table, manager perfCountMgr, 'subcounters' key; 'detected \"%s\" (service=%d/%u) but no counters available'; museperf tagged record",
+   "summary": "Performance counter registration and export are implemented in the image: a singleton manager indexes named table objects, constructors create concrete counters, and export dispatches to table-specific callbacks. Which optional instances exist is runtime state, but that is not a static-analysis limit on recovering compiled registrations. The exhaustive registration and callback/schema census is unfinished.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10eb7e40",
      "notes": "perfcounter"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_106418e0 / f_10641948 / f_106420ec",
+     "address": "0x110976ec",
+     "callsite": "0x10641998 / 0x10642138 / 0x10642348",
+     "notes": "Singleton storage; registration lock, name hash at0x1064214c and lookup0x10642174. Missing-name allocation at0x106422ec initializes copied name and tree, then inserts name node. Existing-name branch reuses tree atnode+1c; pointer comparisons at0x106421b8-0x106421dc are per-instance indexing, not counter-name definitions."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10317374 CHSRC table/counter constructor",
+     "address": "0x10317468",
+     "callsite": "0x1025f530 / 0x10317564 / 0x10318ab4",
+     "notes": "Table name CHSRC Fill Level at0x10eb7fac; frames literal0x10eb8050 and description0x10eb7fd4; static table vtable0x10eb6184, counter vtables installed in constructor. Registration loads manager global at0x10318a80 and null-checks before f_106420ec. Constructor/prologue begins0x10317374 despite incomplete function-map estimates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10642700 / f_106419b0",
+     "address": "0x10642700",
+     "callsite": "0x106427a8 / 0x10642884 / 0x10641c58",
+     "notes": "Empty index skips traversal; lock released at0x1064285c. Caller low-bit mask at0x10642744 controls XML wrapper literals0x10efc674/0x10efc690. Selected object virtual+0 invoked at0x10641c58; this is the concrete boundary for recovering each table's emitted schema rather than assuming all thresh/subcounters literals form one universal schema."
     }
    ],
    "fields": "metrics {accum,accumBytes=aggregate size of processed frames,aheadTime=amount of audio prebuffered,frameToFrame=time between frames,wouldBlock=transmits blocked count,queueExpiry=queue expiration time,frameTypes,frameSizeBytes,frameSizeSamples,processing indicators,user action,transport error,initial,perf-counters}; windows {\"Creating %s window ending at time %lld\",\"Cannot reverse time\",\"Ringbuffer cannot rotate backwards\",\"Rotation required\"}; json {wallClockTimeUTC,timeSinceBoot,windowDuration,processName,counters}; \"AFC truncated!\"",
    "todo": [
-    "Residual: the exhaustive cross-subsystem census - each module registers its own counters at runtime via perfCountMgr; literal families above are proven but the full registered set is runtime data"
+    "Established: manager allocation/indexing, concrete CHSRC constructor-to-registration reachability, name-plus-instance indexing and virtual export dispatch. Remaining: follow every direct caller of f_106420ec and any wrapper/indirect registration paths, bind each supplied table object to its constructor, per-counter initialization and export callback, and recover registration/teardown feature predicates. Start with0x10318ab4 (CHSRC),0x1044f970,0x1049b4bc,0x1051570c,0x1052e454 and0x107e3f70; use actual function boundaries and global0x110976ec consumers. Distinguish compiled counter definitions from optional runtime instances. The exhaustive census and per-type schemas remain actionable static work; runtime registration alone is not an external-data limitation."
    ],
    "resolved_findings": [
-    "Resolved: registered counters = the perf_counter_table emit root + perfCountMgr + counter_historical/min_avg_max headers; export = the fields sub-block.",
-    "Resolved: counter families recovered as literal {name,description} pairs - eventloop: subject \"In-Process Event Subjects\" {queueFail=\"The number of events that failed to queue\", size=\"The event size in bytes\", dispatchDelay=\"The amount of time an event spent waiting to be dispatched\"} + subject \"In-Process Event Observers\" {cbTime=\"The duration of observer handlers. Warn if over threshold (%lldms)\"}; circuit-breaker: museCircuitBreaker {timeInOpenStateMS, circuitBreakerOpenedCount, totalFailures, totalSuccessfulRetries, totalFailedRetries}; worker-pool: {\"The number of tasks actively being processed\"=tasks, \"The time spent in the main loop iteration\"=loopIter} at 0x10f92ad8-0x10f92b1c. Other subsystems register their own counters through the same perfCountMgr path - the schema (thresh attr + subcounters key + wallClockEndTime) is uniform.",
-    "Established: counter headers, field schema, emit roots, museperf record, and the eventloop/circuit-breaker/worker-pool counter families."
+    "The perf_counter_table literal identifies a mutex/owner construction path, not an exhaustive emitted-counter registry. Manager constructor f_106418e0 initializes a named perfCountMgr lock and an empty index at manager+0x90; f_10641948 allocates it lazily and stores the pointer at global0x110976ec. Actual registration calls f_106420ec, not a literal name alone.",
+    "Resolved: counter families recovered as literal {name,description} pairs - eventloop: subject \"In-Process Event Subjects\" {queueFail=\"The number of events that failed to queue\", size=\"The event size in bytes\", dispatchDelay=\"The amount of time an event spent waiting to be dispatched\"} + subject \"In-Process Event Observers\" {cbTime=\"The duration of observer handlers. Warn if over threshold (%lldms)\"}; circuit-breaker: museCircuitBreaker {timeInOpenStateMS, circuitBreakerOpenedCount, totalFailures, totalSuccessfulRetries, totalFailedRetries}; worker-pool: {\"The number of tasks actively being processed\"=tasks, \"The time spent in the main loop iteration\"=loopIter} at 0x10f92ad8-0x10f92b1c. These literals describe candidate families, not a complete registered-instance census. Table-specific export callbacks must be traced before claiming a uniform field schema.",
+    "The counter header, timestamp, threshold and museperf literals provide concrete tracing anchors. The eventloop/circuit-breaker/worker-pool names are candidate compiled families, not a completed registration census or proof that every exporter emits one uniform schema.",
+    "Concrete compiled registration disproves the old runtime-data-only boundary. f_10317374 builds a CHSRC Fill Level table and frames counter using literal names, descriptions, static vtables and counter-state initialization; the path loads global0x110976ec at0x10318a80, skips registration if null, otherwise calls f_106420ec at0x10318ab4. Direct caller0x1025f530 reaches this constructor. Other direct registration calls include0x101a2e38,0x1044f970,0x1049b4bc,0x1051570c,0x1052e454,0x1052f968,0x10638b00 and0x107e3f70; they are concrete next tracing sites, not a verified total.",
+    "Registration f_106420ec locks the manager, hashes the supplied name with f_10806d50 and looks it up through f_10642bc0. A missing name creates a0x38-byte node containing a copied name and an empty per-name tree; an existing name reuses that node. It then indexes the supplied object pointer through the per-name tree. Thus one name need not identify one runtime instance, and counting distinct literals is not an instance census.",
+    "Export f_10642700 snapshots/traverses the manager index under the manager lock, releases it before table formatting, and invokes f_106419b0 for a table or an empty fallback name depending on formatter state. The latter reaches the selected object virtual slot0 at0x10641c58. XML output is conditionally wrapped in PerformanceCounterTables when the caller low-bit flag is set. An empty registry skips the traversal; no counter values follow merely from a name being compiled. Per-table callbacks, feature gates, teardown and indirect registration paths remain to be joined."
    ]
   },
   "sonoscp": {
