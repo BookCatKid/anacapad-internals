@@ -68914,16 +68914,21 @@
          "function": "0x104794d4",
          "address": "0x10479690",
          "notes": "requested index into ctx+0x40/+0x44"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047bffc",
+         "address": "0x1047c0fc",
+         "notes": "loaded <SavedQueues> attributes passed to the header writer"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the assigned index is the Next attribute value read by f_1047cc9c (0 for a fresh file), and Next is rewritten as Next+1.",
-        "Residual: the call site in the existing-file load path that passes the loaded Next attribute to ctx->vtbl+8 is not identified; next step is to find the vtbl+8 call in the savedqueues SAX start handling registered by f_1047ec6c."
-       ],
        "resolved_findings": [
         "Resolved: written by f_104794d4 with snprintf(out, 0x400, 'SQ:%d', index) (0x104798b0), index taken from the save context sp+0x68 after f_1047ee0c returns 0 or 803 (0x10479864); emitted only on rc 0 (0x104644f4..0x1046451c).",
-        "Established (index allocation): f_104794d4 stores the requested index r8 in both ctx+0x40 and ctx+0x44 (sp+0x64/sp+0x68, 0x10479690/0x10479694), and ctx+0x44 is the value returned as AssignedObjectID. The saved-queues header is written by the default ctx->vtbl+8 writer f_1047cc9c(ctx, a, b, Next). It writes '<SavedQueues LastUpdateDevice=\"%s\" Version=\"%u\" Next=\"%s\">' through f_1047cb70 (format 0x10ed3448). When ctx+0x44 is negative (0x1047ccd4..0x1047ccfc) and the kind ctx+0x3c is not 5, it sets ctx+0x44 = strtol(Next, NULL, 10) (0x1047cd54) and writes Next+1 ('%d', 0x1047cd60); otherwise it writes Next unchanged. f_1047ee0c inlines the same logic for a fresh file (byte ctx+0x58 set, 0x1047ef24 -> 0x1047f108) with Next = '0' (0x1047f398..0x1047f3d0), so the first saved queue in a fresh file gets index 0 and the file records Next=\"1\". In plain terms: a new saved queue takes the number in the file's Next attribute, and Next goes up by one."
+        "Established (index allocation): f_104794d4 stores the requested index r8 in both ctx+0x40 and ctx+0x44 (sp+0x64/sp+0x68, 0x10479690/0x10479694), and ctx+0x44 is the value returned as AssignedObjectID. The saved-queues header is written by the default ctx->vtbl+8 writer f_1047cc9c(ctx, a, b, Next). It writes '<SavedQueues LastUpdateDevice=\"%s\" Version=\"%u\" Next=\"%s\">' through f_1047cb70 (format 0x10ed3448). When ctx+0x44 is negative (0x1047ccd4..0x1047ccfc) and the kind ctx+0x3c is not 5, it sets ctx+0x44 = strtol(Next, NULL, 10) (0x1047cd54) and writes Next+1 ('%d', 0x1047cd60); otherwise it writes Next unchanged. f_1047ee0c inlines the same logic for a fresh file (byte ctx+0x58 set, 0x1047ef24 -> 0x1047f108) with Next = '0' (0x1047f398..0x1047f3d0), so the first saved queue in a fresh file gets index 0 and the file records Next=\"1\". In plain terms: a new saved queue takes the number in the file's Next attribute, and Next goes up by one.",
+        "Established (existing file): the savedqueues SAX start handler f_1047bffc (registered by f_1047ec6c through the thunk f_1047c740) matches <SavedQueues> (strcmp at 0x1047c068), reads its LastUpdateDevice, Version and Next attributes (names at 0x10e89c34, 0x110299f8, 0x10eb9e80), and calls the save context's vtbl+8 with them at 0x1047c0fc, Next in r6. That is the f_1047cc9c header writer, so when an existing file is rewritten the new saved queue gets that file's Next value and the file is rewritten with Next+1."
        ]
       }
      },
