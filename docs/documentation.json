@@ -217118,9 +217118,6 @@
   },
   "upgrade": {
    "check_layer": "update-check client: \"Fetching %s\"/\"Failure fetching (0x%x) (%d)\"; fields {updateServerIP,httpResult,updateAutoCheckError,useCachedOnly,updateType}; headers X-Sonos-LatestSWGen: %u + Content-Location: %s; \"Redirect detected, final URI: %s\"; \"UPM Invalid\"; \"Check for updates %s (%u)\"/\"Check for online update (user)\"/\"Unknown upgrade server state\"; R_AvailableSoftwareUpdate sysprop; SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions,allowDowngradeToPrevSWGen,denyDowngradeToPrevSwGenList}; \"Invalid swgen member detected, swgen: 1\"",
-   "todo": [
-    "Established: exact version3/4 admission, callback-status contract and verified32-byte concatenated-id stash naming. Remaining: follow sonosRcbVerifySig and all consumers of parsed fields+0x43/+0x53 to establish verification coverage or other observable distinctions before assigning bundle/content/manifest labels. Separately trace callers supplying the request-builder stack flag tested at0x1000a4e4; it is not proven to be RCB field1. Only original signing-time labels demonstrably unused by all shipped consumers would require producer/source artifacts. This remains actionable static work."
-   ],
    "resolved_findings": [
     "Resolved: check_layer = the update-check client {Fetching %s, updateServerIP, httpResult, updateAutoCheckError, useCachedOnly, updateType}; linked to the bin_* manifest/download records under update_machinery.",
     "Check-layer role proven: this is the update-check client that polls the upgrade server (Fetching %s / Failure fetching %s (0x%x) (%d)) and parses a manifest response - the server returns the latest build via the X-Sonos-LatestSWGen: %u response header and the payload location via Content-Location: %s, with redirect following (Redirect detected, final URI: %s). Checks run in two modes: scheduled auto-check (updateAutoCheckError field) and user-initiated (Check for online update (user)), logged as Check for updates %s (%u); useCachedOnly forces the cached manifest. The request carries device descriptor fields {dd_mhh, dd_sn, dd_md, dd_bld, dd_in_hh, dd_in_ver}. Results land in the R_AvailableSoftwareUpdate system property (error saving ... on failure) which drives the availableSoftwareUpdate lechmere topic; UPM Invalid and Unknown upgrade server state cover bad manifest responses. The SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions} is enforced here before any download job is queued - the actual image fetch/flash is the bin_upgrade/bin_upgrade_mgr layer, not this record.",
@@ -217136,7 +217133,12 @@
     "RCB field2 (file +0x5a, 16B) consumer found in /bin/upgrade: sonosRcbParseHeader copies it to out+0x53, and the bundle-save path hex-encodes BOTH 16-byte ids as one 32-byte blob - filename is '/jffs/sys/run/rcb/%s-%s.rcb' = {header name (file +0xa..+0x49, e.g. '78.1-47150')}-{hex(field1+field2)}. Verified against shipped fallback_trusted_roots.rcb: ver=4, name='78.1-47150', field1=9f5f3188.., field2=b79beabb.., count=24 x 12-byte entries. These consumer observations do not identify signing-time labels or establish that either field is a content digest.",
     "Established: field2 (+0x5a, 16B) is a second opaque bundle identifier - consumed: RserializeData hex-encodes field1+field2 together into the /jffs/sys/run/rcb/<name>-<64hex>.rcb stash filename. Verified numerically on the shipped fallback bundle.",
     "Independently checked RCB parser at library0xc64: callback results0/9 continue, other results return without header parsing. Raw0x5529043e at0xde4 retains the low16 bits of version-3; comparison0xde8/branch0xdec accepts exactly versions3/4, not every version>=3. Bad magic returns3 and invalid version returns7; pointer/buffer checks return8.",
-    "Upgrade f_100065d8 calls sonosRcbParseHeader with sonosRcbVerifySig at0x10006654 and requires result0 before naming/persisting the bundle. RserializeData receives32 bytes at stack+0x9b, covering both parsed16-byte fields, with65-byte output capacity; the stash path formats name plus64 hex characters. Existing-file and create-failure branches are separate. This is an actual consumer join, not proof of the original signing-time identifier meanings."
+    "Upgrade f_100065d8 calls sonosRcbParseHeader with sonosRcbVerifySig at0x10006654 and requires result0 before naming/persisting the bundle. RserializeData receives32 bytes at stack+0x9b, covering both parsed16-byte fields, with65-byte output capacity; the stash path formats name plus64 hex characters. Existing-file and create-failure branches are separate. This is an actual consumer join, not proof of the original signing-time identifier meanings.",
+    "sonosRcbVerifySig contract resolved (libsonos-root-cert-bundle.so.2 0x15f4): ZZ0121 parses the optional detached-signature blob at data+0 (magic 0x9de2a74d, version 1, key records stride 0x910 per libsonoscrypto 0x9e14) and the parsed byte length is stored to *off_out (stw r3,0x0(r27) at 0x1650). A zero length returns status 9 (no signature, 0x1654-0x165c). A nonzero length calls ZZ0123 (lib 0x20068, multi-key-selector verify) over the range data+sig_len .. data+size (pointer math at 0x16a4/0x16ac) and the result is collapsed to 0 verified or 2 tampered (isel at 0x16cc-0x16d0). So the signature covers the entire bundle blob after the sig prefix: header fields {version, name, id, section directory} and all section payloads are inside the authenticated range; ParseHeader's own checks add only 'rcbundle' magic, version==3||4, and bounds.",
+    "Unsigned-policy distinction found: /bin/upgrade f_100065d8 requires sonosRcbParseHeader result exactly 0 (cmpwi/bne at 0x10006658-0x1000665c), so unsigned bundles (status 9) are rejected and never stashed by the upgrade client. certval loadCertBundle (libsonos-certval.so.2 0x75c48) instead accepts status 9 when provider virtual +0x18 returns true (gate at 0x75d6c-0x75d84); all four provider slots +0x18..+0x24 in _ZTVN5sonos16RootCACertBundleE (0x1abfbc) are __cxa_pure_virtual, so unsigned admission is a per-source policy, not global. Verified status 0 always proceeds to ParseManifest (0x75dd4) which builds the ctx+0x70 section array and sets the parsed flag this+0x11c; sonosRcbParseCerts/ParseCertsCopy materialize cert sections later inside getRootCertsInternal (GOT-indirect calls via .rela.dyn slots 0x1aea98/0x1aeaa4).",
+    "Out-struct field consumption fully traced; the +0x43/+0x53 pair (file +0x4a/+0x5a) is consumed only as one 32-byte blob and never split by any shipped consumer. /bin/upgrade RserializeData hex-encodes ctx+0x43..+0x62 for the stash filename '/jffs/sys/run/rcb/%s-%s.rcb' where part 1 is the ctx+0x02 name and part 2 is the 64-hex id (args at 0x1000667c-0x1000669c), the file is written only if absent (sonosFileExists 0x100066b0) via sonosFileCreate of the raw received blob (0x100066bc-0x100066cc), then sonosRcbFree. certval f_75b9c copies ctx+0x02 name to this+0x94 and hex-encodes ctx+0x43 (0x20 bytes) to this+0xd5; getters confirm labels: formatVersion()=u16 header version (0x751b8 lhz this+4), version()=name string (0x751d8 -> this+0x94, e.g. '78.1-47150'), id()=64-hex id (0x751c8 -> this+0xd5). The id feeds metadata filenames and findBestBundle/updateBestBundleLocked bundle selection. No shipped consumer assigns distinct roles to the two 16-byte halves or verifies against them; the only producer labels supported by binary evidence are 'bundle name/version string' (+0x0a) and 'opaque 32-byte bundle identifier' (+0x4a..+0x69).",
+    "anacapad registration resolved at 0x10579fb0: certval::initialize(sonosRcbVerifySig via PLT 0x11099660, logfn f_10579e88, boolfn f_10579b2c, voidfn f_10579b44, filecb f_10579b50, dirpath) with dirpath built by constructJFFSRootPath('sys/run/rcb') at 0x10579f44 and pre-created by sonosMkDirRecursive at 0x10579f4c, giving /jffs/sys/run/rcb - the same directory /bin/upgrade stashes into. anacapad imports only sonosRcbVerifySig and sonosRcbStatusToString from the RCB library (dynsym); it never calls ParseHeader/ParseManifest/ParseCerts itself, so all bundle parsing for TLS trust runs inside libsonos-certval.so.2.",
+    "The stack flag tested at /bin/upgrade 0x1000a4e4 resolved as a request option byte, not an RCB field: f_1000a300 (URL builder) does lbz of the first stack argument's low byte at sp+0x9b; nonzero appends '&au=1' (0x1000a4f0-0x1000a518). The second stack arg byte at sp+0x9f (tested 0x1000a370) selects the URL form: nonzero -> '%s%s-%u-%u.upd?...' image URL (0x1000a3f4), zero -> '%supdate.upm?...' manifest URL (0x1000a4a8). The only direct caller is 0x100027f0 inside the '^'-delimited option parser; it stores 0 to both stack-arg words (stw r9=0 at 0x100027c8 and 0x100027d0), so shipped code always builds the .upm manifest URL without &au=1 through this builder. The RCB-field hypothesis for this byte is withdrawn."
    ],
    "evidence": [
     {
@@ -217145,6 +217147,34 @@
      "build": "86.10-80260",
      "address": "0x00000de4",
      "notes": "Raw5529043e is low16 mask, then unsigned<=1 test after subtract3; callback0/9 gate atce8-cf8. Upgrade caller10006654 and32-byte serialization10006674 independently checked."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-root-cert-bundle.so.2",
+     "build": "86.10-80260",
+     "address": "0x000015f4",
+     "notes": "sonosRcbVerifySig: ZZ0121 sig-blob parse, *off=len at0x1650, ret9 when0, ZZ0123 verify over data+len..data+size, ret0/2. Status strings .rodata 0x18e4."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-certval.so.2",
+     "build": "86.10-80260",
+     "address": "0x00075c48",
+     "notes": "loadCertBundle: provider vfuncs +0x24/+0x1c/+0x20 supply bytes, status9 gated by vfunc +0x18 (pure virtual in base vtable 0x1abfbc), f_75b9c fills name/hexid members, ParseManifest at0x75dd4, parsed flag this+0x11c. Getters 0x751b8/0x751c8/0x751d8."
+    },
+    {
+     "type": "firmware",
+     "binary": "/bin/upgrade",
+     "build": "86.10-80260",
+     "address": "0x1000a4e4",
+     "notes": "URL builder f_1000a300: sp+0x9b flag -> '&au=1', sp+0x9f flag -> .upd vs .upm; sole caller 0x100027f0 stores 0 to both stack args. ParseHeader result must be exactly0 at 0x10006658."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10579fb0",
+     "notes": "certval::initialize(sonosRcbVerifySig, f_10579e88, f_10579b2c, f_10579b44, f_10579b50, '/jffs/sys/run/rcb'); dir built+created at 0x10579f44/0x10579f4c."
     }
    ]
   },
