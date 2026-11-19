@@ -150152,14 +150152,34 @@
      "type": "firmware",
      "address": "0x10f2ac18",
      "notes": "sounddev block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_107f675c formatter / f_107f6574 input reader",
+     "address": "0x107f676c",
+     "callsite": "0x107f6898 / 0x107f69d4 / 0x107f65b0 / 0x107f65c8",
+     "notes": "Explicit low/high status masks select strings. No model selector in formatter; concrete caller registration not certified. Input success mask3dff000f is separate from printed vocabulary."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "function": "hal_thermal_get_status",
+     "address": "0x1fa4",
+     "callsite": "0x1fdc / 0x203c / 0x2050",
+     "notes": "Export bounds and raw PPC objdump: kind13/state0, ioctl4004fc2c, andis2c07 gives mask2c070000, success-only output write. Driver/board producer join remains open."
     }
    ],
    "todo": [
-    "Residual: per-flag hardware presence is board config, not binary content - the enum vocabulary is complete; definitively marking each flag live/absent on S9 needs the model-9 hw description (outside the image)."
+    "Established: concrete status-bit-to-name formatter, successful input-reader mask0x3dff000f and shipped thermal ioctl/mask0x2c070000 boundary. Remaining: bind f_107f675c registration/callers, trace every status producer including thermal/input ioctls into shipped driver implementations and board/model setup, and distinguish supported bits from asserted faults on S9. Start at f_107f6574, libsyslib_hal hal_inputs_get_status/hal_thermal_get_status and ioctl0x4004fc2c. Do not derive sensor presence or absence from the shared enum, unrelated capability rows or MOTION spelling. The outside-image/model-9 limitation is withdrawn; this is actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: model-9 live flags = the Playbar set {SPDIF in, HT master, bonded-pair capable, no line-in, no mic} per the capability-table rows for ZPS9.",
-    "Health-flag model-9 scope narrowed: the *_STATUS enum is a platform-shared vocabulary compiled in for all models - which sensors exist per model is hardware config, not binary data. Model-9 plausible set per the capability rows (powered HT soundbar, no battery, no BT, bonded-satellite capable): AMP_*_WARN/FAULT, CPU/CPU2/SOC temp tiers, POWER temp, and the PS36/UV36/UV14 rail monitors are consistent with the amp+PSU hardware; MOTION_* is portable-hardware vocabulary (drop/move detection) with no Playbar counterpart. Orientation sensing is live on model 9 - the Playbar ships an orientation sensor for wall-mount EQ (the sensor-read code exists in-image; the capability rows do not gate it)."
+    "The old model-9 live-flag/capability assertion is withdrawn. S9 identity has previously been corrected to ordinal10 in model_sku_vocabulary; neither that ordinal nor soundbar feature names prove individual health sensors. Per-board health producers still need actual driver joins.",
+    "f_107f675c formats bits from its incoming status word, not a model selector: low0x2 AMP_CURRENT_WARN,0x8 AMP_FAULT_WARN,0x1 AMP_CURRENT_FAULT and0x4 AMP_FAULT; high0x00020000 AUDIO_WARN_TEMPERATURE,0x00080000 CPU_WARN_TEMPERATURE,0x00100000 PS36_FAULT,0x00200000 UV36_FAULT and0x00400000 UV14_FAULT. Motion temperature strings are real compiled branches on0x40000000/0x80000000, not proof of portable-motion detection or sensor absence on S9. No model gate occurs in this formatter; its concrete registration/call reachability remains to be bound.",
+    "A separate actual input-status reader f_107f6574 invokes imported hal_inputs_get_status at0x107f65b0, tests its return value, and masks successful output with0x3dff000f before storing it to its output argument. Error branches do not use that successful status value. The shared string vocabulary is therefore not interchangeable with every reader mask; the complete health producer path is not certified by this one input method.",
+    "Shipped libsyslib_hal.so.1 hal_thermal_get_status at0x1fa4 checks for a nonnull handle, handle kind13 and state0. Its successful path issues ioctl0x4004fc2c with a4-byte buffer and masks the returned word with0x2c070000 before storing it. Invalid handle/kind/state or ioctl failure returns a nonzero code without the success store. This provides an in-corpus driver boundary to trace, disproving the old assertion that all per-model health information is necessarily outside the image. This thermal method is not yet joined to the formatter."
    ]
   },
   "rendering_control": {
