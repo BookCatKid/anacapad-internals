@@ -68901,7 +68901,7 @@
      ]
     },
     "SetPlayMode": {
-     "description": "Changes repeat/shuffle mode. The engine maps exact request strings to an enum; for an indexed source it submits op 11, and for streamer mode with an eligible URI it sets mode on the streamer. NORMAL alone can fall back to success without submitting a change.",
+     "description": "Requests a repeat/shuffle mode. The engine maps exact request strings to an enum and submits indexed op 11 or, for an eligible streamer URI, dispatches to the active streamer. The Spotify streamer queues the change without waiting for it to apply. NORMAL alone can fall back to success without submitting a change.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f94a0",
@@ -69080,7 +69080,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Engine mode and, for mode 1, the f_10688070 URI predicate determine the destination. Indexed mode's op-11 completion byte and streamer mode's apply result independently control success.",
+      "description": "The engine mode and, in mode 1, the f_10688070 URI predicate determine the destination. Indexed mode uses the op-11 completion byte. The streamer wrapper checks that a control target exists, not whether the target successfully applies the change.",
       "evidence": [
        {
         "type": "firmware",
@@ -69124,7 +69124,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The indexed queue applies mode changes to the active track list and the LastChange snapshot reads the resulting mode. The playing consumer's same-mode success path does not raise a play-mode change notification. In stopped or paused playback, a changed mode can schedule the sender after a queue snapshot refresh. The non-indexed streamer branch delegates to the active source rather than emitting LastChange itself. A changed indexed mode can wake the sender before a queued snapshot becomes current; the wake alone does not dirty the common delta block.",
+      "description": "The indexed queue applies mode changes to the active track list and the LastChange snapshot reads the resulting mode. The playing consumer's same-mode success path does not raise a play-mode change notification. In stopped or paused playback, a changed mode can schedule the sender after a queue snapshot refresh. The non-indexed streamer branch delegates to the active source rather than emitting LastChange itself. A changed indexed mode can wake the sender before a queued snapshot becomes current; the wake alone does not dirty the common delta block. For Spotify, the streamer call records a pending mode update; the worker applies shuffle and repeat separately rather than applying changes synchronously in the SOAP handler.",
       "evidence": [
        {
         "type": "firmware",
@@ -69253,11 +69253,41 @@
         "address": "0x10264784",
         "notes": "The stopped/paused function continues after the timeline write regardless of the replacement helper's result (which it saves separately for its own return). After promoting the listener reference, it wakes the AVTransport event source at 0x102648c4 if that reference and session+0x2578 are nonnull; f_1067c6ec separately checks the live source and its sender. Scheduling this pass is not itself a generation increment.",
         "function": "0x102642d4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10219cf0",
+        "notes": "Spotify registers streamer source type 2 through f_106a76b8: r5 is the Spotify VLI control object adjusted by +8 and r6 is the SpotifyAudioInput object. The registration helper writes these at record+4 and +8 in the first free 12-byte entry of the nine-entry table at streamer+0x2e8. f_106a8b08 selects by type and installs the record at streamer+0x354 (0x106a8df4); a failing selection callback clears it at 0x106a8e34."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1021b410",
+        "notes": "Spotify finishes wiring the controller with f_1022c7d4(control, spotify+4), which stores this interface pointer at control+0x188. The controller constructor installs address point 0x10ea53a8 at control+8 (0x1022d94c). Its +0x2c entry at 0x10ea53d4 adjusts back by 8 and calls f_1022add4, which returns that stored pointer. The Spotify constructor installs address point 0x10ea2210 at spotify+4 (0x102198d4)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ea2244",
+        "notes": "The Spotify interface's +0x34 entry f_10211bb0 adjusts this by -4 and enters f_10211b20. It calls f_102268a4 on the embedded Spotify thread at +0x7ae8. That helper writes pending byte +0xaec=1, stores the selector in byte +0xaed and the three halfwords in +0xaee/+0xaf0/+0xaf2. It does not check equality or call the AVTransport event sender there.",
+        "function": "0x102268a4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10226a3c",
+        "notes": "The Spotify thread consumes a pending selector-1 change in f_102269e0. It sends bit 0 of the requested mode to the shuffle setter; it sends repeat 2 when bit 2 is set, otherwise repeat takes bit 1. The worker tests the setter results separately, records failures through f_10225360 and clears pending at 0x10226a88. The SOAP success path does not wait for these results.",
+        "function": "0x102269e0"
        }
       ],
       "todo": [
-       "Established: both indexed consumers skip notification on equality. A changed indexed mode can advance the common generation immediately or after a newly queued snapshot becomes current; the stopped/paused wake and generation advance are separate. The streamer adapter follows source slot +0x2c to a slot +0x34 target.",
-       "Resolve the concrete streamer slot +0x34 bindings and check whether their mode changes schedule LastChange, including same-mode suppression."
+       "Established: indexed equality suppresses the request's own wake. The bound Spotify streamer control stages a request without a same-mode check or a direct LastChange wake; a Spotify thread consumes it using distinct shuffle and repeat setters.",
+       "Follow Spotify shuffle/repeat change callbacks into the streamer state snapshot and AVTransport LastChange sender, including same-mode behavior, and check for any other registered slot +0x34 implementations."
       ]
      },
      "state_transitions": {
