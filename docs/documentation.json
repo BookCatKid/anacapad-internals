@@ -226300,17 +226300,44 @@
      "build": "86.10-80260",
      "address": "0x0000e680",
      "notes": "Shipped CBC implementation; decrypt block XOR and IV chaining at 0xe784-0xe830. Certificate consumer connection unverified."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb9c5c",
+     "notes": "Private-key consumer gate in f_10bb9c20: byte at out+0x1000 NUL short-circuits to return 0 at 0x10bb9c64; otherwise out+0x2000 type word loaded at 0x10bb9c6c and accepted only when 0 (0x10bb9c74) or 5 (0x10bb9c7c); every other value returns 0. The field is never loaded again in the consumer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb9d50",
+     "notes": "Identical unwrap path for types 0 and 5: ZZ0056 parses the decoded blob into a 0x1c78-byte descriptor at 0x10bb9d5c, ZZ0051 walks it at 0x10bb9d84 with record callback ZZ0070 (noop returning its params argument, nonzero, so the walk breaks on the first record), and ZZ0098 re-wraps the produced key at 0x10bb9d98."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x00006920",
+     "notes": "ZZ0051 unwrap stage: record fields +0x1058 (RSA padding selector), +0x105c (word) and +0x1060 (key-material pointer) feed ZZ0075 at 0x692c; cipher-stage algorithm/parameters come from descriptor +0x1c6c/+0x1c70/+0x1c74 feeding ZZ0043 at 0x6960. Mode and IV are in-blob fields, not derived from the XML integer."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x00005560",
+     "notes": "ZZ0045 output-sizing gate: descriptor algorithm enum must be <=6 and in the supported bitmask union 0x76 (shift-test masks 0x54 then 0x22 at 0x5570-0x5578), giving supported ids {1,2,4,5,6}; unsupported or >6 fails. ZZ0075 gates record padding to {1:PKCS1-v1.5, 2:OAEP} at 0x7cd0-0x7cdc before mbedtls_rsa_init/free bracket the decrypt."
     }
-   ],
-   "todo": [
-    "Residual: trace the numeric encryption-key-type stored by the certificate-file XML parser through its actual private-key consumer to mode/IV selection. A shipped CBC implementation is now positively located, so absence of a direct CBC import cannot justify declaring the certificate path ECB-only. The separate sonoscp_crypto ECB helper does not bind this file-format field."
    ],
    "resolved_findings": [
     "Resolved: on-disk format = %s/%s.%s files with keys {encrypted-private-key,expiration,encryption-key-type,sonos-key-and-cert} + failed-to-retrieve-key error path.",
     "Format proven: PEM - both -----BEGIN CERTIFICATE----- and -----BEGIN PUBLIC KEY----- literals are in the image, plus public key hash: sha256//%s (HPKP-style pin format) and DH signature params {dh(g), dh(pub_key), Signature}. cert.xml stores <DeviceCertInfo>; the X-Sonos-DeviceCert header carries the device cert on requests. Cert health states {DeviceCertRequired, DeviceCertInvalid, DeviceCertExpired, DeviceCertRevoked} gate the refresh job (Unknown cert metadata state: %s. Scheduling cert refresh job; %zu consecutive cert fetch failures. Trying again in %ld seconds). Trust roots ship as /certbundles/v4/trusted_roots.rcb via libsonos-root-cert-bundle.so.2; validation via libsonos-certval.so.2; fetchRegDeviceCert/refreshRegDeviceCert are the fetch verbs; NewCertRegistrationEvent fires on registration.",
     "Decrypt primitives decoded in libsonoscrypto: ZZ0024 (0x3a48) = aes_init + mbedtls_aes_setkey_dec(ctx, key, keybytes*8) with a keybits sanity bound (<0x20000000), ZZ0025 on failure; ZZ0023 (0x3a24) = mbedtls_aes_crypt_ecb block-decrypt wrapper (mode forced to DECRYPT, 16B in->out). The encrypted-private-key is therefore decrypted with the stored key bytes used directly - there is no KDF step between the 'privateKey' field and mbedtls_aes_setkey_dec; the key IS raw AES key material. ZZ0023/24 are called from 4 sites (0x103eb104/0x104ccdf0/0x1050a174 scp cipher paths + 0x10716e60/0x10716e7c sonoscp_crypto unpack), confirming the shared AES-block engine.",
     "Certificate parser corrected at instruction level: f_10bb95f8 compares encryption-key-type at 0x10bb96c4-0x10bb96d8, then invokes paranoid_atoi(text,output+0x2000) at 0x10bb96dc-0x10bb96e8. Expiration is independently parsed by paranoid_strtoull into output+0x2008 at 0x10bb9770-0x10bb977c. Thus this XML metadata field is numeric, not a demonstrated AES-CBC/AES-ECB string enum. The sonoscp_crypto privateKey/type code and its raw ECB loop f_10716e2c belong to a separate parser; adjacency of strings does not link them to this certificate-file consumer.",
-    "Counterexample to the previous shipped-CBC-absence claim: lib/libmbedcrypto.so.16 exports mbedtls_aes_crypt_cbc at relative VA 0xe680, size 0x2f8. Its decrypt branch (mode=0) preserves the incoming ciphertext block, invokes mbedtls_aes_crypt_ecb at 0xe778, XORs all sixteen plaintext bytes with the IV at 0xe784-0xe7a4, updates the IV with saved ciphertext at 0xe7a8-0xe830 and repeats. It accepts empty input, rejects non-block-multiple length at 0xe6c8-0xe6cc, and has a separate encrypt branch at 0xe87c. This proves CBC is implemented in a shipped artifact, not that a particular certificate file reaches it. libsonoscrypto imports the generic mbedtls_cipher_setup/setkey/set_iv/update API, so searching only direct imports of mbedtls_aes_crypt_cbc cannot establish mode reachability. The actual certificate numeric-key-type dispatch is still unresolved."
+    "Counterexample to the previous shipped-CBC-absence claim: lib/libmbedcrypto.so.16 exports mbedtls_aes_crypt_cbc at relative VA 0xe680, size 0x2f8. Its decrypt branch (mode=0) preserves the incoming ciphertext block, invokes mbedtls_aes_crypt_ecb at 0xe778, XORs all sixteen plaintext bytes with the IV at 0xe784-0xe7a4, updates the IV with saved ciphertext at 0xe7a8-0xe830 and repeats. It accepts empty input, rejects non-block-multiple length at 0xe6c8-0xe6cc, and has a separate encrypt branch at 0xe87c. This proves CBC is implemented in a shipped artifact, not that a particular certificate file reaches it. libsonoscrypto imports the generic mbedtls_cipher_setup/setkey/set_iv/update API, so searching only direct imports of mbedtls_aes_crypt_cbc cannot establish mode reachability. The actual certificate numeric-key-type dispatch is still unresolved.",
+    "Resolved: the numeric encryption-key-type never reaches mode/IV selection. Consumer f_10bb9c20 (reached via delegate vfunc+8 caller f_106c4ee0 and wrapper f_10bb9da8 -> f_10bb9b88) reads out+0x2000 exactly once at 0x10bb9c6c and accepts only {0,5} at 0x10bb9c74-0x10bb9c80; every other value returns 0, and an empty encrypted-private-key buffer (NUL at out+0x1000) short-circuits before the type check at 0x10bb9c64. Types 0 and 5 take a byte-identical unwrap path, so the field is a format-family whitelist on acceptance, not a cipher-mode selector.",
+    "Resolved: mode/IV selection is self-describing inside the encrypted-private-key blob. ZZ0056 parses the base64-decoded blob into a 0x1c78-byte descriptor (record count byte at +0x850, 0xa0c-stride records {word@+0x854, type@+0x858, params@+0x859}); ZZ0051 sizes output via ZZ0045 (descriptor algorithm enum <=6 in supported set {1,2,4,5,6}), RSA-unwraps the record via ZZ0075 (mbedtls_rsa_*; padding selector record+0x1058 {1:PKCS1-v1.5, 2:OAEP}) and finishes through ZZ0043 into the generic mbedtls_cipher engine (cipher_info_from_type + setkey + set_iv + conditional set_padding_mode/update_ad at .so 0x4b50, AEAD check_tag/write_tag at .so 0x4fa4). CBC reachability is therefore decided by in-blob cipher-type/IV fields, not by the XML integer, closing the earlier mode-selection question. The only sibling use of the keyType name (httpauth signing JSON emitted by f_105cccbc via f_10bb93f4, which always writes 0 for the playerasig device signing-key family) shows the numbering denotes key/format families; value 5 is a second accepted family whose distinction lives inside blob records, not in player-side dispatch."
    ]
   },
   "local_settings_mgr": {
