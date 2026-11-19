@@ -81150,7 +81150,7 @@
      ]
     },
     "Play": {
-     "description": "Starts VLI playback; InstanceID+Speed parsed like AVTransport.Play, then impl->v[+0x14] on the r5-in VLI session impl.",
+     "description": "Requests VLI playback through handler f_1073d2dc. The handler parses InstanceID and Speed, validates the request, and calls the object supplied by service+4 at vtable slot +0x14. The media_player_vli_ctrl controller has a static slot +0x14 implementation f_104164b0, but its binding to this SOAP object has not been established; its cookie/boolean calling convention must not be substituted for the SOAP InstanceID/Speed/fault-code convention.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073d2dc",
@@ -81198,7 +81198,7 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "accepted_values": "The wrapper applies no value check after f_105614e0; session-level restrictions require the binding trace described in the action todo.",
        "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
@@ -81235,7 +81235,7 @@
        "semantic_type": "SonosUintArg",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "any string <=0x400 - impl entry does not enumerate it",
+       "accepted_values": "The wrapper applies no value check after f_1056157c with capacity 1024; session-level speed restrictions require the binding trace described in the action todo.",
        "range": "max 1023 chars",
        "special_values": "none observed in this build",
        "required": true,
@@ -81263,7 +81263,7 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "The wrapper fetches InstanceID and Speed through request slot +0x1c and parses them with f_105614e0 and f_1056157c, respectively. Request slot +8 must return nonzero before the delegate is called. A zero validation result selects fault 402. The delegate result is tested separately: zero commits an empty response through request slot +0x0c, nonzero is forwarded unchanged through request slot +0x14. No wrapper-side InstanceID range or Speed enumeration check occurs.",
       "evidence": [
        {
         "type": "firmware",
@@ -81275,7 +81275,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0x14]",
+      "description": "InstanceID and Speed must pass request parsing and request slot +8 validation. Dispatch also requires non-null service+4 (f_1073ccc0 at 0x1073cdc4-0x1073cdcc). The controller candidate f_1041616c waits for prior transaction flags through f_10413184(mask=-1), but continues even if that wait fails, logging \"waiting for tx flags failed %#x\" at 0x10ecc1ac when enabled. This is not yet a proven SOAP precondition.",
       "evidence": [
        {
         "type": "firmware",
@@ -81283,15 +81283,19 @@
         "build": "86.10-80260",
         "function": "0x1073d2dc",
         "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104161dc",
+        "notes": "Controller waits with mask -1, then both success and failure paths reach the store of 0x10 to controller+0x218; failure logging rejoins at 0x104161f8."
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: request validation and the non-null service+4 gate are traced; the controller wait is not a rejecting gate. Residual: the SOAP delegate may impose separate session, InstanceID or Speed constraints. Recover service+4 binding and trace its +0x14 implementation before attributing controller preconditions to Play."
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x14]",
+      "description": "The wrapper reads no session fields itself. Separately, controller worker f_1041616c locks controller+0x130, reads type at +0x210 and transaction flags at +0x218, and uses +0x104/+0xf8 for the topology lookup f_10122f88. With requested state 1, type 8 takes the no-event path at 0x1041649c. The SOAP-to-controller linkage remains unproven.",
       "evidence": [
        {
         "type": "firmware",
@@ -81299,16 +81303,20 @@
         "build": "86.10-80260",
         "function": "0x1073d2dc",
         "notes": "member vfunc calls: ['r30 v[+0x14]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10416354",
+        "notes": "Raw 0x2b9a0008 compares unsigned type to 8; 0x419e0144 branches on equality to 0x1041649c. Controller type names come from f_10687cbc, not the adjacent RCA/TV/VLI source enum."
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: the controller candidate uses +0x130/+0x210/+0x218 and suppresses its state-1 event for type 8. Residual: which controller, if any, is selected by the SOAP delegate is unproven. Trace service+4 slot +0x14 and its object-selection path; then identify the reachable type values and session state."
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x14] (call-derived member-method semantics)",
+       "description": "No state write occurs in the SOAP wrapper. Controller candidate f_1041616c stores 0x10 at +0x218, unlocks, performs a topology lookup, and for state 1/type other than 8 submits a two-word payload {type,4} through f_1013f0f4(controller+4). On cleanup it sets +0x21c to 1 and clears bit 0x10 in +0x218. This candidate path is not yet established as the SOAP side effect.",
        "evidence": [
         {
          "type": "firmware",
@@ -81316,16 +81324,20 @@
          "build": "86.10-80260",
          "function": "0x1073d2dc",
          "notes": "delegate map ['r30 v[+0x14]']; notify-family calls []"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104163a0",
+         "notes": "Stores cached type to sp+0x20 and action 4 to sp+0x24, then calls f_1013f0f4 at 0x104163b4. Cleanup at 0x104162e8-0x104162fc sets the byte and clears 0x10; raw 0x55290734 is rlwinm r9,r9,0,28,26, mask 0xffffffef."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x14] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "todo": "Established: controller transaction bookkeeping and payload {type,4} are instruction-traced. Residual: SOAP reachability and downstream playback effects are not proven. Recover the SOAP adapter, then follow the reachable f_1013f0f4 payload consumers and their completion writes rather than treating submission as completed playback."
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The SOAP wrapper has no direct notify call. Controller candidate f_1041616c labels the state-1 submission \"firing AvtVliActionEvent %s\" (0x10ecc354), formats action 4 through f_106a5fd4, and submits {type,4} via f_1013f0f4 at 0x104163b4 unless type equals 8. This is an internal event, not evidence of a GENA or WSS notification from SOAP Play.",
       "evidence": [
        {
         "type": "firmware",
@@ -81333,15 +81345,19 @@
         "build": "86.10-80260",
         "function": "0x1073d2dc",
         "notes": "bl call scan: notify-family sites = []"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10416370",
+        "notes": "Loads action 4 for f_106a5fd4, logs AvtVliActionEvent, constructs payload and calls f_1013f0f4. The separate state-0 AvtHaltActionEvent path is not reached by the state-1 thunk."
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: candidate state-1 event name, payload and type-8 suppression are traced. Residual: neither SOAP reachability nor any resulting network notification is proven. Resolve service+4 slot +0x14, follow the AvtVliActionEvent consumer and identify actual network-emitter calls on that reachable path."
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x14]",
+      "description": "Controller candidate f_104164b0 requests state 1 from f_1041616c; the worker logs \"pbstate: %d\" (0x10ecc2e0). It sets transaction bit 0x10 and later clears it, but does not directly store a PLAYING transport state. Type 8 bypasses event submission. Other types submit internal action 4 and wait for transaction-bit clearance. These controller mechanics alone do not establish a SOAP playback transition.",
       "evidence": [
        {
         "type": "firmware",
@@ -81349,15 +81365,19 @@
         "build": "86.10-80260",
         "function": "0x1073d2dc",
         "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x14]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10416280",
+        "notes": "After event submission the worker reacquires +0x130 and calls f_10413184 with mask 0x10. f_10413184 uses condition object +0x1c0 and wait argument 0xbb8 at 0x10413204-0x10413210."
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: the controller state-1 path submits an event and waits on transaction bit 0x10, with type 8 as a no-event case. Residual: the SOAP adapter and actual playback-state writers are not linked. Trace the bound SOAP delegate, then the event consumer and the code clearing controller+0x218 bit 0x10 and setting +0x21c."
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_1073d2dc returns an empty successful response through request slot +0x0c when its delegate returns 0 (branch 0x1073d394); every nonzero delegate value is passed unchanged to request slot +0x14 at 0x1073d3a0. Request validation failure selects 402 at 0x1073d3d4. Separately, controller worker f_1041616c returns 0 for type 8; otherwise it returns +0x21c after a successful completion wait, or 0 after a failed completion wait, then resets +0x21c to 1. That boolean must not be described as the SOAP fault domain without an adapter trace.",
       "evidence": [
        {
         "type": "firmware",
@@ -81365,12 +81385,23 @@
         "build": "86.10-80260",
         "function": "0x1073d2dc",
         "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073d394",
+        "notes": "Raw 0x4182004c branches on cr0.eq after mr. r4,r3 to the no-output commit at 0x1073d3e0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10416488",
+        "notes": "Successful wait reaches lbz r28,+0x21c; failure leaves r28=0. Both paths set +0x21c=1 and return r28 at 0x10416304. Type 8 explicitly sets r28=0 at 0x104164a0."
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: SOAP zero/nonzero handling and the separate controller boolean return convention are traced. Residual: conversion, if any, between the two is unproven. Recover service+4 vtable and trace all returns of its +0x14 implementation, including boolean-to-fault mapping and timeout behavior."
      },
      "fault_sites": [
       {
@@ -81383,32 +81414,20 @@
       {
        "code": 402,
        "code_expr": "vret(r5-in,+0x14); parse/req-layer",
-       "meaning": "request-layer parse/impl gate failure | Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Request validation failure produces 402. The nonzero SOAP delegate return is a separate, not yet enumerated fault domain; the controller callback boolean is not proven to be that domain.",
        "fault_sites": [
         "0x1073d3a0"
        ],
        "conditions": [
         {
-         "description": "parse or impl arg gate failed",
+         "description": "Request slot +8 returns zero at 0x1073d360-0x1073d368; the wrapper loads 402 at 0x1073d3d4 and joins the fault call at 0x1073d3a0.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x104164b0",
-           "notes": "impl/handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1073d2dc",
-           "notes": "parse vcalls then fault path"
+           "address": "0x1073d3d4",
+           "notes": "li r4,0x192 selects 402 on failed request validation."
           }
          ]
         }
@@ -81418,22 +81437,19 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x104164b0",
-         "notes": "402 path"
+         "address": "0x1073d388",
+         "notes": "mr. r4,r3 tests delegate result; zero commits, nonzero is forwarded unchanged to request fault slot +0x14."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073d2dc",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10416304",
+         "notes": "Controller f_1041616c returns r28, which is zero or a byte read from +0x21c, not a literal SOAP fault ladder."
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x104164b0 exits=[88]; impl f_10415f58: dedicated session-play worker; residual = worker rc domain (call-derived)",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x14); parse/req-layer; sites: 0x1073d3a0).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "Only the wrapper-selected 402 is established here. Earlier attribution to a dedicated session-play worker f_10415f58 was incorrect: on controller vtable 0x10ecbe2c that address is slot +0x10, while slot +0x14 is f_104164b0. Binding this controller to the SOAP delegate is still unproven.",
+       "todo": "Established: validation failure selects 402 and any nonzero bound-delegate result is forwarded verbatim. The static controller slot +0x14 is f_104164b0, not f_10415f58, and returns a boolean via f_1041616c. Residual: the actual SOAP delegate fault codes and predicates are not enumerated. Locate the writer of service+4, recover its vtable, trace slot +0x14 and document each nonzero return before closing this error domain."
       }
      ],
      "firmware_differences": [],
@@ -81452,12 +81468,42 @@
        "build": "86.10-80260",
        "address": "0x10f11ef8",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10413608",
+       "notes": "Constructor f_104132a8 stores 0x10ecbe2c at controller+0; slot +0x14 is the word at 0x10ecbe40, value 0x104164b0.",
+       "function": "0x104132a8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104164b0",
+       "notes": "mr r5,r4; li r4,1; tail branch at 0x104164c0 to f_1041616c. Incoming r5 (Speed at the SOAP boundary) is overwritten."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073cdc4",
+       "notes": "Dispatcher loads service+4 into r30, rejects null at 0x1073cdcc, then passes it as r5 to the handler. Raw 0x41beff98 is bo=13,bi=30: branch on equality to the 401 path."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073d664",
+       "notes": "Service constructor f_1073d65c initializes +4 and +8 to zero. The controller constructor is a different object and vtable."
       }
      ],
      "notes": null,
      "todo": [
-      "Established: direct dispatch to handler 0x1073d2dc; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: f_1073d2dc calls service+4 slot +0x14 at 0x1073d384. Constructor f_104132a8 stores controller vptr 0x10ecbe2c at 0x10413608; word 0x10ecbe40 is f_104164b0, which sets r4=1 and tail-calls f_1041616c.",
+      "Residual: the controller thunk consumes the incoming r4 as a cookie and ignores incoming r5, whereas the SOAP call supplies InstanceID in r4 and Speed in r5. The controller worker returns a boolean, whereas the SOAP wrapper treats nonzero as a fault code. No binding or adapter between these interfaces has been proven.",
+      "Next step: trace the writer of the VirtualLineIn service object +4 (initialized to zero by f_1073d65c), recover its concrete vtable, and follow its slot +0x14, including any adapter to f_104164b0. Do not infer that the controller callback itself is the SOAP implementation."
      ]
     },
     "Previous": {
