@@ -223119,41 +223119,154 @@
   },
   "spotify_thread": {
    "name": "spotify request thread",
-   "summary": "single-request constraint \"Already have a spotify request in progress, can only have one!!\" + \"Executing %s ...\"/\"%s timeout\"; rate limit {\"restricting excessive fatal error reporting\",\"spotify telemetry rate limit exceeded!\",spotrl}; connect ops {SpDisableConnect,SpEnableConnect,SpSetDisplayName,SpSetDeviceIsGroup,Enable/Disable Connect} \"Set display name [%s], is%s grouped\"; playback {SpPlaybackIncreaseUnderrunCount \"Underruns reported: %u\",SpPlaybackSetBitrate setbr,SpPlaybackPause/Play,SpPlayUriWithOptions,SpPlaybackEnableShuffle/Repeat,SpGetMetadata,SpZeroConfGetVars}; ads spotify:ad:/spotify:interruption:; restart token \"'Radio' stripped from restart token. Token was %s now %s\"; login {SpConnectionLoginOauthToken,waitForLogin,waitForLogout,\"Login user change while in progress [%s => %s]\",\"Already logging in as [%s]\",\"Login mismatch\",\"username %s... is longer than maximum %zu\"}; logout {SpConnectionLogout,\"logout %u, reset\",\"Async logout initiated for VLI source switch\",\"logout-%u - %d [%s]\"}; work {RSpotifyEventWork::doWork(),DefaultWork}; \"Failed to update the volume to %u (status=%d)\"",
+   "summary": "Spotify request thread (spotify_thread.cxx): one in-flight request (\"Already have a spotify request in progress, can only have one!!\") via occupied ptr conn+0xa74 under mutex conn+0xb0, completion signalled on conn+0x220 cond. Generic invoker f_10226c6c (\"Executing %s ...\", \"%s returned %d\") fans request-table stubs out to the Sp* wrappers. Wait core f_10227110(conn, predicate, signal=conn+0x1d0, deadline-store, deadline, name, flag) checks predicate before clock, returns 0x80000007 on expiry; named arms: waitForLogout (f_102272c4, predicate f_10224a10 \"isLoggedOut\", no deadline store) and waitForLogin (f_10227da0 plus two inline arms in f_102276cc, predicate f_10224a00, deadline store conn+0xa84 with cached timeval at conn+0xa90/+0xa94). f_10227d20 is the mutex-guarded waitForLogout adapter used with 1000/10000 ms budgets (sonosClockGetTime + timevalAddMs) in logout-before-login. Login path: handler f_10215a68 (\"Connect Mode Toggled: %s\") picks oauth f_10215958 vs password f_102157b0; both wrap timed call f_10215664 around login orchestrator f_102276cc (\"Login mismatch\", \"Disable/Enable Connect\", \"Logging in as [%s]\", SpConnectionLoginOauthToken). Logout-before-login f_102154fc picks sync vs async (\"VLI transition: ... using regular/async logout before login\"); logout wait f_10227330 spins/waits on state word conn+0xaf8 (\"logout [%d] waitForCompletion=%d\", SpConnectionLogout). Error reporting: f_10225360 gates every Sp* op error through RateLimiter conn+0xb20 (budget 5 per 1000 ms, ctor call f_1098c230 at 0x1022a19c); over budget it logs to channel 'spotrl' (\"restricting excessive fatal error reporting [%s(err=%d)]\" when flag conn+0xb7d set, else \"spotify telemetry rate limit exceeded!\") instead of forwarding to f_10224e20. f_10224b90 maps errors to event codes (\"error: %s ecode=%d (%s), mapped to 0x%08x\"). Pump loop f_10229650 (\"Calling SpPumpEvents too slow, %ums\", \"PumpInterval state change\", SpConnectionSetConnectivity, \"thread terminated\"); conn ctor f_10229d4c (locks spotThreadMutex/esdklogin/esdkpump/spotifywork). Thread init f_1021ab40 / shutdown f_1021a06c subscribe and unsubscribe {GroupVolumeChangedEvent, LocalIpChangedEvent, NewCertRegistrationEvent, SpotifyDelegationNotification, SpotifyMDNSRequest, SystemPropertiesChangeEvent, AVTBecomeStandaloneEvent}; RSpotifyEventWork::doWork f_102290fc. Playback ops {SpPlaybackPlay/Pause/Seek/SeekRelative/SkipToNext/SkipToPrev/BecomeActiveDevice/SetDeviceInactive named stubs 0x1021cd84-0x1021ce10, SpPlaybackSetBitrate 'setbr', SpPlaybackIncreaseUnderrunCount, SpPlaybackEnableShuffle/Repeat, SpPlayUriWithOptions, SpGetMetadata, SpZeroConfGetVars}; ads spotify:ad:/spotify:interruption:; restart token \"'Radio' stripped from restart token.\" eSDK NTS callbacks feed queue/events (NTSCallbackError/StreamFlush/StreamGetPosition/PlaybackNotify/ConnectionNotify etc. 0x10216b78-0x10219e54).",
    "evidence": [
     {
      "type": "firmware",
-     "address": "0x10ea49d4",
-     "notes": "spotify thread block"
-    },
-    {
-     "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "function": "request admission / predicate wait",
+     "function": "request admission / single in-flight guard",
      "address": "0x10226c6c",
-     "callsite": "0x10226ca8 / 0x10226d44 / 0x102271f4 / 0x1022729c",
-     "notes": "Occupied slot returns0, free path signals work. Predicate precedes clock, optional result translation and expired80000007 checked; a8d set/reset around wait rather than on expiry."
+     "notes": "Under mutex conn+0xb0 tests shutdown byte conn+0xa80 and occupied request ptr conn+0xa74; occupied logs the one-request constraint and returns 0, free slot stores request and signals conn+0x220."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "function": "deadline construction and reuse",
-     "address": "0x10215618",
-     "callsite": "0x10215624 / 0x1021564c / 0x102156e8 / 0x102279f4 / 0x10227c60",
-     "notes": "Imported timevalAddMs establishes1000/10000ms. Login receives r8 deadline and cached words are restored on already-logging-in branch. Tail calls included; no complete global operation-budget census asserted."
+     "function": "wait core (predicate + absolute deadline)",
+     "address": "0x10227110",
+     "callsite": "0x1022732c / 0x10227dc8 / 0x10227a4c / 0x10227c8c",
+     "notes": "Args (conn, predicate fn, signal conn+0x1d0, deadline-store ptr or 0, deadline timeval, name, flag). Predicate checked before clock so complete predicates never expire; timevalDiff computes remaining; expiry returns 0x80000007 and logs '%s timeout' to 'spot'. conn+0xa8d is set only around the timed cond wait, not on expiry."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "named wait arms",
+     "address": "0x102272c4",
+     "callsite": "0x10227d5c",
+     "notes": "waitForLogout arm: locks conn+0xb0 then tail-calls core with predicate f_10224a10 ('isLoggedOut: %d [%s - %d]'), deadline-store 0, name 'waitForLogout', flag 1. waitForLogin arm f_10227da0 (no static callers) uses predicate f_10224a00, deadline store conn+0xa84, flag 0; f_102276cc repeats that arm inline twice."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "mutex-guarded waitForLogout adapter",
+     "address": "0x10227d20",
+     "callsite": "0x10215630 / 0x10215658 / 0x102159d8-region",
+     "notes": "Lock-guard conn+0xb0 (f_10988564/f_10988990) around f_102272c4. Callers f_102154fc (1000 and 10000 ms deadlines) and f_10215958."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "timed login call",
+     "address": "0x10215664",
+     "callsite": "0x10215888 / 0x102159d8",
+     "notes": "Copies caller deadline (r8 ptr) to stack, clock_gettime before and after f_102276cc(conn+0x7ae8,...) to measure call duration; producers f_102157b0 and f_10215958 only."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "login request handler",
+     "address": "0x10215a68",
+     "callsite": "0x10215bc0 / 0x10215c64-region",
+     "notes": "Decodes creds, maps conn+0x75e0 auth type {1,2,3} else conn+0x75e8, compares requested account vs f_10227034 current, logs 'Connect Mode Toggled: %s', then calls f_10215958 (oauth path) or f_102157b0 (password path). Callers f_10215c78 ('No account for sid=%u') and f_1021c108 (SMAPI login)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "password login with logout-before-login",
+     "address": "0x102157b0",
+     "notes": "State checks f_10215290/f_1021546c, 'VLI transition: Already logged out, skipping logout before login', else f_102154fc then f_10215664. Error arm f_10226bcc+f_1021538c then f_10215190 ('br: %d (%d)')."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "logout-before-login selector",
+     "address": "0x102154fc",
+     "callsite": "0x102158e8",
+     "notes": "Args choose 'regular logout before login' (sync f_1022709c) vs 'async logout before login' (f_10227648 with now+10000ms deadline, then waitForLogout f_10227d20 now+1000ms)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "login orchestrator",
+     "address": "0x102276cc",
+     "callsite": "0x102156e8",
+     "notes": "'Login mismatch' -> 'Disable Connect' -> f_10227330 logout wait -> 'username %s... is longer than maximum %zu' -> 'Logging in as [%s]' -> waitForLogin arms -> 'Logged in as [%s]' / 'Error logging in as [%s]' + f_10224b90 'login' event + f_10225360 'SpConnectionLoginOauthToken'. 'Already logging in as [%s], we'll just wait...' restores cached deadline conn+0xa90/+0xa94. 'Login user change while in progress [%s => %s]', 'Failed to Enable/Disable Connect!'"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "logout wait",
+     "address": "0x10227330",
+     "callsite": "0x10227824 / 0x102278f8 / f_102275c4 / f_10227648",
+     "notes": "Locks conn+0xb0 (spotify_thread.cxx:1531), spins on state word conn+0xaf8 vs 3 via atomic reads, cond wait on conn+0x140; 'logout [%d] waitForCompletion=%d', 'logout-%u - %d [%s]', 'Async logout initiated for VLI source switch', reports 'SpConnectionLogout' via f_10225360."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "rate-limited op error reporter",
+     "address": "0x10225360",
+     "callsite": "0x10225488+ (every Sp* wrapper) / 0x102276cc / 0x10229650",
+     "notes": "Under conn+0xb0: if flag conn+0xb7d clear, acquires one token from RateLimiter conn+0xb20 via f_1098c9d4 -> f_1098c7f8; allowed forwards conn,name,err to f_10224e20. Over budget logs to 'spotrl' channel: 'restricting excessive fatal error reporting [%s(err=%d)]' when conn+0xb7d set, else 'spotify telemetry rate limit exceeded!'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "RateLimiter construction",
+     "address": "0x1022a19c",
+     "callsite": "conn ctor f_10229d4c",
+     "notes": "f_1098c230(conn+0xb20, 5, 0, 0x3e8, 0, 0): u16 budget 5 at +4, window 1000 ms; object layout vptr+0, window timeval +0x18/+0x1c/+0x20, flag +0x24. Clears conn+0xb7c/0xb7d."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "error-to-event mapper",
+     "address": "0x10224b90",
+     "notes": "'error: %s ecode=%d (%s), mapped to 0x%08x'; called by wait core on nonzero result, by login orchestrator with 'login' event name, and by Sp* wrappers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "pump loop",
+     "address": "0x10229650",
+     "notes": "'thread initializing..', SpConnectionSetConnectivity on ip change, 'Calling SpPumpEvents too slow, %ums', 'PumpInterval state change from %s to %s', 'SpPumpEvents failed %u' (rate-limited report), 'thread terminated', SpFree."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "thread init / shutdown + event subscription",
+     "address": "0x1021ab40 / 0x1021a06c",
+     "notes": "'ps %s init' / 'ps %s shutdown...': subscribe and unsubscribe {GroupVolumeChangedEvent, LocalIpChangedEvent, NewCertRegistrationEvent, SpotifyDelegationNotification, SpotifyMDNSRequest, SystemPropertiesChangeEvent, AVTBecomeStandaloneEvent}; 'Dns HAL Exit'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "conn/thread object constructor",
+     "address": "0x10229d4c",
+     "notes": "Lock names 'spotThreadMutex','esdklogin','esdkpump','spotifywork','spotesdk'; RateLimiter conn+0xb20 init; work item 'RSpotifyEventWork::doWork() doing work for %s' f_102290fc, 'DefaultWork' f_10229180."
     }
    ],
-   "todo": [
-    "Established: concrete request admission, absolute-deadline wait contract,1000/10000-ms logout construction, inherited/cached login deadline, success/error/expired behavior and non-sticky waiting flag. Remaining: enumerate producers of the incoming deadlines through f_10215664/f_102276cc and tail wrappers, bind each call arm to its operation/retry/shutdown predicate, and separately recover telemetry/fatal-error rate-limit counters. Start at0x10215618/0x10215640 and cached-deadline stores0x102279f4. Do not call this one uniform timeout for every Sp* request. This is actionable static work."
-   ],
    "resolved_findings": [
-    "The single-request guard is concrete at f_10226c6c: under receiver+0xb0 lock it tests shutdown byte+0xa80 and occupied request pointer+0xa74. Occupied requests log the constraint and return0; a free slot stores the new request and signals receiver+0x220 before waiting for its completion. This does not prove every Sp* API uses one identical timeout loop.",
-    "f_10227110 is a predicate/wait helper used by waitForLogin/waitForLogout wrappers. It calls the predicate before checking the clock. If incomplete, a nonzero optional result word is translated through f_10224b90; otherwise sonosClockGetTime(1) and timevalGeq compare an absolute deadline. Expiry returns0x80000007. Successful completion with no result pointer or a zero result word returns0. Thus an already-complete predicate need not fail merely because its supplied deadline is past.",
-    "Byte receiver+0xa8d is set to1 immediately before the timed condition wait f_10987584 and reset to0 after it returns. The expiration branch itself does not set this byte; the former timed-out-byte interpretation is withdrawn. The remaining wait is calculated by timevalDiff(deadline,now).",
-    "Concrete logout budgets are built at0x10215618-0x10215630 and0x10215640-0x10215658: sonosClockGetTime(1), timevalAddMs with1000 or10000, then f_10227d20 -> f_102272c4 -> wait helper. Units are established by the imported timevalAddMs, not inferred from literal magnitude.",
-    "The login caller0x102156e8 copies its incoming r8 timeval to the stack before f_102276cc. That function passes it as r7 to the helper at0x10227a4c and caches it at receiver+0xa90/+0xa94. The already-logging-in arm restores that cached deadline before0x10227c8c instead of granting a fresh timeout. Tail wrappers0x10227328/0x10227dc8 also reach the helper, so a bl-only census is not a complete call graph."
+    "The single-request guard is concrete at f_10226c6c: under conn+0xb0 it tests shutdown byte conn+0xa80 and occupied request pointer conn+0xa74. Occupied requests log the one-request constraint and return 0; a free slot stores the new request and signals conn+0x220 before waiting for its completion.",
+    "f_10227110 is the wait core used by every named wait: (conn, predicate, signal conn+0x1d0, deadline-store ptr or 0, deadline, name, flag). It calls the predicate before checking the clock, translates a nonzero result word through f_10224b90, compares an absolute deadline via sonosClockGetTime(1)+timevalGeq, computes remaining via timevalDiff, and returns 0x80000007 on expiry. Byte conn+0xa8d is set only around the timed cond wait.",
+    "Named arms bound: waitForLogout = f_102272c4 with predicate f_10224a10 ('isLoggedOut') and no deadline store; waitForLogin = f_10227da0 (no static callers) plus two inline arms in f_102276cc with predicate f_10224a00 and deadline store conn+0xa84 (cached timeval conn+0xa90/+0xa94, reused by the already-logging-in arm). f_10227d20 is the mutex-guarded waitForLogout adapter.",
+    "Deadline producers enumerated: the only callers of timed login f_10215664 are f_102157b0 (password login, runs logout-before-login f_102154fc first) and f_10215958 (oauth/token login, waits via f_10227d20); both are selected by request handler f_10215a68 ('Connect Mode Toggled'), itself called by f_10215c78 and SMAPI login f_1021c108. f_102276cc is reached only through f_10215664. The 1000/10000 ms budgets are built in f_102154fc for async logout, not for every Sp* request; there is no single uniform timeout.",
+    "Rate-limit counters recovered: conn+0xb20 is a RateLimiter object (vptr, u16 budget 5 at +4, window 1000 ms at +0xc, running window timeval +0x18..+0x20, flag +0x24) built by f_1098c230 at 0x1022a19c in conn ctor f_10229d4c. f_10225360 acquires one token per op-error report; when over budget it degrades to 'spotrl' log lines ('spotify telemetry rate limit exceeded!' or, once flag conn+0xb7d is set, 'restricting excessive fatal error reporting [%s(err=%d)]') instead of forwarding to f_10224e20. So at most 5 forwarded error reports per second.",
+    "Structure map: session subobject at conn+0x7ae8 (locked via f_10227034/f_1022709c), state word conn+0xaf8 (logout wait target, value 3 = done), auth-type word conn+0x75e0/0x75e8, mutex conn+0xb0, signal conn+0x220 and conn+0x1d0, rate flag conn+0xb7d, cached login deadline conn+0xa90/+0xa94."
    ]
   },
   "smapi_descriptor": {
