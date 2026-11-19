@@ -87718,56 +87718,55 @@
       }
      ],
      "events_triggered": {
-      "description": "Share deletion wakes share worker. SQ successful store calls manager callbacks; R/FV success calls1037e554 or whole-reset1037e7a0, dispatching provider callback and replication. Whole reset advances version even without callback, and replicates FV:2 plus R:0. No direct GENA in cd_impl delete.",
-      "todo": "Residual: bind SQ callback manager+0xc0 and manager virtual+0x14 (1047ae9c/1047aeb8), favorites callback+0x110 (1037e83c /1037e5e0), and localRemoveShare consumer to concrete ContentDirectory notifier/event delivery. Do not equate generic callbacks with wire GENA.",
+      "description": "Successful SQ deletion informs replication setting2 through manager+0xc0 ->10652074, then manager primary+0x14 ->10477bd0 publishes SQ:. R/FV item changes publish through1037e554; whole-store reset1037e7a0 publishes FV:2 and R:0 separately. Share removal queues work; downstream successful shares.xml commit publishes S:. Native observer scheduling/serialization is proven at service level, not guaranteed synchronous network delivery. Best-effort favorites cleanup can publish its own update only on its own successful mutation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10302834",
-        "address": "0x10302858",
-        "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+        "function": "0x10477bd0",
+        "address": "0x10477cb4",
+        "notes": "SQ manager primary vptr10ed3054 slot+0x14 ->10477bd0 increments manager+0xcc, builds SQ: device/version record and publishes10117654(manager+8,record) at10477cb4. Successful rename caller invokes this slot at10479b44, deletion caller at1047aeb8, after separate replication callbacks10479b28/1047ae9c. This establishes native SQ notification receiver reachability."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1010e2f0",
-        "address": "0x1010e484",
-        "notes": "Locks share manager+0x20; shutdown+0x4e12 or !ready+0x100 ->720. Waits condition until state+0x52c8==2, shutdown wake ->720. Registered-share lookup case-insensitive; absent ->701 at1010e4e0. Removes/compacts list, marks localRemoveShare, decrements+0x4de8 count, increments+0x11c/+0x5220, copies cached stamp+0x4df0 and wakes worker; returns0."
+        "function": "0x10650660",
+        "address": "0x106507d8",
+        "notes": "Zone constructs replication manager at1018edb4, stores ctx+0x2900c at1018ede4. Shared-pointer copies10198fa8/10198ffc ->101a22c4 reach SQ setter104791b0 and favorites setter1037e188, storing manager+c0 at10479208 and provider+110 at1037e1dc. Final replication vptr10efcf88 slot+0x14 ->10652074 informs local replicated-setting version under mutex+0x320. SQ uses setting2, favorites setting0; this callback is NOT a direct GENA send or a cd_impl pointer."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1047ac60",
-        "address": "0x1047ae2c",
-        "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+        "function": "0x1037e554",
+        "address": "0x1037e6a4",
+        "notes": "After successful R/FV mutation provider1037e554 handles replication separately from native updates. Native record counter+0x128 increments1037e650; categories0/1 use R:0, category2 FV:2, and10117654(provider+0x10,record) publishes at1037e6a4. Whole-store reset1037e7a0 publishes FV:2 at1037e8b4 and R:0 at1037e96c. These records reach the service-level native observer chain, not merely a generic virtual callback."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1037f4a0",
-        "address": "0x1037f4e4",
-        "notes": "R/FV pooled-node vtable0x10ec0ad4 +0x24. Classifier1037b9ac: type3 radio item accepted; type2 only if R-flagfalse (FV item); other node shapes713. Under provider mutex+0x30 constructs1038395c and calls10384808. Successful delete1037e554(provider,category,1); primary rc unchanged."
+        "function": "0x1030490c",
+        "address": "0x10115998",
+        "notes": "Initialization registers cd_impl+0x11c in CdNotifyUpdateId observer tree1109cfb8 at10304c44. Publisher10117654 queues a boxed inprocess-events callback; invoker100e4fb4 ->10115a38 ->10115574 traverses that same tree and calls active receiver vptr+0 at10115998. Concrete observer vptr10eb3fa0 ->10304904 subtracts0x11c and tail-branches10304808. This is the native ContentDirectory observer, not the replication receiver."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1037e7a0",
-        "address": "0x1037e81c",
-        "notes": "Whole-store reset increments provider+0x128 and+0x14c before optional callback+0x110 v+0x14. Unlike1037e554, counter increment is NOT gated on callback presence. Replicates BOTH FV:2 and R:0 at1037e844/1037e904."
+        "function": "0x10304808",
+        "address": "0x103048c4",
+        "notes": "Container record insertion10304888 ->103032fc; nonempty device token additionally updates matching version record103048a8 ->1030470c. Counter store103048c0 increments impl+0x4e0, dirty+0x4e4. Notifier103048c4 ->1067c6ec(impl+8) ->1067c46c marks source pending and wakes sender10678c50 at1067c5c8 when attached. Source vptr10eb3f78 slot+0x14 ->10303d94 subtract8 ->103035c4 serializes individual SystemUpdateID/ContainerUpdateIDs and dirty named properties, not LastChange. Observer/sender lifetime and subscriptions govern delivery."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1037f788",
-        "address": "0x1037f860",
-        "notes": "Best-effort SQ-reference cleanup: reject NULL/empty701; lock provider+0x30, optional virtual+0x48 selector, construct mutation with phase7 and full SQ:ObjectID target at+0x28 ->10384490. On0 calls1037e554(category2). All resulting faults ignored by outer delete caller103028c8."
+        "function": "0x101121d0",
+        "address": "0x10112688",
+        "notes": "Share add marker1010e128/remove marker1010e48c increment local manager revision+0x11c and cache stamp; add signals1098761c at1010df6c and remove at1010e3f8. Worker10112e80 snapshots queued changes, calls101121d0 at10113248/10113450. Successful shares.xml rename10112548 stores device/version, calls replication setting3 at10112604, constructs S: record10112614, increments native counter manager+0xb8 at10112634, and calls10117654(manager+0xc,record) at10112688. SOAP mutation queues work; this is a downstream successful-persistence notification, not synchronous wire delivery."
        }
       ]
      },
@@ -88234,7 +88233,7 @@
          ]
         }
        ],
-       "todo": "Trace savedqueues.rsq deletion transaction1047ee0c and phase4/5 existing-file SAX callbacks1038163c/10382c00 in10384490; distinguish primary errors from ignored phase7 cleanup.",
+       "todo": "SQ open/parse/rename501, writer501/802 and missing-target701 paths traced. Generic post-rename803/807/808 reachability requires mode3 alias-write audit for caller-zeroed+0x40de/+0x40e0 at1047f2fc/308. Existing-file reader1037b0d0/start1038215c/end1038163c inspected; phase4/5 semantic flag writers into10384490 remain to correlate. Next bind those virtual callbacks and audit SQ aliases; do not promote ignored phase7 cleanup errors to primary faults.",
        "evidence": [
         {
          "type": "firmware",
@@ -88391,11 +88390,105 @@
        "function": "0x1037f788",
        "address": "0x1037f860",
        "notes": "Best-effort SQ-reference cleanup: reject NULL/empty701; lock provider+0x30, optional virtual+0x48 selector, construct mutation with phase7 and full SQ:ObjectID target at+0x28 ->10384490. On0 calls1037e554(category2). All resulting faults ignored by outer delete caller103028c8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10479930",
+       "address": "0x10479acc",
+       "notes": "Update saves queueID from r4 and NEW title from r6; r5 current-title is not saved before mutex calls or placed in transaction. Wrapper requires both title tags but manager performs no optimistic stored-current-title comparison. Update transaction base sp+0x18, mode+0x3c=4 at10479acc, target+0x40/+0x44, new-title+0x4c, source+0x5c=NULL; caller zeros halfwords+0x40dc/+0x40de/+0x40e0. Delete caller1047ae2c uses mode3 and same zeroed semantic counters."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047ee0c",
+       "address": "0x1047ef48",
+       "notes": "Builds runtime savedqueues.rsq.tmp, opens compressed writer103d1ca8 flags0x241; parses original1047ec6c with10000ms deadline. Queue-start1047e7d4 marks matching numeric ID at1047e908; jump table10ed2eb0 modes3 and4 both target1047e978, dropping old target queue. Mode4 with match then1047f334 ->1047e16c reparses selected queue through vptr10ed3000 and10477f2c, re-emitting with NEW title; other queue attrs/tracks preserved. Raw1047ef48 rlwinm. SH0 MB31 ME29 masks out bit1 and sets CR0; it is not a right shift. Modes3/4 do not take its zero-result arm."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047ee0c",
+       "address": "0x1047f2f0",
+       "notes": "Original open/parse failures return501 through1047ec6c. Flush1047d67c uses103d16e0(tx+0x90), failed writer marks+4 and returns802 if tx+0x40d1, otherwise501; close103d1b24 similarly affects result. Missing target after successful parse ->701 at1047f298. Rename failure ->501 at1047f2f0. Bulk source+0x5c count gate1047f2a4..c4 is skipped by update/delete NULL source. Post-rename branches still read+0x40de/+0x40e0 at1047f2fc/308: caller initialization proved zero, complete alias/phase write audit not finished, so generic803/807/808 branches are not asserted reachable for these actions."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10477bd0",
+       "address": "0x10477cb4",
+       "notes": "SQ manager primary vptr10ed3054 slot+0x14 ->10477bd0 increments manager+0xcc, builds SQ: device/version record and publishes10117654(manager+8,record) at10477cb4. Successful rename caller invokes this slot at10479b44, deletion caller at1047aeb8, after separate replication callbacks10479b28/1047ae9c. This establishes native SQ notification receiver reachability."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103818cc",
+       "address": "0x10381b94",
+       "notes": "Actual R/FV property callback103818cc at vptr10ec0a78+0x24, not destructors10381428/10381440. Uses expanded namespace names in XML mode and literal dc:title/r:* names when+0x3a5a set. Title cap0x401 and resource URI cap0x401 are trimmed; resource protocol info cap0x80 through10381490. Ordinal cap0xc, type0x21, playmode0x15, description0x101, resMD0x1001, room0x19, favoriteId0x40; copies are bounded. End103811c4 clears active+0x3a59 and increments item count+0x3a5c. Album-art strings have a separate bounded array/storage path103819d0 requiring further count/overflow and phase correlation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1037b0d0",
+       "address": "0x1037b14c",
+       "notes": "Existing-file reader creates separate parser vptr10ec0944, registers start10382c00 ->1038215c, end1038163c, text103814f4, using10000ms deadline and4096-byte reads. Element table10ec0c9c: Radio,Genre,Station,Show,Favorites,Favorite,AlbumArtURI. End callback checks depth/element identity/active byte before dispatching handler virtual slots. Handler is passed separately from collector10ec0a78; all transaction-phase field writers are not yet correlated, so callback addresses alone do not prove phase-specific fault reachability."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10650660",
+       "address": "0x106507d8",
+       "notes": "Zone constructs replication manager at1018edb4, stores ctx+0x2900c at1018ede4. Shared-pointer copies10198fa8/10198ffc ->101a22c4 reach SQ setter104791b0 and favorites setter1037e188, storing manager+c0 at10479208 and provider+110 at1037e1dc. Final replication vptr10efcf88 slot+0x14 ->10652074 informs local replicated-setting version under mutex+0x320. SQ uses setting2, favorites setting0; this callback is NOT a direct GENA send or a cd_impl pointer."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1037e554",
+       "address": "0x1037e6a4",
+       "notes": "After successful R/FV mutation provider1037e554 handles replication separately from native updates. Native record counter+0x128 increments1037e650; categories0/1 use R:0, category2 FV:2, and10117654(provider+0x10,record) publishes at1037e6a4. Whole-store reset1037e7a0 publishes FV:2 at1037e8b4 and R:0 at1037e96c. These records reach the service-level native observer chain, not merely a generic virtual callback."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1030490c",
+       "address": "0x10115998",
+       "notes": "Initialization registers cd_impl+0x11c in CdNotifyUpdateId observer tree1109cfb8 at10304c44. Publisher10117654 queues a boxed inprocess-events callback; invoker100e4fb4 ->10115a38 ->10115574 traverses that same tree and calls active receiver vptr+0 at10115998. Concrete observer vptr10eb3fa0 ->10304904 subtracts0x11c and tail-branches10304808. This is the native ContentDirectory observer, not the replication receiver."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10304808",
+       "address": "0x103048c4",
+       "notes": "Container record insertion10304888 ->103032fc; nonempty device token additionally updates matching version record103048a8 ->1030470c. Counter store103048c0 increments impl+0x4e0, dirty+0x4e4. Notifier103048c4 ->1067c6ec(impl+8) ->1067c46c marks source pending and wakes sender10678c50 at1067c5c8 when attached. Source vptr10eb3f78 slot+0x14 ->10303d94 subtract8 ->103035c4 serializes individual SystemUpdateID/ContainerUpdateIDs and dirty named properties, not LastChange. Observer/sender lifetime and subscriptions govern delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x101121d0",
+       "address": "0x10112688",
+       "notes": "Share add marker1010e128/remove marker1010e48c increment local manager revision+0x11c and cache stamp; add signals1098761c at1010df6c and remove at1010e3f8. Worker10112e80 snapshots queued changes, calls101121d0 at10113248/10113450. Successful shares.xml rename10112548 stores device/version, calls replication setting3 at10112604, constructs S: record10112614, increments native counter manager+0xb8 at10112634, and calls10117654(manager+0xc,record) at10112688. SOAP mutation queues work; this is a downstream successful-persistence notification, not synchronous wire delivery."
       }
      ],
      "notes": null,
-     "todo": "Established: wrapper/binding, object routing, direct-share unregister, SQ root-vs-item delete, R/FV item gates and mutation phases, reachable whole R:/FV: store reset, persistence notification sites, and ignored post-SQ cleanup status. Residual sub-areas: savedqueues.rsq item-deletion transaction1047ee0c and R/FV existing-file SAX semantic phases4/5 at1038163c/10382c00. Exact notification receiver binding is separately narrowed in events_triggered.",
-     "implementation_notes": "Exact root IDs are explicitly distinguished from pooled children; clear-all behavior is reachable by root dispatch, not inferred from an unbound function. SQ cleanup rc intentionally not reported as action failure."
+     "todo": "Established: object routing, share unregister/completion publication, SQ mode3 streaming deletion, whole R/FV store reset, concrete native notifications and ignored post-SQ cleanup status. Remaining: SQ post-rename803/807/808 reachability at1047f2fc..1047f318/1047f51c despite caller-zeroed+0x40de/+0x40e0; R/FV phase4/5 SAX semantic flag mapping at1038215c/1038163c into10384490. Reader/callback and transaction control flow were inspected but complete phase/alias writes were not recovered. Next audit mode3 halfword aliases and bind phase4/5 handler slots to+0x2c/+0x2d/+0x2e/+0x7c writers; phase7 cleanup remains best effort, not a primary deletion fault.",
+     "implementation_notes": "Exact root IDs are explicitly distinguished from pooled children; clear-all behavior is reachable by root dispatch, not inferred from an unbound function. SQ cleanup rc intentionally not reported as action failure.",
+     "resolved_findings": [
+      "Update saves queueID from r4 and NEW title from r6; r5 current-title is not saved before mutex calls or placed in transaction. Wrapper requires both title tags but manager performs no optimistic stored-current-title comparison. Update transaction base sp+0x18, mode+0x3c=4 at10479acc, target+0x40/+0x44, new-title+0x4c, source+0x5c=NULL; caller zeros halfwords+0x40dc/+0x40de/+0x40e0. Delete caller1047ae2c uses mode3 and same zeroed semantic counters.",
+      "Builds runtime savedqueues.rsq.tmp, opens compressed writer103d1ca8 flags0x241; parses original1047ec6c with10000ms deadline. Queue-start1047e7d4 marks matching numeric ID at1047e908; jump table10ed2eb0 modes3 and4 both target1047e978, dropping old target queue. Mode4 with match then1047f334 ->1047e16c reparses selected queue through vptr10ed3000 and10477f2c, re-emitting with NEW title; other queue attrs/tracks preserved. Raw1047ef48 rlwinm. SH0 MB31 ME29 masks out bit1 and sets CR0; it is not a right shift. Modes3/4 do not take its zero-result arm.",
+      "Original open/parse failures return501 through1047ec6c. Flush1047d67c uses103d16e0(tx+0x90), failed writer marks+4 and returns802 if tx+0x40d1, otherwise501; close103d1b24 similarly affects result. Missing target after successful parse ->701 at1047f298. Rename failure ->501 at1047f2f0. Bulk source+0x5c count gate1047f2a4..c4 is skipped by update/delete NULL source. Post-rename branches still read+0x40de/+0x40e0 at1047f2fc/308: caller initialization proved zero, complete alias/phase write audit not finished, so generic803/807/808 branches are not asserted reachable for these actions.",
+      "Actual R/FV property callback103818cc at vptr10ec0a78+0x24, not destructors10381428/10381440. Uses expanded namespace names in XML mode and literal dc:title/r:* names when+0x3a5a set. Title cap0x401 and resource URI cap0x401 are trimmed; resource protocol info cap0x80 through10381490. Ordinal cap0xc, type0x21, playmode0x15, description0x101, resMD0x1001, room0x19, favoriteId0x40; copies are bounded. End103811c4 clears active+0x3a59 and increments item count+0x3a5c. Album-art strings have a separate bounded array/storage path103819d0 requiring further count/overflow and phase correlation."
+     ]
     },
     "FindPrefix": {
      "description": "Finds an alphabetic insertion index in a prefix-capable library attribute node. Prefix must be exactly one uppercase ASCII A..Z, not a general text prefix. Resolved objects using the base unsupported method return800, including the A: directory root; A: attribute child nodes use f_102a3510. UpdateID is zero on this concrete backend, not the global SystemUpdateID.",
