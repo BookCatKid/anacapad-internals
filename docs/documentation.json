@@ -71036,7 +71036,7 @@
    },
    "actions": {
     "GetBass": {
-     "description": "NEUTERED ACTION: impl vfunc +0x30 is f_100d65f4 - 'stwu/addi/blr', a no-op that reads no arguments, writes no output and leaves r3 = impl pointer with stale cr0. Success/fault routing inherits whatever cr0.eq the request-parse call left behind (success-parse convention likely leaves cr0.eq=1 -> emit path).",
+     "description": "Returns the cached bass value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7f6 and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. This is not the null stub f_100d65f4.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073ba88",
@@ -71072,7 +71072,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric rendering-instance selector; this zone player implements exactly one rendering instance.",
+       "description": "Required rendering-instance selector. Only numeric zero reaches the read; other values return 702.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -71084,96 +71084,159 @@
        "semantic_type": "instance selector (integer)",
        "format": "decimal integer parsed into a type-tag-4 argument record (helper 0x105614e0, 24-byte record)",
        "unit": "none",
-       "accepted_values": "any parsed integer - ignored",
-       "range": "unconstrained at impl level",
+       "accepted_values": "0",
+       "range": "0",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "Request layer faults 402 if absent/malformed (req vfunc +0x08). Not checked - impl is a stub that reads no args.",
+       "default": "none: required argument",
+       "validation": "Required request argument configured with f_105614e0; implementation rejects nonzero with 702",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073bac8",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x100d6bb8",
+         "notes": "Returns the cached bass value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7f6 and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. This is not the null stub f_100d65f4."
         }
        ],
-       "notes": null
+       "notes": "No fallback rendering instance is selected."
       }
      },
      "outputs": {
       "CurrentBass": {
-       "description": "never written - impl stub does not touch the out pointer; the emitted value is whatever the request layer initialized",
+       "description": "Returns the cached bass value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7f6 and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. This is not the null stub f_100d65f4.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
         "fmt": null
        },
-       "semantic_type": "signed int16",
-       "format": "%d decimal",
+       "semantic_type": "i2",
+       "format": "signed decimal i16",
        "unit": "none",
-       "accepted_values": "uninitialized stack content",
-       "range": "unconstrained",
+       "accepted_values": "signed 16-bit cached value",
+       "range": "Signed 16-bit serialization; no getter-side clamp.",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "no impl-level use or validation (stub impl)",
+       "validation": "Emitted only on zero implementation status; signed halfword formatting.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073bb74",
-         "notes": "out-arg access site"
+         "address": "0x100d6bf4",
+         "notes": "Returns the cached bass value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7f6 and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. This is not the null stub f_100d65f4."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0af50",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100d65f4",
-         "address": "0x100d65f4",
-         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
+         "address": "0x1073bb78",
+         "notes": "Wrapper output load/format path after the zero-status test."
         }
        ],
-       "notes": "impl is a null stub in BOTH impl vtables - the bass getter was neutered (likely superseded by GetEQ)."
+       "notes": "The output is not a write to renderer state."
       }
      },
-     "validation": "Request-layer parse only.",
-     "requirements": "none",
-     "state_dependencies": "none - no state gating observed beyond argument checks",
+     "validation": {
+      "description": "Requires request-layer validation and InstanceID zero; nonzero InstanceID returns 702 before reading rendering state. Output formatting follows the explicit zero-status test, not an inherited condition-register value.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073bb10",
+        "notes": "Fresh record-form move before the success/fault branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6bb8",
+        "notes": "Returns the cached bass value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7f6 and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. This is not the null stub f_100d65f4."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Requires request-layer validation and InstanceID zero; nonzero InstanceID returns 702 before reading rendering state.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed273c",
+        "notes": "Concrete primary vptr 0x10ed270c slot 0x30 contains 0x100d6bb8; service+4 writer 0x104d4dc0 is proven."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6bb8",
+        "notes": "Returns the cached bass value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7f6 and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. This is not the null stub f_100d65f4."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Uses the constructed RC object and mutex +0x938. Data source: 0x7f6. The returned value is copied from existing state; this action does not update that state.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6bf4",
+        "notes": "Returns the cached bass value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7f6 and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. This is not the null stub f_100d65f4."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "None - impl vfunc is the 3-instruction null stub f_100d65f4 (stwu/addi/blr); r3 is returned unmodified and CurrentBass is never written.",
+       "description": "Acquires and releases mutex +0x938 and writes caller-owned output storage. No renderer setting, dirty byte, notification request, member request or persistence write occurs in the complete getter path.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100d65f4",
-         "address": "0x100d65f4",
-         "notes": "stub body: stwu/addi/blr only"
+         "address": "0x100d6bb8",
+         "notes": "Returns the cached bass value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7f6 and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. This is not the null stub f_100d65f4."
         }
        ]
       }
      ],
-     "events_triggered": "none",
-     "state_transitions": "none",
-     "return_behavior": "If the emit path runs, CurrentBass is formatted from an uninitialized stack slot (impl never writes the out ptr). If stale cr0.eq is clear, the request faults with code = impl pointer (a large address value) - neither path yields a real bass reading.",
+     "events_triggered": "none: the complete concrete getter path makes no event-source or observer call.",
+     "state_transitions": "none: this action does not change renderer settings or operation state.",
+     "return_behavior": {
+      "description": "Implementation status is 0 on the documented valid-input path and 702 for nonzero InstanceID. The wrapper emits its output and commits only on status zero; otherwise it forwards the numeric implementation status as a SOAP fault. Request-layer validation failure separately selects 402. Null service+4 and unknown action names use the dispatcher 401 path.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed273c",
+        "notes": "Concrete primary vptr 0x10ed270c slot 0x30 contains 0x100d6bb8; service+4 writer 0x104d4dc0 is proven."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6bb8",
+        "notes": "Returns the cached bass value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7f6 and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. This is not the null stub f_100d65f4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073bb10",
+        "notes": "Wrapper uses mr. r4,r3 to set CR0 from the implementation return, then branches on equality to zero; stale CR0 does not control success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073bb78",
+        "notes": "Wrapper output load and formatter are reached only on zero implementation status."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073bb24",
@@ -71184,21 +71247,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.",
+       "meaning": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch time",
+         "description": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call."
           }
          ]
         }
@@ -71208,30 +71270,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request parse/validation failure at the wrapper.",
+       "meaning": "Request-layer validation failed.",
        "fault_sites": [
         "0x1073bb24"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request-layer validation failed.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073bb24"
+           "address": "0x1073bb24",
+           "notes": "Request-layer validation failed."
           }
          ]
         }
@@ -71241,12 +71300,38 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073bb24"
+         "address": "0x1073bb24",
+         "notes": "Request-layer validation failed."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "InstanceID is nonzero; tested before any output write or mutex acquisition.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is nonzero; tested before any output write or mutex acquisition.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d6bb8",
+           "notes": "InstanceID is nonzero; tested before any output write or mutex acquisition."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d6bb8",
+         "notes": "InstanceID is nonzero; tested before any output write or mutex acquisition."
+        }
+       ]
       }
      ],
      "firmware_differences": [],
@@ -71255,30 +71340,38 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073ba88",
-       "address": "0x1073ba88",
-       "notes": "action wrapper handler"
+       "address": "0x10ed273c",
+       "notes": "Concrete primary vptr 0x10ed270c slot 0x30 contains 0x100d6bb8; service+4 writer 0x104d4dc0 is proven."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11d88",
-       "notes": "action dispatch table entry"
+       "address": "0x100d6bb8",
+       "notes": "Returns the cached bass value through a 16-bit out argument under mutex +0x938. Nonzero InstanceID returns 702 before locking; InstanceID zero reads the halfword at +0x7f6 and returns 0. The wrapper loads the result with lha and formats it as signed 16-bit. This is not the null stub f_100d65f4."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "3-instr null stub; identical entry in vtable A +0x30 and B +0x30 (and at +0x3c for SetTreble)",
-       "function": "0x100d65f4"
+       "address": "0x1073bb10",
+       "notes": "Wrapper uses mr. r4,r3 to set CR0 from the implementation return, then branches on equality to zero; stale CR0 does not control success."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073bb78",
+       "notes": "Wrapper output load and formatter are reached only on zero implementation status."
       }
      ],
      "notes": "Sonos neutered GetBass while leaving GetTreble (+0x38 -> real impl f_100e3450) functional - asymmetric deprecation, consistent with migration to GetEQ/SetEQ parametric EQ.",
-     "todo": [
-      "Established: dispatch and handler 0x1073ba88 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.",
-      "Residual: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x30",
+      "function": "0x100d6bb8",
+      "binding_store": "0x104d4dc0"
+     }
     },
     "GetEQ": {
      "description": "Reads an EQ parameter via the shared audio-context path: f_10118278 ctx init + f_1011fdd0 acquisition on impl+0x3c4/+0x9c8, lock impl+0x938, ctx-worker f_100e382c(this,&ctx), unlock, release - byte-identical control flow to GetTreble with a different worker.",
