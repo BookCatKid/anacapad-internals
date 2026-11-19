@@ -87010,7 +87010,7 @@
      ]
     },
     "FindPrefix": {
-     "description": "Finds Prefix under ObjectID, returning StartingIndex/UpdateID via impl->v[+0x18].",
+     "description": "Finds an alphabetic insertion index in a prefix-capable library attribute node. Prefix must be exactly one uppercase ASCII A..Z, not a general text prefix. Resolved objects using the base unsupported method return800, including the A: directory root; A: attribute child nodes use f_102a3510. UpdateID is zero on this concrete backend, not the global SystemUpdateID.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10307140",
@@ -87042,11 +87042,13 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x10302d78; A: node override0x102a3510",
+      "impl_vfunc": "cd_impl primary0x10eb3f20 +0x18; resolved object+0x14"
      },
      "inputs": {
       "ObjectID": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x10302d78",
+       "description": "Object resolved under impl+0x168 by f_1034a224. A: child attribute node supports prefix search; bare A: uses unsupported stub.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -87055,36 +87057,54 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x10302d78",
-       "range": "max 1023 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "string",
+       "format": "1024-byte NUL-terminated request buffer",
+       "unit": "none",
+       "accepted_values": "Resolved object with non-default +0x14; A:GENRE, A:COMPOSER, A:ARTIST, A:ALBUMARTIST, A:ALBUM, A:TRACKS, A:PLAYLISTS and valid parsed descendants.",
+       "range": "at most1023 stored bytes plus NUL",
+       "special_values": "Unknown namespace ->701; resolved unsupported object ->800; parsed attribute IDs use 0x00040000 as absent-filter sentinel.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Required string registration before request validation; no numeric or boolean parser.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10307180",
-         "notes": "in-arg access site"
+         "function": "0x10307140",
+         "address": "0x103071f4",
+         "notes": "Two required strings ObjectID/Prefix, capacity0x400, validator at 0x103071c8. Primary slot+0x18 delegates f_10302d78. Zero emits StartingIndex and UpdateID via f_1055fcbc at 0x10307268/0x1030728c then commits at 0x103072a0; nonzero fault at 0x10307210."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb32f8",
-         "notes": "argument name string"
+         "function": "0x102a3510",
+         "address": "0x102a3538",
+         "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a1aa0",
+         "address": "0x102a1b34",
+         "notes": "A: node parser resets filter IDs+0x218..+0x228 to0x00040000 and mode+0x230=7. Splits type and slash components before optional colon suffix, percent-decodes slash fields, resolves names with f_10102b28, returns false on sentinel lookup/type transition failure. Types GENRE0,COMPOSER1,ARTIST2,ALBUMARTIST3,ALBUM4,TRACKS5,PLAYLISTS6. Empty components have explicit wildcard transitions; ALBUM space-prefixed component uses localized title f_106744fc(0x16)."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3b74",
+         "address": "0x102a3c0c",
+         "notes": "A: directory root has vtable0x10eadf80 with default prefix stub; four pooled child nodes use0x10eadf4c. f_102a3d90 gets a node and copies ObjectID with0x200 capacity. Returning a node f_102a3d68 -> f_102a3d08 only updates free list and condition variable."
         }
        ],
        "notes": null,
        "buf_cap": 1024
       },
       "Prefix": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x10302d78",
+       "description": "Single case-sensitive uppercase ASCII letter.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -87093,29 +87113,23 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x10302d78",
-       "range": "max 1023 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "string",
+       "format": "1024-byte NUL-terminated request buffer",
+       "unit": "none",
+       "accepted_values": "A through Z only",
+       "range": "one byte followed by NUL",
+       "special_values": "Empty, lowercase, #, non-ASCII and multi-character prefixes return402 after a supported object is selected.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "first byte>0x40 and<=0x5a, second byte==0, f_102a3510.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103071a8",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eb4458",
-         "notes": "argument name string"
+         "function": "0x102a3510",
+         "address": "0x102a3538",
+         "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
         }
        ],
        "notes": null,
@@ -87124,221 +87138,379 @@
      },
      "outputs": {
       "StartingIndex": {
-       "description": "produced by impl 0x10302d78 via media-store member this+0x168",
+       "description": "Count of preceding collation buckets in selected catalog view, plus one for a synthetic leading entry when mode/filter mask requires it. It is an insertion position even if no matching name exists.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
         "fmt": null
        },
-       "semantic_type": "unsigned int32",
+       "semantic_type": "u32",
        "format": "%u decimal",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "unrestricted/impl-validated per 0x10302d78",
-       "range": "see impl 0x10302d78",
-       "special_values": "none observed in this build",
+       "unit": "items",
+       "accepted_values": "Zero or nonnegative position; not a backend fault code.",
+       "range": "catalog iterator count is16-bit; optional leading-entry adjustment adds1",
+       "special_values": "Empty unfiltered view ->0; empty filtered view can include the synthetic leading-entry offset.",
        "required": false,
-       "default": "see impl 0x10302d78",
-       "validation": "impl-produced",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10307260",
-         "notes": "out-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eb3270",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      },
-      "UpdateID": {
-       "description": "produced by impl 0x10302d78 via media-store member this+0x168",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": "0x1055fcbc",
-        "fmt": null
-       },
-       "semantic_type": "unsigned int32",
-       "format": "%u decimal",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x10302d78",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "see impl 0x10302d78",
-       "required": false,
-       "default": "see impl 0x10302d78",
-       "validation": "impl-produced",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10307284",
-         "notes": "out-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10f14438",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10307140",
-        "notes": "wrapper family decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×2, validate×1, commit×1); member delegates: r30 v[+0x18]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10307140",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 2, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, out-arg write×2, validate×1, commit×1); member delegates: r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x18]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10307140",
-        "notes": "member vfunc calls: ['r30 v[+0x18]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "state-mutation delegate: r30 v[+0x18] (call-derived member-method semantics)",
+       "default": "none; produced on success",
+       "validation": "Backend result stored then rc0.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10307140",
-         "notes": "delegate map ['r30 v[+0x18]']; notify-family calls []"
+         "address": "0x103071f4",
+         "notes": "Two required strings ObjectID/Prefix, capacity0x400, validator at 0x103071c8. Primary slot+0x18 delegates f_10302d78. Zero emits StartingIndex and UpdateID via f_1055fcbc at 0x10307268/0x1030728c then commits at 0x103072a0; nonzero fault at 0x10307210."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3510",
+         "address": "0x102a3538",
+         "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3510",
+         "address": "0x102a35ac",
+         "notes": "Mode switch table0x10eade7c maps 0->10103dbc,1->1010424c,2->101046dc,3->10104b6c,4->10105040,5->101055bc,6->10106170. Their return is stored to StartingIndex, then rc0. For mode5 output unchanged; other modes add1 when any node field+0x218/+0x21c/+0x220/+0x224/+0x228 has bits outside0x00040000."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10103dbc",
+         "address": "0x10103e38",
+         "notes": "Iterates catalog names f_10103188 with 16-bit cursor/count. ASCII lowercase initial converted by toupper. Other initials compare against A/Z via locale comparator f_10906e2c; below A bucket0x40, above Z bucket0x5b, middle through f_10906b88. Counts until bucket>=requested letter or end. Filtered counterpart f_10105040 uses f_101036f4 and same bucket/count loop."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x18] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "notes": null
+      },
+      "UpdateID": {
+       "description": "A: prefix backend unconditionally writes0 before validating Prefix.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": "0x1055fcbc",
+        "fmt": null
+       },
+       "semantic_type": "u32",
+       "format": "%u decimal",
+       "unit": "version",
+       "accepted_values": "0",
+       "range": "{0} on traced supported backend",
+       "special_values": "Not cd_impl+0x4e0 SystemUpdateID.",
+       "required": false,
+       "default": "0",
+       "validation": "Only serialized on overall success.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3510",
+         "address": "0x102a3538",
+         "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10307140",
+         "address": "0x103071f4",
+         "notes": "Two required strings ObjectID/Prefix, capacity0x400, validator at 0x103071c8. Primary slot+0x18 delegates f_10302d78. Zero emits StartingIndex and UpdateID via f_1055fcbc at 0x10307268/0x1030728c then commits at 0x103072a0; nonzero fault at 0x10307210."
+        }
+       ],
+       "notes": null
+      }
+     },
+     "validation": {
+      "description": "Missing either required argument ->402 before resolution. Otherwise resolve ObjectID, reject default prefix method with800, then validate Prefix and parse attribute node. A valid Prefix is not checked before the object capability gate.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10307140",
+        "address": "0x103071f4",
+        "notes": "Two required strings ObjectID/Prefix, capacity0x400, validator at 0x103071c8. Primary slot+0x18 delegates f_10302d78. Zero emits StartingIndex and UpdateID via f_1055fcbc at 0x10307268/0x1030728c then commits at 0x103072a0; nonzero fault at 0x10307210."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302d78",
+        "address": "0x10302dcc",
+        "notes": "Resolver f_1034a224 NULL ->701; compares object+0x14 against default f_10113d94. EQUALITY returns800, inequality invokes override at 0x10302e1c. Releases through +0x28, returns override rc unchanged. Proven service-level cd_impl binding applies."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3510",
+        "address": "0x102a3538",
+        "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a1aa0",
+        "address": "0x102a1b34",
+        "notes": "A: node parser resets filter IDs+0x218..+0x228 to0x00040000 and mode+0x230=7. Splits type and slash components before optional colon suffix, percent-decodes slash fields, resolves names with f_10102b28, returns false on sentinel lookup/type transition failure. Types GENRE0,COMPOSER1,ARTIST2,ALBUMARTIST3,ALBUM4,TRACKS5,PLAYLISTS6. Empty components have explicit wildcard transitions; ALBUM space-prefixed component uses localized title f_106744fc(0x16)."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Object must resolve and override +0x14. A: pooled child vtable0x10eadf4c qualifies; bare A: vtable0x10eadf80 does not. Prefix exactly A..Z. Node parser must succeed, mode0..6 required; TRACKS with specific track-filter bits is unsupported.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302d78",
+        "address": "0x10302dcc",
+        "notes": "Resolver f_1034a224 NULL ->701; compares object+0x14 against default f_10113d94. EQUALITY returns800, inequality invokes override at 0x10302e1c. Releases through +0x28, returns override rc unchanged. Proven service-level cd_impl binding applies."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3510",
+        "address": "0x102a3538",
+        "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a1aa0",
+        "address": "0x102a1b34",
+        "notes": "A: node parser resets filter IDs+0x218..+0x228 to0x00040000 and mode+0x230=7. Splits type and slash components before optional colon suffix, percent-decodes slash fields, resolves names with f_10102b28, returns false on sentinel lookup/type transition failure. Types GENRE0,COMPOSER1,ARTIST2,ALBUMARTIST3,ALBUM4,TRACKS5,PLAYLISTS6. Empty components have explicit wildcard transitions; ALBUM space-prefixed component uses localized title f_106744fc(0x16)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3b74",
+        "address": "0x102a3c0c",
+        "notes": "A: directory root has vtable0x10eadf80 with default prefix stub; four pooled child nodes use0x10eadf4c. f_102a3d90 gets a node and copies ObjectID with0x200 capacity. Returning a node f_102a3d68 -> f_102a3d08 only updates free list and condition variable."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Reads global catalog at0x1109cc9c under mutex0x1109cd28 (f_10107e20/f_10107e38). Uses node mode+0x230, filter IDs+0x218..+0x228 and locale comparator/catalog ordering; no scan-start or mode-setting dependency.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3510",
+        "address": "0x102a3538",
+        "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3510",
+        "address": "0x102a35ac",
+        "notes": "Mode switch table0x10eade7c maps 0->10103dbc,1->1010424c,2->101046dc,3->10104b6c,4->10105040,5->101055bc,6->10106170. Their return is stored to StartingIndex, then rc0. For mode5 output unchanged; other modes add1 when any node field+0x218/+0x21c/+0x220/+0x224/+0x228 has bits outside0x00040000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10103dbc",
+        "address": "0x10103e38",
+        "notes": "Iterates catalog names f_10103188 with 16-bit cursor/count. ASCII lowercase initial converted by toupper. Other initials compare against A/Z via locale comparator f_10906e2c; below A bucket0x40, above Z bucket0x5b, middle through f_10906b88. Counts until bucket>=requested letter or end. Filtered counterpart f_10105040 uses f_101036f4 and same bucket/count loop."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a1aa0",
+        "address": "0x102a1b34",
+        "notes": "A: node parser resets filter IDs+0x218..+0x228 to0x00040000 and mode+0x230=7. Splits type and slash components before optional colon suffix, percent-decodes slash fields, resolves names with f_10102b28, returns false on sentinel lookup/type transition failure. Types GENRE0,COMPOSER1,ARTIST2,ALBUMARTIST3,ALBUM4,TRACKS5,PLAYLISTS6. Empty components have explicit wildcard transitions; ALBUM space-prefixed component uses localized title f_106744fc(0x16)."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Acquires catalog mutex, marks node busy byte+4 during parse/search, clears it on exit, releases resolved object back to pool. No content edit or persistent option write.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3510",
+         "address": "0x102a3538",
+         "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3510",
+         "address": "0x102a35ac",
+         "notes": "Mode switch table0x10eade7c maps 0->10103dbc,1->1010424c,2->101046dc,3->10104b6c,4->10105040,5->101055bc,6->10106170. Their return is stored to StartingIndex, then rc0. For mode5 output unchanged; other modes add1 when any node field+0x218/+0x21c/+0x220/+0x224/+0x228 has bits outside0x00040000."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3b74",
+         "address": "0x102a3c0c",
+         "notes": "A: directory root has vtable0x10eadf80 with default prefix stub; four pooled child nodes use0x10eadf4c. f_102a3d90 gets a node and copies ObjectID with0x200 capacity. Returning a node f_102a3d68 -> f_102a3d08 only updates free list and condition variable."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No GENA notifier or update increment in wrapper, cd_impl worker, prefix search/count loops or pooled-node release; free-list condition signaling is resource synchronization, not a ContentDirectory event.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10307140",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x103071f4",
+        "notes": "Two required strings ObjectID/Prefix, capacity0x400, validator at 0x103071c8. Primary slot+0x18 delegates f_10302d78. Zero emits StartingIndex and UpdateID via f_1055fcbc at 0x10307268/0x1030728c then commits at 0x103072a0; nonzero fault at 0x10307210."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302d78",
+        "address": "0x10302dcc",
+        "notes": "Resolver f_1034a224 NULL ->701; compares object+0x14 against default f_10113d94. EQUALITY returns800, inequality invokes override at 0x10302e1c. Releases through +0x28, returns override rc unchanged. Proven service-level cd_impl binding applies."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3510",
+        "address": "0x102a3538",
+        "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3510",
+        "address": "0x102a35ac",
+        "notes": "Mode switch table0x10eade7c maps 0->10103dbc,1->1010424c,2->101046dc,3->10104b6c,4->10105040,5->101055bc,6->10106170. Their return is stored to StartingIndex, then rc0. For mode5 output unchanged; other modes add1 when any node field+0x218/+0x21c/+0x220/+0x224/+0x228 has bits outside0x00040000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10103dbc",
+        "address": "0x10103e38",
+        "notes": "Iterates catalog names f_10103188 with 16-bit cursor/count. ASCII lowercase initial converted by toupper. Other initials compare against A/Z via locale comparator f_10906e2c; below A bucket0x40, above Z bucket0x5b, middle through f_10906b88. Counts until bucket>=requested letter or end. Filtered counterpart f_10105040 uses f_101036f4 and same bucket/count loop."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3b74",
+        "address": "0x102a3c0c",
+        "notes": "A: directory root has vtable0x10eadf80 with default prefix stub; four pooled child nodes use0x10eadf4c. f_102a3d90 gets a node and copies ObjectID with0x200 capacity. Returning a node f_102a3d68 -> f_102a3d08 only updates free list and condition variable."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x18]",
+      "description": "Only temporary node parse/filter and busy/free-list state. UpdateID output is0; successful search does not change library ordering or version.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10307140",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x18]']"
+        "function": "0x102a3510",
+        "address": "0x102a3538",
+        "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3510",
+        "address": "0x102a35ac",
+        "notes": "Mode switch table0x10eade7c maps 0->10103dbc,1->1010424c,2->101046dc,3->10104b6c,4->10105040,5->101055bc,6->10106170. Their return is stored to StartingIndex, then rc0. For mode5 output unchanged; other modes add1 when any node field+0x218/+0x21c/+0x220/+0x224/+0x228 has bits outside0x00040000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3b74",
+        "address": "0x102a3c0c",
+        "notes": "A: directory root has vtable0x10eadf80 with default prefix stub; four pooled child nodes use0x10eadf4c. f_102a3d90 gets a node and copies ObjectID with0x200 capacity. Returning a node f_102a3d68 -> f_102a3d08 only updates free list and condition variable."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "402 required-input failure; otherwise701 unresolved object,800 default unsupported method, then override status unchanged. A: override returns402 invalid Prefix,701 invalid node/mode,800 unsupported specific-track query, otherwise0. On0 writes StartingIndex/UpdateID as%u and commits. Search counts are output values, never mapped as faults.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10307140",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 2, '0xc': 1}"
+        "address": "0x103071f4",
+        "notes": "Two required strings ObjectID/Prefix, capacity0x400, validator at 0x103071c8. Primary slot+0x18 delegates f_10302d78. Zero emits StartingIndex and UpdateID via f_1055fcbc at 0x10307268/0x1030728c then commits at 0x103072a0; nonzero fault at 0x10307210."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302d78",
+        "address": "0x10302dcc",
+        "notes": "Resolver f_1034a224 NULL ->701; compares object+0x14 against default f_10113d94. EQUALITY returns800, inequality invokes override at 0x10302e1c. Releases through +0x28, returns override rc unchanged. Proven service-level cd_impl binding applies."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3510",
+        "address": "0x102a3538",
+        "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102a3510",
+        "address": "0x102a35ac",
+        "notes": "Mode switch table0x10eade7c maps 0->10103dbc,1->1010424c,2->101046dc,3->10104b6c,4->10105040,5->101055bc,6->10106170. Their return is stored to StartingIndex, then rc0. For mode5 output unchanged; other modes add1 when any node field+0x218/+0x21c/+0x220/+0x224/+0x228 has bits outside0x00040000."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
-     "fault_sites": [
-      {
-       "site": "0x10307210",
-       "code": null,
-       "code_expr": "vret(r5-in,+0x18)"
-      }
-     ],
+     "fault_sites": [],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x18); parse/req-layer",
-       "meaning": "impl accumulator r30: {701 resolver fail (0x10302da0), 800 resolved-object vfunc type check fail - vtbl[+0x14] != f_10113d94 (0x10302dc4), call-derived via vfunc +0x28}; rc forwarded verbatim via req v[+0x14] | Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x10307210"
-       ],
+       "meaning": "Missing required ObjectID/Prefix, or supported A: backend receives other than one uppercase ASCII letter.",
        "conditions": [
         {
-         "description": "req or impl gate failed",
+         "description": "Validator false or exact byte predicate fails.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10302d78",
-           "notes": "impl"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x10307140",
+           "address": "0x103071f4",
+           "notes": "Two required strings ObjectID/Prefix, capacity0x400, validator at 0x103071c8. Primary slot+0x18 delegates f_10302d78. Zero emits StartingIndex and UpdateID via f_1055fcbc at 0x10307268/0x1030728c then commits at 0x103072a0; nonzero fault at 0x10307210."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10307140",
-           "notes": "parse vcalls then fault path"
+           "function": "0x102a3510",
+           "address": "0x102a3538",
+           "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
           }
          ]
         }
@@ -87348,113 +87520,124 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10302d78",
-         "notes": "rc path"
+         "function": "0x10307140",
+         "address": "0x103071f4",
+         "notes": "Two required strings ObjectID/Prefix, capacity0x400, validator at 0x103071c8. Primary slot+0x18 delegates f_10302d78. Zero emits StartingIndex and UpdateID via f_1055fcbc at 0x10307268/0x1030728c then commits at 0x103072a0; nonzero fault at 0x10307210."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10302da0",
-         "notes": "li r30,0x2bd resolver-fail"
-        },
+         "function": "0x102a3510",
+         "address": "0x102a3538",
+         "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+        }
+       ]
+      },
+      {
+       "code": 701,
+       "meaning": "Object resolver returns NULL, or supported A: node parser fails/mode exceeds6.",
+       "conditions": [
         {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302dc4",
-         "notes": "li r30,0x320 type-check fail"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302ddc",
-         "notes": "bctrl resolved-obj vfunc +0x28"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10307140",
-         "notes": "wrapper parse + fault path"
+         "description": "f_1034a224 NULL or f_102a1aa0 false or mode>6.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10302d78",
+           "address": "0x10302dcc",
+           "notes": "Resolver f_1034a224 NULL ->701; compares object+0x14 against default f_10113d94. EQUALITY returns800, inequality invokes override at 0x10302e1c. Releases through +0x28, returns override rc unchanged. Proven service-level cd_impl binding applies."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102a3510",
+           "address": "0x102a3538",
+           "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102a1aa0",
+           "address": "0x102a1b34",
+           "notes": "A: node parser resets filter IDs+0x218..+0x228 to0x00040000 and mode+0x230=7. Splits type and slash components before optional colon suffix, percent-decodes slash fields, resolves names with f_10102b28, returns false on sentinel lookup/type transition failure. Types GENRE0,COMPOSER1,ARTIST2,ALBUMARTIST3,ALBUM4,TRACKS5,PLAYLISTS6. Empty components have explicit wildcard transitions; ALBUM space-prefixed component uses localized title f_106744fc(0x16)."
+          }
+         ]
         }
        ],
-       "unresolved": {
-        "proven": "literal exit paths bounded by accumulator scan",
-        "unknown": "call-derived rc values from worker/delegate chain | resolver f_1034a224 -> f_10349d00 path-walk (ptr/NULL)",
-        "return_path": "URI/'0' sentinel dispatch into scheme resolver; x-rincon object-ID scheme resolver (A:/S:/Q: prefixes) - content-resolution rc domain",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_1034a224": {
-          "lits": [
-           1056
-          ],
-          "pt": 2
-         },
-         "f_10349d00": {
-          "lits": [
-           8,
-           496
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
          "function": "0x10302d78",
-         "lits": [
-          0,
-          1,
-          360,
-          1024
-         ],
-         "passthrough_exits": 2
+         "address": "0x10302dcc",
+         "notes": "Resolver f_1034a224 NULL ->701; compares object+0x14 against default f_10113d94. EQUALITY returns800, inequality invokes override at 0x10302e1c. Releases through +0x28, returns override rc unchanged. Proven service-level cd_impl binding applies."
         },
-        "delegated_sources": {
-         "f_103031e4": {
-          "lits": [
-           24
-          ],
-          "pt": 4
-         }
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3510",
+         "address": "0x102a3538",
+         "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
         },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "worker_literal_bound": [
-        800
-       ],
-       "literal_bound": [
-        0,
-        402,
-        701,
-        711
-       ],
-       "resolved_note": "CD impl: Browse/search -> {402 invalid-args, 701 no-such-content, 711 no-such-object, browse-engine rc}. verified via impl return-scan.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x18); parse/req-layer; sites: 0x10307210).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a1aa0",
+         "address": "0x102a1b34",
+         "notes": "A: node parser resets filter IDs+0x218..+0x228 to0x00040000 and mode+0x230=7. Splits type and slash components before optional colon suffix, percent-decodes slash fields, resolves names with f_10102b28, returns false on sentinel lookup/type transition failure. Types GENRE0,COMPOSER1,ARTIST2,ALBUMARTIST3,ALBUM4,TRACKS5,PLAYLISTS6. Empty components have explicit wildcard transitions; ALBUM space-prefixed component uses localized title f_106744fc(0x16)."
+        }
        ]
       },
       {
        "code": 800,
-       "code_expr": "r30 accumulator",
-       "meaning": "Resolved-object capability check: vtbl[+0x14] must equal the prefix-search entry point f_10113d94; resolved objects whose class fills that slot with a different implementation fault 800 (\"not a prefix-searchable directory object\"). Census of .rodata finds SEVENTEEN vtables carrying f_10113d94@+0x14 + f_10113da4@+0x18: the 10-member queue/share/saved-queue family @0x10ebb598-0x10ebb7f4, the three favorites classes @0x10ec0ad4/0x10ec0b08/0x10ec0c28, dirObjAttr @0x10eadf80, two audio-in classes @0x10ea11f4/0x10ea129c (SPDIF/dioInputZP neighborhood), plus a 9-slot variant @0x10ea0f7c carrying the pair at +0x0c/+0x10 (older/alternate interface layout). 800 therefore fires on unresolved objects and on non-directory classes, not on most real dirObj classes.",
-       "fault_sites": [
-        "0x10302dc4"
+       "meaning": "Resolved object uses default prefix-search stub, or TRACKS mode has (+0x228 &0xfffbffff)!=0.",
+       "conditions": [
+        {
+         "description": "Default +0x14 pointer equality or explicit mode5 mask rejection.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10302d78",
+           "address": "0x10302dcc",
+           "notes": "Resolver f_1034a224 NULL ->701; compares object+0x14 against default f_10113d94. EQUALITY returns800, inequality invokes override at 0x10302e1c. Releases through +0x28, returns override rc unchanged. Proven service-level cd_impl binding applies."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102a3510",
+           "address": "0x102a3538",
+           "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+          }
+         ]
+        }
        ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "full-.rodata vtable census for f_10113d94@+0x14/f_10113da4@+0x18: 17 vtables {0x10ea0f7c(+0c/+10 variant),0x10ea11f4,0x10ea129c,0x10eadf80,0x10ebb598,0x10ebb5cc,0x10ebb644,0x10ebb6a8,0x10ebb6dc,0x10ebb710,0x10ebb744,0x10ebb778,0x10ebb7ac,0x10ebb7f4,0x10ec0ad4,0x10ec0b08,0x10ec0c28}; earlier 'three classes' claim was a region-limited scan artifact"
+         "function": "0x10302d78",
+         "address": "0x10302dcc",
+         "notes": "Resolver f_1034a224 NULL ->701; compares object+0x14 against default f_10113d94. EQUALITY returns800, inequality invokes override at 0x10302e1c. Releases through +0x28, returns override rc unchanged. Proven service-level cd_impl binding applies."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102a3510",
+         "address": "0x102a3538",
+         "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
         }
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: r30 accumulator; sites: 0x10302dc4).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -87474,13 +87657,66 @@
        "build": "86.10-80260",
        "address": "0x10eb4288",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10307140",
+       "address": "0x103071f4",
+       "notes": "Two required strings ObjectID/Prefix, capacity0x400, validator at 0x103071c8. Primary slot+0x18 delegates f_10302d78. Zero emits StartingIndex and UpdateID via f_1055fcbc at 0x10307268/0x1030728c then commits at 0x103072a0; nonzero fault at 0x10307210."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10302d78",
+       "address": "0x10302dcc",
+       "notes": "Resolver f_1034a224 NULL ->701; compares object+0x14 against default f_10113d94. EQUALITY returns800, inequality invokes override at 0x10302e1c. Releases through +0x28, returns override rc unchanged. Proven service-level cd_impl binding applies."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a3510",
+       "address": "0x102a3538",
+       "notes": "A: node vtable0x10eadf4c slot+0x14. Clears UpdateID output, accepts exactly one ASCII A..Z, else402. Locks global catalog f_10107e20, parses node f_102a1aa0, parser failure->701. Node mode+0x230 outside0..6->701. Mode5 with (+0x228 &0xfffbffff)!=0 ->800. Catalog operation is a count/index, not a SOAP fault code."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a3510",
+       "address": "0x102a35ac",
+       "notes": "Mode switch table0x10eade7c maps 0->10103dbc,1->1010424c,2->101046dc,3->10104b6c,4->10105040,5->101055bc,6->10106170. Their return is stored to StartingIndex, then rc0. For mode5 output unchanged; other modes add1 when any node field+0x218/+0x21c/+0x220/+0x224/+0x228 has bits outside0x00040000."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10103dbc",
+       "address": "0x10103e38",
+       "notes": "Iterates catalog names f_10103188 with 16-bit cursor/count. ASCII lowercase initial converted by toupper. Other initials compare against A/Z via locale comparator f_10906e2c; below A bucket0x40, above Z bucket0x5b, middle through f_10906b88. Counts until bucket>=requested letter or end. Filtered counterpart f_10105040 uses f_101036f4 and same bucket/count loop."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a1aa0",
+       "address": "0x102a1b34",
+       "notes": "A: node parser resets filter IDs+0x218..+0x228 to0x00040000 and mode+0x230=7. Splits type and slash components before optional colon suffix, percent-decodes slash fields, resolves names with f_10102b28, returns false on sentinel lookup/type transition failure. Types GENRE0,COMPOSER1,ARTIST2,ALBUMARTIST3,ALBUM4,TRACKS5,PLAYLISTS6. Empty components have explicit wildcard transitions; ALBUM space-prefixed component uses localized title f_106744fc(0x16)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a3b74",
+       "address": "0x102a3c0c",
+       "notes": "A: directory root has vtable0x10eadf80 with default prefix stub; four pooled child nodes use0x10eadf4c. f_102a3d90 gets a node and copies ObjectID with0x200 capacity. Returning a node f_102a3d68 -> f_102a3d08 only updates free list and condition variable."
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10307140; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Reject-default pointer comparison polarity corrected. Collation/count helpers return positions; no speculative literal-vocabulary fault domain remains."
     },
     "GetAlbumArtistDisplayOption": {
      "description": "Returns the current album-artist mode name. Wrapper 0x10307b70 tail-calls worker 0x10307aa4, which invokes statically bound cd_impl primary slot +0x14 = f_103024c8. The getter maps global u32 0x110953dc: 0=NONE, 1=ITUNES, 2=WMP, 3=BOTH; other values produce empty text, not a fault. It reads the mode only and does not re-sort or change the index. See the service-level binding proof.",
