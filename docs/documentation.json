@@ -42010,7 +42010,7 @@
        ]
       },
       "CurrentCoordinator": {
-       "description": "UDN of the current group coordinator",
+       "description": "Identifier of the outgoing coordinator. The promotion helper forwards it as CurrentCoordinator in remote ChangeCoordinator calls, paired with the promoting player's local ID as NewCoordinator.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -42050,17 +42050,41 @@
          "address": "0x102df680",
          "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df9b8",
+         "notes": "The coordinator worker passes the materialized CurrentCoordinator string to f_10392d80 through its promotion shim. f_10392d80 saves it at sp+0x20.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10392ff0",
+         "notes": "Loads the saved outgoing coordinator identifier into r5 and uses topology+0x210 as r6, the local player identifier. Passes both to f_106efae0 on the per-member ChangeCoordinator arm.",
+         "function": "0x10392d80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106efc14",
+         "notes": "Registers and writes CurrentCoordinator from the incoming r5 value. The next string argument, from r6, is NewCoordinator.",
+         "function": "0x106efae0"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": 25,
        "todo": [
-        "Established: Looks up CurrentCoordinator and installs a type 7 caller-buffer descriptor (25 bytes) at 0x102f9f14.",
-        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentCoordinator; the lazy lookup and destination are established."
+        "Established: the engine materializes a 25-byte destination and forwards the string as CurrentCoordinator on the remote ChangeCoordinator arm, with the promoting local player as NewCoordinator.",
+        "Verify length and missing-value behavior in the request materializer, and trace the remote member's validation of its prior-coordinator value."
        ]
       },
       "CurrentGroupID": {
-       "description": "group UUID of the zone group being handed off",
+       "description": "Group identifier to install during promotion. A nonempty value replaces the topology group's identifier together with the promoting player's local ID. An empty value preserves the existing topology strings at this step.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -42074,7 +42098,7 @@
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_GroupID-domain value",
        "range": "destination buffer: 36 bytes including space for NUL",
-       "special_values": "none identified",
+       "special_values": "Empty leaves the existing group/coordinator strings in place in f_10392d80.",
        "required": true,
        "default": "none",
        "validation": "fetched via request-object slot; impl validates internally",
@@ -42100,13 +42124,37 @@
          "address": "0x102df680",
          "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df9b8",
+         "notes": "Passes the materialized CurrentGroupID as r5 to the topology promotion helper.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10392df4",
+         "notes": "Tests the first byte before replacing the topology coordinator and group ID. Empty skips the copies; nonempty copies the local player ID at topology+0x210 into +0x120 and the supplied group ID into +0x139 using strlcpy capacities 25 and 36 at 0x1039316c and 0x1039317c.",
+         "function": "0x10392d80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10392e38",
+         "notes": "Both arms use the resulting coordinator and group strings for f_1039be20, mark the topology event source, and forward the same strings to topology backend slot +0x40.",
+         "function": "0x10392d80"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": 36,
        "todo": [
-        "Established: Looks up CurrentGroupID and installs a type 7 caller-buffer descriptor (36 bytes) at 0x102f9f3c.",
-        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentGroupID; the lazy lookup and destination are established."
+        "Established: after materialization the topology worker tests only for an empty group ID before reusing the current strings or replacing them, and the copy has a 36-byte destination.",
+        "Verify length and missing-value behavior in the request materializer and whether the topology backend applies any additional group-ID validity checks."
        ]
       },
       "OtherMembers": {
@@ -42784,14 +42832,14 @@
        ]
       },
       "ResumePlayback": {
-       "description": "whether to resume playback after the handoff",
+       "description": "Requests a follow-up indexed transport operation during a successful source handoff. It is not a guarantee that playback starts; the operation also depends on source restoration, and the sink-reset path can force this flag on.",
        "direction": "in",
        "primitive": {
-        "type_tag": null,
-        "parse_helper": null,
-        "buf_cap": null,
+        "type_tag": 1,
+        "parse_helper": "0x10561444",
+        "buf_cap": 24,
         "fmt": null,
-        "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
+        "via_slot": 28
        },
        "semantic_type": "boolean argument",
        "format": "bool ('0'/'1')",
@@ -42801,7 +42849,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "The request adapter uses the standard type 1 boolean descriptor. Request materialization failure maps to 402.",
        "evidence": [
         {
          "type": "firmware",
@@ -42824,13 +42872,45 @@
          "address": "0x102df680",
          "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa100",
+         "notes": "Registers ResumePlayback using the type 1 descriptor helper f_10561444. The whole adapter returns 402 on request materialization failure at 0x102fa134.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df5c4",
+         "notes": "Supplies sp+0x5f as the boolean destination. The worker loads the byte at 0x102dfb58 and only takes the later submit arm on nonzero when the source-state restore branch flag is set.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dfde8",
+         "notes": "For restored source record type 5 and zero state-source byte +0x518, the logged resetting-sinks branch overwrites ResumePlayback with 1 and changes the restored record type to 1.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dfec4",
+         "notes": "On the conditional arm, submits selector 5 to the indexed session manager via f_10256a84 with the resume byte, restored source flag and a URI-derived value. This call's result is not used as the SOAP return code.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": null,
+       "buf_cap": 24,
        "todo": [
-        "Established: Looks up ResumePlayback in the engine-driven request adapter. at 0x102fa0e8.",
-        "Trace the engine's post-materialization handling and concrete acceptance rules for ResumePlayback; the lazy lookup and destination are established."
+        "Established: a type 1 boolean is materialized; a true value can submit indexed selector 5 after source restore, and the type-5 sink-reset path can force it true.",
+        "Trace the indexed selector-5 consumer and resulting playback state for each restored source kind; verify the materializer's boolean lexical spellings."
        ]
       }
      },
