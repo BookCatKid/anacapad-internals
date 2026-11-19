@@ -125804,59 +125804,246 @@
    ]
   },
   "alarm_store_object": {
-   "description": "AlarmClock store object: new(0x8118) multi-base class constructed by f_10276048 during zone-player init (0x1018e8a4 in f_1018d27c), passed to the service via shared_ptr {px=r30-0x5590, pn=r30-0x558c} into svc+0x4 by ctor f_10735460. Ctor writes a stub vtable (0x10eaa78c, all slots -> f_10809540 pure-virtual handler) then overwrites obj+0 with the real primary vtable 0x10eaa99c and installs ~20 secondary sub-vptrs (0x10eaa7dc family at +0x4, +0x11c..+0x7f2c). Primary vtable slots mirror the SOAP op set: +0x08 SetFormat f_1027a410, +0x0c GetFormat f_10272f90, +0x10 SetTimeZone f_1027cf5c, +0x14 GetTimeZone f_10273020, +0x18 GetTimeZoneAndRule f_102731b4, +0x1c GetTimeZoneRule f_10273280, +0x20 SetTimeServer f_1027a64c, +0x24 GetTimeServer f_10273090, +0x28 SetTimeNow f_10272f60 (dead: return 401), +0x2c GetHouseholdTimeAtStamp f_10272f70 (dead: return 401), +0x30 GetTimeNow f_10273340, +0x34 CreateAlarm f_1027a980, +0x38 UpdateAlarm f_1027ac80, +0x3c DestroyAlarm f_1027b134, +0x40 SetDailyIndexRefreshTime f_1027d0c4, +0x44 GetDailyIndexRefreshTime f_102730fc, +0x48 ListAlarms serializer f_10273538, +0x4c f_102764f8. The same object backs the internal alarm engine (m_alarms vector, alarmclock.xml persistence, scheduling workers f_1027b268/f_1027be4c/f_102791f8/f_102794a0/f_102754e4/f_102766c8). Additional internals decoded: f_10279c0c = ac_impl.cxx alarm-record deserializer called by all 10 mutation/read vfuncs (parses the XML alarm doc into the store working buffer at obj+0x170, doc-builder vtable 0x10eaa90c at sp+0x210, iterates m_alarms list head *(store+0x7f08)); m_alarms member confirmed at *(store+0x7f08). f_109b6fe4/f_109b72ac = log-level-gate/log-emit pair; f_10988268 = assert-with-__FILE__+line (source path ../anacapa-1.0/oc/zone/zoneplayer/ac_impl.cxx).",
+   "description": "The0x8118-byte AlarmClock store is constructed by f_10276048 in RZonePlayer initialization and retained both by the zone player and the SOAP service through shared ownership. It has one final primary address point and nine secondary address points, not sixteen independent heterogeneous property interfaces. The former residual misidentified destructors as accessors and included vtables of separate temporary/helper objects.",
+   "construction_and_ownership": "RZonePlayer allocates0x8118 bytes at0x1018e7f4-0x1018e808, calls f_10276048 at0x1018e8a4, then allocates a0x14-byte shared control block with strong/weak counts1 and stores the managed pointer at control+0x10. The resulting pair is retained at the root expression r30-0x5590/r30-0x558c. Service constructor f_10735460 copies that pair into svc+4/+8 and increments the strong count when nonnull. The initial abstract primary vptr0x10eaa78c has null destructor entries followed by pure-virtual methods; the separate abstract list-output vptr0x10eaa7dc has the same null destructor pair and one pure-virtual method. Both are replaced by concrete address points.",
+   "primary_vtable": {
+    "address": "0x10eaa99c",
+    "methods": {
+     "+0x0": "f_102829f0",
+     "+0x4": "f_10282ca0",
+     "+0x8": "f_1027a410",
+     "+0xc": "f_10272f90",
+     "+0x10": "f_1027cf5c",
+     "+0x14": "f_10273020",
+     "+0x18": "f_102731b4",
+     "+0x1c": "f_10273280",
+     "+0x20": "f_1027a64c",
+     "+0x24": "f_10273090",
+     "+0x28": "f_10272f60",
+     "+0x2c": "f_10272f70",
+     "+0x30": "f_10273340",
+     "+0x34": "f_1027a980",
+     "+0x38": "f_1027ac80",
+     "+0x3c": "f_1027b134",
+     "+0x40": "f_1027d0c4",
+     "+0x44": "f_102730fc",
+     "+0x48": "f_10273538",
+     "+0x4c": "f_102764f8",
+     "+0x50": "f_10274484",
+     "+0x54": "f_1027a8f8",
+     "+0x58": "f_1027366c",
+     "+0x5c": "f_10273714",
+     "+0x60": "f_102743ac",
+     "+0x64": "f_1027428c",
+     "+0x68": "f_1027cdbc",
+     "+0x6c": "f_10278280"
+    },
+    "note": "Slots+0/+4 are nondeleting/deleting destructors, not shared accessors. The established SOAP-operation mapping occupies+8..+0x48; later slots expose internal snapshot/content/event/replication helpers. Action-level findings are reported separately in ~/s12/FINDINGS_FOR_BOT.md, not added to AlarmClock action records."
+   },
+   "secondary_interfaces": [
+    {
+     "offset": "0x4",
+     "vptr": "0x10eaaa14",
+     "methods": {
+      "+0x0": "f_10282c58",
+      "+0x4": "f_10282cd8",
+      "+0x8": "f_10273664"
+     },
+     "role": "Alarm-list output interface. The only non-destructor slot adjusts this by -4 and forwards to the same list serializer as primary+0x48."
+    },
+    {
+     "offset": "0x8",
+     "vptr": "0x10eaaa28",
+     "methods": {
+      "+0x0": "f_10282c60",
+      "+0x4": "f_10282ce0",
+      "+0x8": "f_100c9bac",
+      "+0xc": "f_100c9bbc",
+      "+0x10": "f_1067ab74",
+      "+0x14": "f_1027834c",
+      "+0x18": "f_1067ab54",
+      "+0x1c": "f_100e4ef4"
+     },
+     "role": "Embedded UPnP/event-source base, initialized by f_1067aec4 with AlarmClock. Slot+0x14 adjusts this by -8 and reaches f_10278280; +0x18 uses the common event serializer f_1067ab54. The base carries its own ordinary reference/event machinery."
+    },
+    {
+     "offset": "0x11c",
+     "vptr": "0x10eaaa50",
+     "methods": {
+      "+0x0": "f_10282c68",
+      "+0x4": "f_10282ce8"
+     },
+     "role": "Legacy internal-event source. Its name at store+0x120 is ac_impl, initialized by f_105d1918. There is no additional virtual property accessor after the destructor pair."
+    },
+    {
+     "offset": "0x124",
+     "vptr": "0x10eaaa60",
+     "methods": {
+      "+0x0": "f_10282c70",
+      "+0x4": "f_10282cf0",
+      "+0x8": "f_102743a4",
+      "+0xc": "f_1027cf54",
+      "+0x10": "f_106608b4",
+      "+0x14": "f_106608c4",
+      "+0x18": "f_10660898"
+     },
+     "role": "Replicated-file backend. Slot+8 serves the alarmclock.xml representation through f_1027428c; +0xc accepts a replicated version through f_1027cdbc. Slot+0x10 returns504, +0x14 is a no-op, +0x18 compares the stored schema word with the argument. The word at store+0x128 is initialized to1."
+    },
+    {
+     "offset": "0x12c",
+     "vptr": "0x10eaaa84",
+     "methods": {
+      "+0x0": "f_10282c78",
+      "+0x4": "f_10282cf8"
+     },
+     "role": "First address point of the named typed-event emitter/helper aggregate. Cached label at store+0x130 is RACZonePlayer; only destructors are virtual here. Nonvirtual f_10281dc0 receives store+0x12c and queues AlarmClockTimeZoneChangedEvent through inprocess-events."
+    },
+    {
+     "offset": "0x148",
+     "vptr": "0x10eaaa94",
+     "methods": {
+      "+0x0": "f_10282c80",
+      "+0x4": "f_10282d00"
+     },
+     "role": "Second address point of the same0x38-byte named helper aggregate. Cached label at store+0x14c is RACZonePlayer. Both labels are ordinary basic_strings, not schema/property fields."
+    },
+    {
+     "offset": "0x164",
+     "vptr": "0x10eaaaa4",
+     "methods": {
+      "+0x0": "f_10282c88",
+      "+0x4": "f_10282d08",
+      "+0x8": "f_10276600",
+      "+0xc": "f_10274760",
+      "+0x10": "f_1027a978"
+     },
+     "role": "Internal alarm-data access interface: lookup by numeric ID, snapshot copy and mutation forwarding. The first two non-destructor thunks adjust r4, not r3: r3 is a hidden aggregate-result pointer. They forward to f_102764f8 and f_10274484; the last adjusts ordinary this in r3 and forwards to f_1027a8f8."
+    },
+    {
+     "offset": "0x168",
+     "vptr": "0x10eaaac0",
+     "methods": {
+      "+0x0": "f_10282c90",
+      "+0x4": "f_10282d10",
+      "+0x8": "f_1027447c"
+     },
+     "role": "Content-resolution interface. Its aggregate-return thunk adjusts r4 by -0x168 and forwards to f_102743ac, which combines the borrowed identity string at store+0x7f08, collaborator at+0x20c and input argument through f_1043a91c."
+    },
+    {
+     "offset": "0x16c",
+     "vptr": "0x10eaaad4",
+     "methods": {
+      "+0x0": "f_10282c98",
+      "+0x4": "f_10282d18",
+      "+0x8": "f_1027370c",
+      "+0xc": "f_1027377c"
+     },
+     "role": "Version/event-state adapter. Both real thunks adjust r3 and forward to f_1027366c/f_10273714. They obtain the embedded event-source version via f_1067cff4 and use common state-variable helpers with selector6; the first updates state via f_109dadb8/f_109dad10 and notifies through f_1067c6ec when the latter returns0, the second writes it through f_109daf48. This selector is not a subscription to numeric legacy event type6."
+    }
+   ],
+   "layout": {
+    "0x8": "UPnP/event-source base initialized with service name AlarmClock.",
+    "0x11c/0x120": "Legacy internal-event source vptr and borrowed ac_impl label.",
+    "0x124/0x128": "Replication backend vptr and schema word1.",
+    "0x12c..0x163": "Two-base typed-event helper with two cached RACZonePlayer labels, initialized first with base address points0x10eaa800/0x10eaa810 and then0x10eaa820/0x10eaa830 before the store installs its own derived destructor thunks.",
+    "0x170": "Synchronization object initialized with name acZonePlayer. It is not an XML working buffer: f_10988564/f_10988990 scoped locking surrounds snapshots and f_10988558/f_10988984 protect ordinary state access.",
+    "0x200/0x214": "Constructor-supplied collaborator pointers.",
+    "0x204/0x208 and0x20c/0x210": "Two copied shared-pointer pairs, with strong counts incremented where present and released by the destructor.",
+    "0x218/0x21c;0x224..0x23e": "Time-zone index/DST flag and expanded rule/state fields.",
+    "0x240/0x248": "Clock-provider pointer, initially selecting the embedded object at+0x248 with vptr0x10eaa8ac. Its enable word at provider+4 starts0; provider+8 holds the configured server text.",
+    "0x2dc/0x2e0": "Date/time-format character buffers, not the NTP-server hostname.",
+    "0x2e8/0x2ec/0x2f0": "Actual dynamic alarm-record vector: begin/end/capacity. Elements have stride0xe8 and own multiple basic_strings. Empty construction stores three null words.",
+    "0x2f8..0x7eb7": "Fixed array initialized by132 calls of f_10274c88 with stride0xf0; this is distinct from the dynamic alarm vector.",
+    "0x7ec0/0x7edc": "Alarm-list version source string and numeric counter, combined as %s:%u by the list-output path and copied alongside vector snapshots.",
+    "0x7ee8": "Daily-refresh option/state.",
+    "0x7f08": "Borrowed local-identity string, passed as ctor r4 from RZonePlayer+0x4cc. It is not an alarm-list head: snapshot/content and replication paths read it as a string, and local version updates copy it into+0x7f10.",
+    "0x7f0c": "Borrowed time-zone/rule collaborator.",
+    "0x7f10/0x7f2c": "Replication version source string and version word. Constructor initializes version0; +0x7f2c is not a vptr.",
+    "0x7f30": "Embedded timedjob manager initialized as timedjobmgr_ac. Constructor registers alarm callback f_1027ca44 -> f_1027be4c with context=this, initial time0x7fffffff and flags0xb. Settings changes schedule related work through this manager."
+   },
+   "snapshot_contract": "f_102764f8 takes a hidden output aggregate in r3, store in r4 and ID in r5. Under the store lock it searches vector elements by their first word. No match, including an empty vector, returns output.present=0; a match returns present=1 plus a deep copy. f_10274484 similarly returns a deep-copied vector plus list-version string and counter, leaving begin/end/capacity null for an empty source. Its string copies use the basic_string range constructor f_10273ac0, with15-byte inline capacity, heap allocation for longer values and the standard null-range rejection.",
+   "settings_reload": "f_10279c0c constructs a separate stack XML parser/document object with vptr0x10eaa90c at sp+0x210, reads alarmclock.xml through f_1068ab6c/f_10c4015c, and checks the parser validity flags before replacing the store vector and related settings. Malformed input logs bad settings file and destroys the temporary without replacing the live vector. On valid input it copies parsed0xe8-byte records, swaps begin/end/capacity at store+0x2e8 and destroys the old vector. Changes update rule/format/clock state, schedule follow-up jobs and conditionally notify the embedded event source. Its ten direct callers include internal update paths, not ten SOAP getter methods.",
+   "replication_boundary": "The+0x124 backend serves the actual alarmclock.xml path as text/xml together with version source+0x7f10 and version+0x7f2c. The receive path rejects schema!=1, applies the common version comparison, renames an accepted incoming file, reloads settings and reports version change only after successful rename. The purported device-ID writers in the old record are actually a constant-return stub, a no-op and a schema equality method.",
+   "embedded_clock_provider": "Vptr0x10eaa8ac belongs to the embedded clock provider at store+0x248, not to a group-removal serializer. Slots are no-op destructor f_10272f54, sized deleting destructor f_10272f80 (size0x94), clock read f_10273800, name getter f_1027d4c0 returning NTP, and no-op f_1027d4b4. A zero enable word makes clock read return0 without writing its output. Enabled reads use gettimeofday and produce100ns units since1601: sec*10000000 + usec*10 +0x019db1ded53e8000, returning1. This method does not itself query an NTP server.",
+   "destruction": "f_102829f0 reinstalls the final store address points, tears down the embedded timedjob manager, destroys/free the dynamic vector and its strings, releases copied shared pointers, destroys synchronization and cached labels, then finishes the event-source base. The nine literal-free thunks f_10282c58..f_10282c98 only subtract the corresponding subobject offset before calling this destructor. f_10282ca0 calls it and sized-deletes0x8118 bytes; f_10282cd8..f_10282d18 are the corresponding deleting adjustors. They neither look up property fields nor return accessors.",
+   "excluded_neighbor_tables": "0x10eaa90c is the temporary XML parser table;0x10eaa93c/0x10eaa96c are temporary XML mutation helpers.0x10eaa840 and its secondary0x10eaa870 belong to a separate0x19b40-byte alert-content adapter allocated in f_10278354 at0x10278528-0x10278564, not to a store interface. f_10284340 is its nondeleting destructor and f_10284390 its sized deleting destructor. f_1027d7a8 is that adapter's content read; neighboring Spotify/refcount functions are not additional store bases. f_1027d634 is a sized deleting destructor, not a time-server accessor; f_1027db0c/f_1027e374 are -0x1c destructor adjustors for the two-label helper, not replication serializers.",
+   "resolved_findings": [
+    "Resolved every actual secondary address point through constructor stores, ABI offset-to-top headers and both destructor thunk families. The former16-interface census was a linear scan across unrelated neighboring vtables.",
+    "Corrected the alleged shared accessors into nondeleting/deleting destructors, corrected the vector from+0x7f08 to+0x2e8, separated the mutex from parser storage, and distinguished the clock provider and alert adapter from store interfaces."
+   ],
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
+     "function": "f_10276048 / RZonePlayer initialization / f_10735460",
      "address": "0x10276048",
-     "notes": "store ctor: initial stub vptr stores 0x10eaa78c/0x10eaa7dc"
+     "callsite": "0x10276048-0x102764d4;0x1018e7f4-0x1018e908;0x10735460-0x10735528",
+     "notes": "Allocation, all ctor arguments/member initialization, concrete vptr writes at102761e8-1027621c, reference ownership and service pair copy independently disassembled."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x102761e8",
-     "notes": "stw 0x10eaa99c -> obj+0 (final primary vptr)"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
+     "function": "all actual store vtable address points",
      "address": "0x10eaa99c",
-     "notes": "primary vtable: slots +0x08..+0x4c all resolved to f_1027*/f_10273538"
+     "callsite": "0x10eaa99c-0x10eaaae0;0x10282c58-0x10282d1c",
+     "notes": "Read and asserted every listed word of all ten final address points. Nine ABI offset-to-top values exactly match ctor stores and subtracting destructor thunks; these are not sixteen property-interface slices."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x1018e8a4",
-     "notes": "ctor call site in zone-player init f_1018d27c; shared_ptr px -> r30-0x5590"
+     "function": "f_102829f0 / f_10282ca0",
+     "address": "0x102829f0",
+     "callsite": "0x102829f0-0x10282d1c",
+     "notes": "Complete destructor/control-flow trace, owned vector/string cleanup, timedjob manager and base teardown; deleting variant uses size8118hex. Raw byte-for-byte inspection of all thunks establishes adjustment of this, not property access."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x10735460",
-     "notes": "svc ctor: svc+0x4 = shared_ptr px"
+     "function": "f_102764f8 / f_10274484 / f_102743ac / f_1027366c",
+     "address": "0x102764f8",
+     "callsite": "0x102764f8-0x10276604;0x102743ac-0x10274764;0x1027366c-0x10273780;0x109dad10-0x109daea0",
+     "notes": "Hidden aggregate results explain r4-adjusting thunks; optional lookup empty/found cases and vector deep copy verified. State adapter uses selector6 in common property/event helpers, not the legacy enum bus. Raw7d4951d7 at10274510 is mullw. and its CR0 result gates empty-vector handling; preceding7fc91e70 is actual srawi3 in compiler vector element-count arithmetic."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
+     "function": "f_10279c0c / f_1027cdbc / f_1027428c",
      "address": "0x10279c0c",
-     "notes": "ac_impl.cxx deserializer; 10 callers in store vfuncs; m_alarms at +0x7f08"
+     "callsite": "0x10279c0c-0x1027a40c;0x1027cdbc-0x1027cf50;0x1027428c-0x102743a8",
+     "notes": "Parser is a separate stack object, while store+170 is a lock. Traced parse-failure preservation, vector swap, state updates, backend schema/version checks, rename failure and successful reload; copied ctor r4 identity at7f08 is not a vector."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10281dc0 / named helper destructors",
+     "address": "0x10281dc0",
+     "callsite": "0x10281dc0-0x102829ec;0x1027da04-0x1027db10;0x1027e2f8-0x1027e378",
+     "notes": "Two cached RACZonePlayer labels and inprocess-events AlarmClockTimeZoneChangedEvent emitter are separate from legacy source.1027db0c/1027e374 are destructor adjustors; no XML replication writer exists at those entries."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "embedded NTP clock-provider / backend defaults",
+     "address": "0x10273800",
+     "callsite": "0x10eaa8ac-0x10eaa8bc;0x10273800-0x10273918;0x1027d4b4-0x1027d4d0;0x10660898-0x106608cc",
+     "notes": "Clock reads decode to sec*10^7+usec*10+FILETIME epoch offset, gated by enable word. Raw55250ffe/54a417be at102738c0/102738d4 are genuine right shifts used for64-bit carry assembly; not clrlwi. Raw5463d97e at106608ac is genuine srwi5 after cntlzw for schema equality. Constant504/no-op are not device-ID writers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "separate alert-content adapter allocation/destruction",
+     "address": "0x10278528",
+     "callsite": "0x10278528-0x10278590;0x10284340-0x102843ec;0x1027d7a8-0x1027d874;0x1027d628-0x1027d640",
+     "notes": "Allocation and sized deleting destructor both give19b40hex, excluding it from the8118hex store identity.0x10eaa840 is installed on that allocation. The former NTP-accessor target1027d634 actually sized-deletesb8hex."
     }
-   ],
-   "notes": "Setter vfuncs use accumulator-rc convention (r27-r31 seeded from args/call results, single shared epilogue). Six getter vfuncs proven always-0 (single blr + li r3,0, no out-branches). Two dead vfuncs proven (401 stubs). SOAP impl vfuncs forward store rc verbatim to req->v[+0x14]. Secondary-vptr decode (0x10eaa78c..0x10eaa99c, ~17 interface bases): unlike mega_impl's uniform one-method forwarding thunks, these are heterogeneous small interfaces (1-5 methods each). Slot contents mix: const-return stubs (f_10272f64 'addi r3,0x191; blr'), error-path thunks (f_1027d634 'addi r4,<code>; b f_108094fc'), pure-virtual abort stubs (0x10809540), real multi-arg methods (f_1028347c takes ~10 register args), and nested sub-ctors (f_10284340 reinstalls 0x10eaa840).",
-   "todo": [
-    "Established: slice roles now identified for ~8 of the 16 secondary interfaces (schema-gate, alarm.xml persistence, alert-content, NTP-time, group-removal, spotify-cmd subobject, device-id template, refcount helpers); remaining slices share the {method + accessor-thunk} shape with literal-free bodies - per-method semantics require tracing the shared accessors' field offsets."
-   ],
-   "resolved_findings": [
-    "Established: secondary slices are heterogeneous per-interface vtables (const stubs / error thunks / real methods / sub-ctors), not uniform forwarding thunks. Still unknown: the interface name/role per slice. Next step: disassemble the ~40 secondary methods (f_1027d*/f_1028* family) to name each interface.",
-    "Resolved: two secondary slices identified by vfunc inspection of the 0x10eaa7dc family - 0x1027d634 returns the time-server hostname \"time.sonos.com\" (the NTP/time-server accessor slice) and 0x1027db0c emits the <AlarmClock LastUpdateDevice=\"%s\" Version=...> replication record (the alarm-list serializer slice, matching the LastUpdateDevice/NextFavorite-style replication grammar shared with favorites). The remaining slice vfuncs are mostly PIC-table loads with no direct literal ref, so their interfaces stay unnamed.",
-    "Deepened (secondary slice census, 16 bases 0x10eaa7dc-0x10eaaad4): most slices are {real method @ base+0, paired thunk @ base+8 -> shared accessors f_102829f0/f_10282ca0} patterns - embedded small-property interfaces. Newly named by method literals: schema-version gate ('Rejected version %u, schema %u ... Current SchemaVersion=%d' in f_1027cdbc via 0x10eaaa60 slot 2), alarm persistence ('alarmclock.xml','text/xml' via f_1027428c under 0x10eaaa60), alert-content accessor ('alertContent: %s no read source' in f_1027d7a8 under 0x10eaa840 slot 2), NTP-time accessor ('NTPTimeOffset getUTCTimeNow is disabled' in f_10273800 under 0x10eaa8ac slot 2), group-removal serializer (f_1027d4c0/f_1027d4b4 tail of 0x10eaa8ac, 'playerIdsToRemove' array + NTP), spotify-command map inside one slice's sub-object chain (RSpotifyPlayback{Play,Pause,Seek} literals via f_1021cd4c under 0x10eaa840), RINCON_FFFFFFFFFFFF99999 device-id template writers (0x106608xx under 0x10eaaa60), plus shared_ptr-control + refcount helpers (f_10548534/f_105485f8/f_1027d540/f_10150f20/f_10150f30 under 0x10eaa840)."
    ]
   },
   "cd_object_resolver": {
