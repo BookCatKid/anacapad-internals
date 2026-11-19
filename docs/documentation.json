@@ -151858,24 +151858,41 @@
    ]
   },
   "daemon_ipc": {
-   "name": "/X-external daemon proxy + watchdog/sentry",
-   "summary": "routes {/anacapad-external,/sonospowercoordinator-external,/btmanager-external,/sonosledmgrd-external,/netstartd-external} proxy to sibling daemons; watchdog {/watchdog,/watchdog-legacy,/legacy-to-sentry,/upload} + attachments {watchdog_log,watchdog_dmesg} + crashdump; sentry {\"No URL found to upload dump file: %s\",text/plain; charset=\"us-ascii\",\"Failed to write attachment %s to sentry upload\",sentry[tags]}; flags {/tmp/anacapa_prevent_crashdump_upload,/tmp/backtrace,/tmp/crashed_play_state,/jffs/app/debug/sonosledmgrd.dmp,/opt/log/btservice.log}; \"writeStream failed - Bytes compressed: %d/%d\" + htsnk",
+   "name": "daemon crash-upload route selection",
+   "summary": "Maps daemon dump filenames and watchdog modes to cloud crash-upload URL suffixes; these /daemon-external names are not local IPC operation dispatchers.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10ea7e40",
      "notes": "daemon ipc block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102538ec",
+     "notes": "Power-coordinator dump selects a suffix passed to a cloud URL builder."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10540450",
+     "notes": "Fallback uses registry index 7, crash-upload, not a local daemon dispatcher."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10253a60",
+     "notes": "Unknown dump filename logs and returns empty URL."
     }
    ],
-   "todo": [
-    "Residual: the per-daemon op tables for the remaining external routes (sonospowercoordinator, btmanager - absent on this build). The netstartd msg-id setter table is decoded; the WAC channel is now enumerated at the message-name level; sonosledmgrd proven to be flag-word driven, not opcode IPC."
-   ],
    "resolved_findings": [
-    "Resolved: netstartd external route = the /tmp/netstartd.ipc dispatcher {msg-id -> field setter} decoded under netstartd_ipc.",
-    "Resolved: wacd->netstartd channel /tmp/netstartd_wac.ipc carries WAC_AP_OPEN/WAC_AP_CLOSE/WAC_STA/WAC_DONE/WAC_TMO/WAC_STOP/WAC_ERROR - decoded from wifi/wacd + wifi/netstartd string tables.",
-    "Resolved (partial): anacapad->sonosledmgrd requests traverse the /sonosledmgrd-external route name; sonosledmgrd runs a socket-based IPC ('hostPort' config field) and consumes the shared leds_zp R_LED_* mode vocabulary - message-level opcodes remain in stripped code.",
-    "Resolved: netstartd per-msgType handler mapping is now explicit - the NS2_MSG_* opcode table {0..0x17} plus NS2_STATE_* FSM table (18 states, {name*, handler-slot array}) both decoded from .data.rel.ro",
-    "Resolved (sonosledmgrd channel): sonosledmgrd has no message-id IPC at all - its imports carry socket/sendto only (no bind/listen/accept/recv), and the shipped /opt/bin/sonosledmgrd binary consumes the R_LED_* mode set through a shared flag word logged 'audiodev_flag %x' (flag-block ladder at 0x100036a4+, bit 0x100 gated, leds_zp log domain) which arrives via hal_audiodev_open; LED writes go through hal_led_{write,flash,diag,brightness}. The anacapad->ledmgrd 'messages' are the R_LED_* bit positions in that audiodev flag word plus the /var/run/sonosledmgrd.flash_booting_led sentinel file - there is no opcode table to enumerate."
+    "The /daemon-external routes are crash-upload suffixes, not local IPC dispatch endpoints. Function f_102537b0 compares the supplied dump filename with entries returned by f_102528f4; it selects /anacapad-external at 0x10253838, /sonospowercoordinator-external at 0x102538e8, /btmanager-external at 0x10253a44, /sonosledmgrd-external at 0x102539bc, or /netstartd-external at 0x10253a28. Every such branch calls cloud URL builder f_105403a8 with output bound 0x401 and configuration slot 0x3c. These routes therefore do not imply per-daemon request opcode tables.",
+    "Cloud binding independently traced: f_105403a8 first attempts configured base URL slot 0x3c through f_1053fa2c at 0x105403d4-0x105403e0. If that fails, it tail-calls generic registry builder f_1053faf8 with scheme https, registry index 7 and the chosen suffix at 0x1054042c-0x1054045c. Row 7 at 0x10ee6fd4 contains crash-upload, ws.sonos.com and flags zero. Environment and override handling follows the shared cloud-service builder; these are not hard-coded loopback daemon URLs. The /upload case separately calls f_10540238 with slot 0x13 (0x1025387c-0x10253894).",
+    "Watchdog/crash cases are distinguished within the same filename-to-upload-URL selector: /watchdog-legacy is chosen on one mode and /legacy-to-sentry on the other at 0x10253924-0x102539ec. The explicit sonosledmgrd dump filename comparison at 0x10253994-0x102539a8 precedes its external suffix selection. An unrecognized filename reaches No URL found to upload dump file and returns the empty literal at 0x10253a60-0x10253aac. Thus normal, mode-dependent and unknown-file outcomes are resolved without inventing a local operation protocol.",
+    "The former residual asking for sonospowercoordinator/btmanager operation tables on these routes is withdrawn because their reachable consumer is a cloud upload URL builder. No matching power-coordinator or btmanager binary was present in the shipped reference artifact tree searched in this batch, but absence is not the reason for closure. Local netstartd/WAC transport and LED hardware flags are separate mechanisms and cannot be inferred from these crash-upload route names. Earlier assertions that this route proved an anacapad-to-ledmgrd flag or opcode channel are withdrawn."
    ]
   },
   "led_hw": {
