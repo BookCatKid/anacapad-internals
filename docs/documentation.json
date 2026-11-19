@@ -222968,15 +222968,64 @@
      "build": "86.10-80260",
      "address": "0x105a8738",
      "notes": "Active-download guard before tail call into actual request routine."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105a6984",
+     "address": "0x105a6a94",
+     "notes": "Refresh-job method calls vtable slot +0x40 (f_105a8724) with URL string built by the preceding vtable slot +0x3c call at 0x105a6a7c-0x105a6a84 into sp+0x103c (cap 0x1000)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10646058",
+     "address": "0x106460b4",
+     "notes": "URL-builder slot +0x3c: formats '/product/v2/households/%s/players?action=refresh' via f_10645f4c; logs regdevicecert.cxx:0xb5."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106460c4",
+     "address": "0x10646120",
+     "notes": "Second URL-builder formats '/product/v2/households/%s/players?action=complete&token=%s'; token arg r7=this+0x11d5 in f_10646130 at 0x10646178."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10645f4c",
+     "address": "0x10645fcc",
+     "notes": "Path formatter: snprintf_chk cap 0x401, %s = current household id string from f_105ad854 (global at 0x110a60f0 via household interface), appended into out std::string by f_1053ff38."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10646130",
+     "address": "0x10646180",
+     "notes": "Complete-request path calls slot +0x40 (f_105a8724) with the action=complete&token URL; caller f_106461d8 (registration-complete) reached via thunk f_106464c0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10645bc8",
+     "address": "0x10645d2c",
+     "notes": "Ctor installs vtable 0x10efc818 at +0 (slot +0x40 = f_105a8724, slot +0x3c = f_10646058); refresh thunk f_1064556c at slot +0x34 tail-calls job f_105a6984."
     }
    ],
-   "todo": "Residual: trace the interface/virtual caller supplying URL r5 to f_105a8724/f_105a7e68 and its environment selection. Registration is a copied request label, not a host lookup, and f_106b268c constructs local JFFS certificate paths, not the remote URL. The concrete remote device-certificate base is therefore still unresolved.",
    "resolved_findings": [
     "Resolved: differentiated from the other cert managers - this one owns ETag-cached cert downloads {requestTimeMS, downloadStatusCode, httpResultCode, previousETag -> downloaded|unchanged} with refresh-job scheduling on unknown metadata state; certval validation + registration signing live in the sibling records.",
     "The previous Registration service lookup evidence is disproven. The actual request routine starts at f_105a7e68, not f_105a7dac. It saves incoming r5 as r23 at 0x105a7e94 and passes that same r23 as the request URL argument r4 to f_1055030c at 0x105a826c-0x105a8274. The call at 0x105a80fc to f_105cc9d0 with literal Registration does not resolve a host: f_105cc9d0 only checks for null and tail-calls strlcpy with capacity six into an owner field at 0x105cc9dc-0x105cc9ec. Therefore the literal is not evidence that the service registry supplied the URL.",
     "The alleged generic remote path helper is also local storage plumbing. f_106b2bd0 selects metadata.txt and environment-directory mode, then tail-calls f_106b268c. That routine begins with constructJFFSRootPath using owner+0x10a4 at 0x106b26b8-0x106b26c4, optionally appends the configured slot-0x25 environment (default prod) at 0x106b2720-0x106b2754, then appends the filename using strlcat at 0x106b26d8-0x106b26f8. f_106b2be8 similarly selects cert.xml without the environment-directory flag. These are local paths, not a remote %s/%s URL schema or evidence for /certbundles/v4/deviceCert.",
     "The download routine asks f_106b275c for the local environment-specific directory at 0x105a8118, creates it with sonosMkDirRecursive, and obtains another local path through f_106b2834 before appending .tmp at 0x105a8140-0x105a815c. It then submits the network request with caller-supplied URL, an application/json body assembled from manufacturing data, an output bound 0x4000 and timeout 0x7530 at 0x105a8218-0x105a8274. This separates staging, request destination and metadata label instead of deriving one from another.",
-    "The reachable public wrapper f_105a8724 initializes an optional error output to -6, checks owner+0x10d1, returns zero if a request is already active, and otherwise tail-calls f_105a7e68 at 0x105a8750-0x105a8754. The request routine sets that active byte at 0x105a7ee4. The URL provenance still requires the virtual/interface caller of this wrapper; the earlier config-only assertion did not establish it. Fixed trusted_roots.rcb paths belong to the root-bundle downloader, not proof of this caller-supplied device-certificate endpoint."
+    "The reachable public wrapper f_105a8724 initializes an optional error output to -6, checks owner+0x10d1, returns zero if a request is already active, and otherwise tail-calls f_105a7e68 at 0x105a8750-0x105a8754. The request routine sets that active byte at 0x105a7ee4. The URL provenance still requires the virtual/interface caller of this wrapper; the earlier config-only assertion did not establish it. Fixed trusted_roots.rcb paths belong to the root-bundle downloader, not proof of this caller-supplied device-certificate endpoint.",
+    "Resolved URL provenance: r5 is not an externally injected remote base; the object produces the request URL itself through its own virtual URL-builder slots. Installed vtable 0x10efc818 (ctor f_10645bc8 at 0x10645d2c) maps slot +0x3c to URL-builder f_10646058 and slot +0x40 to request wrapper f_105a8724. The refresh-job method f_105a6984 (reached through vtable thunk f_1064556c at slot +0x34, the 'refreshTJ' job) calls slot +0x3c into a 0x1000 stack buffer then slot +0x40 with it at 0x105a6a7c-0x105a6aa8. f_10646058 formats the relative path '/product/v2/households/%s/players?action=refresh' through f_10645f4c, whose %s is the current household ID from f_105ad854 (global household string at 0x110a60f0 behind the registered household interface).",
+    "The second virtual caller is f_10646130 (inside registration-complete routine f_106461d8, reached via thunk f_106464c0): it builds '/product/v2/households/%s/players?action=complete&token=%s' via f_106460c4 with the token read from this+0x11d5 (0x10646178) and likewise tail-calls f_105a8724 at slot +0x40. Both call sites supply RELATIVE product-API paths; no environment selection exists on the URL (only the local JFFS staging directories take an environment subdirectory, slot-0x25 default 'prod'). The remote base/host is resolved inside the request transport f_1055030c and the HTTP client infra with 'Registration' as the copied request label, which is outside this manager's object and records the true static-analysis boundary for the remote endpoint."
    ]
   },
   "zpinfo_dpimpl": {
