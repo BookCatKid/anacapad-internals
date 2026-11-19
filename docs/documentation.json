@@ -83451,7 +83451,7 @@
      }
     },
     "SetRelativeVolume": {
-     "description": "Applies a signed adjustment to the Master volume through the shared worker f_100dcb00 in relative mode (thunk 0x100dcc44 remaps args with mode flag r4=1) and returns the resulting volume.",
+     "description": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading. f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding. f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073c224",
@@ -83487,7 +83487,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric rendering-instance selector; this zone player implements exactly one rendering instance.",
+       "description": "Required instance selector, passed unchanged to forwarding/local work; only zero is accepted locally.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -83499,32 +83499,109 @@
        "semantic_type": "instance selector (integer)",
        "format": "decimal integer parsed into a type-tag-4 argument record (helper 0x105614e0, 24-byte record)",
        "unit": "none",
-       "accepted_values": "any parsed integer - ignored by impl",
-       "range": "unconstrained at impl level",
+       "accepted_values": "0 locally; source hook does not inspect it",
+       "range": "ui4 parser result; local accepted value 0",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "Request layer faults 402 if absent/malformed (req vfunc +0x08). Forwarded into shared worker f_100dcb00 where it lands in the dead compare - ignored like SetVolume.",
+       "validation": "Local nonzero returns 702; a handled Master hook can bypass this check.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c264",
-         "notes": "in-arg access site"
+         "address": "0x10ed272c",
+         "notes": "Bound primary slot 0x20 contains 0x10470a34."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x10470a34",
+         "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8784",
+         "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022abac",
+         "notes": "Concrete Spotify source-control getter is a literal null return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e57c",
+         "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046b0d0",
+         "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9d40",
+         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9e2c",
+         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046c368",
+         "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c300",
+         "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d78a4",
+         "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8910",
+         "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c2e8",
+         "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
         }
        ],
-       "notes": null
+       "notes": "Source-control and forwarding precede normal local validation; accepted parser width is not a claim about arbitrary lexical forms."
       },
       "Channel": {
-       "description": "Audio channel selector string; compared verbatim (strcmp, case-sensitive) by the implementation.",
+       "description": "Required exact channel selector; affects hook selection and normal local target.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -83536,35 +83613,114 @@
        "semantic_type": "channel token",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none",
-       "accepted_values": "ignored - forwarded as record pointer to the worker",
-       "range": "max 1023 chars",
-       "special_values": {
-        "any": "worker zeroes the channel record pointer and operates on 'Master'"
-       },
+       "accepted_values": [
+        "Master",
+        "LF",
+        "RF"
+       ],
+       "range": "request capacity 1024; exact local tokens",
+       "special_values": "Master can enter source hook; LF/RF require +0x7ff zero locally.",
        "required": true,
        "default": "none",
-       "validation": "Parsed but unused - the worker's write path is hardcoded to 'Master'.",
+       "validation": "After mode and target checks, unknown channels and fixed-mode LF/RF return 402.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c288",
-         "notes": "in-arg access site"
+         "address": "0x10ed272c",
+         "notes": "Bound primary slot 0x20 contains 0x10470a34."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10fac460",
-         "notes": "argument name string"
+         "address": "0x10470a34",
+         "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8784",
+         "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022abac",
+         "notes": "Concrete Spotify source-control getter is a literal null return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e57c",
+         "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046b0d0",
+         "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9d40",
+         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9e2c",
+         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046c368",
+         "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c300",
+         "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d78a4",
+         "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8910",
+         "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c2e8",
+         "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
         }
        ],
-       "notes": null,
+       "notes": "Source-control and forwarding precede normal local validation; accepted parser width is not a claim about arbitrary lexical forms.",
        "buf_cap": 1024
       },
       "Adjustment": {
-       "description": "Signed volume adjustment; arrives at the shared worker as r8 after thunk remap (0x100dcc44).",
+       "description": "Signed32 adjustment added to cached master volume before any channel/instance guard; wrapped signed sum is clamped to 0..100.",
        "direction": "in",
        "primitive": {
         "type_tag": 5,
@@ -83573,44 +83729,114 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "volume delta",
-       "format": "integer parsed value",
+       "semantic_type": "signed 32-bit volume adjustment",
+       "format": "signed integer request text",
        "unit": "none",
-       "accepted_values": "parsed integer; worker's 'value<2' branch on its operand applies",
-       "range": "unconstrained",
-       "special_values": "none",
+       "accepted_values": "Signed32 parser result",
+       "range": "i4; computed target 0..100",
+       "special_values": "Extreme positive sums can wrap negative and clamp to zero.",
        "required": true,
        "default": "none",
-       "validation": "No range check observed at the worker entry; relative-application math inside f_100d9b4c/f_100da1e0 is unresolved.",
+       "validation": "No adjustment-range guard; target calculation is master-based even for LF/RF.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c2b0",
-         "notes": "in-arg access site"
+         "address": "0x10ed272c",
+         "notes": "Bound primary slot 0x20 contains 0x10470a34."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0b048",
-         "notes": "argument name string"
+         "address": "0x10470a34",
+         "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "thunk: r4=1, r5=instID, r6=0, r7=chanrec, r8=adjustment -> f_100dcb00",
-         "function": "0x100dcc44"
+         "address": "0x100d8784",
+         "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022abac",
+         "notes": "Concrete Spotify source-control getter is a literal null return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e57c",
+         "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046b0d0",
+         "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9d40",
+         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9e2c",
+         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046c368",
+         "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c300",
+         "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d78a4",
+         "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8910",
+         "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c2e8",
+         "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
         }
        ],
-       "notes": null
+       "notes": "Source-control and forwarding precede normal local validation; accepted parser width is not a claim about arbitrary lexical forms."
       }
      },
      "outputs": {
       "NewVolume": {
-       "description": "Resulting volume after the relative apply; emitted as i16/u16 from the stack out slot written by the worker chain.",
+       "description": "Computed master-based target, not a reread of achieved channel/hardware volume.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
@@ -83619,64 +83845,805 @@
        "semantic_type": "unsigned int16",
        "format": "%u decimal",
        "unit": "none",
-       "accepted_values": "post-adjustment volume value",
-       "range": "unconstrained",
+       "accepted_values": "0..100",
+       "range": {
+        "min": 0,
+        "max": 100
+       },
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "none - produced by the worker",
+       "validation": "Written only after handled hook or local status zero; SOAP faults suppress output.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c364",
-         "notes": "out-arg access site"
+         "address": "0x10ed272c",
+         "notes": "Bound primary slot 0x20 contains 0x10470a34."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0b054",
-         "notes": "argument name string"
+         "address": "0x10470a34",
+         "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100dcc44",
-         "address": "0x100dcc44",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x100d8784",
+         "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022abac",
+         "notes": "Concrete Spotify source-control getter is a literal null return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e57c",
+         "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046b0d0",
+         "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9d40",
+         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9e2c",
+         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046c368",
+         "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c300",
+         "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d78a4",
+         "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8910",
+         "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c2e8",
+         "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
         }
        ],
-       "notes": "Out-write site inside the worker chain is unresolved (worker writes u16 at its own stack slot 0x12 via f_100da1e0; exact propagation to this out arg not yet traced).",
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewVolume`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "Uses wrapped signed32 addition followed by signed clamping; LF/RF also use cached master as baseline."
       }
      },
-     "validation": "Request-layer parse; impl does not validate InstanceID/Channel and does not range-check Adjustment at entry.",
-     "requirements": "impl+0x7ff must be clear for any effect (same shared worker).",
-     "state_dependencies": "flag impl+0x7ff != 0 suppresses the write (shared worker)",
+     "validation": {
+      "description": "Required request validation precedes implementation. Normal local application requires InstanceID zero, an allowed mode, target <=100, exact Master or (only with +0x7ff zero) LF/RF. The source hook and peer forwarding occur before local guards; hook-handled success is not proof those guards were applied. Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed272c",
+        "notes": "Bound primary slot 0x20 contains 0x10470a34."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470a34",
+        "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8784",
+        "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Concrete Spotify source-control getter is a literal null return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e57c",
+        "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b0d0",
+        "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9d40",
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9e2c",
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c300",
+        "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8910",
+        "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c2e8",
+        "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required request validation precedes implementation. Normal local application requires InstanceID zero, an allowed mode, target <=100, exact Master or (only with +0x7ff zero) LF/RF. The source hook and peer forwarding occur before local guards; hook-handled success is not proof those guards were applied.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed272c",
+        "notes": "Bound primary slot 0x20 contains 0x10470a34."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470a34",
+        "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8784",
+        "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Concrete Spotify source-control getter is a literal null return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e57c",
+        "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b0d0",
+        "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9d40",
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9e2c",
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c300",
+        "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8910",
+        "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c2e8",
+        "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status.",
+      "todo": [
+       "Established: Source/topology/counter and cache/mode fields, including channel and instance checks.",
+       "Unknown: Other concrete hook/backend dependencies.",
+       "Next: Bind other f_106a76b8 providers +0x30 / source-control +8, f_1046c148 -> f_106f88cc/f_106fbf80 and concrete +0x3c4 slot +0x10, plus backend +0x3ac/+0x3b4 methods below f_100d7f34."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed272c",
+        "notes": "Bound primary slot 0x20 contains 0x10470a34."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470a34",
+        "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8784",
+        "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Concrete Spotify source-control getter is a literal null return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e57c",
+        "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b0d0",
+        "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9d40",
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9e2c",
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c300",
+        "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8910",
+        "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c2e8",
+        "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Arg-remapping thunk into shared worker f_100dcb00 with mode flags (1,0) appended - relative and absolute volume share one code path; worker semantics as documented under SetVolume.",
+       "description": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status. Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery.",
+       "todo": [
+        "Established: Peer requests, counter/cleanup submission, cache/shadow/dirty/source/timer mutations, including changes before 501.",
+        "Unknown: Concrete hook/backend/cleanup effects and durable saving.",
+        "Next: Bind other f_106a76b8 providers +0x30 / source-control +8, f_1046c148 -> f_106f88cc/f_106fbf80 and concrete +0x3c4 slot +0x10, plus backend +0x3ac/+0x3b4 methods below f_100d7f34. Finish provider +0x3bc slot +0x14 and f_10167318."
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100dcc44",
-         "address": "0x100dcc44",
-         "notes": "thunk sets r4=1,r6=0 then branches to f_100dcb00"
+         "address": "0x10ed272c",
+         "notes": "Bound primary slot 0x20 contains 0x10470a34."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10470a34",
+         "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8784",
+         "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022abac",
+         "notes": "Concrete Spotify source-control getter is a literal null return."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e57c",
+         "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046b0d0",
+         "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9d40",
+         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9e2c",
+         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046c368",
+         "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c300",
+         "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d78a4",
+         "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8910",
+         "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c2e8",
+         "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
         }
        ]
       }
      ],
-     "events_triggered": "none statically visible",
-     "state_transitions": "Master volume adjusted by the signed delta (result clamped inside unresolved worker internals)",
-     "return_behavior": "Success is signaled by the implementation leaving cr0.eq=1 at return (the callee performs a cr0-writing op such as 'mr. r30,r3' on its status); the wrapper then emits outputs via req vfunc +0x24 and commits via +0x14. Any other path calls req vfunc +0x14 with r4 = implementation return code, producing a SOAP fault whose numeric code equals the impl return value. NewVolume reflects the post-apply value; the same impl+0x7ff no-op gate applies as in SetVolume.",
+     "events_triggered": {
+      "description": "Accepted normal local writes mark +0x7f0 and request f_1067c6ec(this+8), including apply-zero 501. Hook success bypasses the normal local request. Diagnostic logs and peer/internal signals are separate from subscriber delivery.",
+      "todo": [
+       "Established: Exact dirty/source request and conditional reachability.",
+       "Unknown: RC sender delivery and any events from concrete hook/backend/cleanup workers.",
+       "Next: Bind RC metadata serializer and f_1067c6ec -> f_1067c46c -> f_10678c50 sender, plus concrete hook/backend/cleanup emitters."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed272c",
+        "notes": "Bound primary slot 0x20 contains 0x10470a34."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470a34",
+        "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8784",
+        "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Concrete Spotify source-control getter is a literal null return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e57c",
+        "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b0d0",
+        "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9d40",
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9e2c",
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c300",
+        "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8910",
+        "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c2e8",
+        "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status. Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading.",
+      "todo": [
+       "Established: Local cache transitions, wrapped target arithmetic where relative, and no rollback after late application failure.",
+       "Unknown: Achieved audio level, source-control/cleanup completion and durable settings.",
+       "Next: Bind other f_106a76b8 providers +0x30 / source-control +8, f_1046c148 -> f_106f88cc/f_106fbf80 and concrete +0x3c4 slot +0x10, plus backend +0x3ac/+0x3b4 methods below f_100d7f34. Finish storage +0x3bc slot +0x14 / f_10167318."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed272c",
+        "notes": "Bound primary slot 0x20 contains 0x10470a34."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470a34",
+        "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8784",
+        "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Concrete Spotify source-control getter is a literal null return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e57c",
+        "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b0d0",
+        "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9d40",
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9e2c",
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c300",
+        "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8910",
+        "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c2e8",
+        "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Hook-handled calls return zero. Otherwise the proxy/counter/cleanup policy either faults before local application or reaches local 702/501/402/0. Local 501 can follow cached mutation and notification requests. NewVolume is the computed target, written only after hook or local success and suppressed on SOAP faults. Required validation gives 402; dispatcher rejection gives 401. Hardware, durability and delivery outcomes are separate.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed272c",
+        "notes": "Bound primary slot 0x20 contains 0x10470a34."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470a34",
+        "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8784",
+        "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Concrete Spotify source-control getter is a literal null return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e57c",
+        "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046b0d0",
+        "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9d40",
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9e2c",
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c300",
+        "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8910",
+        "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c2e8",
+        "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073c314",
@@ -83687,21 +84654,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch time",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -83711,30 +84677,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request parse/validation failure at the wrapper.",
+       "meaning": "Request validation fails, local target exceeds100 or Channel is not allowed for the local mode.",
        "fault_sites": [
         "0x1073c314"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request validation fails, local target exceeds100 or Channel is not allowed for the local mode.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073c314"
+           "address": "0x100d9db0",
+           "notes": "Request validation fails, local target exceeds100 or Channel is not allowed for the local mode."
           }
          ]
         }
@@ -83744,12 +84707,135 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073c314"
+         "address": "0x100d9db0",
+         "notes": "Request validation fails, local target exceeds100 or Channel is not allowed for the local mode."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "Normal local worker rejects nonzero InstanceID.",
+       "fault_sites": [
+        "0x1073c314"
+       ],
+       "conditions": [
+        {
+         "description": "Normal local worker rejects nonzero InstanceID.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d9e74",
+           "notes": "Normal local worker rejects nonzero InstanceID."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9e74",
+         "notes": "Normal local worker rejects nonzero InstanceID."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing, or apply returns zero after cached mutation.",
+       "fault_sites": [
+        "0x1073c314"
+       ],
+       "conditions": [
+        {
+         "description": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing, or apply returns zero after cached mutation.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d9e2c",
+           "notes": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing, or apply returns zero after cached mutation."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9e2c",
+         "notes": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing, or apply returns zero after cached mutation."
+        }
+       ]
+      },
+      {
+       "code": 1034,
+       "meaning": "Proxy endpoint preparation fails; counter/cleanup can replace or bypass this result.",
+       "fault_sites": [
+        "0x1073c314"
+       ],
+       "conditions": [
+        {
+         "description": "Proxy endpoint preparation fails; counter/cleanup can replace or bypass this result.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1046e91c",
+           "notes": "Proxy endpoint preparation fails; counter/cleanup can replace or bypass this result."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e91c",
+         "notes": "Proxy endpoint preparation fails; counter/cleanup can replace or bypass this result."
+        }
+       ]
+      },
+      {
+       "code": null,
+       "meaning": "Proxy session statuses and cleanup results can fault before local work, except zero/1024 fallback policy.",
+       "fault_sites": [
+        "0x1073c314"
+       ],
+       "conditions": [
+        {
+         "description": "Proxy session statuses and cleanup results can fault before local work, except zero/1024 fallback policy.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1046e9c8",
+           "notes": "Proxy session statuses and cleanup results can fault before local work, except zero/1024 fallback policy."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e9c8",
+         "notes": "Proxy session statuses and cleanup results can fault before local work, except zero/1024 fallback policy."
+        }
+       ],
+       "todo": [
+        "Established: Last-nonzero session extraction and exact fallback/counter policy.",
+        "Unknown: All concrete session-status producers and cleanup completion.",
+        "Next: Finish f_106ff898 and concrete f_1046c148 topology sessions / +0x3c4 slot +0x10."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -83758,34 +84844,109 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073c224",
-       "address": "0x1073c224",
-       "notes": "action wrapper handler"
+       "address": "0x10ed272c",
+       "notes": "Bound primary slot 0x20 contains 0x10470a34."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e90",
-       "notes": "action dispatch table entry"
+       "address": "0x10470a34",
+       "notes": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "thunk -> f_100dcb00 with mode=1",
-       "function": "0x100dcc44"
+       "address": "0x100d8784",
+       "notes": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1022abac",
+       "notes": "Concrete Spotify source-control getter is a literal null return."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046e57c",
+       "notes": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046b0d0",
+       "notes": "Captured unsigned16 target is sent as DesiredVolume, with original InstanceID and Channel; this is not f_100dcb00 or an ignored-channel path."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d9d40",
+       "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d9e2c",
+       "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046c368",
+       "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 with r9=1024 after work-flag comparison; work selects 1024, no work preserves original error."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073c300",
+       "notes": "Fresh mr. tests numeric returned status; nonzero faults at 0x1073c314."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d78a4",
+       "notes": "Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d8910",
+       "notes": "Raw 0x7d29fa15 is add. r9,r9,r31 (Rc=1), setting CR0 from the wrapped sum; 0x7d20481e at 0x100d8914 is isel r9,0,r9,0. Raw 0x7d2a4f5e at 0x100d891c is isel r9,r10,r9,29 after signed cmpwi cr7,sum,100; r10=100. Raw 0x553f043e at 0x100d8920 is SH=0 MB=16 ME=31, a low16 mask, not a shift."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073c2e8",
+       "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
       }
      ],
-     "notes": "Shares all worker caveats with SetVolume (dead InstanceID check, hardcoded 'Master', +0x7ff no-op gate, LUT path).",
+     "notes": "Replaces unrelated f_100dcb00/f_100dcc44 attributions, ignored InstanceID/Channel claims, and raw-LUT-indexing claims.",
      "todo": [
-      "Established: dispatch to handler 0x1073c224; shares SetVolume's worker caveats.",
-      "Residual: same SetVolume internals - dead InstanceID check, hardcoded 'Master' channel, the +0x7ff no-op gate, and the LUT path details. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: Primary binding, source/proxy/local dispatch, guards, cached writes and counter/error policy.",
+      "Unknown: Other source-control workers, backend/cleanup completion, durable saving and delivery.",
+      "Next: Bind other f_106a76b8 providers +0x30 / source-control +8, f_1046c148 -> f_106f88cc/f_106fbf80 and concrete +0x3c4 slot +0x10, plus backend +0x3ac/+0x3b4 methods below f_100d7f34. Finish f_106ff898 session statuses, storage +0x3bc slot +0x14 / f_10167318 and RC sender."
      ],
-     "resolved_findings": [
-      "Resolved: shared worker = SetVolume internals {dead InstanceID check, hardcoded Master channel, +0x7ff fixed-output no-op gate, dB LUT for the delta}.",
-      "Resolved: shared worker = SetVolume internals {dead InstanceID check, hardcoded Master channel, +0x7ff fixed-output no-op gate, dB LUT for the delta}."
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x20",
+      "function": "0x10470a34",
+      "source_hook": "0x100d8824",
+      "proxy": "0x1046e57c",
+      "local": "0x100dbe90",
+      "cache_worker": "0x100d9d40"
+     }
     },
     "SetRoomCalibrationStatus": {
      "description": "ABSENT IN CLASS A: vtable A's slot +0x68 is 0xfffffff8 (vtable terminator - the base interface ends at +0x64). Only derived class B implements it at 0x1046cacc (unexplored). In class-A deployments the SOAP call dispatches to a non-function slot - behavior undefined/likely dispatch failure.",
