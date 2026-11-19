@@ -224444,13 +224444,74 @@
      "function": "0x1042e40c",
      "address": "0x1042e740",
      "notes": "Raw andi immediate 0xe6 and compare 0xe2 verified against the loop mask."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c96348",
+     "address": "0x10c96518",
+     "notes": "read_metadata_ SEEKTABLE branch (type==3): private_+0xfc has_seek_table cleared first, num_points=length/18 via mulhwu 0x38e38e39 >>2 into private_+0x1c0; header {type@+0x1b0, is_last@+0x1b4, length@+0x1b8}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c96348",
+     "address": "0x10c9655c",
+     "notes": "num_points > 0x0AAAAAAA reject (n*24 u32-overflow guard) -> error path; realloc(points, n*24) into private_+0x1c4; fail frees old ptr, zeroes slot, MEMORY_ALLOCATION_ERROR."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c96348",
+     "address": "0x10c965e4",
+     "notes": "per-point read loop: f_10c992e0 u64 x2 = sample_number@+0 / stream_offset@+8, f_10c9921c 16 bits = frame_samples@+0x10, stride 0x18; partial tail length-n*18 skipped via bitreader skip (f_10c994c4); has_seek_table=1 at 0x10c97128; metadata_callback gated on !is_seeking + filter[3]."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x104ff4e0",
+     "address": "0x104ff6fc",
+     "notes": "sonos flac seek wrapper: target = tvResume.tv_sec * wrapper+0x1c (mullw); +0x1c = sample rate stored by metadata callback f_105012d8 from STREAMINFO block +0x20; cap target to total_samples-1 ('capping aboslute seek position'); call seek_absolute f_10c97eb0 then process_single f_10c97df4 ('seek frame invalid')."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c97eb0",
+     "address": "0x10c97fec",
+     "notes": "seek_to_absolute_sample_: seek_table = has_seek_table(+0xfc) ? private_+0x1c0 : 0 via isel XO975 (r17); placeholder const UINT64_MAX at 0x11095ad0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c97eb0",
+     "address": "0x10c98054",
+     "notes": "backward scan r9 = points+(n-1)*24 decrementing: accept last point with sample_number != PLACEHOLDER, frame_samples(+0x10)>0, sample < total_samples (guard skipped when total==0), sample <= target -> new_lower_bound = first_frame_offset + stream_offset."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c97eb0",
+     "address": "0x10c98128",
+     "notes": "forward scan for first point > target_sample under same guards -> new_upper_bound; commit only if new_upper >= new_lower (0x10c98194-0x10c981c0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c97eb0",
+     "address": "0x10c981fc",
+     "notes": "binary-search loop: pos = lower + (target-lb_sample)/(ub_sample-lb_sample)*(ub-lb) - approx_bytes_per_frame via f_109822f4 (u64->double) and f_10982080; clamp pos to [lower, upper-1]; seek_callback private_+0x8 -> flush -> process_single f_10c97b6c; state ABORTED(7)/fail -> protected_->state=SEEK_ERROR(6); approx_bytes_per_frame doubles on insufficient backward move."
     }
    ],
    "detail": "ogg/vorbis {nullaudio \"starting null audio play\"+\"dropping %zu bytes\",\"oob, num samples larger than max vorbis packet size\",\"we have gapless ogg, %d samples, %zu frame size\",\"gapless requested %d samples > decoded frame size\",\"ogg eof\",\"ogg only header byte found\",\"ogg hard stop requested\"}; SBC {\"Invalid packet header\",\"params: freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%zu frames=%zu\",\"Truncated packet. Lost %zu of %zu frames\",\"frame size changed %zu->%zu\",\"decoder error %zd on frame %zu\",\"Bad SBC frame %zu. read %zd/%zd, decoded %zu/%zu\",\"unexpected NOTIFYFRAME_ERR_BUFFERING\",\"unknown frame status %d\"}; WMA {\"oob, num samples larger than max wma packet size (%zu * %zu == %zu) > %zu\",\"wma player end of file\",\"notify frame stop/do not decode\",\"skipping wma frame\",\"wma decoder error, resetting/no reset/hard stopping\",\"number of channels encoded %d, will not decode > stereo\"}; ALAC {\"alac decoder status: %d\",\"producing zeros only\",\"alac out-of-bounds read prevented\",\"error initializing ALAC\",\"created alac for %u-bit samples, %d sample freq, %d-channel\",\"unexpected sample bit depth: %u\"}",
    "adts_aiff_framer": "ADTS framer (domain suffix formats '%sadts-?'/'%sadts-%s'): sync scan 'found sync'/'skipped %zu', 'unexpected layer %d', 'incomplete header r:%zu'/'(missing CRC r:%zu)', 'unsupported sampling frequency %u', 'unexpected change of format: prev %d', 'Number of audio channels is too high: %u', 'buffer size too small, need %zu bytes', 'incomplete audio data r:%zu l:%zu', 'At Offset:%zu want:%zu dropping frame', 'buffering error, goto cleanup'. AIFF checks: 'exceeded max AIFF audio channels (%d) found %d channels', 'less than min AIFF audio channels (%d) found %d channels', 'File bit-depth unsupported. Found %d', emitted labels '%u-channels'/'%u-bit'. Audiotap record framing: 'j,%zu:%s' tagged-length records and 'i0'-prefixed integer fields on the audiotap.poll stream.",
-   "todo": [
-    "Residual: trace FLAC seek-table metadata parsing and the seek consumer, including behavior with no seek table. The native MP3 framing sync search is now reversed; do not treat it as entirely hidden in the vendored decoder."
-   ],
    "resolved_findings": [
     "Resolved: decoder-selection = the codec factory keyed by accepted_mimes id; AAC param parsing = the adts_aiff_framer path; vorbis error set + detail sub-block documented.",
     "AAC layer proven (AOSP-AAC): DisableAacPlus gates SBR - [SUCCESS] DisableAacPlus StreamType=%d, aacPlusUpsamplingFactor=%d sets the AAC+ upsampling factor (SBR off = factor reset). Status XML <DEC_AACDecoder> exposes {DEC_InputChanCount, DEC_OutputChanCount, DEC_BitRate, DEC_FrameSize, DEC_AudioObjectType} with the AOT name set {AAC-LC, HE-AAC, ER-AAC-LC, ER-AAC-SCAL - Decoding base layer only, ER-BSAC, ER-AAC-LD, HE-AAC v2, ER_AAC_ELD, xHE-AAC}. mp4_header_parser feeds init: Invalid sample rate idx, Frame Paddling Len = %d numChannels = %d sampleRateIx %d obj %d, Explicitly expressed samplerate not supported, Failed to get the extension sampling freq idx. Decode errors: cant initialize decoder library, Unable to decode init frame, unknown AAC format, ERROR DECODE %d, (%d) only used %d bytes from a buffer containing %d. Adjacent Vorbis decoder emits {no samples produced, insufficient bytes, decoding failed, vorbis_synthesis_read failed} with <SampleRate>/<FrameSize>/<NumChannels>/<ChanMap %s (%s)> status XML. Decoder selection itself rides the per-codec init frames plus the tv_processor ActiveDecoder ladder for SPDIF sources.",
@@ -224461,7 +224522,7 @@
     "FLAC decoder state enums recovered (vendored libFLAC): decoder states at 0x10fbb860 {SEARCH_FOR_METADATA, READ_METADATA, SEARCH_FOR_FRAME_SYNC, READ_FRAME, END_OF_STREAM, OGG_ERROR, SEEK_ERROR, ABORTED, MEMORY_ALLOCATION_ERROR, UNINITIALIZED} plus error/length/tell/seek/read/init status tables at 0x10fbb89c.",
     "MIME->format-class map at 0x10ecc61c: {audio/x-wav, audio/vnd.wave, audio/wma}=1, {audio/x-ms-wma, audio/x-mpegurl}=2, audio/mpegurl=8, {application/x-mpegurl, application/vnd.apple.mpegurl, audio/L16}=9 - the mime-to-decoder-class binding.",
     "ALAC cookie consumption bounded exactly (init f_10534ca4): the decoder pulls the cookie via descriptor vfuncs and reads u16 fields at stack +0x44/+0x46/+0x48/+0x4a -> {bitDepth, sampleRate, channels} ONLY - no further atom fields are consumed in-image. Validation: bitDepth must be 16 or 24 (cmplwi 0x10/0x18 gates), channel count is range-checked (cmplwi 1/2/3 ladder) with reject strings 'unexpected sample bit depth: %u'/'not supporting channels in sub alac: %u'. The rest of the ALACSpecificConfig (frameLength, pb/mb/kb, maxRun, avgBitRate...) is not parsed by this consumer.",
-    "Native MP3 framing search resolved in f_1042e40c: it requests four bytes through f_1042e214 at 0x1042e484 and treats a short header read as terminal for this attempt, setting the caller output byte at r22 to 1 and returning zero at 0x1042e4dc. A candidate requires first byte 0xff and (second byte & 0xe6)==0xe2 (0x1042e534-0x1042e53c plus 0x1042e73c-0x1042e748). The raw mask is unsigned 0xe6; the subsequent loop materializes -26 = 0xffffffe6 but ANDs a zero-extended byte, giving the same predicate. On mismatch the scanner marks the other output byte, shifts the last three bytes down with memmove, requests one new byte, and repeats (0x1042e57c-0x1042e5ac). A short one-byte refill follows the read-frame-sync-failed path and the same terminal return. This is a candidate-sync test, not proof that every candidate is a fully valid MPEG audio frame; header decoding follows it. The MP3 wrapper f_108044c0 separately constructs f_10804804, and the ELF imports mpg123_new/open_feed/decode/getformat/info2, distinguishing the native framer from the decoder implementation. FLAC SEEKTABLE vocabulary at 0x10fbd600 alone is not evidence of seek-table consumption."
+    "FLAC SEEKTABLE parsing and consumption fully traced in the vendored libFLAC 1.3.4 (build string 'reference libFLAC 1.3.4 20220220' at 0x10fbd6e4): read_metadata_ f_10c96348 reads the 1/7/24-bit block header (bit-width globals 0x11095a64/0x11095a60/0x11095a5c) and on type==3 clears private_+0xfc then parses num_points = block_length/18 (0x10c9651c), stores each 18-byte wire point into a 24-byte record {u64 sample_number@0, u64 stream_offset@8, u32 frame_samples@0x10} at private_+0x1c4 (realloc, 0x10c9657c), skips a trailing partial point, and sets has_seek_table=1 only on success (0x10c97128). The consumer is the sonos file-decoder 'seek' op f_104ff4e0 in the flac log domain: it scales tvResume.tv_sec by wrapper+0x1c (the STREAMINFO sample rate latched by metadata callback f_105012d8), caps the target at total_samples-1, and calls FLAC__stream_decoder_seek_absolute f_10c97eb0 followed by process_single f_10c97df4 as a frame-validity check ('seek invalid'/'seek frame invalid' on failure). Inside seek_absolute, seek_to_absolute_sample_ (inlined) uses the table only when has_seek_table is set: a backward scan picks the last valid point <= target and a forward scan the first point > target, rejecting placeholder points (sample_number == 0xFFFFFFFFFFFFFFFF), zero frame_samples and points >= total_samples; the resulting byte bounds (first_frame_offset + stream_offset) refine the initial {first_frame_offset, stream_length} window before the interpolation/binary-search loop. With no seek table the same loop runs on the unrefined window, so seeking still works but needs more probe reads. target_sample is recorded at private_+0x1800 and the loop exits when the write callback clears is_seeking (+0xe30)."
    ]
   },
   "product_models": {
