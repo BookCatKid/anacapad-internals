@@ -65096,22 +65096,31 @@
       ]
      },
      "state_dependencies": {
-      "description": "Mode-field (impl+0x4654) selects indexed vs stream stop path; flags impl+0x5a86/0x5a7f/0x7764 gate the chime-restore behavior.",
+      "description": "URI eligibility and mode select the stop worker. The indexed branch checks the chime and restore-related bytes at impl+0x5a86, +0x5a7f, and +0x7764 after submission.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x102d2c64",
-        "notes": "mode dispatch",
-        "function": "f_102d2bec"
+        "notes": "After the f_102931f0 URI check (true returns 701), mode 0 uses f_102b0a48, mode 1 can invoke the shared f_102d0ac8 fallback, mode 2 sends indexed opcode 1 via f_10256a84, and higher modes return 701.",
+        "function": "0x102d2bec"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10eb12cc",
-        "notes": "'restoring after stop chime: ret=%d ar=%d wrca=%d pavt=%d'"
+        "address": "0x102d2ca4",
+        "notes": "A false indexed op-1 result sets 701; true preserves the initialized zero. The worker still performs f_102b4b48 and state checks after that mapping.",
+        "function": "0x102d2bec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d2e3c",
+        "notes": "When impl+0x7764 is set, clears it, sets +0x7765 to one and invokes f_1067c6ec(impl+0x10). Another f_1067c6ec call at 0x102d2da8 follows a nonzero f_102b05e4 result.",
+        "function": "0x102d2bec"
        }
       ]
      },
@@ -65139,19 +65148,27 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Some accepted branches invoke f_1067c6ec, including the indexed +0x7764 to +0x7765 flag change. Failure of an indexed submission does not by itself skip this part of the worker.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f849c",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102d2ca4",
+        "notes": "A false indexed op-1 result sets 701; true preserves the initialized zero. The worker still performs f_102b4b48 and state checks after that mapping.",
+        "function": "0x102d2bec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d2e3c",
+        "notes": "When impl+0x7764 is set, clears it, sets +0x7765 to one and invokes f_1067c6ec(impl+0x10). Another f_1067c6ec call at 0x102d2da8 follows a nonzero f_102b05e4 result.",
+        "function": "0x102d2bec"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Identify the subscribers and LastChange fields for the two f_1067c6ec call sites, including whether they can both run in one stop operation."
       ]
      },
      "state_transitions": {
@@ -65199,34 +65216,21 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x28)",
-       "meaning": "apply worker f_102d2bec multi-exit: literal {701 x2, 0} plus call-derived (r30/r28 accumulators); impl-side 718 stands; rc forwarded verbatim",
+       "meaning": "The parsed InstanceID was nonzero.",
        "fault_sites": [
         "0x102f8554"
        ],
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "The parsed InstanceID was nonzero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102d2e94",
-           "notes": "li 0x2ce",
-           "function": "f_102d2e54"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x102d2e54",
-           "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
+           "notes": "Both tables bind +0x28 to 0x102d2e54; nonzero InstanceID returns 718. Zero logs stop and calls f_102d2bec under impl+0x458.",
+           "function": "0x102d2e54"
           }
          ]
         }
@@ -65237,42 +65241,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102d2e94",
-         "notes": "li 0x2ce",
-         "function": "f_102d2e54"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102d2e54",
-         "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102d2c40",
-         "notes": "li r3,0x2bd"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102d2dd4",
-         "notes": "li r28,0x2bd"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102d2db4",
-         "notes": "li r3,0"
+         "notes": "Both tables bind +0x28 to 0x102d2e54; nonzero InstanceID returns 718. Zero logs stop and calls f_102d2bec under impl+0x458.",
+         "function": "0x102d2e54"
         }
        ],
        "unresolved": {
@@ -65323,30 +65293,42 @@
         0,
         718
        ],
-       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x28); sites: 0x102f8554).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker."
       },
       {
        "code": 701,
        "code_expr": "vret(r5-in,+0x28)",
-       "meaning": "The impl+0x5dc control target rejected the stop precondition (f_102931f0 cr0.eq clear).",
+       "meaning": "The URI test rejected the source, the mode is outside 0-2, or indexed op 1 returned false. The shared mode-1 fallback can also return 701.",
        "fault_sites": [
         "0x102f8554"
        ],
        "conditions": [
         {
-         "description": "f_102931f0(impl+0x5dc) failed - control target not in a stoppable state",
+         "description": "The URI test rejected the source, the mode is outside 0-2, or indexed op 1 returned false. The shared mode-1 fallback can also return 701.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d2c40",
-           "notes": "li r3,0x2bd after bc 12,2",
-           "function": "f_102d2bec"
+           "address": "0x102d2c64",
+           "notes": "After the f_102931f0 URI check (true returns 701), mode 0 uses f_102b0a48, mode 1 can invoke the shared f_102d0ac8 fallback, mode 2 sends indexed opcode 1 via f_10256a84, and higher modes return 701.",
+           "function": "0x102d2bec"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102d2ca4",
+           "notes": "A false indexed op-1 result sets 701; true preserves the initialized zero. The worker still performs f_102b4b48 and state checks after that mapping.",
+           "function": "0x102d2bec"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102d2e04",
+           "notes": "Mode 1 can call f_102d0ac8(impl,1,r27,-1,-1). A nonzero result is returned before the common success tail. There is no store-commit return read by the wrapper or by this front end.",
+           "function": "0x102d2bec"
           }
          ]
         }
@@ -65356,35 +65338,52 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102d2c40",
-         "notes": "701 return",
-         "function": "f_102d2bec"
+         "address": "0x102d2c64",
+         "notes": "After the f_102931f0 URI check (true returns 701), mode 0 uses f_102b0a48, mode 1 can invoke the shared f_102d0ac8 fallback, mode 2 sends indexed opcode 1 via f_10256a84, and higher modes return 701.",
+         "function": "0x102d2bec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d2ca4",
+         "notes": "A false indexed op-1 result sets 701; true preserves the initialized zero. The worker still performs f_102b4b48 and state checks after that mapping.",
+         "function": "0x102d2bec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d2e04",
+         "notes": "Mode 1 can call f_102d0ac8(impl,1,r27,-1,-1). A nonzero result is returned before the common success tail. There is no store-commit return read by the wrapper or by this front end.",
+         "function": "0x102d2bec"
         }
        ]
       },
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x28)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: 718, downstream mode-path rc fwd (0x102d2ef0)",
+       "meaning": "The mode-1 shared fallback can return a nonzero result verbatim.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "f_102b05e4(impl,1) returned nonzero",
+         "description": "The mode-1 shared fallback can return a nonzero result verbatim.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d2d74",
-           "notes": "bc 4,30 on r3!=0 -> error tail",
-           "function": "f_102d2bec"
+           "address": "0x102d2c64",
+           "notes": "After the f_102931f0 URI check (true returns 701), mode 0 uses f_102b0a48, mode 1 can invoke the shared f_102d0ac8 fallback, mode 2 sends indexed opcode 1 via f_10256a84, and higher modes return 701.",
+           "function": "0x102d2bec"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102d2e54",
-           "notes": "rc site"
+           "address": "0x102d2e04",
+           "notes": "Mode 1 can call f_102d0ac8(impl,1,r27,-1,-1). A nonzero result is returned before the common success tail. There is no store-commit return read by the wrapper or by this front end.",
+           "function": "0x102d2bec"
           }
          ]
         }
@@ -65394,16 +65393,17 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102d2d6c",
-         "notes": "f_102b05e4 call",
-         "function": "f_102d2bec"
+         "address": "0x102d2c64",
+         "notes": "After the f_102931f0 URI check (true returns 701), mode 0 uses f_102b0a48, mode 1 can invoke the shared f_102d0ac8 fallback, mode 2 sends indexed opcode 1 via f_10256a84, and higher modes return 701.",
+         "function": "0x102d2bec"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102d2e54",
-         "notes": "rc producers decoded"
+         "address": "0x102d2e04",
+         "notes": "Mode 1 can call f_102d0ac8(impl,1,r27,-1,-1). A nonzero result is returned before the common success tail. There is no store-commit return read by the wrapper or by this front end.",
+         "function": "0x102d2bec"
         }
        ],
        "unresolved": {
@@ -65460,8 +65460,7 @@
         701
        ],
        "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x28); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Complete the return matrix of f_102d0ac8 for Stop's mode-1 arguments and distinguish its 701 mappings from any other returns."
        ]
       },
       {
@@ -65502,34 +65501,80 @@
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "meaning": "No separate store-commit fault path is present in the Stop wrapper or worker; its only delegated nonzero result is the mode-1 fallback.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102d2e94",
+         "notes": "Both tables bind +0x28 to 0x102d2e54; nonzero InstanceID returns 718. Zero logs stop and calls f_102d2bec under impl+0x458.",
+         "function": "0x102d2e54"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d2c64",
+         "notes": "After the f_102931f0 URI check (true returns 701), mode 0 uses f_102b0a48, mode 1 can invoke the shared f_102d0ac8 fallback, mode 2 sends indexed opcode 1 via f_10256a84, and higher modes return 701.",
+         "function": "0x102d2bec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d2ca4",
+         "notes": "A false indexed op-1 result sets 701; true preserves the initialized zero. The worker still performs f_102b4b48 and state checks after that mapping.",
+         "function": "0x102d2bec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d2e04",
+         "notes": "Mode 1 can call f_102d0ac8(impl,1,r27,-1,-1). A nonzero result is returned before the common success tail. There is no store-commit return read by the wrapper or by this front end.",
+         "function": "0x102d2bec"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "No separate store-commit fault path is present in the Stop wrapper or worker; its only delegated nonzero result is the mode-1 fallback.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102d2e94",
+           "notes": "Both tables bind +0x28 to 0x102d2e54; nonzero InstanceID returns 718. Zero logs stop and calls f_102d2bec under impl+0x458.",
+           "function": "0x102d2e54"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102d2c64",
+           "notes": "After the f_102931f0 URI check (true returns 701), mode 0 uses f_102b0a48, mode 1 can invoke the shared f_102d0ac8 fallback, mode 2 sends indexed opcode 1 via f_10256a84, and higher modes return 701.",
+           "function": "0x102d2bec"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102d2ca4",
+           "notes": "A false indexed op-1 result sets 701; true preserves the initialized zero. The worker still performs f_102b4b48 and state checks after that mapping.",
+           "function": "0x102d2bec"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102d2e04",
+           "notes": "Mode 1 can call f_102d0ac8(impl,1,r27,-1,-1). A nonzero result is returned before the common success tail. There is no store-commit return read by the wrapper or by this front end.",
+           "function": "0x102d2bec"
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
@@ -65575,12 +65620,51 @@
        "build": "86.10-80260",
        "address": "0x10eb3204",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d2e94",
+       "notes": "Both tables bind +0x28 to 0x102d2e54; nonzero InstanceID returns 718. Zero logs stop and calls f_102d2bec under impl+0x458.",
+       "function": "0x102d2e54"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d2c64",
+       "notes": "After the f_102931f0 URI check (true returns 701), mode 0 uses f_102b0a48, mode 1 can invoke the shared f_102d0ac8 fallback, mode 2 sends indexed opcode 1 via f_10256a84, and higher modes return 701.",
+       "function": "0x102d2bec"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d2ca4",
+       "notes": "A false indexed op-1 result sets 701; true preserves the initialized zero. The worker still performs f_102b4b48 and state checks after that mapping.",
+       "function": "0x102d2bec"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d2e3c",
+       "notes": "When impl+0x7764 is set, clears it, sets +0x7765 to one and invokes f_1067c6ec(impl+0x10). Another f_1067c6ec call at 0x102d2da8 follows a nonzero f_102b05e4 result.",
+       "function": "0x102d2bec"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d2e04",
+       "notes": "Mode 1 can call f_102d0ac8(impl,1,r27,-1,-1). A nonzero result is returned before the common success tail. There is no store-commit return read by the wrapper or by this front end.",
+       "function": "0x102d2bec"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: direct dispatch to handler 0x102f849c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Finish the mode-1 f_102d0ac8 result matrix and mode-0 f_102b0a48 state effects. The indexed request, local return mapping and notification call sites are verified."
      ]
     }
    },
