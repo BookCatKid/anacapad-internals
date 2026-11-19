@@ -125820,25 +125820,25 @@
   },
   "wss_event_vocabulary": {
    "name": "WSS eventing subscription-type registry",
-   "role": "websocket (secure) event-subscription surface; TLV frame {u16 tag@+0, u8 type@+2} mapped to {id,name} via 73-entry runtime table",
+   "role": "Registry metadata for WSS event subscriptions and outgoing event type construction. This is not a table of per-topic handler pointers or evidence that a particular subsystem publishes every inventoried name.",
    "table": "0x110b8ce8 (.bss, stride 0x14, count 0x49)",
-   "populator": "f_10098d34 (unrolled name/tag/handler stores)",
-   "lookup": "f_109e10d8({u16 tag,u8 type} frame) walks all 73 entries: entry match_type -1=wildcard, 1=type-only match, 0=tag+type match; returns topic_id (entry+0) or 0x4a (=count+1) as not-found sentinel. Callers are exactly the three WSS frame processors f_1068e65c/f_1068e904/f_1068ec54.",
+   "populator": "f_10098d34 unrolls literal stores of topic indices, name pointers, secondary event IDs, namespace tags, signed match types and category values. Its73 rows occupy0x110b8ce8..0x110b929b; padding byte+0xf is not a handler. Independent raw-word constant propagation through the complete initializer confirms every row, including scratch constants temporarily held in LR/CTR.",
+   "lookup": "f_109e10d8 scans73 rows in order. Entry type and input type must agree: type0 and type1 additionally require equal u16 tags; entry type-1 matches input-1 without a tag test, not arbitrary input types. All initialized entries have type0, so this build initially accepts only type0 with a registered tag. It returns entry+0 (topic index0..72), or74 on failure. Shared tags select the first row: tag38/type0 selects settingsVersionChanged(index58), not settingsDataChanged59 or settingsPlayerSettingsChanged60. A successful namespace lookup is not proof that every event type within that namespace is emitted.",
    "reject_paths": [
     "Invalid transport: WSS is required (0x10f02958)",
     "Invalid namespace: UPnP renew not supported (0x10f0297c)",
     "Invalid namespace: UPnP unsubscribe not supported (0x10f029a8)"
    ],
-   "entry_layout": "{+0x0 id/value, +0x4 name_ptr, +0x8 u32 monotonic event-type id (3..355), +0xc u16 tag, +0xe s8 type, +0x10 u32 kind}",
+   "entry_layout": "{+0x0 u32 topic/index, +0x4 name_ptr, +0x8 u32 secondary event-type ID, +0xc u16 namespace tag, +0xe s8 match_type, +0xf padding, +0x10 u32 category}; stride20 bytes. No field is a code pointer.",
    "names": [
     "accessorySwapStatus",
     "tvAudioSignalStatus",
     "activeZonesChange",
     "zoneDefinitionsChange",
+    "zoneError",
     "alarmClock",
     "alarmVersionChange",
     "areasVersionChange",
-    "zoneError",
     "audioClipStatus",
     "audioInput",
     "availableSoftwareUpdate",
@@ -125850,96 +125850,11 @@
     "bluetoothPairingStatus",
     "bluetoothConnectionStatus",
     "poeStatus",
+    "lineInStatus",
+    "wiredSubConnectionStatus",
     "cloudRegistration",
     "connectionManager",
     "contentDirectory",
-    "lineInStatus",
-    "wiredSubConnectionStatus",
-    "deviceProperties",
-    "diagnosticSubmissionResults",
-    "diagnosticMetadata",
-    "effectiveSettingsDataChanged",
-    "entitlementsVersionChanged",
-    "extendedDeviceStatus",
-    "extendedPlaybackStatus",
-    "favoritesVersionChange",
-    "groupCoordinatorChanged",
-    "groupManagement",
-    "groupRendering",
-    "hdmiStatus",
-    "historyVersionChanged",
-    "householdUpdateStatus",
-    "upgradeManager",
-    "htControl",
-    "indexerStatus",
-    "musicServices",
-    "musicServicesChanged",
-    "playbackMetadataStatus",
-    "playbackStatus",
-    "playlistsVersionChange",
-    "positioningSessionStatus",
-    "positioningSessionError",
-    "positioningDeviceStatus",
-    "renderingControl",
-    "sessionError",
-    "sessionInfo",
-    "settingsVersionChanged",
-    "settingsDataChanged",
-    "settingsPlayerSettingsChanged",
-    "systemProperties",
-    "sleepTimerStatus",
-    "trueplayStatus",
-    "speakerPresenceStatus",
-    "speakerPresenceRateChange",
-    "trueroomAdaptationStatusEvent",
-    "trueroomCalibrationStatus",
-    "trueroomStatusEvent",
-    "virtualLineIn",
-    "voiceAccountsVersionChange",
-    "zoneGroupTopology"
-   ],
-   "note": "73 WSS event-subscription types; each {name,id,tag,type} via runtime .bss table; kind field at +0x10 (kind==2 predicate at f_109e12b0); reject paths WSS-required/renew-not-supported/unsubscribe-not-supported",
-   "evidence": [
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "address": "0x10098d34",
-     "notes": "populator writes name/tag/handler triples"
-    },
-    {
-     "type": "firmware",
-     "binary": "anacapad",
-     "build": "86.10-80260",
-     "address": "0x109e10d8",
-     "notes": "73-iteration lookup loop, entry stride 0x14"
-    }
-   ],
-   "entries": [
-    "accessorySwapStatus",
-    "tvAudioSignalStatus",
-    "activeZonesChange",
-    "zoneDefinitionsChange",
-    "alarmClock",
-    "alarmVersionChange",
-    "areasVersionChange",
-    "zoneError",
-    "audioClipStatus",
-    "audioInput",
-    "availableSoftwareUpdate",
-    "avTransport",
-    "batteryStatus",
-    "wirelessNetworkStatus",
-    "microphoneSwitchStatus",
-    "waterStatus",
-    "bluetoothPairingStatus",
-    "bluetoothConnectionStatus",
-    "poeStatus",
-    "cloudRegistration",
-    "connectionManager",
-    "contentDirectory",
-    "lineInStatus",
-    "wiredSubConnectionStatus",
     "deviceProperties",
     "diagnosticSubmissionResults",
     "diagnosticMetadata",
@@ -125977,8 +125892,8 @@
     "settingsVersionChanged",
     "settingsDataChanged",
     "settingsPlayerSettingsChanged",
-    "systemProperties",
     "sleepTimerStatus",
+    "systemProperties",
     "timers",
     "trueplayStatus",
     "speakerPresenceStatus",
@@ -125990,491 +125905,1232 @@
     "voiceAccountsVersionChange",
     "zoneGroupTopology"
    ],
-   "field_notes": "slot idx=0..72; +0x8 aux = monotonic global event-type id (3..355); +0xc u16 = TLV subscription-category tag (grouped: 0xf device-status family, 0x7d-0x89 UPnP-service family, 0x5a-0x60 playback/session, 0x3d trueplay, 0x26 settings, 0x52 zone); +0xe u8 type=0; +0x10 flags/handler",
+   "note": "Complete metadata inventory and matching/accessor contract for this registry; independent domain-event payload schemas and live-session delivery are not claimed by a vocabulary record. The old per-entry-handler TODO described pointers that do not exist in the table; its category/serializer premise and incorrect accessor-call assumptions have been replaced by traced registry and producer boundaries.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10098d34",
+     "address": "0x10098d34",
+     "callsite": "0x10098d34-0x100999b0",
+     "notes": "All73 rows reconstructed from raw constant arithmetic and byte/halfword/word stores, including LR/CTR-held constants; every name pointer independently read. No handlers in the20-byte layout."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109e10d8 / f_109e1038",
+     "address": "0x109e10d8",
+     "callsite": "0x109e1038-0x109e1178; 0x1068e6e0; 0x1068e988; 0x1068ed3c",
+     "notes": "Exact signed-type/tag match rules, first matching row, failure74 and descriptor construction. Raw5529d97e at109e1158 is genuine right5 normalization of cntlzw, not a SH0 mask."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109e12b0 / f_109e12f8 / f_109e1334 / f_109e1370",
+     "address": "0x109e12b0",
+     "callsite": "0x109e12b0-0x109e13ac; 0x109ecb5c-0x109ecb8c; 0x1067d9f0-0x1067da18; 0x109e8798",
+     "notes": "Bounded accessors and direct callers; stride formed by raw5469103a/54632036 left2+left4. Category exact equality2, not bitmask. Secondary-name enum bounds326 differ from registry index bounds72."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109e1940 / f_109e219c",
+     "address": "0x109e1940",
+     "callsite": "0x109e1940-0x109e1b34; 0x109e219c-0x109e22ec",
+     "notes": "Category2 predicate participates in subscription-set bookkeeping and special topics33/56/57. No category-to-serializer dispatch in these routines."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10677b94 / f_109e8780 / f_106655b4",
+     "address": "0x10677b94",
+     "callsite": "0x10677b94-0x10677bf8; 0x10677ae4; 0x109e8780-0x109e87b0; 0x10665834-0x106659a8",
+     "notes": "Generic typed construction attaches secondary ID from topic index and submits via1067b3a8; default-context and aggregation wrappers supply the separately listed indices. Producer-binding list records directly checked literal arguments, not runtime delivery."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0e84 / f_1066a590 / f_10683da0 / f_1068108c",
+     "address": "0x1066a598",
+     "callsite": "0x104b0f88-0x104b0fa4; 0x1066a598-0x1066a5f0; 0x1067af1c; 0x1067afb0; 0x106841d8-0x106841f0; 0x10682758-0x10682810; 0x100f9528-0x100f9540",
+     "notes": "Concrete SP source registers topic62, stored at source+c0 and later supplied to conditional generic WSS bridge. Separate settingsVersionChanged emitter passes58. These distinguish metadata inventory, SP capabilities and actual delivery."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1067ab54 / f_1066b0a0 / f_1066af90 / f_1066ad04",
+     "address": "0x1067ab54",
+     "callsite": "0x10ed7628+0x14/+0x18; 0x1067ab54-0x1067ab70; 0x1066b0a0-0x1066b0a4; 0x1066b020; 0x1066ad04-0x1066af90",
+     "notes": "Concrete SP forwarding and named state serializer. No settingsVersionChanged string emission inferred from this separate source chain."
+    }
+   ],
+   "entries": [
+    "accessorySwapStatus",
+    "tvAudioSignalStatus",
+    "activeZonesChange",
+    "zoneDefinitionsChange",
+    "zoneError",
+    "alarmClock",
+    "alarmVersionChange",
+    "areasVersionChange",
+    "audioClipStatus",
+    "audioInput",
+    "availableSoftwareUpdate",
+    "avTransport",
+    "batteryStatus",
+    "wirelessNetworkStatus",
+    "microphoneSwitchStatus",
+    "waterStatus",
+    "bluetoothPairingStatus",
+    "bluetoothConnectionStatus",
+    "poeStatus",
+    "lineInStatus",
+    "wiredSubConnectionStatus",
+    "cloudRegistration",
+    "connectionManager",
+    "contentDirectory",
+    "deviceProperties",
+    "diagnosticSubmissionResults",
+    "diagnosticMetadata",
+    "effectiveSettingsDataChanged",
+    "entitlementsVersionChanged",
+    "extendedDeviceStatus",
+    "extendedPlaybackStatus",
+    "favoritesVersionChange",
+    "groups",
+    "groupCoordinatorChanged",
+    "groupManagement",
+    "groupRendering",
+    "groupVolume",
+    "hdmiStatus",
+    "historyVersionChanged",
+    "householdUpdateStatus",
+    "upgradeManager",
+    "htControl",
+    "indexerStatus",
+    "localDevices",
+    "musicServices",
+    "musicServicesChanged",
+    "playbackMetadataStatus",
+    "playbackStatus",
+    "playbackError",
+    "playerVolume",
+    "playlistsVersionChange",
+    "positioningSessionStatus",
+    "positioningSessionError",
+    "positioningDeviceStatus",
+    "queue",
+    "renderingControl",
+    "sessionError",
+    "sessionInfo",
+    "settingsVersionChanged",
+    "settingsDataChanged",
+    "settingsPlayerSettingsChanged",
+    "sleepTimerStatus",
+    "systemProperties",
+    "timers",
+    "trueplayStatus",
+    "speakerPresenceStatus",
+    "speakerPresenceRateChange",
+    "trueroomAdaptationStatusEvent",
+    "trueroomCalibrationStatus",
+    "trueroomStatusEvent",
+    "virtualLineIn",
+    "voiceAccountsVersionChange",
+    "zoneGroupTopology"
+   ],
+   "field_notes": "All73 topic indices equal their slots and all match types initialize to0. Secondary IDs range3..355 and are distinct from topic indices: settingsVersionChanged is index58/secondary252/tag38/kind0; systemProperties is index62/secondary274/tag76/kind4. Corrected rows include accessorySwapStatus secondary3, bluetoothConnectionStatus secondary60 and cloudRegistration tag60. Category values are0,2,3,4,5,6,8; their numeric patterns alone do not establish a bitmask or a serializer selection.",
    "protocol": {
     "frame_format": {
      "layout": "{u16 tag @+0, s8 type @+2, payload...}",
-     "lookup": "f_109e10d8(tag,type): scans table 0x110b8ce8 stride 0x14 x 0x49 entries matching e+0xc==tag AND (e+0xe==-1 wildcard | type rules); returns entry index or 0x4a=invalid",
+     "lookup": "f_109e10d8 scans73 rows in order. Entry type and input type must agree: type0 and type1 additionally require equal u16 tags; entry type-1 matches input-1 without a tag test, not arbitrary input types. All initialized entries have type0, so this build initially accepts only type0 with a registered tag. It returns entry+0 (topic index0..72), or74 on failure. Shared tags select the first row: tag38/type0 selects settingsVersionChanged(index58), not settingsDataChanged59 or settingsPlayerSettingsChanged60. A successful namespace lookup is not proof that every event type within that namespace is emitted.",
      "evidence": "f_109e10d8; call site 0x1068e6e0"
     },
     "subscription_lifecycle": {
-     "create": "f_109e117c: sonos_uuid_generate -> sonos_uuid_unparse = new SID",
+     "create": "f_109e117c generates a UUID, unparses it and hashes its string into an output value. This helper does not install a topic handler or by itself prove an HTTP-style SID wire format.",
      "record": "subscription obj: frame ptr @+0x30, flag byte @+0x34, state word @+0x38",
      "renew": "rejected: 'Invalid namespace: UPnP renew not supported' @0x1068e830",
      "transport": "'Invalid transport: WSS is required' @0x1068e794 - WSS-only"
     },
-    "f10_field": "entry +0x10 u32 in {0,4} - flag/category; consumer semantics undecoded",
+    "f10_field": "Literal category value; observed set0,2,3,4,5,6,8. Exact category==2 predicate participates in subscription bookkeeping, not a decoded serializer-function map.",
     "error_path": "f_1068c138 appends error text into a doc buffer (strlen -> f_1068c040 span-append via doc-writer adaptor) - WSS errors are doc-embedded, not HTTP-status; f_1068c190 namespace strcmp(obj+0x124) matcher used for 'UPnP renew' rejection"
    },
    "f10_field": {
-    "field": "entry +0x10 u32 kind/category",
-    "consumer": "f_109e12b0(idx): bounds idx<=0x48, entry=0x110b8ce8+idx*0x14, returns (entry[+0x10]==2) predicate",
-    "writer_semantics": "literal stores of {0,1,2} observed in the f_109d8bxx/f_109d8bxx registration-path region; kind values enumerate entry categories (0/1/2); kind==2 = the service-visible category gated by the predicate accessor",
-    "evidence": [
-     {
-      "type": "disassembly",
-      "locator": "0x109e12b0..0x109e12e8",
-      "note": "lwz +0x10 -> xori 0x2 -> cntlzw -> rlwinm = ==2 predicate"
-     }
+    "field": "entry+0x10 u32 category",
+    "values": [
+     0,
+     2,
+     3,
+     4,
+     5,
+     6,
+     8
     ],
-    "todo": [
-     "Established: the field is the entry kind/category at +0x10; the predicate accessor f_109e12b0 gates kind==2 as the service-visible category; literal stores of {0,1,2} observed in the registration-path region.",
-     "Residual: what categories kinds 0 and 1 represent - only kind==2's service-visible meaning is decoded. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
-    "resolved_findings": [
-     "Resolved: +0x10 is a category bitmask extracted from populator f_10098d34 - kind==4 dominates (42 UPnP-service+device-status topics); kind==2 marks playback-session topics; kind==0 covers replication/version-change internals; composite kinds {3 session,5 household/upgrade,6 entitlements,8 groupCoordinatorChanged} are bit combinations. Bit1(2)=playback, bit2(4)=service/status."
-    ]
+    "writer": "literal stores in f_10098d34",
+    "consumer": "f_109e12b0(index): bounded index, exact equality to2 via xori/cntlzw/right5 normalization; direct callers f_109e1940 and f_109e219c maintain subscription sets. No bitmask interpretation or per-category serializer table is established."
    },
-   "name_order": "registry index order from f_10098d34 sequential stores",
+   "name_order": "All names/entries/table_full use the same73-row initializer order. In particular sleepTimerStatus(index61) precedes systemProperties(index62).",
    "table_full": [
     {
      "idx": 0,
      "name": "accessorySwapStatus",
-     "id": 78,
-     "tag": 18
+     "id": 3,
+     "tag": 18,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f960e0"
     },
     {
      "idx": 1,
      "name": "tvAudioSignalStatus",
      "id": 4,
-     "tag": 18
+     "tag": 18,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f960f4"
     },
     {
      "idx": 2,
      "name": "activeZonesChange",
      "id": 12,
-     "tag": 82
+     "tag": 82,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f96108"
     },
     {
      "idx": 3,
      "name": "zoneDefinitionsChange",
      "id": 13,
-     "tag": 82
+     "tag": 82,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f9611c"
     },
     {
      "idx": 4,
      "name": "zoneError",
      "id": 14,
-     "tag": 82
+     "tag": 82,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f96134"
     },
     {
      "idx": 5,
      "name": "alarmClock",
      "id": 20,
-     "tag": 64
+     "tag": 64,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96140"
     },
     {
      "idx": 6,
      "name": "alarmVersionChange",
      "id": 24,
-     "tag": 1
+     "tag": 1,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f9614c"
     },
     {
      "idx": 7,
      "name": "areasVersionChange",
      "id": 34,
-     "tag": 2
+     "tag": 2,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f96160"
     },
     {
      "idx": 8,
      "name": "audioClipStatus",
      "id": 38,
-     "tag": 3
+     "tag": 3,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96174"
     },
     {
      "idx": 9,
      "name": "audioInput",
      "id": 40,
-     "tag": 65
+     "tag": 65,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96184"
     },
     {
      "idx": 10,
      "name": "availableSoftwareUpdate",
      "id": 51,
-     "tag": 63
+     "tag": 63,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96190"
     },
     {
      "idx": 11,
      "name": "avTransport",
      "id": 52,
-     "tag": 66
+     "tag": 66,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f961a8"
     },
     {
      "idx": 12,
      "name": "batteryStatus",
      "id": 55,
-     "tag": 15
+     "tag": 15,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f961b4"
     },
     {
      "idx": 13,
      "name": "wirelessNetworkStatus",
      "id": 56,
-     "tag": 15
+     "tag": 15,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f961c4"
     },
     {
      "idx": 14,
      "name": "microphoneSwitchStatus",
      "id": 57,
-     "tag": 15
+     "tag": 15,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f961dc"
     },
     {
      "idx": 15,
      "name": "waterStatus",
      "id": 58,
-     "tag": 15
+     "tag": 15,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f961f4"
     },
     {
      "idx": 16,
      "name": "bluetoothPairingStatus",
      "id": 59,
-     "tag": 15
+     "tag": 15,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96200"
     },
     {
      "idx": 17,
      "name": "bluetoothConnectionStatus",
-     "id": 58,
-     "tag": 15
+     "id": 60,
+     "tag": 15,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96218"
     },
     {
      "idx": 18,
      "name": "poeStatus",
      "id": 61,
-     "tag": 15
+     "tag": 15,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96234"
     },
     {
      "idx": 19,
      "name": "lineInStatus",
      "id": 62,
-     "tag": 15
+     "tag": 15,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96240"
     },
     {
      "idx": 20,
      "name": "wiredSubConnectionStatus",
      "id": 63,
-     "tag": 15
+     "tag": 15,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96250"
     },
     {
      "idx": 21,
      "name": "cloudRegistration",
      "id": 74,
-     "tag": 19
+     "tag": 60,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f9626c"
     },
     {
      "idx": 22,
      "name": "connectionManager",
      "id": 77,
-     "tag": 67
+     "tag": 67,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96280"
     },
     {
      "idx": 23,
      "name": "contentDirectory",
      "id": 80,
-     "tag": 68
+     "tag": 68,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96294"
     },
     {
      "idx": 24,
      "name": "deviceProperties",
      "id": 90,
-     "tag": 69
+     "tag": 69,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f962a8"
     },
     {
      "idx": 25,
      "name": "diagnosticSubmissionResults",
      "id": 95,
-     "tag": 8
+     "tag": 8,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f962bc"
     },
     {
      "idx": 26,
      "name": "diagnosticMetadata",
      "id": 96,
-     "tag": 8
+     "tag": 8,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f962d8"
     },
     {
      "idx": 27,
      "name": "effectiveSettingsDataChanged",
      "id": 101,
-     "tag": 9
+     "tag": 9,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f962ec"
     },
     {
      "idx": 28,
      "name": "entitlementsVersionChanged",
      "id": 106,
-     "tag": 10
+     "tag": 10,
+     "match_type": 0,
+     "kind": 6,
+     "name_address": "0x10f9630c"
     },
     {
      "idx": 29,
      "name": "extendedDeviceStatus",
      "id": 110,
-     "tag": 7
+     "tag": 7,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f96328"
     },
     {
      "idx": 30,
      "name": "extendedPlaybackStatus",
      "id": 111,
-     "tag": 30
+     "tag": 30,
+     "match_type": 0,
+     "kind": 2,
+     "name_address": "0x10f96340"
     },
     {
      "idx": 31,
      "name": "favoritesVersionChange",
      "id": 115,
-     "tag": 11
+     "tag": 11,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f96358"
     },
     {
      "idx": 32,
      "name": "groups",
      "id": 133,
-     "tag": 13
+     "tag": 13,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10e7d218"
     },
     {
      "idx": 33,
      "name": "groupCoordinatorChanged",
      "id": 134,
-     "tag": 12
+     "tag": 12,
+     "match_type": 0,
+     "kind": 8,
+     "name_address": "0x10f96370"
     },
     {
      "idx": 34,
      "name": "groupManagement",
      "id": 136,
-     "tag": 70
+     "tag": 70,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96388"
     },
     {
      "idx": 35,
      "name": "groupRendering",
      "id": 137,
-     "tag": 71
+     "tag": 71,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96398"
     },
     {
      "idx": 36,
      "name": "groupVolume",
      "id": 138,
-     "tag": 14
+     "tag": 14,
+     "match_type": 0,
+     "kind": 2,
+     "name_address": "0x10e7d41c"
     },
     {
      "idx": 37,
      "name": "hdmiStatus",
      "id": 140,
-     "tag": 16
+     "tag": 16,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f963a8"
     },
     {
      "idx": 38,
      "name": "historyVersionChanged",
      "id": 141,
-     "tag": 17
+     "tag": 17,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f963b4"
     },
     {
      "idx": 39,
      "name": "householdUpdateStatus",
      "id": 147,
-     "tag": 20
+     "tag": 20,
+     "match_type": 0,
+     "kind": 5,
+     "name_address": "0x10f963cc"
     },
     {
      "idx": 40,
      "name": "upgradeManager",
      "id": 148,
-     "tag": 20
+     "tag": 20,
+     "match_type": 0,
+     "kind": 5,
+     "name_address": "0x10f963e4"
     },
     {
      "idx": 41,
      "name": "htControl",
      "id": 149,
-     "tag": 72
+     "tag": 72,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f963f4"
     },
     {
      "idx": 42,
      "name": "indexerStatus",
      "id": 152,
-     "tag": 23
+     "tag": 23,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f96400"
     },
     {
      "idx": 43,
      "name": "localDevices",
      "id": 160,
-     "tag": 6
+     "tag": 6,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10e9bc60"
     },
     {
      "idx": 44,
      "name": "musicServices",
      "id": 166,
-     "tag": 73
+     "tag": 73,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96410"
     },
     {
      "idx": 45,
      "name": "musicServicesChanged",
      "id": 167,
-     "tag": 25
+     "tag": 25,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f96420"
     },
     {
      "idx": 46,
      "name": "playbackMetadataStatus",
      "id": 181,
-     "tag": 31
+     "tag": 31,
+     "match_type": 0,
+     "kind": 2,
+     "name_address": "0x10f96438"
     },
     {
      "idx": 47,
      "name": "playbackStatus",
      "id": 184,
-     "tag": 29
+     "tag": 29,
+     "match_type": 0,
+     "kind": 2,
+     "name_address": "0x10f96450"
     },
     {
      "idx": 48,
      "name": "playbackError",
      "id": 185,
-     "tag": 29
+     "tag": 29,
+     "match_type": 0,
+     "kind": 2,
+     "name_address": "0x10e9f768"
     },
     {
      "idx": 49,
      "name": "playerVolume",
      "id": 192,
-     "tag": 33
+     "tag": 33,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10ea0d20"
     },
     {
      "idx": 50,
      "name": "playlistsVersionChange",
      "id": 195,
-     "tag": 34
+     "tag": 34,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f96460"
     },
     {
      "idx": 51,
      "name": "positioningSessionStatus",
      "id": 211,
-     "tag": 35
+     "tag": 35,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96478"
     },
     {
      "idx": 52,
      "name": "positioningSessionError",
      "id": 212,
-     "tag": 35
+     "tag": 35,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96494"
     },
     {
      "idx": 53,
      "name": "positioningDeviceStatus",
      "id": 213,
-     "tag": 35
+     "tag": 35,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f964ac"
     },
     {
      "idx": 54,
      "name": "queue",
      "id": 223,
-     "tag": 74
+     "tag": 74,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10ea29a4"
     },
     {
      "idx": 55,
      "name": "renderingControl",
      "id": 237,
-     "tag": 75
+     "tag": 75,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f964c4"
     },
     {
      "idx": 56,
      "name": "sessionError",
      "id": 246,
-     "tag": 32
+     "tag": 32,
+     "match_type": 0,
+     "kind": 3,
+     "name_address": "0x10f964d8"
     },
     {
      "idx": 57,
      "name": "sessionInfo",
      "id": 247,
-     "tag": 32
+     "tag": 32,
+     "match_type": 0,
+     "kind": 3,
+     "name_address": "0x10f964e8"
     },
     {
      "idx": 58,
      "name": "settingsVersionChanged",
      "id": 252,
-     "tag": 38
+     "tag": 38,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f964f4"
     },
     {
      "idx": 59,
      "name": "settingsDataChanged",
      "id": 253,
-     "tag": 38
+     "tag": 38,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f9650c"
     },
     {
      "idx": 60,
      "name": "settingsPlayerSettingsChanged",
      "id": 254,
-     "tag": 38
+     "tag": 38,
+     "match_type": 0,
+     "kind": 0,
+     "name_address": "0x10f96520"
     },
     {
      "idx": 61,
      "name": "sleepTimerStatus",
      "id": 259,
-     "tag": 52
+     "tag": 52,
+     "match_type": 0,
+     "kind": 2,
+     "name_address": "0x10f96540"
     },
     {
      "idx": 62,
      "name": "systemProperties",
      "id": 274,
-     "tag": 76
+     "tag": 76,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96554"
     },
     {
      "idx": 63,
      "name": "timers",
      "id": 276,
-     "tag": 59
+     "tag": 59,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10eab624"
     },
     {
      "idx": 64,
      "name": "trueplayStatus",
      "id": 288,
-     "tag": 61
+     "tag": 61,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96568"
     },
     {
      "idx": 65,
      "name": "speakerPresenceStatus",
      "id": 289,
-     "tag": 61
+     "tag": 61,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96578"
     },
     {
      "idx": 66,
      "name": "speakerPresenceRateChange",
      "id": 290,
-     "tag": 61
+     "tag": 61,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96590"
     },
     {
      "idx": 67,
      "name": "trueroomAdaptationStatusEvent",
      "id": 292,
-     "tag": 62
+     "tag": 62,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f965ac"
     },
     {
      "idx": 68,
      "name": "trueroomCalibrationStatus",
      "id": 293,
-     "tag": 62
+     "tag": 62,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f965cc"
     },
     {
      "idx": 69,
      "name": "trueroomStatusEvent",
      "id": 294,
-     "tag": 62
+     "tag": 62,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f965e8"
     },
     {
      "idx": 70,
      "name": "virtualLineIn",
      "id": 309,
-     "tag": 77
+     "tag": 77,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f965fc"
     },
     {
      "idx": 71,
      "name": "voiceAccountsVersionChange",
      "id": 313,
-     "tag": 81
+     "tag": 81,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f9660c"
     },
     {
      "idx": 72,
      "name": "zoneGroupTopology",
      "id": 322,
-     "tag": 78
+     "tag": 78,
+     "match_type": 0,
+     "kind": 4,
+     "name_address": "0x10f96628"
     }
    ],
-   "entry_semantics": "{+0 topic_id, +4 name, +8 secondary/event-type id, +0xc u16 wire tag, +0xe s8 match_type, +0x10 kind}: idx=registry slot, topic_id=lookup result, tag=on-wire TLV tag, kind=serialization family (0,2,3,4,5,6,8; kind==2 tested by f_109e12b4). Entries carry NO handler pointer - processing is kind-driven through the subscription worker f_1067c700 and the event-producer emitters.",
-   "todo": [
-    "Established: the 73-entry runtime registry, populator, and lookup are decoded.",
-    "Residual: per-entry handler semantics - most of the 73 subscription types are name-mapped but their processors are untraced."
-   ],
-   "accessors": "f_109e12b4(idx)->(entry.kind==2), f_109e12fc(idx)->secondary_id, f_109e1338(idx)->secondary via f_109ecb5c, f_109e1374(idx)->name; all bounds-check idx<=0x48. No direct bl callers - consumed indirectly by the event-producer side (vtable/computed).",
+   "entry_semantics": "The registry supplies namespace matching and metadata accessors, not73 hidden per-entry handlers. The only traced category accessor tests exact equality with2, not category&2. Its direct callers are subscription-set maintenance in f_109e1940 and f_109e219c, including special handling of topics33(groupCoordinatorChanged),56(sessionError) and57(sessionInfo). Categories3/6 do not pass the equality predicate merely because bit1 is set. The previous kind-to-serializer and runtime-injected-handler assertions were unsupported; f_1067c700 walks existing UPnP subscriptions by SID and does not switch on this category field.",
+   "accessors": "f_109e1038 constructs a tag/type descriptor from an index; f_109e12b0 returns category==2, f_109e12f8 returns the secondary ID, f_109e1334 resolves that secondary ID through f_109ecb5c, and f_109e1370 returns the topic name. Indices above72 return zero/empty defaults. Secondary-name resolver f_109ecb5c bounds its own enum at326, so a valid registry row with a larger secondary ID can have an empty enum-name diagnostic. Direct callers exist:1067d9f4/1067da00 use topic/secondary names in subscription diagnostics, and109e8798 obtains the secondary ID for an outgoing event; these are not exclusively computed/vtable calls.",
    "resolved_findings": [
-    "Established: 73-entry registry fully decoded (names/tags/ids/kinds), lookup semantics and all three callers identified, accessors decoded, and the no-per-entry-handler structure proven. Still unknown: which event producer emits each topic_id (the emit-side binding) and the kind->serializer map. Next step: find the emit path that calls the idx accessors (vtable/computed calls) and map kind values to serializer functions."
-   ]
+    "All73 initializer rows independently decoded, including corrections to secondary IDs/tags, consistent name ordering and actual category values. Lookup type/tag rules, first-match namespace behavior, defaults and direct accessor consumers are documented.",
+    "No per-entry handlers or decoded category bitmask exist in this registry contract. Category==2 bookkeeping and index-to-secondary construction are separate operations. SP registers topic62 and has a conditional generic WSS bridge; topic58/settingsVersionChanged has a separate explicit producer. No mutation-to-live-delivery guarantee follows."
+   ],
+   "outgoing_registry_use": "f_109e8780(index) calls f_109e12f8 and stores the secondary ID in outgoing event+8. Generic f_10677b94 constructs the typed event through f_10677970, attaches caller data/context and submits it through f_1067b3a8. f_10677ccc supplies a default context; f_106655b4 supplies another typed aggregation path, selected with topics27 and59 by f_10665974/f_10665990. Producer sites pass an explicit topic index or a source-registered index; neither lookup nor the category predicate is a serializer callback. The concrete caller map below distinguishes constructor registration from a conditional emit call: a registered source or a code-reachable producer is not evidence of delivery in a particular session.",
+   "verified_producer_bindings": [
+    {
+     "topic": 44,
+     "name": "musicServices",
+     "mode": "source_constructor",
+     "function": "0x100c6950",
+     "callsite": "0x100c69c8"
+    },
+    {
+     "topic": 55,
+     "name": "renderingControl",
+     "mode": "source_constructor",
+     "function": "0x100df3fc",
+     "callsite": "0x100df4f0"
+    },
+    {
+     "topic": 49,
+     "name": "playerVolume",
+     "mode": "direct_typed_emit",
+     "function": "0x100e27b0",
+     "callsite": "0x100e3208"
+    },
+    {
+     "topic": 58,
+     "name": "settingsVersionChanged",
+     "mode": "direct_typed_emit",
+     "function": "0x100f9414",
+     "callsite": "0x100f9540"
+    },
+    {
+     "topic": 42,
+     "name": "indexerStatus",
+     "mode": "default_context_emit",
+     "function": "0x1010d3a8",
+     "callsite": "0x1010d3ec"
+    },
+    {
+     "topic": 32,
+     "name": "groups",
+     "mode": "default_context_emit",
+     "function": "0x10129168",
+     "callsite": "0x1012987c"
+    },
+    {
+     "topic": 10,
+     "name": "availableSoftwareUpdate",
+     "mode": "direct_typed_emit",
+     "function": "0x10129888",
+     "callsite": "0x1012a3dc"
+    },
+    {
+     "topic": 39,
+     "name": "householdUpdateStatus",
+     "mode": "direct_typed_emit",
+     "function": "0x1015c654",
+     "callsite": "0x1015c878"
+    },
+    {
+     "topic": 13,
+     "name": "wirelessNetworkStatus",
+     "mode": "direct_typed_emit",
+     "function": "0x101600f4",
+     "callsite": "0x101601dc"
+    },
+    {
+     "topic": 3,
+     "name": "zoneDefinitionsChange",
+     "mode": "default_context_emit",
+     "function": "0x10166b80",
+     "callsite": "0x10166bec"
+    },
+    {
+     "topic": 2,
+     "name": "activeZonesChange",
+     "mode": "default_context_emit",
+     "function": "0x10166b80",
+     "callsite": "0x10166c18"
+    },
+    {
+     "topic": 45,
+     "name": "musicServicesChanged",
+     "mode": "default_context_emit",
+     "function": "0x101b7cd4",
+     "callsite": "0x101b7de0"
+    },
+    {
+     "topic": 9,
+     "name": "audioInput",
+     "mode": "source_constructor",
+     "function": "0x10208dcc",
+     "callsite": "0x10208e2c"
+    },
+    {
+     "topic": 41,
+     "name": "htControl",
+     "mode": "source_constructor",
+     "function": "0x102426f0",
+     "callsite": "0x10242768"
+    },
+    {
+     "topic": 1,
+     "name": "tvAudioSignalStatus",
+     "mode": "direct_typed_emit",
+     "function": "0x102432dc",
+     "callsite": "0x10243384"
+    },
+    {
+     "topic": 5,
+     "name": "alarmClock",
+     "mode": "source_constructor",
+     "function": "0x10276048",
+     "callsite": "0x102760ec"
+    },
+    {
+     "topic": 6,
+     "name": "alarmVersionChange",
+     "mode": "default_context_emit",
+     "function": "0x102779a8",
+     "callsite": "0x10277b9c"
+    },
+    {
+     "topic": 7,
+     "name": "areasVersionChange",
+     "mode": "default_context_emit",
+     "function": "0x10293a9c",
+     "callsite": "0x10293bb4"
+    },
+    {
+     "topic": 56,
+     "name": "sessionError",
+     "mode": "direct_typed_emit",
+     "function": "0x102b3124",
+     "callsite": "0x102b31f0"
+    },
+    {
+     "topic": 11,
+     "name": "avTransport",
+     "mode": "source_constructor",
+     "function": "0x102c05d8",
+     "callsite": "0x102c06e4"
+    },
+    {
+     "topic": 47,
+     "name": "playbackStatus",
+     "mode": "direct_typed_emit",
+     "function": "0x102cb860",
+     "callsite": "0x102cba30"
+    },
+    {
+     "topic": 46,
+     "name": "playbackMetadataStatus",
+     "mode": "direct_typed_emit",
+     "function": "0x102cb860",
+     "callsite": "0x102cbad8"
+    },
+    {
+     "topic": 57,
+     "name": "sessionInfo",
+     "mode": "direct_typed_emit",
+     "function": "0x102cb860",
+     "callsite": "0x102cbb74"
+    },
+    {
+     "topic": 30,
+     "name": "extendedPlaybackStatus",
+     "mode": "direct_typed_emit",
+     "function": "0x102cb860",
+     "callsite": "0x102cbc20"
+    },
+    {
+     "topic": 48,
+     "name": "playbackError",
+     "mode": "direct_typed_emit",
+     "function": "0x102cb860",
+     "callsite": "0x102cbfc0"
+    },
+    {
+     "topic": 61,
+     "name": "sleepTimerStatus",
+     "mode": "direct_typed_emit",
+     "function": "0x102e43a0",
+     "callsite": "0x102e5458"
+    },
+    {
+     "topic": 23,
+     "name": "contentDirectory",
+     "mode": "source_constructor",
+     "function": "0x10303de4",
+     "callsite": "0x10303e98"
+    },
+    {
+     "topic": 22,
+     "name": "connectionManager",
+     "mode": "source_constructor",
+     "function": "0x1032ead8",
+     "callsite": "0x1032eb1c"
+    },
+    {
+     "topic": 22,
+     "name": "connectionManager",
+     "mode": "source_constructor",
+     "function": "0x1032eb80",
+     "callsite": "0x1032ebc4"
+    },
+    {
+     "topic": 64,
+     "name": "trueplayStatus",
+     "mode": "direct_typed_emit",
+     "function": "0x1035dd84",
+     "callsite": "0x1035de58"
+    },
+    {
+     "topic": 28,
+     "name": "entitlementsVersionChanged",
+     "mode": "direct_typed_emit",
+     "function": "0x10370c30",
+     "callsite": "0x10370d88"
+    },
+    {
+     "topic": 31,
+     "name": "favoritesVersionChange",
+     "mode": "default_context_emit",
+     "function": "0x1037cdd0",
+     "callsite": "0x1037ce94"
+    },
+    {
+     "topic": 33,
+     "name": "groupCoordinatorChanged",
+     "mode": "direct_typed_emit",
+     "function": "0x10392700",
+     "callsite": "0x103928e8"
+    },
+    {
+     "topic": 36,
+     "name": "groupVolume",
+     "mode": "direct_typed_emit",
+     "function": "0x1039d11c",
+     "callsite": "0x1039d398"
+    },
+    {
+     "topic": 35,
+     "name": "groupRendering",
+     "mode": "source_constructor",
+     "function": "0x1039f2e0",
+     "callsite": "0x1039f36c"
+    },
+    {
+     "topic": 38,
+     "name": "historyVersionChanged",
+     "mode": "default_context_emit",
+     "function": "0x103af4c0",
+     "callsite": "0x103af558"
+    },
+    {
+     "topic": 29,
+     "name": "extendedDeviceStatus",
+     "mode": "default_context_emit",
+     "function": "0x1043fa24",
+     "callsite": "0x1043fad8"
+    },
+    {
+     "topic": 54,
+     "name": "queue",
+     "mode": "source_constructor",
+     "function": "0x10465fac",
+     "callsite": "0x1046607c"
+    },
+    {
+     "topic": 50,
+     "name": "playlistsVersionChange",
+     "mode": "default_context_emit",
+     "function": "0x10477010",
+     "callsite": "0x104770c0"
+    },
+    {
+     "topic": 63,
+     "name": "timers",
+     "mode": "default_context_emit",
+     "function": "0x104fad80",
+     "callsite": "0x104fade4"
+    },
+    {
+     "topic": 8,
+     "name": "audioClipStatus",
+     "mode": "direct_typed_emit",
+     "function": "0x1050c104",
+     "callsite": "0x1050c170"
+    },
+    {
+     "topic": 60,
+     "name": "settingsPlayerSettingsChanged",
+     "mode": "direct_typed_emit",
+     "function": "0x10526e6c",
+     "callsite": "0x10526ed4"
+    },
+    {
+     "topic": 21,
+     "name": "cloudRegistration",
+     "mode": "direct_typed_emit",
+     "function": "0x105957b4",
+     "callsite": "0x10595c08"
+    },
+    {
+     "topic": 26,
+     "name": "diagnosticMetadata",
+     "mode": "direct_typed_emit",
+     "function": "0x105b1650",
+     "callsite": "0x105b16f0"
+    },
+    {
+     "topic": 25,
+     "name": "diagnosticSubmissionResults",
+     "mode": "direct_typed_emit",
+     "function": "0x105b1650",
+     "callsite": "0x105b1748"
+    },
+    {
+     "topic": 24,
+     "name": "deviceProperties",
+     "mode": "source_constructor",
+     "function": "0x105b66f0",
+     "callsite": "0x105b67d4"
+    },
+    {
+     "topic": 34,
+     "name": "groupManagement",
+     "mode": "source_constructor",
+     "function": "0x105c56f8",
+     "callsite": "0x105c57b8"
+    },
+    {
+     "topic": 43,
+     "name": "localDevices",
+     "mode": "default_context_emit",
+     "function": "0x1061c2b0",
+     "callsite": "0x1061c344"
+    },
+    {
+     "topic": 62,
+     "name": "systemProperties",
+     "mode": "source_constructor",
+     "function": "0x1066a590",
+     "callsite": "0x1066a5f0"
+    },
+    {
+     "topic": 33,
+     "name": "groupCoordinatorChanged",
+     "mode": "direct_typed_emit",
+     "function": "0x1069fe50",
+     "callsite": "0x106a0014"
+    },
+    {
+     "topic": 70,
+     "name": "virtualLineIn",
+     "mode": "source_constructor",
+     "function": "0x106aae20",
+     "callsite": "0x106aaef0"
+    },
+    {
+     "topic": 72,
+     "name": "zoneGroupTopology",
+     "mode": "source_constructor",
+     "function": "0x1074043c",
+     "callsite": "0x107404ec"
+    },
+    {
+     "topic": 10,
+     "name": "availableSoftwareUpdate",
+     "mode": "direct_typed_emit",
+     "function": "0x1074d868",
+     "callsite": "0x1074da80"
+    },
+    {
+     "topic": 27,
+     "name": "effectiveSettingsDataChanged",
+     "mode": "aggregation selection",
+     "function": "f_10665974",
+     "callsite": "0x10665978-0x1066598c"
+    },
+    {
+     "topic": 59,
+     "name": "settingsDataChanged",
+     "mode": "aggregation selection",
+     "function": "f_10665990",
+     "callsite": "0x10665994-0x106659a8"
+    }
+   ],
+   "systemproperties_boundary": "The SP secondary event-source vtable0x10ed7628 has slot+0x18=0x1067ab54, which forwards through slot+0x14=0x1066b0a0 to f_1066af90 and serializer f_1066ad04. The serializer supplies CustomerID/UpdateID and, for full output, UpdateIDX/ThirdPartyHash according to its dirty/full flags; it does not itself name settingsVersionChanged. More positively, SP base constructor f_1066a590 passes topic62 at0x1066a598 to f_1067aec4, which stores it at event-source+0xc0. Conditional WSS notification processing f_10683da0 reaches f_1068108c at0x106841f0; its generic bridge reads that source index at0x10682768 and calls f_10677b94 at0x10682810. For this SP source that constructs secondary274/systemProperties, not secondary252/settingsVersionChanged. The latter has a separate explicit producer f_100f9414 at0x100f9540 with topic58. Registry inventory alone was never evidence that SP mutations emitted that topic, and these code paths do not guarantee an observed notification or delivery."
   },
   "http_status_endpoints": {
    "name": "/status diagnostic web-handler vocabulary",
