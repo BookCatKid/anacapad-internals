@@ -72264,7 +72264,7 @@
     }
    },
    "events": {
-    "mechanism": "UPnP GENA NOTIFY; LastChange carries full AVT state incl rincon r:-extensions",
+    "mechanism": "UPnP GENA NOTIFY. LastChange carries an AVTransport snapshot or a delta selected from dirty and pending state; the SOAP return does not deliver the event.",
     "namespace": "urn:schemas-upnp-org:metadata-1-0/AVT/ + xmlns:r=urn:schemas-rinconnetworks-com:...",
     "lastchange_var": "LastChange",
     "notify_template": "same NOTIFY template (X-SONOS-SERVICETYPE identifies service)",
@@ -72282,9 +72282,25 @@
       "build": "86.10-80260",
       "address": "0x10f005b0",
       "notes": "propertyset wrapper"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x102e46b8",
+      "notes": "The LastChange collector calls f_102b5a1c and promotes its nonzero dirty result to impl+0xa0a2. f_102b5658 promotes that flag to the latched +0x7785 at 0x102b56ac and clears the source flag on a consuming pass at 0x102b57a0. The delta branch at 0x102e47d8 tests +0x7785 before emitting the common TransportState, CurrentPlayMode and CurrentCrossfadeMode block.",
+      "function": "0x102e43a0"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x102e61d4",
+      "notes": "AVTransport engine slot +0x200 enters f_102e6048, collects under the engine mutex, and calls f_102e43a0 for two subscriber groups where present, passing r7=1 and 0 respectively.",
+      "function": "0x102e6048"
      }
     ],
-    "notify_path": "f_102e41a0 AVT event emitter: mutexed (f_10557cac) LastChange doc build using template 0x10eb29e8; e:property write at 0x102e519c; arg+0x3dc string source; f_102b733c doc-write"
+    "notify_path": "f_1067c6ec schedules eventing; AVTransport engine slot +0x200 (f_102e6048) calls f_102e43a0 to collect and serialize LastChange for InstanceID 0."
    },
    "errors": [
     {
@@ -72516,7 +72532,7 @@
     "Trace any separate exceptional cleanup that changes a live wrapper binding, and any construction path outside normal ZonePlayer startup that binds a base-only engine."
    ],
    "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
+    "The static engine tables (0x10eaf2ec, 0x10edfbb8) resolve the AVTransport delegate's action slots. The normal ZonePlayer binder at 0x104d4b50 writes the group-capable engine to wrapper+4. The remaining unresolved binding questions concern alternate construction and exceptional unbinding, not dispatch-table availability."
    ]
   },
   "/MediaRenderer/ConnectionManager/Control": {
