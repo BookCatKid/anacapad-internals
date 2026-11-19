@@ -62783,7 +62783,7 @@
      "notes": null
     },
     "SetNextAVTransportURI": {
-     "description": "Sets the gapless next-track URI. Impl f_102af288: 718-gate, lock impl+0x458, then a hard mode gate: impl+0x4654 must equal 2 (indexed/queued mode); any other mode returns 800, so next-URI only works on queue playback. In mode 2 it calls worker f_102af1c8(engine, NextURI, NextURIMetaData), which stores the URI into the next-track record at impl+0x6edc/0x6ee0 (f_106faeb8), manages pending flags impl+0x754c/+0x75cd (cleared) and impl+0x764e (set), fetches the current source URI via f_10293270(impl+0x5dc) and compares it against the engine source name impl+0x3dc: when they differ, the URI is forwarded through the member/topology path (member obj impl+0x448 -> f_10765a00/f_10762c30/f_106fbef4, with \"lookup of %s URIs for %s failed\" topology logging on failure), i.e. the next-track request can be delegated to the actual playback member.",
+     "description": "Sets or clears the next URI for indexed playback of an HTTP(S) source. It validates the next URI and metadata, submits indexed work, and changes the stored next URI descriptor only after successful insertion or on a clear.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fa880",
@@ -62873,7 +62873,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "URI for the next track; stored into the next-record and, for delegated sources, forwarded through the member/topology path.",
+       "validation": "Use an HTTP(S) URI of at most 1024 bytes, or pair an empty string with empty NextURIMetaData to clear the next URI.",
        "evidence": [
         {
          "type": "firmware",
@@ -62888,6 +62888,14 @@
          "build": "86.10-80260",
          "address": "0x10eb3450",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102adf58",
+         "notes": "Nonempty NextURI must have a case-insensitive http:// or https:// prefix. Other nonempty schemes or an empty URI with nonempty metadata return 714. HTTP(S) URI length >1024 or metadata length >4096 (strlen, excluding NUL) returns 402.",
+         "function": "0x102adf20"
         }
        ],
        "notes": null,
@@ -62911,7 +62919,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "DIDL metadata for the next track, stored alongside NextURI in the same record write.",
+       "validation": "At most 4096 bytes for an HTTP(S) next URI. Must be empty when clearing.",
        "evidence": [
         {
          "type": "firmware",
@@ -62926,6 +62934,14 @@
          "build": "86.10-80260",
          "address": "0x10eb3458",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102adf58",
+         "notes": "Nonempty NextURI must have a case-insensitive http:// or https:// prefix. Other nonempty schemes or an empty URI with nonempty metadata return 714. HTTP(S) URI length >1024 or metadata length >4096 (strlen, excluding NUL) returns 402.",
+         "function": "0x102adf20"
         }
        ],
        "notes": null
@@ -62945,35 +62961,69 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v[+0xc]",
+      "description": "Requires parsed InstanceID zero, source mode 2, a current HTTP(S) URI, and either a valid-length HTTP(S) next URI with valid-length metadata or both strings empty.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa880",
-        "notes": "req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102fa960",
+        "notes": "Materializes three requested values, then calls vslot +0xc bound to 0x102af288 in both engine tables. Sends a nonzero result via request +0x14 at 0x102fa97c, or commits no outputs. Materialization failure emits 402.",
+        "function": "0x102fa880"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af2d0",
+        "notes": "Nonzero ID returns 718 at 0x102af290. For ID zero under the transport mutex, mode != 2 returns 800; mode 2 passes both strings to f_102af1c8.",
+        "function": "0x102af288"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af22c",
+        "notes": "Checks current URI impl+0x5dc for a case-insensitive http:// or https:// prefix via f_1014743c. If neither is present, returns 701 before examining the requested next URI and metadata.",
+        "function": "0x102af1c8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102adf58",
+        "notes": "Nonempty NextURI must have a case-insensitive http:// or https:// prefix. Other nonempty schemes or an empty URI with nonempty metadata return 714. HTTP(S) URI length >1024 or metadata length >4096 (strlen, excluding NUL) returns 402.",
+        "function": "0x102adf20"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0xc]",
+      "description": "The transport engine checks current mode and current URI before the requested descriptor, and the presence of a stored next URI determines whether an empty request removes anything.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa880",
-        "notes": "member vfunc calls: ['r30 v[+0xc]']"
+        "address": "0x102af2d0",
+        "notes": "Nonzero ID returns 718 at 0x102af290. For ID zero under the transport mutex, mode != 2 returns 800; mode 2 passes both strings to f_102af1c8.",
+        "function": "0x102af288"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af22c",
+        "notes": "Checks current URI impl+0x5dc for a case-insensitive http:// or https:// prefix via f_1014743c. If neither is present, returns 701 before examining the requested next URI and metadata.",
+        "function": "0x102af1c8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ae020",
+        "notes": "If both arguments are empty and a next URI is stored, submits a range request then clears impl+0x1a03, +0x1e04 and +0x2e05 and sets dirty byte +0x4252. This path ignores the submission return. If the next URI is already empty, returns zero without that request.",
+        "function": "0x102adf20"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
@@ -62995,51 +63045,101 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct listener runs in this wrapper or write helper; a clear or successful insert sets the descriptor dirty byte at impl+0x4252.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa880",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102ae020",
+        "notes": "If both arguments are empty and a next URI is stored, submits a range request then clears impl+0x1a03, +0x1e04 and +0x2e05 and sets dirty byte +0x4252. This path ignores the submission return. If the next URI is already empty, returns zero without that request.",
+        "function": "0x102adf20"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ae180",
+        "notes": "Successful insert stores the next URI descriptor at impl+0x1a03 using f_102ed638 and sets +0x4252=1. It may send a further range request at 0x102ae1d4; that result is ignored.",
+        "function": "0x102adf20"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Identify the listener that consumes impl+0x4252 and confirm which changed NextURI fields are published after insert or clear."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0xc]",
+      "description": "Successful insertion updates the engine's stored next URI descriptor and sets its dirty byte. Clearing an existing next URI first asks the indexed worker to remove the next range, then clears the descriptor and sets the same byte; it does not require the range request to succeed.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa880",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0xc]']"
+        "address": "0x102ae020",
+        "notes": "If both arguments are empty and a next URI is stored, submits a range request then clears impl+0x1a03, +0x1e04 and +0x2e05 and sets dirty byte +0x4252. This path ignores the submission return. If the next URI is already empty, returns zero without that request.",
+        "function": "0x102adf20"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ae074",
+        "notes": "Nonempty URI uses preliminary indexed requests. A false first or second submission yields 800. f_1014f6dc can return nonzero unchanged at 0x102ae0f8. On its success the insert at 0x102ae13c must return true with a nonzero result halfword, else returns 800.",
+        "function": "0x102adf20"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ae180",
+        "notes": "Successful insert stores the next URI descriptor at impl+0x1a03 using f_102ed638 and sets +0x4252=1. It may send a further range request at 0x102ae1d4; that result is ignored.",
+        "function": "0x102adf20"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "The wrapper commits an empty response on zero, returns 402 on materialization failure and propagates other engine failures. Verified engine faults include 718, 701, 714, 402 and 800; f_1014f6dc can also return a nonzero code verbatim.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa880",
-        "notes": "commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102fa960",
+        "notes": "Materializes three requested values, then calls vslot +0xc bound to 0x102af288 in both engine tables. Sends a nonzero result via request +0x14 at 0x102fa97c, or commits no outputs. Materialization failure emits 402.",
+        "function": "0x102fa880"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af2d0",
+        "notes": "Nonzero ID returns 718 at 0x102af290. For ID zero under the transport mutex, mode != 2 returns 800; mode 2 passes both strings to f_102af1c8.",
+        "function": "0x102af288"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af22c",
+        "notes": "Checks current URI impl+0x5dc for a case-insensitive http:// or https:// prefix via f_1014743c. If neither is present, returns 701 before examining the requested next URI and metadata.",
+        "function": "0x102af1c8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102adf58",
+        "notes": "Nonempty NextURI must have a case-insensitive http:// or https:// prefix. Other nonempty schemes or an empty URI with nonempty metadata return 714. HTTP(S) URI length >1024 or metadata length >4096 (strlen, excluding NUL) returns 402.",
+        "function": "0x102adf20"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ae074",
+        "notes": "Nonempty URI uses preliminary indexed requests. A false first or second submission yields 800. f_1014f6dc can return nonzero unchanged at 0x102ae0f8. On its success the insert at 0x102ae13c must return true with a nonzero result halfword, else returns 800.",
+        "function": "0x102adf20"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -63084,20 +63184,29 @@
       {
        "code": 800,
        "code_expr": "vret(r5-in,+0xc)",
-       "meaning": "Transport mode impl+0x4654 is not 2: next-URI requires indexed/queue playback.",
+       "meaning": "Current mode is not 2, or preliminary indexed work or insertion failed.",
        "fault_sites": [
         "0x102fa97c"
        ],
        "conditions": [
         {
-         "description": "impl+0x4654 != 2: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "Non-indexed mode returns before the URI checks; in mode 2 request failure or a zero insertion count maps to 800.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102af288",
-           "notes": "cmpwi 0x2 at 0x102af2d8 -> r31=0x320"
+           "address": "0x102af2d0",
+           "notes": "Nonzero ID returns 718 at 0x102af290. For ID zero under the transport mutex, mode != 2 returns 800; mode 2 passes both strings to f_102af1c8.",
+           "function": "0x102af288"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102ae074",
+           "notes": "Nonempty URI uses preliminary indexed requests. A false first or second submission yields 800. f_1014f6dc can return nonzero unchanged at 0x102ae0f8. On its success the insert at 0x102ae13c must return true with a nonzero result halfword, else returns 800.",
+           "function": "0x102adf20"
           }
          ]
         }
@@ -63107,33 +63216,44 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102af288",
-         "notes": "cmpwi 0x2 at 0x102af2d8 -> r31=0x320"
+         "address": "0x102af2d0",
+         "notes": "Nonzero ID returns 718 at 0x102af290. For ID zero under the transport mutex, mode != 2 returns 800; mode 2 passes both strings to f_102af1c8.",
+         "function": "0x102af288"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ae074",
+         "notes": "Nonempty URI uses preliminary indexed requests. A false first or second submission yields 800. f_1014f6dc can return nonzero unchanged at 0x102ae0f8. On its success the insert at 0x102ae13c must return true with a nonzero result halfword, else returns 800.",
+         "function": "0x102adf20"
         }
        ]
       },
       {
        "code": null,
        "code_expr": "vret(r5-in,+0xc)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: worker f_102af1c8 domain {0x2bd=701}; exit rc=701",
+       "meaning": "The URI worker can emit 701, 714 or 402 locally or propagate f_1014f6dc.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "the delegated-URI path produced a code not covered by the enumerated gates",
+         "description": "701: current source is not HTTP(S). 714: next URI is not HTTP(S) and this is not the all-empty clear. 402: next URI or metadata is too long.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102af404",
-           "notes": "passthrough path"
+           "address": "0x102af22c",
+           "notes": "Checks current URI impl+0x5dc for a case-insensitive http:// or https:// prefix via f_1014743c. If neither is present, returns 701 before examining the requested next URI and metadata.",
+           "function": "0x102af1c8"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102af1c8",
-           "notes": "rc site"
+           "address": "0x102adf58",
+           "notes": "Nonempty NextURI must have a case-insensitive http:// or https:// prefix. Other nonempty schemes or an empty URI with nonempty metadata return 714. HTTP(S) URI length >1024 or metadata length >4096 (strlen, excluding NUL) returns 402.",
+           "function": "0x102adf20"
           }
          ]
         }
@@ -63143,15 +63263,25 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fa97c",
-         "notes": "impl vret passthrough site"
+         "address": "0x102af22c",
+         "notes": "Checks current URI impl+0x5dc for a case-insensitive http:// or https:// prefix via f_1014743c. If neither is present, returns 701 before examining the requested next URI and metadata.",
+         "function": "0x102af1c8"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102af1c8",
-         "notes": "worker rc sites decoded"
+         "address": "0x102adf58",
+         "notes": "Nonempty NextURI must have a case-insensitive http:// or https:// prefix. Other nonempty schemes or an empty URI with nonempty metadata return 714. HTTP(S) URI length >1024 or metadata length >4096 (strlen, excluding NUL) returns 402.",
+         "function": "0x102adf20"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ae074",
+         "notes": "Nonempty URI uses preliminary indexed requests. A false first or second submission yields 800. f_1014f6dc can return nonzero unchanged at 0x102ae0f8. On its success the insert at 0x102ae13c must return true with a nonzero result halfword, else returns 800.",
+         "function": "0x102adf20"
         }
        ],
        "unresolved": {
@@ -63207,27 +63337,35 @@
         701
        ],
        "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0xc); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Recover the ordinary nonzero return codes from f_1014f6dc at 0x102ae0f4 and their request predicates. The surrounding calls return fixed errors or discard the result."
        ]
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+       "meaning": "Request materialization failed or the engine rejected an over-length next URI/metadata string.",
        "fault_sites": [
         "0x102fa97c"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
+         "description": "The wrapper emits 402 on parse failure; a parsed HTTP(S) descriptor reaches the strlen checks in the engine, which also return 402 when either limit is exceeded.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102fa880",
-           "notes": "parse vcall slot +0x8 then fault path"
+           "address": "0x102fa960",
+           "notes": "Materializes three requested values, then calls vslot +0xc bound to 0x102af288 in both engine tables. Sends a nonzero result via request +0x14 at 0x102fa97c, or commits no outputs. Materialization failure emits 402.",
+           "function": "0x102fa880"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102adf58",
+           "notes": "Nonempty NextURI must have a case-insensitive http:// or https:// prefix. Other nonempty schemes or an empty URI with nonempty metadata return 714. HTTP(S) URI length >1024 or metadata length >4096 (strlen, excluding NUL) returns 402.",
+           "function": "0x102adf20"
           }
          ]
         }
@@ -63237,42 +63375,81 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fa880",
-         "notes": "wrapper parse + fault path"
+         "address": "0x102fa960",
+         "notes": "Materializes three requested values, then calls vslot +0xc bound to 0x102af288 in both engine tables. Sends a nonzero result via request +0x14 at 0x102fa97c, or commits no outputs. Materialization failure emits 402.",
+         "function": "0x102fa880"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102adf58",
+         "notes": "Nonempty NextURI must have a case-insensitive http:// or https:// prefix. Other nonempty schemes or an empty URI with nonempty metadata return 714. HTTP(S) URI length >1024 or metadata length >4096 (strlen, excluding NUL) returns 402.",
+         "function": "0x102adf20"
         }
        ]
       },
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "meaning": "No separate store-commit fault is read. Preliminary and insert session results are converted locally; the only unmapped return is the URI/metadata preparation result.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102ae020",
+         "notes": "If both arguments are empty and a next URI is stored, submits a range request then clears impl+0x1a03, +0x1e04 and +0x2e05 and sets dirty byte +0x4252. This path ignores the submission return. If the next URI is already empty, returns zero without that request.",
+         "function": "0x102adf20"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ae074",
+         "notes": "Nonempty URI uses preliminary indexed requests. A false first or second submission yields 800. f_1014f6dc can return nonzero unchanged at 0x102ae0f8. On its success the insert at 0x102ae13c must return true with a nonzero result halfword, else returns 800.",
+         "function": "0x102adf20"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ae180",
+         "notes": "Successful insert stores the next URI descriptor at impl+0x1a03 using f_102ed638 and sets +0x4252=1. It may send a further range request at 0x102ae1d4; that result is ignored.",
+         "function": "0x102adf20"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "f_10255f64 results are tested as boolean or ignored, while f_1014f6dc's result is separately propagated.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102ae020",
+           "notes": "If both arguments are empty and a next URI is stored, submits a range request then clears impl+0x1a03, +0x1e04 and +0x2e05 and sets dirty byte +0x4252. This path ignores the submission return. If the next URI is already empty, returns zero without that request.",
+           "function": "0x102adf20"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102ae074",
+           "notes": "Nonempty URI uses preliminary indexed requests. A false first or second submission yields 800. f_1014f6dc can return nonzero unchanged at 0x102ae0f8. On its success the insert at 0x102ae13c must return true with a nonzero result halfword, else returns 800.",
+           "function": "0x102adf20"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102ae180",
+           "notes": "Successful insert stores the next URI descriptor at impl+0x1a03 using f_102ed638 and sets +0x4252=1. It may send a further range request at 0x102ae1d4; that result is ignored.",
+           "function": "0x102adf20"
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
@@ -63302,12 +63479,67 @@
        "build": "86.10-80260",
        "function": "0x102af288",
        "notes": "AVT impl vtable 0x10eaf2ec slot +0x0c entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fa960",
+       "notes": "Materializes three requested values, then calls vslot +0xc bound to 0x102af288 in both engine tables. Sends a nonzero result via request +0x14 at 0x102fa97c, or commits no outputs. Materialization failure emits 402.",
+       "function": "0x102fa880"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102af2d0",
+       "notes": "Nonzero ID returns 718 at 0x102af290. For ID zero under the transport mutex, mode != 2 returns 800; mode 2 passes both strings to f_102af1c8.",
+       "function": "0x102af288"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102af22c",
+       "notes": "Checks current URI impl+0x5dc for a case-insensitive http:// or https:// prefix via f_1014743c. If neither is present, returns 701 before examining the requested next URI and metadata.",
+       "function": "0x102af1c8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102adf58",
+       "notes": "Nonempty NextURI must have a case-insensitive http:// or https:// prefix. Other nonempty schemes or an empty URI with nonempty metadata return 714. HTTP(S) URI length >1024 or metadata length >4096 (strlen, excluding NUL) returns 402.",
+       "function": "0x102adf20"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ae020",
+       "notes": "If both arguments are empty and a next URI is stored, submits a range request then clears impl+0x1a03, +0x1e04 and +0x2e05 and sets dirty byte +0x4252. This path ignores the submission return. If the next URI is already empty, returns zero without that request.",
+       "function": "0x102adf20"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ae074",
+       "notes": "Nonempty URI uses preliminary indexed requests. A false first or second submission yields 800. f_1014f6dc can return nonzero unchanged at 0x102ae0f8. On its success the insert at 0x102ae13c must return true with a nonzero result halfword, else returns 800.",
+       "function": "0x102adf20"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ae180",
+       "notes": "Successful insert stores the next URI descriptor at impl+0x1a03 using f_102ed638 and sets +0x4252=1. It may send a further range request at 0x102ae1d4; that result is ignored.",
+       "function": "0x102adf20"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: direct dispatch to handler 0x102fa880; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Reverse-engineer f_1014f6dc descriptor preparation and the indexed insert (0x1032e368) and remove-range (0x1032e45c) record consumers, particularly metadata transformation and indexed contents after replacement."
      ]
     },
     "SetPlayMode": {
