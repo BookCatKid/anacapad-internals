@@ -52923,7 +52923,7 @@
      ]
     },
     "RunAlarm": {
-     "description": "Immediately runs a programmed alarm. Impl f_102e1d68 is a thin 718-gate tail-calling shared alarm worker f_102e17dc: the same worker family as StartAutoplay (f_102e14e0): it builds the program record, checks the submission path via f_1053ce34, and calls f_1053db38 on the session.",
+     "description": "Runs the supplied alarm program immediately through the AVTransport implementation, not by looking up AlarmID in AlarmClock definitions. Required timestamp is logged and saved, not a future start deadline. May regroup, load/play or fall back, ramp volume, arm duration cleanup and emit alarm telemetry. Playback, grouping and reporting helper failures are not propagated. Reachable SOAP fault codes are 402, 718 and 810.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fc4ac",
@@ -52938,15 +52938,13 @@
       "calls": [
        {
         "site": "0x102fc684",
-        "obj": "r5-in",
-        "slot": 152,
-        "arg4": "*(sp-0x14e0+0x1c)"
+        "obj": "AVTransport implementation from service+4",
+        "slot": 152
        },
        {
         "site": "0x102fc6e8",
-        "obj": "*(sp-0x14e0+0x14dc)",
-        "slot": 12,
-        "arg4": 402
+        "obj": "request",
+        "slot": 12
        }
       ],
       "req_vcalls": [
@@ -52955,11 +52953,14 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x102e1d68",
+      "impl_vfunc": "AVTransport static vtables 0x10eaf2ec/0x10edfbb8 slot +0x98 -> f_102e1d68 -> f_102e17dc",
+      "description": "InstanceID-zero adapter to concrete alarm worker; not adjacent f_102e17a8/f_102e14e0 autoplay dispatch. No SOAP outputs. Only worker codes 0/402/810 plus adapter 718; downstream returns ignored."
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Required AVTransport instance. Only zero after unsigned conversion reaches worker.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -52969,48 +52970,38 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUintArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "0",
-       "range": "0 only; nonzero InstanceID rejected by impl +0x98 with 718",
-       "special_values": "none observed in this build",
+       "format": "strtoul(text,NULL,10)",
+       "unit": "instance index",
+       "accepted_values": "0 after conversion",
+       "range": "0 only",
+       "special_values": "Present empty/nonnumeric -> zero. Nonzero -> 718. Missing -> 402.",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Presence then unsigned conversion then zero gate.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc4ec",
-         "notes": "in-arg access site"
+         "function": "0x102fa5c4",
+         "address": "0x10eaf384",
+         "callsite": "0x102fc684",
+         "notes": "AVTransport service constructor f_102fc9c0 installs vptr 0x10eb300c; dispatcher f_102fa5c4 loads service+4 implementation at 0x102fa6c8. RunAlarm wrapper f_102fc4ac calls implementation slot +0x98 at 0x102fc684. Tables 0x10eaf2ec and 0x10edfbb8 contain f_102e1d68 at +0x98 (0x10eaf384/0x10edfc50). Gate compares InstanceID at 0x102e1d6c, returns 718 at 0x102e1d94, otherwise forwards AlarmID, LoggedStartTime, Duration, URI, metadata, mode, u16 volume and bool linked to f_102e17dc at 0x102e1da8. Adjacent slot +0x9c -> f_102e17a8 -> f_102e14e0 is the separate autoplay adapter, not the RunAlarm dispatch."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102e1d68",
-         "notes": "impl loads rc 0x2ce (718) on the InstanceID!=0 branch; convention verified across AVT impls"
+         "function": "0x10560a58",
+         "address": "0x10560b50",
+         "callsite": "0x102fc514",
+         "notes": "InstanceID and AlarmID tag 4 use strtoul(text,NULL,10) at 0x10560b50, then store u32. Volume tag 2 uses strtoul at 0x10560b6c and stores low u16 at 0x10560b70. All use capacity 24, retain at most 23 bytes. No end-pointer/errno/range validation: empty/nonnumeric text becomes zero; numeric prefixes accepted; negative/overflow values follow 32-bit strtoul before volume narrowing. IncludeLinkedZones tag 1 accepts case-insensitive exact 1/true/yes, all other present text becomes false at 0x10560b78..0x10560bd0. Presence is checked separately by request validation."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +152 (site 0x102fc684) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +152 (obj r5-in, call site 0x102fc684); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "No AlarmClock instance selection."
       },
       "AlarmID": {
-       "description": "Forwarded to shared alarm worker f_102e17dc.",
+       "description": "Required caller-supplied numeric identifier saved in running alarm state and telemetry. No definition lookup or existence test.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -53019,49 +53010,48 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "u32 id of a scheduled alarm record; unknown id -> 800-family",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none observed in this build",
+       "semantic_type": "SonosUintArg",
+       "format": "strtoul(text,NULL,10)",
+       "unit": "alarm identifier",
+       "accepted_values": "Any resulting unsigned 32-bit value",
+       "range": "0..4294967295 after conversion",
+       "special_values": "Zero and unknown identifiers accepted; empty/nonnumeric -> zero.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared alarm worker f_102e17dc.",
+       "validation": "Required presence only; permissive conversion, no alarm-list membership validation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc510",
-         "notes": "in-arg access site"
+         "function": "0x10560a58",
+         "address": "0x10560b50",
+         "callsite": "0x102fc514",
+         "notes": "InstanceID and AlarmID tag 4 use strtoul(text,NULL,10) at 0x10560b50, then store u32. Volume tag 2 uses strtoul at 0x10560b6c and stores low u16 at 0x10560b70. All use capacity 24, retain at most 23 bytes. No end-pointer/errno/range validation: empty/nonnumeric text becomes zero; numeric prefixes accepted; negative/overflow values follow 32-bit strtoul before volume narrowing. IncludeLinkedZones tag 1 accepts case-insensitive exact 1/true/yes, all other present text becomes false at 0x10560b78..0x10560bd0. Presence is checked separately by request validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3588",
-         "notes": "argument name string"
+         "function": "0x102e17dc",
+         "address": "0x102e1950",
+         "callsite": "0x102e1da8",
+         "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102e1d68",
-         "notes": "alarm-record resolution via helper table"
+         "function": "0x102e17dc",
+         "address": "0x102e1bb4",
+         "callsite": "0x102e1bd8",
+         "notes": "After unlock, builds zpAlarm/alarm PLAY telemetry with id, converted start, original dur/mode, fb_buzz, vol, linked, sid and optional stationId, using helpers f_104c9f8c/f_1071a9cc to extract service/station context. Logger from f_10559024 receives virtual slot +0x1c call at 0x102e1bd8; return controls f_10558658 reporting, not SOAP status. If grouping preparation was selected, calls f_102e0fb0 at 0x102e1c08 and discards return, explicitly returns zero at 0x102e1c0c. f_102e0fb0 creates session through f_10759984 at 0x102e1004, tests f_1053ce34, constructs SetAVTransportURI operations with x-rincon:<local identity> at 0x102e1090..0x102e111c, dispatches through f_10743a60/f_106fe8c0, waits up to 8000ms via f_106fb998, cleans up via f_1053db38. Session/remote errors do not propagate. No alarmclock.xml save or alarm-list-version increment in this path."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `AlarmID` is parsed then forwarded verbatim to r5-in vfunc +152 (site 0x102fc684) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `AlarmID` = verbatim forward to impl vfunc +152 (obj r5-in, call site 0x102fc684); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "Stored at impl+0x5a88 and available to GetRunningAlarmProperties while ringing."
       },
       "LoggedStartTime": {
-       "description": "Forwarded to shared alarm worker f_102e17dc.",
+       "description": "Required calendar timestamp, saved for running-alarm reporting and converted through AlarmClock engine timezone helper for telemetry. Does not delay playback.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -53070,50 +53060,49 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 64 bytes (63 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "HH:MM:SS start-time string <= parse cap",
-       "range": "max 63 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "calendar timestamp",
+       "format": "sscanf %04hu-%02hu-%02hu %02hu:%02hu:%02hu",
+       "unit": "calendar date and time",
+       "accepted_values": "Six unsigned-short conversions; trailing bytes permitted",
+       "range": "At most 63 retained bytes; no calendar-range check",
+       "special_values": "Empty or fewer than six conversions -> 402. Final character Z sets UTC flag; Z not required.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared alarm worker f_102e17dc.",
+       "validation": "Always parsed before lock/override check; no end-of-input or calendar validity validation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc534",
-         "notes": "in-arg access site"
+         "function": "0x10560a58",
+         "address": "0x10560b10",
+         "callsite": "0x102fc538",
+         "notes": "LoggedStartTime/Duration/ProgramURI/ProgramMetaData/PlayMode use tag 7, capacities 64/64/1025/4097/32. Finalization writes NUL at accumulated length or capacity-1. Longer text truncates, not an argument fault. Present empty strings pass wrapper presence validation; only LoggedStartTime has a mandatory downstream grammar check."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3598",
-         "notes": "argument name string"
+         "function": "0x10c3cbfc",
+         "address": "0x10fb1598",
+         "callsite": "0x102e18b0",
+         "notes": "RunAlarm always calls f_10c3cbfc for LoggedStartTime before locking. sscanf at 0x10c3cc5c uses %04hu-%02hu-%02hu %02hu:%02hu:%02hu at literal 0x10fb1598. Requires six conversions, but checks neither calendar ranges nor end-of-input. Whitespace in the format is scanf whitespace, not a strict single-space separator. Final input byte Z sets byte +0x14 at 0x10c3cca8; suffix is otherwise unrestricted. Empty/malformed text -> 402 at 0x102e18b8. Saved original fields copied to impl+0x5a90..+0x5aa0, not used as a future launch deadline."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102e17dc",
-         "notes": "worker parses via duration helper table 0x1108b284"
+         "address": "0x102e1aa8",
+         "callsite": "0x102e1ac4",
+         "notes": "Cross-engine call, not AlarmClock SOAP dispatch: loads *(impl+0xaa4c), calls AlarmClock engine helper f_10276608 at 0x102e1ac4 with parsed LoggedStartTime and output calendar, formats result with f_10c3c88c for telemetry start field. f_10276608 snapshots effective timezone rule +0x232..+0x23e under engine mutex +0x170 at 0x10276640..0x10276680 and calls f_10c3d9ec at 0x10276690. This is a read-only timezone conversion, not alarm-definition mutation, alarm scheduling by LoggedStartTime, or a call through /AlarmClock/Control. The saved original calendar fields are not replaced by this logging conversion."
         }
        ],
-       "notes": null,
-       "buf_cap": 64,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `LoggedStartTime` is parsed then forwarded verbatim to r5-in vfunc +152 (site 0x102fc684) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `LoggedStartTime` = verbatim forward to impl vfunc +152 (obj r5-in, call site 0x102fc684); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "Year width 4; other conversion widths 2; format whitespace follows scanf rules. No ISO T separator in the parser format.",
+       "buf_cap": 64
       },
       "Duration": {
-       "description": "Forwarded to shared alarm worker f_102e17dc.",
+       "description": "Required text, but empty or invalid duration is treated as no explicit duration rather than faulting.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -53122,50 +53111,49 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosUintArg",
-       "format": "utf-8 text, buffer cap 64 bytes (63 chars + NUL)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "HH:MM:SS duration string <= parse cap",
-       "range": "max 63 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "hour/minute/second duration",
+       "format": "sscanf %02hu:%02hu:%02hu when nonempty",
+       "unit": "hours:minutes:seconds",
+       "accepted_values": "Valid prefix with hour<=23, minute/second<=59, or any text interpreted as absent on parse failure",
+       "range": "Valid components 00:00:00..23:59:59; at most 63 retained bytes",
+       "special_values": "Empty/malformed/out-of-range -> null duration and two-hour alarm-state cleanup path. 00:00:00 -> immediately eligible explicit-duration expiry. Trailing bytes after valid prefix accepted.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared alarm worker f_102e17dc.",
+       "validation": "Presence required, but parser failure is ignored as absent duration. No end-of-input or positive-duration requirement.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc55c",
-         "notes": "in-arg access site"
+         "function": "0x10560a58",
+         "address": "0x10560b10",
+         "callsite": "0x102fc538",
+         "notes": "LoggedStartTime/Duration/ProgramURI/ProgramMetaData/PlayMode use tag 7, capacities 64/64/1025/4097/32. Finalization writes NUL at accumulated length or capacity-1. Longer text truncates, not an argument fault. Present empty strings pass wrapper presence validation; only LoggedStartTime has a mandatory downstream grammar check."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10ed989c",
-         "notes": "argument name string"
+         "function": "0x10c3d2c4",
+         "address": "0x10fb1618",
+         "callsite": "0x102e1934",
+         "notes": "Duration empty skips parser and leaves validity flag zero. Nonempty invokes f_10c3d2c4: sscanf at 0x10c3d318, literal %02hu:%02hu:%02hu at 0x10fb1618, three conversions required, hours<=23 and minutes/seconds<=59, no end-of-input check. Unlike SnoozeAlarm, false parsing does not fault: null duration passed to f_102da774, validity saved at impl+0x5aa4. Valid h/m/s copied by f_10c3d18c at 0x102e1c60 into +0x5aa5..+0x5aa7. 00:00:00 is valid."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102e17dc",
-         "notes": "duration helper"
+         "function": "0x102da774",
+         "address": "0x102db044",
+         "callsite": "0x102db09c",
+         "notes": "Eligible mode in {1,2} alarm path reads clock ID 1 and writes deadline impl+0x6ed4 at 0x102db044..0x102db078. Valid duration adds h*3600+m*60+s; null duration adds 7200 at 0x102db9c4. Registers callback f_102d1d50 -> f_102d1be8 at 0x102db09c through scheduler *(impl+0xad2c). Callback locks impl+0x458, returns sentinel 0x7fffffff if not ringing or snoozed. At expiry, valid duration flag +0x5aa4 calls f_102d0ac8(impl,1,1,...,-1,-1) at 0x102d1d2c; absent/invalid duration calls f_102b4b48(impl,1) at 0x102d1d44 to clear alarm/snooze flags and enqueue changes without that transport operation. Thus malformed duration is not equivalent to a malformed LoggedStartTime. Immediate duration zero is accepted; callback/playback success not propagated."
         }
        ],
-       "notes": null,
-       "buf_cap": 64,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Duration` is parsed then forwarded verbatim to r5-in vfunc +152 (site 0x102fc684) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `Duration` = verbatim forward to impl vfunc +152 (obj r5-in, call site 0x102fc684); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "Valid explicit duration requests transport operation on expiry; absent/invalid duration clears alarm state on default timeout without that operation.",
+       "buf_cap": 64
       },
       "ProgramURI": {
-       "description": "Forwarded to shared alarm worker f_102e17dc.",
+       "description": "Required program/source string retained for immediate autoplay and snooze replay. Not resolved from AlarmID.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -53175,49 +53163,48 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUriArg",
-       "format": "utf-8 text, buffer cap 1025 bytes (1024 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "program URI string <= parse cap",
-       "range": "max 1024 chars",
-       "special_values": "none observed in this build",
+       "format": "bounded text",
+       "unit": "URI text",
+       "accepted_values": "Any present bounded text; playback support is source dependent",
+       "range": "First 1024 bytes plus NUL",
+       "special_values": "Empty or unsupported text is not a RunAlarm argument fault; source loading can fail or take buzzer fallback.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared alarm worker f_102e17dc.",
+       "validation": "No URI-validity SOAP check; loader return ignored by alarm worker.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc584",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eaae94",
-         "notes": "argument name string"
+         "function": "0x10560a58",
+         "address": "0x10560b10",
+         "callsite": "0x102fc538",
+         "notes": "LoggedStartTime/Duration/ProgramURI/ProgramMetaData/PlayMode use tag 7, capacities 64/64/1025/4097/32. Finalization writes NUL at accumulated length or capacity-1. Longer text truncates, not an argument fault. Present empty strings pass wrapper presence validation; only LoggedStartTime has a mandatory downstream grammar check."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102e17dc",
-         "notes": "worker"
+         "address": "0x102e1950",
+         "callsite": "0x102e1da8",
+         "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102da774",
+         "address": "0x102db570",
+         "callsite": "0x102e19b4",
+         "notes": "Shared AVTransport autoplay/alarm helper receives duration pointer or null, URI, metadata, mode, volume, alarm=true, final flag=false. Attempts transport operation f_102d0ac8 at 0x102da924, URI/source loading through f_102ceb40 at 0x102daa1c/0x102daab0 with source-dependent paths including buzzer fallback; load failure log at 0x102daaf4 does not become RunAlarm SOAP error. Mode passed to f_102b24dc at 0x102db840; that helper maps NORMAL/SHUFFLE_NOREPEAT/REPEAT_ALL/SHUFFLE/REPEAT_ONE/SHUFFLE_REPEAT_ONE to 0/1/2/3/4/5, rejects unsupported source/mode combinations with 712 internally, return ignored here. Rendering object impl+0x5bc receives Master mute/volume ramp calls, including ALARM_RAMP_TYPE via slot +0x6c. No RunAlarm 0..100 check; 65535/65534 have current-volume handling at 0x102db37c..0x102db3d8/0x102dba2c, 65534 enforces minimum 10. Successful eligible alarm path sets +0x5a86 and dirty +0x5a87 at 0x102db570/0x102db574, calls f_1067c6ec(impl+0x10) at 0x102db578. Other source branches can fail without setting ringing; main worker still stores supplied alarm state and returns zero."
         }
        ],
-       "notes": null,
-       "buf_cap": 1025,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ProgramURI` is parsed then forwarded verbatim to r5-in vfunc +152 (site 0x102fc684) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `ProgramURI` = verbatim forward to impl vfunc +152 (obj r5-in, call site 0x102fc684); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "Saved at impl+0x5aa8; URI/source helpers determine actual playback, so SOAP success does not prove playback.",
+       "buf_cap": 1025
       },
       "ProgramMetaData": {
-       "description": "Forwarded to shared alarm worker f_102e17dc.",
+       "description": "Required program metadata text, forwarded to source loader and retained for snooze replay.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -53227,42 +53214,48 @@
         "via_slot": 28
        },
        "semantic_type": "SonosMetaDataArg",
-       "format": "utf-8 text, buffer cap 4097 bytes (4096 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "DIDL-Lite XML string <= parse cap",
-       "range": "max 4096 chars",
-       "special_values": "none observed in this build",
+       "format": "bounded metadata text",
+       "unit": "metadata text",
+       "accepted_values": "Any present bounded text; source-specific metadata interpretation happens in loader",
+       "range": "First 4096 bytes plus NUL",
+       "special_values": "Present empty or malformed metadata does not itself produce a RunAlarm SOAP fault.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared alarm worker f_102e17dc.",
+       "validation": "No worker DIDL/XML-validity gate; source-loader result ignored.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc5ac",
-         "notes": "in-arg access site"
+         "function": "0x10560a58",
+         "address": "0x10560b10",
+         "callsite": "0x102fc538",
+         "notes": "LoggedStartTime/Duration/ProgramURI/ProgramMetaData/PlayMode use tag 7, capacities 64/64/1025/4097/32. Finalization writes NUL at accumulated length or capacity-1. Longer text truncates, not an argument fault. Present empty strings pass wrapper presence validation; only LoggedStartTime has a mandatory downstream grammar check."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eaaea0",
-         "notes": "argument name string"
+         "function": "0x102e17dc",
+         "address": "0x102e1950",
+         "callsite": "0x102e1da8",
+         "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102da774",
+         "address": "0x102db570",
+         "callsite": "0x102e19b4",
+         "notes": "Shared AVTransport autoplay/alarm helper receives duration pointer or null, URI, metadata, mode, volume, alarm=true, final flag=false. Attempts transport operation f_102d0ac8 at 0x102da924, URI/source loading through f_102ceb40 at 0x102daa1c/0x102daab0 with source-dependent paths including buzzer fallback; load failure log at 0x102daaf4 does not become RunAlarm SOAP error. Mode passed to f_102b24dc at 0x102db840; that helper maps NORMAL/SHUFFLE_NOREPEAT/REPEAT_ALL/SHUFFLE/REPEAT_ONE/SHUFFLE_REPEAT_ONE to 0/1/2/3/4/5, rejects unsupported source/mode combinations with 712 internally, return ignored here. Rendering object impl+0x5bc receives Master mute/volume ramp calls, including ALARM_RAMP_TYPE via slot +0x6c. No RunAlarm 0..100 check; 65535/65534 have current-volume handling at 0x102db37c..0x102db3d8/0x102dba2c, 65534 enforces minimum 10. Successful eligible alarm path sets +0x5a86 and dirty +0x5a87 at 0x102db570/0x102db574, calls f_1067c6ec(impl+0x10) at 0x102db578. Other source branches can fail without setting ringing; main worker still stores supplied alarm state and returns zero."
         }
        ],
-       "notes": null,
-       "buf_cap": 4097,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ProgramMetaData` is parsed then forwarded verbatim to r5-in vfunc +152 (site 0x102fc684) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `ProgramMetaData` = verbatim forward to impl vfunc +152 (obj r5-in, call site 0x102fc684); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "Saved at impl+0x5ea9. Content/service/station context is also processed by reporting helpers after unlock.",
+       "buf_cap": 4097
       },
       "PlayMode": {
-       "description": "Forwarded to shared alarm worker f_102e17dc.",
+       "description": "Required text saved for replay and offered to source-dependent playback-mode setter.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -53271,50 +53264,49 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosBoolArg",
-       "format": "utf-8 text, buffer cap 32 bytes (31 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "transport play-mode enum string <= parse cap",
-       "range": "max 31 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "play-mode string",
+       "format": "case-sensitive mode token in downstream setter",
+       "unit": "play mode",
+       "accepted_values": "Setter recognizes NORMAL, SHUFFLE_NOREPEAT, REPEAT_ALL, SHUFFLE, REPEAT_ONE, SHUFFLE_REPEAT_ONE; other text is not a RunAlarm SOAP fault",
+       "range": "First 31 bytes plus NUL",
+       "special_values": "Empty/unknown/unsupported mode can yield internal 712, ignored by this action.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared alarm worker f_102e17dc.",
+       "validation": "No RunAlarm enum gate; f_102b24dc checks token and source capabilities when reached.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc5d4",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eaaeb0",
-         "notes": "argument name string"
+         "function": "0x10560a58",
+         "address": "0x10560b10",
+         "callsite": "0x102fc538",
+         "notes": "LoggedStartTime/Duration/ProgramURI/ProgramMetaData/PlayMode use tag 7, capacities 64/64/1025/4097/32. Finalization writes NUL at accumulated length or capacity-1. Longer text truncates, not an argument fault. Present empty strings pass wrapper presence validation; only LoggedStartTime has a mandatory downstream grammar check."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102e17dc",
-         "notes": "worker"
+         "address": "0x102e1950",
+         "callsite": "0x102e1da8",
+         "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102da774",
+         "address": "0x102db570",
+         "callsite": "0x102e19b4",
+         "notes": "Shared AVTransport autoplay/alarm helper receives duration pointer or null, URI, metadata, mode, volume, alarm=true, final flag=false. Attempts transport operation f_102d0ac8 at 0x102da924, URI/source loading through f_102ceb40 at 0x102daa1c/0x102daab0 with source-dependent paths including buzzer fallback; load failure log at 0x102daaf4 does not become RunAlarm SOAP error. Mode passed to f_102b24dc at 0x102db840; that helper maps NORMAL/SHUFFLE_NOREPEAT/REPEAT_ALL/SHUFFLE/REPEAT_ONE/SHUFFLE_REPEAT_ONE to 0/1/2/3/4/5, rejects unsupported source/mode combinations with 712 internally, return ignored here. Rendering object impl+0x5bc receives Master mute/volume ramp calls, including ALARM_RAMP_TYPE via slot +0x6c. No RunAlarm 0..100 check; 65535/65534 have current-volume handling at 0x102db37c..0x102db3d8/0x102dba2c, 65534 enforces minimum 10. Successful eligible alarm path sets +0x5a86 and dirty +0x5a87 at 0x102db570/0x102db574, calls f_1067c6ec(impl+0x10) at 0x102db578. Other source branches can fail without setting ringing; main worker still stores supplied alarm state and returns zero."
         }
        ],
-       "notes": null,
-       "buf_cap": 32,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `PlayMode` is parsed then forwarded verbatim to r5-in vfunc +152 (site 0x102fc684) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `PlayMode` = verbatim forward to impl vfunc +152 (obj r5-in, call site 0x102fc684); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "Saved at impl+0x6eaa. Recognition is not a guarantee every source accepts that mode.",
+       "buf_cap": 32
       },
       "Volume": {
-       "description": "Forwarded to shared alarm worker f_102e17dc.",
+       "description": "Required unsigned-short volume forwarded to rendering-control alarm ramp and saved for replay.",
        "direction": "in",
        "primitive": {
         "type_tag": 2,
@@ -53323,49 +53315,48 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosUintArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "u32 volume; applied by the alarm-run path",
-       "range": "parsed u32; worker-clamped",
-       "special_values": "none observed in this build",
+       "semantic_type": "unsigned 16-bit volume",
+       "format": "strtoul(text,NULL,10), then low 16 bits",
+       "unit": "rendering volume target",
+       "accepted_values": "Any resulting u16 value; rendering layer handles target",
+       "range": "0..65535 after narrowing; no RunAlarm 0..100 rejection",
+       "special_values": "Empty/nonnumeric -> 0. 65535 uses current-volume handling; 65534 uses current-volume handling with minimum 10.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared alarm worker f_102e17dc.",
+       "validation": "No errno/end-pointer/range check; narrows to u16, no worker clamp claim.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc5fc",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10f11b40",
-         "notes": "argument name string"
+         "function": "0x10560a58",
+         "address": "0x10560b50",
+         "callsite": "0x102fc514",
+         "notes": "InstanceID and AlarmID tag 4 use strtoul(text,NULL,10) at 0x10560b50, then store u32. Volume tag 2 uses strtoul at 0x10560b6c and stores low u16 at 0x10560b70. All use capacity 24, retain at most 23 bytes. No end-pointer/errno/range validation: empty/nonnumeric text becomes zero; numeric prefixes accepted; negative/overflow values follow 32-bit strtoul before volume narrowing. IncludeLinkedZones tag 1 accepts case-insensitive exact 1/true/yes, all other present text becomes false at 0x10560b78..0x10560bd0. Presence is checked separately by request validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102e17dc",
-         "notes": "worker"
+         "address": "0x102e1950",
+         "callsite": "0x102e1da8",
+         "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102da774",
+         "address": "0x102db570",
+         "callsite": "0x102e19b4",
+         "notes": "Shared AVTransport autoplay/alarm helper receives duration pointer or null, URI, metadata, mode, volume, alarm=true, final flag=false. Attempts transport operation f_102d0ac8 at 0x102da924, URI/source loading through f_102ceb40 at 0x102daa1c/0x102daab0 with source-dependent paths including buzzer fallback; load failure log at 0x102daaf4 does not become RunAlarm SOAP error. Mode passed to f_102b24dc at 0x102db840; that helper maps NORMAL/SHUFFLE_NOREPEAT/REPEAT_ALL/SHUFFLE/REPEAT_ONE/SHUFFLE_REPEAT_ONE to 0/1/2/3/4/5, rejects unsupported source/mode combinations with 712 internally, return ignored here. Rendering object impl+0x5bc receives Master mute/volume ramp calls, including ALARM_RAMP_TYPE via slot +0x6c. No RunAlarm 0..100 check; 65535/65534 have current-volume handling at 0x102db37c..0x102db3d8/0x102dba2c, 65534 enforces minimum 10. Successful eligible alarm path sets +0x5a86 and dirty +0x5a87 at 0x102db570/0x102db574, calls f_1067c6ec(impl+0x10) at 0x102db578. Other source branches can fail without setting ringing; main worker still stores supplied alarm state and returns zero."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561478) and declared constraints are documented.",
-        "Residual: `Volume` is parsed then forwarded verbatim to r5-in vfunc +152 (site 0x102fc684) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `Volume` = verbatim forward to impl vfunc +152 (obj r5-in, call site 0x102fc684); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "Saved at impl+0x6eca; Master channel ALARM_RAMP_TYPE calls have ignored results."
       },
       "IncludeLinkedZones": {
-       "description": "Forwarded to shared alarm worker f_102e17dc.",
+       "description": "Required boolean influencing whether current linked-room grouping is preserved or standalone preparation is attempted.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -53375,219 +53366,426 @@
         "via_slot": 28
        },
        "semantic_type": "SonosBoolArg",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "boolean flag parsed as u32",
-       "range": "{0,1}",
-       "special_values": "none observed in this build",
+       "format": "case-insensitive exact 1/true/yes -> true; all other text -> false",
+       "unit": "boolean",
+       "accepted_values": "Any present text converted to boolean",
+       "range": "{0,1} after conversion",
+       "special_values": "Empty, 0, false and unrecognized text -> false, not a parse error.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared alarm worker f_102e17dc.",
+       "validation": "Presence then permissive boolean conversion. Nonzero transport mode plus true bypasses preparation; false queries linked rooms, prepares if count nonzero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc620",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eaaebc",
-         "notes": "argument name string"
+         "function": "0x10560a58",
+         "address": "0x10560b50",
+         "callsite": "0x102fc514",
+         "notes": "InstanceID and AlarmID tag 4 use strtoul(text,NULL,10) at 0x10560b50, then store u32. Volume tag 2 uses strtoul at 0x10560b6c and stores low u16 at 0x10560b70. All use capacity 24, retain at most 23 bytes. No end-pointer/errno/range validation: empty/nonnumeric text becomes zero; numeric prefixes accepted; negative/overflow values follow 32-bit strtoul before volume narrowing. IncludeLinkedZones tag 1 accepts case-insensitive exact 1/true/yes, all other present text becomes false at 0x10560b78..0x10560bd0. Presence is checked separately by request validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102e17dc",
-         "notes": "worker"
+         "address": "0x102e1bf4",
+         "callsite": "0x102e1984",
+         "notes": "Mode +0x4654 zero -> f_102d4e80(impl,0,0,0,0,0,0), mark follow-up enabled. Nonzero mode with IncludeLinkedZones true -> skip that preparation and follow-up. Nonzero mode with false -> f_10392644(*(impl+0x57c)) at 0x102e1cdc; positive linked-room count -> preparation/follow-up, zero -> neither. f_102d4e80 performs standalone/group preparation, calls f_10398308 at 0x102d509c, writes mode 2 at 0x102d50c4 and dirty +0x4658, schedules source impl+0x10 at 0x102d50d8. Its return is ignored. f_10392644 counts nonempty linked-room entries plus topology lookup; not an AlarmID lookup."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102e17dc",
+         "address": "0x102e1bb4",
+         "callsite": "0x102e1bd8",
+         "notes": "After unlock, builds zpAlarm/alarm PLAY telemetry with id, converted start, original dur/mode, fb_buzz, vol, linked, sid and optional stationId, using helpers f_104c9f8c/f_1071a9cc to extract service/station context. Logger from f_10559024 receives virtual slot +0x1c call at 0x102e1bd8; return controls f_10558658 reporting, not SOAP status. If grouping preparation was selected, calls f_102e0fb0 at 0x102e1c08 and discards return, explicitly returns zero at 0x102e1c0c. f_102e0fb0 creates session through f_10759984 at 0x102e1004, tests f_1053ce34, constructs SetAVTransportURI operations with x-rincon:<local identity> at 0x102e1090..0x102e111c, dispatches through f_10743a60/f_106fe8c0, waits up to 8000ms via f_106fb998, cleans up via f_1053db38. Session/remote errors do not propagate. No alarmclock.xml save or alarm-list-version increment in this path."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `IncludeLinkedZones` is parsed then forwarded verbatim to r5-in vfunc +152 (site 0x102fc684) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `IncludeLinkedZones` = verbatim forward to impl vfunc +152 (obj r5-in, call site 0x102fc684); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": "Mode zero always takes preparation regardless of this flag. Selected preparation also enables follow-up SetAVTransportURI propagation; failures ignored."
       }
      },
      "outputs": {},
      "validation": {
-      "description": "See inputs/impl notes",
+      "description": "All nine inputs must be present. Bounded strings truncate, numbers and boolean parse permissively. Then nonzero InstanceID -> 718; invalid LoggedStartTime -> 402; operation-override bit -> 810. Invalid Duration, unknown AlarmID/URI/mode, loader failure and downstream session errors are not additional RunAlarm SOAP faults.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102fc4ac",
-        "notes": "wrapper + impl decode"
+        "function": "0x102fc4ac",
+        "address": "0x102fc6d4",
+        "callsite": "0x102fc6a0",
+        "notes": "Nine required arguments register at 0x102fc4f0/0x102fc514/0x102fc538/0x102fc55c/0x102fc584/0x102fc5ac/0x102fc5d4/0x102fc5fc/0x102fc620. Request validation at 0x102fc63c; false loads 402 at 0x102fc6d4. Sole fault call 0x102fc6a0 handles validation or nonzero worker return. Zero worker result commits output-free response via request+0x0c at 0x102fc6e8. No output arguments. Stack-guard abort is not a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b50",
+        "callsite": "0x102fc514",
+        "notes": "InstanceID and AlarmID tag 4 use strtoul(text,NULL,10) at 0x10560b50, then store u32. Volume tag 2 uses strtoul at 0x10560b6c and stores low u16 at 0x10560b70. All use capacity 24, retain at most 23 bytes. No end-pointer/errno/range validation: empty/nonnumeric text becomes zero; numeric prefixes accepted; negative/overflow values follow 32-bit strtoul before volume narrowing. IncludeLinkedZones tag 1 accepts case-insensitive exact 1/true/yes, all other present text becomes false at 0x10560b78..0x10560bd0. Presence is checked separately by request validation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b10",
+        "callsite": "0x102fc538",
+        "notes": "LoggedStartTime/Duration/ProgramURI/ProgramMetaData/PlayMode use tag 7, capacities 64/64/1025/4097/32. Finalization writes NUL at accumulated length or capacity-1. Longer text truncates, not an argument fault. Present empty strings pass wrapper presence validation; only LoggedStartTime has a mandatory downstream grammar check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3cbfc",
+        "address": "0x10fb1598",
+        "callsite": "0x102e18b0",
+        "notes": "RunAlarm always calls f_10c3cbfc for LoggedStartTime before locking. sscanf at 0x10c3cc5c uses %04hu-%02hu-%02hu %02hu:%02hu:%02hu at literal 0x10fb1598. Requires six conversions, but checks neither calendar ranges nor end-of-input. Whitespace in the format is scanf whitespace, not a strict single-space separator. Final input byte Z sets byte +0x14 at 0x10c3cca8; suffix is otherwise unrestricted. Empty/malformed text -> 402 at 0x102e18b8. Saved original fields copied to impl+0x5a90..+0x5aa0, not used as a future launch deadline."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3d2c4",
+        "address": "0x10fb1618",
+        "callsite": "0x102e1934",
+        "notes": "Duration empty skips parser and leaves validity flag zero. Nonempty invokes f_10c3d2c4: sscanf at 0x10c3d318, literal %02hu:%02hu:%02hu at 0x10fb1618, three conversions required, hours<=23 and minutes/seconds<=59, no end-of-input check. Unlike SnoozeAlarm, false parsing does not fault: null duration passed to f_102da774, validity saved at impl+0x5aa4. Valid h/m/s copied by f_10c3d18c at 0x102e1c60 into +0x5aa5..+0x5aa7. 00:00:00 is valid."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e17dc",
+        "address": "0x102e1950",
+        "callsite": "0x102e1da8",
+        "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, validate×1, commit×1); member delegates: r30 v[+?]",
+      "description": "Required input presence, InstanceID zero, six timestamp conversions, then override bit +0x465c & 4 clear. No persisted AlarmID existence, future start-time, synchronized generation or pre-existing ringing requirement. Transport mode and linked-room count choose preparation rather than rejecting the action.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102fc4ac",
-        "notes": "req-vfunc call map: {'0x1c': 9, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102fc6d4",
+        "callsite": "0x102fc6a0",
+        "notes": "Nine required arguments register at 0x102fc4f0/0x102fc514/0x102fc538/0x102fc55c/0x102fc584/0x102fc5ac/0x102fc5d4/0x102fc5fc/0x102fc620. Request validation at 0x102fc63c; false loads 402 at 0x102fc6d4. Sole fault call 0x102fc6a0 handles validation or nonzero worker return. Zero worker result commits output-free response via request+0x0c at 0x102fc6e8. No output arguments. Stack-guard abort is not a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3cbfc",
+        "address": "0x10fb1598",
+        "callsite": "0x102e18b0",
+        "notes": "RunAlarm always calls f_10c3cbfc for LoggedStartTime before locking. sscanf at 0x10c3cc5c uses %04hu-%02hu-%02hu %02hu:%02hu:%02hu at literal 0x10fb1598. Requires six conversions, but checks neither calendar ranges nor end-of-input. Whitespace in the format is scanf whitespace, not a strict single-space separator. Final input byte Z sets byte +0x14 at 0x10c3cca8; suffix is otherwise unrestricted. Empty/malformed text -> 402 at 0x102e18b8. Saved original fields copied to impl+0x5a90..+0x5aa0, not used as a future launch deadline."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e17dc",
+        "address": "0x102e1950",
+        "callsite": "0x102e1da8",
+        "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e17dc",
+        "address": "0x102e1bf4",
+        "callsite": "0x102e1984",
+        "notes": "Mode +0x4654 zero -> f_102d4e80(impl,0,0,0,0,0,0), mark follow-up enabled. Nonzero mode with IncludeLinkedZones true -> skip that preparation and follow-up. Nonzero mode with false -> f_10392644(*(impl+0x57c)) at 0x102e1cdc; positive linked-room count -> preparation/follow-up, zero -> neither. f_102d4e80 performs standalone/group preparation, calls f_10398308 at 0x102d509c, writes mode 2 at 0x102d50c4 and dirty +0x4658, schedules source impl+0x10 at 0x102d50d8. Its return is ignored. f_10392644 counts nonempty linked-room entries plus topology lookup; not an AlarmID lookup."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×9, validate×1, commit×1); member delegates: r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+?]",
+      "description": "AVTransport mutex +0x458; override +0x465c; mode +0x4654; linked/topology object +0x57c; rendering object +0x5bc; source/program state and scheduler +0xad2c. Saved alarm fields +0x5a88..+0x6eca support getter/snooze; eligible autoplay sets ringing +0x5a86 and duration deadline +0x6ed4. Cross-engine *(impl+0xaa4c) supplies AlarmClock effective timezone for telemetry only, not definition lookup.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc4ac",
-        "notes": "member vfunc calls: ['r30 v[+?]']"
+        "function": "0x102e17dc",
+        "address": "0x102e1950",
+        "callsite": "0x102e1da8",
+        "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e17dc",
+        "address": "0x102e1bf4",
+        "callsite": "0x102e1984",
+        "notes": "Mode +0x4654 zero -> f_102d4e80(impl,0,0,0,0,0,0), mark follow-up enabled. Nonzero mode with IncludeLinkedZones true -> skip that preparation and follow-up. Nonzero mode with false -> f_10392644(*(impl+0x57c)) at 0x102e1cdc; positive linked-room count -> preparation/follow-up, zero -> neither. f_102d4e80 performs standalone/group preparation, calls f_10398308 at 0x102d509c, writes mode 2 at 0x102d50c4 and dirty +0x4658, schedules source impl+0x10 at 0x102d50d8. Its return is ignored. f_10392644 counts nonempty linked-room entries plus topology lookup; not an AlarmID lookup."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102da774",
+        "address": "0x102db570",
+        "callsite": "0x102e19b4",
+        "notes": "Shared AVTransport autoplay/alarm helper receives duration pointer or null, URI, metadata, mode, volume, alarm=true, final flag=false. Attempts transport operation f_102d0ac8 at 0x102da924, URI/source loading through f_102ceb40 at 0x102daa1c/0x102daab0 with source-dependent paths including buzzer fallback; load failure log at 0x102daaf4 does not become RunAlarm SOAP error. Mode passed to f_102b24dc at 0x102db840; that helper maps NORMAL/SHUFFLE_NOREPEAT/REPEAT_ALL/SHUFFLE/REPEAT_ONE/SHUFFLE_REPEAT_ONE to 0/1/2/3/4/5, rejects unsupported source/mode combinations with 712 internally, return ignored here. Rendering object impl+0x5bc receives Master mute/volume ramp calls, including ALARM_RAMP_TYPE via slot +0x6c. No RunAlarm 0..100 check; 65535/65534 have current-volume handling at 0x102db37c..0x102db3d8/0x102dba2c, 65534 enforces minimum 10. Successful eligible alarm path sets +0x5a86 and dirty +0x5a87 at 0x102db570/0x102db574, calls f_1067c6ec(impl+0x10) at 0x102db578. Other source branches can fail without setting ringing; main worker still stores supplied alarm state and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102da774",
+        "address": "0x102db044",
+        "callsite": "0x102db09c",
+        "notes": "Eligible mode in {1,2} alarm path reads clock ID 1 and writes deadline impl+0x6ed4 at 0x102db044..0x102db078. Valid duration adds h*3600+m*60+s; null duration adds 7200 at 0x102db9c4. Registers callback f_102d1d50 -> f_102d1be8 at 0x102db09c through scheduler *(impl+0xad2c). Callback locks impl+0x458, returns sentinel 0x7fffffff if not ringing or snoozed. At expiry, valid duration flag +0x5aa4 calls f_102d0ac8(impl,1,1,...,-1,-1) at 0x102d1d2c; absent/invalid duration calls f_102b4b48(impl,1) at 0x102d1d44 to clear alarm/snooze flags and enqueue changes without that transport operation. Thus malformed duration is not equivalent to a malformed LoggedStartTime. Immediate duration zero is accepted; callback/playback success not propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e17dc",
+        "address": "0x102e1aa8",
+        "callsite": "0x102e1ac4",
+        "notes": "Cross-engine call, not AlarmClock SOAP dispatch: loads *(impl+0xaa4c), calls AlarmClock engine helper f_10276608 at 0x102e1ac4 with parsed LoggedStartTime and output calendar, formats result with f_10c3c88c for telemetry start field. f_10276608 snapshots effective timezone rule +0x232..+0x23e under engine mutex +0x170 at 0x10276640..0x10276680 and calls f_10c3d9ec at 0x10276690. This is a read-only timezone conversion, not alarm-definition mutation, alarm scheduling by LoggedStartTime, or a call through /AlarmClock/Control. The saved original calendar fields are not replaced by this logging conversion."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+?] (call-derived member-method semantics)",
+       "description": "May prepare standalone/group transport, attempt source loading/playback with fallback and Master alarm volume ramp, set ringing/dirty flags and timer, and always save supplied running-alarm fields after the precondition gates. After unlock emits zpAlarm PLAY telemetry and optionally propagates SetAVTransportURI to session participants. No alarmclock.xml alarm-definition save or AlarmListVersion increment. Subordinate failures are ignored, so SOAP success is not a transaction or playback guarantee.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102fc4ac",
-         "notes": "delegate map ['r30 v[+?]']; notify-family calls []"
+         "function": "0x102e17dc",
+         "address": "0x102e1950",
+         "callsite": "0x102e1da8",
+         "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102e17dc",
+         "address": "0x102e1bf4",
+         "callsite": "0x102e1984",
+         "notes": "Mode +0x4654 zero -> f_102d4e80(impl,0,0,0,0,0,0), mark follow-up enabled. Nonzero mode with IncludeLinkedZones true -> skip that preparation and follow-up. Nonzero mode with false -> f_10392644(*(impl+0x57c)) at 0x102e1cdc; positive linked-room count -> preparation/follow-up, zero -> neither. f_102d4e80 performs standalone/group preparation, calls f_10398308 at 0x102d509c, writes mode 2 at 0x102d50c4 and dirty +0x4658, schedules source impl+0x10 at 0x102d50d8. Its return is ignored. f_10392644 counts nonempty linked-room entries plus topology lookup; not an AlarmID lookup."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102da774",
+         "address": "0x102db570",
+         "callsite": "0x102e19b4",
+         "notes": "Shared AVTransport autoplay/alarm helper receives duration pointer or null, URI, metadata, mode, volume, alarm=true, final flag=false. Attempts transport operation f_102d0ac8 at 0x102da924, URI/source loading through f_102ceb40 at 0x102daa1c/0x102daab0 with source-dependent paths including buzzer fallback; load failure log at 0x102daaf4 does not become RunAlarm SOAP error. Mode passed to f_102b24dc at 0x102db840; that helper maps NORMAL/SHUFFLE_NOREPEAT/REPEAT_ALL/SHUFFLE/REPEAT_ONE/SHUFFLE_REPEAT_ONE to 0/1/2/3/4/5, rejects unsupported source/mode combinations with 712 internally, return ignored here. Rendering object impl+0x5bc receives Master mute/volume ramp calls, including ALARM_RAMP_TYPE via slot +0x6c. No RunAlarm 0..100 check; 65535/65534 have current-volume handling at 0x102db37c..0x102db3d8/0x102dba2c, 65534 enforces minimum 10. Successful eligible alarm path sets +0x5a86 and dirty +0x5a87 at 0x102db570/0x102db574, calls f_1067c6ec(impl+0x10) at 0x102db578. Other source branches can fail without setting ringing; main worker still stores supplied alarm state and returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102da774",
+         "address": "0x102db044",
+         "callsite": "0x102db09c",
+         "notes": "Eligible mode in {1,2} alarm path reads clock ID 1 and writes deadline impl+0x6ed4 at 0x102db044..0x102db078. Valid duration adds h*3600+m*60+s; null duration adds 7200 at 0x102db9c4. Registers callback f_102d1d50 -> f_102d1be8 at 0x102db09c through scheduler *(impl+0xad2c). Callback locks impl+0x458, returns sentinel 0x7fffffff if not ringing or snoozed. At expiry, valid duration flag +0x5aa4 calls f_102d0ac8(impl,1,1,...,-1,-1) at 0x102d1d2c; absent/invalid duration calls f_102b4b48(impl,1) at 0x102d1d44 to clear alarm/snooze flags and enqueue changes without that transport operation. Thus malformed duration is not equivalent to a malformed LoggedStartTime. Immediate duration zero is accepted; callback/playback success not propagated."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102e17dc",
+         "address": "0x102e1aa8",
+         "callsite": "0x102e1ac4",
+         "notes": "Cross-engine call, not AlarmClock SOAP dispatch: loads *(impl+0xaa4c), calls AlarmClock engine helper f_10276608 at 0x102e1ac4 with parsed LoggedStartTime and output calendar, formats result with f_10c3c88c for telemetry start field. f_10276608 snapshots effective timezone rule +0x232..+0x23e under engine mutex +0x170 at 0x10276640..0x10276680 and calls f_10c3d9ec at 0x10276690. This is a read-only timezone conversion, not alarm-definition mutation, alarm scheduling by LoggedStartTime, or a call through /AlarmClock/Control. The saved original calendar fields are not replaced by this logging conversion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102e17dc",
+         "address": "0x102e1bb4",
+         "callsite": "0x102e1bd8",
+         "notes": "After unlock, builds zpAlarm/alarm PLAY telemetry with id, converted start, original dur/mode, fb_buzz, vol, linked, sid and optional stationId, using helpers f_104c9f8c/f_1071a9cc to extract service/station context. Logger from f_10559024 receives virtual slot +0x1c call at 0x102e1bd8; return controls f_10558658 reporting, not SOAP status. If grouping preparation was selected, calls f_102e0fb0 at 0x102e1c08 and discards return, explicitly returns zero at 0x102e1c0c. f_102e0fb0 creates session through f_10759984 at 0x102e1004, tests f_1053ce34, constructs SetAVTransportURI operations with x-rincon:<local identity> at 0x102e1090..0x102e111c, dispatches through f_10743a60/f_106fe8c0, waits up to 8000ms via f_106fb998, cleans up via f_1053db38. Session/remote errors do not propagate. No alarmclock.xml save or alarm-list-version increment in this path."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Eligible alarm autoplay marks +0x5a87 and schedules AVTransport source impl+0x10 at 0x102db578; LastChange carries r:AlarmRunning. Group preparation can dirty transport mode; duration cleanup can clear alarm/snooze and enqueue updates. zpAlarm PLAY telemetry is separate from UPnP LastChange and AlarmClock AlarmListVersion. No guaranteed synchronous NOTIFY delivery is claimed.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc4ac",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x102da774",
+        "address": "0x102db570",
+        "callsite": "0x102e19b4",
+        "notes": "Shared AVTransport autoplay/alarm helper receives duration pointer or null, URI, metadata, mode, volume, alarm=true, final flag=false. Attempts transport operation f_102d0ac8 at 0x102da924, URI/source loading through f_102ceb40 at 0x102daa1c/0x102daab0 with source-dependent paths including buzzer fallback; load failure log at 0x102daaf4 does not become RunAlarm SOAP error. Mode passed to f_102b24dc at 0x102db840; that helper maps NORMAL/SHUFFLE_NOREPEAT/REPEAT_ALL/SHUFFLE/REPEAT_ONE/SHUFFLE_REPEAT_ONE to 0/1/2/3/4/5, rejects unsupported source/mode combinations with 712 internally, return ignored here. Rendering object impl+0x5bc receives Master mute/volume ramp calls, including ALARM_RAMP_TYPE via slot +0x6c. No RunAlarm 0..100 check; 65535/65534 have current-volume handling at 0x102db37c..0x102db3d8/0x102dba2c, 65534 enforces minimum 10. Successful eligible alarm path sets +0x5a86 and dirty +0x5a87 at 0x102db570/0x102db574, calls f_1067c6ec(impl+0x10) at 0x102db578. Other source branches can fail without setting ringing; main worker still stores supplied alarm state and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e17dc",
+        "address": "0x102e1bf4",
+        "callsite": "0x102e1984",
+        "notes": "Mode +0x4654 zero -> f_102d4e80(impl,0,0,0,0,0,0), mark follow-up enabled. Nonzero mode with IncludeLinkedZones true -> skip that preparation and follow-up. Nonzero mode with false -> f_10392644(*(impl+0x57c)) at 0x102e1cdc; positive linked-room count -> preparation/follow-up, zero -> neither. f_102d4e80 performs standalone/group preparation, calls f_10398308 at 0x102d509c, writes mode 2 at 0x102d50c4 and dirty +0x4658, schedules source impl+0x10 at 0x102d50d8. Its return is ignored. f_10392644 counts nonempty linked-room entries plus topology lookup; not an AlarmID lookup."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102da774",
+        "address": "0x102db044",
+        "callsite": "0x102db09c",
+        "notes": "Eligible mode in {1,2} alarm path reads clock ID 1 and writes deadline impl+0x6ed4 at 0x102db044..0x102db078. Valid duration adds h*3600+m*60+s; null duration adds 7200 at 0x102db9c4. Registers callback f_102d1d50 -> f_102d1be8 at 0x102db09c through scheduler *(impl+0xad2c). Callback locks impl+0x458, returns sentinel 0x7fffffff if not ringing or snoozed. At expiry, valid duration flag +0x5aa4 calls f_102d0ac8(impl,1,1,...,-1,-1) at 0x102d1d2c; absent/invalid duration calls f_102b4b48(impl,1) at 0x102d1d44 to clear alarm/snooze flags and enqueue changes without that transport operation. Thus malformed duration is not equivalent to a malformed LoggedStartTime. Immediate duration zero is accepted; callback/playback success not propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e41a0",
+        "address": "0x102e50a4",
+        "callsite": "0x102db578",
+        "notes": "AVTransport producer f_102e41a0 constructs LastChange at 0x102e4798 and emits r:AlarmRunning from +0x5a86, r:SnoozeRunning from +0x6ed0. Alarm path sets dirty +0x5a87 and schedules f_1067c6ec(impl+0x10); grouping preparation can dirty mode +0x4658; duration callback may clear alarm/snooze via f_102b4b48. zpAlarm PLAY is separate telemetry, not an AlarmClock AlarmListVersion property. This establishes source/payload scheduling, not guaranteed outgoing NOTIFY delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e17dc",
+        "address": "0x102e1bb4",
+        "callsite": "0x102e1bd8",
+        "notes": "After unlock, builds zpAlarm/alarm PLAY telemetry with id, converted start, original dur/mode, fb_buzz, vol, linked, sid and optional stationId, using helpers f_104c9f8c/f_1071a9cc to extract service/station context. Logger from f_10559024 receives virtual slot +0x1c call at 0x102e1bd8; return controls f_10558658 reporting, not SOAP status. If grouping preparation was selected, calls f_102e0fb0 at 0x102e1c08 and discards return, explicitly returns zero at 0x102e1c0c. f_102e0fb0 creates session through f_10759984 at 0x102e1004, tests f_1053ce34, constructs SetAVTransportURI operations with x-rincon:<local identity> at 0x102e1090..0x102e111c, dispatches through f_10743a60/f_106fe8c0, waits up to 8000ms via f_106fb998, cleans up via f_1053db38. Session/remote errors do not propagate. No alarmclock.xml save or alarm-list-version increment in this path."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?]",
+      "description": "Bad timestamp or operation override exits without alarm-state mutation. Otherwise attempts grouping preparation as selected, then immediate autoplay; eligible source path changes ringing to true and arms explicit-duration or two-hour cleanup timer. Worker records supplied ID/start/program/mode/volume regardless of autoplay boolean result. At timer expiry explicit duration requests transport stop-family operation, absent/invalid duration clears alarm state. No rollback for loader/ramp/remote/reporting failure.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc4ac",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+?]']"
+        "function": "0x102e17dc",
+        "address": "0x102e1950",
+        "callsite": "0x102e1da8",
+        "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e17dc",
+        "address": "0x102e1bf4",
+        "callsite": "0x102e1984",
+        "notes": "Mode +0x4654 zero -> f_102d4e80(impl,0,0,0,0,0,0), mark follow-up enabled. Nonzero mode with IncludeLinkedZones true -> skip that preparation and follow-up. Nonzero mode with false -> f_10392644(*(impl+0x57c)) at 0x102e1cdc; positive linked-room count -> preparation/follow-up, zero -> neither. f_102d4e80 performs standalone/group preparation, calls f_10398308 at 0x102d509c, writes mode 2 at 0x102d50c4 and dirty +0x4658, schedules source impl+0x10 at 0x102d50d8. Its return is ignored. f_10392644 counts nonempty linked-room entries plus topology lookup; not an AlarmID lookup."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102da774",
+        "address": "0x102db570",
+        "callsite": "0x102e19b4",
+        "notes": "Shared AVTransport autoplay/alarm helper receives duration pointer or null, URI, metadata, mode, volume, alarm=true, final flag=false. Attempts transport operation f_102d0ac8 at 0x102da924, URI/source loading through f_102ceb40 at 0x102daa1c/0x102daab0 with source-dependent paths including buzzer fallback; load failure log at 0x102daaf4 does not become RunAlarm SOAP error. Mode passed to f_102b24dc at 0x102db840; that helper maps NORMAL/SHUFFLE_NOREPEAT/REPEAT_ALL/SHUFFLE/REPEAT_ONE/SHUFFLE_REPEAT_ONE to 0/1/2/3/4/5, rejects unsupported source/mode combinations with 712 internally, return ignored here. Rendering object impl+0x5bc receives Master mute/volume ramp calls, including ALARM_RAMP_TYPE via slot +0x6c. No RunAlarm 0..100 check; 65535/65534 have current-volume handling at 0x102db37c..0x102db3d8/0x102dba2c, 65534 enforces minimum 10. Successful eligible alarm path sets +0x5a86 and dirty +0x5a87 at 0x102db570/0x102db574, calls f_1067c6ec(impl+0x10) at 0x102db578. Other source branches can fail without setting ringing; main worker still stores supplied alarm state and returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102da774",
+        "address": "0x102db044",
+        "callsite": "0x102db09c",
+        "notes": "Eligible mode in {1,2} alarm path reads clock ID 1 and writes deadline impl+0x6ed4 at 0x102db044..0x102db078. Valid duration adds h*3600+m*60+s; null duration adds 7200 at 0x102db9c4. Registers callback f_102d1d50 -> f_102d1be8 at 0x102db09c through scheduler *(impl+0xad2c). Callback locks impl+0x458, returns sentinel 0x7fffffff if not ringing or snoozed. At expiry, valid duration flag +0x5aa4 calls f_102d0ac8(impl,1,1,...,-1,-1) at 0x102d1d2c; absent/invalid duration calls f_102b4b48(impl,1) at 0x102d1d44 to clear alarm/snooze flags and enqueue changes without that transport operation. Thus malformed duration is not equivalent to a malformed LoggedStartTime. Immediate duration zero is accepted; callback/playback success not propagated."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "No SOAP outputs. Missing required input -> 402; nonzero InstanceID -> 718; bad timestamp -> 402; override bit -> 810. All remaining normal worker paths -> zero and output-free success commit at 0x102fc6e8, even when playback, grouping, timer registration, logging or linked-room propagation fails. Worker domain {0,402,810}, adapter adds 718. f_102e0fb0 session results are discarded, not converted to 1024/1025 action errors.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102fc4ac",
-        "notes": "commit/fault slot usage: {'0x1c': 9, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102fc6d4",
+        "callsite": "0x102fc6a0",
+        "notes": "Nine required arguments register at 0x102fc4f0/0x102fc514/0x102fc538/0x102fc55c/0x102fc584/0x102fc5ac/0x102fc5d4/0x102fc5fc/0x102fc620. Request validation at 0x102fc63c; false loads 402 at 0x102fc6d4. Sole fault call 0x102fc6a0 handles validation or nonzero worker return. Zero worker result commits output-free response via request+0x0c at 0x102fc6e8. No output arguments. Stack-guard abort is not a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102fa5c4",
+        "address": "0x10eaf384",
+        "callsite": "0x102fc684",
+        "notes": "AVTransport service constructor f_102fc9c0 installs vptr 0x10eb300c; dispatcher f_102fa5c4 loads service+4 implementation at 0x102fa6c8. RunAlarm wrapper f_102fc4ac calls implementation slot +0x98 at 0x102fc684. Tables 0x10eaf2ec and 0x10edfbb8 contain f_102e1d68 at +0x98 (0x10eaf384/0x10edfc50). Gate compares InstanceID at 0x102e1d6c, returns 718 at 0x102e1d94, otherwise forwards AlarmID, LoggedStartTime, Duration, URI, metadata, mode, u16 volume and bool linked to f_102e17dc at 0x102e1da8. Adjacent slot +0x9c -> f_102e17a8 -> f_102e14e0 is the separate autoplay adapter, not the RunAlarm dispatch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e17dc",
+        "address": "0x102e1950",
+        "callsite": "0x102e1da8",
+        "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e17dc",
+        "address": "0x102e1bb4",
+        "callsite": "0x102e1bd8",
+        "notes": "After unlock, builds zpAlarm/alarm PLAY telemetry with id, converted start, original dur/mode, fb_buzz, vol, linked, sid and optional stationId, using helpers f_104c9f8c/f_1071a9cc to extract service/station context. Logger from f_10559024 receives virtual slot +0x1c call at 0x102e1bd8; return controls f_10558658 reporting, not SOAP status. If grouping preparation was selected, calls f_102e0fb0 at 0x102e1c08 and discards return, explicitly returns zero at 0x102e1c0c. f_102e0fb0 creates session through f_10759984 at 0x102e1004, tests f_1053ce34, constructs SetAVTransportURI operations with x-rincon:<local identity> at 0x102e1090..0x102e111c, dispatches through f_10743a60/f_106fe8c0, waits up to 8000ms via f_106fb998, cleans up via f_1053db38. Session/remote errors do not propagate. No alarmclock.xml save or alarm-list-version increment in this path."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x102fc6a0",
        "code": null,
-       "code_expr": "vret(r5-in,+0x98)"
+       "code_expr": "402 on request validation failure, otherwise nonzero vret(service+4,+0x98)"
       }
      ],
      "errors": [
       {
        "code": 718,
-       "code_expr": "vret(r5-in,+0x98)",
-       "meaning": "InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine",
+       "code_expr": "vret(service+4,+0x98)",
+       "meaning": "Nonzero parsed InstanceID is rejected before alarm worker execution.",
        "fault_sites": [
         "0x102fc6a0"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument is nonzero",
+         "description": "InstanceID after unsigned conversion is nonzero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102e1d68",
-           "notes": "cmpwi r4,0 -> r3=0x2ce at 0x102e1d94"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102e1d68",
-         "notes": "cmpwi r4,0 -> r3=0x2ce at 0x102e1d94"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x98)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: alarm worker f_102e17dc domain {402, 0x401=1025, 0x32a=810}; exit rc=402 site",
-       "fault_sites": [],
-       "conditions": [
-        {
-         "description": "the worker produced a code not covered by the gate",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102e1da8",
-           "notes": "passthrough path"
+           "function": "0x102fa5c4",
+           "address": "0x10eaf384",
+           "callsite": "0x102fc684",
+           "notes": "AVTransport service constructor f_102fc9c0 installs vptr 0x10eb300c; dispatcher f_102fa5c4 loads service+4 implementation at 0x102fa6c8. RunAlarm wrapper f_102fc4ac calls implementation slot +0x98 at 0x102fc684. Tables 0x10eaf2ec and 0x10edfbb8 contain f_102e1d68 at +0x98 (0x10eaf384/0x10edfc50). Gate compares InstanceID at 0x102e1d6c, returns 718 at 0x102e1d94, otherwise forwards AlarmID, LoggedStartTime, Duration, URI, metadata, mode, u16 volume and bool linked to f_102e17dc at 0x102e1da8. Adjacent slot +0x9c -> f_102e17a8 -> f_102e14e0 is the separate autoplay adapter, not the RunAlarm dispatch."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102e17dc",
-           "notes": "rc site"
+           "function": "0x10560a58",
+           "address": "0x10560b50",
+           "callsite": "0x102fc514",
+           "notes": "InstanceID and AlarmID tag 4 use strtoul(text,NULL,10) at 0x10560b50, then store u32. Volume tag 2 uses strtoul at 0x10560b6c and stores low u16 at 0x10560b70. All use capacity 24, retain at most 23 bytes. No end-pointer/errno/range validation: empty/nonnumeric text becomes zero; numeric prefixes accepted; negative/overflow values follow 32-bit strtoul before volume narrowing. IncludeLinkedZones tag 1 accepts case-insensitive exact 1/true/yes, all other present text becomes false at 0x10560b78..0x10560bd0. Presence is checked separately by request validation."
           }
          ]
         }
@@ -53597,46 +53795,41 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc6a0",
-         "notes": "impl vret passthrough site"
+         "function": "0x102fa5c4",
+         "address": "0x10eaf384",
+         "callsite": "0x102fc684",
+         "notes": "AVTransport service constructor f_102fc9c0 installs vptr 0x10eb300c; dispatcher f_102fa5c4 loads service+4 implementation at 0x102fa6c8. RunAlarm wrapper f_102fc4ac calls implementation slot +0x98 at 0x102fc684. Tables 0x10eaf2ec and 0x10edfbb8 contain f_102e1d68 at +0x98 (0x10eaf384/0x10edfc50). Gate compares InstanceID at 0x102e1d6c, returns 718 at 0x102e1d94, otherwise forwards AlarmID, LoggedStartTime, Duration, URI, metadata, mode, u16 volume and bool linked to f_102e17dc at 0x102e1da8. Adjacent slot +0x9c -> f_102e17a8 -> f_102e14e0 is the separate autoplay adapter, not the RunAlarm dispatch."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102e17dc",
-         "notes": "worker rc sites decoded"
+         "function": "0x102fc4ac",
+         "address": "0x102fc6d4",
+         "callsite": "0x102fc6a0",
+         "notes": "Nine required arguments register at 0x102fc4f0/0x102fc514/0x102fc538/0x102fc55c/0x102fc584/0x102fc5ac/0x102fc5d4/0x102fc5fc/0x102fc620. Request validation at 0x102fc63c; false loads 402 at 0x102fc6d4. Sole fault call 0x102fc6a0 handles validation or nonzero worker return. Zero worker result commits output-free response via request+0x0c at 0x102fc6e8. No output arguments. Stack-guard abort is not a SOAP fault."
         }
-       ],
-       "domain_note": "domain fully bounded: impl 0x102e1d68 exits=[240, 718]; alarm worker f_102e17dc rc surfaced | worker literal bound [-4712, -4704, -4696, 402] (worker_err_literals.json)",
-       "literal_bound": [
-        -4712,
-        -4704,
-        -4696,
-        402
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x98); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+       "code": 810,
+       "code_expr": "vret(service+4,+0x98)",
+       "meaning": "Alarm execution is prevented by the current operation override bit.",
        "fault_sites": [
         "0x102fc6a0"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
+         "description": "After valid LoggedStartTime, under mutex, impl+0x465c has bit 0x4 set. Worker unlocks and returns 810 at 0x102e1c50 before autoplay or saved-alarm mutation.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102fc4ac",
-           "notes": "parse vcall +0x8 then fault path"
+           "function": "0x102e17dc",
+           "address": "0x102e1950",
+           "callsite": "0x102e1da8",
+           "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
           }
          ]
         }
@@ -53646,8 +53839,81 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc4ac",
-         "notes": "wrapper parse + fault path"
+         "function": "0x102e17dc",
+         "address": "0x102e1950",
+         "callsite": "0x102e1da8",
+         "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102fc4ac",
+         "address": "0x102fc6d4",
+         "callsite": "0x102fc6a0",
+         "notes": "Nine required arguments register at 0x102fc4f0/0x102fc514/0x102fc538/0x102fc55c/0x102fc584/0x102fc5ac/0x102fc5d4/0x102fc5fc/0x102fc620. Request validation at 0x102fc63c; false loads 402 at 0x102fc6d4. Sole fault call 0x102fc6a0 handles validation or nonzero worker return. Zero worker result commits output-free response via request+0x0c at 0x102fc6e8. No output arguments. Stack-guard abort is not a SOAP fault."
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "request validation or vret(service+4,+0x98)",
+       "meaning": "A required argument is missing, or LoggedStartTime fails six-field parsing.",
+       "fault_sites": [
+        "0x102fc6a0"
+       ],
+       "conditions": [
+        {
+         "description": "Wrapper presence validation false loads 402 at 0x102fc6d4. Otherwise, on InstanceID zero, f_10c3cbfc returns false for LoggedStartTime and worker loads 402 at 0x102e18b8. Empty/invalid Duration is not this condition.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102fc4ac",
+           "address": "0x102fc6d4",
+           "callsite": "0x102fc6a0",
+           "notes": "Nine required arguments register at 0x102fc4f0/0x102fc514/0x102fc538/0x102fc55c/0x102fc584/0x102fc5ac/0x102fc5d4/0x102fc5fc/0x102fc620. Request validation at 0x102fc63c; false loads 402 at 0x102fc6d4. Sole fault call 0x102fc6a0 handles validation or nonzero worker return. Zero worker result commits output-free response via request+0x0c at 0x102fc6e8. No output arguments. Stack-guard abort is not a SOAP fault."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10c3cbfc",
+           "address": "0x10fb1598",
+           "callsite": "0x102e18b0",
+           "notes": "RunAlarm always calls f_10c3cbfc for LoggedStartTime before locking. sscanf at 0x10c3cc5c uses %04hu-%02hu-%02hu %02hu:%02hu:%02hu at literal 0x10fb1598. Requires six conversions, but checks neither calendar ranges nor end-of-input. Whitespace in the format is scanf whitespace, not a strict single-space separator. Final input byte Z sets byte +0x14 at 0x10c3cca8; suffix is otherwise unrestricted. Empty/malformed text -> 402 at 0x102e18b8. Saved original fields copied to impl+0x5a90..+0x5aa0, not used as a future launch deadline."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10c3d2c4",
+           "address": "0x10fb1618",
+           "callsite": "0x102e1934",
+           "notes": "Duration empty skips parser and leaves validity flag zero. Nonempty invokes f_10c3d2c4: sscanf at 0x10c3d318, literal %02hu:%02hu:%02hu at 0x10fb1618, three conversions required, hours<=23 and minutes/seconds<=59, no end-of-input check. Unlike SnoozeAlarm, false parsing does not fault: null duration passed to f_102da774, validity saved at impl+0x5aa4. Valid h/m/s copied by f_10c3d18c at 0x102e1c60 into +0x5aa5..+0x5aa7. 00:00:00 is valid."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102fc4ac",
+         "address": "0x102fc6d4",
+         "callsite": "0x102fc6a0",
+         "notes": "Nine required arguments register at 0x102fc4f0/0x102fc514/0x102fc538/0x102fc55c/0x102fc584/0x102fc5ac/0x102fc5d4/0x102fc5fc/0x102fc620. Request validation at 0x102fc63c; false loads 402 at 0x102fc6d4. Sole fault call 0x102fc6a0 handles validation or nonzero worker return. Zero worker result commits output-free response via request+0x0c at 0x102fc6e8. No output arguments. Stack-guard abort is not a SOAP fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10c3cbfc",
+         "address": "0x10fb1598",
+         "callsite": "0x102e18b0",
+         "notes": "RunAlarm always calls f_10c3cbfc for LoggedStartTime before locking. sscanf at 0x10c3cc5c uses %04hu-%02hu-%02hu %02hu:%02hu:%02hu at literal 0x10fb1598. Requires six conversions, but checks neither calendar ranges nor end-of-input. Whitespace in the format is scanf whitespace, not a strict single-space separator. Final input byte Z sets byte +0x14 at 0x10c3cca8; suffix is otherwise unrestricted. Empty/malformed text -> 402 at 0x102e18b8. Saved original fields copied to impl+0x5a90..+0x5aa0, not used as a future launch deadline."
         }
        ]
       }
@@ -53658,30 +53924,58 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x102fa5c4",
+       "address": "0x10eaf384",
+       "callsite": "0x102fc684",
+       "notes": "AVTransport service constructor f_102fc9c0 installs vptr 0x10eb300c; dispatcher f_102fa5c4 loads service+4 implementation at 0x102fa6c8. RunAlarm wrapper f_102fc4ac calls implementation slot +0x98 at 0x102fc684. Tables 0x10eaf2ec and 0x10edfbb8 contain f_102e1d68 at +0x98 (0x10eaf384/0x10edfc50). Gate compares InstanceID at 0x102e1d6c, returns 718 at 0x102e1d94, otherwise forwards AlarmID, LoggedStartTime, Duration, URI, metadata, mode, u16 volume and bool linked to f_102e17dc at 0x102e1da8. Adjacent slot +0x9c -> f_102e17a8 -> f_102e14e0 is the separate autoplay adapter, not the RunAlarm dispatch."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "function": "0x102fc4ac",
-       "address": "0x102fc4ac",
-       "notes": "action wrapper handler"
+       "address": "0x102fc6d4",
+       "callsite": "0x102fc6a0",
+       "notes": "Nine required arguments register at 0x102fc4f0/0x102fc514/0x102fc538/0x102fc55c/0x102fc584/0x102fc5ac/0x102fc5d4/0x102fc5fc/0x102fc620. Request validation at 0x102fc63c; false loads 402 at 0x102fc6d4. Sole fault call 0x102fc6a0 handles validation or nonzero worker return. Zero worker result commits output-free response via request+0x0c at 0x102fc6e8. No output arguments. Stack-guard abort is not a SOAP fault."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10eb3198",
-       "notes": "action dispatch table entry"
+       "function": "0x102e17dc",
+       "address": "0x102e1950",
+       "callsite": "0x102e1da8",
+       "notes": "After optional duration parse and required timestamp parse, locks impl+0x458 at 0x102e194c. If word +0x465c has bit 0x4, unlocks and returns 810 at 0x102e1c50, before alarm-state mutation. Otherwise mode +0x4654 and linked argument control grouping preparation; calls f_102da774 at 0x102e19b4 and ignores its return. Stores AlarmID at +0x5a88, parsed start at +0x5a90..+0x5aa0, duration-valid +0x5aa4, program URI +0x5aa8, metadata +0x5ea9, play mode +0x6eaa and u16 volume +0x6eca. Releases mutex at 0x102e1a58. No persistent alarm lookup by AlarmID. Worker normal return domain {0,402,810}; all post-mutation exits explicitly return zero. No 1024/1025 propagation."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x102e1d68",
-       "notes": "AVT impl vtable 0x10eaf2ec slot +0x98 entry"
+       "function": "0x102da774",
+       "address": "0x102db570",
+       "callsite": "0x102e19b4",
+       "notes": "Shared AVTransport autoplay/alarm helper receives duration pointer or null, URI, metadata, mode, volume, alarm=true, final flag=false. Attempts transport operation f_102d0ac8 at 0x102da924, URI/source loading through f_102ceb40 at 0x102daa1c/0x102daab0 with source-dependent paths including buzzer fallback; load failure log at 0x102daaf4 does not become RunAlarm SOAP error. Mode passed to f_102b24dc at 0x102db840; that helper maps NORMAL/SHUFFLE_NOREPEAT/REPEAT_ALL/SHUFFLE/REPEAT_ONE/SHUFFLE_REPEAT_ONE to 0/1/2/3/4/5, rejects unsupported source/mode combinations with 712 internally, return ignored here. Rendering object impl+0x5bc receives Master mute/volume ramp calls, including ALARM_RAMP_TYPE via slot +0x6c. No RunAlarm 0..100 check; 65535/65534 have current-volume handling at 0x102db37c..0x102db3d8/0x102dba2c, 65534 enforces minimum 10. Successful eligible alarm path sets +0x5a86 and dirty +0x5a87 at 0x102db570/0x102db574, calls f_1067c6ec(impl+0x10) at 0x102db578. Other source branches can fail without setting ringing; main worker still stores supplied alarm state and returns zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102e17dc",
+       "address": "0x102e1aa8",
+       "callsite": "0x102e1ac4",
+       "notes": "Cross-engine call, not AlarmClock SOAP dispatch: loads *(impl+0xaa4c), calls AlarmClock engine helper f_10276608 at 0x102e1ac4 with parsed LoggedStartTime and output calendar, formats result with f_10c3c88c for telemetry start field. f_10276608 snapshots effective timezone rule +0x232..+0x23e under engine mutex +0x170 at 0x10276640..0x10276680 and calls f_10c3d9ec at 0x10276690. This is a read-only timezone conversion, not alarm-definition mutation, alarm scheduling by LoggedStartTime, or a call through /AlarmClock/Control. The saved original calendar fields are not replaced by this logging conversion."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102e17dc",
+       "address": "0x102e1bb4",
+       "callsite": "0x102e1bd8",
+       "notes": "After unlock, builds zpAlarm/alarm PLAY telemetry with id, converted start, original dur/mode, fb_buzz, vol, linked, sid and optional stationId, using helpers f_104c9f8c/f_1071a9cc to extract service/station context. Logger from f_10559024 receives virtual slot +0x1c call at 0x102e1bd8; return controls f_10558658 reporting, not SOAP status. If grouping preparation was selected, calls f_102e0fb0 at 0x102e1c08 and discards return, explicitly returns zero at 0x102e1c0c. f_102e0fb0 creates session through f_10759984 at 0x102e1004, tests f_1053ce34, constructs SetAVTransportURI operations with x-rincon:<local identity> at 0x102e1090..0x102e111c, dispatches through f_10743a60/f_106fe8c0, waits up to 8000ms via f_106fb998, cleans up via f_1053db38. Session/remote errors do not propagate. No alarmclock.xml save or alarm-list-version increment in this path."
       }
      ],
-     "notes": "None Impl gate: null arg vector -> 0x2ce (718). Worker resolves pending-alarm state through the duration/time helper family (0x1108b284/f_10c3eb60).",
-     "todo": [
-      "Established: direct dispatch to handler 0x102fc4ac; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Static AVTransport dispatch, not an AlarmClock action. Read-only cross-engine timezone conversion is explicit. Adjacent autoplay implementation and subordinate session status must not be conflated with this worker return domain."
     },
     "SaveQueue": {
      "description": "Saves the current queue as a named saved-queue (Sonos playlist). Impl f_102aa8b4: 718-gate, lock impl+0x458, mode impl+0x4654 must be 1 or 2 (else 800). Title is bounded-copied into a 0x400-byte buffer (f_10906304), whitespace-trimmed via sonosTrimWhitespace, then validated: empty-after-trim -> 402, and strpbrk rejects any \\r or \\n -> 402. On success it calls f_10146e94(session+0x2d890, title, ObjectID, out-params) (the same persistence/path helper BackupQueue uses) storing the queue under the given ObjectID and writing the assigned object id.",
