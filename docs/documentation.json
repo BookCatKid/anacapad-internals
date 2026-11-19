@@ -158029,15 +158029,22 @@
      "type": "firmware",
      "address": "0x10fd8ca0",
      "notes": "track pipeline"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d13120",
+     "notes": "Download dispatch -> f_10d10b40 -> f_10d250d8; position arithmetic0x10d0e8d8 and signed rejection0x10d0e8e0, accepted stores0x10d0e8fc/0x10d0e910. Raw bank mask0x10d22cc0 is not a shift."
     }
    ],
    "todo": [
-    "Residual: the concrete integration implementation per source (SMAPI vs eSDK vs cloud - the interface is proven, the provider binding is per-service)."
+    "Established: actual current-state selection, track-id admission and guarded position/offset mutation with invalid/absent-track paths. Remaining: trace writers of global0x110bdc88 and the work/event producers feeding0x10d13120 and position callers, bind the integration callbacks installed by each concrete SDK adapter, and only then classify source/service coverage. Start with f_10d22c8c, f_10d250d8, f_10d10b40 and f_10d0e89c. The old generic SMAPI/eSDK/cloud provider and unconditional position-authority conclusions are not established; this is actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: integration callbacks = position-report handlers {Position report reason, invalid position delta, empty file id, Continuing track last position}; position arbitration documented.",
-    "Integration identified: the playback-provider integration layer (the SMAPI/eSDK side that sources the content). The pipeline and integration are bidirectional - integration asks the pipeline to download (Integration asked to download with offset for an invalid track %u) and seek (Asking integration to seek: %u / to the initial starting position %u); the pipeline reports track lifecycle back (Integration notified track %d finished at position %u ms, Integration reported invalid track to start/finish %u). Position priority: the integration is authoritative - track_id=%d position from integration %u and synchronized current playback position %u ms with integration show the pipeline adopts integration-reported position; validation rejects bad values (integration reported invalid position value %u last: %u delta: %i). Fields {track_id, provided_to_integration, is_seeking}; latency accounting splits delivery/integration/end-to-end (Latency: delivery=%llu, integration=%llu, end-to-end=%llu).",
-    "Established: integration = the playback-provider layer; position is integration-authoritative; latency is split delivery/integration/end-to-end."
+    "Concrete position path f_10d0e89c reads track id through f_10d24e0c at record+0x51c and compares the new position minus record+0x4c0 as a signed delta. Deltas below -1000 take the invalid-position path, set record+0x390 to0x3fe and report that error. Accepted deltas update last position+0x4c0 and accumulated position+0x4b8. This bounded path does not establish unconditional integration authority or a universal provider policy.",
+    "Reachable download-offset dispatch at0x10d13120 calls f_10d10b40 only after a nonnull track lookup and exclusions for track states0xb/0xe. The callee checks f_10d250d8, which requires a nonnull record, nonzero supplied track id and equality with record+0x51c. Mismatch logs the actual/expected ids and returns before the download-position mutation.",
+    "The checked path obtains current pipeline state through f_10d22c8c and global0x110bdc88, not through a demonstrated SMAPI/cloud provider vtable. Its low-bit bank selection uses raw instruction0x10d22cc0 as a mask, then stride0x528. This is concrete SDK state selection, not a complete per-service implementation binding."
    ]
   },
   "cdn_fetcher": {
