@@ -150918,14 +150918,23 @@
      "type": "firmware",
      "address": "0x10ecc104",
      "notes": "VliCtrl block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10415854",
+     "notes": "Wrapper tail branch0x10415d34 reaches StartSession; type switch0x10415940, abort-helper call0x10415998, URI/control virtual dispatch0x10415a24-0x10415a64, returned-handle use0x10415a78, flag clear0x10415a98 and action3 submission0x10415bd4. Mask wait f_10413184 supplies3000 at0x10413204."
     }
    ],
    "todo": [
-    "Residual: the per-op message field encodings on the actor socket (op vocabulary + resolution proven; wire encoding is the media_player_mgr residual)."
+    "Established: reachable local StartSession, injected URI/control call, pending/completion flag gating and local action3 submission. Remaining: bind receiver+0x10c to its installed implementation, follow f_101239ac and f_1013f0f4 through actual request submission/completion and serializers, and repeat for Stop/Suspend/volume/property handlers. Recover wait argument units and per-operation input/output/error fields from those consumers, not method-name strings. Start at f_10415854, f_10413184 and the wrapper0x10415d34. The presumed universal actor-socket grammar and spawned-player limitation are withdrawn; this is actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: StartSession flow = vliCommand {apiKey,operation=Start,position,volume} message -> link establish -> session-id issue -> stream start; message exchange documented under vli.",
-    "Session protocol proven (vli_ctrl.cxx, mpvlictrl domain): the op set {onVirtualLineInStartSession, onVirtualLineInStopSession, onVirtualLineInSuspendSession, onVirtualLineInGetVolume, onVirtualLineInSessionStartInfoUpdated, onVirtualLineInNameChanged, onVirtualLineInMetaDataChanged, onVirtualLineInPlayModesChanged, onPlaybackStateChanged, processSetVolume, waitOnTxBitFlagsClearedLocked} - StartSession validates the VLI type (StartSession for unusable/unknown type rejects), Stop/Suspend deactivate (VLISession(): deactivating local VLI; success (%d)). Start->volume path: SessionStartInfoUpdated + GetVolume + processSetVolume report processing VliVolumeProcessingCompleteEvent vli type %s success %d flags %#x with %s:%d (vol:%u,mute:%d) + VolumeSetActionEvent. Sessions resolve through the media-player actor layer (media_player_mgr): found actor for %s / found backup for %s / target [%s] for type %d resolved to %s / no actor available for %s / unexpected target ID type %d / Actor Filter is null."
+    "Concrete local StartSession implementation f_10415854 is reached by wrapper tail branch0x10415d34. It takes VLI type, cookie and additional call arguments, logs type/cookie, acquires receiver+0x130 and calls f_10413184 to wait for existing TX flags. This path does not establish an apiKey/operation/position/volume socket message, session-id issuance or a spawned-player wire protocol.",
+    "The bounded source-type switch reaches AirPlay, Spotify, Bluetooth, URI and TV Proxy literal pairs before URI construction. The unusable/unknown arm logs StartSession for unusable/unknown type and calls RabortIfUnlocked at0x10415998; it is not a demonstrated clean protocol rejection. The accepted construction path uses protocolInfo=\"x-sonos-vli:*:audio:*\", a formatted cookie and source information, calls the interface at receiver+0x10c virtual+8, and forwards the resulting handle through f_101239ac. The full contract of that injected interface remains unbound.",
+    "f_10413184 tests receiver+0x218 against a supplied mask. If bits remain it waits through f_10987584 on receiver+0x1c0 with argument3000, then tests again and returns whether the masked flags are clear; an already-clear mask returns without waiting. The helper logs a timeout but does not establish the argument unit by itself. StartSession stores pending flag1 and later clears bit0 of this word. The nonzero f_10673ffc path submits a local VliTransportAction stack pair {VLI type, action3} through f_1013f0f4 at0x10415bd4.",
+    "The onVirtualLineInStart/Stop/Suspend/GetVolume, session-info/property and playback/volume names identify local handlers and events, not a complete field encoding. Actor selection in media_player_mgr is a separate layer; neither actor terminology nor those method names proves that this checked local path sends each operation over an actor socket."
    ]
   },
   "didl_extractor": {
