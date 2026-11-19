@@ -223086,21 +223086,116 @@
   },
   "spotify_zeroconf": {
    "name": "Spotify ZeroConf endpoint /spotifyzc",
-   "summary": "URIs x-spotify:// + x-spotify-file://; Content-Type application/json; charset=utf-8; ver 2.9.0; client types {Partner,Spotify}; results {SpotZc_Failure,SpotZc_Success}; GC gate \"Non-GC returning 404 from getInfo\" + \"reject zc req %s\"; getInfo schema {deviceID,publicKey,deviceType,libraryVersion,resolverVersion,groupStatus,authorization_code,tokenType,clientID,productID,scope,availability,supported_drm_media_formats,supported_capabilities,modelDisplayName,brandDisplayName,remoteName,deviceName,statusString,spotifyError,responseCode}; errors {ERROR-INVALID-ARGUMENTS,ERROR-LOGIN-FAILED,ERROR-SPOTIFY-ERROR,ERROR-UNKNOWN}; addUser/resetUsers/resetUser/userName; \"addUser with userName %s; player uuid %s\" fmt %s@%s; client GUID 8ec274d4-0719-48d5-a0c0-ea9821a9a4ac + embedded key 9b377073ea334637b1406f329ce005de; DC enum {SONOS_DC_UNKNOWN,OK,NO_ACCOUNT,STALE_ACCOUNT,LOGIN_FAILED,UNSUPPORTED_SERVICE,UNEXPECTED}; account fields {isGuest,accountTier,loginMS,failedLoginMS,refreshAuthMS}; ops {spotifyTransferZeroConf,Using SID %d}",
+   "summary": "Spotify ZeroConf endpoint: route '/spotifyzc' -> f_1020f8c4 in the .data route table (0x110915bc, alongside '/websocket/api' and '/spotdbg'). The single handler parses the JSON body ('method','action','userAgent','esdkVersion','userName','blob','deviceName'), rejects unparsable or disallowed requests ('Invalid ZeroConf request %s', 'reject zc req %s' -> SpotZc_Failure + HTTP 403), and dispatches on the action value. getInfo (request-type 1) is group-coordinator gated: the vars call f_107491d8 on svc conn+0x5f88 (vtable+0x2c, inline fast path when the impl is f_100c3a10) writes the GC flag; non-GC logs 'Non-GC returning 404 from getInfo' and answers 404. The response clones the stored credential (ctx+0x70 -> +0x178, refcounted via f_1020cab8) and emits the field set with status {status,statusString,spotifyError,version '2.9.0'} via f_10210d88. addUser extracts 'userName' and the 2048-byte 'blob', logs 'addUser with userName %s; player uuid %s' (uuid is the runtime stored player id, distinct from the static client GUID), builds the user key '%s@%s' (userName@deviceName), posts a 'spotifyzc' work event via f_1020e1a0, and calls the account backend f_1020eb2c with static client GUID '8ec274d4-0719-48d5-a0c0-ea9821a9a4ac' as clientID. resetUser (request-type 5) first dispatches a logout through f_1020d0f4 (f_10214e68 async-vs-blocking by VLI state) then resets the account record through the same backend; the resetUsers action on the wire path returns 405. Errors map to {statusString: ERROR-INVALID-ARGUMENTS / ERROR-LOGIN-FAILED / ERROR-SPOTIFY-ERROR / ERROR-UNKNOWN} plus a six-entry SONOS_DC_* enum table written to 'errorCode'. On success the handler fires the internal event 'spotifyTransferZeroConf' into the 'spotify' service ({success} payload), which is the handoff into Connect: loginZC f_1021c108 runs the thread login f_10215a68 (refresh on E_SONOS_BAD_ACCOUNT), then pullContext -> 'Starting Spotify playback with object: %s' + onControlSelected. Embedded key '9b377073ea334637b1406f329ce005de' sits in the mDNS advertisement path (f_10213e60). mdns: service _spotify-connect._tcp + CPath sonos; 'deregister skipped for empty SID.'; 'register skipped for non-empty SID: %s'.",
    "evidence": [
     {
      "type": "firmware",
-     "address": "0x10ea14c4",
-     "notes": "spotify.cxx zc block"
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "route registration",
+     "address": "0x110915bc",
+     "notes": ".data route table entry {'/spotifyzc', f_1020f8c4, flags 0}; neighbors '/websocket/api' -> 0x100bb8ac and '/spotdbg' -> 0x100b8140."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "zc HTTP handler / action dispatcher",
+     "address": "0x1020f8c4",
+     "notes": "Parses JSON; extracts 'method','action','userAgent','esdkVersion'; on parse failure 'Invalid ZeroConf request %s', on rejection SpotZc_Failure + 'reject zc req %s' + HTTP 403. Dispatches getInfo (req-type 1), addUser, resetUser (req-type 5); form-urlencoded path via f_10551adc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "getInfo GC gate",
+     "address": "0x10210474",
+     "notes": "GC flag byte produced by f_107491d8(svc conn+0x5f88, out, stored uuid, 0) called at 0x10210020 / 0x1021084c; when clear, 'Non-GC returning 404 from getInfo' and status pair {0xcc,404}. vfunc+0x2c == f_100c3a10 triggers an inline fast path, else bctrl through the vtable."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "getInfo response assembly",
+     "address": "0x10210514",
+     "notes": "status setter f_10210d88(json,statusCode,httpCode,statusString,spotifyError): OK=(101,200,'OK',0), ERROR-UNKNOWN=(103,500), ERROR-SPOTIFY-ERROR=(402,200,errorCode), ERROR-LOGIN-FAILED=(202,200), ERROR-INVALID-ARGUMENTS=(,400). Field values: credential-clone struct at sp+0x178 supplies publicKey(0x178), deviceID(0x223), deviceType(0x2a5), libraryVersion(0x2b5), resolverVersion word(0x2d4 emitted as %d), groupStatus(0x2d8), clientID(0x30b), scope(0x32c), availability(0x36d), productID word(0x380); tokenType = literal 'authorization_code'; supported_drm_media_formats = {drm:{formats:N}} ints 0x5e8/0x5f4; supported_capabilities word 0x66c; brandDisplayName = literal 'Sonos'; modelDisplayName and remoteName from the f_107491d8 vars struct at sp+0x670/0x673; version '2.9.0'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "addUser arm",
+     "address": "0x10210114",
+     "notes": "Extracts 'userName' (65-byte buf) and 'blob' (2048-byte buf); logs 'addUser with userName %s; player uuid %s' with uuid = ctx+0x70 -> +0x178; later 'addUser, %s@%s' with userName@deviceName then posts result via f_1020e1a0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "resetUser arm",
+     "address": "0x10210a60",
+     "notes": "Runs logout dispatch f_1020d0f4 (calls f_10214e68: 'VLI source switch logout - async' vs 'Normal logout - blocking'), then f_1020eb2c with static client GUID '8ec274d4-0719-48d5-a0c0-ea9821a9a4ac' passed as the clientID argument; posts SpotZc_Success 'resetUser'. resetUsers action name takes the 405 path ({0xcd,0x195})."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "account backend",
+     "address": "0x1020eb2c",
+     "callsite": "0x10210b8c / tail of f_1020f794",
+     "notes": "'sn_%s%u' account naming; 'Local account matching user hash found, returning'; 'Failed to get token or key from DC account: %d'; fields isGuest, accountTier, loginMS, failedLoginMS, refreshAuthMS; 'login error 0x%x g=%d sn=%u'; 'Unable to access ZPServiceAccounts'; 'addUser - too many users' cap; deviceID hash via f_1020ea40 -> f_1020e3a0 'md5HashUTF16LE' + hex."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "guarded backend entry",
+     "address": "0x1020f794",
+     "notes": "Checks precondition via f_1020e0f4 then tail-calls f_1020eb2c with ~13 args; the spotify-side apply entry."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "zc work-event poster",
+     "address": "0x1020e1a0",
+     "callsite": "8 sites inside f_1020f8c4",
+     "notes": "Posts {result SpotZc_Success/SpotZc_Failure, action name, fields} to the 'spotifyzc' queue; used by every arm."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "Connect handoff event",
+     "address": "0x1020fbd4",
+     "notes": "On success builds {'success':bool} and calls 'spotify' service vfunc+0x1c with name 'spotifyTransferZeroConf'; downstream loginZC f_1021c108 invokes thread login f_10215a68 twice (retry after E_SONOS_BAD_ACCOUNT token refresh via f_10723e90), 'Already logged in with same account, skipping loginZC', then pullContext/'spotify:' match -> 'Pulling context' -> 'Starting Spotify playback with object: %s' + onControlSelected + 'Setting the eSDK to the player volume'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "SONOS_DC_* result mapping",
+     "address": "0x10210888",
+     "notes": "Six-entry {code,name} table at 0x10ea1684 scanned for the DC code, default 'SONOS_DC_UNKNOWN', written to 'errorCode' in the response."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "deviceID hash primitive",
+     "address": "0x1020e3a0 / 0x1020ea40",
+     "notes": "md5HashUTF16LE: UTF-16LE convert ('Unable to convert to UTF-16', 'inputStringSize > max length') + MD5 + lowercase hex; used inside f_1020eb2c. Distinct from static GUID '8ec274d4-...' (clientID) and embedded key '9b377073...' (mDNS, 0x10214110)."
     }
    ],
-   "mdns": "service _spotify-connect._tcp + CPath sonos; \"deregister skipped for empty SID.\"; \"register skipped for non-empty SID: %s\"",
+   "mdns": "service _spotify-connect._tcp + CPath sonos; \"deregister skipped for empty SID.\"; \"register skipped for non-empty SID: %s\"; embedded key '9b377073ea334637b1406f329ce005de' materialized at 0x10214110 in f_10213e60",
    "resolved_findings": [
-    "Resolved: zeroconf login = getInfo/addUser over the zc routes with GC gate (Non-GC returning 404, reject zc req), ver 2.9.0 client types {Partner,Spotify}, results {SpotZc_Failure,SpotZc_Success}; URIs x-spotify:// + x-spotify-file://.",
-    "Login exchange proven: endpoints {getInfo (info schema), addUser {userName, blob} - the encrypted credential blob, resetUsers, resetUser, spotifyTransferZeroConf}; addUser binds the account to this player (addUser with userName %s; player uuid %s - a static client GUID literal is 8ec274d4-0719-48d5-a0c0-ea9821a9a4ac; this literal alone does not establish the player UUID returned by getInfo) then addUser, %s@%s with addUser - too many users cap. Errors {ERROR-INVALID-ARGUMENTS, ERROR-LOGIN-FAILED, ERROR-SPOTIFY-ERROR, ERROR-UNKNOWN, get zc vars err: %d, Invalid ZeroConf request %s} returned as responseCode. Results map onto SONOS_DC_* direct-control codes {UNKNOWN, OK, NO_ACCOUNT, STALE_ACCOUNT, LOGIN_FAILED, UNSUPPORTED_SERVICE, UNEXPECTED}; Couldnt find a Spotify SID to use when no account sid binds. GC gate: Non-GC players return 404 from getInfo; reject zc req %s on invalid requests. Session layer: refreshAuthMS timer, login error 0x%x g=%d sn=%su, {userAgent, esdkVersion} client fields, pullContext + onControlSelected + reportSpotifyEventWork handlers, mDNS advertised (zeroconf_serve:%d).",
-    "getInfo response fields enumerated: {deviceID, publicKey, deviceType, libraryVersion, resolverVersion, groupStatus, brandDisplayName, modelDisplayName, remoteName, activeUser, aliases}; addUser/getUsers fields {authorization_code, tokenType, clientID, productID, scope, availability, supported_drm_media_formats, supported_capabilities}; version marker 2.9.0; reject zc req %s + Empty zero conf device id guards; SpZeroConfGetVars, SpotZc_Success/SpotZc_Failure status."
-   ],
-   "todo": "Established: /spotifyzc operation, discovery, field and status vocabulary is inventoried. Remaining: bind getInfo/addUser/reset handlers and generated field values, distinguish static client identifiers from runtime player identifiers, verify grouping/authentication/credential-transfer checks and per-status behavior, and trace the handoff into Connect playback. String proximity alone does not prove the response schema or credential exchange."
+    "Route bound: '/spotifyzc' is registered in the .data route table at 0x110915bc pointing at f_1020f8c4 with zero flags; sibling entries '/websocket/api' and '/spotdbg'. The handler has no direct callers and is reached only through the table.",
+    "Handlers bound: f_1020f8c4 parses the JSON request and dispatches on the 'action' value plus a request-type word at req+0 (1 = getInfo, 5 = resetUser). getInfo requires the group coordinator flag produced by f_107491d8 on svc conn+0x5f88; a non-GC player logs 'Non-GC returning 404 from getInfo' and answers 404. addUser reads 'userName' and the 2048-byte 'blob' and logs the runtime player uuid (ctx+0x70 -> +0x178). resetUser logs out via f_1020d0f4 (async vs blocking by VLI state) then resets the account. The 'resetUsers' name on the wire takes the 405 path.",
+    "Field values sourced: the getInfo emit block reads a credential clone produced by f_1020cab8 from ctx+0x70 -> +0x178 into the sp+0x178 struct (publicKey, deviceID, deviceType, libraryVersion, resolverVersion, groupStatus, clientID, scope, availability, productID), literal 'authorization_code' for tokenType, literal 'Sonos' for brandDisplayName, the f_107491d8 vars struct for remoteName/modelDisplayName and the GC flag, numeric productID/capabilities/drm-formats, and '2.9.0' for version. Status tuple {status int, HTTP code, statusString, spotifyError int} set by f_10210d88.",
+    "Static vs runtime identifiers separated: '8ec274d4-0719-48d5-a0c0-ea9821a9a4ac' is the static client GUID passed to the account backend as clientID (0x10210b64) and reused by four other sites; '9b377073ea334637b1406f329ce005de' is the mDNS-side embedded key; the player uuid is the runtime stored string at ctx+0x70 -> +0x178; deviceID is generated by md5HashUTF16LE -> hex (f_1020e3a0/f_1020ea40).",
+    "Credential transfer verified: addUser hands {userName, blob, deviceName->'%s@%s'} to the 'spotifyzc' work queue (f_1020e1a0) and to account backend f_1020eb2c, which matches the user hash against local accounts, pulls token/key from the DC account, timestamps loginMS/refreshAuthMS/failedLoginMS, and names accounts 'sn_%s%u'. 'addUser - too many users' is the cap.",
+    "Handoff into Connect traced: successful zc completion fires the internal 'spotifyTransferZeroConf' event to the 'spotify' service; loginZC f_1021c108 then runs thread login f_10215a68 (with E_SONOS_BAD_ACCOUNT token refresh via f_10723e90 and a second attempt), skips login when the same account is already in, and pulls context ('spotify:' match) into 'Starting Spotify playback with object: %s' plus onControlSelected."
+   ]
   },
   "spotify_smapi_ctrl": {
    "name": "RSpotifySMAPIControl",
