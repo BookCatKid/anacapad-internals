@@ -215798,7 +215798,7 @@
      ]
     },
     "account_save_fallback": {
-     "description": "Writer f_10508988 uses <accounts path>.tmp. It attempts full serialization through f_105084e0 and a close/check helper. If both are true it renames the temporary file to the live path, returns whether rename succeeded and unlinks the temporary name. If full serialization or that close/check fails, it reopens the temporary file for replacement and constructs an Accounts header using f_105071e4. In this fallback parameter block, Version is0, NextSerialNum is1, PreferredSerialNum is0 and a fresh empty vector-clock object replaces the original clock; other copied header fields remain. It writes the closing Accounts tag without any account-row emission, writes/closes this buffer and can rename it over the live file. The fallback rename result is ignored, and the overall writer returns false even when the replacement succeeds. Therefore a public account-edit/removal809 can coexist with a changed live accounts.xml containing no account rows, while the manager did not commit the proposed revision. Initial temporary-open failure returnsfalse without entering this fallback. These are distinct from the service-manifest save fallback, whose own result rules are documented separately.",
+     "description": "Writer f_10508988 uses <accounts path>.tmp. It attempts full serialization through f_105084e0 and a close/check helper. If both are true it renames the temporary file to the live path, returns whether rename succeeded and unlinks the temporary name. If full serialization or that close/check fails, it reopens the temporary file for replacement and constructs an Accounts header using f_105071e4. In this fallback parameter block, Version is0, NextSerialNum is1, PreferredSerialNum is0 and a fresh empty vector-clock object replaces the original clock; other copied header fields remain. It writes the closing Accounts tag without any account-row emission, writes/closes this buffer and can rename it over the live file. The fallback rename result is ignored, and the overall writer returns false even when the replacement succeeds. Therefore a public account-edit/removal809 can coexist with a changed live accounts.xml containing no account rows, while the manager did not commit the proposed revision. Initial temporary-open failure returnsfalse without entering this fallback. These are distinct from the service-manifest save fallback, whose own result rules are documented separately. The close/check helper is f_1054f0e8: it calls fflush, fileno and fsync and discards all three results, then calls fclose and returns only the fclose outcome. The writer therefore cannot observe deferred-write or fsync failures; rename is the only tested step, and durability after a true return rests on that rename having executed since no later sync is performed. On the recovery side, loader f_10506b0c SAX-parses the file in0x1000-byte chunks with handlers f_105067e8/f_1050649c/f_105065c0, so the root-only fallback document is well formed and a later load through f_102887e0 succeeds while yielding zero live rows and zero deleted rows. A client consequently observes an empty account list after such a failure with no read error, and the next successful commit rewrites the file normally. An interrupted sequence leaves at most a stale .tmp file that a later write attempt unlinks; the live file is only ever replaced by the rename step.",
      "evidence": [
       {
        "type": "firmware",
@@ -215820,9 +215820,32 @@
        "build": "86.10-80260",
        "address": "0x10578514",
        "notes": "Closing-tag writer begins with literal </, confirming fallback Accounts close at0x10508b70."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1054f0e8",
+       "notes": "Close helper: fflush, fileno and fsync results discarded; only the fclose result is returned and consumed by writer f_10508988."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10506b0c",
+       "notes": "SAX loader chunked at0x1000 via f_1054ef38 with handlers f_105067e8/f_1050649c/f_105065c0 filling live and deleted tables; a root-only Accounts document parses to zero rows without error."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102887e0",
+       "notes": "Locked load entry used by every account op (24 direct callers); resolves the accounts path through f_102856a8 and optionally copies parsed fields to caller buffers."
       }
      ],
-     "todo": "Established: full-write and root-only fallback branches, reset header fields, possible replacement despite false result and manager bookkeeping distinction are decoded. Remaining: verify full write/close error and sync durability semantics, recovery/reload/replication after an empty fallback and interrupted rename, and exact caller-visible account-list changes on those paths."
+     "resolved_findings": [
+      "Resolved: fsync/fflush results are unchecked inside f_1054f0e8 and only fclose is tested, so durability is exactly the tmp-to-live rename; the fallback's root-only file parses as a valid empty Accounts document (zero live and deleted rows on the next load), which is the caller-visible state after an809 that still replaced accounts.xml, and a stale .tmp left by interruption is removed by the next write."
+     ]
     },
     "nickname_change": {
      "description": "SystemProperties.SetAccountNicknameX binds AccountUDN and AccountNickname and invokes installed adapter f_104b071c. That passes the UDN and nickname into f_1028bb74, which returns806 on failed UDN decoding or invokes shared modifier f_1028b760 with decoded account type/identifier. Table-load failure returns810 and missing selected account returns806. The nickname scan considers rows whose serial differs from the selected account, whose full stored account type equals the selected type and whose flags&1 is clear. An exact strcmp match with the requested nickname sets sticky result802. This comparison is case-sensitive; it does not use the broader normalized-family comparison used to locate the selected account. The requested nickname is copied into the candidate, but the802 result is checked before table update, so duplicate rejection does not enter the commit path. No local nonempty-name check appears here. Otherwise normal table update/commit semantics apply, including809 for commit failure and a possible zero result when table update returnsfalse. Successful commit precedes the unlocked account callback. The shared account-file failure fallback remains applicable. The installed post-unlock callback is f_102850c4 -> f_101b8048; see account_callbacks for the verified local refresh and remaining delivery limits.",
