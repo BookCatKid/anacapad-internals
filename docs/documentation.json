@@ -33910,7 +33910,7 @@
     }
    },
    "availability": {
-    "notes": "The ZonePlayer constructor initializes the wrapper unconditionally; the router's availability byte comes separately from ctx+0x571c XOR 1. Engine A is the base vtable, and the group-capable derived constructor replaces it with B. The presence of B is not itself a test for the zone's current topology; B's overrides make those tests per call. At activation, the zone binds its allocated derived engine to wrapper+4 and its lifetime controller to wrapper+8. A null candidate in the binding call leaves this wrapper unchanged.",
+    "notes": "The ZonePlayer constructor initializes the wrapper unconditionally; the router's availability byte comes separately from ctx+0x571c XOR 1. Engine A is the base vtable, and the group-capable derived constructor replaces it with B. The presence of B is not itself a test for the zone's current topology; B's overrides make those tests per call. At activation, the zone binds its allocated derived engine to wrapper+4 and its lifetime controller to wrapper+8. A null candidate in the binding call leaves this wrapper unchanged. Rebinding can release the previous engine reference. Destruction replaces the wrapper vptr and releases its controller; it does not clear the engine pointer as a separate step.",
     "evidence": [
      {
       "type": "firmware",
@@ -33990,6 +33990,30 @@
       "address": "0x104d4b50",
       "notes": "Copies the object from r6[0] to aggregate+0x10 (AVTransport wrapper+4). The lifetime controller is stored at aggregate+0x14 at 0x104d4ba4. If r6[0] is null, the binder skips this service; a raw nonnull pointer with no controller takes the 0x104d5830 store.",
       "function": "0x104d49e8"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10192784",
+      "notes": "The ZonePlayer destructor computes r30=this+0x40000 at 0x10192450. It replaces the AVTransport member vptr at this+0x3fa38 with 0x10e978e8 and calls f_100c5050 on the nonnull controller loaded from member+8. The sequence does not zero member+4.",
+      "function": "0x101921a0"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10eb300c",
+      "notes": "The first two slots point to f_102fc9e4 and f_102fcae8. Both restore the base vptr and release a nonnull wrapper+8 controller; decrementing the strong count from one invokes controller slot +8 and then drops the weak count. A final weak release invokes +0xc. The second destructor also deallocates the 12-byte wrapper.",
+      "function": "0x102fc9e4"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x104d4b8c",
+      "notes": "When a bind supplies a different controller, it retains the incoming one and drops the previous one's strong count before storing the replacement at aggregate+0x14. A null engine skips the bind entirely at 0x104d4b10, so this binder is not an unbind operation.",
+      "function": "0x104d49e8"
      }
     ],
     "enabled_source": {
@@ -34002,8 +34026,8 @@
     },
     "cap_flags": "0x2000",
     "todo": [
-     "Established: the activation binder installs the engine at wrapper+4 and its lifetime controller at wrapper+8, and skips binding a null candidate.",
-     "Identify the shutdown or exceptional-cleanup sites which release or clear the wrapper binding after activation."
+     "Established: the activation binder installs wrapper+4/+8 and releases an old controller on replacement; the ZonePlayer destructor and wrapper vtable destructors release a bound controller without zeroing wrapper+4 there.",
+     "Check whether a live wrapper is explicitly unbound in exceptional cleanup or any pre-destruction path other than the verified replacement and destruction sequences."
     ]
    },
    "object": {
@@ -71318,6 +71342,30 @@
      "address": "0x104d4b50",
      "notes": "Copies the object from r6[0] to aggregate+0x10 (AVTransport wrapper+4). The lifetime controller is stored at aggregate+0x14 at 0x104d4ba4. If r6[0] is null, the binder skips this service; a raw nonnull pointer with no controller takes the 0x104d5830 store.",
      "function": "0x104d49e8"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10192784",
+     "notes": "The ZonePlayer destructor computes r30=this+0x40000 at 0x10192450. It replaces the AVTransport member vptr at this+0x3fa38 with 0x10e978e8 and calls f_100c5050 on the nonnull controller loaded from member+8. The sequence does not zero member+4.",
+     "function": "0x101921a0"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eb300c",
+     "notes": "The first two slots point to f_102fc9e4 and f_102fcae8. Both restore the base vptr and release a nonnull wrapper+8 controller; decrementing the strong count from one invokes controller slot +8 and then drops the weak count. A final weak release invokes +0xc. The second destructor also deallocates the 12-byte wrapper.",
+     "function": "0x102fc9e4"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104d4b8c",
+     "notes": "When a bind supplies a different controller, it retains the incoming one and drops the previous one's strong count before storing the replacement at aggregate+0x14. A null engine skips the bind entirely at 0x104d4b10, so this binder is not an unbind operation.",
+     "function": "0x104d49e8"
     }
    ],
    "notes": [
@@ -71346,8 +71394,8 @@
     ]
    },
    "todo": [
-    "Established: normal ZonePlayer activation binds the group-capable engine through wrapper+4 at 0x104d4b50.",
-    "Trace shutdown and exceptional cleanup of the confirmed wrapper+4 binding, and any construction path outside the verified zone startup that could expose the base-only implementation. Action-specific residuals are tracked on their own records."
+    "Established: normal ZonePlayer activation binds the group-capable engine at wrapper+4, and normal teardown restores the base wrapper vptr and releases the controller at wrapper+8.",
+    "Trace any separate exceptional cleanup that changes a live wrapper binding, and any construction path outside normal ZonePlayer startup that binds a base-only engine."
    ],
    "resolved_findings": [
     "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
