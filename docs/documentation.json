@@ -71692,7 +71692,7 @@
      ]
     },
     "GetHeadphoneConnected": {
-     "description": "Locks impl+0x938 (via f_10988268) and fills a state record: volume u32 from impl+0x7da or +0x7e0 selected by flags +0x7ff/+0x801, Master mute byte impl+0x7f1 at rec+0xc, computed flag at rec+0xd; returns 1.",
+     "description": "The proven SOAP slot is a four-instruction function that returns literal 401. It ignores InstanceID, writes no out argument and calls no helper. The wrapper explicitly tests the returned status and therefore never formats CurrentHeadphoneConnected after a validated implementation call. State-record builder f_100d66cc is a different primary slot (+0xf0), not this action.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073b0d8",
@@ -71728,7 +71728,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric instance selector. Read but unconsumed by the impl (dead compare or never read). Not compared; impl takes a record pointer instead.",
+       "description": "Required rendering-instance selector. Ignored by the implementation; a validated request still returns 401.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -71740,100 +71740,159 @@
        "semantic_type": "instance selector (integer)",
        "format": "type-tag-4 decimal integer record",
        "unit": "none",
-       "accepted_values": "any parsed integer - ignored by impl",
-       "range": "unconstrained at impl level",
+       "accepted_values": "any parsed ui4; implementation ignores it",
+       "range": "unsigned 32-bit request argument",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "Required request argument configured with f_105614e0; no implementation validation",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b118",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x100d65e4",
+         "notes": "The proven SOAP slot is a four-instruction function that returns literal 401. It ignores InstanceID, writes no out argument and calls no helper. The wrapper explicitly tests the returned status and therefore never formats CurrentHeadphoneConnected after a validated implementation call. State-record builder f_100d66cc is a different primary slot (+0xf0), not this action."
         }
        ],
-       "notes": null
+       "notes": "No fallback rendering instance is selected."
       }
      },
      "outputs": {
       "CurrentHeadphoneConnected": {
-       "description": "Derived from the state record the impl fills: impl writes u32@rec+8 = volume (field +0x7da when flag+0x7ff set OR +0x801 set, else +0x7e0), byte@rec+0xc = Master mute (impl+0x7f1), byte@rec+0xd = (+0x7ff!=0 ? +0x801^1: 0). Which field maps to the SOAP output is unresolved.",
+       "description": "No indicator is produced: the implementation returns 401 without writing this output, and the wrapper does not emit it on that path.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": "boolean ('0'/'1')",
-       "format": "'0'/'1' literal",
+       "semantic_type": "boolean",
+       "format": "SOAP boolean formatted as 0 or 1",
        "unit": "none",
-       "accepted_values": "0/1 nominal",
-       "range": "unconstrained",
+       "accepted_values": "none: implementation always faults",
+       "range": "none: no successful output",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Emitted only on zero implementation status; that path is unreachable for this implementation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b1c4",
-         "notes": "out-arg access site"
+         "address": "0x100d65e8",
+         "notes": "The proven SOAP slot is a four-instruction function that returns literal 401. It ignores InstanceID, writes no out argument and calls no helper. The wrapper explicitly tests the returned status and therefore never formats CurrentHeadphoneConnected after a validated implementation call. State-record builder f_100d66cc is a different primary slot (+0xf0), not this action."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0aefc",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100d66cc",
-         "address": "0x100d66cc",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x1073b1c8",
+         "notes": "Wrapper output load/format path after the zero-status test."
         }
        ],
-       "notes": "impl f_100d66cc dumps a {volume,mute,flag} record rather than a simple bool - the headphone semantic likely lives in the flag byte at rec+0xd computed from flags +0x7ff/+0x801.",
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentHeadphoneConnected`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "The output is not a write to renderer state."
       }
      },
-     "validation": "Request-layer parse; impl ignores InstanceID.",
-     "requirements": "impl mutex",
-     "state_dependencies": "flag bytes impl+0x7ff/+0x801 select volume field and compute the flag output",
+     "validation": {
+      "description": "Requires request-layer validation. The implementation ignores InstanceID and always rejects with 401. Output formatting follows the explicit zero-status test, not an inherited condition-register value.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b160",
+        "notes": "Fresh record-form move before the success/fault branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d65e4",
+        "notes": "The proven SOAP slot is a four-instruction function that returns literal 401. It ignores InstanceID, writes no out argument and calls no helper. The wrapper explicitly tests the returned status and therefore never formats CurrentHeadphoneConnected after a validated implementation call. State-record builder f_100d66cc is a different primary slot (+0xf0), not this action."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Requires request-layer validation. The implementation ignores InstanceID and always rejects with 401.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed276c",
+        "notes": "Concrete primary vptr 0x10ed270c slot 0x60 contains 0x100d65e4; service+4 writer 0x104d4dc0 is proven."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d65e4",
+        "notes": "The proven SOAP slot is a four-instruction function that returns literal 401. It ignores InstanceID, writes no out argument and calls no helper. The wrapper explicitly tests the returned status and therefore never formats CurrentHeadphoneConnected after a validated implementation call. State-record builder f_100d66cc is a different primary slot (+0xf0), not this action."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "No renderer state is read; neither InstanceID nor the output pointer is inspected.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d65e8",
+        "notes": "The proven SOAP slot is a four-instruction function that returns literal 401. It ignores InstanceID, writes no out argument and calls no helper. The wrapper explicitly tests the returned status and therefore never formats CurrentHeadphoneConnected after a validated implementation call. State-record builder f_100d66cc is a different primary slot (+0xf0), not this action."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Locks +0x938 via the traced mutex helper (rc_impl.cxx:0x1009) then checks flag byte impl+0x7ff as part of the headphone-state read.",
+       "description": "No renderer mutation, lock acquisition or helper call; only returns literal 401.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100d66cc",
-         "address": "0x100d66fc",
-         "notes": "lbz +0x7ff check at 0x100d66fc inside the lock"
+         "address": "0x100d65e4",
+         "notes": "The proven SOAP slot is a four-instruction function that returns literal 401. It ignores InstanceID, writes no out argument and calls no helper. The wrapper explicitly tests the returned status and therefore never formats CurrentHeadphoneConnected after a validated implementation call. State-record builder f_100d66cc is a different primary slot (+0xf0), not this action."
         }
        ]
       }
      ],
-     "events_triggered": "none",
-     "state_transitions": "none",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code. Impl returns 1 unconditionally after filling the record.",
+     "events_triggered": "none: the complete concrete getter path makes no event-source or observer call.",
+     "state_transitions": "none: this action does not change renderer settings or operation state.",
+     "return_behavior": {
+      "description": "Implementation status is always 401; output emission is unreachable after a validated implementation call. Request-layer validation failure separately selects 402. Null service+4 and unknown action names use the dispatcher 401 path.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed276c",
+        "notes": "Concrete primary vptr 0x10ed270c slot 0x60 contains 0x100d65e4; service+4 writer 0x104d4dc0 is proven."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d65e4",
+        "notes": "The proven SOAP slot is a four-instruction function that returns literal 401. It ignores InstanceID, writes no out argument and calls no helper. The wrapper explicitly tests the returned status and therefore never formats CurrentHeadphoneConnected after a validated implementation call. State-record builder f_100d66cc is a different primary slot (+0xf0), not this action."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b160",
+        "notes": "Wrapper uses mr. r4,r3 to set CR0 from the implementation return, then branches on equality to zero; stale CR0 does not control success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b1c8",
+        "notes": "Wrapper output load and formatter are reached only on zero implementation status."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073b174",
@@ -71844,21 +71903,21 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action name or null SOAP implementation pointer; this concrete action also returns 401 unconditionally after request validation.",
        "fault_sites": [
-        "0x1073a83c"
+        "0x1073a83c",
+        "0x1073b174"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action name or null SOAP implementation pointer; this concrete action also returns 401 unconditionally after request validation.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x100d65e4",
+           "notes": "Unknown action name or null SOAP implementation pointer; this concrete action also returns 401 unconditionally after request validation."
           }
          ]
         }
@@ -71868,43 +71927,25 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x100d65e4",
+         "notes": "Unknown action name or null SOAP implementation pointer; this concrete action also returns 401 unconditionally after request validation."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
-       "fault_sites": [
-        "0x1073b174",
-        "0x1073b1a0"
-       ],
+       "meaning": "Request-layer validation failed.",
+       "fault_sites": [],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request-layer validation failed.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073b1a0"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073b174"
+           "address": "0x1073b174",
+           "notes": "Request-layer validation failed."
           }
          ]
         }
@@ -71914,19 +71955,10 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073b1a0"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073b174"
+         "address": "0x1073b174",
+         "notes": "Request-layer validation failed."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -71935,34 +71967,38 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073b0d8",
-       "address": "0x1073b0d8",
-       "notes": "action wrapper handler"
+       "address": "0x10ed276c",
+       "notes": "Concrete primary vptr 0x10ed270c slot 0x60 contains 0x100d65e4; service+4 writer 0x104d4dc0 is proven."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11da0",
-       "notes": "action dispatch table entry"
+       "address": "0x100d65e4",
+       "notes": "The proven SOAP slot is a four-instruction function that returns literal 401. It ignores InstanceID, writes no out argument and calls no helper. The wrapper explicitly tests the returned status and therefore never formats CurrentHeadphoneConnected after a validated implementation call. State-record builder f_100d66cc is a different primary slot (+0xf0), not this action."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl: lbz 0x7ff/0x801 flag select; stw vol@rec+8; stb mute@rec+0xc; stb flag@rec+0xd; return 1",
-       "function": "0x100d66cc"
+       "address": "0x1073b160",
+       "notes": "Wrapper uses mr. r4,r3 to set CR0 from the implementation return, then branches on equality to zero; stale CR0 does not control success."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073b1c8",
+       "notes": "Wrapper output load and formatter are reached only on zero implementation status."
       }
      ],
      "notes": "Field semantics of +0x7ff/+0x801 remain the key unknown: they appear in SetMute's Master path, GetHeadphoneConnected and SetChannelMap - likely 'output-fixed' and 'headphone/slave' mode flags.",
-     "todo": [
-      "Established: dispatch to handler 0x1073b0d8 with the shared RC impl machinery.",
-      "Residual: field semantics of +0x7ff/+0x801 - they appear in SetMute's Master path, GetHeadphoneConnected and SetChannelMap and are likely 'output-fixed' and 'headphone/slave' mode flags (per the record's notes). (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: +0x7ff/+0x801 = {output-fixed flag, headphone/slave-mode flag}; writers = SetOutputFixed (+0x7ff) and the channel-map/slave path (+0x801).",
-      "Resolved: +0x7ff/+0x801 = {output-fixed flag, headphone/slave-mode flag}; writers = SetOutputFixed (+0x7ff) and the channel-map/slave path (+0x801)."
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x60",
+      "function": "0x100d65e4",
+      "binding_store": "0x104d4dc0"
+     }
     },
     "GetLoudness": {
      "description": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28.",
