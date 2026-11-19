@@ -66476,7 +66476,7 @@
       }
      ],
      "events_triggered": {
-      "description": "Neither the wrapper nor the submit routine directly emits LastChange. The engine signals the indexed session request and waits for its result; the op-12 consumer's notification behavior is not yet mapped. The AVTransport LastChange serializer does emit the corresponding transport snapshot field.",
+      "description": "A changed indexed crossfade setting can schedule LastChange and supply CurrentCrossfadeMode. A same-value request can succeed without scheduling the crossfade change notification, and the excluded-source disable path never submits it.",
       "evidence": [
        {
         "type": "firmware",
@@ -66517,11 +66517,51 @@
         "address": "0x102e481c",
         "notes": "The formatter's full transport block writes CurrentPlayMode from the collected string at stack +0x60de and CurrentCrossfadeMode from the collected boolean at stack +0x12522. The formatter calls f_102b5a1c at 0x102e4698 to collect the transport snapshot and can skip the block on a delta when impl+0x7785 is clear.",
         "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10265880",
+        "notes": "Indexed consumers fetch and clear the pending request pointer at session+0x2594. Their offset jump tables at 0x10ea8468 and 0x10ea84d0 select handlers by request+0xe4.",
+        "function": "0x1026571c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e46b8",
+        "notes": "The LastChange collector calls f_102b5a1c and promotes its nonzero dirty result to impl+0xa0a2. f_102b5658 promotes that flag to the latched +0x7785 at 0x102b56ac and clears the source flag on a consuming pass at 0x102b57a0. The delta branch at 0x102e47d8 tests +0x7785 before emitting the common TransportState, CurrentPlayMode and CurrentCrossfadeMode block.",
+        "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10265f50",
+        "notes": "Op 12 calls f_10258130 from both handlers (second site 0x1026845c). It writes the 0x8 flag of the active track list's +0x26dc through f_10145e48 and also applies it to both alternate lists when the request's +0xfe flag is set. The active-list helper returns 0 for a change, 1 for an unchanged flag and 2 for a failed capability test.",
+        "function": "0x10258130"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10265928",
+        "notes": "The playing consumer sets its post-request notification condition only for a changed active-list bit. Both changed and unchanged complete successfully; return 2 goes to failed completion. A notification on the playing path uses the sender at session+0x2578 (call at 0x10265a08), if its listener reference and sender are nonnull.",
+        "function": "0x1026571c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10260534",
+        "notes": "The indexed snapshot reads active track-list flags and writes crossfade from bit 0x8 to the snapshot boolean. f_102e43a0 renders it as CurrentCrossfadeMode.",
+        "function": "0x1026021c"
        }
       ],
       "todo": [
-       "Established: Neither the wrapper nor the submit routine directly emits LastChange.",
-       "Find the indexed session's op-12 consumer for the record posted to +0x2594 and determine whether a successful change produces a CrossfadeMode LastChange field, including unchanged-value handling."
+       "Established: both op-12 consumers apply the same active-list bit test; the playing consumer's change condition can schedule notification, and an unchanged active bit does not raise that condition.",
+       "Trace the stopped/paused consumer's changed-only postlude at 0x10267e00, including f_102642d4 and the queue restart path, to determine its LastChange scheduling behavior."
       ]
      },
      "state_transitions": {
