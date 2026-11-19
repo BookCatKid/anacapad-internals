@@ -153416,18 +153416,41 @@
      "type": "firmware",
      "address": "0x10ee7cd4",
      "notes": "dataio block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10542d98",
+     "notes": "r5 is mode flag; r4 is wanted bytes, r6 is deadline pointer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10543018",
+     "notes": "Zero mode adds buffered span then rejoins the polling path, disproving no-block interpretation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10542ec0",
+     "notes": "Common FIONREAD accounting adds mode-dependent buffered contribution."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10542f70",
+     "notes": "Diagnostic passes literal mode flag as sbo, not an outstanding count."
     }
    ],
-   "todo": [
-    "Residual: the literal word 'sbo' expands to (should-block-on / socket-block-option) is source-only; the flag's role is proven, the name is not."
-   ],
    "resolved_findings": [
-    "Resolved: awaitAvail accounting = the dataio.poll waits; SSL session-cache interaction = the parsed {ETag,cache-control,Last-Modified} fields + session reuse.",
-    "awaitAvail accounting decoded: the timing line took %ldms (e:%d b:%zu w:%zu sbo:%d) reports {elapsed ms, error code, bytes delivered, bytes wanted, sbo = socket-buffer outstanding}; the three reject forms bound reads - tried to read %zu bytes where only %zu bytes available (short), range limited %zu bytes available (content-range cap), tried to read but socket is closed (peer close). SSL interaction: dataio wraps the mbedtls layer - Received new session ticket during mbedtls_ssl_{read,write,handshake} fires inside dataio I/O and pushes the ticket into the ssl_sessions cache; SSL %s error -0x%x %d to %s with local port %u is the error line. The header parse set {HTTP Result, Last-Modified, Content-Type, SET-COOKIE, cache-control, max-age=, ETag, WWW-Authenticate} shows dataio is the response parser feeding the http cache validators.",
-    "sbo proven to be the awaitAvail arg5 - f_10542d8c(obj, timeoutMs, sbo, deadline*): both call sites (0x10430d30, 0x10432e70) pass literal 1, so it is a caller flag (poll predicate selector), NOT a measured byte count. The timeout is caller-supplied too: {0x10000, 0x8000} ms budgets + deadline computed as now+5000ms via timevalAddMs.",
-    "sbo flag semantics decoded at the branch (0x10542e3c): sbo==0 takes the immediate buffered-avail path (reads the rolling-buffer byte counts at obj+0x44b0/+0x44e8/+0x44ec and rejects with \"tried to read %zu bytes where only %zu bytes available\"); sbo!=0 enters the socket-poll loop (FIONREAD ioctl 0x4004667f + sonosClockGetTime deadline spin + \"socket is closed\" abort). So sbo = block-on-socket enable - callers pass 1 = \"poll the socket until bytes or deadline\"; the abbreviation most plausibly expands socket-blocked-out(-standing) i.e. outstanding socket-block wait.",
-    "awaitAvail arg map proven (f_10542d8c, 'dataio' domain): arg4=wanted byte count (w: in the log), arg5=sbo flag - r24 gates the wait path (sbo==0 returns early, nonzero enters the poll loop); the diagnostic 'awaitAvail took %ldms (e:%d b:%zu w:%zu sbo:%d)' decodes as ms=timevalDiff, e=deadline-expired flag (timevalGt vs caller deadline), b=buffered bytes (ring head/tail +0x44bc-+0x44b0 delta + ioctl FIONREAD pending), w=wanted bytes, sbo=the caller's should-block flag. Ring-buffer occupancy check: if wanted <= buffered the socket wait is skipped entirely.",
-    "Established: sbo = awaitAvail arg5, the caller's block-mode flag (gates poll-vs-return); e/b/w bound to {deadline-expired, buffered+FIONREAD, wanted}."
+    "awaitAvail f_10542d8c has arguments {object, wanted bytes in r4, mode flag in r5, deadline pointer in r6}. Entry saves r5 in r24, r6 in r27 and r4 in r29 at 0x10542d94-0x10542da8. Thus earlier claims that r4 was timeoutMs or that sbo was a measured outstanding-byte count are withdrawn. The diagnostic itself passes r24 as sbo, r29 as w, r31 as b and timevalGt(now,deadline) as e at 0x10542f64-0x10542f98. Canonical source spelling of the abbreviation is not asserted; its numeric role is fully specified below.",
+    "The old block-enable interpretation is disproven by both branches: 0x10542e3c-0x10542e44 first sets the buffered-byte contribution r28 to zero; nonzero mode falls through to 0x10542e48, but zero mode goes to 0x10543018, computes r28=owner[0x44ec]-owner[0x44e8], then branches BACK to the same 0x10542e48. Therefore zero does not mean immediate return and nonzero does not uniquely enable polling. The flag selects socket-only byte accounting versus accounting that includes this buffered span. Both paths execute FIONREAD ioctl 0x4004667f at 0x10542ea0-0x10542eb4 and compare wanted with r28+socketPending at 0x10542ec0-0x10542ecc.",
+    "Normal/boundary cases: before that mode branch, a nonempty owner+0x44bc span relative to +0x44b0 can reduce wanted to its range limit at 0x10542e18-0x10542e38 and 0x105430b0-0x105430f4. A separately reported available span is checked at 0x10543028-0x10543084 and can likewise reduce wanted, with the short-availability diagnostic. If accounted bytes already cover wanted, 0x10542ecc reaches the ready outcome at 0x105430a8. Otherwise the socket option query and repeated clock/deadline checks execute (0x10542ed0-0x10542ef4 and 0x10542e60-0x10542e9c). Failure to obtain a valid descriptor returns zero at 0x10542de4-0x10542dec; ioctl or socket-option failure reaches the failure path. This states observed control flow without inventing units or a source-only enum name.",
+    "The residual consisting solely of an unverified expansion of sbo is removed: the exposed log abbreviation is retained literally and the actual argument, accounting branches and common polling path are now traced. HTTP cache validators and SSL session tickets are different mechanisms; ETag/cache-control/Last-Modified response headers alone do not establish SSL session-cache behavior."
    ]
   },
   "chanmapset": {
