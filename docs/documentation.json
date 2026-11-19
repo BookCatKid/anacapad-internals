@@ -95333,7 +95333,7 @@
      ]
     },
     "DoPostUpdateTasks": {
-     "description": "Runs post-update migration/cleanup tasks via impl->v[+0x14].",
+     "description": "Checks saved R_PromoVersion against the cached running major/minor version and conditionally attempts to store the full running version string. This implementation does not run a general post-update task list, reboot or report persistence failure.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10732e24",
@@ -95347,257 +95347,569 @@
      "implementation": {
       "calls": [
        {
+        "site": "0x10732e48",
+        "obj": "*(r3-in+0x4)",
+        "slot": 56,
+        "arg4": "none"
+       },
+       {
         "site": "0x10732e74",
         "obj": "r4-in",
         "slot": 20,
-        "arg4": "vret(*(r3-in+0x4),+0x38)"
+        "arg4": "generic nonzero delegate result; unreachable for concrete normal returns"
        },
        {
         "site": "0x10732e90",
-        "obj": "*(*(r4-in+0x0)+0x14)",
+        "obj": "r4-in",
         "slot": 12,
-        "arg4": "vret(*(r3-in+0x4),+0x38)"
+        "arg4": "none; success commit"
        }
       ],
-      "req_vcalls": [
-       {
-        "site": "0x10732e48",
-        "slot": 56,
-        "purpose": "commit"
-       }
-      ]
+      "req_vcalls": []
      },
      "inputs": {},
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "No inputs, descriptors or request validation call. Saved XML value is bounded to64 payload bytes and interpreted by permissive libc sscanf format %hhu.%hhu-%u, not request/paranoid parsing. Missing or unparsable saved value can request a write, not402. Internal version-provider and setter statuses are unchecked.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10732e24",
-        "notes": "wrapper family decode"
+        "address": "0x10732e48",
+        "function": "0x10732e24",
+        "notes": "Constructor104b0e84 installs delegate10ed75c4 at104b0f94. Handler10732e94 constructed1018e594 stores delegate+4/vptr10f110a8. Handler10732e48 calls delegate+38(table10ed75fc)=104b0c90, no argument descriptors or request+8 validation. Concrete normal delegate exit104b0d6c returns0; wrapper commits empty response at10732e90. Generic nonzero fault tail10732e74 is not reached by a normal concrete return, so no action402 predicate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0d0c",
+        "function": "0x104b0c90",
+        "notes": "Concrete delegate table+4c=100c9be8: pointer comparison104b0cd4 selects inlined default getter, not unknown injected vptr. Null backend treated as missing for this read only. Otherwise backend+164 primary+24=1066c24c reads exact R_PromoVersion into65-byte buffer(sp+24), at most64 payload bytes; boolfalse means missing/unusable read, not SOAP800.106c580c/106c51d0 tracks found separately from XML validity and strlcpy copies bounded Value, including empty. Open/read/invalid XML can set one-shot backend+e4 and advertise local version0 via+ec slot+14; no synchronous XML repair from this read. Found value can survive malformed suffix. Direct backend lookup bypasses GetString R_ForceReIndex/UMTracking special cases."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0de8",
+        "function": "0x104b0c90",
+        "notes": "1090c360 calls libc sscanf at1090c3c0 with literal10f7c9a8 \"%hhu.%hhu-%u\"; requires3 assignments, no end-pointer/full-string/range check. On success stores major/minor bytes atstruct+1/+2 and build uint32 at+4, flags+0 from strstr(\"-diag\"),strstr(\"-beta\"),strstr(\"manufacturing\"). Known libc scanf leaf, not strict paranoid unsigned parser: decimal conversions can skip leading conversion whitespace, accept signs and leave suffix text; no separate overflow rejection in this helper. Empty or incomplete version fails; e.g86.10-1junk succeeds. Caller ignores suffix flags and parsed build in version comparison."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0d58",
+        "function": "0x104b0c90",
+        "notes": "Write branch1090b078 fills sp+68(cap65), then delegate slot+8=1066aa24 SetString(R_PromoVersion,buffer) at104b0d58. Uses FULL canonical string, not1090c4a8 numeric formatter or request tag7. Fixed key passes1066a788, URL/UMTracking/X_ checks; reaches10669844 ->1066bee0. Setter status ignored:104b0d6c returns0 after success or800 persistence failure. Provider status at104b0d3c ALSO ignored; sp+68 has no prior initialization in104b0c90. If provider returnsfalse because cache empty, no initialized replacement string is guaranteed and setter consumes unchecked stack bytes. Numeric fallback can still make comparison select this write. Null backend is guarded only for read; attempted SetString requires initialized backend. These are unchecked failure paths, not evidence of successful update or new SOAP codes."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: *(r3+4) v[+0x38]",
+      "description": "No SOAP arguments, account or explicit just-updated predicate. Expected initialized delegate/SystemSettings for any write attempt; null backend is tolerated for read but not a supported write prerequisite. Running version provider expects nonnull configured g_pszJFFSRoot and nonempty canonical version for initialized replacement text. None of these internal failures has an action-level402/800 mapping here.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732e48",
         "function": "0x10732e24",
-        "notes": "req-vfunc call map: {'0x14': 1, '0xc': 1}"
+        "notes": "Constructor104b0e84 installs delegate10ed75c4 at104b0f94. Handler10732e94 constructed1018e594 stores delegate+4/vptr10f110a8. Handler10732e48 calls delegate+38(table10ed75fc)=104b0c90, no argument descriptors or request+8 validation. Concrete normal delegate exit104b0d6c returns0; wrapper commits empty response at10732e90. Generic nonzero fault tail10732e74 is not reached by a normal concrete return, so no action402 predicate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0d0c",
+        "function": "0x104b0c90",
+        "notes": "Concrete delegate table+4c=100c9be8: pointer comparison104b0cd4 selects inlined default getter, not unknown injected vptr. Null backend treated as missing for this read only. Otherwise backend+164 primary+24=1066c24c reads exact R_PromoVersion into65-byte buffer(sp+24), at most64 payload bytes; boolfalse means missing/unusable read, not SOAP800.106c580c/106c51d0 tracks found separately from XML validity and strlcpy copies bounded Value, including empty. Open/read/invalid XML can set one-shot backend+e4 and advertise local version0 via+ec slot+14; no synchronous XML repair from this read. Found value can survive malformed suffix. Direct backend lookup bypasses GetString R_ForceReIndex/UMTracking special cases."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1090b418",
+        "function": "0x1090b418",
+        "notes": "Current numeric version is process-cached at global110b8480+28/+2c under __cxa_guard_acquire108073a0/release10807670(symbols verified). Initializes from1090b078 canonical version string(cap65), then1090c360. Empty provider or failed parse falls back to major86,minor10,build80260 at1090b4f8..1090b510. Subsequent calls copy8-byte cached struct; version-file changes after initialization are not reread. This is not network version discovery. Outside-slice DeviceProperties/GetZoneInfo/outputs/SoftwareVersion already proves1090b078 is shared canonical provider; this record adds its file/cache and failure semantics."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1090b078",
+        "function": "0x1090b078",
+        "notes": "Canonical string cached in std::string at global110b8480 under guard+18. If g_pszJFFSRoot(global1109b024) nonnull, constructs root+\"/VERSION\", attempts1090af80(cap65); if open fails attempts absolute /VERSION; if both opens fail uses literal10f7c900 \"86.10-80260-dev-secbuild-20260826\".1090af80 opens read-only, reads at most64 bytes once, appends NUL and truncates at first CR/LF; close result ignored. Its return is open-success, not read-success: failed/zero read can cache empty string without fallback. On later provider calls, nonempty cache copied with strlcpy and returns whether fit; empty cache returnsfalse WITHOUT writing caller output at1090b0f4. C++ string allocation/copy/free and guard functions are known library leaves. Null root1090b36c calls std::__throw_logic_error108b11d8(\"basic_string::_M_construct null not valid\"); oversize string1090b40c calls std::__throw_length_error108b134c. These exceptions are not SOAP return codes here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0d58",
+        "function": "0x104b0c90",
+        "notes": "Write branch1090b078 fills sp+68(cap65), then delegate slot+8=1066aa24 SetString(R_PromoVersion,buffer) at104b0d58. Uses FULL canonical string, not1090c4a8 numeric formatter or request tag7. Fixed key passes1066a788, URL/UMTracking/X_ checks; reaches10669844 ->1066bee0. Setter status ignored:104b0d6c returns0 after success or800 persistence failure. Provider status at104b0d3c ALSO ignored; sp+68 has no prior initialization in104b0c90. If provider returnsfalse because cache empty, no initialized replacement string is guaranteed and setter consumes unchecked stack bytes. Numeric fallback can still make comparison select this write. Null backend is guarded only for read; attempted SetString requires initialized backend. These are unchecked failure paths, not evidence of successful update or new SOAP codes."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: *(r3+4) v[+0x38].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r3+4) v[+0x38]",
+      "description": "Reads backend+164 SystemSettings R_PromoVersion(default XML path /opt/settings/syssettings.xml), reader found/valid flags and one-shot recovery+e4/replication receiver+ec. Uses process-cached canonical version string and numeric struct at global110b8480, initialized from configured root/VERSION then /VERSION or embedded build fallback. Compares only parsed major/minor bytes, not build/suffix. A write uses same version/LUD/UpdateID/dirty/observer/cache state as SetString, with fixed promo key; comparison and write are separate, not an atomic compare-and-set.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732e24",
-        "notes": "member vfunc calls: ['*(r3+4) v[+0x38]']"
+        "address": "0x104b0d0c",
+        "function": "0x104b0c90",
+        "notes": "Concrete delegate table+4c=100c9be8: pointer comparison104b0cd4 selects inlined default getter, not unknown injected vptr. Null backend treated as missing for this read only. Otherwise backend+164 primary+24=1066c24c reads exact R_PromoVersion into65-byte buffer(sp+24), at most64 payload bytes; boolfalse means missing/unusable read, not SOAP800.106c580c/106c51d0 tracks found separately from XML validity and strlcpy copies bounded Value, including empty. Open/read/invalid XML can set one-shot backend+e4 and advertise local version0 via+ec slot+14; no synchronous XML repair from this read. Found value can survive malformed suffix. Direct backend lookup bypasses GetString R_ForceReIndex/UMTracking special cases."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0de8",
+        "function": "0x104b0c90",
+        "notes": "1090c360 calls libc sscanf at1090c3c0 with literal10f7c9a8 \"%hhu.%hhu-%u\"; requires3 assignments, no end-pointer/full-string/range check. On success stores major/minor bytes atstruct+1/+2 and build uint32 at+4, flags+0 from strstr(\"-diag\"),strstr(\"-beta\"),strstr(\"manufacturing\"). Known libc scanf leaf, not strict paranoid unsigned parser: decimal conversions can skip leading conversion whitespace, accept signs and leave suffix text; no separate overflow rejection in this helper. Empty or incomplete version fails; e.g86.10-1junk succeeds. Caller ignores suffix flags and parsed build in version comparison."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0e18",
+        "function": "0x104b0c90",
+        "notes": "If saved read missing or1090c360 fails, attempt write iff current major,minor,build not all0. If saved parse succeeds, attempt write iff unsigned lexicographic(saved major byte,saved minor byte) < (current major byte,current minor byte); equal/higher pair does nothing, regardless of build or suffix flags. Raw verification:104b0e1c bo13,bi29 takes savedMajor>currentMajor no-write;104b0e20 bo4,bi30 takes unequal lower-major path;104b0e2c bo12,bi28 takes lower-minor path.104b0da8 word7d20579e is isel r9,0,r10,CR7.EQ;104b0e74 word7d20559e selects onCR5.EQ, yielding currentBuild!=0 for all-zero major/minor missing/invalid case. All-zero current tuple makes no write. Build-only update86.10-00001 ->86.10-80260 is skipped;86.9-99999 updates;87.0-1 is retained."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1090b418",
+        "function": "0x1090b418",
+        "notes": "Current numeric version is process-cached at global110b8480+28/+2c under __cxa_guard_acquire108073a0/release10807670(symbols verified). Initializes from1090b078 canonical version string(cap65), then1090c360. Empty provider or failed parse falls back to major86,minor10,build80260 at1090b4f8..1090b510. Subsequent calls copy8-byte cached struct; version-file changes after initialization are not reread. This is not network version discovery. Outside-slice DeviceProperties/GetZoneInfo/outputs/SoftwareVersion already proves1090b078 is shared canonical provider; this record adds its file/cache and failure semantics."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1090b078",
+        "function": "0x1090b078",
+        "notes": "Canonical string cached in std::string at global110b8480 under guard+18. If g_pszJFFSRoot(global1109b024) nonnull, constructs root+\"/VERSION\", attempts1090af80(cap65); if open fails attempts absolute /VERSION; if both opens fail uses literal10f7c900 \"86.10-80260-dev-secbuild-20260826\".1090af80 opens read-only, reads at most64 bytes once, appends NUL and truncates at first CR/LF; close result ignored. Its return is open-success, not read-success: failed/zero read can cache empty string without fallback. On later provider calls, nonempty cache copied with strlcpy and returns whether fit; empty cache returnsfalse WITHOUT writing caller output at1090b0f4. C++ string allocation/copy/free and guard functions are known library leaves. Null root1090b36c calls std::__throw_logic_error108b11d8(\"basic_string::_M_construct null not valid\"); oversize string1090b40c calls std::__throw_length_error108b134c. These exceptions are not SOAP return codes here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1068ab6c",
+        "function": "0x1068ab6c",
+        "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bfec",
+        "function": "0x1066bee0",
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ec4",
+        "function": "0x104b1e48",
+        "notes": "Only a successful attempted R_PromoVersion main write reaches owner104b1e48 ->1066b320, increments UpdateID+204/dirty+200, schedules1067c6ec and queues1066d22c SystemPropertiesChangeEvent(key R_PromoVersion,actual canonical value,securefalse). Serializer1066ad04 emits CustomerID/dirty UpdateID; full/coalesced may include UpdateIDX/ThirdPartyHash, not a PromoVersion variable or proven WSS topic.1066b320 refreshes optional usage-data; owner10121518/10110ee0 refresh media visibility/browse sort and may seed Tracknum via another write. Fixed promo key skips trial-serial/radio/VolNorm/Crossfade/Airplay key-specific branches. Main failure omits success callbacks but outer DoPostUpdateTasks still returns0. No-write valid read emits none of these write-success events; exceptional read can advertise version0 and conditionally queue replication event independently."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r3+4) v[+0x38].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: *(r3+4) v[+0x38] (call-derived member-method semantics)",
+       "description": "May initialize version caches and perform local VERSION file reads. Reads bounded R_PromoVersion; exceptional settings XML read can set recovery-needed and advertise version0 without immediate repair. If comparison selects write and canonical provider supplies text, attempts normal SystemSettings temp-file XML replacement under R_PromoVersion, version/UpdateID advance and shared callbacks. Opened malformed source can preserve parsed prefix or create root-only rewrite plus supplied values; secondary recovery may restore registration CustomerID, with ignored result. Main write failure is ignored by this action. Empty cached provider has unchecked uninitialized-output path, so valid replacement text is not guaranteed there. No firmware installation, reboot, account operation or general task runner is called.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10732e24",
-         "notes": "delegate map ['*(r3+4) v[+0x38]']; notify-family calls []"
+         "address": "0x104b0d0c",
+         "function": "0x104b0c90",
+         "notes": "Concrete delegate table+4c=100c9be8: pointer comparison104b0cd4 selects inlined default getter, not unknown injected vptr. Null backend treated as missing for this read only. Otherwise backend+164 primary+24=1066c24c reads exact R_PromoVersion into65-byte buffer(sp+24), at most64 payload bytes; boolfalse means missing/unusable read, not SOAP800.106c580c/106c51d0 tracks found separately from XML validity and strlcpy copies bounded Value, including empty. Open/read/invalid XML can set one-shot backend+e4 and advertise local version0 via+ec slot+14; no synchronous XML repair from this read. Found value can survive malformed suffix. Direct backend lookup bypasses GetString R_ForceReIndex/UMTracking special cases."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1090b418",
+         "function": "0x1090b418",
+         "notes": "Current numeric version is process-cached at global110b8480+28/+2c under __cxa_guard_acquire108073a0/release10807670(symbols verified). Initializes from1090b078 canonical version string(cap65), then1090c360. Empty provider or failed parse falls back to major86,minor10,build80260 at1090b4f8..1090b510. Subsequent calls copy8-byte cached struct; version-file changes after initialization are not reread. This is not network version discovery. Outside-slice DeviceProperties/GetZoneInfo/outputs/SoftwareVersion already proves1090b078 is shared canonical provider; this record adds its file/cache and failure semantics."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1090b078",
+         "function": "0x1090b078",
+         "notes": "Canonical string cached in std::string at global110b8480 under guard+18. If g_pszJFFSRoot(global1109b024) nonnull, constructs root+\"/VERSION\", attempts1090af80(cap65); if open fails attempts absolute /VERSION; if both opens fail uses literal10f7c900 \"86.10-80260-dev-secbuild-20260826\".1090af80 opens read-only, reads at most64 bytes once, appends NUL and truncates at first CR/LF; close result ignored. Its return is open-success, not read-success: failed/zero read can cache empty string without fallback. On later provider calls, nonempty cache copied with strlcpy and returns whether fit; empty cache returnsfalse WITHOUT writing caller output at1090b0f4. C++ string allocation/copy/free and guard functions are known library leaves. Null root1090b36c calls std::__throw_logic_error108b11d8(\"basic_string::_M_construct null not valid\"); oversize string1090b40c calls std::__throw_length_error108b134c. These exceptions are not SOAP return codes here."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b0d58",
+         "function": "0x104b0c90",
+         "notes": "Write branch1090b078 fills sp+68(cap65), then delegate slot+8=1066aa24 SetString(R_PromoVersion,buffer) at104b0d58. Uses FULL canonical string, not1090c4a8 numeric formatter or request tag7. Fixed key passes1066a788, URL/UMTracking/X_ checks; reaches10669844 ->1066bee0. Setter status ignored:104b0d6c returns0 after success or800 persistence failure. Provider status at104b0d3c ALSO ignored; sp+68 has no prior initialization in104b0c90. If provider returnsfalse because cache empty, no initialized replacement string is guaranteed and setter consumes unchecked stack bytes. Numeric fallback can still make comparison select this write. Null backend is guarded only for read; attempted SetString requires initialized backend. These are unchecked failure paths, not evidence of successful update or new SOAP codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bf44",
+         "function": "0x1066bee0",
+         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bfec",
+         "function": "0x1066bee0",
+         "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b1ec4",
+         "function": "0x104b1e48",
+         "notes": "Only a successful attempted R_PromoVersion main write reaches owner104b1e48 ->1066b320, increments UpdateID+204/dirty+200, schedules1067c6ec and queues1066d22c SystemPropertiesChangeEvent(key R_PromoVersion,actual canonical value,securefalse). Serializer1066ad04 emits CustomerID/dirty UpdateID; full/coalesced may include UpdateIDX/ThirdPartyHash, not a PromoVersion variable or proven WSS topic.1066b320 refreshes optional usage-data; owner10121518/10110ee0 refresh media visibility/browse sort and may seed Tracknum via another write. Fixed promo key skips trial-serial/radio/VolNorm/Crossfade/Airplay key-specific branches. Main failure omits success callbacks but outer DoPostUpdateTasks still returns0. No-write valid read emits none of these write-success events; exceptional read can advertise version0 and conditionally queue replication event independently."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b1ed4",
+         "function": "0x104b1e48",
+         "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r3+4) v[+0x38] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No write-success event when saved parsed major/minor is equal/higher. An exceptional XML read may independently advertise local version0 and conditionally queue ReplicatedSettingsChangedEvent. Successful selected SetString write advertises incremented settings version, schedules SystemProperties UPnP CustomerID/dirty UpdateID propertyset, and queues local SystemPropertiesChangeEvent(R_PromoVersion,full canonical value,securefalse); shared cache refreshes/nested browse-sort write may add notifications. No special post-update/WSS event proven. Write or delivery failure does not become a SOAP fault.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732e24",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x104b0d0c",
+        "function": "0x104b0c90",
+        "notes": "Concrete delegate table+4c=100c9be8: pointer comparison104b0cd4 selects inlined default getter, not unknown injected vptr. Null backend treated as missing for this read only. Otherwise backend+164 primary+24=1066c24c reads exact R_PromoVersion into65-byte buffer(sp+24), at most64 payload bytes; boolfalse means missing/unusable read, not SOAP800.106c580c/106c51d0 tracks found separately from XML validity and strlcpy copies bounded Value, including empty. Open/read/invalid XML can set one-shot backend+e4 and advertise local version0 via+ec slot+14; no synchronous XML repair from this read. Found value can survive malformed suffix. Direct backend lookup bypasses GetString R_ForceReIndex/UMTracking special cases."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0e18",
+        "function": "0x104b0c90",
+        "notes": "If saved read missing or1090c360 fails, attempt write iff current major,minor,build not all0. If saved parse succeeds, attempt write iff unsigned lexicographic(saved major byte,saved minor byte) < (current major byte,current minor byte); equal/higher pair does nothing, regardless of build or suffix flags. Raw verification:104b0e1c bo13,bi29 takes savedMajor>currentMajor no-write;104b0e20 bo4,bi30 takes unequal lower-major path;104b0e2c bo12,bi28 takes lower-minor path.104b0da8 word7d20579e is isel r9,0,r10,CR7.EQ;104b0e74 word7d20559e selects onCR5.EQ, yielding currentBuild!=0 for all-zero major/minor missing/invalid case. All-zero current tuple makes no write. Build-only update86.10-00001 ->86.10-80260 is skipped;86.9-99999 updates;87.0-1 is retained."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0d58",
+        "function": "0x104b0c90",
+        "notes": "Write branch1090b078 fills sp+68(cap65), then delegate slot+8=1066aa24 SetString(R_PromoVersion,buffer) at104b0d58. Uses FULL canonical string, not1090c4a8 numeric formatter or request tag7. Fixed key passes1066a788, URL/UMTracking/X_ checks; reaches10669844 ->1066bee0. Setter status ignored:104b0d6c returns0 after success or800 persistence failure. Provider status at104b0d3c ALSO ignored; sp+68 has no prior initialization in104b0c90. If provider returnsfalse because cache empty, no initialized replacement string is guaranteed and setter consumes unchecked stack bytes. Numeric fallback can still make comparison select this write. Null backend is guarded only for read; attempted SetString requires initialized backend. These are unchecked failure paths, not evidence of successful update or new SOAP codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ec4",
+        "function": "0x104b1e48",
+        "notes": "Only a successful attempted R_PromoVersion main write reaches owner104b1e48 ->1066b320, increments UpdateID+204/dirty+200, schedules1067c6ec and queues1066d22c SystemPropertiesChangeEvent(key R_PromoVersion,actual canonical value,securefalse). Serializer1066ad04 emits CustomerID/dirty UpdateID; full/coalesced may include UpdateIDX/ThirdPartyHash, not a PromoVersion variable or proven WSS topic.1066b320 refreshes optional usage-data; owner10121518/10110ee0 refresh media visibility/browse sort and may seed Tracknum via another write. Fixed promo key skips trial-serial/radio/VolNorm/Crossfade/Airplay key-specific branches. Main failure omits success callbacks but outer DoPostUpdateTasks still returns0. No-write valid read emits none of these write-success events; exceptional read can advertise version0 and conditionally queue replication event independently."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v[+0x38]",
+      "description": "Saved missing/unparseable version triggers write only for a nonzero current numeric tuple. Parsed saved pair lower than current major/minor triggers write; equal/higher pair leaves marker unchanged even if build differs. Successful write stores full current canonical text and advances settings version/LUD/recovery/UpdateID state through SetString; failed write leaves no success-callback transition but still normal0 return. Lazy version caches persist for process lifetime. Provider-empty or null-backend write cases are unchecked, not successful transitions guaranteed by return status.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732e24",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r3+4) v[+0x38]']"
+        "address": "0x104b0d0c",
+        "function": "0x104b0c90",
+        "notes": "Concrete delegate table+4c=100c9be8: pointer comparison104b0cd4 selects inlined default getter, not unknown injected vptr. Null backend treated as missing for this read only. Otherwise backend+164 primary+24=1066c24c reads exact R_PromoVersion into65-byte buffer(sp+24), at most64 payload bytes; boolfalse means missing/unusable read, not SOAP800.106c580c/106c51d0 tracks found separately from XML validity and strlcpy copies bounded Value, including empty. Open/read/invalid XML can set one-shot backend+e4 and advertise local version0 via+ec slot+14; no synchronous XML repair from this read. Found value can survive malformed suffix. Direct backend lookup bypasses GetString R_ForceReIndex/UMTracking special cases."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0de8",
+        "function": "0x104b0c90",
+        "notes": "1090c360 calls libc sscanf at1090c3c0 with literal10f7c9a8 \"%hhu.%hhu-%u\"; requires3 assignments, no end-pointer/full-string/range check. On success stores major/minor bytes atstruct+1/+2 and build uint32 at+4, flags+0 from strstr(\"-diag\"),strstr(\"-beta\"),strstr(\"manufacturing\"). Known libc scanf leaf, not strict paranoid unsigned parser: decimal conversions can skip leading conversion whitespace, accept signs and leave suffix text; no separate overflow rejection in this helper. Empty or incomplete version fails; e.g86.10-1junk succeeds. Caller ignores suffix flags and parsed build in version comparison."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0e18",
+        "function": "0x104b0c90",
+        "notes": "If saved read missing or1090c360 fails, attempt write iff current major,minor,build not all0. If saved parse succeeds, attempt write iff unsigned lexicographic(saved major byte,saved minor byte) < (current major byte,current minor byte); equal/higher pair does nothing, regardless of build or suffix flags. Raw verification:104b0e1c bo13,bi29 takes savedMajor>currentMajor no-write;104b0e20 bo4,bi30 takes unequal lower-major path;104b0e2c bo12,bi28 takes lower-minor path.104b0da8 word7d20579e is isel r9,0,r10,CR7.EQ;104b0e74 word7d20559e selects onCR5.EQ, yielding currentBuild!=0 for all-zero major/minor missing/invalid case. All-zero current tuple makes no write. Build-only update86.10-00001 ->86.10-80260 is skipped;86.9-99999 updates;87.0-1 is retained."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1090b418",
+        "function": "0x1090b418",
+        "notes": "Current numeric version is process-cached at global110b8480+28/+2c under __cxa_guard_acquire108073a0/release10807670(symbols verified). Initializes from1090b078 canonical version string(cap65), then1090c360. Empty provider or failed parse falls back to major86,minor10,build80260 at1090b4f8..1090b510. Subsequent calls copy8-byte cached struct; version-file changes after initialization are not reread. This is not network version discovery. Outside-slice DeviceProperties/GetZoneInfo/outputs/SoftwareVersion already proves1090b078 is shared canonical provider; this record adds its file/cache and failure semantics."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1090b078",
+        "function": "0x1090b078",
+        "notes": "Canonical string cached in std::string at global110b8480 under guard+18. If g_pszJFFSRoot(global1109b024) nonnull, constructs root+\"/VERSION\", attempts1090af80(cap65); if open fails attempts absolute /VERSION; if both opens fail uses literal10f7c900 \"86.10-80260-dev-secbuild-20260826\".1090af80 opens read-only, reads at most64 bytes once, appends NUL and truncates at first CR/LF; close result ignored. Its return is open-success, not read-success: failed/zero read can cache empty string without fallback. On later provider calls, nonempty cache copied with strlcpy and returns whether fit; empty cache returnsfalse WITHOUT writing caller output at1090b0f4. C++ string allocation/copy/free and guard functions are known library leaves. Null root1090b36c calls std::__throw_logic_error108b11d8(\"basic_string::_M_construct null not valid\"); oversize string1090b40c calls std::__throw_length_error108b134c. These exceptions are not SOAP return codes here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0d58",
+        "function": "0x104b0c90",
+        "notes": "Write branch1090b078 fills sp+68(cap65), then delegate slot+8=1066aa24 SetString(R_PromoVersion,buffer) at104b0d58. Uses FULL canonical string, not1090c4a8 numeric formatter or request tag7. Fixed key passes1066a788, URL/UMTracking/X_ checks; reaches10669844 ->1066bee0. Setter status ignored:104b0d6c returns0 after success or800 persistence failure. Provider status at104b0d3c ALSO ignored; sp+68 has no prior initialization in104b0c90. If provider returnsfalse because cache empty, no initialized replacement string is guaranteed and setter consumes unchecked stack bytes. Numeric fallback can still make comparison select this write. Null backend is guarded only for read; attempted SetString requires initialized backend. These are unchecked failure paths, not evidence of successful update or new SOAP codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bf44",
+        "function": "0x1066bee0",
+        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bfec",
+        "function": "0x1066bee0",
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ec4",
+        "function": "0x104b1e48",
+        "notes": "Only a successful attempted R_PromoVersion main write reaches owner104b1e48 ->1066b320, increments UpdateID+204/dirty+200, schedules1067c6ec and queues1066d22c SystemPropertiesChangeEvent(key R_PromoVersion,actual canonical value,securefalse). Serializer1066ad04 emits CustomerID/dirty UpdateID; full/coalesced may include UpdateIDX/ThirdPartyHash, not a PromoVersion variable or proven WSS topic.1066b320 refreshes optional usage-data; owner10121518/10110ee0 refresh media visibility/browse sort and may seed Tracknum via another write. Fixed promo key skips trial-serial/radio/VolNorm/Crossfade/Airplay key-specific branches. Main failure omits success callbacks but outer DoPostUpdateTasks still returns0. No-write valid read emits none of these write-success events; exceptional read can advertise version0 and conditionally queue replication event independently."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v[+0x38].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "All normal completed concrete paths return0 at104b0d6c and commit an empty response. Missing/unparseable marker, no-change, successful write and failed write are not distinguished to client; SetString800 is ignored. No inputs means no action402 path; generic wrapper nonzero fault arm is unreachable from these normal returns. Provider failure can leave unchecked replacement buffer, and C++ allocation/guard/string exceptions or invalid initialized-state accesses are not converted into SOAP error codes in this implementation. Thus normal success is not proof a valid marker was persisted.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732e48",
         "function": "0x10732e24",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0xc': 1}"
+        "notes": "Constructor104b0e84 installs delegate10ed75c4 at104b0f94. Handler10732e94 constructed1018e594 stores delegate+4/vptr10f110a8. Handler10732e48 calls delegate+38(table10ed75fc)=104b0c90, no argument descriptors or request+8 validation. Concrete normal delegate exit104b0d6c returns0; wrapper commits empty response at10732e90. Generic nonzero fault tail10732e74 is not reached by a normal concrete return, so no action402 predicate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0d0c",
+        "function": "0x104b0c90",
+        "notes": "Concrete delegate table+4c=100c9be8: pointer comparison104b0cd4 selects inlined default getter, not unknown injected vptr. Null backend treated as missing for this read only. Otherwise backend+164 primary+24=1066c24c reads exact R_PromoVersion into65-byte buffer(sp+24), at most64 payload bytes; boolfalse means missing/unusable read, not SOAP800.106c580c/106c51d0 tracks found separately from XML validity and strlcpy copies bounded Value, including empty. Open/read/invalid XML can set one-shot backend+e4 and advertise local version0 via+ec slot+14; no synchronous XML repair from this read. Found value can survive malformed suffix. Direct backend lookup bypasses GetString R_ForceReIndex/UMTracking special cases."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0de8",
+        "function": "0x104b0c90",
+        "notes": "1090c360 calls libc sscanf at1090c3c0 with literal10f7c9a8 \"%hhu.%hhu-%u\"; requires3 assignments, no end-pointer/full-string/range check. On success stores major/minor bytes atstruct+1/+2 and build uint32 at+4, flags+0 from strstr(\"-diag\"),strstr(\"-beta\"),strstr(\"manufacturing\"). Known libc scanf leaf, not strict paranoid unsigned parser: decimal conversions can skip leading conversion whitespace, accept signs and leave suffix text; no separate overflow rejection in this helper. Empty or incomplete version fails; e.g86.10-1junk succeeds. Caller ignores suffix flags and parsed build in version comparison."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0e18",
+        "function": "0x104b0c90",
+        "notes": "If saved read missing or1090c360 fails, attempt write iff current major,minor,build not all0. If saved parse succeeds, attempt write iff unsigned lexicographic(saved major byte,saved minor byte) < (current major byte,current minor byte); equal/higher pair does nothing, regardless of build or suffix flags. Raw verification:104b0e1c bo13,bi29 takes savedMajor>currentMajor no-write;104b0e20 bo4,bi30 takes unequal lower-major path;104b0e2c bo12,bi28 takes lower-minor path.104b0da8 word7d20579e is isel r9,0,r10,CR7.EQ;104b0e74 word7d20559e selects onCR5.EQ, yielding currentBuild!=0 for all-zero major/minor missing/invalid case. All-zero current tuple makes no write. Build-only update86.10-00001 ->86.10-80260 is skipped;86.9-99999 updates;87.0-1 is retained."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1090b078",
+        "function": "0x1090b078",
+        "notes": "Canonical string cached in std::string at global110b8480 under guard+18. If g_pszJFFSRoot(global1109b024) nonnull, constructs root+\"/VERSION\", attempts1090af80(cap65); if open fails attempts absolute /VERSION; if both opens fail uses literal10f7c900 \"86.10-80260-dev-secbuild-20260826\".1090af80 opens read-only, reads at most64 bytes once, appends NUL and truncates at first CR/LF; close result ignored. Its return is open-success, not read-success: failed/zero read can cache empty string without fallback. On later provider calls, nonempty cache copied with strlcpy and returns whether fit; empty cache returnsfalse WITHOUT writing caller output at1090b0f4. C++ string allocation/copy/free and guard functions are known library leaves. Null root1090b36c calls std::__throw_logic_error108b11d8(\"basic_string::_M_construct null not valid\"); oversize string1090b40c calls std::__throw_length_error108b134c. These exceptions are not SOAP return codes here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0d58",
+        "function": "0x104b0c90",
+        "notes": "Write branch1090b078 fills sp+68(cap65), then delegate slot+8=1066aa24 SetString(R_PromoVersion,buffer) at104b0d58. Uses FULL canonical string, not1090c4a8 numeric formatter or request tag7. Fixed key passes1066a788, URL/UMTracking/X_ checks; reaches10669844 ->1066bee0. Setter status ignored:104b0d6c returns0 after success or800 persistence failure. Provider status at104b0d3c ALSO ignored; sp+68 has no prior initialization in104b0c90. If provider returnsfalse because cache empty, no initialized replacement string is guaranteed and setter consumes unchecked stack bytes. Numeric fallback can still make comparison select this write. Null backend is guarded only for read; attempted SetString requires initialized backend. These are unchecked failure paths, not evidence of successful update or new SOAP codes."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [],
-     "errors": [
-      {
-       "code": 402,
-       "code_expr": "vret; parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x10732e24"
-       ],
-       "conditions": [
-        {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10732e24",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10732e24",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10732e24",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10732e24",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; CR0.eq = success",
-        "unknown": "concrete rc domain of this impl",
-        "knowledge": "; member accessor (*(impl+0x9d70)); rc is the returned pointer consumed by wrapper",
-        "call_sources": [],
-        "impl_exit_literals": {
-         "function": "0x1019db7c",
-         "lits": [
-          -1468,
-          -936,
-          0,
-          19744,
-          22308,
-          22528
-         ],
-         "passthrough_exits": 30
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "observable": [
-        {
-         "op": "recorded-impl",
-         "result": "DoPostUpdateTasks",
-         "basis": "disassembled impl body + store-vfunc mapping",
-         "provenance": "disas0x10e97e10"
-        }
-       ],
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; parse/req-layer; sites: 0x10732e24).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     ],
+     "errors": [],
      "firmware_differences": [],
      "evidence": [
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x10732e48",
        "function": "0x10732e24",
-       "address": "0x10732e24",
-       "notes": "action wrapper handler"
+       "notes": "Constructor104b0e84 installs delegate10ed75c4 at104b0f94. Handler10732e94 constructed1018e594 stores delegate+4/vptr10f110a8. Handler10732e48 calls delegate+38(table10ed75fc)=104b0c90, no argument descriptors or request+8 validation. Concrete normal delegate exit104b0d6c returns0; wrapper commits empty response at10732e90. Generic nonzero fault tail10732e74 is not reached by a normal concrete return, so no action402 predicate."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11108",
-       "notes": "action dispatch table entry"
+       "address": "0x104b0d0c",
+       "function": "0x104b0c90",
+       "notes": "Concrete delegate table+4c=100c9be8: pointer comparison104b0cd4 selects inlined default getter, not unknown injected vptr. Null backend treated as missing for this read only. Otherwise backend+164 primary+24=1066c24c reads exact R_PromoVersion into65-byte buffer(sp+24), at most64 payload bytes; boolfalse means missing/unusable read, not SOAP800.106c580c/106c51d0 tracks found separately from XML validity and strlcpy copies bounded Value, including empty. Open/read/invalid XML can set one-shot backend+e4 and advertise local version0 via+ec slot+14; no synchronous XML repair from this read. Found value can survive malformed suffix. Direct backend lookup bypasses GetString R_ForceReIndex/UMTracking special cases."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10732e24",
-       "notes": "handler body: impl call + fault/commit only; no parse or emit arg sites"
+       "address": "0x104b0de8",
+       "function": "0x104b0c90",
+       "notes": "1090c360 calls libc sscanf at1090c3c0 with literal10f7c9a8 \"%hhu.%hhu-%u\"; requires3 assignments, no end-pointer/full-string/range check. On success stores major/minor bytes atstruct+1/+2 and build uint32 at+4, flags+0 from strstr(\"-diag\"),strstr(\"-beta\"),strstr(\"manufacturing\"). Known libc scanf leaf, not strict paranoid unsigned parser: decimal conversions can skip leading conversion whitespace, accept signs and leave suffix text; no separate overflow rejection in this helper. Empty or incomplete version fails; e.g86.10-1junk succeeds. Caller ignores suffix flags and parsed build in version comparison."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b0e18",
+       "function": "0x104b0c90",
+       "notes": "If saved read missing or1090c360 fails, attempt write iff current major,minor,build not all0. If saved parse succeeds, attempt write iff unsigned lexicographic(saved major byte,saved minor byte) < (current major byte,current minor byte); equal/higher pair does nothing, regardless of build or suffix flags. Raw verification:104b0e1c bo13,bi29 takes savedMajor>currentMajor no-write;104b0e20 bo4,bi30 takes unequal lower-major path;104b0e2c bo12,bi28 takes lower-minor path.104b0da8 word7d20579e is isel r9,0,r10,CR7.EQ;104b0e74 word7d20559e selects onCR5.EQ, yielding currentBuild!=0 for all-zero major/minor missing/invalid case. All-zero current tuple makes no write. Build-only update86.10-00001 ->86.10-80260 is skipped;86.9-99999 updates;87.0-1 is retained."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1090b418",
+       "function": "0x1090b418",
+       "notes": "Current numeric version is process-cached at global110b8480+28/+2c under __cxa_guard_acquire108073a0/release10807670(symbols verified). Initializes from1090b078 canonical version string(cap65), then1090c360. Empty provider or failed parse falls back to major86,minor10,build80260 at1090b4f8..1090b510. Subsequent calls copy8-byte cached struct; version-file changes after initialization are not reread. This is not network version discovery. Outside-slice DeviceProperties/GetZoneInfo/outputs/SoftwareVersion already proves1090b078 is shared canonical provider; this record adds its file/cache and failure semantics."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1090b078",
+       "function": "0x1090b078",
+       "notes": "Canonical string cached in std::string at global110b8480 under guard+18. If g_pszJFFSRoot(global1109b024) nonnull, constructs root+\"/VERSION\", attempts1090af80(cap65); if open fails attempts absolute /VERSION; if both opens fail uses literal10f7c900 \"86.10-80260-dev-secbuild-20260826\".1090af80 opens read-only, reads at most64 bytes once, appends NUL and truncates at first CR/LF; close result ignored. Its return is open-success, not read-success: failed/zero read can cache empty string without fallback. On later provider calls, nonempty cache copied with strlcpy and returns whether fit; empty cache returnsfalse WITHOUT writing caller output at1090b0f4. C++ string allocation/copy/free and guard functions are known library leaves. Null root1090b36c calls std::__throw_logic_error108b11d8(\"basic_string::_M_construct null not valid\"); oversize string1090b40c calls std::__throw_length_error108b134c. These exceptions are not SOAP return codes here."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b0d58",
+       "function": "0x104b0c90",
+       "notes": "Write branch1090b078 fills sp+68(cap65), then delegate slot+8=1066aa24 SetString(R_PromoVersion,buffer) at104b0d58. Uses FULL canonical string, not1090c4a8 numeric formatter or request tag7. Fixed key passes1066a788, URL/UMTracking/X_ checks; reaches10669844 ->1066bee0. Setter status ignored:104b0d6c returns0 after success or800 persistence failure. Provider status at104b0d3c ALSO ignored; sp+68 has no prior initialization in104b0c90. If provider returnsfalse because cache empty, no initialized replacement string is guaranteed and setter consumes unchecked stack bytes. Numeric fallback can still make comparison select this write. Null backend is guarded only for read; attempted SetString requires initialized backend. These are unchecked failure paths, not evidence of successful update or new SOAP codes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1068ab6c",
+       "function": "0x1068ab6c",
+       "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066bf44",
+       "function": "0x1066bee0",
+       "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Source open failure returns false before temp-file creation.106c6044 preserves parsed unaffected entries. If no root header was emitted,106c643c ->transaction v+8=106c5f24 ->106c5e04 emits only a fresh root header, then requested nonnull values; it does not call backend+28 factory-seed getter106696e4. A parse error after recognized root can retain the already parsed prefix. Source parse-valid flag controls the secondary recovery-metadata write after main commit, not unconditional rejection of malformed input. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066bfec",
+       "function": "0x1066bee0",
+       "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1019911c",
+       "function": "0x10198e54",
+       "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b1ec4",
+       "function": "0x104b1e48",
+       "notes": "Only a successful attempted R_PromoVersion main write reaches owner104b1e48 ->1066b320, increments UpdateID+204/dirty+200, schedules1067c6ec and queues1066d22c SystemPropertiesChangeEvent(key R_PromoVersion,actual canonical value,securefalse). Serializer1066ad04 emits CustomerID/dirty UpdateID; full/coalesced may include UpdateIDX/ThirdPartyHash, not a PromoVersion variable or proven WSS topic.1066b320 refreshes optional usage-data; owner10121518/10110ee0 refresh media visibility/browse sort and may seed Tracknum via another write. Fixed promo key skips trial-serial/radio/VolNorm/Crossfade/Airplay key-specific branches. Main failure omits success callbacks but outer DoPostUpdateTasks still returns0. No-write valid read emits none of these write-success events; exceptional read can advertise version0 and conditionally queue replication event independently."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b1ed4",
+       "function": "0x104b1e48",
+       "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
       }
      ],
-     "notes": null,
+     "notes": "Despite the name, concrete work is promo-version marker processing plus conditional settings callbacks. A build-only change does not rewrite a valid same-major/minor marker. Do not treat empty SOAP success as proof of completed update tasks or persistence.",
      "args_verified_empty": true,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10732e24; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "10732e24 ->delegate+38=104b0c90. Actual vtable+4c getter100c9be8 is recognized/inlined; SystemSettings+24 reader1066c24c.1090b418 caches current numeric tuple,1090c360 performs scanf conversion; conditional1090b078 ->delegate+8 SetString1066aa24 status discarded. Raw isel CR7/CR5 and unsigned branch polarity audited; no runtime-injected-vptr residual. Same-major/minor skip deliberately follows binary rather than inferred full semantic-version ordering."
     },
     "EditAccountMd": {
      "description": "Edits account metadata: AccountType/AccountID/NewAccountMd via impl->v[+0x30].",
