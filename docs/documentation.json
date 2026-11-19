@@ -96819,7 +96819,7 @@
      "implementation_notes": "Full concrete lookup/authentication path; output-capacity check corrected from false ServiceId<256 interpretation. All duplicate matches are attempted. Only runtime-supplied provider fault vocabulary remains open in the generic error record."
     },
     "ListAvailableServices": {
-     "description": "Returns the list of available music services. Wrapper reaches the impl through *(*(sp+0x18)+0x8) (a doubly-indirect member) and calls its v[+0x8] which serializes the service list.",
+     "description": "Synchronously streams the locally installed musicservices.xml catalog as rewritten descriptor XML, a bounded comma-separated encoded service-type list, and the current device:counter list-version token. It does not fetch the catalog or enumerate only configured accounts on normal fresh SOAP calls.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073a424",
@@ -96850,251 +96850,378 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x100c6948 ->0x100c6314; descriptor0x100cc34c; types0x100ca7f4; version0x100ca84c",
+      "impl_vfunc": "Secondary vtable0x10e76900 +8; service-level binding proof."
      },
      "inputs": {},
      "outputs": {
       "AvailableServiceDescriptorList": {
-       "description": "music-service catalogue field emitted via the response writer inside serializer f_100c6314",
+       "description": "Rewritten XML from installed local catalog, not byte-for-byte file contents. Root <Services SchemaVersion=\"1\">, selected Service attributes, Policy and Presentation child metadata; no catalog LastUpdateDevice/Version root attributes.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "text",
+       "semantic_type": "string",
+       "format": "Escaped XML string",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the parser/emitter",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string 'out' loaded at 0x100c6770 inside f_100c6314",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x100c6770",
-         "notes": "arg-name string load in f_100c6314"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "f_100c6314",
-         "notes": "worker function"
-        }
-       ],
-       "notes": null
-      },
-      "AvailableServiceTypeList": {
-       "description": "music-service catalogue field emitted via the response writer inside serializer f_100c6314",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": null
-       },
-       "semantic_type": "response field",
-       "format": "text",
-       "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the parser/emitter",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string 'out' loaded at 0x100c67d0 inside f_100c6314",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x100c67d0",
-         "notes": "arg-name string load in f_100c6314"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "f_100c6314",
-         "notes": "worker function"
-        }
-       ],
-       "notes": null
-      },
-      "AvailableServiceListVersion": {
-       "description": "music-service catalogue field emitted via the response writer inside serializer f_100c6314",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": null
-       },
-       "semantic_type": "response field",
-       "format": "text",
-       "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the parser/emitter",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string 'out' loaded at 0x100c67f4 inside f_100c6314",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x100c67f4",
-         "notes": "arg-name string load in f_100c6314"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "f_100c6314",
-         "notes": "worker function"
-        }
-       ],
-       "notes": null
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x1073a424",
-        "notes": "wrapper decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (validate×1); member delegates: r4 v[+0x3c], *(r30+8) v[+0x8]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x1073a424",
-        "notes": "req-vfunc call map: {'0x8': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (validate×1); member delegates: r4 v[+0x3c], *(r30+8) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x3c], *(r30+8) v[+0x8]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x1073a424",
-        "notes": "member vfunc calls: ['r4 v[+0x3c]', '*(r30+8) v[+0x8]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x3c], *(r30+8) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "kind": "none",
-       "description": "Read-only serialization of the impl service table via secondary-base vfunc f_100c6314.",
+       "accepted_values": "Serialized local catalog state, as described.",
+       "range": "No action-level descriptor XML length cap established; chunked output is not a cap.",
+       "special_values": "Empty descriptor/types possible when local catalog cannot be opened; parser failure can leave partial XML.",
+       "required": true,
+       "default": "none; field registered on successful request",
+       "validation": "Output callback, no client input validation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x100c6314",
-         "notes": "serializer body"
+         "address": "0x100c6548",
+         "notes": "100c5fd0(0,0) calls100c5d3c to construct musicservices.xml, then open64 read-only100c6018. Path builder100c5e6c->1068ab6c joins relative filename to runtime data-directory string at110a950c+0x18/+0x1c;1068aa74 sets that base. It is not read from SCPD or generated from installed accounts, and this getter performs no catalog HTTP fetch. Missing fd is retained as negative; no SOAP fault emitted."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100cc34c",
+         "address": "0x100cc414",
+         "notes": "Descriptor callback receives context=stack+0x3c. Context+4 optional old-client account snapshot,+8 optional old-client auxiliary list,+0xc file fd,+0x34 CSV buffer. Constructs1055397c serializer vtable10e767fc, installs XML output writer and CSV capacity2048. For fd>=0 calls105528ac/10c4009c SAX parser, ignores parser return, destroys10552790. Negative fd skips parser entirely, yielding empty descriptor/CSV outputs. Malformed file can yield partial serialized XML; no new SOAP fault. The2048 limit is CSV CAPACITY, not descriptor XML size."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100cac70",
+         "address": "0x100cac9c",
+         "notes": "vtable10e767fc+8 emits <Services SchemaVersion=\"1\"> (literal numeric1 at100caca4), +0x40=100cab50 closes </Services>. +0xc=100cb5e8 selects top-level services then100cb31c writes escaped Service attributes Id,Name,Version,Uri,SecureUri,ContainerType,Capabilities using105786a0/10578490. +0x14=100cbcc0 emits Policy Auth/PollInterval through100cbbc8. +0x18=100cac38 opens Presentation only for included service; +0x1c=100cbb7c emits Strings Version/Uri; +0x20=100cbb30 emits PresentationMap Version/Uri via100c747c; +0x24=100cac00 closes Presentation; +0x3c=100ca678 closes selected Service. Catalog LastUpdateDevice and Version attributes are not copied into this descriptor root. Built-in callback100cada0 adds CSV types, not BuiltInService XML elements."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c6314",
+         "address": "0x100c64e0",
+         "notes": "Two request+0x40 version queries can select old-client compatibility. Query failure leaves filtering disabled. If reported major<29, or major29 minor<1, or29.1 build<=0x153f5, snapshots accounts101b688c;100cb5e8 then includes Id254 or IDs<256 matching accountType>>8, excludes IDs>=256 and unmatched services. For major<46, or46 minor<2, or46.2 build<=0xdb23, copies auxiliary list via1011a5d0 (impl+0x13ad0). Normal per-SOAP TRequest vtable10f10f20+0x40=10730268 instead reports version84.1 build0, so BOTH compatibility paths are bypassed on that proven dispatch. The fixed low5-bit operation10730274 masks caller flags, not a divide. No universal installed-account-only membership restriction applies to fresh ordinary SOAP calls."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10730524",
+         "address": "0x10730608",
+         "notes": "100c6770/100c67d0/100c67f4 register AvailableServiceDescriptorList, AvailableServiceTypeList, AvailableServiceListVersion in that order using10560608(type9 callback-backed string).100c6824 calls request+0x10: bound10730714 tailcalls10730524, which iterates registered outputs through10563bc0; type9 path1056405c invokes serializer callback synchronously at10564074 before returning. Descriptor callback first builds CSV for next callback100ca7f4; final callback100ca84c emits snapshot version. Socket sink10f11cec+8=10739f0c streams through4096-byte chunks. After send returns100c6834 closes fd,100c6840 flushes sink1073a044 and frees buffers/unlocks. This is synchronous streaming serialization, not a background action or later-use stack callback."
+        }
+       ],
+       "notes": null,
+       "meaning": "Rewritten XML from installed local catalog, not byte-for-byte file contents. Root <Services SchemaVersion=\"1\">, selected Service attributes, Policy and Presentation child metadata; no catalog LastUpdateDevice/Version root attributes."
+      },
+      "AvailableServiceTypeList": {
+       "description": "Comma-separated decimal service types in catalog callback order. Regular type=(ServiceId<<8)|7, except ServiceId254 is omitted; eligible built-in raw Types are appended as encountered. Not a CSV of raw descriptor ServiceIds.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "string",
+       "format": "Decimal CSV with no trailing comma",
+       "unit": "none",
+       "accepted_values": "Serialized local catalog state, as described.",
+       "range": "2048 bytes including NUL; full buffer stops additional entries without SOAP fault.",
+       "special_values": "Empty descriptor/types possible when local catalog cannot be opened; parser failure can leave partial XML.",
+       "required": true,
+       "default": "none; field registered on successful request",
+       "validation": "Output callback, no client input validation.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100cc34c",
+         "address": "0x100cc414",
+         "notes": "Descriptor callback receives context=stack+0x3c. Context+4 optional old-client account snapshot,+8 optional old-client auxiliary list,+0xc file fd,+0x34 CSV buffer. Constructs1055397c serializer vtable10e767fc, installs XML output writer and CSV capacity2048. For fd>=0 calls105528ac/10c4009c SAX parser, ignores parser return, destroys10552790. Negative fd skips parser entirely, yielding empty descriptor/CSV outputs. Malformed file can yield partial serialized XML; no new SOAP fault. The2048 limit is CSV CAPACITY, not descriptor XML size."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100cb31c",
+         "address": "0x100cb3f8",
+         "notes": "On serialized regular Service, CSV adds decimal32-bit type=(Id<<8)|7, except Id254 omitted from CSV but still serialized in descriptor XML. Raw57c8402e-style SH8 MB0 ME23 at100cb3f8 is left-shift8; no right-shift. Built-in callback100cada0 includes raw decimal Type only when(Type&0x81)!=0x80. Uses %u for first and ,%u thereafter, in parser callback order, no trailing comma. Bounded2048-byte buffer; overflow preserves prior complete prefix/terminates at previous index, sets exhausted state and logs100cabcc, without SOAP fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c6314",
+         "address": "0x100c64e0",
+         "notes": "Two request+0x40 version queries can select old-client compatibility. Query failure leaves filtering disabled. If reported major<29, or major29 minor<1, or29.1 build<=0x153f5, snapshots accounts101b688c;100cb5e8 then includes Id254 or IDs<256 matching accountType>>8, excludes IDs>=256 and unmatched services. For major<46, or46 minor<2, or46.2 build<=0xdb23, copies auxiliary list via1011a5d0 (impl+0x13ad0). Normal per-SOAP TRequest vtable10f10f20+0x40=10730268 instead reports version84.1 build0, so BOTH compatibility paths are bypassed on that proven dispatch. The fixed low5-bit operation10730274 masks caller flags, not a divide. No universal installed-account-only membership restriction applies to fresh ordinary SOAP calls."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10730524",
+         "address": "0x10730608",
+         "notes": "100c6770/100c67d0/100c67f4 register AvailableServiceDescriptorList, AvailableServiceTypeList, AvailableServiceListVersion in that order using10560608(type9 callback-backed string).100c6824 calls request+0x10: bound10730714 tailcalls10730524, which iterates registered outputs through10563bc0; type9 path1056405c invokes serializer callback synchronously at10564074 before returning. Descriptor callback first builds CSV for next callback100ca7f4; final callback100ca84c emits snapshot version. Socket sink10f11cec+8=10739f0c streams through4096-byte chunks. After send returns100c6834 closes fd,100c6840 flushes sink1073a044 and frees buffers/unlocks. This is synchronous streaming serialization, not a background action or later-use stack callback."
+        }
+       ],
+       "notes": null,
+       "meaning": "Comma-separated decimal service types in catalog callback order. Regular type=(ServiceId<<8)|7, except ServiceId254 is omitted; eligible built-in raw Types are appended as encountered. Not a CSV of raw descriptor ServiceIds."
+      },
+      "AvailableServiceListVersion": {
+       "description": "Snapshot of catalog last-update device text and32-bit version, joined by a colon. Same value source as evented ServiceListVersion, but a different output field name.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "string",
+       "format": "%s:%u; opaque device:counter string",
+       "unit": "none",
+       "accepted_values": "Serialized local catalog state, as described.",
+       "range": "36-byte formatting buffer; initial :0 before metadata initialization.",
+       "special_values": "Initial :0; not an integer-only version.",
+       "required": true,
+       "default": "none; field registered on successful request",
+       "validation": "Output callback, no client input validation.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c6314",
+         "address": "0x100c63a8",
+         "notes": "Under impl mutex+0x128, snprintf capacity36 uses %s:%u with device text impl+0x1d7 and u32 impl+0x1f0; copies into context+0x10 at100c6718. Version callback100ca84c outputs that string, not XML SchemaVersion1 or an account counter. Event serializer100c7084 uses same two fields for ServiceListVersion. Constructor100c6a74 initializes counter0 and100c6a9c initializes device text empty, so initial token is :0 until metadata installed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10730524",
+         "address": "0x10730608",
+         "notes": "100c6770/100c67d0/100c67f4 register AvailableServiceDescriptorList, AvailableServiceTypeList, AvailableServiceListVersion in that order using10560608(type9 callback-backed string).100c6824 calls request+0x10: bound10730714 tailcalls10730524, which iterates registered outputs through10563bc0; type9 path1056405c invokes serializer callback synchronously at10564074 before returning. Descriptor callback first builds CSV for next callback100ca7f4; final callback100ca84c emits snapshot version. Socket sink10f11cec+8=10739f0c streams through4096-byte chunks. After send returns100c6834 closes fd,100c6840 flushes sink1073a044 and frees buffers/unlocks. This is synchronous streaming serialization, not a background action or later-use stack callback."
+        }
+       ],
+       "notes": null,
+       "meaning": "Snapshot of catalog last-update device text and32-bit version, joined by a colon. Same value source as evented ServiceListVersion, but a different output field name."
+      }
+     },
+     "validation": {
+      "description": "No inputs. Fresh SOAP TRequest has zero registered inputs, so validation succeeds. Defensive nonzero validator result returns silently without emitting402; there is no normal missing-argument fault.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073a424",
+        "address": "0x1073a4b0",
+        "notes": "Wrapper prepares no-input request, validator+8 at1073a464, nonzero returns silently1073a470 (NO402 emitter). Fresh SOAP request construction10696404->107310c8 zeroes input count1073120c, so validator succeeds. Concrete service binding is at service level: service+8=&impl secondary10e76900; slot+8=100c6948 adjusts-4 then100c6314. No unbound runtime implementation remains."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Bound MusicServices implementation and writable SOAP response. Reads locally installed catalog; no network/account/login requirement for normal client version84.1.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073a424",
+        "address": "0x1073a4b0",
+        "notes": "Wrapper prepares no-input request, validator+8 at1073a464, nonzero returns silently1073a470 (NO402 emitter). Fresh SOAP request construction10696404->107310c8 zeroes input count1073120c, so validator succeeds. Concrete service binding is at service level: service+8=&impl secondary10e76900; slot+8=100c6948 adjusts-4 then100c6314. No unbound runtime implementation remains."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c6314",
+        "address": "0x100c6548",
+        "notes": "100c5fd0(0,0) calls100c5d3c to construct musicservices.xml, then open64 read-only100c6018. Path builder100c5e6c->1068ab6c joins relative filename to runtime data-directory string at110a950c+0x18/+0x1c;1068aa74 sets that base. It is not read from SCPD or generated from installed accounts, and this getter performs no catalog HTTP fetch. Missing fd is retained as negative; no SOAP fault emitted."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c6314",
+        "address": "0x100c64e0",
+        "notes": "Two request+0x40 version queries can select old-client compatibility. Query failure leaves filtering disabled. If reported major<29, or major29 minor<1, or29.1 build<=0x153f5, snapshots accounts101b688c;100cb5e8 then includes Id254 or IDs<256 matching accountType>>8, excludes IDs>=256 and unmatched services. For major<46, or46 minor<2, or46.2 build<=0xdb23, copies auxiliary list via1011a5d0 (impl+0x13ad0). Normal per-SOAP TRequest vtable10f10f20+0x40=10730268 instead reports version84.1 build0, so BOTH compatibility paths are bypassed on that proven dispatch. The fixed low5-bit operation10730274 masks caller flags, not a divide. No universal installed-account-only membership restriction applies to fresh ordinary SOAP calls."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730524",
+        "address": "0x10730608",
+        "notes": "100c6770/100c67d0/100c67f4 register AvailableServiceDescriptorList, AvailableServiceTypeList, AvailableServiceListVersion in that order using10560608(type9 callback-backed string).100c6824 calls request+0x10: bound10730714 tailcalls10730524, which iterates registered outputs through10563bc0; type9 path1056405c invokes serializer callback synchronously at10564074 before returning. Descriptor callback first builds CSV for next callback100ca7f4; final callback100ca84c emits snapshot version. Socket sink10f11cec+8=10739f0c streams through4096-byte chunks. After send returns100c6834 closes fd,100c6840 flushes sink1073a044 and frees buffers/unlocks. This is synchronous streaming serialization, not a background action or later-use stack callback."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Catalog file under configured runtime data directory; impl mutex+0x128 guards device text/counter snapshot. Optional compatibility data depends on reported caller version, but ordinary SOAP TRequest disables both old-client paths.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c6314",
+        "address": "0x100c6548",
+        "notes": "100c5fd0(0,0) calls100c5d3c to construct musicservices.xml, then open64 read-only100c6018. Path builder100c5e6c->1068ab6c joins relative filename to runtime data-directory string at110a950c+0x18/+0x1c;1068aa74 sets that base. It is not read from SCPD or generated from installed accounts, and this getter performs no catalog HTTP fetch. Missing fd is retained as negative; no SOAP fault emitted."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c6314",
+        "address": "0x100c64e0",
+        "notes": "Two request+0x40 version queries can select old-client compatibility. Query failure leaves filtering disabled. If reported major<29, or major29 minor<1, or29.1 build<=0x153f5, snapshots accounts101b688c;100cb5e8 then includes Id254 or IDs<256 matching accountType>>8, excludes IDs>=256 and unmatched services. For major<46, or46 minor<2, or46.2 build<=0xdb23, copies auxiliary list via1011a5d0 (impl+0x13ad0). Normal per-SOAP TRequest vtable10f10f20+0x40=10730268 instead reports version84.1 build0, so BOTH compatibility paths are bypassed on that proven dispatch. The fixed low5-bit operation10730274 masks caller flags, not a divide. No universal installed-account-only membership restriction applies to fresh ordinary SOAP calls."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c6314",
+        "address": "0x100c63a8",
+        "notes": "Under impl mutex+0x128, snprintf capacity36 uses %s:%u with device text impl+0x1d7 and u32 impl+0x1f0; copies into context+0x10 at100c6718. Version callback100ca84c outputs that string, not XML SchemaVersion1 or an account counter. Event serializer100c7084 uses same two fields for ServiceListVersion. Constructor100c6a74 initializes counter0 and100c6a9c initializes device text empty, so initial token is :0 until metadata installed."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Opens catalog read-only and writes streamed SOAP response; allocates/frees response and optional compatibility buffers. No HTTP fetch, catalog/version change or direct event.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c6314",
+         "address": "0x100c6548",
+         "notes": "100c5fd0(0,0) calls100c5d3c to construct musicservices.xml, then open64 read-only100c6018. Path builder100c5e6c->1068ab6c joins relative filename to runtime data-directory string at110a950c+0x18/+0x1c;1068aa74 sets that base. It is not read from SCPD or generated from installed accounts, and this getter performs no catalog HTTP fetch. Missing fd is retained as negative; no SOAP fault emitted."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c6314",
+         "address": "0x100c64e0",
+         "notes": "Two request+0x40 version queries can select old-client compatibility. Query failure leaves filtering disabled. If reported major<29, or major29 minor<1, or29.1 build<=0x153f5, snapshots accounts101b688c;100cb5e8 then includes Id254 or IDs<256 matching accountType>>8, excludes IDs>=256 and unmatched services. For major<46, or46 minor<2, or46.2 build<=0xdb23, copies auxiliary list via1011a5d0 (impl+0x13ad0). Normal per-SOAP TRequest vtable10f10f20+0x40=10730268 instead reports version84.1 build0, so BOTH compatibility paths are bypassed on that proven dispatch. The fixed low5-bit operation10730274 masks caller flags, not a divide. No universal installed-account-only membership restriction applies to fresh ordinary SOAP calls."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10730524",
+         "address": "0x10730608",
+         "notes": "100c6770/100c67d0/100c67f4 register AvailableServiceDescriptorList, AvailableServiceTypeList, AvailableServiceListVersion in that order using10560608(type9 callback-backed string).100c6824 calls request+0x10: bound10730714 tailcalls10730524, which iterates registered outputs through10563bc0; type9 path1056405c invokes serializer callback synchronously at10564074 before returning. Descriptor callback first builds CSV for next callback100ca7f4; final callback100ca84c emits snapshot version. Socket sink10f11cec+8=10739f0c streams through4096-byte chunks. After send returns100c6834 closes fd,100c6840 flushes sink1073a044 and frees buffers/unlocks. This is synchronous streaming serialization, not a background action or later-use stack callback."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c6314",
+         "address": "0x100c6834",
+         "notes": "Read-only catalog fd and response buffers; optional old-client account/auxiliary snapshots. No catalog replacement, version increment, account mutation, scheduler submission, dirty-bit store or notifier call. File/parser/output failure is not mapped to a new SOAP error in this implementation; response may be empty/partial instead. No direct ServiceListVersion GENA event is emitted by the getter."
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct ServiceListVersion or GENA event. Reading and serializing the catalog does not set its dirty bit or schedule a refresh.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073a424",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x100c6314",
+        "address": "0x100c6834",
+        "notes": "Read-only catalog fd and response buffers; optional old-client account/auxiliary snapshots. No catalog replacement, version increment, account mutation, scheduler submission, dirty-bit store or notifier call. File/parser/output failure is not mapped to a new SOAP error in this implementation; response may be empty/partial instead. No direct ServiceListVersion GENA event is emitted by the getter."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c], *(r30+8) v[+0x8]",
+      "description": "No catalog/account/version transition. Opens file, creates synchronous serializer callbacks, sends three output fields in order, closes file/frees temporary buffers and unlocks.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073a424",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x3c]', '*(r30+8) v[+0x8]']"
+        "function": "0x100c6314",
+        "address": "0x100c6548",
+        "notes": "100c5fd0(0,0) calls100c5d3c to construct musicservices.xml, then open64 read-only100c6018. Path builder100c5e6c->1068ab6c joins relative filename to runtime data-directory string at110a950c+0x18/+0x1c;1068aa74 sets that base. It is not read from SCPD or generated from installed accounts, and this getter performs no catalog HTTP fetch. Missing fd is retained as negative; no SOAP fault emitted."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730524",
+        "address": "0x10730608",
+        "notes": "100c6770/100c67d0/100c67f4 register AvailableServiceDescriptorList, AvailableServiceTypeList, AvailableServiceListVersion in that order using10560608(type9 callback-backed string).100c6824 calls request+0x10: bound10730714 tailcalls10730524, which iterates registered outputs through10563bc0; type9 path1056405c invokes serializer callback synchronously at10564074 before returning. Descriptor callback first builds CSV for next callback100ca7f4; final callback100ca84c emits snapshot version. Socket sink10f11cec+8=10739f0c streams through4096-byte chunks. After send returns100c6834 closes fd,100c6840 flushes sink1073a044 and frees buffers/unlocks. This is synchronous streaming serialization, not a background action or later-use stack callback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c6314",
+        "address": "0x100c6834",
+        "notes": "Read-only catalog fd and response buffers; optional old-client account/auxiliary snapshots. No catalog replacement, version increment, account mutation, scheduler submission, dirty-bit store or notifier call. File/parser/output failure is not mapped to a new SOAP error in this implementation; response may be empty/partial instead. No direct ServiceListVersion GENA event is emitted by the getter."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c], *(r30+8) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Streams DescriptorList first (which also builds CSV), then TypeList, then ListVersion; commits synchronously through request+0x10. No worker fault-code return is checked, no explicit SOAP fault call. Missing file gives empty descriptor/types; XML parse failure may produce partial data, not an automatic SOAP fault.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x1073a424",
-        "notes": "commit/fault slot usage: {'0x8': 1}"
+        "address": "0x1073a4b0",
+        "notes": "Wrapper prepares no-input request, validator+8 at1073a464, nonzero returns silently1073a470 (NO402 emitter). Fresh SOAP request construction10696404->107310c8 zeroes input count1073120c, so validator succeeds. Concrete service binding is at service level: service+8=&impl secondary10e76900; slot+8=100c6948 adjusts-4 then100c6314. No unbound runtime implementation remains."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100cc34c",
+        "address": "0x100cc414",
+        "notes": "Descriptor callback receives context=stack+0x3c. Context+4 optional old-client account snapshot,+8 optional old-client auxiliary list,+0xc file fd,+0x34 CSV buffer. Constructs1055397c serializer vtable10e767fc, installs XML output writer and CSV capacity2048. For fd>=0 calls105528ac/10c4009c SAX parser, ignores parser return, destroys10552790. Negative fd skips parser entirely, yielding empty descriptor/CSV outputs. Malformed file can yield partial serialized XML; no new SOAP fault. The2048 limit is CSV CAPACITY, not descriptor XML size."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730524",
+        "address": "0x10730608",
+        "notes": "100c6770/100c67d0/100c67f4 register AvailableServiceDescriptorList, AvailableServiceTypeList, AvailableServiceListVersion in that order using10560608(type9 callback-backed string).100c6824 calls request+0x10: bound10730714 tailcalls10730524, which iterates registered outputs through10563bc0; type9 path1056405c invokes serializer callback synchronously at10564074 before returning. Descriptor callback first builds CSV for next callback100ca7f4; final callback100ca84c emits snapshot version. Socket sink10f11cec+8=10739f0c streams through4096-byte chunks. After send returns100c6834 closes fd,100c6840 flushes sink1073a044 and frees buffers/unlocks. This is synchronous streaming serialization, not a background action or later-use stack callback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c6314",
+        "address": "0x100c6834",
+        "notes": "Read-only catalog fd and response buffers; optional old-client account/auxiliary snapshots. No catalog replacement, version increment, account mutation, scheduler submission, dirty-bit store or notifier call. File/parser/output failure is not mapped to a new SOAP error in this implementation; response may be empty/partial instead. No direct ServiceListVersion GENA event is emitted by the getter."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret; parse/req-layer",
-       "meaning": "impl->v[+0x8] rc surfaced | Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x1073a424"
-       ],
+       "meaning": "Not emitted on proven fresh no-input SOAP path; wrapper has no402 fault-emitter branch.",
+       "fault_sites": [],
        "conditions": [
         {
-         "description": "impl vfunc rc",
+         "description": "Legacy metadata only. Zero-input validator succeeds on per-call TRequest; a hypothetical nonzero result returns silently instead of sending402.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073a424",
-           "notes": "impl rc passthrough"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1073a424",
-           "notes": "parse vcalls then fault path"
+           "function": "0x1073a424",
+           "address": "0x1073a4b0",
+           "notes": "Wrapper prepares no-input request, validator+8 at1073a464, nonzero returns silently1073a470 (NO402 emitter). Fresh SOAP request construction10696404->107310c8 zeroes input count1073120c, so validator succeeds. Concrete service binding is at service level: service+8=&impl secondary10e76900; slot+8=100c6948 adjusts-4 then100c6314. No unbound runtime implementation remains."
           }
          ]
         }
@@ -97104,60 +97231,10 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073a424",
-         "notes": "impl rc passthrough site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
          "function": "0x1073a424",
-         "notes": "gate path returns silently"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1073a424",
-         "notes": "wrapper parse + fault path"
+         "address": "0x1073a4b0",
+         "notes": "Wrapper prepares no-input request, validator+8 at1073a464, nonzero returns silently1073a470 (NO402 emitter). Fresh SOAP request construction10696404->107310c8 zeroes input count1073120c, so validator succeeds. Concrete service binding is at service level: service+8=&impl secondary10e76900; slot+8=100c6948 adjusts-4 then100c6314. No unbound runtime implementation remains."
         }
-       ],
-       "unresolved": {
-        "proven": "impl->v[+0x8] rc surfaced",
-        "unknown": "none identified",
-        "knowledge": "; impl f_100c6948 -> real worker f_100c6314 (doc at impl+0x128)",
-        "return_path": "MusicServices msdZonePlayer rwlock worker (rwlR_msd/rwlW_msd) - MusicServices rc; AvailableServiceDescriptorList builder - MusicServices rc",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_100c6948": {
-          "lits": [
-           16,
-           20,
-           15056
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x100c6948",
-         "lits": [
-          16,
-          20,
-          15056
-         ],
-         "passthrough_exits": 1
-        }
-       },
-       "condition": "req->v[+0x08] gate nonzero -> early return without emit (no fault raised on gate path); observable faults are not produced by the impl chain in this build",
-       "source": "handler branch at 0x1073a468",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; parse/req-layer; sites: 0x1073a424).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -97168,30 +97245,76 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x1073a424",
-       "address": "0x1073a424",
-       "notes": "action wrapper handler"
+       "address": "0x1073a4b0",
+       "notes": "Wrapper prepares no-input request, validator+8 at1073a464, nonzero returns silently1073a470 (NO402 emitter). Fresh SOAP request construction10696404->107310c8 zeroes input count1073120c, so validator succeeds. Concrete service binding is at service level: service+8=&impl secondary10e76900; slot+8=100c6948 adjusts-4 then100c6314. No unbound runtime implementation remains."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11d28",
-       "notes": "action dispatch table entry"
+       "function": "0x100c6314",
+       "address": "0x100c6548",
+       "notes": "100c5fd0(0,0) calls100c5d3c to construct musicservices.xml, then open64 read-only100c6018. Path builder100c5e6c->1068ab6c joins relative filename to runtime data-directory string at110a950c+0x18/+0x1c;1068aa74 sets that base. It is not read from SCPD or generated from installed accounts, and this getter performs no catalog HTTP fetch. Missing fd is retained as negative; no SOAP fault emitted."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x100c6948",
-       "notes": "Handler f_1073a424: req->v[+0x3c] prep, req->v[+0x08] gate (nonzero -> silent early return). Then *(svc+8)->v[+0x08] = s"
+       "function": "0x100cc34c",
+       "address": "0x100cc414",
+       "notes": "Descriptor callback receives context=stack+0x3c. Context+4 optional old-client account snapshot,+8 optional old-client auxiliary list,+0xc file fd,+0x34 CSV buffer. Constructs1055397c serializer vtable10e767fc, installs XML output writer and CSV capacity2048. For fd>=0 calls105528ac/10c4009c SAX parser, ignores parser return, destroys10552790. Negative fd skips parser entirely, yielding empty descriptor/CSV outputs. Malformed file can yield partial serialized XML; no new SOAP fault. The2048 limit is CSV CAPACITY, not descriptor XML size."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100cac70",
+       "address": "0x100cac9c",
+       "notes": "vtable10e767fc+8 emits <Services SchemaVersion=\"1\"> (literal numeric1 at100caca4), +0x40=100cab50 closes </Services>. +0xc=100cb5e8 selects top-level services then100cb31c writes escaped Service attributes Id,Name,Version,Uri,SecureUri,ContainerType,Capabilities using105786a0/10578490. +0x14=100cbcc0 emits Policy Auth/PollInterval through100cbbc8. +0x18=100cac38 opens Presentation only for included service; +0x1c=100cbb7c emits Strings Version/Uri; +0x20=100cbb30 emits PresentationMap Version/Uri via100c747c; +0x24=100cac00 closes Presentation; +0x3c=100ca678 closes selected Service. Catalog LastUpdateDevice and Version attributes are not copied into this descriptor root. Built-in callback100cada0 adds CSV types, not BuiltInService XML elements."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100cb31c",
+       "address": "0x100cb3f8",
+       "notes": "On serialized regular Service, CSV adds decimal32-bit type=(Id<<8)|7, except Id254 omitted from CSV but still serialized in descriptor XML. Raw57c8402e-style SH8 MB0 ME23 at100cb3f8 is left-shift8; no right-shift. Built-in callback100cada0 includes raw decimal Type only when(Type&0x81)!=0x80. Uses %u for first and ,%u thereafter, in parser callback order, no trailing comma. Bounded2048-byte buffer; overflow preserves prior complete prefix/terminates at previous index, sets exhausted state and logs100cabcc, without SOAP fault."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c6314",
+       "address": "0x100c64e0",
+       "notes": "Two request+0x40 version queries can select old-client compatibility. Query failure leaves filtering disabled. If reported major<29, or major29 minor<1, or29.1 build<=0x153f5, snapshots accounts101b688c;100cb5e8 then includes Id254 or IDs<256 matching accountType>>8, excludes IDs>=256 and unmatched services. For major<46, or46 minor<2, or46.2 build<=0xdb23, copies auxiliary list via1011a5d0 (impl+0x13ad0). Normal per-SOAP TRequest vtable10f10f20+0x40=10730268 instead reports version84.1 build0, so BOTH compatibility paths are bypassed on that proven dispatch. The fixed low5-bit operation10730274 masks caller flags, not a divide. No universal installed-account-only membership restriction applies to fresh ordinary SOAP calls."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c6314",
+       "address": "0x100c63a8",
+       "notes": "Under impl mutex+0x128, snprintf capacity36 uses %s:%u with device text impl+0x1d7 and u32 impl+0x1f0; copies into context+0x10 at100c6718. Version callback100ca84c outputs that string, not XML SchemaVersion1 or an account counter. Event serializer100c7084 uses same two fields for ServiceListVersion. Constructor100c6a74 initializes counter0 and100c6a9c initializes device text empty, so initial token is :0 until metadata installed."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10730524",
+       "address": "0x10730608",
+       "notes": "100c6770/100c67d0/100c67f4 register AvailableServiceDescriptorList, AvailableServiceTypeList, AvailableServiceListVersion in that order using10560608(type9 callback-backed string).100c6824 calls request+0x10: bound10730714 tailcalls10730524, which iterates registered outputs through10563bc0; type9 path1056405c invokes serializer callback synchronously at10564074 before returning. Descriptor callback first builds CSV for next callback100ca7f4; final callback100ca84c emits snapshot version. Socket sink10f11cec+8=10739f0c streams through4096-byte chunks. After send returns100c6834 closes fd,100c6840 flushes sink1073a044 and frees buffers/unlocks. This is synchronous streaming serialization, not a background action or later-use stack callback."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c6314",
+       "address": "0x100c6834",
+       "notes": "Read-only catalog fd and response buffers; optional old-client account/auxiliary snapshots. No catalog replacement, version increment, account mutation, scheduler submission, dirty-bit store or notifier call. File/parser/output failure is not mapped to a new SOAP error in this implementation; response may be empty/partial instead. No direct ServiceListVersion GENA event is emitted by the getter."
       }
      ],
-     "notes": null,
-     "implementation_notes": "Handler f_1073a424: req->v[+0x3c] prep, req->v[+0x08] gate (nonzero -> silent early return). Then *(svc+8)->v[+0x08] = secondary-base thunk f_100c6948 into f_100c6314: the service-list serializer on the MS impl object (vtable 0x10e768a4, obj member ctx+0x292b8).",
-     "todo": [
-      "Established: virtual dispatch to handler 0x1073a424; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "No network/device experiment. Catalog membership and endpoint strings are runtime data, not a hardcoded provider enumeration.",
+     "implementation_notes": "Local-file SAX rewrite and synchronous callback output order traced; old-client branches are not assumed reachable on ordinary SOAP. XML SchemaVersion1 is distinct from AvailableServiceListVersion. CSV cap2048 is not an XML cap."
     },
     "UpdateAvailableServices": {
      "description": "Triggers a refresh of the available music-services list via impl->v[+0x8] on the svc+4 member.",
