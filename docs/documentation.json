@@ -221844,13 +221844,79 @@
      "function": "0x102d47c0",
      "address": "0x102d4844",
      "notes": "Action switch and relative jump table; END/SUSPEND/PAUSE build distinct internal completion records."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1041616c",
+     "address": "0x1041641c",
+     "notes": "Producer log names record fields 'vliType %s cookie %d fromSender %d'; record built at sp+0x20 as {action,vliType,cookie,fromSender} and posted via f_1040ad64."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102d47c0",
+     "address": "0x102d48c0",
+     "notes": "PAUSE case calls f_102d0de4 then emits {cookie,code 5,result} via f_102f44dc(this+0x394)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102d47c0",
+     "address": "0x102d49e0",
+     "notes": "END case calls f_102b2118(target,cookie,fromSender) then emits {cookie,result} via f_102f3e18(this+0x378) (VliSessionEndedEvt queue)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102d47c0",
+     "address": "0x102d491c",
+     "notes": "SUSPEND case sets target+0xa214 to 1, calls f_1067c6ec(target+0x10), emits {cookie,code 2,1}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102d2e54",
+     "address": "0x102d2e54",
+     "notes": "STOP target: avt_impl vtable 0x10eaf2ec slot +0x28; journals 'stop' then calls f_102d2bec(this,1)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102b2118",
+     "address": "0x102b21c8",
+     "notes": "END dispatches on source mode this+0x4654: 1 -> cookie compare f_10688090(this+0x5dc), 0 -> f_102b1cc8 suspend path, else 'deactivating local VLI; success (%d)'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10688090",
+     "address": "0x106880d0",
+     "notes": "Cookie compare: returns 1 when the stored session word (f_10687e54 output) equals the event cookie."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102b1cc8",
+     "address": "0x102b1d0c",
+     "notes": "Suspend path: f_10395838(*(this+0x57c), arg3), sets +0xa214, signals f_1067c6ec(+0x10); the fromSender arg2 is not consumed."
     }
    ],
-   "todo": [
-    "Residual: trace construction and downstream consumers of the AvtHaltActionEvent fields at +8 and +0x10, and the delegated STOP/RESTORE/END implementations. The action enum and dispatch are now bound to internal events; no per-verb network body or source-specific wire grammar has been established."
-   ],
    "resolved_findings": [
-    "Correction: AHA is used as the AvtHaltActionEvent action enum. f_106a3420 accepts unsigned values 0 through 4 and indexes 0x10f0403c; larger values return AHA_NOT_VALID. The table maps 0=STOP, 1=RESTORE, 2=END_VLI_SESSION, 3=SUSPEND_VLI_SESSION, 4=PAUSE_VLI_SESSION. AHA_NOT_VALID is a fallback string, not an entry preceding STOP in the enum. In f_102d47c0, the event wrapper points at a record with target at +0, action at +4, an additional word at +8 and a byte at +0x10. Its five-way jump table at 0x10eaea5c contains offsets relative to the table base, decoded using lwzx (raw XO 23) at 0x102d485c. Targets are 0x102d49b8,0x102d49d4,0x102d49e0,0x102d491c,0x102d486c respectively. STOP calls target virtual +0x28 with argument zero; RESTORE calls f_102d46e0; END calls f_102b2118(target,word+8,byte+0x10) and emits a word/result-byte event via f_102f3e18. SUSPEND sets target+0xa214 to 1, calls f_1067c6ec(target+0x10), then emits completion via f_102f44dc with {word+8,2,true}. PAUSE calls f_102d0de4(target) and emits {word+8,5,result-byte} through the same completion helper. The log names VliSessionProcessingCompleteEvent. These are internal event payloads; the earlier description of distinct wire verbs, JWT binding, and a 74-byte session frame was not established by these call paths and is withdrawn."
+    "Correction: AHA is used as the AvtHaltActionEvent action enum. f_106a3420 accepts unsigned values 0 through 4 and indexes 0x10f0403c; larger values return AHA_NOT_VALID. The table maps 0=STOP, 1=RESTORE, 2=END_VLI_SESSION, 3=SUSPEND_VLI_SESSION, 4=PAUSE_VLI_SESSION. AHA_NOT_VALID is a fallback string, not an entry preceding STOP in the enum. In f_102d47c0, the event wrapper points at a record with target at +0, action at +4, an additional word at +8 and a byte at +0x10. Its five-way jump table at 0x10eaea5c contains offsets relative to the table base, decoded using lwzx (raw XO 23) at 0x102d485c. Targets are 0x102d49b8,0x102d49d4,0x102d49e0,0x102d491c,0x102d486c respectively. STOP calls target virtual +0x28 with argument zero; RESTORE calls f_102d46e0; END calls f_102b2118(target,word+8,byte+0x10) and emits a word/result-byte event via f_102f3e18. SUSPEND sets target+0xa214 to 1, calls f_1067c6ec(target+0x10), then emits completion via f_102f44dc with {word+8,2,true}. PAUSE calls f_102d0de4(target) and emits {word+8,5,result-byte} through the same completion helper. The log names VliSessionProcessingCompleteEvent. These are internal event payloads; the earlier description of distinct wire verbs, JWT binding, and a 74-byte session frame was not established by these call paths and is withdrawn.",
+    "Resolved: the AvtHaltActionEvent record is {+0 target avt_impl object, +4 action enum, +8 u32 cookie, +0x10 u8 fromSender}; the names come from the producer log 'firing AvtHaltActionEvent %s vliType %s cookie %d fromSender %d' at 0x1041641c and '%s:%d vliType: %s cookie: %d pbstate: %d' at 0x10416240 in the mpvlictrl onPlaybackStateChanged path f_1041616c, which posts {action, vliType, cookie, fromSender} events through f_1040ad64 to the object's +0x20 queue. The cookie is echoed verbatim into completion events; the only field consumed by exactly one verb is fromSender, which END forwards but the reached implementation drops.",
+    "Resolved: STOP (action 0) calls the avt_impl vtable 0x10eaf2ec slot +0x28 = f_102d2e54 with a zero argument. That method logs a 'stop' journal entry through f_102b8c44 (domain 'upnp', object +0xa21c), then calls f_102d2bec(this,1), which clears this+0x7778, runs session helpers f_102ae2d0/f_102931f0, and for source mode 2 invokes the transport helper f_10256a84(*(this+0x580),1,0,0,*(this+0xaa78)).",
+    "Resolved: RESTORE (action 1) runs f_102d46e0: it builds an empty string object at this+0x458 (fallback literal 0x10ea6a2c) and calls f_102d086c(this,&str); when that returns nonzero it calls f_102ceb40(this,&str,&zeroedRecord), the restore-defaults path shared with several other avt_impl operations.",
+    "Resolved: END (action 2) runs f_102b2118(this, cookie, fromSender). It first wraps *(this+0x3dc) into a string and posts the +0x458 functor through vtable f_100caad8. Then it dispatches on the source-mode word at this+0x4654: mode 1 calls f_10688090(this+0x5dc, cookie), which compares the stored session cookie (f_10687e54 output word equals the event cookie); on match it falls into f_102b1cc8(this, fromSender, 0), otherwise it deactivates the local VLI. Mode 0 goes straight to f_102b1cc8, which (when *(this+0x5a0) predicate holds) calls f_10395838(*(this+0x57c), 0), sets the suspend flag at this+0xa214 and signals through f_1067c6ec(this+0x10); the fromSender argument is plumbed but not consumed by the reached code. Any other mode logs 'endVLISession(): deactivating local VLI; success (%d)' through the same +0x458 functor. END then emits a VliSessionEndedEvt {cookie u32, result byte} via f_102f3e18(this+0x378).",
+    "Resolved: SUSPEND (action 3) sets this+0xa214 = 1, calls f_1067c6ec(this+0x10), then emits a VliSessionEndedProcessingCompleteEvt {cookie u32, code 2 u32, success u8 = 1} via f_102f44dc(this+0x394). PAUSE (action 4) runs f_102d0de4: it posts the +0x3dc-string functor, and for source mode 1 (when f_10688070(this+0x5dc) is nonzero) journals 'pause' through f_102b8c44 and calls f_102d0ac8(this,1,1,-1,-1), returning 1 when that call returns 0; otherwise it returns (mode==0). The PAUSE completion is {cookie u32, code 5 u32, success u8} through the same f_102f44dc. The completion record's second word is a VliSessionEndedProcessingCompleteEvt action code (2 and 5 observed), not the AHA enum."
    ]
   },
   "drm_content_keys": {
