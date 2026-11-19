@@ -51326,7 +51326,7 @@
      "notes": null
     },
     "ReorderTracksInQueue": {
-     "description": "Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: InstanceID!=0 -> 718, then three hard zero-checks before any queue work (StartingIndex==0, NumberOfTracks==0 and InsertBefore==0 each return 402 (all positions are 1-based). Passing those, it tail-calls the shared queue-operation worker family entry f_102accf0 with an operation selector) the same machinery family used by RemoveTrackRangeFromQueue (queue-id selector match, UpdateID concurrency, impl+0x458 lock).",
+     "description": "Moves a contiguous block before a position in the original queue through live derived AVTransport vtable 0x10edfbb8 slot +0x6c, f_102acf60 -> f_102accf0. InstanceID must be 0; start/count/InsertBefore must be nonzero. Optional UpdateID defaults 0 (skip comparison); nonzero must match or 1028. Mode 1/2 is required even for a no-op. Normal InsertBefore within the moved block or immediately after it is a no-op, with no queue-bound validation or version bump. Other moves become kind-13 left rotations and wait for completion; ordinary valid insertion N+1 appends. Successful mutation keeps track count and advances named queue revision once. No revision output is returned. Arithmetic is uint32 and worker positions/span/rotation are uint16.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8f88",
@@ -51362,7 +51362,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Only parsed value 0 is accepted; nonzero returns 718 before zero-position checks. Decimal queue ID 0 must resolve in the session.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -51372,14 +51372,14 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUintArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "none - dimensionless count/index",
+       "format": "Decimal conversion by strtoul(base 10), no end-pointer/errno check; 24-byte buffer truncates long input",
+       "unit": "none - queue position or selector",
        "accepted_values": "0",
-       "range": "0 only; nonzero InstanceID rejected by impl +0x6c with 718",
+       "range": "0 only",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Only parsed value 0 is accepted; nonzero returns 718 before zero-position checks. Decimal queue ID 0 must resolve in the session.",
        "evidence": [
         {
          "type": "firmware",
@@ -51401,19 +51401,66 @@
          "build": "86.10-80260",
          "function": "0x102acf60",
          "notes": "impl loads rc 0x2ce (718) on the InstanceID!=0 branch; convention verified across AVT impls"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f8f88",
+         "address": "0x102f9074",
+         "callsite": "0x102f90b8",
+         "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "callsite": "0x10560b50",
+         "notes": "Descriptor type 4 jump-table entry 0x10eebbec targets 0x10560b40: strtoul(buffer,NULL,10), stored as a word at destination 0x10560b54, with no end-pointer or errno check. f_105614e0 gives a 24-byte buffer; f_10560708 copies at most capacity and f_10560a58 terminates at length or capacity-1. Therefore long text is truncated and malformed numeric text is not rejected lexically here: missing digits convert to 0, trailing nonnumeric suffix is not checked. Request presence validation is distinct from implementation numeric checks."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acf60",
+         "address": "0x102acf7c",
+         "callsite": "0x102acfa0",
+         "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10511f34",
+         "address": "0x10edfc24",
+         "callsite": "0x105123c0",
+         "notes": "Live derived AVTransport table 0x10edfbb8 slot +0x6c (word 0x10edfc24) contains f_102acf60. Derived constructor called by factory at 0x103fb5d8 calls base at 0x1051218c, then installs derived table at 0x105123c0. Wrapper f_102f8f88 dispatches slot +0x6c at 0x102f90b8."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102662d0",
+         "callsite": "0x1026631c",
+         "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e794",
+         "address": "0x1014e7c4",
+         "callsite": "0x1014e98c",
+         "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +108 (site 0x102f90b8) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +108 (obj r5-in, call site 0x102f90b8); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "StartingIndex": {
-       "description": "1-based index of the first track to move - 0 faults 402.",
+       "description": "1-based first track of the moved block for normal moves. Zero returns 402. Normal submitted move must fit the queue or worker failure returns 800, not 402. The common no-op branch does not validate bounds.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -51423,14 +51470,14 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUintArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "1..queue length - 0 faults 402",
-       "range": "u32 track index validated against queue length by the reorder worker",
+       "format": "Decimal conversion by strtoul(base 10), no end-pointer/errno check; 24-byte buffer truncates long input",
+       "unit": "none - queue position or selector",
+       "accepted_values": "Normally 1..N; positive out-of-bounds values can take the no-op path",
+       "range": "uint32 input, normalized span start narrowed to uint16",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "1-based index of the first track to move - 0 faults 402.",
+       "validation": "1-based first track of the moved block for normal moves. Zero returns 402. Normal submitted move must fit the queue or worker failure returns 800, not 402. The common no-op branch does not validate bounds.",
        "evidence": [
         {
          "type": "firmware",
@@ -51452,19 +51499,66 @@
          "build": "86.10-80260",
          "function": "0x102acf60",
          "notes": "worker bounds-check"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f8f88",
+         "address": "0x102f9074",
+         "callsite": "0x102f90b8",
+         "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "callsite": "0x10560b50",
+         "notes": "Descriptor type 4 jump-table entry 0x10eebbec targets 0x10560b40: strtoul(buffer,NULL,10), stored as a word at destination 0x10560b54, with no end-pointer or errno check. f_105614e0 gives a 24-byte buffer; f_10560708 copies at most capacity and f_10560a58 terminates at length or capacity-1. Therefore long text is truncated and malformed numeric text is not rejected lexically here: missing digits convert to 0, trailing nonnumeric suffix is not checked. Request presence validation is distinct from implementation numeric checks."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acf60",
+         "address": "0x102acf7c",
+         "callsite": "0x102acfa0",
+         "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102accf0",
+         "address": "0x102ace58",
+         "callsite": "0x102acebc",
+         "notes": "Register mapping at head: r24=start s,r23=count n,r25=InsertBefore d,r27=UpdateID. After version/mode gates: when s>d, request span starts at d, length uint32(s-d+n), left rotation s-d. Otherwise d<=uint32(s+n) branches directly to success at 0x102acf28 (BO5/BI29 means not-GT), so d in [s,s+n] is a no-op for ordinary arithmetic. If d>s+n, span starts s, length d-s, left rotation n. Computed span length 0 also skips submission at 0x102ace6c. Adds/subtracts are 32-bit, no checked overflow; start/span/rotation are then narrowed to uint16 before f_1032e3c8. Ordinary insertion coordinates refer to the original queue; d=N+1 appends, not a post-removal index."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102662d0",
+         "callsite": "0x1026631c",
+         "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e794",
+         "address": "0x1014e7c4",
+         "callsite": "0x1014e98c",
+         "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `StartingIndex` is parsed then forwarded verbatim to r5-in vfunc +108 (site 0x102f90b8) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `StartingIndex` = verbatim forward to impl vfunc +108 (obj r5-in, call site 0x102f90b8); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "NumberOfTracks": {
-       "description": "Size of the block to move - 0 faults 402.",
+       "description": "Positive block length, not a 1-based index. Zero returns 402. Normal block must fit within queue membership for a submitted rotation. Count contributes to uint32 span arithmetic, with no checked overflow.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -51474,14 +51568,14 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUintArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "1..queue length - 0 faults 402",
-       "range": "u32 count; worker validates StartingIndex+NumberOfTracks <= queue length",
+       "format": "Decimal conversion by strtoul(base 10), no end-pointer/errno check; 24-byte buffer truncates long input",
+       "unit": "none - track count",
+       "accepted_values": "Normally 1..N-StartingIndex+1; positive count required even for no-op",
+       "range": "uint32 input; normalized span/rotation narrowed to uint16",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Size of the block to move - 0 faults 402.",
+       "validation": "Positive block length, not a 1-based index. Zero returns 402. Normal block must fit within queue membership for a submitted rotation. Count contributes to uint32 span arithmetic, with no checked overflow.",
        "evidence": [
         {
          "type": "firmware",
@@ -51503,19 +51597,66 @@
          "build": "86.10-80260",
          "function": "0x102acf60",
          "notes": "worker bounds-check"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f8f88",
+         "address": "0x102f9074",
+         "callsite": "0x102f90b8",
+         "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "callsite": "0x10560b50",
+         "notes": "Descriptor type 4 jump-table entry 0x10eebbec targets 0x10560b40: strtoul(buffer,NULL,10), stored as a word at destination 0x10560b54, with no end-pointer or errno check. f_105614e0 gives a 24-byte buffer; f_10560708 copies at most capacity and f_10560a58 terminates at length or capacity-1. Therefore long text is truncated and malformed numeric text is not rejected lexically here: missing digits convert to 0, trailing nonnumeric suffix is not checked. Request presence validation is distinct from implementation numeric checks."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acf60",
+         "address": "0x102acf7c",
+         "callsite": "0x102acfa0",
+         "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102accf0",
+         "address": "0x102ace58",
+         "callsite": "0x102acebc",
+         "notes": "Register mapping at head: r24=start s,r23=count n,r25=InsertBefore d,r27=UpdateID. After version/mode gates: when s>d, request span starts at d, length uint32(s-d+n), left rotation s-d. Otherwise d<=uint32(s+n) branches directly to success at 0x102acf28 (BO5/BI29 means not-GT), so d in [s,s+n] is a no-op for ordinary arithmetic. If d>s+n, span starts s, length d-s, left rotation n. Computed span length 0 also skips submission at 0x102ace6c. Adds/subtracts are 32-bit, no checked overflow; start/span/rotation are then narrowed to uint16 before f_1032e3c8. Ordinary insertion coordinates refer to the original queue; d=N+1 appends, not a post-removal index."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102662d0",
+         "callsite": "0x1026631c",
+         "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e794",
+         "address": "0x1014e7c4",
+         "callsite": "0x1014e98c",
+         "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `NumberOfTracks` is parsed then forwarded verbatim to r5-in vfunc +108 (site 0x102f90b8) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `NumberOfTracks` = verbatim forward to impl vfunc +108 (obj r5-in, call site 0x102f90b8); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "InsertBefore": {
-       "description": "1-based insertion point for the moved block - 0 faults 402.",
+       "description": "1-based position in the original queue, not after removal. N+1 appends for normal valid moves. A position within [StartingIndex,StartingIndex+NumberOfTracks] is an ordinary no-op. Zero returns 402; invalid submitted rotation can return 800.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -51524,15 +51665,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "1..queue length - 0 faults 402",
-       "range": "length-bounded by parse-helper buffer cap",
+       "semantic_type": "SonosUintArg",
+       "format": "Decimal conversion by strtoul(base 10), no end-pointer/errno check; 24-byte buffer truncates long input",
+       "unit": "none - queue position or selector",
+       "accepted_values": "Normally 1..N+1; no-op branch does not require bounds validation",
+       "range": "uint32 original-queue position; normalized worker fields uint16",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "1-based insertion point for the moved block - 0 faults 402.",
+       "validation": "1-based position in the original queue, not after removal. N+1 appends for normal valid moves. A position within [StartingIndex,StartingIndex+NumberOfTracks] is an ordinary no-op. Zero returns 402; invalid submitted rotation can return 800.",
        "evidence": [
         {
          "type": "firmware",
@@ -51547,12 +51688,66 @@
          "build": "86.10-80260",
          "address": "0x10eb3290",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f8f88",
+         "address": "0x102f9074",
+         "callsite": "0x102f90b8",
+         "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "callsite": "0x10560b50",
+         "notes": "Descriptor type 4 jump-table entry 0x10eebbec targets 0x10560b40: strtoul(buffer,NULL,10), stored as a word at destination 0x10560b54, with no end-pointer or errno check. f_105614e0 gives a 24-byte buffer; f_10560708 copies at most capacity and f_10560a58 terminates at length or capacity-1. Therefore long text is truncated and malformed numeric text is not rejected lexically here: missing digits convert to 0, trailing nonnumeric suffix is not checked. Request presence validation is distinct from implementation numeric checks."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acf60",
+         "address": "0x102acf7c",
+         "callsite": "0x102acfa0",
+         "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102accf0",
+         "address": "0x102ace58",
+         "callsite": "0x102acebc",
+         "notes": "Register mapping at head: r24=start s,r23=count n,r25=InsertBefore d,r27=UpdateID. After version/mode gates: when s>d, request span starts at d, length uint32(s-d+n), left rotation s-d. Otherwise d<=uint32(s+n) branches directly to success at 0x102acf28 (BO5/BI29 means not-GT), so d in [s,s+n] is a no-op for ordinary arithmetic. If d>s+n, span starts s, length d-s, left rotation n. Computed span length 0 also skips submission at 0x102ace6c. Adds/subtracts are 32-bit, no checked overflow; start/span/rotation are then narrowed to uint16 before f_1032e3c8. Ordinary insertion coordinates refer to the original queue; d=N+1 appends, not a post-removal index."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102662d0",
+         "callsite": "0x1026631c",
+         "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e794",
+         "address": "0x1014e7c4",
+         "callsite": "0x1014e98c",
+         "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
         }
        ],
        "notes": null
       },
       "UpdateID": {
-       "description": "Optimistic-concurrency token handled by the shared worker (nonzero must match current queue update-id, as in RemoveTrackRangeFromQueue).",
+       "description": "Optional version token. Missing defaults 0; 0 skips comparison, nonzero must equal selected queue revision +0x70 or 1028 before mode/no-op handling.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -51561,15 +51756,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "0 (skip) or current queue update-id",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none observed in this build",
-       "required": true,
-       "default": "none - required argument",
-       "validation": "Optimistic-concurrency token handled by the shared worker (nonzero must match current queue update-id, as in RemoveTrackRangeFromQueue).",
+       "semantic_type": "SonosUintArg",
+       "format": "Decimal conversion by strtoul(base 10), no end-pointer/errno check; 24-byte buffer truncates long input",
+       "unit": "none - queue revision",
+       "accepted_values": "0, omitted, or current queue revision",
+       "range": "0..4294967295 parsed word",
+       "special_values": "0 skips version comparison",
+       "required": false,
+       "default": "0 when omitted",
+       "validation": "Optional version token. Missing defaults 0; 0 skips comparison, nonzero must equal selected queue revision +0x70 or 1028 before mode/no-op handling.",
        "evidence": [
         {
          "type": "firmware",
@@ -51584,6 +51779,42 @@
          "build": "86.10-80260",
          "address": "0x10f14438",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f8f88",
+         "address": "0x102f9074",
+         "callsite": "0x102f90b8",
+         "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "callsite": "0x10560b50",
+         "notes": "Descriptor type 4 jump-table entry 0x10eebbec targets 0x10560b40: strtoul(buffer,NULL,10), stored as a word at destination 0x10560b54, with no end-pointer or errno check. f_105614e0 gives a 24-byte buffer; f_10560708 copies at most capacity and f_10560a58 terminates at length or capacity-1. Therefore long text is truncated and malformed numeric text is not rejected lexically here: missing digits convert to 0, trailing nonnumeric suffix is not checked. Request presence validation is distinct from implementation numeric checks."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acf60",
+         "address": "0x102acf7c",
+         "callsite": "0x102acfa0",
+         "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102accf0",
+         "address": "0x102ace58",
+         "callsite": "0x102acebc",
+         "notes": "Register mapping at head: r24=start s,r23=count n,r25=InsertBefore d,r27=UpdateID. After version/mode gates: when s>d, request span starts at d, length uint32(s-d+n), left rotation s-d. Otherwise d<=uint32(s+n) branches directly to success at 0x102acf28 (BO5/BI29 means not-GT), so d in [s,s+n] is a no-op for ordinary arithmetic. If d>s+n, span starts s, length d-s, left rotation n. Computed span length 0 also skips submission at 0x102ace6c. Adds/subtracts are 32-bit, no checked overflow; start/span/rotation are then narrowed to uint16 before f_1032e3c8. Ordinary insertion coordinates refer to the original queue; d=N+1 appends, not a post-removal index."
         }
        ],
        "notes": null
@@ -51591,113 +51822,526 @@
      },
      "outputs": {},
      "validation": {
-      "description": "See inputs/impl notes",
+      "description": "First four arguments are required by request presence validation; UpdateID is optional with initial value 0. Numeric conversion uses unsigned strtoul without lexical-tail validation. Implementation checks nonzero instance, zero start/insert/count, queue lookup, optional version, then mode. Only submitted rotations reach queue-bound/internal storage checks; positive no-op inputs can succeed on an empty queue.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102f8f88",
-        "notes": "wrapper + impl decode"
+        "function": "0x102f8f88",
+        "address": "0x102f9074",
+        "callsite": "0x102f90b8",
+        "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b40",
+        "callsite": "0x10560b50",
+        "notes": "Descriptor type 4 jump-table entry 0x10eebbec targets 0x10560b40: strtoul(buffer,NULL,10), stored as a word at destination 0x10560b54, with no end-pointer or errno check. f_105614e0 gives a 24-byte buffer; f_10560708 copies at most capacity and f_10560a58 terminates at length or capacity-1. Therefore long text is truncated and malformed numeric text is not rejected lexically here: missing digits convert to 0, trailing nonnumeric suffix is not checked. Request presence validation is distinct from implementation numeric checks."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102acf60",
+        "address": "0x102acf7c",
+        "callsite": "0x102acfa0",
+        "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102accf0",
+        "address": "0x102ace58",
+        "callsite": "0x102acebc",
+        "notes": "Register mapping at head: r24=start s,r23=count n,r25=InsertBefore d,r27=UpdateID. After version/mode gates: when s>d, request span starts at d, length uint32(s-d+n), left rotation s-d. Otherwise d<=uint32(s+n) branches directly to success at 0x102acf28 (BO5/BI29 means not-GT), so d in [s,s+n] is a no-op for ordinary arithmetic. If d>s+n, span starts s, length d-s, left rotation n. Computed span length 0 also skips submission at 0x102ace6c. Adds/subtracts are 32-bit, no checked overflow; start/span/rotation are then narrowed to uint16 before f_1032e3c8. Ordinary insertion coordinates refer to the original queue; d=N+1 appends, not a post-removal index."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e794",
+        "address": "0x1014e7c4",
+        "callsite": "0x1014e98c",
+        "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, validate×1, commit×1); member delegates: r30 v[+0x6c]",
+      "description": "InstanceID 0; nonzero StartingIndex, NumberOfTracks and InsertBefore; resolved queue ID 0; matching nonzero UpdateID if supplied; mode 1/2. For ordinary non-no-op moves: block within 1..N and InsertBefore within 1..N+1. Those bounds are worker checks after uint16 normalization, not separate 402 gates. An empty queue can accept a positive no-op request, but a normal nonempty span cannot rotate there.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10511f34",
+        "address": "0x10edfc24",
+        "callsite": "0x105123c0",
+        "notes": "Live derived AVTransport table 0x10edfbb8 slot +0x6c (word 0x10edfc24) contains f_102acf60. Derived constructor called by factory at 0x103fb5d8 calls base at 0x1051218c, then installs derived table at 0x105123c0. Wrapper f_102f8f88 dispatches slot +0x6c at 0x102f90b8."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x102f8f88",
-        "notes": "req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f9074",
+        "callsite": "0x102f90b8",
+        "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102acf60",
+        "address": "0x102acf7c",
+        "callsite": "0x102acfa0",
+        "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102accf0",
+        "address": "0x102ace58",
+        "callsite": "0x102acebc",
+        "notes": "Register mapping at head: r24=start s,r23=count n,r25=InsertBefore d,r27=UpdateID. After version/mode gates: when s>d, request span starts at d, length uint32(s-d+n), left rotation s-d. Otherwise d<=uint32(s+n) branches directly to success at 0x102acf28 (BO5/BI29 means not-GT), so d in [s,s+n] is a no-op for ordinary arithmetic. If d>s+n, span starts s, length d-s, left rotation n. Computed span length 0 also skips submission at 0x102ace6c. Adds/subtracts are 32-bit, no checked overflow; start/span/rotation are then narrowed to uint16 before f_1032e3c8. Ordinary insertion coordinates refer to the original queue; d=N+1 appends, not a post-removal index."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102accf0",
+        "address": "0x102acebc",
+        "callsite": "0x102acec8",
+        "notes": "Request builder f_1032e3c8 sets kind 13 at +0xe4, span start +0xfc, span length +0xfe, left-rotation length +0x100, selector +0x102. Named session queue pointers select 1 or 2. f_10255f64 waits through f_1032e658; false completion destroys request and returns 800 at 0x102acf44. Successful/no-op path tests source URI via f_1014708c and conditionally clears impl+0x6ed8 alarm fallback deadline at 0x102acf14, then returns 0. Revision reread/output at 0x102acee4 is unreachable for this wrapper's null output pointer. No-op never constructs/submits a request, so does not increment queue revision or post mutation events."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e794",
+        "address": "0x1014e7c4",
+        "callsite": "0x1014e98c",
+        "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, validate×1, commit×1); member delegates: r30 v[+0x6c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x6c]",
+      "description": "Reads impl lock+0x458, session+0x580 queue IDs/objects, selected revision and mode+0x4654. Rotation uses queue+0x26dc shuffle bit, packed entries+0x26c0 or shuffle mapping+0x26c4, count and storage reserve. Active queue pointer gates current-index remapping and running source-list/packet-history reconciliation; selected URI gates alarm fallback deadline clear.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8f88",
-        "notes": "member vfunc calls: ['r30 v[+0x6c]']"
+        "function": "0x102acf60",
+        "address": "0x102acf7c",
+        "callsite": "0x102acfa0",
+        "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102accf0",
+        "address": "0x102ace58",
+        "callsite": "0x102acebc",
+        "notes": "Register mapping at head: r24=start s,r23=count n,r25=InsertBefore d,r27=UpdateID. After version/mode gates: when s>d, request span starts at d, length uint32(s-d+n), left rotation s-d. Otherwise d<=uint32(s+n) branches directly to success at 0x102acf28 (BO5/BI29 means not-GT), so d in [s,s+n] is a no-op for ordinary arithmetic. If d>s+n, span starts s, length d-s, left rotation n. Computed span length 0 also skips submission at 0x102ace6c. Adds/subtracts are 32-bit, no checked overflow; start/span/rotation are then narrowed to uint16 before f_1032e3c8. Ordinary insertion coordinates refer to the original queue; d=N+1 appends, not a post-removal index."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x102662d0",
+        "callsite": "0x1026631c",
+        "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e794",
+        "address": "0x1014e7c4",
+        "callsite": "0x1014e98c",
+        "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025a8e8",
+        "address": "0x1025a994",
+        "callsite": "0x1025aa1c",
+        "notes": "Active running helper first calls f_1014e794 with session+0x326cc current-index pointer at 0x1025a950, retaining its bool result. It queries clock/source context via session+0x2598 slot +0xc and calls f_103411b0 at 0x1025a994 even when mutation returned false. That trims old source-list prefix via f_103410d8, remaps node +0x28c/+0x28e indices for the rotation/shuffle map, and compares eligible next-source continuity using f_10149d80. An incompatible buffered suffix is detached into retired chain at 0x103414a4, reporting reselection and source identity +0x290/+0x294. On reselection f_10149e68 normalizes index; failure sets session+0x327d2 and restores supplied result. f_10259c1c then reconciles packet/crossfade history and sets changed output. Current index copied to session+0x326fc. The original mutation bool is returned, so an 800 completion failure is not a guarantee that no source bookkeeping ran."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102accf0",
+        "address": "0x102acebc",
+        "callsite": "0x102acec8",
+        "notes": "Request builder f_1032e3c8 sets kind 13 at +0xe4, span start +0xfc, span length +0xfe, left-rotation length +0x100, selector +0x102. Named session queue pointers select 1 or 2. f_10255f64 waits through f_1032e658; false completion destroys request and returns 800 at 0x102acf44. Successful/no-op path tests source URI via f_1014708c and conditionally clears impl+0x6ed8 alarm fallback deadline at 0x102acf14, then returns 0. Revision reread/output at 0x102acee4 is unreachable for this wrapper's null output pointer. No-op never constructs/submits a request, so does not increment queue revision or post mutation events."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x6c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x6c] (call-derived member-method semantics)",
+       "description": "Ordinary submitted rotation preserves membership/count and moves the block without duplicating entries. Named success increments queue revision once, sets dirty and posts internal update. Supplied active current index follows the same logical entry when the halfword comparison interval does not wrap; an exclusive endpoint of 65536 narrows to 0 and skips that remap. No-op skips all queue mutation/version/event work but still clears the alarm buzzer-fallback deadline if selected URI begins x-rincon-queue:. Failed active running mutation can still execute source bookkeeping because the helper reconciles it before returning the original mutation bool.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102f8f88",
-         "notes": "delegate map ['r30 v[+0x6c]']; notify-family calls []"
+         "function": "0x102accf0",
+         "address": "0x102ace58",
+         "callsite": "0x102acebc",
+         "notes": "Register mapping at head: r24=start s,r23=count n,r25=InsertBefore d,r27=UpdateID. After version/mode gates: when s>d, request span starts at d, length uint32(s-d+n), left rotation s-d. Otherwise d<=uint32(s+n) branches directly to success at 0x102acf28 (BO5/BI29 means not-GT), so d in [s,s+n] is a no-op for ordinary arithmetic. If d>s+n, span starts s, length d-s, left rotation n. Computed span length 0 also skips submission at 0x102ace6c. Adds/subtracts are 32-bit, no checked overflow; start/span/rotation are then narrowed to uint16 before f_1032e3c8. Ordinary insertion coordinates refer to the original queue; d=N+1 appends, not a post-removal index."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102accf0",
+         "address": "0x102acebc",
+         "callsite": "0x102acec8",
+         "notes": "Request builder f_1032e3c8 sets kind 13 at +0xe4, span start +0xfc, span length +0xfe, left-rotation length +0x100, selector +0x102. Named session queue pointers select 1 or 2. f_10255f64 waits through f_1032e658; false completion destroys request and returns 800 at 0x102acf44. Successful/no-op path tests source URI via f_1014708c and conditionally clears impl+0x6ed8 alarm fallback deadline at 0x102acf14, then returns 0. Revision reread/output at 0x102acee4 is unreachable for this wrapper's null output pointer. No-op never constructs/submits a request, so does not increment queue revision or post mutation events."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102662d0",
+         "callsite": "0x1026631c",
+         "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e794",
+         "address": "0x1014e7c4",
+         "callsite": "0x1014e98c",
+         "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1025a8e8",
+         "address": "0x1025a994",
+         "callsite": "0x1025aa1c",
+         "notes": "Active running helper first calls f_1014e794 with session+0x326cc current-index pointer at 0x1025a950, retaining its bool result. It queries clock/source context via session+0x2598 slot +0xc and calls f_103411b0 at 0x1025a994 even when mutation returned false. That trims old source-list prefix via f_103410d8, remaps node +0x28c/+0x28e indices for the rotation/shuffle map, and compares eligible next-source continuity using f_10149d80. An incompatible buffered suffix is detached into retired chain at 0x103414a4, reporting reselection and source identity +0x290/+0x294. On reselection f_10149e68 normalizes index; failure sets session+0x327d2 and restores supplied result. f_10259c1c then reconciles packet/crossfade history and sets changed output. Current index copied to session+0x326fc. The original mutation bool is returned, so an 800 completion failure is not a guarantee that no source bookkeeping ran."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d43a0",
+         "address": "0x102d457c",
+         "callsite": "0x102d457c",
+         "notes": "Reads impl+0x6ed8 after clock-id-1 sample; alarm fallback gates at 0x102d44cc..0x102d4530 precede the now<=deadline path setting x-rincon-buzzer:0 through f_102ceb40/f_102cfa50, then clearing deadline at 0x102d45e0. f_102d9ff8 independently reads it at 0x102da444 for playEnd fallback and clears at 0x102da4ac. Timestamp writers f_102cfa50 at 0x102cfe0c/0x102cfecc and f_102dac20 at 0x102db0bc store now+120. Deserialization stores now+3600*h+60*m+s at 0x102b1208. f_102ed780 serializes it at 0x102ed96c under alarm flag +0x5a86 and clear +0x6ed0. The conditional clear in f_102aa770 therefore clears the alarm fallback deadline, not a queue update-id."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x6c] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Successful submitted named rotation uses f_1014d738: one queue revision/dirty update and CdNotifyUpdateId. ContentDirectory observer f_10304808 coalesces container revisions and SystemUpdateID with separate pending/timing gates, including Q:0 delay bypass. Queue LastChange f_10465b54 emits QueueID/UpdateID from dirty snapshots through the common sender readiness/producer path. Active running success increments timed source-list version, feeding AVTransport snapshot-change latch +0x7785; active stopped success refreshes metadata through f_102642d4. AVTransport f_102e43a0 incremental latches serialize the grouped transport block, so NumberOfTracks can be repeated unchanged while CurrentTrack shifts. Subscription/full-vs-incremental and coalescing gates apply. Common no-op performs no queue mutation and does not by itself schedule these mutation notifications.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8f88",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1026571c",
+        "address": "0x102662d0",
+        "callsite": "0x1026631c",
+        "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e794",
+        "address": "0x1014e7c4",
+        "callsite": "0x1014e98c",
+        "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025a8e8",
+        "address": "0x1025a994",
+        "callsite": "0x1025aa1c",
+        "notes": "Active running helper first calls f_1014e794 with session+0x326cc current-index pointer at 0x1025a950, retaining its bool result. It queries clock/source context via session+0x2598 slot +0xc and calls f_103411b0 at 0x1025a994 even when mutation returned false. That trims old source-list prefix via f_103410d8, remaps node +0x28c/+0x28e indices for the rotation/shuffle map, and compares eligible next-source continuity using f_10149d80. An incompatible buffered suffix is detached into retired chain at 0x103414a4, reporting reselection and source identity +0x290/+0x294. On reselection f_10149e68 normalizes index; failure sets session+0x327d2 and restores supplied result. f_10259c1c then reconciles packet/crossfade history and sets changed output. Current index copied to session+0x326fc. The original mutation bool is returned, so an 800 completion failure is not a guarantee that no source bookkeeping ran."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10304e78",
+        "address": "0x1030502c",
+        "callsite": "0x1030502c",
+        "notes": "Registers cdImpl+0x11c on CdNotifyUpdateId subject 0x1109cfb8; alternate site 0x103050b4. Constructor f_10303de4 installs vtable 0x10eb3fa0 at +0x11c at 0x10303fd8; slot 0 thunk f_10304904 adjusts this to f_10304808. f_10115574 observer delivery invokes slot 0 at 0x10115984..0x10115998. f_10304808 updates map cd+0x4f0 via f_103032fc, increments cd+0x4e0, sets pending cd+0x4e4 and schedules f_1067c6ec(cd+8). Queue event extra string is empty, so its extra-string branch does not call f_1030470c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103035c4",
+        "address": "0x10303aa0",
+        "callsite": "0x10303aa0",
+        "notes": "ContentDirectory event builder, not Queue service: full buffer includes SystemUpdateID; ContainerUpdateIDs uses f_103034e8 comma-separated container/version map. Incremental SystemUpdateID pending flag +0x4e4 requires whole-seconds elapsed>1 or Q:0 in changed map (0x10303aa0..0x10303ac4), otherwise schedules prior timestamp+2 at 0x10303d4c; emission clears pending at 0x10303af8. Container map has independent timer/pending at +0x50c/+0x4f0, Q:0 bypass at 0x1030371c..0x10303778 and delayed scheduling at 0x10303d10. f_103032fc replaces version for an existing container at 0x1030337c; f_103034e8 consume=1 clears map pending byte."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465b54",
+        "address": "0x10465c00",
+        "callsite": "0x10465c00",
+        "notes": "Queue LastChange builder writes Queue namespace and QueueID %.20s from snapshot+0, UpdateID %u from +0x14. Nonempty snapshots only; incremental mode additionally requires f_1014d540(snapshot). Full includes Curated and QueueOwnerID; incremental includes these only for snapshot+0x52b/+0x119 respectively. f_10465e28 calls f_102b0908 and writes full buffer when supplied, incremental only if snapshot helper returns changed. Does not alone prove publisher scheduling."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025bfd4",
+        "address": "0x1025c0c0",
+        "callsite": "0x1025c0c0",
+        "notes": "f_102b0908 locks impl+0x458 and calls f_1025bfd4. Copies queue 0 at session+0x2d890 and queue 1 at +0x2ff98 via f_10146cc0, ORs f_1014d540(snapshot) into changed result. f_10146cc0 copies 0x2574 bytes from queue+0x5c; queue revision/dirty +0x70/+0x74 become snapshot+0x14/+0x18. consume=1 clears queue+0x6c/+0x74/+0x175/+0x587 after copying. Other records are initialized placeholders; consume also clears session+0x326c4. f_1014d540 tests snapshot dirty bytes +0x10/+0x18/+0x119/+0x52b."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fa434",
+        "address": "0x103fbc3c",
+        "callsite": "0x103fbc3c",
+        "notes": "Factory+0x1934 assigned impl at 0x103fb680; 0x103fbb78..0x103fbb98 forms weak pair with raw pointer impl+0x10. r6 is set at 0x103fbc1c before session ctor call 0x103fbc3c; the pair is copied to session+0x2578/+0x257c at 0x1025f53c..0x1025f54c. Running worker scheduling at 0x10265914..0x10265a08 requires change flags and live weak owner. f_1067c6ec delegates to f_1067c46c setting pending and checking notification sender. Actual AVTransport event callback is f_102e6400 -> f_102e6048 -> f_102e43a0, with full and incremental calls at 0x102e61d4/0x102e61f8. Thunk 0x102e4398 instead adjusts r4 and reaches property getter f_102e41a0; it is not the event callback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fa434",
+        "address": "0x103fb5ac",
+        "callsite": "0x103fb5d8",
+        "notes": "Factory passes r25 common sender as r5 to derived transport constructor f_10511f34 at 0x103fb5d8 and as r4 to Queue constructor f_10465fac at 0x103fb6e4..0x103fb6e8. Transport base ctor calls f_1067aec4(impl+0x10, sender, AVTransport, 11, ...) at 0x102c06e4; Queue ctor calls it on Queue+8 at 0x1046607c. Generic source ctor stores sender weak pair in source+0xb4/+0xb8 at 0x1067af54..0x1067af64. f_1067c46c resolves the weak sender and calls f_10678c50 at 0x1067c5c8; that helper marks sender+0x10e and signals its condition variable. Derived transport ctor installs event-source vtable 0x10edfddc at impl+0x10 at 0x105123d0; slot +0x18 contains f_102e6400. Queue source vtable 0x10ed1c10 has readiness thunk f_10465b4c at +0x1c and producer adapter f_1067ab54 at +0x18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1067d028",
+        "address": "0x10679da8",
+        "callsite": "0x10679da8",
+        "notes": "Sender fireNotifications loop loads each source at 0x10679d10..0x10679d18 and calls f_1067d028 at 0x10679da8. A nonzero source+0x110 returns ready. Otherwise 0x1067d0bc..0x1067d1c8 invokes subclass slot +0x1c. Queue f_10465b4c adjusts this by -8 to f_10465aa4, which calls f_102b0908(engine, records, 6, 0) at 0x10465b0c and preserves the changed return through its epilogue. No consume means readiness polling does not clear dirty state. Ready-source dispatch reaches f_10683da0 at 0x10679e54 and source slot +0x18 at 0x10684060..0x1068406c. Queue adapter f_1067ab54 forwards to slot +0x14 = f_10465f74 -> f_10465e28. Thus there is no missing direct AVTransport-to-Queue producer call: the common sender polls Queue snapshot readiness. Actual delivery remains conditional on registered source/subscription state and sender operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e43a0",
+        "address": "0x102e46cc",
+        "callsite": "0x102e46c0",
+        "notes": "f_102e6048 calls f_102e43a0 with r7=1 for supplied full buffer at 0x102e61d4, r7=0 for incremental at 0x102e61f8. At 0x102e46cc..0x102e46dc full mode or impl+0x7785 enters serialization; otherwise 0x102e54a8..0x102e551c tests +0x7786 then +0xa094..+0xa09c. r28 was reassigned impl+0x10000 at 0x102e465c. f_102b5658 updates latches before this gate: +0xa094/+0xa095 latch metadata flags +0x4251/+0x4252 at 0x102b56b4..0x102b56d8; +0xa096/+0xa097 latch capability changes masked by 0x01738000/0xf, with source/mode metadata flags as fallbacks at 0x102b5804..0x102b5828. These are generic gates; deletion-specific snapshot comparisons and their final emitted CurrentTrack/TransportState values remain residual."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e43a0",
+        "address": "0x102e4698",
+        "callsite": "0x102e4698",
+        "notes": "The event builder first calls f_102b5a1c at 0x102e4698; its changed result r27 causes impl+0xa0a2=1 at 0x102e46ac..0x102e46b8 before f_102b5658 latches +0x7785. Mode-2 branch 0x102e55c0 returns to that test, with additional next-URI handling. f_102b5a1c mode2 calls session snapshot f_1026021c at 0x102b5d7c; that calls f_10341c74 at 0x102602fc. The latter compares source-list version +8 with consumed version +0xc at 0x10341cd0..0x10341cf4, returns changed, and consumes the version only when requested. Running deletion increments this version via f_103410c0 at 0x10265930 before notifying the transport at 0x10265a08. This is a version/snapshot gate, not a separate equality test for every XML property. f_102b5658 additionally consumes session metadata through f_1032dc18 at 0x102b59d4, storing its changed flag in +0x7786; that helper reads metadata+0x296b and clears it when consume is requested at 0x1032dda8..0x1032ddb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e43a0",
+        "address": "0x102e47d4",
+        "callsite": "0x102e47d4",
+        "notes": "Full output or latched impl+0x7785 enters the common transport-property block at 0x102e47e4; otherwise 0x102e47e0 skips to 0x102e4d38. The block serializes TransportState at 0x102e47e8, NumberOfTracks at 0x102e4870, CurrentTrack at 0x102e489c, CurrentTrackURI at 0x102e48f4 and AVTransportURI at 0x102e4a50. These values can therefore be repeated unchanged when another source-list change makes the block eligible. f_1026021c puts the source-node +0x28c track number through output-record+4 at 0x10260300..0x1026030c; live active-queue count +0x26c8 goes through record+8 at 0x10260790/0x102603a4, subject to the start-window adjustment at 0x102606b4..0x102607b4. CurrentTrackURI is obtained by f_1014a28c from the selected queue entry at 0x10260470, after invalid indexes are reduced to zero and optional shuffle mapping at 0x102607b8. AVTransportURI is copied from impl+0x5dc at 0x102b5a28..0x102b5a80; deletion does not itself replace that selected source URI. f_10341c74 maps source-head state +0x288 through table 0x10eba220: 0 STOPPED, 1 TRANSITIONING, 2 PLAYING, 3 PAUSED_PLAYBACK. Snapshot timing, not the SOAP return alone, determines which of those values is observed."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x6c]",
+      "description": "No universal playback-state assignment. Inactive submitted rotation changes queue order only. Stopped/paused worker remaps current index only for the active queue, notifies track-play monitor and refreshes metadata, without itself starting playback. Active running f_1025a8e8 remaps timed source indices and reconciles buffered source continuity through f_103411b0; incompatible suffixes can require reselection and packet-history/crossfade reconciliation via f_10259c1c. The reported source-change flag feeds the main loop's NodeTX resync/transition path; eligibility and snapshot timing determine later state/current-track output. Ordinary rotation preserves count and does not inherently empty the queue or force STOPPED. No-op does not enter workers or a playback transition.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8f88",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x6c]']"
+        "function": "0x1026571c",
+        "address": "0x102662d0",
+        "callsite": "0x1026631c",
+        "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e794",
+        "address": "0x1014e7c4",
+        "callsite": "0x1014e98c",
+        "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025a8e8",
+        "address": "0x1025a994",
+        "callsite": "0x1025aa1c",
+        "notes": "Active running helper first calls f_1014e794 with session+0x326cc current-index pointer at 0x1025a950, retaining its bool result. It queries clock/source context via session+0x2598 slot +0xc and calls f_103411b0 at 0x1025a994 even when mutation returned false. That trims old source-list prefix via f_103410d8, remaps node +0x28c/+0x28e indices for the rotation/shuffle map, and compares eligible next-source continuity using f_10149d80. An incompatible buffered suffix is detached into retired chain at 0x103414a4, reporting reselection and source identity +0x290/+0x294. On reselection f_10149e68 normalizes index; failure sets session+0x327d2 and restores supplied result. f_10259c1c then reconciles packet/crossfade history and sets changed output. Current index copied to session+0x326fc. The original mutation bool is returned, so an 800 completion failure is not a guarantee that no source bookkeeping ran."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10259c1c",
+        "address": "0x10259ca4",
+        "callsite": "0x10259ca4",
+        "notes": "Sets saved identity +0x327d8/+0x327dc=-1, queries session+0x60 slot+0x38 with identity and out-pointers. Compares returned identity; differing identity calls slot+0x40 (f_10270ce8 derives the next packet ID from object+0x120, with -1 yielding 1), stores packet ID at +0x327d4, remaps using f_10149e68 and f_1045f760. Alternate branch calls slot+0x48 at 0x10259d80 and stores crossfade-state byte +0x327e0. These are NodeTX packet-history methods, not transport-state setters."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104c0aa8",
+        "address": "0x104c0b0c",
+        "callsite": "0x104c0b0c",
+        "notes": "Track-play monitor ctor installs vtable 0x10ed8134; slot+0x30 points to f_104bf2e4. Factory constructs it at 0x103faf80 and stores factory+0x1904; session ctor r9 from that field is stored at session+0x2590 (0x1025f598). f_104bf2e4 submits monitor event kind3 through f_104c6264, not a direct AVTransport state assignment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026badc",
+        "address": "0x1026cfd0",
+        "callsite": "0x1026cfd0",
+        "notes": "Main queue routine invokes the running worker with source-change output &session+0x327c4 at 0x1026cfd0; true at 0x1026cfd4 branches to 0x1026ccfc. NodeTX slot+0x24 is f_10637d2c (word 0x10efb780); call 0x1026cd28 passes saved packet ID +0x327d4, identity +0x327d8 and crossfade byte +0x327e0. f_10637d2c logs requestResync and forms control type 0xfd for zero packet ID, otherwise chooses 0xfb/0xfe by crossfade flag. Back in the queue routine, 0x1026cd84..0x1026cd9c sends empty queues or remap failure to 0x1026d0ec; nonempty/no-failure calls switchState f_10264be8 with state6 at 0x1026cdb8. Worker signals request completion at 0x10265910 before returning to these controller branches, so SOAP completion does not wait for subsequent playback or network notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026badc",
+        "address": "0x1026e758",
+        "callsite": "0x1026f4c4",
+        "notes": "After completion handling f_10266c68, 0x1026f30c..0x1026f388 returns to queue-end state handling when there are no more tracks. 0x1026e724..0x1026e758 tests active queue count and sets session+0x32800=2 (TRAN_STOPPED) when empty; alternate queue-policy branch 0x1026ebfc..0x1026ec00 also reaches it on zero count. Paused routine f_102690f0 calls stopped worker at 0x102691cc; zero active count sets the same state2 at 0x10269330. Once f_1026badc returns at outer-loop call 0x1026f4c4, 0x1026f4c8..0x1026f4e8 selects state1 for state2 and calls f_10264be8, then stopRoutine f_102693cc at 0x1026f4f0. Raw isel 0x7c8ae71e at 0x1026f4e4 selects r10=3 on CR7 LT, else r28=1; state2 minus3 is unsigned greater than2, selecting1. This is a conditional later STOPPED transition, not an immediate literal assignment in the deletion implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102642d4",
+        "address": "0x1026470c",
+        "callsite": "0x1026470c",
+        "notes": "State recording maps internal states1..8 using words at 0x10ea8740: [0,1,1,1,2,1,1,3], with mapped-state1 (TRANSITIONING) fallback at 0x102644fc. It clamps an out-of-range selected index to0 at 0x102643a4..0x102643d0, passes mapped state/current index/effective time to f_103420a4 at 0x1026470c. That helper builds a timed source node through f_103404c8 at 0x1034221c, whose writes at 0x10340570..0x10340594 store state+0x288, current index+0x28c and effective time+0x290/+0x294. f_103420a4 inserts/replaces nodes in time order using f_105a8fd4 and increments list version at 0x10342440. Snapshot f_10341c74 first prunes timed source nodes through f_103410d8; f_1034071c reads head+0x28c at 0x103407d4 for CurrentTrack, while f_10341c74 reads state+0x288 at 0x10341d68 and table 0x10eba220 for STOPPED/TRANSITIONING/PLAYING/PAUSED_PLAYBACK. Session-mode snapshot f_1026021c reads queue count separately, so old buffered source state and reduced live count can coexist."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10149e68",
+        "address": "0x10149ed4",
+        "callsite": "0x1025a010",
+        "notes": "For selected index i, reads metadata through f_1014571c, using shuffle bit0x1 and queue+0x26c4 mapping. If bit0x4 of queue+0x26dc is set and f_10148230 accepts that metadata, retains i only for 1<=i<=count; invalid i returns false. Otherwise calls f_10149d80, which rejects i=0 or i>count, then searches f_10149bec(i,+1), writing zero-based result+1 on success. No forward match optionally wraps by searching from0 when queue+0x26dc bit0x2 is set. Search skips entries rejected by f_10148230. f_1014815c parses URI flags as decimal; f_10148230 rejects mask0x10, otherwise accepts unless queue+0x26e4 mask0x40000000 requires URI flag0x10000 to be clear. If f_10149d80 fails, queue+0x26e4 bit0x10 clear returns false; with that bit set, second search f_10149bec(i,+1) at 0x10149fcc retains original i and returns true only on result0xffff, otherwise returns false. This explicit fallback is not an unconditional next-track operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10259c1c",
+        "address": "0x10259cac",
+        "callsite": "0x10259d18",
+        "notes": "NodeTX history query true branches to crossfade query for saved packet at 0x10259d6c; false compares both returned identity words at 0x10259cb0/0x10259d5c and also takes crossfade query if equal. False/different identity saves next packet ID and input identity to +0x327d4/+0x327d8/+0x327dc, then calls f_10149e68 with current index and temporary output at 0x10259d18. True invokes f_1045f760(current,selected), false skips remapping; both clear crossfade byte +0x327e0. requestResync at 0x1026cd28 consumes these saved values. Source selection is therefore separate from the timed CurrentTrack/TransportState snapshot. Neither success nor deleting the final numeric position specifies a single immediate playback value."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x6c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "No output arguments or NewUpdateID. Normal implementation domain 0/718/402/1028/800: nonzero instance or missing queue ID 718; zero start/count/insert 402; nonzero stale version 1028; disallowed mode or false worker completion 800. Worker can reject invalid normalized span or nonshuffle storage/rotation conditions. Positive no-op returns 0 without checking queue bounds, including on an empty queue, but only after version/mode gates. Submitted success waits for completion; common optional revision output is disabled by null r9. Missing required request input yields 402; type-4 numeric parsing itself is permissive, not strict lexical validation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102f8f88",
-        "notes": "commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f9074",
+        "callsite": "0x102f90b8",
+        "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b40",
+        "callsite": "0x10560b50",
+        "notes": "Descriptor type 4 jump-table entry 0x10eebbec targets 0x10560b40: strtoul(buffer,NULL,10), stored as a word at destination 0x10560b54, with no end-pointer or errno check. f_105614e0 gives a 24-byte buffer; f_10560708 copies at most capacity and f_10560a58 terminates at length or capacity-1. Therefore long text is truncated and malformed numeric text is not rejected lexically here: missing digits convert to 0, trailing nonnumeric suffix is not checked. Request presence validation is distinct from implementation numeric checks."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102acf60",
+        "address": "0x102acf7c",
+        "callsite": "0x102acfa0",
+        "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102accf0",
+        "address": "0x102ace58",
+        "callsite": "0x102acebc",
+        "notes": "Register mapping at head: r24=start s,r23=count n,r25=InsertBefore d,r27=UpdateID. After version/mode gates: when s>d, request span starts at d, length uint32(s-d+n), left rotation s-d. Otherwise d<=uint32(s+n) branches directly to success at 0x102acf28 (BO5/BI29 means not-GT), so d in [s,s+n] is a no-op for ordinary arithmetic. If d>s+n, span starts s, length d-s, left rotation n. Computed span length 0 also skips submission at 0x102ace6c. Adds/subtracts are 32-bit, no checked overflow; start/span/rotation are then narrowed to uint16 before f_1032e3c8. Ordinary insertion coordinates refer to the original queue; d=N+1 appends, not a post-removal index."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102accf0",
+        "address": "0x102acebc",
+        "callsite": "0x102acec8",
+        "notes": "Request builder f_1032e3c8 sets kind 13 at +0xe4, span start +0xfc, span length +0xfe, left-rotation length +0x100, selector +0x102. Named session queue pointers select 1 or 2. f_10255f64 waits through f_1032e658; false completion destroys request and returns 800 at 0x102acf44. Successful/no-op path tests source URI via f_1014708c and conditionally clears impl+0x6ed8 alarm fallback deadline at 0x102acf14, then returns 0. Revision reread/output at 0x102acee4 is unreachable for this wrapper's null output pointer. No-op never constructs/submits a request, so does not increment queue revision or post mutation events."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x102662d0",
+        "callsite": "0x1026631c",
+        "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e794",
+        "address": "0x1014e7c4",
+        "callsite": "0x1014e98c",
+        "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025a8e8",
+        "address": "0x1025a994",
+        "callsite": "0x1025aa1c",
+        "notes": "Active running helper first calls f_1014e794 with session+0x326cc current-index pointer at 0x1025a950, retaining its bool result. It queries clock/source context via session+0x2598 slot +0xc and calls f_103411b0 at 0x1025a994 even when mutation returned false. That trims old source-list prefix via f_103410d8, remaps node +0x28c/+0x28e indices for the rotation/shuffle map, and compares eligible next-source continuity using f_10149d80. An incompatible buffered suffix is detached into retired chain at 0x103414a4, reporting reselection and source identity +0x290/+0x294. On reselection f_10149e68 normalizes index; failure sets session+0x327d2 and restores supplied result. f_10259c1c then reconciles packet/crossfade history and sets changed output. Current index copied to session+0x326fc. The original mutation bool is returned, so an 800 completion failure is not a guarantee that no source bookkeeping ran."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -51711,20 +52355,22 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x6c)",
-       "meaning": "Nonzero InstanceID, or shared-worker queue-selector mismatch.",
+       "meaning": "Nonzero InstanceID or queue identifier lookup failed.",
        "fault_sites": [
         "0x102f90d4"
        ],
        "conditions": [
         {
-         "description": "InstanceID nonzero or selector strcmp fails",
+         "description": "Parsed instance !=0, or decimal queue ID matches neither session identifier.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102acf60",
-           "notes": "cmpwi r4,0 -> r9=0x2ce"
+           "function": "0x102acf60",
+           "address": "0x102acf7c",
+           "callsite": "0x102acfa0",
+           "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
           }
          ]
         }
@@ -51734,83 +52380,50 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102acf60",
-         "notes": "cmpwi r4,0 -> r9=0x2ce"
+         "function": "0x102acf60",
+         "address": "0x102acf7c",
+         "callsite": "0x102acfa0",
+         "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
         }
        ]
       },
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x6c)",
-       "meaning": "Any of StartingIndex/NumberOfTracks/InsertBefore is zero.",
+       "code_expr": "parse/req-layer or vret(r5-in,+0x6c)",
+       "meaning": "Required input missing, or start/count/InsertBefore is zero.",
        "fault_sites": [
         "0x102f90d4"
        ],
        "conditions": [
         {
-         "description": "r5==0, r7==0, or r6==0 at the impl gate",
+         "description": "False request validation at 0x102f9088 selects 402 at 0x102f910c. Otherwise f_102acf60 rejects any of the three zero numeric values. Malformed numeric strings can convert to 0 instead of causing parse failure.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102acf60",
-           "notes": "cmpwi r5/r7/r6,0 at 0x102acf7c-0x102acf90 -> r9=0x192"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
-         "evidence": [
+           "function": "0x102f8f88",
+           "address": "0x102f9074",
+           "callsite": "0x102f90b8",
+           "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102f8f88",
-           "notes": "parse vcall +0x8 then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102acf60",
-         "notes": "cmpwi r5/r7/r6,0 at 0x102acf7c-0x102acf90 -> r9=0x192"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102f8f88",
-         "notes": "wrapper parse + fault path"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x6c)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 402 (null record args x2); shared worker f_102accf0 domain {0x404=1028, 800, 718}",
-       "fault_sites": [],
-       "conditions": [
-        {
-         "description": "the shared worker produced a code not covered by the impl-level gates",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102acfa0",
-           "notes": "passthrough path"
+           "function": "0x10560a58",
+           "address": "0x10560b40",
+           "callsite": "0x10560b50",
+           "notes": "Descriptor type 4 jump-table entry 0x10eebbec targets 0x10560b40: strtoul(buffer,NULL,10), stored as a word at destination 0x10560b54, with no end-pointer or errno check. f_105614e0 gives a 24-byte buffer; f_10560708 copies at most capacity and f_10560a58 terminates at length or capacity-1. Therefore long text is truncated and malformed numeric text is not rejected lexically here: missing digits convert to 0, trailing nonnumeric suffix is not checked. Request presence validation is distinct from implementation numeric checks."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "function": "0x102acf60",
-           "notes": "rc site"
+           "address": "0x102acf7c",
+           "callsite": "0x102acfa0",
+           "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
           }
          ]
         }
@@ -51820,64 +52433,189 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f90d4",
-         "notes": "impl vret passthrough site"
+         "function": "0x102f8f88",
+         "address": "0x102f9074",
+         "callsite": "0x102f90b8",
+         "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "callsite": "0x10560b50",
+         "notes": "Descriptor type 4 jump-table entry 0x10eebbec targets 0x10560b40: strtoul(buffer,NULL,10), stored as a word at destination 0x10560b54, with no end-pointer or errno check. f_105614e0 gives a 24-byte buffer; f_10560708 copies at most capacity and f_10560a58 terminates at length or capacity-1. Therefore long text is truncated and malformed numeric text is not rejected lexically here: missing digits convert to 0, trailing nonnumeric suffix is not checked. Request presence validation is distinct from implementation numeric checks."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102acf60",
-         "notes": "worker rc sites decoded"
+         "address": "0x102acf7c",
+         "callsite": "0x102acfa0",
+         "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+        }
+       ]
+      },
+      {
+       "code": 1028,
+       "code_expr": "vret(r5-in,+0x6c)",
+       "meaning": "Nonzero UpdateID differs from selected queue revision.",
+       "fault_sites": [
+        "0x102f90d4"
+       ],
+       "conditions": [
+        {
+         "description": "Optional/default 0 bypasses; other value != queue+0x70 at 0x102acdd8.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102acf60",
+           "address": "0x102acf7c",
+           "callsite": "0x102acfa0",
+           "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102f8f88",
+           "address": "0x102f9074",
+           "callsite": "0x102f90b8",
+           "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acf60",
+         "address": "0x102acf7c",
+         "callsite": "0x102acfa0",
+         "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f8f88",
+         "address": "0x102f9074",
+         "callsite": "0x102f90b8",
+         "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "code_expr": "vret(r5-in,+0x6c)",
+       "meaning": "Unsupported mode or normalized rotation worker failure.",
+       "fault_sites": [
+        "0x102f90d4"
+       ],
+       "conditions": [
+        {
+         "description": "Mode outside 1/2, or false completion, including normalized span bound and nonshuffle packed-storage/rotation failure. Active helper can reconcile source bookkeeping even on mutation failure.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102acf60",
+           "address": "0x102acf7c",
+           "callsite": "0x102acfa0",
+           "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102accf0",
+           "address": "0x102acebc",
+           "callsite": "0x102acec8",
+           "notes": "Request builder f_1032e3c8 sets kind 13 at +0xe4, span start +0xfc, span length +0xfe, left-rotation length +0x100, selector +0x102. Named session queue pointers select 1 or 2. f_10255f64 waits through f_1032e658; false completion destroys request and returns 800 at 0x102acf44. Successful/no-op path tests source URI via f_1014708c and conditionally clears impl+0x6ed8 alarm fallback deadline at 0x102acf14, then returns 0. Revision reread/output at 0x102acee4 is unreachable for this wrapper's null output pointer. No-op never constructs/submits a request, so does not increment queue revision or post mutation events."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1026571c",
+           "address": "0x102662d0",
+           "callsite": "0x1026631c",
+           "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1014e794",
+           "address": "0x1014e7c4",
+           "callsite": "0x1014e98c",
+           "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1025a8e8",
+           "address": "0x1025a994",
+           "callsite": "0x1025aa1c",
+           "notes": "Active running helper first calls f_1014e794 with session+0x326cc current-index pointer at 0x1025a950, retaining its bool result. It queries clock/source context via session+0x2598 slot +0xc and calls f_103411b0 at 0x1025a994 even when mutation returned false. That trims old source-list prefix via f_103410d8, remaps node +0x28c/+0x28e indices for the rotation/shuffle map, and compares eligible next-source continuity using f_10149d80. An incompatible buffered suffix is detached into retired chain at 0x103414a4, reporting reselection and source identity +0x290/+0x294. On reselection f_10149e68 normalizes index; failure sets session+0x327d2 and restores supplied result. f_10259c1c then reconciles packet/crossfade history and sets changed output. Current index copied to session+0x326fc. The original mutation bool is returned, so an 800 completion failure is not a guarantee that no source bookkeeping ran."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acf60",
+         "address": "0x102acf7c",
+         "callsite": "0x102acfa0",
+         "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102accf0",
-         "notes": "worker rc sites decoded"
+         "address": "0x102acebc",
+         "callsite": "0x102acec8",
+         "notes": "Request builder f_1032e3c8 sets kind 13 at +0xe4, span start +0xfc, span length +0xfe, left-rotation length +0x100, selector +0x102. Named session queue pointers select 1 or 2. f_10255f64 waits through f_1032e658; false completion destroys request and returns 800 at 0x102acf44. Successful/no-op path tests source URI via f_1014708c and conditionally clears impl+0x6ed8 alarm fallback deadline at 0x102acf14, then returns 0. Revision reread/output at 0x102acee4 is unreachable for this wrapper's null output pointer. No-op never constructs/submits a request, so does not increment queue revision or post mutation events."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102662d0",
+         "callsite": "0x1026631c",
+         "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e794",
+         "address": "0x1014e7c4",
+         "callsite": "0x1014e98c",
+         "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1025a8e8",
+         "address": "0x1025a994",
+         "callsite": "0x1025aa1c",
+         "notes": "Active running helper first calls f_1014e794 with session+0x326cc current-index pointer at 0x1025a950, retaining its bool result. It queries clock/source context via session+0x2598 slot +0xc and calls f_103411b0 at 0x1025a994 even when mutation returned false. That trims old source-list prefix via f_103410d8, remaps node +0x28c/+0x28e indices for the rotation/shuffle map, and compares eligible next-source continuity using f_10149d80. An incompatible buffered suffix is detached into retired chain at 0x103414a4, reporting reselection and source identity +0x290/+0x294. On reselection f_10149e68 normalizes index; failure sets session+0x327d2 and restores supplied result. f_10259c1c then reconciles packet/crossfade history and sets changed output. Current index copied to session+0x326fc. The original mutation bool is returned, so an 800 completion failure is not a guarantee that no source bookkeeping ran."
         }
-       ],
-       "unresolved": {
-        "proven": "shared worker rc surfaced",
-        "unknown": "UpdateID-mismatch and mode codes from the shared worker family (1028/800 there): which apply here is not fully traced",
-        "impl_exit_literals": {
-         "function": "0x102acf60",
-         "lits": [
-          -300,
-          52
-         ],
-         "passthrough_exits": 3
-        },
-        "delegated_sources": {
-         "f_10477d3c": {
-          "lits": [
-           0,
-           28,
-           36,
-           52,
-           76,
-           899
-          ],
-          "pt": 4
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "literal_bound": [
-        718,
-        800,
-        1028
-       ],
-       "worker_literal_bound": [
-        718,
-        800,
-        1028
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x6c); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -51887,30 +52625,85 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x102f8f88",
-       "address": "0x102f8f88",
-       "notes": "action wrapper handler"
+       "function": "0x10511f34",
+       "address": "0x10edfc24",
+       "callsite": "0x105123c0",
+       "notes": "Live derived AVTransport table 0x10edfbb8 slot +0x6c (word 0x10edfc24) contains f_102acf60. Derived constructor called by factory at 0x103fb5d8 calls base at 0x1051218c, then installs derived table at 0x105123c0. Wrapper f_102f8f88 dispatches slot +0x6c at 0x102f90b8."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10eb3180",
-       "notes": "action dispatch table entry"
+       "function": "0x102f8f88",
+       "address": "0x102f9074",
+       "callsite": "0x102f90b8",
+       "notes": "All five inputs use unsigned descriptor f_105614e0: InstanceID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID. UpdateID stack word starts 0 at 0x102f8fc0; descriptor +0x30 is set 1 at 0x102f9074. f_10730414 checks +0x31 parse-present flag and permits it clear when +0x30 is set at 0x107304c0..0x107304c8. Thus UpdateID is optional and defaults 0. First four descriptor optional flags start 0 in f_10561414 at 0x10561428. False request validation selects 402 at 0x102f910c. Dispatch registers r4=instance,r5=start,r6=count,r7=insert,r8=update; f_102acf60 supplies r9=0, disabling common optional revision output. Nonzero result faults at 0x102f90d4; zero commits without outputs at 0x102f9120."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10560a58",
+       "address": "0x10560b40",
+       "callsite": "0x10560b50",
+       "notes": "Descriptor type 4 jump-table entry 0x10eebbec targets 0x10560b40: strtoul(buffer,NULL,10), stored as a word at destination 0x10560b54, with no end-pointer or errno check. f_105614e0 gives a 24-byte buffer; f_10560708 copies at most capacity and f_10560a58 terminates at length or capacity-1. Therefore long text is truncated and malformed numeric text is not rejected lexically here: missing digits convert to 0, trailing nonnumeric suffix is not checked. Request presence validation is distinct from implementation numeric checks."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x102acf60",
-       "notes": "AVT impl vtable 0x10eaf2ec slot +0x6c entry"
+       "address": "0x102acf7c",
+       "callsite": "0x102acfa0",
+       "notes": "Nonzero InstanceID first returns 718. Zero StartingIndex/InsertBefore/NumberOfTracks each returns 402 at 0x102acf7c..0x102acfa8. Otherwise tail-calls f_102accf0 with optional revision-output pointer 0. It locks impl+0x458, formats instance %u and matches session IDs +0x2d8ec then +0x2fff4, resolving queue objects +0x2d890 or +0x2ff98; no match 718. f_10149b24 at 0x102acdc4 reads revision/count. Nonzero mismatching UpdateID yields 1028 at 0x102acdd4; then mode outside 1/2 yields 800 at 0x102acdf0. No queue-count bound check is made before the no-op branch."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102accf0",
+       "address": "0x102ace58",
+       "callsite": "0x102acebc",
+       "notes": "Register mapping at head: r24=start s,r23=count n,r25=InsertBefore d,r27=UpdateID. After version/mode gates: when s>d, request span starts at d, length uint32(s-d+n), left rotation s-d. Otherwise d<=uint32(s+n) branches directly to success at 0x102acf28 (BO5/BI29 means not-GT), so d in [s,s+n] is a no-op for ordinary arithmetic. If d>s+n, span starts s, length d-s, left rotation n. Computed span length 0 also skips submission at 0x102ace6c. Adds/subtracts are 32-bit, no checked overflow; start/span/rotation are then narrowed to uint16 before f_1032e3c8. Ordinary insertion coordinates refer to the original queue; d=N+1 appends, not a post-removal index."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102accf0",
+       "address": "0x102acebc",
+       "callsite": "0x102acec8",
+       "notes": "Request builder f_1032e3c8 sets kind 13 at +0xe4, span start +0xfc, span length +0xfe, left-rotation length +0x100, selector +0x102. Named session queue pointers select 1 or 2. f_10255f64 waits through f_1032e658; false completion destroys request and returns 800 at 0x102acf44. Successful/no-op path tests source URI via f_1014708c and conditionally clears impl+0x6ed8 alarm fallback deadline at 0x102acf14, then returns 0. Revision reread/output at 0x102acee4 is unreachable for this wrapper's null output pointer. No-op never constructs/submits a request, so does not increment queue revision or post mutation events."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1026571c",
+       "address": "0x102662d0",
+       "callsite": "0x1026631c",
+       "notes": "Relative running table 0x10ea8468 entry 13 targets 0x102662d0; stopped table 0x10ea84d0 entry 13 targets 0x1026847c. Selector +0x102 indexes session+0x326a0 scaled by 4. Inactive running invokes f_1014e794 with no current-index pointer; active running branches at 0x1026692c to f_1025a8e8. Stopped worker calls f_1014e794 at 0x102684b4 with current-index pointer only if active (isel at 0x102684b0); false propagates false completion, active success notifies track-play monitor and marks metadata changed at 0x102684cc..0x102684f0. Running active success marks local +0x38, triggering source-list version increment at 0x10265930; a reported source discontinuity also sets main-loop source-change output. Completion writes 0x10265910/0x10267dfc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1014e794",
+       "address": "0x1014e7c4",
+       "callsite": "0x1014e98c",
+       "notes": "Checks computed (spanStart-1)+spanLength against queue count, returning false when greater. Under lock, shuffle-enabled queue+0x26dc mask 0x1 rotates mapping +0x26c4 using reverse(first k), reverse(remaining L-k), reverse(all L), a left rotation by k. Nonshuffle calls f_101463c8 at 0x1014e970 to rotate packed data/index records +0x26c0; it rejects k>=L at 0x1014641c and insufficient internal reserve at 0x101464b4. Successful ordinary rotation leaves count +0x26c8 unchanged, sets +0x26e8 and calls f_1014d738 once for a named queue at 0x1014e98c, advancing revision +0x70, dirty +0x74 and internal update event. Optional current index c maps to c+(L-k) if c-a<k, otherwise c-k, only when a<=c<uint16(a+L); outside that comparison stays unchanged. The upper bound is narrowed at 0x1014e930, so an ordinary span ending at index 65535 wraps its exclusive upper bound to 0 and skips this remap. Arithmetic is halfword at 0x1014e91c..0x1014e99c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1025a8e8",
+       "address": "0x1025a994",
+       "callsite": "0x1025aa1c",
+       "notes": "Active running helper first calls f_1014e794 with session+0x326cc current-index pointer at 0x1025a950, retaining its bool result. It queries clock/source context via session+0x2598 slot +0xc and calls f_103411b0 at 0x1025a994 even when mutation returned false. That trims old source-list prefix via f_103410d8, remaps node +0x28c/+0x28e indices for the rotation/shuffle map, and compares eligible next-source continuity using f_10149d80. An incompatible buffered suffix is detached into retired chain at 0x103414a4, reporting reselection and source identity +0x290/+0x294. On reselection f_10149e68 normalizes index; failure sets session+0x327d2 and restores supplied result. f_10259c1c then reconciles packet/crossfade history and sets changed output. Current index copied to session+0x326fc. The original mutation bool is returned, so an 800 completion failure is not a guarantee that no source bookkeeping ran."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102f8f88; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "ReorderTracksInSavedQueue": {
      "description": "Reorders tracks within a saved queue. Impl f_102bd238 is an arg-shifting 718-gate dispatching into saved-queue worker f_1047a3bc. ObjectID, UpdateID, TrackList/NewPositionList and the out params are forwarded positionally.",
