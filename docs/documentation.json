@@ -42398,7 +42398,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Must materialize as zero. A nonzero parsed value returns 718 before the topology and settings helpers.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -42437,13 +42437,17 @@
          "build": "86.10-80260",
          "function": "0x102af490",
          "notes": "impl loads rc 0x2ce (718) on the InstanceID!=0 branch; convention verified across AVT impls"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af538",
+         "notes": "Loads 718 before locking and leaves it unchanged when the parsed InstanceID at 0x102af540 is nonzero. Otherwise a false topology check selects 800 at 0x102af678; all accepted paths set zero at 0x102af63c.",
+         "function": "0x102af490"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +92 (site 0x102fa550) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +92 (obj r5-in, call site 0x102fa550); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -42551,7 +42555,7 @@
        ]
       },
       "NewTransportSettings": {
-       "description": "Settings handed to the new coordinator (same family as ChangeTransportSettings).",
+       "description": "Transport settings are read as IPv4:number,IPv4:number:number:number,tail. Firmware tokenizes with successive delimiter sets rather than a literal template match, stores numbers as 16-bit values, and leaves the seeded settings unchanged if parsing fails. A nonempty tail skips the sink/source work in this action.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -42590,20 +42594,43 @@
          "build": "86.10-80260",
          "function": "0x102af490",
          "notes": "impl head disasm"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066e15c",
+         "notes": "The tokenizer walks seven descriptors with successive strtok_r delimiter sets ':', ',', ':', ':', ':', ',' and empty. Value types are IPv4 via inet_pton(AF_INET), decimal helper with a halfword store, IPv4, three more halfword stores, then a 25-byte strlcpy of the remaining token. All seven tokens must be present. Input is copied to a 129-byte buffer first.",
+         "function": "0x1066e0d4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066e320",
+         "notes": "If token parsing is unsuccessful, leaves the default record untouched. Otherwise the first IPv4 becomes record+0, the four parsed halfwords in token order become +8, +4, +6 and +0xa, the second IPv4 becomes a dotted string at +0xc, and the trailing token goes to +0x1c (max 24 bytes plus NUL).",
+         "function": "0x1066e2dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af5dc",
+         "notes": "A nonempty parsed +0x1c tail jumps straight to rewriting impl+0x5dc. An empty tail evaluates the supplied URI for a local VLI match; a match copies live streamer settings at 0x102af758 and runs the clock/sink path ending at 0x102af82c.",
+         "function": "0x102af490"
         }
        ],
        "notes": null,
        "buf_cap": 129,
        "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `NewTransportSettings` is parsed then forwarded verbatim to r5-in vfunc +92 (site 0x102fa550) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
+        "Identify the protocol names for all four numeric settings and the 24-byte tail."
        ],
        "resolved_findings": [
         "Resolved: post-parse handling of `NewTransportSettings` = verbatim forward to impl vfunc +92 (obj r5-in, call site 0x102fa550); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "CurrentAVTransportURI": {
-       "description": "Source URI carried through the handover.",
+       "description": "Used in the empty-tail branch to choose a local VLI source, a remote VLI handoff, or the non-VLI sink path. It is not written as the new transport URI.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -42642,20 +42669,51 @@
          "build": "86.10-80260",
          "function": "0x102af490",
          "notes": "impl head disasm"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103917f0",
+         "notes": "Local VLI match requires successful URI parse, the parsed input/type word equal to f_106a9cc4(topology+0x280), and the parsed text equal by strcmp to topology+0x5c1. Otherwise it returns false.",
+         "function": "0x103917b4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af5dc",
+         "notes": "A nonempty parsed +0x1c tail jumps straight to rewriting impl+0x5dc. An empty tail evaluates the supplied URI for a local VLI match; a match copies live streamer settings at 0x102af758 and runs the clock/sink path ending at 0x102af82c.",
+         "function": "0x102af490"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af6b8",
+         "notes": "On local VLI mismatch, uses the supplied URI to choose between VLI-specific seamless negotiation (0x102af6e0 through 0x102af8e8) and the separate sink predicate path at 0x102af84c. The URI stored at impl+0x5dc is synthesized from the new coordinator, not copied from this argument.",
+         "function": "0x102af490"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af608",
+         "notes": "Formats x-rincon:<new coordinator> into impl+0x5dc, sets current-URI dirty byte +0x4251, and if next URI was not empty clears next URI and metadata (+0x1a03/+0x1e04) and sets +0x4252. Increments +0xaa78, calls f_102af328 and schedules UPnP event processing at 0x102af650.",
+         "function": "0x102af490"
         }
        ],
        "notes": null,
        "buf_cap": 1025,
        "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `CurrentAVTransportURI` is parsed then forwarded verbatim to r5-in vfunc +92 (site 0x102fa550) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
+        "Resolve what URI categories cause f_106a5df8 and VLI negotiation to return a no-seamless result."
        ],
        "resolved_findings": [
         "Resolved: post-parse handling of `CurrentAVTransportURI` = verbatim forward to impl vfunc +92 (obj r5-in, call site 0x102fa550); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "RestartSink": {
-       "description": "Flag requesting a sink restart on the new coordinator.",
+       "description": "Boolean that forces the restart helper on the otherwise seamless non-VLI arm. Other arms can restart regardless of its value.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -42694,13 +42752,17 @@
          "build": "86.10-80260",
          "function": "0x102af490",
          "notes": "impl consumes the flag"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af858",
+         "notes": "Tests RestartSink only on the non-VLI path after the predicate at 0x102af84c returned zero. A true flag calls f_103088ec(impl+0x5d4,1,0); a false flag skips that call. The alternative HT predicate arm and the VLI no-seamless arm can call the same helper independently of the flag.",
+         "function": "0x102af490"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `RestartSink` is parsed then forwarded verbatim to r5-in vfunc +92 (site 0x102fa550) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `RestartSink` = verbatim forward to impl vfunc +92 (obj r5-in, call site 0x102fa550); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -42749,73 +42811,193 @@
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+?]",
+      "description": "Uses the stored coordinator, player UUID, decoded transport settings and the URI against the active VLI type/text. On the non-VLI branch, a sink predicate and RestartSink determine whether to force a sink restart.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa3ec",
-        "notes": "member vfunc calls: ['r30 v[+?]']"
+        "address": "0x103919e8",
+        "notes": "After validating old and new coordinator IDs, writes the new coordinator to topology+0x120, calls f_1039be20 and invokes the topology listener at topology+0x5a8 through slot +0x40.",
+        "function": "0x1039192c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066e320",
+        "notes": "If token parsing is unsuccessful, leaves the default record untouched. Otherwise the first IPv4 becomes record+0, the four parsed halfwords in token order become +8, +4, +6 and +0xa, the second IPv4 becomes a dotted string at +0xc, and the trailing token goes to +0x1c (max 24 bytes plus NUL).",
+        "function": "0x1066e2dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103917f0",
+        "notes": "Local VLI match requires successful URI parse, the parsed input/type word equal to f_106a9cc4(topology+0x280), and the parsed text equal by strcmp to topology+0x5c1. Otherwise it returns false.",
+        "function": "0x103917b4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af5dc",
+        "notes": "A nonempty parsed +0x1c tail jumps straight to rewriting impl+0x5dc. An empty tail evaluates the supplied URI for a local VLI match; a match copies live streamer settings at 0x102af758 and runs the clock/sink path ending at 0x102af82c.",
+        "function": "0x102af490"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af858",
+        "notes": "Tests RestartSink only on the non-VLI path after the predicate at 0x102af84c returned zero. A true flag calls f_103088ec(impl+0x5d4,1,0); a false flag skips that call. The alternative HT predicate arm and the VLI no-seamless arm can call the same helper independently of the flag.",
+        "function": "0x102af490"
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Name the precise sink-state predicate queried through f_106a5df8."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+?] (call-derived member-method semantics)",
+       "description": "Replaces the coordinator and transport URI; clears a nonempty pending URI. Depending on the settings and source, it can reinstall a local clock, negotiate VLI or restart the sink before publishing the new coordinator URI.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102fa3ec",
-         "notes": "delegate map ['r30 v[+?]']; notify-family calls []"
+         "address": "0x103919e8",
+         "notes": "After validating old and new coordinator IDs, writes the new coordinator to topology+0x120, calls f_1039be20 and invokes the topology listener at topology+0x5a8 through slot +0x40.",
+         "function": "0x1039192c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af5dc",
+         "notes": "A nonempty parsed +0x1c tail jumps straight to rewriting impl+0x5dc. An empty tail evaluates the supplied URI for a local VLI match; a match copies live streamer settings at 0x102af758 and runs the clock/sink path ending at 0x102af82c.",
+         "function": "0x102af490"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af6b8",
+         "notes": "On local VLI mismatch, uses the supplied URI to choose between VLI-specific seamless negotiation (0x102af6e0 through 0x102af8e8) and the separate sink predicate path at 0x102af84c. The URI stored at impl+0x5dc is synthesized from the new coordinator, not copied from this argument.",
+         "function": "0x102af490"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af858",
+         "notes": "Tests RestartSink only on the non-VLI path after the predicate at 0x102af84c returned zero. A true flag calls f_103088ec(impl+0x5d4,1,0); a false flag skips that call. The alternative HT predicate arm and the VLI no-seamless arm can call the same helper independently of the flag.",
+         "function": "0x102af490"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af608",
+         "notes": "Formats x-rincon:<new coordinator> into impl+0x5dc, sets current-URI dirty byte +0x4251, and if next URI was not empty clears next URI and metadata (+0x1a03/+0x1e04) and sets +0x4252. Increments +0xaa78, calls f_102af328 and schedules UPnP event processing at 0x102af650.",
+         "function": "0x102af490"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af664",
+         "notes": "Calls f_103121f4 on impl+0x5d4 with the new coordinator ID after scheduling LastChange. The result is not copied into the action return accumulator.",
+         "function": "0x102af490"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Identify downstream renderer state mutations inside f_103088ec and f_103121f4."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "An accepted change queues UPnP LastChange after marking the current URI dirty, and marks the next URI dirty only if it was cleared. A rejected instance or topology check does not reach this publisher.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa3ec",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102af538",
+        "notes": "Loads 718 before locking and leaves it unchanged when the parsed InstanceID at 0x102af540 is nonzero. Otherwise a false topology check selects 800 at 0x102af678; all accepted paths set zero at 0x102af63c.",
+        "function": "0x102af490"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af608",
+        "notes": "Formats x-rincon:<new coordinator> into impl+0x5dc, sets current-URI dirty byte +0x4251, and if next URI was not empty clears next URI and metadata (+0x1a03/+0x1e04) and sets +0x4252. Increments +0xaa78, calls f_102af328 and schedules UPnP event processing at 0x102af650.",
+        "function": "0x102af490"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e4a50",
+        "notes": "LastChange prints AVTransportURI and AVTransportURIMetaData; the next-URI fields are emitted at 0x102e4d88 and 0x102e4dbc. This action marks the URI flags; these sites do not establish that all the fields change for every call.",
+        "function": "0x102e43a0"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace any additional LastChange fields from the sink restart, f_102af328, and the later f_103121f4."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?]",
+      "description": "Switches membership to the validated coordinator, sets the member URI x-rincon:<new coordinator> and discards any pending next URI. Source and sink configuration changes depend on the settings and URI arm.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa3ec",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+?]']"
+        "address": "0x103919e8",
+        "notes": "After validating old and new coordinator IDs, writes the new coordinator to topology+0x120, calls f_1039be20 and invokes the topology listener at topology+0x5a8 through slot +0x40.",
+        "function": "0x1039192c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af5dc",
+        "notes": "A nonempty parsed +0x1c tail jumps straight to rewriting impl+0x5dc. An empty tail evaluates the supplied URI for a local VLI match; a match copies live streamer settings at 0x102af758 and runs the clock/sink path ending at 0x102af82c.",
+        "function": "0x102af490"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af6b8",
+        "notes": "On local VLI mismatch, uses the supplied URI to choose between VLI-specific seamless negotiation (0x102af6e0 through 0x102af8e8) and the separate sink predicate path at 0x102af84c. The URI stored at impl+0x5dc is synthesized from the new coordinator, not copied from this argument.",
+        "function": "0x102af490"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af858",
+        "notes": "Tests RestartSink only on the non-VLI path after the predicate at 0x102af84c returned zero. A true flag calls f_103088ec(impl+0x5d4,1,0); a false flag skips that call. The alternative HT predicate arm and the VLI no-seamless arm can call the same helper independently of the flag.",
+        "function": "0x102af490"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af608",
+        "notes": "Formats x-rincon:<new coordinator> into impl+0x5dc, sets current-URI dirty byte +0x4251, and if next URI was not empty clears next URI and metadata (+0x1a03/+0x1e04) and sets +0x4252. Increments +0xaa78, calls f_102af328 and schedules UPnP event processing at 0x102af650.",
+        "function": "0x102af490"
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Identify which internal renderer/source states change in the VLI negotiation and sink helpers."
       ]
      },
      "return_behavior": {
-      "description": "402 for wrapper materialization, 718 for nonzero ID, and 800 for a rejected topology check. The observed normal completion branch returns zero.",
+      "description": "Returns 402 for request materialization failure, 718 for a parsed nonzero instance, 800 for the topology rejection, or zero. Source and sink helper results do not add SOAP fault codes.",
       "evidence": [
        {
         "type": "firmware",
@@ -42840,10 +43022,31 @@
         "address": "0x102af5ac",
         "notes": "Main +0x5c path checks zero ID under the mutex. A failed f_1039192c gate returns 800 at 0x102af678. A successful gate decodes NewTransportSettings (0x102af5d8); the main path constructs x-rincon:<new> and sets r30=0 before the updater at 0x102af650.",
         "function": "0x102af490"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af538",
+        "notes": "Loads 718 before locking and leaves it unchanged when the parsed InstanceID at 0x102af540 is nonzero. Otherwise a false topology check selects 800 at 0x102af678; all accepted paths set zero at 0x102af63c.",
+        "function": "0x102af490"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af858",
+        "notes": "Tests RestartSink only on the non-VLI path after the predicate at 0x102af84c returned zero. A true flag calls f_103088ec(impl+0x5d4,1,0); a false flag skips that call. The alternative HT predicate arm and the VLI no-seamless arm can call the same helper independently of the flag.",
+        "function": "0x102af490"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af664",
+        "notes": "Calls f_103121f4 on impl+0x5d4 with the new coordinator ID after scheduling LastChange. The result is not copied into the action return accumulator.",
+        "function": "0x102af490"
        }
-      ],
-      "todo": [
-       "Audit downstream sink restart and VLI/source branch exits for any other return values."
       ]
      },
      "fault_sites": [
@@ -42888,25 +43091,27 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x5c)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: 718, 800: producers at 0x102af538/0x102af678",
+       "meaning": "The wrapper relays the two nonzero engine results: 718 from the instance gate or 800 from the topology gate.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "the worker produced a code not covered by the gate",
+         "description": "The wrapper relays the two nonzero engine results: 718 from the instance gate or 800 from the topology gate.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102af53c",
-           "notes": "passthrough path"
+           "address": "0x102af538",
+           "notes": "Loads 718 before locking and leaves it unchanged when the parsed InstanceID at 0x102af540 is nonzero. Otherwise a false topology check selects 800 at 0x102af678; all accepted paths set zero at 0x102af63c.",
+           "function": "0x102af490"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102af490",
-           "notes": "rc site"
+           "address": "0x103919e8",
+           "notes": "After validating old and new coordinator IDs, writes the new coordinator to topology+0x120, calls f_1039be20 and invokes the topology listener at topology+0x5a8 through slot +0x40.",
+           "function": "0x1039192c"
           }
          ]
         }
@@ -42916,50 +43121,21 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fa56c",
-         "notes": "impl vret passthrough site"
+         "address": "0x102af538",
+         "notes": "Loads 718 before locking and leaves it unchanged when the parsed InstanceID at 0x102af540 is nonzero. Otherwise a false topology check selects 800 at 0x102af678; all accepted paths set zero at 0x102af63c.",
+         "function": "0x102af490"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102af490",
-         "notes": "rc producers decoded"
+         "address": "0x103919e8",
+         "notes": "After validating old and new coordinator IDs, writes the new coordinator to topology+0x120, calls f_1039be20 and invokes the topology listener at topology+0x5a8 through slot +0x40.",
+         "function": "0x1039192c"
         }
        ],
-       "unresolved": {
-        "proven": "coordinator-change worker rc surfaced",
-        "unknown": "concrete codes for member validation / handover refusal",
-        "impl_exit_literals": {
-         "function": "0x102af490",
-         "lits": [],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_10557848": {
-          "lits": [
-           0,
-           1,
-           80
-          ],
-          "pt": 3
-         },
-         "f_109b72ac": {
-          "lits": [
-           0,
-           228
-          ],
-          "pt": 4
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
        "literal_bound": [
         718
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x5c); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
@@ -43041,38 +43217,65 @@
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "code_expr": "No separate store or sink result",
+       "meaning": "This path does not propagate a store or sink result. Accepted topology paths overwrite the engine return with zero before the publisher and ignore the subsequent helper result.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102af538",
+         "notes": "Loads 718 before locking and leaves it unchanged when the parsed InstanceID at 0x102af540 is nonzero. Otherwise a false topology check selects 800 at 0x102af678; all accepted paths set zero at 0x102af63c.",
+         "function": "0x102af490"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af608",
+         "notes": "Formats x-rincon:<new coordinator> into impl+0x5dc, sets current-URI dirty byte +0x4251, and if next URI was not empty clears next URI and metadata (+0x1a03/+0x1e04) and sets +0x4252. Increments +0xaa78, calls f_102af328 and schedules UPnP event processing at 0x102af650.",
+         "function": "0x102af490"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102af664",
+         "notes": "Calls f_103121f4 on impl+0x5d4 with the new coordinator ID after scheduling LastChange. The result is not copied into the action return accumulator.",
+         "function": "0x102af490"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "This path does not propagate a store or sink result. Accepted topology paths overwrite the engine return with zero before the publisher and ignore the subsequent helper result.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102af538",
+           "notes": "Loads 718 before locking and leaves it unchanged when the parsed InstanceID at 0x102af540 is nonzero. Otherwise a false topology check selects 800 at 0x102af678; all accepted paths set zero at 0x102af63c.",
+           "function": "0x102af490"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102af608",
+           "notes": "Formats x-rincon:<new coordinator> into impl+0x5dc, sets current-URI dirty byte +0x4251, and if next URI was not empty clears next URI and metadata (+0x1a03/+0x1e04) and sets +0x4252. Increments +0xaa78, calls f_102af328 and schedules UPnP event processing at 0x102af650.",
+           "function": "0x102af490"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102af664",
+           "notes": "Calls f_103121f4 on impl+0x5d4 with the new coordinator ID after scheduling LastChange. The result is not copied into the action return accumulator.",
+           "function": "0x102af490"
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
        ]
       }
      ],
@@ -43127,7 +43330,7 @@
      ],
      "notes": null,
      "todo": [
-      "Decode settings and track RestartSink and CurrentAVTransportURI through the individual local VLI/source branches. Map the updater at 0x102af650 to exact event fields."
+      "Name the remaining transport-settings fields, identify the no-seamless predicate for each source category, and trace extra event fields from sink restart and coordination callbacks."
      ]
     },
     "ChangeTransportSettings": {
