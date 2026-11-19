@@ -150562,11 +150562,22 @@
   "virtual_linein": {
    "source_manager": "group hooks {[groupAdded] configureLocalTransport(VLI),[groupRemoved] configureLocalTransport(null),[startLocalPBAsGM]/[stopLocalPBAsGM] + proxyactive}; source lifecycle {register(vli type),suspend,resume,onSelect,deactivate(type,sender)}; \"Recording State Snapshot in state %d\"; \"Starting vli audio input subsystem (type=%d)\"/\"ending vli ai subsystem (cached type=%d; new=%d)\"; cookie validation {\"validate cookie failed for [%d], [%d]\",\"no source to validate cookie\"}; ai_vli thread",
    "todo": [
-    "Residual: per-verb request/response field schemas (the verb set and scoping are proven; body grammars are muse spec data)."
+    "Established: six executable factories, selectSource member callback and bounded source-enum conversion, including unknown-member and unmatched-value behavior. Remaining: bind all six command constructors, metadata consumers and context+0x108 implementation injection to their concrete input/output models, requiredness, validation failures and lifecycle effects. Start with vtable0x10faaf94, f_10b8103c, f_109dafc8 and f_10b81de0, then repeat for the other five factories. Resolve empty/unknown source handling beyond the converter before assigning an API error. These are actionable static joins, not external Muse-spec-only grammars."
    ],
    "resolved_findings": [
-    "Resolved: source-manager + registry = the group-hook lifecycle {[groupAdded] configureLocalTransport(VLI), [groupRemoved] null, [start/stop]LocalPBAsGM}; source-type registry = the VLI source list {TV, line-in, external}.",
-    "VLI model proven: virtual line-in is a muse-namespaced source API with six verbs, each exposed player-scoped (v1/players/{playerId}/virtualLineIn/<verb>) and household-scoped (v1/households/{householdId}/players/{playerId}/virtualLineIn/<verb>): selectSource binds a source type (the linein.* and homeTheater-input types from load_content), startTransmission/stopTransmission control streaming that source to the group, sendBackChannelCmd is the control back-channel (volume/skip propagation to the source device), startAudio/stopAudio control the local audio path. The source-manager layer converts line-in-class hardware inputs (line-in jack, SPDIF/HT, AirPlay) into group-playable sources via these verbs - the select->transmit->audio sequence is the activation order, with playback routed per the x-rincon-stream URI form."
+    "The compiled namespace selector f_10b80d00 compares the requested operation against six name/factory pairs: selectSource/f_10b812e0, startTransmission/f_10b81570, stopTransmission/f_10b81800, sendBackChannelCmd/f_10b81aa0, startAudio/f_10b81b6c and stopAudio/f_10b81cac. An unmatched name returns a null command. Player-scoped and household/player-scoped route literals exist, but neither their order nor the selector order proves a required select->transmit->audio lifecycle.",
+    "selectSource has an in-image command model: factory f_10b812e0 allocates and calls f_10b811c0, which installs vtable0x10faaf94. Its member callback at vtable+0x28 is f_10b8103c: source is recognized by f_108337b0 and converted by f_10b9dcf4 into command+0x15c; unknown member names return0. Metadata registration f_10b81128 also passes source to f_109cc8f4. Body grammar is therefore not established as external Muse-spec-only data.",
+    "The source converter f_10b9dcf4 initializes its output to0, then scans four stride12 rows at0x10fadcfc: empty spelling->0, AIRPLAY->1, SPOTIFY->2 and BLUETOOTH->3. It requires matching length and strncasecmp equality, returns1 on a match and0 otherwise. The member callback returns1 after conversion even if conversion fails, so this boundary alone does not prove an invalid-source rejection, field requiredness, or linein/homeTheater source vocabulary.",
+    "Execution f_10b81de0 first runs target-ID validation f_109da4f8, then the status0x34 admission check and f_109dafc8 validation before reaching the nonnull implementation at context+0x108, virtual+8. Target addressing, body parsing and domain execution are separate joins. The earlier generic source-manager inventory does not bind every verb to volume/skip propagation, x-rincon-stream routing or one universal activation order."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b80d00",
+     "notes": "Six selector/factory pairs; selectSource constructor0x10b811c0 installs0x10faaf94, member callback0x10b8103c, metadata0x10b81128, converter0x10b9dcf4 and four raw stride12 rows0x10fadcfc-0x10fadd2b. Execution0x10b81de0 separates target validation, body admission and domain virtual+8."
+    }
    ]
   },
   "wifi": {
