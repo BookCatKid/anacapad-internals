@@ -71135,13 +71135,21 @@
          "address": "0x102e168c",
          "notes": "The non-override tail always clears r31 before returning at 0x102e15a4; f_102da774, f_102c3a34 and f_102e0fb0 results are not assigned to r31. No f_10c3cbfc call occurs in this worker; the 402 listed for that parser belongs to another action.",
          "function": "0x102e14e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e1608",
+         "function": "0x102e14e0",
+         "notes": "The first f_10687e54 call requests only the suffix, in a 49-byte buffer. The later f_10688070 call classifies the same input without output buffers. f_10687e54 requires a case-insensitive x-sonos-vli prefix, a colon at byte 11 and the first later colon at byte 36. f_10687d30 requires 1 to 4 bytes before a comma and a successful nonnegative paranoid_atoi conversion. If present, the text after that comma is copied with strlcpy. An empty or malformed URI takes the non-VLI arm, not a separate SOAP rejection."
         }
        ],
        "notes": null,
        "buf_cap": 1025
       },
       "ProgramMetaData": {
-       "description": "Materialized as a string; passed to f_10424ac4 for preparation and to the selected startup helper.",
+       "description": "Original metadata text forwarded to startup. A separate DIDL-Lite pass can read the vli cookie for group setup; it does not replace the metadata argument sent to the startup helper.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -71197,13 +71205,21 @@
          "address": "0x102e1668",
          "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
          "function": "0x102e14e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e1630",
+         "function": "0x102e14e0",
+         "notes": "f_10424ac4 submits the original ProgramMetaData and its strlen to f_10c3fc68 at 0x10424cdc. Within DIDL-Lite item or container context, the DIDL-Lite vli element's cookie attribute is dispatched at 0x106fa538 via parser slot +0x2c. f_10425eac converts the value to an integer through 0x110981f8; its output at wrapper sp+0x10 starts at zero, and f_1039561c replaces its saved cookie with that value if the group string changes. The separate 4097-byte scratch text at sp+0x48 does not replace the original metadata sent to either startup worker. The XML parser result is not tested for a SOAP fault."
         }
        ],
        "notes": null,
        "buf_cap": 4097
       },
       "Volume": {
-       "description": "Materialized as ui2 and forwarded without a clamp at this stage in r8 to f_102da774; saved there as a halfword at stack +0x56. The mode-zero VLI helper does not receive it.",
+       "description": "In common startup, explicit ui2 values supply target volumes. 65534 and 65535 fetch current volumes instead. 65534 floors the queried local volume at 10; the 65535 path can ramp to the queried local volume or skip the initial ramp. The mode-zero VLI helper does not receive this argument.",
        "direction": "in",
        "primitive": {
         "type_tag": 2,
@@ -71258,6 +71274,14 @@
          "address": "0x102e1668",
          "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
          "function": "0x102e14e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102da940",
+         "function": "0x102da774",
+         "notes": "The add-two, low-16-bit mask, unsigned compare to 1 selects exactly 65534 and 65535. Other ui2 values seed each member target directly. On either sentinel the worker queries available members' current Master volumes (f_106f7bc4, RenderingControl GetVolume); a failed GetVolume RPC substitutes 25 for that member at 0x102db284. Each sentinel also asks the local rendering object at impl+0x5bc slot +0x18 for Master volume. Only 65534 floors the local returned volume at 10 (0x102db3cc). For 65535, the false setup-flag arm rejoins URI processing at 0x102da984 without the ramp at 0x102dae60; the true arm supplies the queried local value to that ramp."
         }
        ],
        "notes": null
@@ -71323,7 +71347,7 @@
        "notes": null
       },
       "ResetVolumeAfter": {
-       "description": "Materialized as boolean. The common startup receives it in r10; the mode-zero VLI branch does not pass it.",
+       "description": "Boolean forwarded to the local and peer volume ramps when common startup takes that path. It requests restoration by RenderingControl, not by the SOAP wrapper. The mode-zero VLI helper does not receive it.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -71378,6 +71402,14 @@
          "address": "0x102e1668",
          "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
          "function": "0x102e14e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dabc8",
+         "function": "0x102da774",
+         "notes": "The ramp path passes the saved ResetVolumeAfter boolean as r8 to local rendering slot +0x6c and to peer helper f_106f98ac at 0x102dac6c. The peer helper serializes RenderingControl:1 RampToVolume with InstanceID 0, Channel Master, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI, and opens a RampTime output (0x106f99c8 through 0x106f9ab0). This forwards the restoration request; the autoplay worker does not wait for a subsequent volume restoration. The mode-zero VLI call supplies neither Volume nor ResetVolumeAfter."
         }
        ],
        "notes": null
@@ -71481,11 +71513,35 @@
          "address": "0x102e1698",
          "notes": "After releasing impl+0x458, if the f_102d4e80 setup path was used, calls f_102e0fb0 and returns zero. That helper builds x-rincon:%s and forwards AVTransport:1 SetAVTransportURI to group targets (0x102e1090, 0x102e10e4, 0x102e1340); this is not a local event-publish call.",
          "function": "0x102e14e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102da940",
+         "function": "0x102da774",
+         "notes": "The add-two, low-16-bit mask, unsigned compare to 1 selects exactly 65534 and 65535. Other ui2 values seed each member target directly. On either sentinel the worker queries available members' current Master volumes (f_106f7bc4, RenderingControl GetVolume); a failed GetVolume RPC substitutes 25 for that member at 0x102db284. Each sentinel also asks the local rendering object at impl+0x5bc slot +0x18 for Master volume. Only 65534 floors the local returned volume at 10 (0x102db3cc). For 65535, the false setup-flag arm rejoins URI processing at 0x102da984 without the ramp at 0x102dae60; the true arm supplies the queried local value to that ramp."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dabc8",
+         "function": "0x102da774",
+         "notes": "The ramp path passes the saved ResetVolumeAfter boolean as r8 to local rendering slot +0x6c and to peer helper f_106f98ac at 0x102dac6c. The peer helper serializes RenderingControl:1 RampToVolume with InstanceID 0, Channel Master, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI, and opens a RampTime output (0x106f99c8 through 0x106f9ab0). This forwards the restoration request; the autoplay worker does not wait for a subsequent volume restoration. The mode-zero VLI call supplies neither Volume nor ResetVolumeAfter."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102c3b2c",
+         "function": "0x102c3a34",
+         "notes": "On the mode-zero VLI path, the URI UUID must match the local UUID at impl+0x3dc, and f_10687980 must return a valid mapped type. The worker passes a selection record with a null snapshot and the original metadata at +0xc to f_106a8e40, which calls f_106a8b08. On success it calls f_106aa3b0 and, with the flag supplied by StartAutoplay, invokes the streamer slot +8 at 0x102c3b9c with the parsed type, local ID and 129-byte settings output. A failed selection or start does not reach the success tail; its result is not returned by StartAutoplay."
         }
        ],
        "todo": [
-        "Established: Non-override path can build new coordination state, prepare a VLI endpoint, and attempt playback.",
-        "Map the f_102da774 volume apply/restore choices and the mode-zero f_102c3a34 sink lifecycle. Do not infer successful playback or volume changes from SOAP success."
+        "Established: common startup selects volumes and forwards the reset flag; mode-zero VLI validates the local URI identity and then selects and starts a streamer source without those volume inputs.",
+        "Bind impl+0x5bc slot +0x6c and its peer RampToVolume counterpart to the concrete volume adjuster and restore scheduler. Trace the local VLI selection and start callbacks to see which sink resources each provider installs."
        ]
       }
      ],
@@ -71515,11 +71571,35 @@
         "address": "0x102e1698",
         "notes": "After releasing impl+0x458, if the f_102d4e80 setup path was used, calls f_102e0fb0 and returns zero. That helper builds x-rincon:%s and forwards AVTransport:1 SetAVTransportURI to group targets (0x102e1090, 0x102e10e4, 0x102e1340); this is not a local event-publish call.",
         "function": "0x102e14e0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102c3b2c",
+        "function": "0x102c3a34",
+        "notes": "On the mode-zero VLI path, the URI UUID must match the local UUID at impl+0x3dc, and f_10687980 must return a valid mapped type. The worker passes a selection record with a null snapshot and the original metadata at +0xc to f_106a8e40, which calls f_106a8b08. On success it calls f_106aa3b0 and, with the flag supplied by StartAutoplay, invokes the streamer slot +8 at 0x102c3b9c with the parsed type, local ID and 129-byte settings output. A failed selection or start does not reach the success tail; its result is not returned by StartAutoplay."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102c3e18",
+        "function": "0x102c3a34",
+        "notes": "The successful mode-zero startup tail calls f_102b4b48(impl, 1), sets impl+0xa214 and marks the AVTransport event source pending through f_1067c6ec. f_102b4b48 clears AlarmRunning and SnoozeRunning only if set and sets their paired dirty bytes +0x5a87/+0x6ed1. LastChange emits those changed flags through 0x102e5360/0x102e5398."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b578c",
+        "function": "0x102b5658",
+        "notes": "The collector promotes impl+0xa214 to the latched dirty byte +0xa09c and clears +0xa214 at 0x102b57cc on a consuming pass. In delta mode f_102e43a0 checks +0xa09c at 0x102e4f40 and emits r:DirectControlClientID, r:DirectControlIsSuspended and r:DirectControlAccountID when set. These entries can be selected for publication without changing the field values."
        }
       ],
       "todo": [
-       "Established: The peer-update helper forwards a SetAVTransportURI RPC, not a LastChange event.",
-       "Identify local updated transport fields and their publication conditions in f_102d4e80, f_102c3a34 and f_102da774."
+       "Established: successful mode-zero VLI startup marks AVTransport pending, dirties the DirectControl fields, and can publish cleared AlarmRunning and SnoozeRunning.",
+       "Trace the URI and transport-state dirty bytes set by f_102d4e80 and each URI-install/start arm in f_102da774; determine which of those deltas request a sender wake."
       ]
      },
      "state_transitions": {
@@ -71540,11 +71620,19 @@
         "address": "0x102e1668",
         "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
         "function": "0x102e14e0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102c3b2c",
+        "function": "0x102c3a34",
+        "notes": "On the mode-zero VLI path, the URI UUID must match the local UUID at impl+0x3dc, and f_10687980 must return a valid mapped type. The worker passes a selection record with a null snapshot and the original metadata at +0xc to f_106a8e40, which calls f_106a8b08. On success it calls f_106aa3b0 and, with the flag supplied by StartAutoplay, invokes the streamer slot +8 at 0x102c3b9c with the parsed type, local ID and 129-byte settings output. A failed selection or start does not reach the success tail; its result is not returned by StartAutoplay."
        }
       ],
       "todo": [
-       "Established: May run group setup before source selection, then follows the resulting transport mode and VLI classification.",
-       "Trace actual transport-state writes in the mode-zero and nonzero startup helpers and separate them from return-zero-without-start cases."
+       "Established: mode-zero non-VLI input skips startup; mode-zero VLI starts the streamer only after the local ID and source selection pass.",
+       "Trace the provider-specific state writes after streamer slot +8 and the post-URI indexed work in f_102da774 to distinguish assignment, a queued start and playback becoming active."
       ]
      },
      "return_behavior": {
@@ -71839,16 +71927,56 @@
        "address": "0x102e168c",
        "notes": "The non-override tail always clears r31 before returning at 0x102e15a4; f_102da774, f_102c3a34 and f_102e0fb0 results are not assigned to r31. No f_10c3cbfc call occurs in this worker; the 402 listed for that parser belongs to another action.",
        "function": "0x102e14e0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102e1608",
+       "function": "0x102e14e0",
+       "notes": "The first f_10687e54 call requests only the suffix, in a 49-byte buffer. The later f_10688070 call classifies the same input without output buffers. f_10687e54 requires a case-insensitive x-sonos-vli prefix, a colon at byte 11 and the first later colon at byte 36. f_10687d30 requires 1 to 4 bytes before a comma and a successful nonnegative paranoid_atoi conversion. If present, the text after that comma is copied with strlcpy. An empty or malformed URI takes the non-VLI arm, not a separate SOAP rejection."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102e1630",
+       "function": "0x102e14e0",
+       "notes": "f_10424ac4 submits the original ProgramMetaData and its strlen to f_10c3fc68 at 0x10424cdc. Within DIDL-Lite item or container context, the DIDL-Lite vli element's cookie attribute is dispatched at 0x106fa538 via parser slot +0x2c. f_10425eac converts the value to an integer through 0x110981f8; its output at wrapper sp+0x10 starts at zero, and f_1039561c replaces its saved cookie with that value if the group string changes. The separate 4097-byte scratch text at sp+0x48 does not replace the original metadata sent to either startup worker. The XML parser result is not tested for a SOAP fault."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102da940",
+       "function": "0x102da774",
+       "notes": "The add-two, low-16-bit mask, unsigned compare to 1 selects exactly 65534 and 65535. Other ui2 values seed each member target directly. On either sentinel the worker queries available members' current Master volumes (f_106f7bc4, RenderingControl GetVolume); a failed GetVolume RPC substitutes 25 for that member at 0x102db284. Each sentinel also asks the local rendering object at impl+0x5bc slot +0x18 for Master volume. Only 65534 floors the local returned volume at 10 (0x102db3cc). For 65535, the false setup-flag arm rejoins URI processing at 0x102da984 without the ramp at 0x102dae60; the true arm supplies the queried local value to that ramp."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102dabc8",
+       "function": "0x102da774",
+       "notes": "The ramp path passes the saved ResetVolumeAfter boolean as r8 to local rendering slot +0x6c and to peer helper f_106f98ac at 0x102dac6c. The peer helper serializes RenderingControl:1 RampToVolume with InstanceID 0, Channel Master, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI, and opens a RampTime output (0x106f99c8 through 0x106f9ab0). This forwards the restoration request; the autoplay worker does not wait for a subsequent volume restoration. The mode-zero VLI call supplies neither Volume nor ResetVolumeAfter."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102c3b2c",
+       "function": "0x102c3a34",
+       "notes": "On the mode-zero VLI path, the URI UUID must match the local UUID at impl+0x3dc, and f_10687980 must return a valid mapped type. The worker passes a selection record with a null snapshot and the original metadata at +0xc to f_106a8e40, which calls f_106a8b08. On success it calls f_106aa3b0 and, with the flag supplied by StartAutoplay, invokes the streamer slot +8 at 0x102c3b9c with the parsed type, local ID and 129-byte settings output. A failed selection or start does not reach the success tail; its result is not returned by StartAutoplay."
       }
      ],
-     "notes": "None Suppression: engine+0x465c \"operation overridden\" flag returns 0x32a (810) with avt_impl log \"preventing autoplay because operation is overridden\". Mode(engine+0x4654)==0 runs a full session reset before installing the stored autoplay URI via f_102da774.",
+     "notes": "The override flag at impl+0x465c returns 810 before any startup work. Initial mode 0 runs group setup, then the resulting mode controls the startup path; a still-zero mode does not run common startup.",
      "todo": [
-      "Established: the override bit can return 810 and a successful result alone does not imply startup.",
-      "Trace the full URI and metadata preprocessing in f_10687e54/f_10424ac4, including malformed or empty program strings, and the effect of Volume and ResetVolumeAfter inside f_102da774. Worker return behavior and topology gates are verified."
+      "Established: VLI URI classification, metadata scratch outputs and volume selection and forwarding are traced. Success does not imply playback.",
+      "Trace actual volume restoration in the local and peer rendering workers. Trace the consumer of the saved VLI cookie in the group controller and the common startup state/LastChange mutations."
      ],
      "resolved_findings": [
       "Resolved: +0x4654 is the autoplay-mode field written by the autoplay-mode producers documented under mp_autoplay; the overridden flag is set when a user op supersedes autoplay.",
-      "Resolved: +0x4654 is the autoplay-mode field written by the autoplay-mode producers documented under mp_autoplay; the overridden flag is set when a user op supersedes autoplay."
+      "The VLI classifier is not a general-purpose URI validator. In nonzero resulting mode startup still attempts a non-VLI URI; in mode 0 that branch skips the source startup call. Neither outcome adds an action-level invalid-URI fault."
      ]
     },
     "Stop": {
