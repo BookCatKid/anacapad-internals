@@ -88993,21 +88993,28 @@
    "errors": [
     {
      "code": 401,
-     "code_expr": null,
-     "meaning": "unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler",
+     "code_expr": "const",
+     "meaning": "The requested action name is not QPlayAuth, the only name accepted by this endpoint.",
      "fault_sites": [
       "0x1073a548"
      ],
      "conditions": [
       {
-       "description": "Request action name matches no entry in the service dispatch table after the name-table search",
+       "description": "strcmp against QPlayAuth is nonzero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "address": "0x1073a528",
+         "notes": "Dispatcher f_1073a4f0 compares the supplied action name with QPlayAuth. Equality branches to execution; inequality falls into the reject tail."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
          "address": "0x1073a548",
-         "notes": "dispatcher unknown-action fault branch; reached when the binary-search name lookup misses"
+         "notes": "The only fault call inside f_1073a4f0 uses request slot +0x14 with 401 loaded at 0x1073a53c. The load at 0x1073a82c belongs to the separate dispatcher starting at 0x1073a780."
         }
        ]
       }
@@ -89018,16 +89025,8 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x1073a548",
-       "notes": "fault raise site"
+       "notes": "The only fault call inside f_1073a4f0 uses request slot +0x14 with 401 loaded at 0x1073a53c. The load at 0x1073a82c belongs to the separate dispatcher starting at 0x1073a780."
       }
-     ],
-     "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: fault-table sweep complete - the dispatcher emits 401 from two reject paths (li 0x191 constant load at 0x1073a53c,0x1073a82c); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
      ]
     }
    ],
