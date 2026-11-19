@@ -218912,7 +218912,7 @@
      "todo": "Established: The accountTiers vocabulary is none=1, free=2, paidLimited=3 and paidPremium=4, with zero as the unnamed enum entry. The emitter skips enum zero. The model stores four tier values plus a count; exact oversized-array and unknown-value behavior remains a parser-framework question. Remaining: Trace collection parsing and entitlement/account matching consumers."
     },
     "download": {
-     "description": "f_1011b710 takes service ID, requested manifest version and a URI. Under object+0x10 mutex it rejects an already-set active byte +0xc4 with 800; otherwise it sets the byte, releases the mutex, constructs an HTTP GET with a clock-id 1 deadline 10000ms in the future and calls f_10546520. Zero HTTP status leads to streamed JSON parsing f_1011aabc using the same deadline. Failure of HTTP, JSON parsing, cache-row upsert or persistence returns 801. Success returns zero. The active byte is cleared under the mutex on normal completion. Failure to load existing svcmanifests.json logs a warning and continues to upsert and save, rather than aborting immediately. The save helper can succeed through a header-only fallback; zero download status is not proof of a full manifests-array rewrite.",
+     "description": "f_1011b710 takes service ID, requested manifest version and a URI. Under object+0x10 mutex it rejects an already-set active byte +0xc4 with 800; otherwise it sets the byte, releases the mutex, constructs an HTTP GET with a clock-id 1 deadline 10000ms in the future and calls f_10546520. Zero HTTP status leads to streamed JSON parsing f_1011aabc using the same deadline. Failure of HTTP, JSON parsing, cache-row upsert or persistence returns 801. Success returns zero. The active byte is cleared under the mutex on normal completion. Failure to load existing svcmanifests.json logs a warning and continues to upsert and save, rather than aborting immediately. The save helper can succeed through a header-only fallback; zero download status is not proof of a full manifests-array rewrite. The HTTP layer is the shared dataio client: the worker constructs an f_10545064 client on its stack and calls f_10546520, which runs the GET through the 'dataio' domain path with an internal redirect-following loop; the advertised URI is copied into a 0x401-byte buffer first. After a successful parse it copies the model with f_102399a4, reloads the persisted table through f_1011a5d0, upserts the row with f_10119434 under the 34-slot cap, commits with locked save wrapper f_1011b65c (which emits the kind-13 observer notice only when the new revision is nonzero), then inserts the row into the three-entry memory cache with f_1011be38 under its decimal '%u' key. The result constants are literal 0x320 (800) and 0x321 (801). The worker logs '%s downloading music service manifest from %s; ret=%u, lRet=0x%x' in domain 'svcmanifest' with 'Failure'/'Success' outcomes. f_1011b710 has exactly one direct caller, catalog gate f_100c6c3c, and its only trigger path is synchronous inside account reconcile f_101b869c; there is no asynchronous caller. HTTP transport internals (TLS, socket lifecycle, redirect semantics) belong to the shared dataio client and are outside this record: the worker supplies URI plus deadline and consumes only a status word.",
      "evidence": [
       {
        "type": "firmware",
@@ -218920,9 +218920,70 @@
        "build": "86.10-80260",
        "address": "0x1011b710",
        "notes": "Active-byte guard, deadline constant 10000, GET, parse/upsert/save and status result paths."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10546520",
+       "notes": "Shared dataio GET called after f_10545064 client construction; internal redirect loop observed; worker consumes only returned status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b938",
+       "notes": "f_1011aabc streaming parse call with reused deadline."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b970",
+       "notes": "f_1011a5d0 table reload whose failure only warns before upsert."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b98c",
+       "notes": "Upsert f_10119434 call on parsed row."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b9a0",
+       "notes": "Locked save wrapper f_1011b65c; emits kind13 notice for nonzero new revision."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011ba1c",
+       "notes": "Cache insert f_1011be38 keyed by snprintf '%u'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b838",
+       "notes": "addi r29,0x321: failure result 801 constant."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b8a0",
+       "notes": "addi r3,0x320: busy result 800 constant while +0xc4 byte set."
       }
      ],
-     "todo": "Established: f_1011b710 takes service ID, requested manifest version and a URI. Under object+0x10 mutex it rejects an already-set active byte +0xc4 with 800; otherwise it sets the byte, releases the mutex, constructs an HTTP GET with a clock-id 1 deadline 10000ms in the future and calls f_10546520. Zero HTTP status leads to streamed JSON parsing f_1011aabc using the same deadline. Failure of HTTP, JSON parsing, cache-row upsert or persistence returns 801. Success returns zero. The active byte is cleared under the mutex on normal completion. Failure to load existing svcmanifests.json logs a warning and continues to upsert and save, rather than aborting immediately. Remaining: Trace HTTP implementation, JSON streaming EOF/error policy, source/version input validation and asynchronous callers."
+     "resolved_findings": [
+      "Established: the sole caller chain is account reconcile f_101b869c -> catalog gate f_100c6c3c -> worker f_1011b710 at 0x100c6d04; the call is synchronous and guarded by the +0xc4 busy byte.",
+      "Established: HTTP execution is delegated to shared client f_10546520 after f_10545064 construction on the stack; the worker passes URI, a clock-id-1 deadline 10000ms out, and consumes only a status.",
+      "Established: success tail is model copy f_102399a4 -> table reload f_1011a5d0 (warning only on failure) -> upsert f_10119434 -> locked save+kind13 f_1011b65c -> '%u' cache insert f_1011be38; result constants 0x320/0x321 at 0x1011b8a0/0x1011b838.",
+      "Established: version argument is passed straight to the worker and stored as the row version; no source/URI validation beyond the downloader's own copy limits occurs inside this function."
+     ]
     },
     "capacity": {
      "description": "Manifest row upsert f_10119434 replaces an existing row with the same sid. For a new sid it permits append while count<=33, reaching a maximum of 34 rows; a full 34-row table rejects a new sid. Existing rows can still be replaced at capacity. Constructor f_101191c8 initializes exactly 34 row objects at stride 0x4fc.",
@@ -219473,7 +219534,7 @@
      "todo": "Established: descriptor/index freshness and its separation from cached-row lookup are decoded. Remaining: census every index writer and freshness caller; trace account and catalog scheduling, concurrent version changes and recovery after file replacement."
     },
     "catalog_download_wrapper": {
-     "description": "f_100c6c3c initializes status402, looks up the SID descriptor through catalog slot+0x20 and returns402 if lookup fails or capability0x400000 is absent. With that capability it expands the manifest URI through f_105543d0 into a1025-byte buffer, loads descriptor+0x128 as an unsigned halfword version, and calls f_1011b710 with the embedded manifest-file object, SID, version and URI. The worker result is returned unchanged; the wrapper adds no separate nonempty-URI check. Conditional wrapper f_100c7404 first calls f_100c6b38: a false freshness predicate returns zero, while true tail-calls the download wrapper. Adapter f_100c7464 reads SID at argument+0x134 and enters this conditional wrapper; thunk f_100c7474 subtracts0x124 from this before entering the adapter. Account reconciliation code also calls the download wrapper directly at0x101b94bc and0x101b950c, so not every download goes through the index freshness gate. Account-manager helper f_10287238 invokes this conditional wrapper and maps any nonzero result to802; its five direct add-path callers and ordering are documented in music_accounts.manifest_refresh_precondition.",
+     "description": "f_100c6c3c initializes status402, looks up the SID descriptor through catalog slot+0x20 and returns402 if lookup fails or capability0x400000 is absent. With that capability it expands the manifest URI through f_105543d0 into a1025-byte buffer, loads descriptor+0x128 as an unsigned halfword version, and calls f_1011b710 with the embedded manifest-file object, SID, version and URI. The worker result is returned unchanged; the wrapper adds no separate nonempty-URI check. Conditional wrapper f_100c7404 first calls f_100c6b38: a false freshness predicate returns zero, while true tail-calls the download wrapper. Adapter f_100c7464 reads SID at argument+0x134 and enters this conditional wrapper; thunk f_100c7474 subtracts0x124 from this before entering the adapter. Account reconciliation code also calls the download wrapper directly at0x101b94bc and0x101b950c, so not every download goes through the index freshness gate. Account-manager helper f_10287238 invokes this conditional wrapper and maps any nonzero result to802; its five direct add-path callers and ordering are documented in music_accounts.manifest_refresh_precondition. The expanded manifest URI comes from SD context string at +0xe0 through f_105543d0: when the advertised URI contains the literal '{device}' placeholder, the helper substitutes the two-byte string 'zp' from 0x10e735b0, otherwise it plain strlcpy-copies. Substitution failure to fit the caller's buffer strlcpy-copies the unsubstituted text and logs 'Service manifest URI truncated: %s' in domain 'msd'; the no-placeholder path truncates silently. The advertised fields are produced by service-descriptor element handler f_100c8900: 'manifestVersion' is strtol-parsed to the u16 at descriptor+0x128 and 'manifestUri' is validated through f_10554124 which logs 'Unable to load manifest URI %s' in domain 'musicservices'; capability 0x400000 in descriptor+0x130 marks an advertised manifest. Caller census is complete: worker f_1011b710 is reached only here; this gate is called only from reconcile f_101b869c; conditional wrapper f_100c7404 is called only by accountsmgr helper f_10287238 which maps failure to 'Failed to download manifest file (%s) for service %u, error %hu' for its five add-path callers. The only registered periodic driver is the 'checkForAvailableMusicServices' task scheduled at catalog startup f_100c8230 with self-rescheduling callback f_100c59b4 ('next check for available services in %u s [source=%s]', source 'Player'), which refreshes the descriptor list that advertises these URIs.",
      "evidence": [
       {
        "type": "firmware",
@@ -219495,9 +219556,57 @@
        "build": "86.10-80260",
        "address": "0x101b94bc",
        "notes": "Direct reconciliation download; second direct call0x101b950c follows a failed row lookup and capability check."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105543d0",
+       "notes": "{device} placeholder -> 'zp' (0x10e735b0) two-byte substitution; strlcpy fallback plus 'msd' truncation log 'Service manifest URI truncated: %s'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c8900",
+       "notes": "SD element handler: strcmp dispatch over stringsVersion/stringsUri/presentationMapVersion/presentationMapUri/manifestVersion/manifestUri/caps; strtol for manifestVersion; 'Unable to load manifest URI %s'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10554124",
+       "notes": "manifestUri validation call site at 0x100c8ec0 inside f_100c8900."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10287238",
+       "notes": "Conditional-wrapper caller; 'Failed to download manifest file (%s) for service %u, error %hu' in 'accountsmgr'; five callers f_10289d48/f_1028ad54/f_1028b2e4/f_1028b440/f_1028b5bc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c84d8",
+       "notes": "f_10572dbc schedules 'checkForAvailableMusicServices' with callback f_100c59b4 during catalog startup f_100c8230."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c59b4",
+       "notes": "Rescheduling check callback logging 'next check for available services in %u s [source=%s]'."
       }
      ],
-     "todo": "Established: wrapper gates/results and five account-manager refresh preconditions are decoded. Remaining: bind adapter registration and all indirect triggers; reconstruct reconciliation branch conditions, failure effects and scheduling, and trace public account dispatch to these callers."
+     "resolved_findings": [
+      "Established: '{device}' in an advertised manifest URI is replaced by literal 'zp' (0x10e735b0) inside f_105543d0 before download.",
+      "Established: 'manifestUri'/'manifestVersion' SD elements are parsed by f_100c8900 into ctx+0xe0 and u16 ctx+0x128; 'Unable to load manifest URI %s' at log level 3 in 'musicservices' on f_10554124 rejection.",
+      "Established: trigger census is closed: check-then-download f_100c7404 only from f_10287238 (5 account add-path callers), direct gate only from reconcile f_101b869c (0x101b94bc/0x101b950c), worker only from this gate.",
+      "Established: periodic refresh scheduling is 'checkForAvailableMusicServices' via f_10572dbc at catalog startup; callback f_100c59b4 reschedules itself and logs the next interval in 'musicservices'.",
+      "Inferred: f_10287238's five callers (f_10289d48, f_1028ad54, f_1028b2e4, f_1028b440, f_1028b5bc) are account add/refresh operations; they invoke the conditional wrapper and translate nonzero worker results into the accountsmgr error text."
+     ]
     },
     "replication_sender": {
      "description": "Manifest-file vtable0x10e8a688 has sender f_10118acc at slot+8 and received-file acceptance f_1011a204 at slot+0xc. Sender f_10118acc holds object mutex+0x10 while obtaining the cache path and calling shared sender f_10660ff0. It forwards its argument4 as the shared sender selector and argument6 as the HTTP request object, fixes content format to1, supplies revision from object+0xc0 and source-device text from+0xa4, and uses literal text/json. The shared helper formats decimal revision and content format into64-byte buffers, obtains the file length and supplies CONTENT-LENGTH, X-RINCON-LAST-UPDATE-DEVICE, X-RINCON-CONTENT-VERSION and X-RINCON-CONTENT-FORMAT headers. It sets CONTENT-TYPE from the supplied text/json and response status200 on the successful setup path. File open failure or negative size sets status500. Selector4 additionally attempts signature generation through f_10660eb0 and supplies X-RINCON-SIGNATURE on success. The file body loop requests at most4096 bytes per read; negative reads retry only for errno4. These are outgoing setup and streaming call sites, not proof of successful peer receipt.",
