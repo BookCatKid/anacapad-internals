@@ -61129,10 +61129,56 @@
       "media_capabilities": "Indexed path requires capability bitmask from f_10258ab0(engine+0x580,0,1): bit 0x400000 enables TRACK_NR, bit 0x200000 enables REL_TIME/TIME_DELTA (andis. at 0x102b91a8 / 0x102b9214). Stream path performs no capability check.",
       "service_binding": "service object must have a bound implementation (svc+4 non-NULL) else dispatcher faults 401; service enable byte ctx+0x571c gates the whole service",
       "serialization": "engine mutex at this+0x458 is held across the operation (lock guard at 0x102b9644)",
-      "status_note": "every constraint call-derived from disassembly (0x102b91a8/0x102b9214 andis., f_10258ab0 capability mask, engine+0x4654 mode field); downstream chsrc engine checks are runtime-internal, not observable preconditions",
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - .",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "status_note": "The exact gates of the wrapper and engine are enumerated here. The request requires materialized inputs, ID zero, a case-sensitive unit supported in the active mode, and a mode-dependent target parse.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102f9430",
+        "notes": "Calls engine +0x34 (0x102b95a8 in both vtables) after request +0x08 materializes the arguments. A false validation result sets 402 at 0x102f9480; a nonzero engine result is passed to request +0x14 at 0x102f944c; zero commits no outputs.",
+        "function": "0x102f935c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b9664",
+        "notes": "Engine tests the parsed ID under impl+0x458 and initializes r30=718 if nonzero. The zero branch enters f_102b9088, clears impl+0x6ed8 on success, and returns the worker code.",
+        "function": "0x102b95a8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b90d8",
+        "notes": "Mode 2 uses indexed seeks. With TRACK_NR, requires capability 0x00400000 at 0x102b91a8. REL_TIME and TIME_DELTA need 0x00200000 at 0x102b9214. Unknown unit in this mode returns 710. For other modes only REL_TIME and TIME_DELTA reach the streamer; no mask test occurs there.",
+        "function": "0x102b9088"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b92fc",
+        "notes": "Indexed time seeks parse with f_102ab830, reject a negative REL_TIME before submitting, and use f_1032e4dc with the time pair. A zero pair skips submission and succeeds. A failed boolean result maps to 701.",
+        "function": "0x102b9088"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b93c4",
+        "notes": "Track path calls strtol without an end pointer, then requires the full result in the range 1..65534; otherwise returns 711. A false indexed submission is also 711. True becomes zero.",
+        "function": "0x102b9088"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b91d4",
+        "notes": "Non-indexed paths pass milliseconds from the parsed seconds word to f_106a7930 and use its return only as a boolean. The action never exposes that return verbatim; false becomes 701.",
+        "function": "0x102b9088"
+       }
       ]
      },
      "state_dependencies": [
@@ -61594,34 +61640,96 @@
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "meaning": "The indexed and streamer calls return booleans for this action, not raw SOAP codes. The engine result is limited to zero, 701, 710, 711 and the ID gate's 718.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102b9664",
+         "notes": "Engine tests the parsed ID under impl+0x458 and initializes r30=718 if nonzero. The zero branch enters f_102b9088, clears impl+0x6ed8 on success, and returns the worker code.",
+         "function": "0x102b95a8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b90d8",
+         "notes": "Mode 2 uses indexed seeks. With TRACK_NR, requires capability 0x00400000 at 0x102b91a8. REL_TIME and TIME_DELTA need 0x00200000 at 0x102b9214. Unknown unit in this mode returns 710. For other modes only REL_TIME and TIME_DELTA reach the streamer; no mask test occurs there.",
+         "function": "0x102b9088"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b92fc",
+         "notes": "Indexed time seeks parse with f_102ab830, reject a negative REL_TIME before submitting, and use f_1032e4dc with the time pair. A zero pair skips submission and succeeds. A failed boolean result maps to 701.",
+         "function": "0x102b9088"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b93c4",
+         "notes": "Track path calls strtol without an end pointer, then requires the full result in the range 1..65534; otherwise returns 711. A false indexed submission is also 711. True becomes zero.",
+         "function": "0x102b9088"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b91d4",
+         "notes": "Non-indexed paths pass milliseconds from the parsed seconds word to f_106a7930 and use its return only as a boolean. The action never exposes that return verbatim; false becomes 701.",
+         "function": "0x102b9088"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "The indexed and streamer calls return booleans for this action, not raw SOAP codes. The engine result is limited to zero, 701, 710, 711 and the ID gate's 718.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102b9664",
+           "notes": "Engine tests the parsed ID under impl+0x458 and initializes r30=718 if nonzero. The zero branch enters f_102b9088, clears impl+0x6ed8 on success, and returns the worker code.",
+           "function": "0x102b95a8"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b90d8",
+           "notes": "Mode 2 uses indexed seeks. With TRACK_NR, requires capability 0x00400000 at 0x102b91a8. REL_TIME and TIME_DELTA need 0x00200000 at 0x102b9214. Unknown unit in this mode returns 710. For other modes only REL_TIME and TIME_DELTA reach the streamer; no mask test occurs there.",
+           "function": "0x102b9088"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b92fc",
+           "notes": "Indexed time seeks parse with f_102ab830, reject a negative REL_TIME before submitting, and use f_1032e4dc with the time pair. A zero pair skips submission and succeeds. A failed boolean result maps to 701.",
+           "function": "0x102b9088"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b93c4",
+           "notes": "Track path calls strtol without an end pointer, then requires the full result in the range 1..65534; otherwise returns 711. A false indexed submission is also 711. True becomes zero.",
+           "function": "0x102b9088"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b91d4",
+           "notes": "Non-indexed paths pass milliseconds from the parsed seconds word to f_106a7930 and use its return only as a boolean. The action never exposes that return verbatim; false becomes 701.",
+           "function": "0x102b9088"
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
@@ -61674,12 +61782,59 @@
        "build": "86.10-80260",
        "function": "0x102b95a8",
        "notes": "AVT impl vtable 0x10eaf2ec slot +0x34 entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f9430",
+       "notes": "Calls engine +0x34 (0x102b95a8 in both vtables) after request +0x08 materializes the arguments. A false validation result sets 402 at 0x102f9480; a nonzero engine result is passed to request +0x14 at 0x102f944c; zero commits no outputs.",
+       "function": "0x102f935c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b9664",
+       "notes": "Engine tests the parsed ID under impl+0x458 and initializes r30=718 if nonzero. The zero branch enters f_102b9088, clears impl+0x6ed8 on success, and returns the worker code.",
+       "function": "0x102b95a8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b90d8",
+       "notes": "Mode 2 uses indexed seeks. With TRACK_NR, requires capability 0x00400000 at 0x102b91a8. REL_TIME and TIME_DELTA need 0x00200000 at 0x102b9214. Unknown unit in this mode returns 710. For other modes only REL_TIME and TIME_DELTA reach the streamer; no mask test occurs there.",
+       "function": "0x102b9088"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b92fc",
+       "notes": "Indexed time seeks parse with f_102ab830, reject a negative REL_TIME before submitting, and use f_1032e4dc with the time pair. A zero pair skips submission and succeeds. A failed boolean result maps to 701.",
+       "function": "0x102b9088"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b93c4",
+       "notes": "Track path calls strtol without an end pointer, then requires the full result in the range 1..65534; otherwise returns 711. A false indexed submission is also 711. True becomes zero.",
+       "function": "0x102b9088"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b91d4",
+       "notes": "Non-indexed paths pass milliseconds from the parsed seconds word to f_106a7930 and use its return only as a boolean. The action never exposes that return verbatim; false becomes 701.",
+       "function": "0x102b9088"
       }
      ],
      "notes": "Impl chain: svc+4 impl object -> vfunc +0x34 = f_102b95a8 (vtable entries at 0x10eaf320 and 0x10edfbec both resolve slot +0x34 to it). f_102b95a8(engine,inst,unit,target): inst!=0 -> 718; else f_102b9088(engine,unit,target). Internal callers of the same engine exist (f_102b9464 seeks REL_TIME '00:00:00' as a reset). Accepted Units are mode-dependent, not a single static enum.",
      "todo": [
-      "Established: dispatch to handler 0x102f935c; impl chain documented - svc+4 impl object vfunc +0x34 = f_102b95a8; capability mask bits 0x200000/0x400000 gate time-seek vs track-ordinal seek.",
-      "Residual: the downstream chsrc-engine seek checks are runtime-internal and not observable as preconditions; the mask-production internals (f_10258ab0) are partly opaque. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Identify the source-state predicates inside f_10258ab0 that set indexed seek capability bits and the per-source conditions under which the indexed and streamer workers return false; their SOAP mappings are verified."
      ],
      "resolved_findings": [
       "Resolved: mask bit computation in f_10258ab0 builds the seek-capability mask from the stream type; downstream chsrc-engine checks are runtime-internal (boundary noted).",
