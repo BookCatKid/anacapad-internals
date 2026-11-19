@@ -629,7 +629,7 @@
   "/AlarmClock/Control": {
    "name": "AlarmClock",
    "control_path": "/AlarmClock/Control",
-   "description": "Alarm and clock service: alarm CRUD plus household time/timezone/settings getters and setters. Alarm ops fan into the same alarm subsystem as AVTransport RunAlarm/SnoozeAlarm machinery.",
+   "description": "Advertised alarm and clock-settings service backed by the zone-player ac_impl engine. Its 17 action descriptors cover alarm creation/update/deletion/listing and clock, timezone, format and daily-index settings. The engine and its SOAP/list/event interfaces are statically constructed. In this build SetTimeNow and GetHouseholdTimeAtStamp are unconditional 401 workers after required-input validation, so advertisement does not imply clock-setting support. Service name misses fault 401 before any action worker executes; individual action faults are documented on their actions.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -662,15 +662,14 @@
       "site_pc": "0x1018e9a8",
       "in_func": "0x1018d27c",
       "vptr": "0x10f11530"
-     },
-     {
-      "ctor": "0x107351f0",
-      "site_pc": "0x10192b34",
-      "in_func": "0x101921a0",
-      "vptr": "0x10f11530"
      }
     ],
-    "vptr": "0x10f11530"
+    "vptr": "0x10f11530",
+    "destructor": {
+     "function": "0x107351f0",
+     "callsite": "0x10192b34",
+     "in_func": "0x101921a0"
+    }
    },
    "dispatcher": {
     "addr": "0x10733b44",
@@ -10249,25 +10248,54 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE accepted at /AlarmClock/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service",
+    "mechanism": "AlarmClock has a concrete upnpeventing source at engine+8. It exposes full-state and dirty-only e:propertyset producers, and setters can mark that source pending and wake its asynchronous notification sender. WSS registry bindings and the separate alarmVersionChange observer producer are traced below; exact outgoing transport-frame construction remains a residual.",
     "lastchange_template": null,
-    "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
+    "no_template_note": "The concrete AlarmClock producer emits seven named e:property values directly. It does not emit a LastChange element; this follows the producer, not absence from a namespace-string registry.",
     "wss_event_names": [
      "alarmClock",
      "alarmVersionChange"
     ],
-    "wss_note": "Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure",
+    "wss_note": "Index 5 is explicitly installed on the AlarmClock event source and maps to alarmClock. Index 6 is explicitly emitted by f_102779a8 and maps to alarmVersionChange; its observer handoff is traced. These bindings are no longer name-only. The transport sink and final WSS frame encoding are not yet linked to these producers.",
     "evidence": [
      {
       "type": "firmware",
       "binary": "anacapad",
       "build": "86.10-80260",
-      "address": "0x10f0bedc",
-      "notes": "event-namespace registry lists exactly 3 evented services (AVT/RCS/Queue); /Event route for this service exists in route table 0x11090c00"
+      "function": "0x10276048",
+      "address": "0x102760ec",
+      "callsite": "0x1027620c",
+      "notes": "Constructor supplies AlarmClock name 0x10f96f34, topic index 5 (li r6,5 at 0x1027605c) and engine+8 to f_1067aec4 at 0x102760ec. That constructor stores topic index at source+0xc0 (0x1067afb0). Final source vptr 0x10eaaa28 has slot +0x14 at 0x10eaaa3c = f_1027834c, subtracting 8 then branching f_10278280. Slot +0x18 at 0x10eaaa40 = f_1067ab54 forwards to source slot +0x14. f_10278280 calls f_10277d6c with full-state flag 1 for nonnull first writer (0x102782d8), flag 0 for nonnull second writer (0x102782f0), under engine+0x170 lock. This resolves the service-specific event payload producer, independently of name similarity."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10277d6c",
+      "address": "0x10277e10",
+      "callsite": "0x102782f0",
+      "notes": "Full-state branch 0x1027807c..0x10278238 emits seven direct e:property entries: TimeZone (effective rule engine+0x232, f_10c3ce18 gives 28 lowercase hex digits), TimeServer (source+8 string), TimeGeneration (source+4 unsigned), AlarmListVersion (engine+0x7ec0 identity, colon, unsigned revision +0x7edc), TimeFormat (+0x2dc), DateFormat (+0x2e0), DailyIndexRefreshTime (empty if flag +0x7ee8 is zero, otherwise f_10c3d264 formats +0x7ee9). Writers f_1067693c/f_10676968 bracket the propertyset; f_10676994/f_10676a44 bracket each property. No LastChange wrapper is used. Incremental branch checks dirty bytes +0x21d, +0x245, +0x244, +0x7ee0, +0x2e4, +0x7ef8; no dirty bytes means no document. TimeFormat and DateFormat share +0x2e4. It clears all six dirty bytes at 0x10277fa4..0x10277fbc after incremental emission; full-state branch bypasses that clearing. AlarmListVersion emission also calls f_102779a8 at 0x10277f18/0x10278198."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10276e80",
+      "address": "0x10276f70",
+      "callsite": "0x10276f78",
+      "notes": "Concrete timezone-refresh producer compares raw rules, and only on change writes dirty byte engine+0x21d = 1 and calls f_1067c6ec(engine+8). This tails to f_1067c46c(source,0,0), which sets source pending +0x110 at 0x1067c4c8 and, if a live sender exists, calls f_10678c50 at 0x1067c5c8. Sender wake sets sender+0x10e = 1 at 0x10678c80 and signals its condition at 0x10678c88; missing sender takes diagnostic/return path. Thus mutation schedules asynchronous eventing, not synchronous guaranteed delivery. The installed source payload callbacks are identified separately; this evidence does not claim a socket send occurs within the setter."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x102779a8",
+      "address": "0x10277b98",
+      "callsite": "0x10277b9c",
+      "notes": "Alarm version producer constructs identity:unsigned-revision from engine+0x7ec0/+0x7edc and passes the resulting string payload with topic index 6 to f_10677ccc at 0x10277b9c. f_10677ccc -> f_10677b94 -> f_10677970 at 0x10677bd4; f_10677970 maps the supplied index through f_109e1038 at 0x10677a88. f_109e1038 indexes 20-byte registry records at 0x110b8ce8. f_10098d34 builds index 5 alarmClock (literal 0x10f96140, record ID 20, tag 64) and index 6 alarmVersionChange (literal 0x10f9614c, record ID 24, tag 1). f_10677b94 invokes observer delivery f_1067b3a8 at 0x10677bf8, which iterates registered observers under the shared lock and invokes observer slot +8 at 0x1067b4b8. This is call-site-backed attribution for alarmVersionChange, not an assertion of end-to-end WSS frame delivery."
      }
     ],
-    "notify_path": "f_10277d6c initial-state e:property dump {TimeServer, AlarmListVersion, TimeFormat, TimeGeneration, DateFormat} -> f_10676a44 writer",
-    "payload_model": "e:property doc via f_10676a44 writer family",
+    "notify_path": "f_10276e80 dirty-store -> f_1067c6ec(engine+8) -> f_1067c46c -> live sender f_10678c50; installed source slot +0x14 -> f_1027834c -> f_10278280 -> f_10277d6c full/incremental property writer.",
+    "payload_model": "Direct e:propertyset: TimeZone, TimeServer, TimeGeneration, AlarmListVersion, TimeFormat, DateFormat, DailyIndexRefreshTime. Full snapshots contain all seven; incremental snapshots contain dirty fields only and can be empty (no document).",
     "wss_registry": [
      {
       "idx": 5,
@@ -10283,31 +10311,29 @@
      }
     ],
     "todo": [
-     "Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `alarmClock`, `alarmVersionChange`.",
-     "Residual: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
-    "resolved_findings": [
-     "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
+     "Trace the asynchronous sender consumer of AlarmClock source slot +0x18/+0x14 and the registered observer sink reached from f_1067b3a8 to outgoing GENA/WSS writes. Payload generation, dirty-byte scheduling, topic-5 source binding and topic-6 observer publication are recovered; the remaining gap is the concrete transport consumer/frame encoding, not runtime-injected AlarmClock worker dispatch."
     ]
    },
    "errors": [
     {
      "code": 401,
-     "code_expr": null,
-     "meaning": "unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler",
+     "code_expr": "li r4,0x191 at 0x10733bdc",
+     "meaning": "No exact case-sensitive action-name match in the service dispatch table; emits 401 without calling an action wrapper.",
      "fault_sites": [
       "0x10733bec"
      ],
      "conditions": [
       {
-       "description": "Request action name matches no entry in the service dispatch table after the name-table search",
+       "description": "The binary search of all 17 descriptors terminates without equality. Empty text is also a miss. This service-level entry describes only name lookup: 401 from a matched unsupported action worker is a separate action-level condition.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10733bec",
-         "notes": "dispatcher unknown-action fault branch; reached when the binary-search name lookup misses"
+         "function": "0x10733b44",
+         "address": "0x10f11580",
+         "callsite": "0x10733c7c",
+         "notes": "Complete dispatcher 0x10733b44..0x10733c88 searches 17 sorted, 12-byte action descriptors with strcmp at 0x10733bbc. Initial bounds are [0,17); lower/upper bounds change at 0x10733bc8 and 0x10733c3c. Equality selects descriptor+4 member-function encoding and descriptor+8 this adjustment; low bit selects a vtable-relative target or direct function at 0x10733c54..0x10733c88. Matched action invoked at 0x10733c7c; request result slot +0x38 tail-called at 0x10733c34. Empty or unknown case-sensitive names terminate at the single dispatcher reject tail, loading 401 at 0x10733bdc and calling request fault slot +0x14 at 0x10733bec. No other fault invocation or error-code load exists within this dispatcher; action wrappers have their own separately documented faults."
         }
        ]
       }
@@ -10317,18 +10343,13 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10733bec",
-       "notes": "fault raise site"
+       "function": "0x10733b44",
+       "address": "0x10f11580",
+       "callsite": "0x10733c7c",
+       "notes": "Complete dispatcher 0x10733b44..0x10733c88 searches 17 sorted, 12-byte action descriptors with strcmp at 0x10733bbc. Initial bounds are [0,17); lower/upper bounds change at 0x10733bc8 and 0x10733c3c. Equality selects descriptor+4 member-function encoding and descriptor+8 this adjustment; low bit selects a vtable-relative target or direct function at 0x10733c54..0x10733c88. Matched action invoked at 0x10733c7c; request result slot +0x38 tail-called at 0x10733c34. Empty or unknown case-sensitive names terminate at the single dispatcher reject tail, loading 401 at 0x10733bdc and calling request fault slot +0x14 at 0x10733bec. No other fault invocation or error-code load exists within this dispatcher; action wrappers have their own separately documented faults."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x10733bdc); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
-     ]
+     "notes": "Complete function sweep bounds service-level fault coverage to the single request+0x14 call at 0x10733bec; shared request result tail +0x38 is not another fault emitter."
     }
    ],
    "evidence": [
@@ -10336,35 +10357,34 @@
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x101953c8",
-     "notes": "service router function"
+     "function": "0x101953c8",
+     "address": "0x10195448",
+     "callsite": "0x10195778",
+     "notes": "Router record binds /AlarmClock/Control literal 0x10e75f9c and AlarmClock literal 0x10f96f34, cap flags 0x80, with constant enabled byte 1 at 0x1019557c. Generic record loop invokes service vtable+8 at 0x10195778. Registration-site enable is constant, not evidence that all shared request authorization/capability checks are bypassed. f_107351f0 called at 0x10192b34 belongs to zone-player teardown, not a second constructor."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x10f11530",
-     "notes": "service vtable"
+     "function": "0x10276048",
+     "address": "0x102761e8",
+     "callsite": "0x1018e8a4",
+     "notes": "Zone-player init f_1018d27c allocates 0x8118 bytes at 0x1018e808 and calls f_10276048 at 0x1018e8a4. Constructor installs primary vptr 0x10eaa99c at 0x102761e8, secondary interface vptr 0x10eaaa14 at engine+4 at 0x10276204, and event-source vptr 0x10eaaa28 at engine+8 at 0x1027620c. Service ctor f_10735460 at 0x1018e9a8 stores engine at service+4 (0x10735474) and engine+4 interface at service+0xc (0x107354b8). These are statically bound interfaces, not an unresolved runtime delegate."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x10733b44",
-     "notes": "service dispatcher"
+     "function": "0x10733b44",
+     "address": "0x10f11580",
+     "callsite": "0x10733c7c",
+     "notes": "Complete dispatcher 0x10733b44..0x10733c88 searches 17 sorted, 12-byte action descriptors with strcmp at 0x10733bbc. Initial bounds are [0,17); lower/upper bounds change at 0x10733bc8 and 0x10733c3c. Equality selects descriptor+4 member-function encoding and descriptor+8 this adjustment; low bit selects a vtable-relative target or direct function at 0x10733c54..0x10733c88. Matched action invoked at 0x10733c7c; request result slot +0x38 tail-called at 0x10733c34. Empty or unknown case-sensitive names terminate at the single dispatcher reject tail, loading 401 at 0x10733bdc and calling request fault slot +0x14 at 0x10733bec. No other fault invocation or error-code load exists within this dispatcher; action wrappers have their own separately documented faults."
     }
    ],
-   "notes": null,
+   "notes": "Per-action and state-variable behavior is documented on the corresponding records, not an unresolved service-level dispatch boundary.",
    "impl_files": [
     "zoneplayer/ac_impl.cxx",
     "zoneplayer/areas.cxx"
-   ],
-   "todo": [
-    "Established: the AlarmClock service delegate is statically bound: zone-player init allocates the 0x8118-byte ac_impl/acZonePlayer engine via f_10276048, whose primary vtable is 0x10eaa99c; the service wrapper f_10735460 stores that shared object at svc+0x4. Remaining work is per-action and per-state-variable semantics, tracked by their individual TODOs."
-   ],
-   "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable.",
-    "Corrected boundary: AlarmClock is not behind an unrecoverable runtime-injected delegate. The shared engine is allocated during zone-player init and constructed by f_10276048; final primary vptr 0x10eaa99c statically maps SOAP slots to ac_impl methods, including CreateAlarm +0x34 -> f_1027a980."
    ]
   },
   "/AudioIn/Control": {
