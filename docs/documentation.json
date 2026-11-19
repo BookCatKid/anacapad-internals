@@ -45920,7 +45920,7 @@
      ]
     },
     "GetDeviceCapabilities": {
-     "description": "Returns PlayMedia, RecMedia, RecQualityModes capability strings. Impl f_102ad4a4 shares the getter boilerplate; no InstanceID input on this action per the extractor's arg map.",
+     "description": "Returns three fixed capability strings in this build. Handler 0x102f8970 reads InstanceID and calls AVTransport impl slot +0x1c (0x102ad4a4). Under the impl+0x458 scope, ID zero returns PlayMedia = 'NONE, NETWORK', RecMedia = 'NOT_IMPLEMENTED', and RecQualityModes = 'NOT_IMPLEMENTED'.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8970",
@@ -45989,10 +45989,10 @@
        "direction": "in",
        "format": "decimal text",
        "type": "",
-       "accepted": "impl-side grammar applies",
+       "accepted": "The parsed 32-bit value must be zero.",
        "required": true,
        "parse_helper": "req->v[+0x1c] (required-arg parser)",
-       "description": "engine instance index; impl returns 718 when nonzero",
+       "description": "Required engine instance index. The implementation accepts only a parsed value of zero.",
        "unit": "none - dimensionless",
        "evidence": [
         {
@@ -46001,6 +46001,22 @@
          "build": "86.10-80260",
          "address": "0x102f89a4",
          "notes": "in-arg name load + req->v[+0x1c] parse call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560b50",
+         "notes": "0x105614e0 initializes a required type-4 record. The jump table at 0x10eebbdc selects 0x10560b40 for type 4, calling strtoul(buffer, NULL, 10) and storing the word at 0x10560b54. This conversion has no end-pointer check.",
+         "function": "0x10560a58"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ad578",
+         "notes": "Compares the parsed ID to zero. The nonzero branch keeps r30=0x2ce, releases scope and returns that code. The zero branch fills the three outputs and sets r30=0.",
+         "function": "0x102ad4a4"
         }
        ],
        "primitive": {
@@ -46014,13 +46030,13 @@
        "range": "0 only; nonzero InstanceID rejected by impl guard with 718",
        "special_values": "none identified",
        "default": "none - required argument",
-       "validation": "impl guard cmpwi r4,0: nonzero parsed value -> 718",
-       "accepted_values": "0"
+       "validation": "The request uses a base-10 type-4 strtoul conversion with a null end pointer, then the engine compares the stored 32-bit result to zero.",
+       "accepted_values": "Zero after conversion."
       }
      },
      "outputs": {
       "PlayMedia": {
-       "description": "Comma-separated playable media types.",
+       "description": "Fixed comma-and-space separated playable-media string: NONE, NETWORK.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46029,12 +46045,12 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "NONE, NETWORK",
+       "range": "Fixed literal in this build.",
+       "special_values": "NONE, NETWORK",
        "required": false,
-       "default": "none - impl writes the value",
-       "validation": "impl-written out arg",
+       "default": "Not applicable; this is a fixed output.",
+       "validation": "Worker copies the literal into the 1024-byte output buffer.",
        "evidence": [
         {
          "type": "firmware",
@@ -46049,12 +46065,20 @@
          "build": "86.10-80260",
          "address": "0x10eb3220",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ad5f8",
+         "notes": "strlcpy writes this fixed output.",
+         "function": "0x102ad4a4"
         }
        ],
        "notes": null
       },
       "RecMedia": {
-       "description": "Recordable media types (empty typical).",
+       "description": "Fixed recording-media response: NOT_IMPLEMENTED, not an empty string.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46063,12 +46087,12 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "NOT_IMPLEMENTED",
+       "range": "Fixed literal in this build.",
+       "special_values": "NOT_IMPLEMENTED",
        "required": false,
-       "default": "none - impl writes the value",
-       "validation": "impl-written out arg",
+       "default": "Not applicable; this is a fixed output.",
+       "validation": "Worker copies the literal into the 1024-byte output buffer.",
        "evidence": [
         {
          "type": "firmware",
@@ -46083,12 +46107,20 @@
          "build": "86.10-80260",
          "address": "0x10eb322c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ad608",
+         "notes": "strlcpy writes this fixed output.",
+         "function": "0x102ad4a4"
         }
        ],
        "notes": null
       },
       "RecQualityModes": {
-       "description": "Supported record quality modes.",
+       "description": "Fixed record-quality response: NOT_IMPLEMENTED.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -46097,12 +46129,12 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "NOT_IMPLEMENTED",
+       "range": "Fixed literal in this build.",
+       "special_values": "NOT_IMPLEMENTED",
        "required": false,
-       "default": "none - impl writes the value",
-       "validation": "impl-written out arg",
+       "default": "Not applicable; this is a fixed output.",
+       "validation": "Worker copies the literal into the 1024-byte output buffer.",
        "evidence": [
         {
          "type": "firmware",
@@ -46117,101 +46149,157 @@
          "build": "86.10-80260",
          "address": "0x10eb3238",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ad61c",
+         "notes": "strlcpy writes this fixed output.",
+         "function": "0x102ad4a4"
         }
        ],
        "notes": null
       }
      },
      "validation": {
-      "description": "See inputs.",
+      "description": "TRequest materialization precedes the implementation call. The type-4 conversion is base 10; the engine checks the resulting word, not the original spelling.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad4a4",
-        "notes": "impl decode",
-        "function": "f_102ad4a4"
+        "address": "0x10560b50",
+        "notes": "0x105614e0 initializes a required type-4 record. The jump table at 0x10eebbdc selects 0x10560b40 for type 4, calling strtoul(buffer, NULL, 10) and storing the word at 0x10560b54. This conversion has no end-pointer check.",
+        "function": "0x10560a58"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107304b4",
+        "notes": "TRequest validation tests materialized byte +0x31 and optional byte +0x30, returning false for an unmaterialized required record.",
+        "function": "0x10730414"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ad578",
+        "notes": "Compares the parsed ID to zero. The nonzero branch keeps r30=0x2ce, releases scope and returns that code. The zero branch fills the three outputs and sets r30=0.",
+        "function": "0x102ad4a4"
        }
       ]
      },
      "requirements": {
-      "description": "InstanceID==0 only (where present).",
+      "description": "The request must materialize the required InstanceID input; its parsed value must be zero.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad4a4",
-        "notes": "impl decode",
-        "function": "f_102ad4a4"
+        "address": "0x102f8a04",
+        "notes": "Handler 0x102f8970 allocates and validates one input before calling AVTransport impl slot +0x1c; both impl tables bind this slot to 0x102ad4a4.",
+        "function": "0x102f8970"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ad578",
+        "notes": "Compares the parsed ID to zero. The nonzero branch keeps r30=0x2ce, releases scope and returns that code. The zero branch fills the three outputs and sets r30=0.",
+        "function": "0x102ad4a4"
        }
       ]
      },
      "state_dependencies": {
-      "description": "Device capability strings read from static engine config; provenance unresolved.",
+      "description": "Capability outputs are literals in firmware rodata at 0x10eafd28 and 0x10ea9108. No source mode or per-device configuration participates in choosing them in this build.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad4a4",
-        "notes": "impl decode",
-        "function": "f_102ad4a4"
+        "address": "0x102ad5e0",
+        "notes": "The success block calls strlcpy three times: PlayMedia uses 0x10eafd28; both recording outputs use 0x10ea9108. Each pointer/size pair is supplied by the wrapper, with size 0x400.",
+        "function": "0x102ad4a4"
        }
       ]
      },
      "side_effects": [
       {
-       "description": "Read-only under impl+0x458 mutex; no engine writes.",
+       "description": "Acquires and releases the engine scope and writes only the caller's output buffers; this getter does not change transport settings.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "f_102ad4a4",
-         "notes": "impl decode",
-         "function": "f_102ad4a4"
+         "address": "0x102ad58c",
+         "notes": "The scope acquired via 0x10557afc at 0x102ad554 is released via 0x100caad8, whose dispatch to 0x105576f8/0x10557848 is scope cleanup, not a capability-change event authored by this getter.",
+         "function": "0x102ad4a4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ad5e0",
+         "notes": "The success block calls strlcpy three times: PlayMedia uses 0x10eafd28; both recording outputs use 0x10ea9108. Each pointer/size pair is supplied by the wrapper, with size 0x400.",
+         "function": "0x102ad4a4"
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "None - pure read.",
+      "description": "No capability-change event is enqueued by this getter. The call to 0x100caad8 releases the engine scope.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad4a4",
-        "notes": "impl decode",
-        "function": "f_102ad4a4"
+        "address": "0x102ad58c",
+        "notes": "The scope acquired via 0x10557afc at 0x102ad554 is released via 0x100caad8, whose dispatch to 0x105576f8/0x10557848 is scope cleanup, not a capability-change event authored by this getter.",
+        "function": "0x102ad4a4"
        }
       ]
      },
      "state_transitions": {
-      "description": "None.",
+      "description": "None. The getter does not change transport state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad4a4",
-        "notes": "impl decode",
-        "function": "f_102ad4a4"
+        "address": "0x102ad5e0",
+        "notes": "The success block calls strlcpy three times: PlayMedia uses 0x10eafd28; both recording outputs use 0x10ea9108. Each pointer/size pair is supplied by the wrapper, with size 0x400.",
+        "function": "0x102ad4a4"
        }
       ]
      },
      "return_behavior": {
-      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "description": "The wrapper commits the three output records after impl success. Request-layer rejection emits 402 before impl dispatch; nonzero parsed InstanceID returns 718 through request slot +0x14 instead of committing outputs.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad4a4",
-        "notes": "impl decode",
-        "function": "f_102ad4a4"
+        "address": "0x102f8a54",
+        "notes": "The result of TRequest slot +0x08 at 0x102f89cc is tested at 0x102f89d0. False branches here to load 402, before calling the engine. Both this branch and the nonzero engine-result branch call TRequest +0x14 at 0x102f8a20.",
+        "function": "0x102f8970"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ad578",
+        "notes": "Compares the parsed ID to zero. The nonzero branch keeps r30=0x2ce, releases scope and returns that code. The zero branch fills the three outputs and sets r30=0.",
+        "function": "0x102ad4a4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102f8af8",
+        "notes": "The zero-result path fills output records in order from the three local buffers and commits with request slot +0x0c.",
+        "function": "0x102f8970"
        }
       ]
      },
@@ -46219,16 +46307,26 @@
      "errors": [
       {
        "code": 402,
-       "meaning": "request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter",
+       "meaning": "Required InstanceID input could not be materialized by the request parser.",
        "conditions": [
         {
-         "description": "malformed/missing SOAP arg envelope",
+         "description": "The wrapper's TRequest +0x08 call returns zero, before the engine runs.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "shared request-object parse vfunc; same layer emits 402 in sibling handlers"
+           "address": "0x102f8a54",
+           "notes": "The result of TRequest slot +0x08 at 0x102f89cc is tested at 0x102f89d0. False branches here to load 402, before calling the engine. Both this branch and the nonzero engine-result branch call TRequest +0x14 at 0x102f8a20.",
+           "function": "0x102f8970"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x107304b4",
+           "notes": "TRequest validation tests materialized byte +0x31 and optional byte +0x30, returning false for an unmaterialized required record.",
+           "function": "0x10730414"
           }
          ]
         }
@@ -46238,27 +46336,43 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "shared request-object arg-parse vfuncs (slot 28 InstanceID read / slot 12 commit); same layer emits 402 Invalid Args in sibling handlers"
+         "address": "0x102f8a54",
+         "notes": "The result of TRequest slot +0x08 at 0x102f89cc is tested at 0x102f89d0. False branches here to load 402, before calling the engine. Both this branch and the nonzero engine-result branch call TRequest +0x14 at 0x102f8a20.",
+         "function": "0x102f8970"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107304b4",
+         "notes": "TRequest validation tests materialized byte +0x31 and optional byte +0x30, returning false for an unmaterialized required record.",
+         "function": "0x10730414"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 402; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "fault_sites": []
       },
       {
        "code": 718,
-       "meaning": "Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit",
+       "meaning": "Parsed InstanceID was nonzero.",
        "conditions": [
         {
-         "description": "InstanceID parses to nonzero / session object fails to resolve",
+         "description": "Validation succeeded but the parsed InstanceID word is not zero. The wrapper emits the engine's 718 via TRequest +0x14.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "718 emitters concentrated in transport request-object fns (53 fns incl. f_102ad4a4, f_102d2e54); pattern proven on sibling action Stop at 0x102d2e94"
+           "address": "0x102ad578",
+           "notes": "Compares the parsed ID to zero. The nonzero branch keeps r30=0x2ce, releases scope and returns that code. The zero branch fills the three outputs and sets r30=0.",
+           "function": "0x102ad4a4"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102f8a54",
+           "notes": "The result of TRequest slot +0x08 at 0x102f89cc is tested at 0x102f89d0. False branches here to load 402, before calling the engine. Both this branch and the nonzero engine-result branch call TRequest +0x14 at 0x102f8a20.",
+           "function": "0x102f8970"
           }
          ]
         }
@@ -46268,14 +46382,20 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "718=nonzero-InstanceID rejection convention; li 0x2ce emitters in transport request-object layer (f_102a*/f_102d*), proven on sibling actions"
+         "address": "0x102ad578",
+         "notes": "Compares the parsed ID to zero. The nonzero branch keeps r30=0x2ce, releases scope and returns that code. The zero branch fills the three outputs and sets r30=0.",
+         "function": "0x102ad4a4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f8a54",
+         "notes": "The result of TRequest slot +0x08 at 0x102f89cc is tested at 0x102f89d0. False branches here to load 402, before calling the engine. Both this branch and the nonzero engine-result branch call TRequest +0x14 at 0x102f8a20.",
+         "function": "0x102f8970"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 718; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "fault_sites": []
       }
      ],
      "firmware_differences": [],
@@ -46309,13 +46429,49 @@
        "build": "86.10-80260",
        "address": "0x10eb30cc",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f8a04",
+       "notes": "Handler 0x102f8970 allocates and validates one input before calling AVTransport impl slot +0x1c; both impl tables bind this slot to 0x102ad4a4.",
+       "function": "0x102f8970"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560b50",
+       "notes": "0x105614e0 initializes a required type-4 record. The jump table at 0x10eebbdc selects 0x10560b40 for type 4, calling strtoul(buffer, NULL, 10) and storing the word at 0x10560b54. This conversion has no end-pointer check.",
+       "function": "0x10560a58"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ad578",
+       "notes": "Compares the parsed ID to zero. The nonzero branch keeps r30=0x2ce, releases scope and returns that code. The zero branch fills the three outputs and sets r30=0.",
+       "function": "0x102ad4a4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ad5e0",
+       "notes": "The success block calls strlcpy three times: PlayMedia uses 0x10eafd28; both recording outputs use 0x10ea9108. Each pointer/size pair is supplied by the wrapper, with size 0x400.",
+       "function": "0x102ad4a4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f8af8",
+       "notes": "The zero-result path fills output records in order from the three local buffers and commits with request slot +0x0c.",
+       "function": "0x102f8970"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102f8970; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetMediaInfo": {
      "description": "Returns media/session metadata: NrTracks, MediaDuration, CurrentURI, CurrentURIMetaData, NextURI, NextURIMetaData, PlayMedium, RecordMedium, WriteStatus. Impl f_102adcb4 shares the wide-arg getter boilerplate; fields come from the engine's media descriptor (impl+0x580/session for indexed, streamer otherwise).",
