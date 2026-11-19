@@ -12286,7 +12286,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Slot +0x48 is the same function in both vtables. The wrapper treats 1032 as success: at 0x10737ea8 it compares the worker result against 0x408 and takes the commit path, then runs the slot +0x74 follow-up, which is how a satellite that has just been reconfigured reports itself."
     },
     "CreateStereoPair": {
-     "description": "Creates a stereo pair from the players named in ChannelMapSet. The wrapper parses ChannelMapSet (cap 640) and calls slot +0x20 of runtime vtable 0x10ebc630, which the most-derived class overrides with 0x10350210: a five-instruction thunk that loads the same object's slot +0x18 and tail-calls it. The action therefore runs exactly the AddBondedZones implementation (f_1035560c then the bonding worker f_103548f4) with the same argument, and has the same validation, side effects and error codes; the only difference is the SOAP action name.",
+     "description": "Runtime slot +0x20 selects the six-instruction f_10350210 thunk, which tail-calls slot +0x18 and reaches the AddBondedZones worker. The request and submitted map must validate for the local UUID. A nonempty existing bonded map must also validate. A nonempty HT map at impl+0xe60 yields 402; otherwise the worker reaches the constant-401 helper. Thus the application branch is unreachable on this build, but the failure path can run rollback and publish a bondedZoneChange result.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10735f3c",
@@ -12326,7 +12326,7 @@
         "obj": "DeviceProperties impl (r5-in)",
         "slot": 32,
         "target": "0x10350210",
-        "purpose": "tail-call slot +0x18, the bonding worker"
+        "purpose": "dispatch to f_10350210, which tail-calls +0x18"
        },
        {
         "site": "0x10735fd8",
@@ -12338,13 +12338,13 @@
         "site": "0x10736020",
         "obj": "TRequest (r4-in)",
         "slot": 12,
-        "purpose": "commit success"
+        "purpose": "generic success commit, unreachable for this worker"
        }
       ]
      },
      "inputs": {
       "ChannelMapSet": {
-       "description": "Channel map describing which player takes which channel. The channel map is parsed by f_1053c234/f_1053e0c4: entries are separated by ';', each entry is a 24-character player UUID followed by ':' and its channel token (f_1053d8a4), at most 16 entries are kept, duplicate UUIDs are rejected with the log 'Duplicate entry: %s at index %zu and %zu' (category chanmapset), and the parse result records whether the local UUID (impl+0x25c) is present and at which index. For a stereo pair the map names the two players and their left and right channels.",
+       "description": "Channel map describing which player takes which channel. The channel map is parsed by f_1053c234/f_1053e0c4: entries are separated by ';', each entry is a 24-character player UUID followed by ':' and its channel token (f_1053d8a4), at most 16 entries are kept, duplicate UUIDs are rejected with the log 'Duplicate entry: %s at index %zu and %zu' (category chanmapset), and the parse result records whether the local UUID (impl+0x25c) is present and at which index. This firmware validates the map but does not apply it through this action.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -12381,8 +12381,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10e98278",
-         "notes": "impl vfunc consumes the map string"
+         "address": "0x103549b8",
+         "notes": "Wrapper dispatch at 0x10735fbc reaches this submitted-map parse"
         },
         {
          "type": "firmware",
@@ -12434,160 +12434,249 @@
       ]
      },
      "requirements": {
-      "description": "Identical to AddBondedZones: ChannelMapSet must parse and contain the local UUID, and the player must already have a bonded map (impl+0xbb4) or a channel map (impl+0xe60).",
+      "description": "The request and submitted map must validate for the local UUID. A nonempty existing bonded map must also validate. A nonempty HT map at impl+0xe60 yields 402; otherwise the worker reaches the constant-401 helper.",
       "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10350210",
-        "notes": "thunk to slot +0x18"
-       },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x103549b8",
-        "notes": "map parse"
+        "notes": "Submitted-map validation"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10354a54",
-        "notes": "impl+0xe60 test"
-       }
-      ]
-     },
-     "state_dependencies": {
-      "description": "Same state as AddBondedZones: impl+0xbb4, impl+0xe60, impl+0x25c and the SOAP context at impl+0xbb0.",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10350218",
-        "notes": "loads slot +0x18 of the same object"
+        "address": "0x10354bcc",
+        "notes": "Valid existing map rejoins the HT-map gate"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1035498c",
-        "notes": "saved map"
+        "address": "0x10354a5c",
+        "notes": "Nonempty HT map leads to 402"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x103549a4",
-        "notes": "local UUID"
-       }
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "Runs the AddBondedZones bonding path: applies the map, rolls back on failure, pushes zone attributes and AVTransport state to the other member and emits the bondedZoneChange topology event with eventType 'Added'.",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10350224",
-         "notes": "tail-call into slot +0x18"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10354aa0",
-         "notes": "rollback"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1035c7c4",
-         "notes": "eventType 'Added'"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1035ca08",
-         "notes": "topology publisher"
-        }
-       ]
-      }
-     ],
-     "events_triggered": {
-      "description": "No GENA event; the in-process bondedZoneChange topology event is published by the shared bonding path.",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x1035c9f4",
-        "notes": "event name"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10350210",
-        "notes": "thunk contains no event call"
-       }
-      ]
-     },
-     "state_transitions": {
-      "description": "On success the two players become a bonded pair and the bonded map at impl+0xbb4 is replaced; on failure the previous map is restored.",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10354aa0",
-        "notes": "restore on failure"
-       }
-      ]
-     },
-     "return_behavior": {
-      "description": "Returns whatever the bonding worker returns, so the codes are those of AddBondedZones: 0, 402 for a bad or non-local map, 401 from the f_1035c738 stub when the player has no map at all, 1034 for the apply-result band and 501 for a joinZone failure. TRequest validation failure is 402.",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10736020",
-        "notes": "commit"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x1073600c",
-        "notes": "wrapper 402"
+        "address": "0x10354a70",
+        "notes": "Calls apply stub"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x1035c73c",
-        "notes": "401 stub"
+        "notes": "Unconditional 401"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10354bd0",
-        "notes": "1034"
+        "address": "0x10354a78",
+        "notes": "Only zero would enter application"
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "The initial path reads impl+0xbb4, +0xe60 and +0x25c. Failure can invoke f_105b5030 at 0x10354aa0, reaching runtime teardown. Local teardown reads the current map at impl+0xbb4, UUID at +0x25c, trigger byte at +0xe34, rendering/sonar manager at +0x1a80, flag +0xa54, settings backend +0x960, configuration backend +0x950, and transport manager +0x1a88.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035496c",
+        "notes": "Prior map"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10354ce8",
-        "notes": "501"
+        "address": "0x10354a54",
+        "notes": "HT map"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10354aa0",
+        "notes": "Rollback dispatch"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10352e84",
+        "notes": "Current map"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360870",
+        "notes": "Rendering/sonar manager"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103608bc",
+        "notes": "Flag"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360910",
+        "notes": "Settings backend"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360bd4",
+        "notes": "Configuration backend"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360d2c",
+        "notes": "Transport manager"
+       }
+      ],
+      "todo": [
+       "Established: f_10360784 validates and updates the local map, then uses configuration and playback delegates.",
+       "Unknown: Which concrete delegates supply the remaining teardown state and how their results affect teardown.",
+       "Close it by following the constructor objects at impl+0x960, +0x950 and +0x1a88 into the calls reached from 0x10360910, 0x10360bd4 and 0x10360d2c."
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Failure can attempt rollback with the saved map at 0x10354aa0 and discards its result. Applying the requested map and the new-bond topology and state propagation are behind the unreachable success gate.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035498c",
+         "notes": "Save previous map"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10354aa0",
+         "notes": "Rollback"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10354a78",
+         "notes": "Application gate"
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "Failure can publish bondedZoneChange with the failure result at 0x10354ba8. Validated local teardown requests GENA processing at 0x103608d4 via f_1067c6ec. f_1067c46c checks for a sender; this does not guarantee a wire NOTIFY.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10354ba8",
+        "notes": "Failure event"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103608d4",
+        "notes": "Dirty event-source request"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c5c8",
+        "notes": "Sender path"
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "The requested map is never applied. Attempted rollback can clear sonar configuration at 0x1036087c/0x10360898; the reported failure does not guarantee restoration or unchanged state.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10354aa0",
+        "notes": "Rollback result discarded"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1036087c",
+        "notes": "Configuration call"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10360898",
+        "notes": "Second configuration call"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "The only reachable results are 401 from the apply stub and 402 for request/map validation or a nonempty HT map. The success, 1034 and 501 outcomes are unreachable through this wrapper.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103549b8",
+        "notes": "Submitted-map validation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10354bcc",
+        "notes": "Valid existing map rejoins the HT-map gate"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10354a5c",
+        "notes": "Nonempty HT map leads to 402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10354a70",
+        "notes": "Calls apply stub"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035c73c",
+        "notes": "Unconditional 401"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10354a78",
+        "notes": "Only zero would enter application"
        }
       ]
      },
@@ -12601,40 +12690,35 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "0x192 at 0x103549c4 and at 0x1073600c",
-       "meaning": "TRequest validation failed, or ChannelMapSet did not parse (bad entry, duplicate UUID or more than 16 entries) or did not contain this player's own UUID.",
+       "code_expr": null,
+       "meaning": "Request or map validation fails, or the HT map is nonempty.",
        "fault_sites": [
         "0x10735fd8"
        ],
        "conditions": [
         {
-         "description": "worker map parse returns 0",
+         "description": "Request or map validation fails, or the HT map is nonempty.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x103549b8",
-           "notes": "f_1053c234 call"
+           "notes": "Submitted-map validation"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103549c0",
-           "notes": "branch to the 402 exit"
-          }
-         ]
-        },
-        {
-         "description": "req->v[+0x08] returned 0",
-         "evidence": [
+           "address": "0x10354bcc",
+           "notes": "Valid existing map rejoins the HT-map gate"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10735f1c",
-           "notes": "addi r4,0x192"
+           "address": "0x10354a5c",
+           "notes": "Nonempty HT map leads to 402"
           }
          ]
         }
@@ -12644,73 +12728,42 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735ee8",
-         "notes": "fault emit"
+         "address": "0x10735fd8",
+         "notes": "Wrapper fault dispatch"
         }
        ]
       },
       {
        "code": 401,
-       "code_expr": "0x191 returned by f_1035c738",
-       "meaning": "The player has neither an existing bonded map at impl+0xbb4 nor a channel map at impl+0xe60, so bonding is not available on it; the helper that would perform it is a stub returning 401 in this firmware.",
+       "code_expr": null,
+       "meaning": "The apply helper unconditionally returns 401 after the preceding validations.",
        "fault_sites": [
         "0x10735fd8"
        ],
        "conditions": [
         {
-         "description": "f_1035c738 is reached and returns 401",
+         "description": "The apply helper unconditionally returns 401 after the preceding validations.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x10354a70",
-           "notes": "call site"
+           "notes": "Calls apply stub"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x1035c73c",
-           "notes": "addi r3,0x191"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10354a74",
-         "notes": "rc tested immediately after the call"
-        }
-       ]
-      },
-      {
-       "code": 1034,
-       "code_expr": "0x40a at 0x10354bd0",
-       "meaning": "The bonding apply step reported a result in the band tested at 0x10354ad4 (apply result minus 1001 within one, or exactly 1024), which the worker maps to 1034 before the timing log.",
-       "fault_sites": [
-        "0x10735fd8"
-       ],
-       "conditions": [
-        {
-         "description": "apply result in the tested band",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10354ad4",
-           "notes": "addi r9,-0x3e9 then range test"
+           "notes": "Unconditional 401"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10354ae4",
-           "notes": "0x400 comparison"
+           "address": "0x10354a78",
+           "notes": "Only zero would enter application"
           }
          ]
         }
@@ -12720,46 +12773,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10354bd0",
-         "notes": "literal load"
-        }
-       ]
-      },
-      {
-       "code": 501,
-       "code_expr": "0x1f5 at 0x10354ce8",
-       "meaning": "The joinZone request to a member failed, logged as 'send joinZone to %s failed: %s' under category dp_zpimpl.",
-       "fault_sites": [
-        "0x10735fd8"
-       ],
-       "conditions": [
-        {
-         "description": "member joinZone call returns an error",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10354cc8",
-           "notes": "log format string"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10354ce8",
-           "notes": "rc set to 501"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10354ce8",
-         "notes": "literal load"
+         "address": "0x10735fd8",
+         "notes": "Wrapper fault dispatch"
         }
        ]
       }
